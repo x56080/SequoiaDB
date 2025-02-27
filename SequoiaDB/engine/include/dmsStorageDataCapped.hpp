@@ -260,6 +260,12 @@ namespace engine
                                       dmsRecordData &recordData,
                                       dmsRecordRW &recordRW ) ;
 
+      virtual INT32 _doMarkInsert( dmsMBContext *context,
+                                   pmdEDUCB *cb,
+                                   dmsExtRW &extRW,
+                                   dmsRecordID &foundRID,
+                                   dmsRecordData &recordData ) ;
+
       virtual void _finalRecordSize( UINT32 &size,
                                      const dmsRecordData &recordData ) ;
 

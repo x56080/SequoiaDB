@@ -488,7 +488,8 @@ clsFiles = [
       "cls/clsMainCLMonAggregator.cpp",
       "cls/clsRemoteOperator.cpp",
       "cls/clsResourceContainer.cpp",
-      "cls/clsOprHandler.cpp"
+      "cls/clsOprHandler.cpp",
+      "cls/clsRecycleRecordJob.cpp"
       ]
 
 dpsFiles = [

@@ -2629,7 +2629,8 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB_DUMPCLSIMPLE, "_SDB_DMSCB::dumpInfo" )
    INT32 _SDB_DMSCB::dumpInfo( MON_CL_SIM_LIST &collectionList,
                                BOOLEAN sys,
-                               BOOLEAN dumpIdx )
+                               BOOLEAN dumpIdx,
+                               dmsCLFilter *pFilter )
    {
       PD_TRACE_ENTRY ( SDB__SDB_DMSCB_DUMPCLSIMPLE );
       INT32 rc = SDB_OK ;
@@ -2655,7 +2656,7 @@ namespace engine
          {
             continue ;
          }
-         rc = su->dumpInfo ( collectionList, sys, dumpIdx ) ;
+         rc = su->dumpInfo ( collectionList, sys, dumpIdx, pFilter ) ;
          if ( rc )
          {
             goto error ;
@@ -2950,7 +2951,7 @@ namespace engine
       return rc ;
    }
 
-   INT32 _SDB_DMSCB::dumpInfo( MON_CSNAME_VEC &vecCS, BOOLEAN sys, dmsFilter *pFilter )
+   INT32 _SDB_DMSCB::dumpInfo( MON_CSNAME_VEC &vecCS, BOOLEAN sys, dmsCSFilter *pFilter )
    {
       INT32 rc = SDB_OK ;
       CSCB_MAP_CONST_ITER it ;

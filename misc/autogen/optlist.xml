@@ -3064,4 +3064,24 @@
       <typeofweb>int</typeofweb>
    </opt>
 
+   <opt>
+      <name>PMD_OPTION_RECORD_RECYCLE_DELAY</name>
+      <long>recordrecycledelay</long>
+      <description>
+         <en>Delay time to recycle record, in unit of minute. Records in transaction sometimes cannot be deleted immediately. A background job would recycle them after a period of no write operations. The time is named delay time. Default: 15, in unit of minute. 0 is turning off the background job</en>
+         <cn>回收记录的延迟时间。事务中的记录有时候不能立即删除。会有后台线程在一段时间没有写操作之后再去回收它们。这段时间称为延迟时间。默认值：15，单位为分钟，0表示关闭后台删除线程</cn>
+      </description>
+      <reloadable>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
+      </reloadable>
+      <detail>
+         <en>Delay time to recycle record, in unit of minute. Records in transaction sometimes cannot be deleted immediately. A background job would recycle them after a period of no write operations. The time is named delay time. Default: 15, in unit of minute. 0 is turning off the background job</en>
+         <cn>回收记录的延迟时间。事务中的记录有时候不能立即删除。会有后台线程在一段时间没有写操作之后再去回收它们。这段时间称为延迟时间。默认值：15，单位为分钟，0表示关闭后台删除线程</cn>
+      </detail>
+      <type>int</type>
+      <default>15</default>
+      <typeofweb>int</typeofweb>
+   </opt>
+
 </optlist>

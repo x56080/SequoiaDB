@@ -701,6 +701,7 @@ namespace engine
          OSS_INLINE UINT64 getFsCacheExpiredMs() const { return _fsCacheExpiredMs ; }
 
          OSS_INLINE const INT32 getReplSize() const { return _replSize ; }
+         OSS_INLINE UINT32 getRecordRecycleDelay() const { return _recordRecycleDelay ; }
 
 #ifdef SDB_ENTERPRISE
 
@@ -860,6 +861,7 @@ namespace engine
          UINT64      _fsCacheExpiredMs ;
 
          INT32       _replSize ;
+         UINT32      _recordRecycleDelay ;
 
 #ifdef SDB_ENTERPRISE
 

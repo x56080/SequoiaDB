@@ -57,6 +57,7 @@
 #include "pmdController.hpp"
 #include "clsResourceContainer.hpp"
 #include "clsUtil.hpp"
+#include "clsRecycleRecordJob.hpp"
 
 using namespace bson ;
 
@@ -985,6 +986,15 @@ namespace engine
          rc = startStorageCheckJob( NULL ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Start storage checking job thread failed, rc: %d",
+                      rc ) ;
+      }
+
+      if ( SDB_ROLE_DATA == pmdGetKRCB()->getDBRole() ||
+           SDB_ROLE_CATALOG == pmdGetKRCB()->getDBRole() )
+      {
+         rc = startRecycleRecordJob( NULL ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Start recycle record job thread failed, rc: %d",
                       rc ) ;
       }
 

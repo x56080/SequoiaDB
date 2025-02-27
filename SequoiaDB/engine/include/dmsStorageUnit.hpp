@@ -287,6 +287,19 @@ namespace engine
    } ;
 
    /*
+      _dmsCLFilter define
+   */
+   class _dmsCLFilter : public SDBObject
+   {
+      public:
+         _dmsCLFilter() {}
+         virtual ~_dmsCLFilter() {}
+      public:
+         virtual BOOLEAN filter( const dmsMBStatInfo &stat ) = 0 ;
+   } ;
+   typedef _dmsCLFilter dmsCLFilter ;
+
+   /*
       _dmsStorageUnit define
    */
    class _dmsStorageUnit : public SDBObject
@@ -395,13 +408,15 @@ namespace engine
       public:
          INT32    dumpInfo ( MON_CL_SIM_LIST &clList,
                              BOOLEAN sys = FALSE,
-                             BOOLEAN dumpIdx = FALSE ) ;
+                             BOOLEAN dumpIdx = FALSE,
+                             dmsCLFilter *pFilter = NULL ) ;
          INT32    dumpInfo ( monCLSimple &collection,
                              dmsMBContext *context,
                              BOOLEAN dumpIdx = FALSE ) ;
          INT32    dumpInfo ( MON_CL_SIM_VEC &clList,
                              BOOLEAN sys = FALSE,
-                             BOOLEAN dumpIdx = FALSE ) ;
+                             BOOLEAN dumpIdx = FALSE,
+                             dmsCLFilter *pFilter = NULL ) ;
          INT32    dumpInfo ( MON_CL_LIST &clList,
                              BOOLEAN sys = FALSE ) ;
          void     dumpInfo ( monStorageUnit &storageUnit ) ;
@@ -436,7 +451,8 @@ namespace engine
          //       metadataLatch is locked
          INT32    _dumpCLInfo ( monCollection &collection, UINT16 mbID ) ;
 
-         INT32    _dumpCLInfo ( monCLSimple &collection, UINT16 mbID ) ;
+         INT32    _dumpCLInfo ( monCLSimple &collection, UINT16 mbID,
+                                dmsCLFilter *pFilter = NULL ) ;
 
          INT32    _getIndexes ( dmsMBContext *context,
                                 MON_IDX_LIST &resultIndexes ) ;

@@ -148,7 +148,10 @@ namespace engine
          _pOldVer->releaseRecord() ;
       }
 
-      if ( !_isDiskDeleting || !pmdGetOptionCB()->recycleRecord() )
+      // If maxDeletingRecord != 0, the clsRecycleRecordJob would
+      // handle this deleting record
+      if ( !_isDiskDeleting || !pmdGetOptionCB()->recycleRecord() ||
+           pmdGetOptionCB()->getRecordRecycleDelay() != 0 )
       {
          result = UTIL_LJOB_DO_FINISH ;
          goto done ;
@@ -384,7 +387,10 @@ namespace engine
          PD_LOG( PDDEBUG, "Delete old record for rid[%s] from memory",
                  lockId.toString().c_str() ) ;
 
-         if ( !isDiskDeleting || !pmdGetOptionCB()->recycleRecord() )
+         // If maxDeletingRecord != 0, the clsRecycleRecordJob would
+         // handle this deleting record
+         if ( !isDiskDeleting || !pmdGetOptionCB()->recycleRecord() ||
+              pmdGetOptionCB()->getRecordRecycleDelay() != 0 )
          {
             goto done ;
          }

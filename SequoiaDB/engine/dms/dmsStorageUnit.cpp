@@ -2884,7 +2884,8 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU_DUMPINFO_CLSIMVEC, "_dmsStorageUnit::dumpInfo" )
    INT32 _dmsStorageUnit::dumpInfo ( MON_CL_SIM_VEC &clList,
                                      BOOLEAN sys,
-                                     BOOLEAN dumpIdx )
+                                     BOOLEAN dumpIdx,
+                                     dmsCLFilter *pFilter )
    {
       PD_TRACE_ENTRY( SDB__DMSSU_DUMPINFO_CLSIMVEC ) ;
       INT32 rc = SDB_OK ;
@@ -2905,7 +2906,13 @@ namespace engine
                continue ;
             }
 
-            rc = _dumpCLInfo( collection, it->second ) ;
+            rc = _dumpCLInfo( collection, it->second, pFilter ) ;
+            if ( SDB_DMS_NOTEXIST == rc ) // was filtered
+            {
+               rc = SDB_OK ;
+               ++it ;
+               continue ;
+            }
             if ( SDB_OK == rc )
             {
                try
@@ -2969,7 +2976,8 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU_DUMPINFO_CLSIMLIST, "_dmsStorageUnit::dumpInfo" )
    INT32 _dmsStorageUnit::dumpInfo( MON_CL_SIM_LIST &clList,
                                     BOOLEAN sys,
-                                    BOOLEAN dumpIdx )
+                                    BOOLEAN dumpIdx,
+                                    dmsCLFilter *pFilter )
    {
       PD_TRACE_ENTRY ( SDB__DMSSU_DUMPINFO_CLSIMLIST ) ;
       INT32 rc = SDB_OK ;
@@ -2990,7 +2998,13 @@ namespace engine
                continue ;
             }
 
-            rc = _dumpCLInfo( collection, it->second ) ;
+            rc = _dumpCLInfo( collection, it->second, pFilter ) ;
+            if ( SDB_DMS_NOTEXIST == rc ) // was filtered
+            {
+               rc = SDB_OK ;
+               ++it ;
+               continue ;
+            }
             if ( SDB_OK == rc )
             {
                try
@@ -3658,7 +3672,8 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU__DUMPCLINFO_CLSIMPLE, "_dmsStorageUnit::_dumpCLInfo" )
-   INT32 _dmsStorageUnit::_dumpCLInfo ( monCLSimple &collection, UINT16 mbID )
+   INT32 _dmsStorageUnit::_dumpCLInfo ( monCLSimple &collection, UINT16 mbID,
+                                        dmsCLFilter *pFilter )
    {
       INT32 rc = SDB_OK ;
 
@@ -3673,6 +3688,12 @@ namespace engine
 
       PD_CHECK( DMS_IS_MB_INUSE( mbStat->_flag ), SDB_INVALIDARG, error, PDERROR,
                 "Invalid mbID [%u], metablock is not in-used", mbID ) ;
+
+      if ( pFilter && !pFilter->filter( *mbStat ) )
+      {
+         rc = SDB_DMS_NOTEXIST ;
+         goto done ;
+      }
 
       collection.setName( CSName(), mbStat->_collectionName ) ;
       collection._blockID = mbStat->_blockID ;
