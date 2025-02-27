@@ -35,7 +35,7 @@ SequoiaDB 巨杉数据库是一款金融级分布式数据库，产品引擎采�
 	 - LatchWaitCount：闩锁等待次数（仅数据节点）
   - 慢查询参数 mongroupmask 从开改为关时，会立即清理掉历史的监控信息，优化为保留 5 分钟再清理；
   - createCL 支持指定创建多个数据组；
-  - createCL/createCS 支持克降模式；
+  - createCL/createCS 支持克隆模式；
   - 健康快照支持显示节点切主信息；
 
 - SQL 引擎
