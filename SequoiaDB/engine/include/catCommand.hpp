@@ -464,6 +464,9 @@ namespace engine
       INT32 _createGlobalIdxCL( _pmdEDUCB *cb ) ;
       INT32 _addGlobalInfo2Task() ;
 
+      INT32 _makeIndexUniqueIDs( _pmdEDUCB *cb, BSONObjBuilder &build ) ;
+      INT32 _makeOnlyUpgradeMetaReply( _pmdEDUCB *cb, rtnContextBuf &ctxBuf ) ;
+
    private:
       BSONObj         _boIdx ;
       BSONObj         _key ;
@@ -478,6 +481,7 @@ namespace engine
       CHAR            _globalIdxCLName[DMS_COLLECTION_FULL_NAME_SZ+1] ;
       utilCLUniqueID  _globalIdxCLUniqID ;
       string          _domainName ;
+      BOOLEAN         _onlyUpgradeMeta ;
    };
    typedef _catCMDCreateIndex catCMDCreateIndex ;
 

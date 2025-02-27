@@ -111,6 +111,7 @@ namespace engine
          INT64                   _taskID ;
          BOOLEAN                 _isAsync ;
          BOOLEAN                 _isStandaloneIdx ;
+         BOOLEAN                 _onlyUpgradeMeta ;
    } ;
 
    class _rtnDropIndex : public _rtnCommand

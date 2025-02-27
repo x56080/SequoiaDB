@@ -4920,6 +4920,23 @@ namespace engine
                                                  const BSONObj &boHint,
                                                  BSONObjBuilder *pBuilder )
    {
+      return _createIndexWithoutCataTask( pCollection, boMatcher, boHint, FALSE, pBuilder ) ;
+   }
+
+   INT32 _clsShdSession::_upgradeIndex( const CHAR *pCollection,
+                                        const BSONObj &boMatcher,
+                                        const BSONObj &boHint,
+                                        BSONObjBuilder *pBuilder )
+   {
+      return _createIndexWithoutCataTask( pCollection, boMatcher, boHint, TRUE, pBuilder ) ;
+   }
+
+   INT32 _clsShdSession::_createIndexWithoutCataTask( const CHAR *pCollection,
+                                                      const BSONObj &boMatcher,
+                                                      const BSONObj &boHint,
+                                                      BOOLEAN onlyUpgrade,
+                                                      BSONObjBuilder *pBuilder )
+   {
       INT32 rc = SDB_OK;
       const CHAR *pSubCLName = NULL ;
       BSONObj boNewMatcher ;
@@ -4932,6 +4949,8 @@ namespace engine
       dmsIdxTaskStatusPtr statusPtr ;
       BOOLEAN nextCL = TRUE ;
       dmsTaskStatusMgr* statMgr = _pRtnCB->getTaskStatusMgr() ;
+      BSONObj uniqueIDs ;
+      SDB_DPSCB *dpsCB = NULL ;
 
       rc = rtnGetObjElement( boMatcher, FIELD_NAME_INDEX, boIndex ) ;
       PD_RC_CHECK( rc, PDERROR,
@@ -4967,6 +4986,11 @@ namespace engine
          goto error ;
       }
 
+      if ( onlyUpgrade )
+      {
+         dpsCB = pmdGetKRCB()->getDPSCB() ;
+      }
+
       // we need to check dms writable when invalidate cata/plan/statistics
       rc = pmdGetKRCB()->getDMSCB()->writable ( _pEDUCB ) ;
       PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc: %d", rc ) ;
@@ -4981,6 +5005,7 @@ namespace engine
       iter = strSubCLList.begin() ;
       while( iter != strSubCLList.end() )
       {
+         BSONObj newBoIndex = boIndex ;
          INT32 rcTmp = SDB_OK ;
          pSubCLName = iter->c_str() ;
          wrResult.resetInfo() ;
@@ -5000,9 +5025,14 @@ namespace engine
             statusPtr->setStatus( DMS_TASK_STATUS_RUN ) ;
          }
 
-         // standalone index don't write dps log
-         rcTmp = rtnCreateIndexCommand( pSubCLName, boIndex, _pEDUCB,
-                                        _pDmsCB, NULL, FALSE, sortBufferSize,
+         if ( onlyUpgrade )
+         {
+            rc = rtnAddUniqueIDToIndexDef( pSubCLName, boHint, boIndex, newBoIndex ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to add uniqueID to index def, rc: %d", rc ) ;
+         }
+
+         rcTmp = rtnCreateIndexCommand( pSubCLName, newBoIndex, _pEDUCB,
+                                        _pDmsCB, dpsCB, FALSE, sortBufferSize,
                                         &wrResult, statusPtr.get() ) ;
          if ( SDB_OK != rcTmp )
          {
@@ -5066,6 +5096,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       BOOLEAN isStandaloneIdx = FALSE ;
+      BOOLEAN _onlyUpgradeMeta = FALSE ;
 
       try
       {
@@ -5088,11 +5119,23 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to get field[%s] from index[%s]",
                       IXM_FIELD_NAME_STANDALONE, boIndex.toString().c_str() ) ;
 
+         rc = rtnGetBooleanElement( boMatcher, IXM_FIELD_NAME_ONLY_UPGRADE_META, _onlyUpgradeMeta ) ;
+         if ( SDB_FIELD_NOT_EXIST == rc )
+         {
+            rc = SDB_OK ;
+         }
+         PD_RC_CHECK( rc, PDERROR, "Failed to get field[%s] from index[%s]",
+                      IXM_FIELD_NAME_ONLY_UPGRADE_META, boMatcher.toString().c_str() ) ;
+
          // do it
          if ( isStandaloneIdx )
          {
             rc = _createStandaloneIndex( pCollection, boMatcher, boHint,
                                          pBuilder ) ;
+         }
+         else if ( _onlyUpgradeMeta )
+         {
+            rc = _upgradeIndex( pCollection, boMatcher, boHint, pBuilder ) ;
          }
          else
          {

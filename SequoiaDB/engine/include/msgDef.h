@@ -836,12 +836,14 @@
 #define IXM_FIELD_NAME_INDEX_FLAG            "IndexFlag"
 #define IXM_FIELD_NAME_SCAN_EXTLID           "ScanExtentLID"
 #define IXM_FIELD_NAME_SORT_BUFFER_SIZE      "SortBufferSize"
+#define IXM_FIELD_NAME_ONLY_UPGRADE_META     "OnlyUpgradeMeta"
 #define IXM_FIELD_NAME_NOTNULL               "NotNull"
 #define IXM_FIELD_NAME_NOTARRAY              "NotArray"
 #define IXM_FIELD_NAME_GLOBAL                "Global"
 #define IXM_FIELD_NAME_GLOBAL_OPTION         "GlobalOption"
 #define IXM_FIELD_NAME_STANDALONE            "Standalone"
 #define IXM_FIELD_NAME_UNIQUEID              "UniqueID"
+#define IXM_FIELD_NAME_UNIQUEIDS             "UniqueIDs"
 // global logical time to create index ( add meta data to collection )
 #define IXM_FIELD_NAME_CREATETIME            "CreateTime"
 // global logical time to finish rebuild index ( scan all data to build index )

@@ -105,6 +105,16 @@ namespace engine
                                    _dmsStorageUnit * su,
                                    _SDB_DMSCB * dmsCB ) ;
 
+   INT32 _rtnAlter2DPSLog ( const CHAR * name,
+                            const rtnAlterTask * task,
+                            const rtnAlterInfo * alterInfo,
+                            const rtnAlterOptions * options,
+                            _pmdEDUCB * cb,
+                            _dpsLogWrapper * dpsCB,
+                            _dmsMBContext * mbContext,
+                            _dmsStorageUnit * su,
+                            DMS_FILE_TYPE dpsType,
+                            BOOLEAN needToUpdateLsn = FALSE ) ;
 }
 
 #endif // RTN_ALTER_HPP_

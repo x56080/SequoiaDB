@@ -2966,5 +2966,83 @@ namespace engine
    error:
       goto done ;
    }
+
+   INT32 rtnAddUniqueIDToIndexDef( const CHAR* clFullName, const BSONObj &indexHint,
+                                   const BSONObj &oldIndexDef, BSONObj &newIndexDef )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObjBuilder bob ;
+      utilIdxUniqueID idxUniqueID = UTIL_UNIQUEID_NULL ;
+      BOOLEAN hasFoundUniqueID = FALSE ;
+      BSONObj uniqueIDs ;
+      SDB_ASSERT( clFullName != NULL, "cl name can't be null" ) ;
+
+      // eg: boHint = { "UniqueIDs": [ { "cs.cl1": 1234567890 }, { "cs.cl2": 1234567891 } ] }
+      //     oldIndexDef = { "key": { "a": 1 }, "name": "aIdx", "unique": false }
+      //     newIndexDef = { "key": { "a": 1 }, "name": "aIdx", "unique": false, "UniqueID": 4294967351 }
+      rc = rtnGetArrayElement( indexHint, IXM_FIELD_NAME_UNIQUEIDS, uniqueIDs ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get field[%s] from matcher[%s], rc: %d",
+                   IXM_FIELD_NAME_UNIQUEIDS, indexHint.toString().c_str(), rc ) ;
+
+      try
+      {
+         BSONObjIterator itr1( uniqueIDs ) ;
+         while( itr1.more() )
+         {
+            BSONObj obj ;
+            BSONElement ele1 = itr1.next() ;
+            if( ele1.type() != Object )
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "The type of element in %s field must be object",
+                       IXM_FIELD_NAME_UNIQUEIDS ) ;
+               goto error ;
+            }
+            obj = ele1.embeddedObject() ;
+
+            {
+               BSONObjIterator itr2( ele1.embeddedObject() ) ;
+               while( itr2.more() )
+               {
+                  BSONElement ele2 = itr2.next() ;
+                  if ( 0 == ossStrcmp( clFullName, ele2.fieldName() ) && ele2.isNumber() )
+                  {
+                     idxUniqueID = ele2.numberLong() ;
+                     hasFoundUniqueID = TRUE ;
+                     break ;
+                  }
+               }
+            }
+            if ( hasFoundUniqueID )
+            {
+               BSONObjIterator itr( oldIndexDef ) ;
+               while( itr.more() )
+               {
+                  bob.append( itr.next() ) ;
+               }
+               bob.append( IXM_FIELD_NAME_UNIQUEID, (INT64)idxUniqueID ) ;
+               newIndexDef = bob.obj() ;
+               break ;
+            }
+         }
+         if ( !hasFoundUniqueID )
+         {
+            PD_LOG( PDWARNING, "No index UniqueID[cl: %s, indexDef: %s, UniqueIDs: %s]",
+                    clFullName, oldIndexDef.toString().c_str(), uniqueIDs.toString().c_str() ) ;
+         }
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "An exception occurred when adding uniqueID to index def: "
+                 "%s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
 }
 

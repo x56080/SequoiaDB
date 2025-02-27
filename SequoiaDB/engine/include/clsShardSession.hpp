@@ -304,12 +304,21 @@ namespace engine
                                      const CHAR *pHint,
                                      INT16 w,
                                      BSONObjBuilder *pBuilder ) ;
+         INT32 _createIndexWithoutCataTask( const CHAR *pCollection,
+                                            const BSONObj &boMatcher,
+                                            const BSONObj &boHint,
+                                            BOOLEAN onlyUpgrade,
+                                            BSONObjBuilder *pBuilder ) ;
          INT32 _createConsistentIndex( const BSONObj &boMatcher,
                                        const BSONObj &boHint ) ;
          INT32 _createStandaloneIndex( const CHAR *pCollection,
                                        const BSONObj &boMatcher,
                                        const BSONObj &boHint,
                                        BSONObjBuilder *pBuilder ) ;
+         INT32 _upgradeIndex( const CHAR *pCollection,
+                               const BSONObj &boMatcher,
+                               const BSONObj &boHint,
+                               BSONObjBuilder *pBuilder ) ;
 
          INT32 _dropIndexOnMainCL( const CHAR *pCommandName,
                                    const CHAR *pCollection,

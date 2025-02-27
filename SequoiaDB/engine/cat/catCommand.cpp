@@ -1862,7 +1862,8 @@ namespace engine
     _isUnique( FALSE ),
     _isEnforced( FALSE ),
     _isGlobal( FALSE ),
-    _globalIdxCLUniqID( UTIL_UNIQUEID_NULL )
+    _globalIdxCLUniqID( UTIL_UNIQUEID_NULL ),
+    _onlyUpgradeMeta( FALSE )
    {
       ossMemset( _globalIdxCSName, 0, sizeof( _globalIdxCSName ) ) ;
       ossMemset( _globalIdxCLName, 0, sizeof( _globalIdxCLName ) ) ;
@@ -1959,6 +1960,15 @@ namespace engine
                          "Failed to get field [%s] from hint, rc: %d",
                          IXM_FIELD_NAME_SORT_BUFFER_SIZE, rc ) ;
          }
+
+         rc = rtnGetBooleanElement( query, IXM_FIELD_NAME_ONLY_UPGRADE_META, _onlyUpgradeMeta ) ;
+         if ( SDB_FIELD_NOT_EXIST == rc )
+         {
+            rc = SDB_OK ;
+         }
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to get field[%s] from obj[%s], rc: %d",
+                      IXM_FIELD_NAME_ONLY_UPGRADE_META, hint.toString().c_str(), rc ) ;
       }
       catch( std::exception &e )
       {
@@ -2007,6 +2017,15 @@ namespace engine
       rc = _check( cb ) ;
       if ( rc )
       {
+         if ( SDB_IXM_REDEF == rc && _onlyUpgradeMeta )
+         {
+            rc = _makeOnlyUpgradeMetaReply( cb, ctxBuf ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
+            goto done ;
+         }
          goto error ;
       }
 
@@ -2189,6 +2208,152 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCMDCRTIDX_MAKEONLYUPGRADEREPLY, "_catCMDCreateIndex::_makeOnlyUpgradeMetaReply" )
+   INT32 _catCMDCreateIndex::_makeOnlyUpgradeMetaReply( _pmdEDUCB *cb, rtnContextBuf &ctxBuf )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_CATCMDCRTIDX_MAKEONLYUPGRADEREPLY ) ;
+      BSONObjBuilder replyBuild ;
+
+      try
+      {
+         rc = _makeIndexUniqueIDs( cb, replyBuild ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+
+         vector<string> groupNameList ;
+         for ( ossPoolSet<ossPoolString>::iterator it = _groupSet.begin() ;
+               it != _groupSet.end() ; it++ )
+         {
+            groupNameList.push_back( it->c_str() ) ;
+         }
+
+         sdbGetCatalogueCB()->makeGroupsObj( replyBuild, groupNameList, TRUE ) ;
+
+         ctxBuf = rtnContextBuf( replyBuild.obj() ) ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "An exception occurred when making upgrade index reply: "
+                "%s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCMDCRTIDX_MAKEONLYUPGRADEREPLY, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCMDCRTIDX_MAKECLIDXUNIQUEID, "_catCMDCreateIndex::_makeIndexUniqueIDs" )
+   INT32 _catCMDCreateIndex::_makeIndexUniqueIDs( _pmdEDUCB *cb, BSONObjBuilder &build )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_CATCMDCRTIDX_MAKECLIDXUNIQUEID ) ;
+      SDB_ASSERT( NULL != _pCataSet, "Cata set can't be null" ) ;
+      CLS_SUBCL_LIST subclList ;
+      BSONObj indexObj ;
+      BSONElement indexUniqueIDEle ;
+      BOOLEAN isDataSourceCL = TRUE ;
+      BOOLEAN isHighErrLevel = TRUE ;
+
+      try
+      {
+         // { "UniqueIDs": [ { "cs.cl1": 1234567890 }, { "cs.cl2": 1234567891 } ] }
+         BSONArrayBuilder subBab( build.subarrayStart( IXM_FIELD_NAME_UNIQUEIDS ) ) ;
+         if ( _pCataSet->isMainCL() )
+         {
+            rc = _pCataSet->getSubCLList( subclList );
+            PD_RC_CHECK( rc, PDERROR,
+                        "Failed to get sub-collection list of collection[%s], "
+                        "rc: %d", _pCataSet->name(), rc ) ;
+
+            for ( CLS_SUBCL_LIST_IT it = subclList.begin() ;
+                  it != subclList.end() ; ++it )
+            {
+               const CHAR* subclName = (*it).c_str() ;
+
+               // If it is data source collection, ignore it or report error
+               rc = catIsDataSourceCL( subclName, cb,
+                                       isDataSourceCL, isHighErrLevel ) ;
+               PD_RC_CHECK( rc, PDERROR,
+                            "Failed to check collection[%s] is mapped to a data "
+                            "source or not, rc: %d", subclName, rc ) ;
+               if ( isDataSourceCL )
+               {
+                  if ( isHighErrLevel )
+                  {
+                     rc = SDB_OPERATION_INCOMPATIBLE ;
+                     PD_LOG( PDERROR, "The collection[%s] mapped to a data "
+                             "source can't do %s", subclName, name() ) ;
+                     goto error ;
+                  }
+                  else
+                  {
+                     continue ;
+                  }
+               }
+
+               rc = catGetIndex( subclName, _pIndexName, cb, indexObj ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to get collection[%s]'s index[%s], rc: %d",
+                           subclName, _pIndexName, rc ) ;
+               indexUniqueIDEle = indexObj.getObjectField(
+                  IXM_FIELD_NAME_INDEX_DEF ).getField( IXM_FIELD_NAME_UNIQUEID ) ;
+               subBab.append( BSON( subclName << indexUniqueIDEle.numberLong() ) ) ;
+            }
+         }
+         else
+         {
+            // If it is data source collection, ignore it or report error
+            rc = catIsDataSourceCL( _pCollection, cb,
+                                    isDataSourceCL, isHighErrLevel ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to check collection[%s] is mapped to a data "
+                         "source or not, rc: %d", _pCollection, rc ) ;
+            if ( isDataSourceCL )
+            {
+               if ( isHighErrLevel )
+               {
+                  rc = SDB_OPERATION_INCOMPATIBLE ;
+                  PD_LOG( PDERROR, "The collection[%s] mapped to a data "
+                          "source can't do %s", _pCollection, name() ) ;
+                  goto error ;
+               }
+               else
+               {
+                  subBab.done() ;
+                  goto done ;
+               }
+            }
+
+            rc = catGetIndex( _pCollection, _pIndexName, cb, indexObj ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get collection[%s]'s index[%s], rc: %d",
+                         _pCollection, _pIndexName, rc ) ;
+            indexUniqueIDEle = indexObj.getObjectField(
+               IXM_FIELD_NAME_INDEX_DEF ).getField( IXM_FIELD_NAME_UNIQUEID ) ;
+            subBab.append( BSON( _pCollection << indexUniqueIDEle.numberLong() ) ) ;
+         }
+         subBab.done() ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "An exception occurred when making index uniqueIDs: "
+                 "%s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCMDCRTIDX_MAKECLIDXUNIQUEID, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
    INT32 _catCMDCreateIndex::_createGlobalIdxCL( _pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
@@ -2315,7 +2480,8 @@ namespace engine
 
          // If it is empty main task, we should set task status to
          // finished and add index to SYSINDEXES.
-         if ( pTask->isMainTask() && 0 == pTask->countSubTask() )
+         // If we should only upgrade index, we don't need the tasks to report progress
+         if ( ( pTask->isMainTask() && 0 == pTask->countSubTask() ) || _onlyUpgradeMeta )
          {
             pTask->setFinish() ;
             rc = postDoit( pTask, cb ) ;
@@ -2329,6 +2495,15 @@ namespace engine
       }
 
       // make reply
+      if ( _onlyUpgradeMeta )
+      {
+         rc = _makeOnlyUpgradeMetaReply( cb, ctxBuf ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+      }
+      else
       {
          UINT64 taskID = 0 ;
          clsIdxTask* pTask = _vecTasks.back() ;

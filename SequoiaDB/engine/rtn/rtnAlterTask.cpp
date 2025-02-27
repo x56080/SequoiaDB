@@ -1002,7 +1002,8 @@ namespace engine
    _rtnCLCreateIDIndexTask::_rtnCLCreateIDIndexTask ( const rtnAlterTaskSchema & schema,
                                                       const BSONObj & argument )
    : _rtnAlterCLTask( schema, argument ),
-     _sortBufferSize( SDB_INDEX_SORT_BUFFER_DEFAULT_SIZE )
+     _sortBufferSize( SDB_INDEX_SORT_BUFFER_DEFAULT_SIZE ),
+     _onlyUpgradeMeta( FALSE )
    {
       SDB_ASSERT( RTN_ALTER_CL_CREATE_ID_INDEX == schema.getActionType(),
                   "schema is invalid" ) ;
@@ -1027,9 +1028,17 @@ namespace engine
          _sortBufferSize = argElement.Int() ;
       }
 
+      if ( _argument.hasField( IXM_FIELD_NAME_ONLY_UPGRADE_META ) )
+      {
+         argElement = _argument.getField( IXM_FIELD_NAME_ONLY_UPGRADE_META ) ;
+         PD_CHECK( Bool == argElement.type(),
+                   SDB_INVALIDARG, error, PDERROR, "Failed to get field [%s]",
+                   IXM_FIELD_NAME_ONLY_UPGRADE_META ) ;
+         _onlyUpgradeMeta = argElement.Bool() ;
+      }
+
    done :
       return rc ;
-
    error :
       goto done ;
    }

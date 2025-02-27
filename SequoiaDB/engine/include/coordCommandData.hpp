@@ -1035,8 +1035,12 @@ namespace engine
          virtual BOOLEAN _isAsync() { return _async ; }
          INT32 _executeStandalone( MsgHeader *pMsg,
                                    pmdEDUCB *cb,
-                                   INT64 &contextID,
                                    rtnContextBuf *buf ) ;
+         INT32 _executeWithoutCataTask( MsgHeader *pMsg,
+                                        pmdEDUCB *cb,
+                                        NODE_SEL_STY emptyFilterSel,
+                                        SET_RC &ignoreRC,
+                                        rtnContextBuf *buf ) ;
 
       private :
          BOOLEAN _checkLocationPara( BSONElement ele,
@@ -1045,6 +1049,16 @@ namespace engine
                            pmdEDUCB *cb,
                            CoordGroupList &grpLst,
                            INT32 &version ) ;
+         INT32 _executeUpgradeMeta( MsgHeader *pMsg,
+                                    pmdEDUCB *cb,
+                                    rtnContextBuf *buf ) ;
+         INT32 _upgradeCataIndex( MsgHeader *pMsg,
+                                  pmdEDUCB *cb,
+                                  rtnContextBuf *buf,
+                                  vector< BSONObj > &vecObjs ) ;
+         INT32 _upgradeDataIndex( MsgHeader *pMsg,
+                                  pmdEDUCB *cb,
+                                  rtnContextBuf *buf ) ;
 
       protected :
          const CHAR     *_pCollection ;
@@ -1052,6 +1066,7 @@ namespace engine
          BOOLEAN         _isStandaloneIdx ;
          BSONObj         _boIndex ;
          BSONObj         _boQuery ;
+         BOOLEAN         _onlyUpgradeMeta ;
    } ;
    typedef _coordCMDCreateIndex coordCMDCreateIndex ;
 

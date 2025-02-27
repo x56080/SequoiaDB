@@ -1180,7 +1180,7 @@ namespace engine
       {
          pdSetShieldLogMask(  LOG_MASK_DMS_NOTEXIST ) ;
       }
-      
+
       // In early versions, test collection is done by a list command. Now we
       // first try with test command. If it failed with error of unknow nessage
       // (maybe the catalogue is old version), then try in the old way.
@@ -5617,7 +5617,8 @@ namespace engine
    _coordCMDCreateIndex::_coordCMDCreateIndex()
    : _pCollection( NULL ),
      _async( FALSE ),
-     _isStandaloneIdx( FALSE )
+     _isStandaloneIdx( FALSE ),
+     _onlyUpgradeMeta( FALSE )
    {
    }
 
@@ -5644,7 +5645,20 @@ namespace engine
    retry:
       if ( _isStandaloneIdx )
       {
-         rc = _executeStandalone( pMsg, cb, contextID, buf ) ;
+         rc = _executeStandalone( pMsg, cb, buf ) ;
+         if ( SDB_CLS_COORD_NODE_CAT_VER_OLD == rc && retryCnt < 2 )
+         {
+            // the collection on data node may be splited, just retry
+            PD_LOG( PDWARNING, "Failed to execute on data node, rc: %d, "
+                    "just retry", rc ) ;
+            buf->release() ;
+            retryCnt++ ;
+            goto retry ;
+         }
+      }
+      else if ( _onlyUpgradeMeta )
+      {
+         rc = _executeUpgradeMeta( pMsg, cb, buf ) ;
          if ( SDB_CLS_COORD_NODE_CAT_VER_OLD == rc && retryCnt < 2 )
          {
             // the collection on data node may be splited, just retry
@@ -5675,14 +5689,163 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( COORDCRTIDX_EXESTAND, "_coordCMDCreateIndex::_executeStandalone" )
-   INT32 _coordCMDCreateIndex::_executeStandalone( MsgHeader *pMsg,
-                                                   pmdEDUCB *cb,
-                                                   INT64 &contextID,
-                                                   rtnContextBuf *buf )
+   // PD_TRACE_DECLARE_FUNCTION ( COORDCRTIDX_EXEUPGRADEMETA, "_coordCMDCreateIndex::_executeUpgradeMeta" )
+   INT32 _coordCMDCreateIndex::_executeUpgradeMeta( MsgHeader *pMsg,
+                                                    pmdEDUCB *cb,
+                                                    rtnContextBuf *buf )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( COORDCRTIDX_EXESTAND ) ;
+      PD_TRACE_ENTRY( COORDCRTIDX_EXEUPGRADEMETA ) ;
+      SDB_ASSERT( NULL != pMsg, "message is invalid" ) ;
+      SDB_ASSERT( NULL != cb, "educb is invalid" ) ;
+      vector< BSONObj > vecObjs ;
+      const CHAR *pCommandName = NULL ;
+      const CHAR *pQuery = NULL ;
+      const CHAR *pHint = NULL ;
+      CHAR *newBuffer = NULL ;
+      INT32 newBufferSize = 0 ;
+      BOOLEAN hasRewriteDataMsg = FALSE ;
+
+      rc = _upgradeCataIndex( pMsg, cb, buf, vecObjs ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Failed to upgrade cata index, rc: %d", rc ) ;
+         goto error ;
+      }
+
+      rc = msgExtractQuery( (const CHAR*)pMsg, NULL, &pCommandName, NULL, NULL,
+                            &pQuery, NULL, NULL, &pHint ) ;
+      PD_RC_CHECK( rc, PDERROR, "Parse message for command[%s] failed, "
+                   "rc: %d", getName(), rc ) ;
+
+      try
+      {
+         BSONObjBuilder hintBuilder ;
+         BSONObj boQuery = BSONObj( pQuery ) ;
+         BSONObj boHint = BSONObj( pHint ) ;
+         BSONObj boNewHint ;
+
+         hintBuilder.appendElements( boHint ) ;
+         // { "UniqueIDs": [ { "cs.cl1": 1234567890 }, { "cs.cl2": 1234567891 } ] }
+         hintBuilder.appendElements( vecObjs[0] ) ;
+         boNewHint = hintBuilder.done() ;
+
+         rc = msgBuildQueryMsg( &newBuffer, &newBufferSize, pCommandName,
+                                0, 0, 0, -1, &boQuery,
+                                NULL, NULL, &boNewHint, cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build query message for "
+                      "command[%s], rc: %d", getName(), rc ) ;
+
+         hasRewriteDataMsg = TRUE ;
+         // createIndex don't need to check replSize
+         ((MsgOpQuery*)newBuffer)->w = 1 ;
+      }
+      catch ( exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "An exception occurred when rewriting data msg for createIndex: "
+                "%s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
+
+      rc = _upgradeDataIndex( (MsgHeader*)newBuffer, cb, buf ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Failed to upgrade data index, rc: %d", rc ) ;
+         goto error ;
+      }
+
+   done:
+      if( hasRewriteDataMsg )
+      {
+         msgReleaseBuffer( newBuffer, cb ) ;
+         hasRewriteDataMsg = FALSE ;
+         newBuffer = NULL ;
+      }
+      PD_TRACE_EXITRC( COORDCRTIDX_EXEUPGRADEMETA, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( COORDCRTIDX_UPGRADECATAIDX, "_coordCMDCreateIndex::_upgradeCataIndex" )
+   INT32 _coordCMDCreateIndex::_upgradeCataIndex( MsgHeader *pMsg,
+                                                  pmdEDUCB *cb,
+                                                  rtnContextBuf *buf,
+                                                  vector< BSONObj > &vecObjs )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( COORDCRTIDX_UPGRADECATAIDX ) ;
+      INT32 orgCode = pMsg->opCode ;
+
+      // build catalog message
+      pMsg->opCode = MSG_CAT_CREATE_IDX_REQ ;
+
+      // send message to catalog
+      rc = executeOnCataGroup( pMsg, cb, NULL, &vecObjs, TRUE, NULL, buf ) ;
+      PD_RC_CHECK( rc,
+                   PDERROR, "Execute %s on catalog failed, rc: %d",
+                   getName(), rc ) ;
+
+      PD_CHECK( !vecObjs.empty(), SDB_SYS, error, PDERROR,
+                "Failed to index uniqueIDs from cata reply msg" ) ;
+
+   done:
+      pMsg->opCode = orgCode ;
+      PD_TRACE_EXITRC( COORDCRTIDX_UPGRADECATAIDX, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _coordCMDCreateIndex::_upgradeDataIndex( MsgHeader *pMsg,
+                                                  pmdEDUCB *cb,
+                                                  rtnContextBuf *buf )
+   {
+      INT32 rc = SDB_OK ;
+      SET_RC ignoreRC ;
+
+      try
+      {
+         ignoreRC.insert( SDB_IXM_REDEF ) ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "An exception occurred when inserting ignore rc: "
+               "%s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
+
+      rc = _executeWithoutCataTask( pMsg, cb, NODE_SEL_PRIMARY, ignoreRC, buf ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _coordCMDCreateIndex::_executeStandalone( MsgHeader *pMsg,
+                                                   pmdEDUCB *cb,
+                                                   rtnContextBuf *buf )
+   {
+      SET_RC ignoreRC ;
+      return _executeWithoutCataTask( pMsg, cb, NODE_SEL_ALL, ignoreRC, buf ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( COORDCRTIDX_EXEWITHOUTCATATASK, "_coordCMDCreateIndex::_executeWithoutCataTask" )
+   INT32 _coordCMDCreateIndex::_executeWithoutCataTask( MsgHeader *pMsg,
+                                                        pmdEDUCB *cb,
+                                                        NODE_SEL_STY emptyFilterSel,
+                                                        SET_RC &ignoreRC,
+                                                        rtnContextBuf *buf )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( COORDCRTIDX_EXEWITHOUTCATATASK ) ;
       INT32 version = 0 ;
       CoordGroupList allgroups ;
       SET_ROUTEID sendNodes ;
@@ -5700,7 +5863,7 @@ namespace engine
          rc = SDB_OK ;
       }
 
-      rc = coordGetGroupNodes( _pResource, cb, _boQuery, NODE_SEL_ALL,
+      rc = coordGetGroupNodes( _pResource, cb, _boQuery, emptyFilterSel,
                                allgroups, sendNodes, NULL, TRUE ) ;
       if ( rc )
       {
@@ -5778,7 +5941,7 @@ namespace engine
       }
 
       // create index on the data nodes
-      rc = executeOnNodes( pMsg, cb, sendNodes, faileds, &sucNodes ) ;
+      rc = executeOnNodes( pMsg, cb, sendNodes, faileds, &sucNodes, &ignoreRC ) ;
       if ( rc )
       {
          PD_LOG( PDERROR,
@@ -5798,7 +5961,7 @@ namespace engine
       {
          rc = SDB_CLS_COORD_NODE_CAT_VER_OLD ;
       }
-      PD_TRACE_EXITRC( COORDCRTIDX_EXESTAND, rc ) ;
+      PD_TRACE_EXITRC( COORDCRTIDX_EXEWITHOUTCATATASK, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -5947,6 +6110,17 @@ namespace engine
                               IXM_FIELD_NAME_SORT_BUFFER_SIZE ) ;
                   goto error ;
                }
+            }
+            else if ( ossStrcmp( e.fieldName(), IXM_FIELD_NAME_ONLY_UPGRADE_META ) == 0  )
+            {
+               if ( e.type() != Bool )
+               {
+                  rc = SDB_INVALIDARG ;
+                  PD_LOG_MSG( PDERROR, "%s should be Boolean",
+                              IXM_FIELD_NAME_ONLY_UPGRADE_META ) ;
+                  goto error ;
+               }
+               _onlyUpgradeMeta = e.boolean() ;
             }
             else
             {

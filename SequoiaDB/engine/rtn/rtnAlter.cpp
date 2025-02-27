@@ -755,7 +755,8 @@ namespace engine
                             _dpsLogWrapper * dpsCB,
                             _dmsMBContext * mbContext,
                             _dmsStorageUnit * su,
-                            DMS_FILE_TYPE dpsType )
+                            DMS_FILE_TYPE dpsType,
+                            BOOLEAN needToUpdateLsn )
    {
       INT32 rc = SDB_OK ;
 
@@ -806,6 +807,12 @@ namespace engine
       }
       else if ( NULL != cb )
       {
+         if ( needToUpdateLsn &&
+              NULL != mbContext && DMS_FILE_EMPTY != dpsType )
+         {
+            mbContext->mbStat()->updateLastLSNWithComp(
+                        cb->getEndLsn(), dpsType, cb->isDoRollback() ) ;
+         }
          cb->setDataExInfo( name, csLID, clLID, DMS_INVALID_EXTENT ) ;
       }
 
@@ -1091,6 +1098,7 @@ namespace engine
 
       DMS_FILE_TYPE dpsType = DMS_FILE_EMPTY ;
       BOOLEAN writeDpsLog = TRUE ;
+      BOOLEAN mustUpdateDpsLog = FALSE ;
 
       switch ( task->getActionType() )
       {
@@ -1101,6 +1109,7 @@ namespace engine
                         dynamic_cast<const rtnCLCreateIDIndexTask *>( task ) ;
             PD_CHECK( NULL != localTask, SDB_SYS, error, PDERROR,
                       "Failed to get create id index task" ) ;
+            mustUpdateDpsLog = localTask->onlyUpgradeIndexMeta() ;
             rc = _rtnCreateIDIndex( collection,
                                     alterInfo->getIdxUniqueID( collection, IXM_ID_KEY_NAME ),
                                     localTask->getSortBufferSize(),
@@ -1180,10 +1189,10 @@ namespace engine
                    collection, rc ) ;
 
    done :
-      if ( SDB_OK == rc && writeDpsLog )
+      if ( SDB_OK == rc && ( writeDpsLog || mustUpdateDpsLog ) )
       {
          rc = _rtnAlter2DPSLog( collection, task, alterInfo, options, cb, dpsCB,
-                                mbContext, su, dpsType ) ;
+                                mbContext, su, dpsType, mustUpdateDpsLog ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "Failed to write DPS log, rc: %d", rc ) ;

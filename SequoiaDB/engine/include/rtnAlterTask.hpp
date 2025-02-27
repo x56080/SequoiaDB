@@ -628,8 +628,14 @@ namespace engine
             return _sortBufferSize ;
          }
 
+         OSS_INLINE BOOLEAN onlyUpgradeIndexMeta() const
+         {
+            return _onlyUpgradeMeta ;
+         }
+
       protected :
          INT32 _sortBufferSize ;
+         BOOLEAN _onlyUpgradeMeta ;
    } ;
 
    typedef class _rtnCLCreateIDIndexTask rtnCLCreateIDIndexTask ;

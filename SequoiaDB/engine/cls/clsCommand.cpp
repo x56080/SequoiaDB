@@ -204,7 +204,8 @@ namespace engine
      _isGlobal( FALSE ),
      _taskID( CLS_INVALID_TASKID ),
      _isAsync( FALSE ),
-     _isStandaloneIdx( FALSE )
+     _isStandaloneIdx( FALSE ),
+     _onlyUpgradeMeta( FALSE )
    {
    }
 
@@ -370,6 +371,25 @@ namespace engine
          goto error ;
       }
 
+      // get OnlyUpgradeMeta
+      rc = rtnGetBooleanElement( arg, IXM_FIELD_NAME_ONLY_UPGRADE_META, _onlyUpgradeMeta ) ;
+      if ( SDB_FIELD_NOT_EXIST == rc )
+      {
+         rc = SDB_OK ;
+      }
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "Failed to get field[%s] from match[%s]",
+                  IXM_FIELD_NAME_ONLY_UPGRADE_META, arg.toString().c_str() ) ;
+         goto error ;
+      }
+
+      if ( _onlyUpgradeMeta )
+      {
+         rc = rtnAddUniqueIDToIndexDef( _collectionName, hint, _index, _index ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to add uniqueID to index def, rc: %d", rc ) ;
+      }
+
    done:
       PD_TRACE_EXITRC ( SDB__CLSCREATEINDEX_INIT, rc ) ;
       return rc ;
@@ -410,7 +430,7 @@ namespace engine
       }
 
       /// create consistent index by coord
-      if ( CMD_SPACE_SERVICE_SHARD == getFromService() && !_isStandaloneIdx )
+      if ( CMD_SPACE_SERVICE_SHARD == getFromService() && !_isStandaloneIdx && !_onlyUpgradeMeta )
       {
          SDB_ASSERT( _taskID != CLS_INVALID_TASKID, "task id is invalid" ) ;
 
@@ -420,7 +440,8 @@ namespace engine
                       rc ) ;
       }
       /// create standalone index by coord, or
-      /// create index by data or standalone node
+      /// create index by data or standalone node, or
+      /// upgrade index
       else
       {
          if ( CMD_SPACE_SERVICE_SHARD == getFromService() && _isStandaloneIdx )

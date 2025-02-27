@@ -90,10 +90,7 @@ function checkClAttribute( step, clFullName )
               dataCommitLSN != obj.DataCommitLSN ||
               indexCommitLSN != obj.IndexCommitLSN )
          {
-            if ( 0 == retryTime )
-            {
-               throw new Error( "Diff info: \nexpect: " + JSON.stringify( firstObj ) + ", \nbut found: " + JSON.stringify( obj ) ) ;
-            }
+            throw new Error( "Diff info: \nexpect: " + JSON.stringify( firstObj ) + ", \nbut found: " + JSON.stringify( obj ) ) ;
          }
       }
       println( "End " + step ) ;
