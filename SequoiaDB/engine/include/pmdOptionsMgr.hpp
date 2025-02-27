@@ -741,6 +741,7 @@ namespace engine
 
          OSS_INLINE const INT32 getReplSize() const { return _replSize ; }
          OSS_INLINE const SDB_CONSISTENCY_STRATEGY getConsistencyStrategy() const { return _consistencyStrategy ; }
+         OSS_INLINE UINT32 getRecordRecycleDelay() const { return _recordRecycleDelay ; }
 
 #ifdef SDB_ENTERPRISE
 
@@ -914,6 +915,7 @@ namespace engine
 
          INT32       _replSize ;
          SDB_CONSISTENCY_STRATEGY _consistencyStrategy ;
+         UINT32      _recordRecycleDelay ;
 
 #ifdef SDB_ENTERPRISE
 

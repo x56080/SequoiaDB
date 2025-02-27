@@ -501,7 +501,8 @@ clsFiles = [
       "cls/clsRecycleBinJob.cpp",
       "cls/clsRecycleBinManager.cpp",
       "cls/clsOprHandler.cpp",
-      "cls/clsGroupModeJob.cpp"
+      "cls/clsGroupModeJob.cpp",
+      "cls/clsRecycleRecordJob.cpp"
       ]
 
 dpsFiles = [

@@ -138,6 +138,8 @@ namespace engine
 
    #define PMD_DFT_FS_CACHE_EXPIRED    ("72h")
 
+   #define PMD_DFT_RECORD_RECYCLE_DELAY (15)
+
    /*
       _pmdCfgExchange implement
    */
@@ -2081,6 +2083,7 @@ done:
       _replSize = SDB_DFT_REPLSIZE ;
       _consistencyStrategy = SDB_CONSISTENCY_PRY_LOC_MAJOR ;
 
+      _recordRecycleDelay = PMD_DFT_RECORD_RECYCLE_DELAY ;
 #ifdef SDB_ENTERPRISE
 
 #ifdef SDB_SSL
@@ -2728,7 +2731,7 @@ done:
       // --fsCacheExpired
       rdxString( pEX, PMD_OPTION_FS_CACHE_EXPIRED, _fsCacheExpiredStr,
                  sizeof (_fsCacheExpiredStr), FALSE, PMD_CFG_CHANGE_RUN,
-                 PMD_DFT_FS_CACHE_EXPIRED, TRUE ) ;
+                 PMD_DFT_FS_CACHE_EXPIRED, FALSE ) ;
 
       // --replsizes
       rdxInt( pEX, PMD_OPTION_REPLSIZE, _replSize,
@@ -2742,6 +2745,10 @@ done:
               (INT32)SDB_CONSISTENCY_PRY_LOC_MAJOR ) ;
       rdvMinMax( pEX, (INT32&)_consistencyStrategy, (INT32)SDB_CONSISTENCY_NODE,
                  (INT32)SDB_CONSISTENCY_PRY_LOC_MAJOR ) ;
+
+      // --recordrecycledelay
+      rdxUInt( pEX, PMD_OPTION_RECORD_RECYCLE_DELAY, _recordRecycleDelay, FALSE,
+               PMD_CFG_CHANGE_RUN, PMD_DFT_RECORD_RECYCLE_DELAY, FALSE ) ;
 
       // end map
 

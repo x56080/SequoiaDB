@@ -57,6 +57,7 @@
 #include "pmdController.hpp"
 #include "clsResourceContainer.hpp"
 #include "clsIndexJob.hpp"
+#include "clsRecycleRecordJob.hpp"
 
 using namespace bson ;
 
@@ -1005,6 +1006,15 @@ namespace engine
          rc = _recycleBinMgr.startBGJob() ;
          PD_RC_CHECK( rc, PDERROR, "Failed to start background job for "
                       "recycle bin manager, rc: %d", rc ) ;
+      }
+
+      if ( SDB_ROLE_DATA == pmdGetKRCB()->getDBRole() ||
+           SDB_ROLE_CATALOG == pmdGetKRCB()->getDBRole() )
+      {
+         rc = startRecycleRecordJob( NULL ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Start recycle record job thread failed, rc: %d",
+                      rc ) ;
       }
 
    done:

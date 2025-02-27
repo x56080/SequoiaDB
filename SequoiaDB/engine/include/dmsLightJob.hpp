@@ -42,36 +42,6 @@
 
 namespace engine
 {
-
-   /*
-      _dmsDeleteRecordJob define
-   */
-   class _dmsDeleteRecordJob : public _utilLightJob
-   {
-      public:
-         _dmsDeleteRecordJob( INT32 csID, UINT16 clID,
-                              UINT32 csLID, UINT32 clLID,
-                              const dmsRecordID &rid ) ;
-         virtual ~_dmsDeleteRecordJob() ;
-
-         virtual const CHAR*     name() const ;
-         virtual INT32           doit( IExecutor *pExe,
-                                       UTIL_LJOB_DO_RESULT &result,
-                                       UINT64 &sleepTime ) ;
-
-      protected:
-         INT32             _csID ;
-         UINT16            _clID ;
-         UINT32            _csLID ;
-         UINT32            _clLID ;
-         dmsRecordID       _rid ;
-   } ;
-   typedef _dmsDeleteRecordJob dmsDeleteRecordJob ;
-
-   void dmsStartAsyncDeleteRecord( INT32 csID, UINT16 clID,
-                                   UINT32 csLID, UINT32 clLID,
-                                   const dmsRecordID &rid) ;
-
    /*
       _dmsSaveMetaJob
    */

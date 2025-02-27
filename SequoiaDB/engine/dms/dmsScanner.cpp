@@ -766,16 +766,13 @@ namespace engine
          // original lock was released. Pass down newXAcquire.
          if ( _curRecordPtr->isDeleting() )
          {
-            if ( _recordLock == DPS_TRANSLOCK_X )
+            // Old version record may be not in list,
+            // just append them
+            if ( !_curRecordPtr->isInDeletingList() &&
+                 _recordLock == DPS_TRANSLOCK_X &&
+                 _context->isMBLock( EXCLUSIVE ) )
             {
-               INT32 rc1 = _pSu->deleteRecord( _context, _curRID,
-                                               0, cb, NULL, NULL,
-                                               _callback.getTransRecordInfo() ) ;
-               if ( rc1 )
-               {
-                  PD_LOG( PDWARNING, "Failed to delete the deleting record, "
-                          "rc: %d", rc ) ;
-               }
+               _pSu->pushToDeletingList( _context, _recordRW ) ;
             }
 
             if ( _hasLockedRecord )
@@ -2455,16 +2452,13 @@ namespace engine
          // Handle the record being deleted
          if ( _curRecordPtr->isDeleting() )
          {
-            if ( _recordLock == DPS_TRANSLOCK_X )
+            // Old version record may be not in list,
+            // just append them
+            if ( !_curRecordPtr->isInDeletingList() &&
+                 _recordLock == DPS_TRANSLOCK_X &&
+                 _context->isMBLock( EXCLUSIVE ) )
             {
-               rc = _pSu->deleteRecord( _context, _curRID, 0,
-                                        cb, NULL, NULL,
-                                        _callback.getTransRecordInfo() ) ;
-               if ( SDB_OK != rc )
-               {
-                  PD_LOG( PDWARNING, "Failed to delete the deleting record, "
-                          "rc: %d", rc ) ;
-               }
+               _pSu->pushToDeletingList( _context, _recordRW ) ;
             }
 
             if ( _hasLockedRecord )

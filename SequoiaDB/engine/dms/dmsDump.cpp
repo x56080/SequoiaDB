@@ -607,6 +607,31 @@ namespace engine
                                 "     %2u : 0x%08x (%d)" OSS_NEWLINE,
                                 i, mb->_indexExtent[i], mb->_indexExtent[i] ) ;
          }
+
+         // deleting list
+         len += ossSnprintf( outBuf + len, outSize - len,
+                             " Total deleting records: %lld" OSS_NEWLINE,
+                             mb->_totalDeletingRecords ) ;
+         if ( force || !mb->_firstDeletingRID.isNull() )
+         {
+            len += ossSnprintf( outBuf + len, outSize - len,
+                                " First deleting record: "
+                                "%08x %08x (%d, %d)" OSS_NEWLINE,
+                                mb->_firstDeletingRID._extent,
+                                mb->_firstDeletingRID._offset,
+                                mb->_firstDeletingRID._extent,
+                                mb->_firstDeletingRID._offset ) ;
+         }
+         if ( force || !mb->_lastDeletingRID.isNull() )
+         {
+            len += ossSnprintf( outBuf + len, outSize - len,
+                                " Last deleting record: "
+                                "%08x %08x (%d, %d)" OSS_NEWLINE,
+                                mb->_lastDeletingRID._extent,
+                                mb->_lastDeletingRID._offset,
+                                mb->_lastDeletingRID._extent,
+                                mb->_lastDeletingRID._offset ) ;
+         }
       }
 
       len += ossSnprintf( outBuf + len, outSize - len, OSS_NEWLINE ) ;
@@ -1462,7 +1487,8 @@ namespace engine
       UINT32 recordSize = 0 ;
       CHAR      flagText [DMS_DUMP_DATA_RECORD_FLAG_TEXT_LEN+1] = {0} ;
       BOOLEAN   isOvf   = FALSE ;
-      BOOLEAN   isDel   = FALSE ;
+      BOOLEAN   isDeleted   = FALSE ;
+      BOOLEAN   isDeleting  = FALSE ;
 
       if ( NULL == outBuf || NULL == cb  )
       {
@@ -1499,12 +1525,13 @@ namespace engine
       }
       if ( record->isDeleted() )
       {
-         isDel = TRUE ;
+         isDeleted = TRUE ;
          appendString( flagText, DMS_DUMP_DATA_RECORD_FLAG_TEXT_LEN,
                        "Deleted" ) ;
       }
       if ( record->isDeleting() )
       {
+         isDeleting = TRUE ;
          appendString( flagText, DMS_DUMP_DATA_RECORD_FLAG_TEXT_LEN,
                        "Deleting" ) ;
       }
@@ -1548,7 +1575,7 @@ namespace engine
       }
 
       nextRecord = record->_nextOffset ;
-      if ( isDel )
+      if ( isDeleted )
       {
          // dump nothing for deleted record, and set nextRecord to invalid
          nextRecord = DMS_INVALID_OFFSET ;
@@ -1566,6 +1593,21 @@ namespace engine
          {
             ridList->insert ( rid ) ;
          }
+      }
+      else if ( isDeleting && record->isInDeletingList() )
+      {
+         dmsRecordID prev = record->getPrevDeletingRID() ;
+         len += ossSnprintf ( outBuf + len, outSize - len,
+                              "       Prev deleting: 0x%08x : 0x%08x ( "
+                              "extent %d offset %d )" OSS_NEWLINE,
+                              prev._extent, prev._offset,
+                              prev._extent, prev._offset ) ;
+         dmsRecordID next = record->getNextDeletingRID() ;
+         len += ossSnprintf ( outBuf + len, outSize - len,
+                              "       Next deleting: 0x%08x : 0x%08x ( "
+                              "extent %d offset %d )" OSS_NEWLINE,
+                              next._extent, next._offset,
+                              next._extent, next._offset ) ;
       }
       else
       {

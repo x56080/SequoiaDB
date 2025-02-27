@@ -348,6 +348,20 @@ namespace engine
       {
          setAttr( DMS_RECORD_FLAG_DELETING ) ;
       }
+
+      BOOLEAN setPrevDeletingRID( const dmsRecordID &rid ) ;
+
+      dmsRecordID getPrevDeletingRID() const ;
+
+      BOOLEAN setNextDeletingRID( const dmsRecordID &rid ) ;
+
+      dmsRecordID getNextDeletingRID() const ;
+
+      BOOLEAN isInDeletingList() const
+      {
+         return ( 0 == getDataLength() ) ;
+      }
+
       void unsetDeleting()
       {
          unsetAttr( DMS_RECORD_FLAG_DELETING ) ;
@@ -472,6 +486,70 @@ namespace engine
          ossMemcpy( (CHAR*)this+DMS_RECORD_VERSIONED_METADATA_SZ,
                     data.data(), data.len() ) ;
       }
+   }
+
+   OSS_INLINE BOOLEAN _dmsRecord_v0::setPrevDeletingRID( const dmsRecordID &rid )
+   {
+      BOOLEAN success = FALSE ;
+      const UINT32 requiredLength = sizeof( UINT32 ) + sizeof( dmsRecordID ) * 2 ;
+      UINT32 dataLength = getDataLength() ;
+      if ( dataLength >= requiredLength || 0 == dataLength )
+      {
+         CHAR *pLength = (CHAR*)this + DMS_RECORD_VERSIONED_METADATA_SZ ;
+         CHAR *pPrev = pLength + sizeof(UINT32) ;
+         CHAR *pNext = pPrev + sizeof(dmsRecordID) ;
+         *((dmsRecordID*) pPrev) = rid ;
+         if ( dataLength != 0 )
+         {
+            *((UINT32*) pLength) = 0 ;
+            *((dmsRecordID*) pNext) = dmsRecordID() ;
+         }
+         success = TRUE ;
+      }
+      return success ;
+   }
+
+   OSS_INLINE dmsRecordID _dmsRecord_v0::getPrevDeletingRID() const
+   {
+      if ( isInDeletingList() )
+      {
+         return *( const dmsRecordID* )( (const CHAR*)this +
+                                    DMS_RECORD_VERSIONED_METADATA_SZ +
+                                    sizeof( UINT32 ) ) ;
+      }
+      return dmsRecordID() ;
+   }
+
+   OSS_INLINE BOOLEAN _dmsRecord_v0::setNextDeletingRID( const dmsRecordID &rid )
+   {
+      BOOLEAN success = FALSE ;
+      const UINT32 requiredLength = sizeof( UINT32 ) + sizeof( dmsRecordID ) * 2 ;
+      UINT32 dataLength = getDataLength() ;
+      if ( dataLength >= requiredLength || 0 == dataLength )
+      {
+         CHAR *pLength = (CHAR*)this + DMS_RECORD_VERSIONED_METADATA_SZ ;
+         CHAR *pPrev = pLength + sizeof(UINT32) ;
+         CHAR *pNext = pPrev + sizeof(dmsRecordID) ;
+         *((dmsRecordID*) pNext) = rid ;
+         if ( dataLength != 0 )
+         {
+            *((UINT32*) pLength) = 0 ;
+            *((dmsRecordID*) pPrev) = dmsRecordID() ;
+         }
+         success = TRUE ;
+      }
+      return success ;
+   }
+
+   OSS_INLINE dmsRecordID _dmsRecord_v0::getNextDeletingRID() const
+   {
+      if ( isInDeletingList() )
+      {
+         return *( const dmsRecordID* )( (const CHAR*)this +
+                                    DMS_RECORD_VERSIONED_METADATA_SZ +
+                                    sizeof( UINT32 ) + sizeof( dmsRecordID ) ) ;
+      }
+      return dmsRecordID() ;
    }
 
    // Extract Data

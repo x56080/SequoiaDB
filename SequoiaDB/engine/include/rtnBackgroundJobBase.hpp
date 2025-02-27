@@ -83,6 +83,8 @@ namespace engine
 
       RTN_JOB_TASKINFO_UPDATE        = 30, // update task info in cata and data
 
+      RTN_JOB_DMS_RECYCLE_RECORD     = 31,
+
       RTN_JOB_MAX
    } ;
 

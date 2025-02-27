@@ -235,24 +235,6 @@ namespace engine
                         "should be lock escalated" ) ;
             markInsert = FALSE ;
          }
-         /// 2. check the value is the same
-         else
-         {
-            if ( SDB_OK != extractData( context, recordRW, cb, recordData ) )
-            {
-               SDB_ASSERT( cb->getTransExecutor()->isLockEscalated(
-                                                      LOCKMGR_TRANS_LOCK ),
-                           "should be lock escalated" ) ;
-               markInsert = FALSE ;
-            }
-            else if ( 0 != insertObj.woCompare(BSONObj(recordData.data())) )
-            {
-               SDB_ASSERT( cb->getTransExecutor()->isLockEscalated(
-                                                      LOCKMGR_TRANS_LOCK ),
-                           "should be lock escalated" ) ;
-               markInsert = FALSE ;
-            }
-         }
 
          context->mbUnlock() ;
 
@@ -273,6 +255,95 @@ namespace engine
       PD_TRACE_EXITRC( SDB__DMSSTORAGEDATA__CHKMARKINST, rc ) ;
       return rc ;
 
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATA__DOMARKINST, "_dmsStorageData::_doMarkInsert" )
+   INT32 _dmsStorageData::_doMarkInsert( dmsMBContext *context,
+                                         pmdEDUCB *cb,
+                                         dmsExtRW &extRW,
+                                         dmsRecordID &foundRID,
+                                         dmsRecordData &recordData )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATA__DOMARKINST ) ;
+
+      dmsExtent *pExtent = extRW.writePtr<dmsExtent>() ;
+      dmsRecordRW recordRW ;
+      dmsRecord *pRecord = NULL ;
+      dmsRecordID foundDeletedID ;
+      dmsExtRW newExtRW ;
+      dmsRecordRW newRecordRW ;
+      const dmsExtent *pNewExtent = NULL ;
+      dmsRecord *pNewRecord = NULL ;
+
+      recordRW = record2RW( foundRID, context->mbID() ) ;
+      pRecord = recordRW.writePtr< dmsRecord >() ;
+      pRecord->unsetDeleting() ;
+      eraseFromDeletingList( context, pRecord ) ;
+      if ( recordData.len() <= pRecord->getSize() )
+      {
+         pRecord->setData( recordData ) ;
+      }
+      else
+      {
+         // find a free spot from delete list
+         rc = _reserveFromDeleteList ( context, recordData.len(),
+                                       foundDeletedID, cb ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Failed to reserve delete record, rc: %d", rc ) ;
+            goto error ;
+         }
+         newExtRW = extent2RW( foundDeletedID._extent, context->mbID() ) ;
+         newRecordRW = record2RW( foundDeletedID, context->mbID() ) ;
+         pNewExtent = newExtRW.readPtr<dmsExtent>() ;
+         pNewRecord = newRecordRW.writePtr() ;
+
+         if ( !pNewExtent->validate( context->mbID() ) )
+         {
+            PD_LOG ( PDERROR, "Invalid extent[%d] is detected",
+                     foundDeletedID._extent ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+         // pass FALSE to addIntoList so that we don't add the record into
+         // target extent's list
+         rc = _extentInsertRecord ( context, newExtRW, newRecordRW,
+                                    recordData, recordData.len(),
+                                    cb, FALSE ) ;
+         if ( rc )
+         {
+            PD_LOG ( PDERROR, "Failed to append record due to %d", rc ) ;
+            goto error ;
+         }
+
+         _postInsertRecord( context, newExtRW, newRecordRW, recordData,
+                            recordData.len(), cb ) ;
+
+         // set remote record as overflowed to
+         pNewRecord->setOvt() ;
+         pRecord->setOvf() ;
+         pRecord->setOvfRID( foundDeletedID ) ;
+      }
+
+      ++( pExtent->_recCount ) ;
+      _increaseMBStat( context->mbStat()->_clUniqueID, context->mbStat(), cb ) ;
+      context->mbStat()->_totalDataLen += recordData.len() ;
+      context->mbStat()->_totalOrgDataLen += recordData.orgLen() ;
+
+#if defined (_DEBUG)
+      PD_LOG( PDDEBUG, "Mark insert for record (extent: %d; offset: %d) "
+               "in collection [%s.%s] to rollback transaction [%s]",
+               foundRID._extent, foundRID._offset,
+               getSuName(), context->mbStat()->_collectionName,
+               dpsTransIDToString(
+                     DPS_TRANS_GET_ID( cb->getTransID() ) ).c_str() ) ;
+#endif
+   done:
+      PD_TRACE_EXITRC( SDB__DMSSTORAGEDATA__DOMARKINST, rc ) ;
+      return rc ;
    error:
       goto done ;
    }

@@ -66,6 +66,7 @@ namespace engine
 {
    class _pmdEDUCB ;
    class _dmsStorageUnit ;
+   class _dmsCLFilter ;
 
    // 20 minutes
    #define DMS_DFT_BLOCKWRITE_TIMEOUT       ( 20 * 60 * OSS_ONE_SEC )
@@ -224,23 +225,23 @@ namespace engine
    typedef _dmsDataStatMgr dmsDataStatMgr ;
 
    /*
-      _dmsFilter define
+      _dmsCSFilter define
    */
-   class _dmsFilter : public SDBObject
+   class _dmsCSFilter : public SDBObject
    {
       public:
-         _dmsFilter() {}
-         virtual ~_dmsFilter() {}
+         _dmsCSFilter() {}
+         virtual ~_dmsCSFilter() {}
 
       public:
          virtual BOOLEAN filter( _dmsStorageUnit *su ) = 0 ;
    } ;
-   typedef _dmsFilter dmsFilter ;
+   typedef _dmsCSFilter dmsCSFilter ;
 
    /*
       _dmsEmptyCSFilter define
    */
-   class _dmsEmptyCSFilter : public _dmsFilter
+   class _dmsEmptyCSFilter : public _dmsCSFilter
    {
       public:
          _dmsEmptyCSFilter() {}
@@ -254,7 +255,7 @@ namespace engine
    /*
       _dmsNoAccessCSFilter define
    */
-   class _dmsNoAccessCSFilter : public _dmsFilter
+   class _dmsNoAccessCSFilter : public _dmsCSFilter
    {
       public:
          _dmsNoAccessCSFilter( UINT64 noAccessMS ) ;
@@ -548,7 +549,8 @@ namespace engine
 
       INT32 dumpInfo ( MON_CL_SIM_LIST &collectionList,
                        BOOLEAN sys = FALSE,
-                       BOOLEAN dumpIdx = FALSE ) ;
+                       BOOLEAN dumpIdx = FALSE,
+                       _dmsCLFilter *pFilter = NULL ) ;
       INT32 dumpInfo ( MON_CS_SIM_LIST &csList,
                        BOOLEAN sys = FALSE,
                        BOOLEAN dumpCL = FALSE,
@@ -564,7 +566,7 @@ namespace engine
 
       INT32 dumpInfo( MON_CSNAME_VEC &vecCS,
                       BOOLEAN sys = FALSE,
-                      dmsFilter *pFilter = NULL ) ;
+                      dmsCSFilter *pFilter = NULL ) ;
 
       void dumpInfo ( INT64 &totalFileSize );
 

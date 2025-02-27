@@ -195,7 +195,11 @@ namespace engine
       UINT64         _createTime ;
       UINT64         _updateTime ;
 
-      CHAR           _pad [ 244 ] ;
+      dmsRecordID    _firstDeletingRID ;
+      dmsRecordID    _lastDeletingRID ;
+      UINT64         _totalDeletingRecords ;
+
+      CHAR           _pad [ 220 ] ;
 
       void reset ( const CHAR *clName = NULL,
                    utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL,
@@ -282,6 +286,10 @@ namespace engine
 
          _createTime             = 0 ;
          _updateTime             = 0 ;
+
+         _firstDeletingRID       = dmsRecordID() ;
+         _lastDeletingRID        = dmsRecordID() ;
+         _totalDeletingRecords   = 0 ;
 
          // pad
          ossMemset( _pad2, 0, sizeof( _pad2 ) ) ;
@@ -486,6 +494,8 @@ namespace engine
 
       utilCLUniqueID _clUniqueID ;
 
+      UINT64         _totalDeletingRecords ;
+
       void reset()
       {
          _totalRecords           = 0 ;
@@ -550,6 +560,7 @@ namespace engine
          _lobCommitTime = 0 ;
 
          _clUniqueID = UTIL_UNIQUEID_NULL ;
+         _totalDeletingRecords = 0 ;
       }
 
       void setByMB( const dmsMB *mb )
@@ -586,6 +597,7 @@ namespace engine
          updateCommitCache( mb ) ;
 
          _clUniqueID = mb->_clUniqueID ;
+         _totalDeletingRecords = mb->_totalDeletingRecords ;
       }
 
       void updateCommitCache( const dmsMB *mb )
@@ -1396,6 +1408,12 @@ namespace engine
          virtual INT32 setExtOptions ( dmsMBContext * context,
                                        const BSONObj & extOptions ) = 0 ;
 
+         void          pushToDeletingList( dmsMBContext *pContext,
+                                           dmsRecordRW &recordRW ) ;
+
+         void          eraseFromDeletingList( dmsMBContext *pContext,
+                                              dmsRecord *pRecord ) ;
+
       protected:
          virtual INT32 _prepareAddCollection( const BSONObj *extOption,
                                               dmsExtentID &extOptExtent,
@@ -1435,6 +1453,12 @@ namespace engine
                                          dmsRecordID &foundRID,
                                          dmsRecordData &recordData,
                                          dmsRecordRW &recordRW ) = 0 ;
+
+         virtual INT32 _doMarkInsert( dmsMBContext *context,
+                                      pmdEDUCB *cb,
+                                      dmsExtRW &extRW,
+                                      dmsRecordID &foundRID,
+                                      dmsRecordData &recordData ) = 0 ;
 
          virtual INT32 _allocRecordSpace( dmsMBContext *context,
                                           UINT32 size,

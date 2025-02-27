@@ -50,7 +50,6 @@
 #include "pd.hpp"
 #include "utilCompressor.hpp"
 #include "dmsTransLockCallback.hpp"
-#include "dmsLightJob.hpp"
 #include "dpsUtil.hpp"
 #include "pdSecure.hpp"
 
@@ -786,6 +785,11 @@ namespace engine
                pMB->_lobCommitLSN = pMBStat->_lobLastLSN.peek() ;
                hasWritten = TRUE ;
             }
+            if ( pMB->_totalDeletingRecords != pMBStat->_totalDeletingRecords )
+            {
+               pMB->_totalDeletingRecords = pMBStat->_totalDeletingRecords ;
+               hasWritten = TRUE ;
+            }
          }
 
          i = _nextUsedMBSlot( i + 1 ) ;
@@ -1042,6 +1046,8 @@ namespace engine
       dmsMBStatInfo *pMBStat = NULL ;
       BOOLEAN needFlush = FALSE ;
       UINT16 i = DMS_INVALID_MBID ;
+      dmsRecordID minRID ;
+      minRID.resetMin() ;
 
       PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATACOMMON__ONMAPMETA ) ;
       // MME, 4MB
@@ -1185,6 +1191,20 @@ namespace engine
             pMBStat->_commitFlag.init( 1 ) ;
          }
 
+         // check deleting list version
+         if ( 0 == pMBStat->_totalDeletingRecords &&
+            minRID == pMB->_firstDeletingRID &&
+            minRID == pMB->_lastDeletingRID )
+         {
+            /// upgrade from the old version which has no
+            /// _firstDeletingRID/_lastDeletingRID in mb block,
+            /// so the value of _firstDeletingRID/_lastDeletingRID is min.
+            /// set them to invalid
+            pMB->_firstDeletingRID.reset() ;
+            pMB->_lastDeletingRID.reset() ;
+            needFlush = TRUE ;
+         }
+
          i = _pStorageInfo->_pMetaFile->nextMBID( i ) ;
       }
 
@@ -1224,10 +1244,10 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATACOMMON__ONOPENED ) ;
 
-      /* Initialize compressor entries for collections. */
       UINT16 i = _nextUsedMBSlot( 0 ) ;
       while( DMS_INVALID_MBID != i )
       {
+         /* Initialize compressor entries for collections. */
          rc = _initCompressorEntry( i ) ;
          if ( rc )
          {
@@ -1806,6 +1826,9 @@ namespace engine
       {
          context->mb()->_deleteList[i].reset() ;
       }
+      context->mb()->_firstDeletingRID.reset() ;
+      context->mb()->_lastDeletingRID.reset() ;
+      context->mbStat()->_totalDeletingRecords = 0 ;
 
       // We should set _totalDataFreeSpace before _freeExtent() which free
       // pages in SME. If not, FreeDataSize calculated by snapshot cs will be
@@ -4340,34 +4363,15 @@ namespace engine
 
          if ( markInsert )
          {
-            dmsRecord *pRecord = NULL ;
             extRW = extent2RW( foundRID._extent, context->mbID() ) ;
-            dmsExtent *pWRExtent = extRW.writePtr< dmsExtent >() ;
-            pExtent = pWRExtent ;
-
+            pExtent = extRW.readPtr<dmsExtent>() ;
             if ( !pExtent->validate( context->mbID() ) )
             {
                rc = SDB_SYS ;
                goto error ;
             }
-
-            recordRW = record2RW( foundRID, context->mbID() ) ;
-            pRecord = recordRW.writePtr< dmsRecord >() ;
-            pRecord->unsetDeleting() ;
-
-            ++( pWRExtent->_recCount ) ;
-            _increaseMBStat( context->mbStat()->_clUniqueID, context->mbStat(), cb ) ;
-            context->mbStat()->_totalDataLen += recordData.len() ;
-            context->mbStat()->_totalOrgDataLen += recordData.orgLen() ;
-
-#if defined (_DEBUG)
-            PD_LOG( PDDEBUG, "Mark insert for record (extent: %d; offset: %d) "
-                    "in collection [%s.%s] to rollback transaction [%s]",
-                    foundRID._extent, foundRID._offset,
-                    getSuName(), context->mbStat()->_collectionName,
-                    dpsTransIDToString(
-                          DPS_TRANS_GET_ID( cb->getTransID() ) ).c_str() ) ;
-#endif
+            rc = _doMarkInsert( context, cb, extRW, foundRID, recordData ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to do mark insert, rc: %d", rc ) ;
          }
          else
          {
@@ -4867,6 +4871,10 @@ namespace engine
          // delete really
          if ( !markDeleting )
          {
+            if ( isDeleting )
+            {
+               eraseFromDeletingList( context, pRecord ) ;
+            }
             rc = _extentRemoveRecord( context, extRW, recordRW, cb,
                                       !isDeleting ) ;
 
@@ -4946,11 +4954,18 @@ namespace engine
       {
          pTransCB->releaseLogSpace( logRecSize, cb ) ;
       }
-      if ( markDeleting && ( !inTrans || isDeleting ) )
+      if ( markDeleting )
       {
-         /// start light job to delete the record async
-         dmsStartAsyncDeleteRecord( CSID(), context->mbID(), logicalID(),
-                                    context->clLID(), recordID ) ;
+         /// push to this list so that background job would delete it
+         if ( ovfRID.isValid() )
+         {
+            // convert the overflow back to normal to simplify the flow
+            dmsRecordRW ovfRW = record2RW( ovfRID, context->mbID() ) ;
+            _extentRemoveRecord( context, extRW, ovfRW, cb, FALSE ) ;
+            pRecord->setOvfRID( dmsRecordID() ) ;
+            pRecord->setNormal() ;
+         }
+         pushToDeletingList( context, recordRW ) ;
       }
       PD_TRACE_EXITRC ( SDB__DMSSTORAGEDATACOMMON_DELETERECORD, rc ) ;
       return rc ;
@@ -5847,6 +5862,74 @@ namespace engine
       return rc ;
    error:
       goto done ;
+   }
+
+   void _dmsStorageDataCommon::pushToDeletingList( dmsMBContext *pContext,
+                                                   dmsRecordRW &recordRW )
+   {
+      dmsMB &mb = *pContext->mb() ;
+      dmsMBStatInfo &mbStat = *pContext->mbStat() ;
+      dmsRecordID rid = recordRW.getRecordID() ;
+      dmsRecord *pRecord = recordRW.writePtr() ;
+
+      if ( pRecord->isInDeletingList() )
+      {
+         return ;
+      }
+
+      if ( !mb._lastDeletingRID.isNull() )
+      {
+         dmsRecordRW lastRW = record2RW( mb._lastDeletingRID, pContext->mbID() ) ;
+         dmsRecord *pLastRecord = lastRW.writePtr() ;
+         if ( pRecord->setPrevDeletingRID( mb._lastDeletingRID ) &&
+              pRecord->setNextDeletingRID( dmsRecordID() ) &&
+              pLastRecord->setNextDeletingRID( rid ) )
+         {
+            mb._lastDeletingRID = rid ;
+            ++ mbStat._totalDeletingRecords ;
+         }
+      }
+      else
+      {
+         if ( pRecord->setPrevDeletingRID( dmsRecordID() ) &&
+              pRecord->setNextDeletingRID( dmsRecordID() ) )
+         {
+            mb._firstDeletingRID = rid ;
+            mb._lastDeletingRID = rid ;
+            ++ mbStat._totalDeletingRecords ;
+         }
+      }
+   }
+
+   void _dmsStorageDataCommon::eraseFromDeletingList( dmsMBContext *pContext,
+                                                      dmsRecord *pRecord )
+   {
+      if ( pRecord->isInDeletingList() )
+      {
+         dmsRecordID prev = pRecord->getPrevDeletingRID() ;
+         dmsRecordID next = pRecord->getNextDeletingRID() ;
+         if ( prev.isValid() )
+         {
+            dmsRecordRW prevRW = record2RW( prev, pContext->mbID() ) ;
+            dmsRecord *pPrevRecord = prevRW.writePtr() ;
+            pPrevRecord->setNextDeletingRID( next ) ;
+         }
+         else
+         {
+            pContext->mb()->_firstDeletingRID = next ;
+         }
+         if ( next.isValid() )
+         {
+            dmsRecordRW nextRW = record2RW( next, pContext->mbID() ) ;
+            dmsRecord *pNextRecord = nextRW.writePtr() ;
+            pNextRecord->setPrevDeletingRID( prev ) ;
+         }
+         else
+         {
+            pContext->mb()->_lastDeletingRID = prev ;
+         }
+         -- pContext->mbStat()->_totalDeletingRecords ;
+      }
    }
 
    /*
