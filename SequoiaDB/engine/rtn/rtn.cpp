@@ -2977,12 +2977,23 @@ namespace engine
       BSONObj uniqueIDs ;
       SDB_ASSERT( clFullName != NULL, "cl name can't be null" ) ;
 
+      newIndexDef = oldIndexDef ;
+
       // eg: boHint = { "UniqueIDs": [ { "cs.cl1": 1234567890 }, { "cs.cl2": 1234567891 } ] }
       //     oldIndexDef = { "key": { "a": 1 }, "name": "aIdx", "unique": false }
       //     newIndexDef = { "key": { "a": 1 }, "name": "aIdx", "unique": false, "UniqueID": 4294967351 }
       rc = rtnGetArrayElement( indexHint, IXM_FIELD_NAME_UNIQUEIDS, uniqueIDs ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get field[%s] from matcher[%s], rc: %d",
-                   IXM_FIELD_NAME_UNIQUEIDS, indexHint.toString().c_str(), rc ) ;
+      if ( SDB_FIELD_NOT_EXIST == rc )
+      {
+         rc = SDB_OK ;
+         goto done ;
+      }
+      if ( rc )
+      {
+         PD_RC_CHECK( rc, PDERROR, "Failed to get field[%s] from matcher[%s], rc: %d",
+                      IXM_FIELD_NAME_UNIQUEIDS, indexHint.toString().c_str(), rc ) ;
+         goto error ;
+      }
 
       try
       {

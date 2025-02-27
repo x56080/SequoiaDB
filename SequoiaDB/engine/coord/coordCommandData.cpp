@@ -5817,11 +5817,10 @@ namespace engine
          goto error ;
       }
 
-      rc = _executeWithoutCataTask( pMsg, cb, NODE_SEL_PRIMARY, ignoreRC, buf ) ;
-      if ( rc )
-      {
-         goto error ;
-      }
+      rc = executeOnCL( (MsgHeader*)pMsg, cb, _collectionName(),
+                        FALSE, NULL, &ignoreRC, NULL, NULL, buf ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to upgrade index on data nodes, rc: %d", rc );
 
    done:
       return rc ;
