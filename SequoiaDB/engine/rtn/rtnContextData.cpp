@@ -1594,6 +1594,7 @@ namespace engine
       }
       else if ( _queryModifier->isRemove() )
       {
+         obj = obj.getOwned() ;
          rc = _su->data()->deleteRecord( _mbContext, recordID,
                                          recordDataPtr, eduCB, getDPSCB(),
                                          pHandler, pInfo ) ;
