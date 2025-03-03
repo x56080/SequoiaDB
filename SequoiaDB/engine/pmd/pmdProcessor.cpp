@@ -1764,12 +1764,12 @@ namespace engine
                                                   rtnContextBuf &buffObj )
    {
       INT32 rc = SDB_OK ;
+      BSONObj option ;
       const MsgOpLob *header = NULL ;
-      rc = msgExtractGetLobRTDetailRequest( (const CHAR*)msg, &header ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to extract get Lob runtime detail msg"
-                   ":rc=%d", rc) ;
+      rc = msgExtractGetLobRTDetailRequest( (const CHAR*)msg, &header, &option ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to extract get Lob runtime detail msg, rc: %d", rc) ;
 
-      rc = rtnGetLobRTDetail( header->contextID, eduCB(), &buffObj ) ;
+      rc = rtnGetLobRTDetail( header->contextID, eduCB(), &buffObj, option ) ;
 
    done:
       return rc ;

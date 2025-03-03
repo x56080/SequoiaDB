@@ -1190,6 +1190,8 @@ typedef struct _MsgOpAggregate
 #define FLG_LOBWRITE_OR_UPDATE            0x00000004
 /// read on secondary node( use only in secondary )
 #define FLG_LOBREAD_SECONDARY             0x00000008
+/// only for explain(not execute, use only in inner)
+#define FLG_LOB_EXPLAIN                   0x00000010
 
 /// when it is open req |MsgOpLob|bsonobj|
 /// when it is open res |MsgOpReply|bsonobj|

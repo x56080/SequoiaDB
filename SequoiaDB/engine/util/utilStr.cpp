@@ -688,7 +688,7 @@ namespace engine
 
    BOOLEAN utilIsValidOID( const CHAR * pStr )
    {
-      if ( NULL == pStr || 24 > ossStrlen( pStr ) )
+      if ( NULL == pStr || 24 != ossStrlen( pStr ) )
       {
          return FALSE ;
       }

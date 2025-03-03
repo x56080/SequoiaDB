@@ -151,39 +151,48 @@ namespace engine
       _stream = pStream ;
       _flags = flags ;
 
-      fullName = lob.getField( FIELD_NAME_COLLECTION ) ;
-      if ( String != fullName.type() )
+      try
       {
-         PD_LOG( PDERROR, "can not find collection name in lob[%s]",
-                 lob.toString( FALSE, TRUE ).c_str() ) ;
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
+         fullName = lob.getField( FIELD_NAME_COLLECTION ) ;
+         if ( String != fullName.type() )
+         {
+            PD_LOG( PDERROR, "can not find collection name in lob[%s]",
+                    lob.toString( FALSE, TRUE ).c_str() ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
 
-      mode = lob.getField( FIELD_NAME_LOB_OPEN_MODE ) ;
-      if ( NumberInt != mode.type() )
-      {
-         PD_LOG( PDERROR, "invalid mode in meta bsonobj:%s",
-                 lob.toString( FALSE, TRUE ).c_str() ) ;
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
+         mode = lob.getField( FIELD_NAME_LOB_OPEN_MODE ) ;
+         if ( NumberInt != mode.type() )
+         {
+            PD_LOG( PDERROR, "invalid mode in meta bsonobj:%s",
+                    lob.toString( FALSE, TRUE ).c_str() ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
 
-      oidEle = lob.getField( FIELD_NAME_LOB_OID ) ;
-      if ( EOO == oidEle.type() && SDB_LOB_MODE_CREATEONLY == mode.numberInt() )
-      {
-         rc = _createLobID( _oid ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to create lob id:rc=%d", rc ) ;
+         oidEle = lob.getField( FIELD_NAME_LOB_OID ) ;
+         if ( EOO == oidEle.type() && SDB_LOB_MODE_CREATEONLY == mode.numberInt() )
+         {
+            rc = _createLobID( _oid ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to create lob id, rc: %d", rc ) ;
+         }
+         else if ( jstOID == oidEle.type() )
+         {
+            _oid = oidEle.OID() ;
+         }
+         else
+         {
+            PD_LOG( PDERROR, "invalid oid in meta bsonobj:%s",
+                    lob.toString( FALSE, TRUE ).c_str() ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
       }
-      else if ( jstOID == oidEle.type() )
+      catch( std::exception &e )
       {
-         _oid = oidEle.OID() ;
-      }
-      else
-      {
-         PD_LOG( PDERROR, "invalid oid in meta bsonobj:%s",
-                 lob.toString( FALSE, TRUE ).c_str() ) ;
-         rc = SDB_INVALIDARG ;
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
          goto error ;
       }
 
@@ -198,7 +207,7 @@ namespace engine
                           cb ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "failed to open lob stream:%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to open lob stream, rc: %d", rc ) ;
          goto error ;
       }
 
@@ -278,21 +287,42 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCONTEXTLOB_GETRTDETAIL, "_rtnContextLob::getRTDetail" )
-   INT32 _rtnContextLob::getRTDetail( _pmdEDUCB *cb, BSONObj &detail )
+   INT32 _rtnContextLob::getRTDetail( _pmdEDUCB *cb, BSONObj &detail, const BSONObj &option )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__RTNCONTEXTLOB_GETRTDETAIL ) ;
       SDB_ASSERT( NULL != _stream, "can not be null" ) ;
 
-      rc = _stream->getRTDetail( cb, detail ) ;
+      rc = _stream->getRTDetail( cb, detail, option ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "Failed to get lob detail:%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to get lob detail, rc: %d", rc ) ;
          goto error ;
       }
 
    done:
       PD_TRACE_EXITRC( SDB__RTNCONTEXTLOB_GETRTDETAIL, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCONTEXTLOB_EXPLAIN, "_rtnContextLob::explain" )
+   INT32 _rtnContextLob::explain( _pmdEDUCB *cb, BSONObj &detail, const BSONObj &option )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__RTNCONTEXTLOB_EXPLAIN ) ;
+      SDB_ASSERT( NULL != _stream, "can not be null" ) ;
+
+      rc = _stream->explain( cb, detail, option ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "Failed to get lob detail, rc: %d", rc ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNCONTEXTLOB_EXPLAIN, rc ) ;
       return rc ;
    error:
       goto done ;

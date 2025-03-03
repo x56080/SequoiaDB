@@ -38,8 +38,13 @@
 #include "dmsLobDef.hpp"
 #include "rtn.hpp"
 
+using namespace bson ;
+
 namespace engine
 {
+   /*
+      _rtnLobFetcher define
+   */
    class _rtnLobFetcher : public SDBObject
    {
    public:
@@ -48,7 +53,8 @@ namespace engine
 
    public:
       INT32 init( const CHAR *fullName,
-                  BOOLEAN onlyMetaPage ) ;
+                  BOOLEAN onlyMetaPage,
+                  const ossPoolSet<OID> *pOids = NULL ) ;
 
       INT32 fetch( _pmdEDUCB *cb,
                    _dmsLobInfoOnPage &piece,
@@ -90,6 +96,7 @@ namespace engine
       _dmsMBContext        *_mbContext ;
       DMS_LOB_PAGEID       _pos ;
       BOOLEAN              _onlyMetaPage ;
+      ossPoolSet<OID>      _filterOIDs ;
       INT32                _lastErr ;
       CHAR                 _fullName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] ;
 

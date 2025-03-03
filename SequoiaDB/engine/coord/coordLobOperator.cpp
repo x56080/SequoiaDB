@@ -625,13 +625,14 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( COORD_GETLOBRTDETAIL_EXE ) ;
+      BSONObj option ;
       const MsgOpLob *header = NULL ;
       contextID = -1 ;
 
-      rc = msgExtractGetLobRTDetailRequest( (const CHAR*)pMsg, &header ) ;
+      rc = msgExtractGetLobRTDetailRequest( (const CHAR*)pMsg, &header, &option ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "Failed to extract msg:%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to extract msg, rc: %d", rc ) ;
          goto error ;
       }
 
@@ -640,10 +641,10 @@ namespace engine
       MON_SAVE_OP_DETAIL( cb->getMonAppCB(), pMsg->opCode,
                           "ContextID:%lld", header->contextID ) ; */
 
-      rc = rtnGetLobRTDetail( header->contextID, cb, buf ) ;
+      rc = rtnGetLobRTDetail( header->contextID, cb, buf, option ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "Failed to get lob detail:%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to get lob detail, rc: %d", rc ) ;
          goto error ;
       }
 

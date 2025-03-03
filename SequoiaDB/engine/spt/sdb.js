@@ -530,8 +530,16 @@ CLCount.prototype.hint = function( hint ) {
    return this ;
 }
 CLCount.prototype._exec = function() {
-   this._count = this._collection._count ( this._condition,
-                                           this._hint ) ;
+   if ( 1 != this._type )
+   {
+      this._count = this._collection._count ( this._condition,
+                                              this._hint ) ;
+   }
+   else
+   {
+      this._count = this._collection._lobCount ( this._condition,
+                                                 this._hint ) ;
+   }
 }
 // end CLCount
 
@@ -540,6 +548,20 @@ CLCount.prototype._exec = function() {
 SdbCollection.prototype.count = function( condition ) {
    var count = new CLCount() ;
    count._condition = {} ;
+   count._type = 0 ;
+   if( undefined != condition )
+   {
+      count._condition = condition ;
+   }
+   count._collection = this ;
+   count._hint = {} ;
+   return count ;
+}
+
+SdbCollection.prototype.lobCount = function( condition ) {
+   var count = new CLCount() ;
+   count._condition = {} ;
+   count._type = 1 ;
    if( undefined != condition )
    {
       count._condition = condition ;

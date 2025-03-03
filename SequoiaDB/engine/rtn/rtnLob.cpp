@@ -269,18 +269,48 @@ namespace engine
                           contextID ) ;
       MONQUERY_SET_QUERY_TEXT( cb, cb->getMonAppCB()->getLastOpDetail() ) ;
 
-      /// get data
-      rc = lobContext->getMore( -1, buffObj, cb ) ;
-      if ( rc )
+      /// when explain lob
+      if ( flags & FLG_LOB_EXPLAIN )
       {
-         PD_LOG( PDERROR, "Failed to get more from context, rc: %d", rc ) ;
-         lobContext->getErrorInfo( rc, cb, buffObj ) ;
-         goto error ;
-      }
+         BSONObj result ;
+         BSONObj options ;
 
-      if ( NULL != dpsCB )
+         BSONElement e = lob.getField( FIELD_NAME_OPTIONS ) ;
+         if ( Object == e.type() )
+         {
+            options = e.embeddedObject() ;
+         }
+
+         rc = lobContext->explain( cb, result, options ) ;
+         if ( SDB_OK != rc )
+         {
+            lobContext->getErrorInfo( rc, cb, buffObj ) ;
+            PD_LOG( PDERROR, "Failed to explain lob, rc: %d", rc ) ;
+            goto error ;
+         }
+
+         buffObj = result ;
+
+         /// then kill context
+         lobContext->close( cb ) ;
+         rtnCB->contextDelete ( contextID, cb ) ;
+         contextID = -1 ;
+      }
+      else
       {
-         dpsCB->completeOpr( cb, w ) ;
+         /// get data
+         rc = lobContext->getMore( -1, buffObj, cb ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Failed to get more from context, rc: %d", rc ) ;
+            lobContext->getErrorInfo( rc, cb, buffObj ) ;
+            goto error ;
+         }
+
+         if ( NULL != dpsCB )
+         {
+            dpsCB->completeOpr( cb, w ) ;
+         }
       }
 
    done:
@@ -512,7 +542,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNGETLOBRTDETAIL, "rtnGetLobRTDetail" )
    INT32 rtnGetLobRTDetail( SINT64 contextID, pmdEDUCB *cb,
-                            rtnContextBuf *bufObj )
+                            rtnContextBuf *bufObj, const BSONObj &option )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_RTNGETLOBRTDETAIL ) ;
@@ -543,7 +573,7 @@ namespace engine
                           contextID ) ;
       MONQUERY_REPLACE_QUERY_TEXT( cb, cb->getMonAppCB()->getLastOpDetail() ) ;
 
-      rc = lobContext->getRTDetail( cb, detail ) ;
+      rc = lobContext->getRTDetail( cb, detail, option ) ;
       if ( SDB_OK != rc )
       {
          if ( NULL != bufObj )

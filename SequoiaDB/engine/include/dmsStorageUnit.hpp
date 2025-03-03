@@ -632,6 +632,12 @@ namespace engine
                                     _pmdEDUCB *cb,
                                     dmsMBContext *context = NULL ) ;
 
+         INT32    getLobCount ( const CHAR *pName,
+                                INT64 &lobCount,
+                                _pmdEDUCB *cb,
+                                dmsMBContext *context = NULL,
+                                BOOLEAN getPieces = FALSE ) ;
+
          INT32    getCollectionFlag ( const CHAR *pName, UINT16 &flag,
                                       dmsMBContext *context = NULL ) ;
 

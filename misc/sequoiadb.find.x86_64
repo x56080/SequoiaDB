@@ -367,6 +367,8 @@ sequoiadb/doc/manual/SdbCollection/dropIndex_cn.troff
 sequoiadb/doc/manual/SdbCollection/createIndexAsync_cn.troff
 sequoiadb/doc/manual/SdbCollection/getLobDetail_cn.troff
 sequoiadb/doc/manual/SdbCollection/listLobs_en.troff
+sequoiadb/doc/manual/SdbCollection/lobCount_en.troff
+sequoiadb/doc/manual/SdbCollection/lobExplain_en.troff
 sequoiadb/doc/manual/SdbCollection/count_en.troff
 sequoiadb/doc/manual/SdbCollection/snapshotIndexes_cn.troff
 sequoiadb/doc/manual/SdbCollection/find_cn.troff
@@ -428,6 +430,8 @@ sequoiadb/doc/manual/SdbCollection/disableCompression_cn.troff
 sequoiadb/doc/manual/SdbCollection/update_cn.troff
 sequoiadb/doc/manual/SdbCollection/listIndexes_en.troff
 sequoiadb/doc/manual/SdbCollection/listLobs_cn.troff
+sequoiadb/doc/manual/SdbCollection/lobCount_cn.troff
+sequoiadb/doc/manual/SdbCollection/lobExplain_cn.troff
 sequoiadb/doc/manual/SdbCollection/createIdIndex_en.troff
 sequoiadb/doc/manual/SdbCollection/setConsistencyStrategy_en.troff
 sequoiadb/doc/manual/SdbCollection/truncate_cn.troff

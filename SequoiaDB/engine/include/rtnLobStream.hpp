@@ -85,7 +85,9 @@ namespace engine
                   INT64 offset,
                   INT64 length ) ;
 
-      INT32 getRTDetail( _pmdEDUCB *cb, bson::BSONObj &detail ) ;
+      INT32 getRTDetail( _pmdEDUCB *cb, bson::BSONObj &detail, const BSONObj &option = BSONObj() ) ;
+
+      INT32 explain( _pmdEDUCB *cb, bson::BSONObj &detail, const BSONObj &option = BSONObj() ) ;
 
       /// buf may be invalid when do next read.
       /// copy data to your own buf if necessary.
@@ -260,7 +262,17 @@ namespace engine
       virtual INT32 _removev( const RTN_LOB_TUPLES &tuples,
                               _pmdEDUCB *cb ) = 0 ;
 
-      virtual INT32 _getRTDetail( _pmdEDUCB *cb, bson::BSONObj &detail ) = 0 ;
+      virtual INT32 _getRTDetail( _pmdEDUCB *cb,
+                                  const RTN_LOB_TUPLES &tuples,
+                                  bson::BSONObj &detail,
+                                  const _rtnLobPiecesInfo* piecesInfo = NULL,
+                                  const bson::BSONObj &option = BSONObj() ) = 0 ;
+
+      virtual INT32 _explain( _pmdEDUCB *cb,
+                              const RTN_LOB_TUPLES &tuples,
+                              bson::BSONObj &detail,
+                              const _rtnLobPiecesInfo* piecesInfo = NULL,
+                              const bson::BSONObj &option = BSONObj() ) = 0 ;
 
       virtual BOOLEAN _canCache() const
       {

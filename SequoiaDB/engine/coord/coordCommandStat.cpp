@@ -107,6 +107,19 @@ namespace engine
                     "Execute failed, failed to get the field(%s)",
                     FIELD_NAME_COLLECTION ) ;
          queryConf._realCLName = ele.str() ;
+
+         /// real hint
+         ele = boHint.getField( FIELD_NAME_HINT ) ;
+         if ( Object == ele.type() )
+         {
+            _hint = ele.embeddedObject() ;
+         }
+         else if ( !ele.eoo() )
+         {
+            PD_LOG_MSG( PDERROR, "Invalid hint type(%d), shoud be Object", ele.type() ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
       }
       catch( std::exception &e )
       {
@@ -490,11 +503,26 @@ namespace engine
 
       try
       {
+         BOOLEAN aggr = FALSE ;
          rtnContextBuf buffObj ;
          CHAR clFullName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
          CHAR *separator = NULL ;
+         ossPoolString groupName ;
+         ossPoolString nodeName ;
 
-         if ( !_cataPtr->isMainCL() )
+         BSONElement e = _hint.getField( FIELD_NAME_AGGR ) ;
+         if ( e.isBoolean() )
+         {
+            aggr = e.boolean() ;
+         }
+         else if ( !e.eoo() )
+         {
+            PD_LOG_MSG( PDERROR, "Param[%s] should be Boolean", FIELD_NAME_AGGR ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+
+         if ( !_cataPtr->isMainCL() && FALSE == aggr )
          {
             rc = SDB_OK ;
             goto done ;
@@ -513,8 +541,6 @@ namespace engine
 
             BSONObj boTmp( buffObj.data() ) ;
             BSONObj boDetails = boTmp.getField( FIELD_NAME_DETAILS ).Obj() ;
-            ossPoolString groupName ;
-            ossPoolString nodeName ;
 
             monCollection subMonCL ;
             BSONObjIterator it( boDetails ) ;
@@ -522,8 +548,11 @@ namespace engine
             while ( it.more() )
             {
                BSONObj obj = it.next().embeddedObject() ;
-               groupName = obj.getField( FIELD_NAME_GROUPNAME ).valuestrsafe() ;
-               nodeName = obj.getField( FIELD_NAME_NODE_NAME ).valuestrsafe() ;
+               if ( !aggr || groupName.empty() )
+               {
+                  groupName = obj.getField( FIELD_NAME_GROUPNAME ).valuestrsafe() ;
+                  nodeName = obj.getField( FIELD_NAME_NODE_NAME ).valuestrsafe() ;
+               }
                detailedInfo info ;
                rc = monDetailObj2Info( obj, info ) ;
                PD_RC_CHECK( rc, PDERROR,
@@ -578,8 +607,16 @@ namespace engine
             {
                BSONObjBuilder detailBuilder( subBuilder.subobjStart() ) ;
                // append location info
-               detailBuilder.append( FIELD_NAME_NODE_NAME, nameIter->second ) ;
-               detailBuilder.append( FIELD_NAME_GROUPNAME, nameIter->first ) ;
+               if ( !aggr )
+               {
+                  detailBuilder.append( FIELD_NAME_NODE_NAME, nameIter->second ) ;
+                  detailBuilder.append( FIELD_NAME_GROUPNAME, nameIter->first ) ;
+               }
+               else
+               {
+                  detailBuilder.append( FIELD_NAME_NODE_NAME, "" ) ;
+                  detailBuilder.append( FIELD_NAME_GROUPNAME, "" ) ;
+               }
                // details
                rc = monDetailInfo2Obj( monIt->second, monIt->first, detailBuilder ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to convert cl detail to BSON "
@@ -594,16 +631,11 @@ namespace engine
                          "Failed to append cl detail to context, rc: %d", rc ) ;
          }
       }
-      catch ( std::bad_alloc &ba )
-      {
-         rc = SDB_OOM ;
-         PD_RC_CHECK( rc, PDERROR, "Out of memory when generating result" ) ;
-      }
       catch ( std::exception &e )
       {
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to generate detail result. "
-                      "Occured unexpected error:%s", e.what() ) ;
+                      "Occured unexpected exception: %s", e.what() ) ;
       }
 
    done:

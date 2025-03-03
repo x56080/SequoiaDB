@@ -105,7 +105,17 @@ namespace engine
          virtual INT32 _removev( const RTN_LOB_TUPLES &tuples,
                                  _pmdEDUCB *cb ) ;
 
-         virtual INT32 _getRTDetail( _pmdEDUCB *cb, bson::BSONObj &detail ) ;
+         virtual INT32 _getRTDetail( _pmdEDUCB *cb,
+                                     const RTN_LOB_TUPLES &tuples,
+                                     bson::BSONObj &detail,
+                                     const _rtnLobPiecesInfo* piecesInfo = NULL,
+                                     const bson::BSONObj &option = BSONObj() ) ;
+
+         virtual INT32 _explain( _pmdEDUCB *cb,
+                                 const RTN_LOB_TUPLES &tuples,
+                                 bson::BSONObj &detail,
+                                 const _rtnLobPiecesInfo* piecesInfo = NULL,
+                                 const bson::BSONObj &option = BSONObj() ) ;
 
          virtual INT32 _lock( _pmdEDUCB *cb,
                               INT64 offset,

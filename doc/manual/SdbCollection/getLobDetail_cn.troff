@@ -8,7 +8,7 @@
 getLobDetail \- 获取大对象被读写访问的详细信息
 .SH 语法
 .PP
-\f[B]db.collectionspace.collection.getLobDetail(<oid>)\f[]
+\f[B]db.collectionspace.collection.getLobDetail(<oid>, [detail])\f[]
 .SH 类别
 .PP
 SdbCollection
@@ -50,7 +50,32 @@ T}@T{
 述符。
 T}@T{
 T}
+T{
+2
+T}@T{
+detail
+T}@T{
+boolean
+T}@T{
+位置信息中是否
+T}@T{
+否
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+显示详细分片号
+T}@T{
+T}
 .TE
+.RS
+.PP
+\f[B]Note\f[]
+.PP
+当大对象大小大于2GB时，\f[C]Location\f[] 和
+\f[C]PiecesNum\f[]只会按2GB进行计算。
+.RE
 .SH 返回值
 .PP
 函数执行成功时，将返回一个 BSONObj
@@ -93,10 +118,27 @@ T}
 T{
 T}@T{
 T}@T{
-细信息。
+细信息。对象类
+T}
+T{
+T}@T{
+T}@T{
+型
 T}
 T{
 3
+T}@T{
+GroupID
+T}@T{
+元数据分片所在
+T}
+T{
+T}@T{
+T}@T{
+的数据组ID。
+T}
+T{
+4
 T}@T{
 ContextID
 T}@T{
@@ -106,6 +148,113 @@ T{
 T}@T{
 T}@T{
 文标识。
+T}
+T{
+5
+T}@T{
+Location
+T}@T{
+大对象分片位置
+T}
+T{
+T}@T{
+T}@T{
+信息。数组对象
+T}
+T{
+T}@T{
+T}@T{
+类型
+T}
+T{
+6
+T}@T{
+PiecesNum
+T}@T{
+大对象分片数量。
+T}
+T{
+7
+T}@T{
+SubCLName
+T}@T{
+大对象所在子集
+T}
+T{
+T}@T{
+T}@T{
+合名。（仅当从
+T}
+T{
+T}@T{
+T}@T{
+主表执行操作才
+T}
+T{
+T}@T{
+T}@T{
+显示）
+T}
+T{
+8
+T}@T{
+Size
+T}@T{
+大对象大小。
+T}
+T{
+9
+T}@T{
+CreateTime
+T}@T{
+创建时间。
+T}
+T{
+10
+T}@T{
+ModificationTime
+T}@T{
+修改时间。
+T}
+T{
+11
+T}@T{
+Version
+T}@T{
+版本号。
+T}
+T{
+12
+T}@T{
+Available
+T}@T{
+是否有效。
+T}
+T{
+13
+T}@T{
+Flag
+T}@T{
+状态标识。
+T}
+T{
+14
+T}@T{
+HasPiecesInfo
+T}@T{
+是否有分片空洞。
+T}
+T{
+15
+T}@T{
+PiecesInfoNum
+T}@T{
+元数中分片定义
+T}
+T{
+T}@T{
+T}@T{
+段数量。
 T}
 .TE
 .PP
@@ -249,6 +398,60 @@ T}@T{
 锁
 T}
 .TE
+.PP
+其中 Location 数组对象的详细信息格式为：
+.PP
+.TS
+tab(@);
+l l l l.
+T{
+0
+T}@T{
+字段名
+T}@T{
+描述
+T}@T{
+说明
+T}
+_
+T{
+1
+T}@T{
+GroupID
+T}@T{
+数据组ID
+T}@T{
+T}
+T{
+2
+T}@T{
+PiecesNum
+T}@T{
+位于该数据组的
+T}@T{
+T}
+T{
+T}@T{
+T}@T{
+分片数量
+T}@T{
+T}
+T{
+3
+T}@T{
+Pieces
+T}@T{
+分片ID数组
+T}@T{
+仅当 detail=true 时
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+显示
+T}
+.TE
 .SH 错误
 .PP
 当异常抛出时，可以通过 getLastErrMsg() 获取错误信息或通过 getLastError()
@@ -286,7 +489,35 @@ T}
        }
      ]
    },
-   "ContextID": 14
+   "GroupID": 1001,
+   "ContextID": 14,
+   "Location": [
+     {
+       "GroupID": 1000,
+       "PiecesNum": 107
+     },
+     {
+       "GroupID": 1001,
+       "PiecesNum": 120
+     },
+     {
+       "GroupID": 1006,
+       "PiecesNum": 123
+     }
+   ],
+   "PiecesNum": 350,
+   "Size": 91635840,
+   "CreateTime": {
+     "$timestamp": "2025\-02\-21\-16.33.44.460000"
+   },
+   "ModificationTime": {
+     "$timestamp": "2025\-02\-21\-16.33.46.975000"
+   },
+   "Version": 2,
+   "Available": true,
+   "Flag": 0,
+   "HasPiecesInfo": false,
+   "PiecesInfoNum": 0
  }
 \f[]
 .fi

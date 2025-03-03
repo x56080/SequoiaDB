@@ -23,7 +23,14 @@ Use an object to specify record query parameters, and the usage can refer to [Sd
 
 >**Note:**
 >
-> When using SdbQueryOption to specify 	hint as {"ListPieces": 1}, users can get 	detailed sharding information about the Lob.
+> Users can specify `SdbQueryOption.hint()` as follows:
+>
+> - `{"ListPieces": true}` to retrieve detailed pieces information of the LOB, which is equivalent to `listLobPieces()`.
+> - `{"Oid":%oid_string%}` or `{"Oid":[%oid_string%, ...]}` to fetch specific LOB information, reducing I/O overhead.
+> - `{"GroupID":%group_id%}` or `{"GroupID":[%group_id%,...]}` to retrieve LOB information for a specific Group, reducing I/O overhead.
+>
+> Users can also use `SdbQueryOption.cond()` with Oid/GroupID as an equality condition or $in filter (e.g., `{"Oid": {"$oid":%oid_string%}}`), which has the same effect as specifying Oid/GroupID in hint().
+
 
 ##RETURN VALUE##
 
@@ -65,7 +72,8 @@ The function is applicable to v2.0 and above, of which v3.2 and above support ob
          "$timestamp": "2019-07-23-16.43.17.508000"
        },
        "Available": true,
-       "HasPiecesInfo": false
+       "HasPiecesInfo": false,
+       "GroupID": 1001
      }
      {
        "Size": 51717368,
@@ -79,7 +87,8 @@ The function is applicable to v2.0 and above, of which v3.2 and above support ob
          "$timestamp": "2019-07-23-16.52.56.977000"
        },
        "Available": true,
-       "HasPiecesInfo": false
+       "HasPiecesInfo": false,
+       "GroupID": 1001
     }
     Return 2 row(s).
     ```
@@ -100,7 +109,30 @@ The function is applicable to v2.0 and above, of which v3.2 and above support ob
          "$timestamp": "2019-07-23-16.52.56.977000"
        },
        "Available": true,
-       "HasPiecesInfo": false
+       "HasPiecesInfo": false,
+       "GroupID": 1001
+    }
+    Return 1 row(s).
+    ```
+
+* List lob in sample.employee where Oid is "00005d36cae8370002de7edd".
+
+    ```lang-javascript
+    > db.sample.employee.listLobs( SdbQueryOption().hint( {Oid:"00005d36cae8370002de7edd"} ) )
+    {
+       "Size": 51717368,
+       "Oid": {
+         "$oid": "00005d36cae8370002de7edd"
+       },
+       "CreateTime": {
+         "$timestamp": "2019-07-23-16.52.56.278000"
+       },
+       "ModificationTime": {
+         "$timestamp": "2019-07-23-16.52.56.977000"
+       },
+       "Available": true,
+       "HasPiecesInfo": false,
+       "GroupID": 1001
     }
     Return 1 row(s).
     ```

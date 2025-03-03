@@ -7,7 +7,7 @@
 getDetail \- 获取集合具体信息
 .SH 语法
 .PP
-\f[B]db.collectionspace.collection.getDetail()\f[]
+\f[B]db.collectionspace.collection.getDetail([aggr], [options])\f[]
 .SH 类别
 .PP
 SdbCollection
@@ -15,8 +15,20 @@ SdbCollection
 .PP
 该函数用于获取当前集合在各个数据组的具体信息。
 .SH 参数
+.IP \[bu] 2
+aggr ( \f[I]boolean, 选填\f[] )
+.RS 2
 .PP
-无
+是否聚集结果，缺少为 false
+.RE
+.IP \[bu] 2
+options ( \f[I]object, 选填\f[] )
+.RS 2
+.PP
+保留参数
+.RE
+.PP
+以上参数仅在 SequoiaDB v3.4.14/v5.8.4 及以上版本生效
 .SH 返回值
 .PP
 函数执行成功时，将返回一个 SdbCursor

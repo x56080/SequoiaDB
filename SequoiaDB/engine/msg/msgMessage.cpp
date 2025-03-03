@@ -3411,7 +3411,8 @@ error:
 
 // PD_TRACE_DECLARE_FUNCTION ( SDB_MSGEXTRACTGETLOBRTDETAILREQ, "msgExtractGetLobRTDetailRequest" )
 INT32 msgExtractGetLobRTDetailRequest( const CHAR *pBuffer,
-                                       const MsgOpLob **header )
+                                       const MsgOpLob **header,
+                                       BSONObj *pOption )
 {
    INT32 rc = SDB_OK ;
    PD_TRACE_ENTRY( SDB_MSGEXTRACTGETLOBRTDETAILREQ ) ;
@@ -3424,6 +3425,11 @@ INT32 msgExtractGetLobRTDetailRequest( const CHAR *pBuffer,
    {
       PD_LOG( PDERROR, "failed to extract lob msg:%d", rc ) ;
       goto error ;
+   }
+
+   if ( pOption )
+   {
+      *pOption = lob ;
    }
 
 done:

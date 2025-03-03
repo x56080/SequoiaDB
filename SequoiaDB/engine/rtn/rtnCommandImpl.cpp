@@ -55,6 +55,7 @@
 #include "rtnContextDel.hpp"
 #include "ossMemPool.hpp"
 #include "rtnTSClt.hpp"
+#include "rtnContextListLob.hpp"
 
 using namespace bson ;
 
@@ -156,6 +157,41 @@ namespace engine
       SINT64 queryContextID = -1 ;
       BOOLEAN hasRange = options.hasRangeInHint() ;
 
+      BOOLEAN countLob = FALSE ;
+      BOOLEAN filterLob = FALSE ;
+
+      try
+      {
+         if ( ! options.getHint().isEmpty() )
+         {
+            BSONElement e = options.getHint().getField( FIELD_NAME_TYPE ) ;
+            if ( String == e.type() && 0 == ossStrcmp( e.valuestr(), VALUE_NAME_LOB ) )
+            {
+               countLob = TRUE ;
+
+               /// when exist Oid, is filter Lob
+               if ( options.getHint().hasField( FIELD_NAME_LOB_OID ) )
+               {
+                  filterLob = TRUE ;
+               }
+            }
+         }
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         goto error ;
+      }
+
+      /// check param
+      if ( hasRange && countLob )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "lobCount() can't support param[%s]", FIELD_NAME_RANGE ) ;
+         goto error ;
+      }
+
       rc = rtnResolveCollectionNameAndLock ( pCollection, dmsCB, &su,
                                              &pCollectionShortName, suID ) ;
       if ( rc )
@@ -164,8 +200,7 @@ namespace engine
                   pCollection, rc ) ;
          goto error ;
       }
-      if ( !options.isQueryEmpty() ||
-           hasRange )
+      if ( !options.isQueryEmpty() || hasRange || filterLob )
       {
          rtnContextPtr pContextBase ;
 
@@ -175,8 +210,14 @@ namespace engine
             if ( !messenger || !messenger->isReady() )
             {
                rc = SDB_NET_NOT_CONNECT ;
-               PD_LOG( PDERROR, "Remote messenger is not ready. Maybe the "
-                       "adapter is offline" ) ;
+               PD_LOG_MSG( PDERROR, "Remote messenger is not ready. Maybe the "
+                           "adapter is offline" ) ;
+               goto error ;
+            }
+            else if ( countLob )
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG_MSG( PDERROR, "lobCount() can't support text query" ) ;
                goto error ;
             }
 
@@ -200,8 +241,40 @@ namespace engine
             }
             copiedOptions.setInternalFlag( RTN_INTERNAL_QUERY_COUNT_FLAG ) ;
 
-            rc = rtnQuery ( copiedOptions, cb, dmsCB, rtnCB, queryContextID,
-                            &pContextBase ) ;
+            if ( !countLob )
+            {
+               rc = rtnQuery ( copiedOptions, cb, dmsCB, rtnCB, queryContextID,
+                               &pContextBase ) ;
+            }
+            else
+            {
+               rtnContextListLob::sharePtr context ;
+               BSONObjBuilder hintBuilder ;
+               BSONObj newHint ;
+
+               try
+               {
+                  hintBuilder.append( FIELD_NAME_COLLECTION, pCollection ) ;
+                  hintBuilder.appendElements( options.getHint() ) ;
+                  newHint = hintBuilder.obj() ;
+               }
+               catch( std::exception &e )
+               {
+                  rc = ossException2RC( &e ) ;
+                  PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+                  goto error ;
+               }
+
+               rc = rtnCB->contextNew( RTN_CONTEXT_LIST_LOB, context, queryContextID, cb ) ;
+               if ( rc )
+               {
+                  PD_LOG( PDERROR, "Failed to create list lob context, rc: %d", rc ) ;
+                  goto error ;
+               }
+               pContextBase = context ;
+               rc = context->open( options.getQuery(), dummy, newHint, 0, -1, cb ) ;
+            }
+
             if ( rc )
             {
                // any error will clean up queryContext
@@ -272,11 +345,90 @@ namespace engine
       else
       {
          // use quick extent header count
-         rc = su->countCollection ( pCollectionShortName, totalCount, cb ) ;
+         if ( countLob )
+         {
+            BOOLEAN listPieces = FALSE ;
+            ossPoolSet<UINT32> groups ;
+
+            /// parse hint
+            try
+            {
+               /// ListPieces
+               BSONElement e = options.getHint().getField( FIELD_NAME_LOB_LIST_PIECES_MODE ) ;
+               if ( e.isBoolean() )
+               {
+                  listPieces = e.boolean() ;
+               }
+               else if ( e.isNumber() )
+               {
+                  listPieces = ( 0 != e.numberInt() ) ? TRUE : FALSE ;
+               }
+               else if ( !e.eoo() )
+               {
+                  PD_LOG_MSG( PDERROR, "Param[%s] should be boolean",
+                              FIELD_NAME_LOB_LIST_PIECES_MODE ) ;
+                  rc = SDB_INVALIDARG ;
+                  goto error ;
+               }
+
+               /// GroupID
+               e = options.getHint().getField( FIELD_NAME_GROUPID ) ;
+               if ( e.isNumber() )
+               {
+                  groups.insert( e.numberInt() ) ;
+               }
+               else if ( Array == e.type() )
+               {
+                  BSONObjIterator itr( e.embeddedObject() ) ;
+                  while( itr.more() )
+                  {
+                     BSONElement eTmp = itr.next() ;
+                     if ( eTmp.isNumber() )
+                     {
+                        groups.insert( eTmp.numberInt() ) ;
+                     }
+                     else
+                     {
+                        PD_LOG_MSG( PDERROR, "Hint param[%s] must be int or int array",
+                                    FIELD_NAME_GROUPID ) ;
+                        rc = SDB_INVALIDARG ;
+                        goto error ;
+                     }
+                  }
+               }
+               else if ( !e.eoo() )
+               {
+                  PD_LOG_MSG( PDERROR, "Hint param[%s] must be int or int array",
+                              FIELD_NAME_GROUPID ) ;
+                  rc = SDB_INVALIDARG ;
+                  goto error ;
+               }
+            }
+            catch( std::exception &e )
+            {
+               rc = ossException2RC( &e ) ;
+               PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+               goto error ;
+            }
+
+            if ( !groups.empty() &&
+                 groups.find( pmdGetNodeID().columns.groupID ) == groups.end() )
+            {
+               /// not in this group
+               totalCount = 0 ;
+            }
+            else
+            {
+               rc = su->getLobCount( pCollectionShortName, totalCount, cb, NULL, listPieces ) ;
+            }
+         }
+         else
+         {         
+            rc = su->countCollection ( pCollectionShortName, totalCount, cb ) ;
+         }
          if ( rc )
          {
-            PD_LOG ( PDERROR, "Failed to get count %s, rc: %d",
-                     pCollection, rc ) ;
+            PD_LOG ( PDERROR, "Failed to get count %s, rc: %d", pCollection, rc ) ;
             goto error ;
          }
       }

@@ -38,11 +38,84 @@
 #include "rtnLobPieces.hpp"
 #include "rtnLobMetricsSubmitor.hpp"
 #include "dmsCB.hpp"
+#include "pmdEnv.hpp"
 
 using namespace bson ;
 
 namespace engine
 {
+
+   /*
+      Tool functions
+   */
+   static void _mergeOIDSet( ossPoolSet<OID> &dest, ossPoolSet<OID> &source, BOOLEAN &isNull )
+   {
+      if ( source.empty() )
+      {
+         /// do nothing
+      }
+      else if ( dest.empty() )
+      {
+         dest = source ;
+      }
+      else
+      {
+         ossPoolSet<OID>::iterator itSet = dest.begin() ;
+         while( itSet != dest.end() )
+         {
+            if ( source.find( *itSet ) == source.end() )
+            {
+               dest.erase( itSet++ ) ;
+            }
+            else
+            {
+               ++itSet ;
+            }
+         }
+
+         if ( dest.empty() )
+         {
+            isNull = TRUE ;
+         }
+      }
+   }
+
+   static void _mergeGroupSet( ossPoolSet<UINT32> &dest, ossPoolSet<UINT32> &source, BOOLEAN &isNull )
+   {
+      if ( source.empty() )
+      {
+         /// do nothing
+      }
+      else if ( dest.empty() )
+      {
+         dest = source ;
+      }
+      else
+      {
+         ossPoolSet<UINT32>::iterator itSet = dest.begin() ;
+         while( itSet != dest.end() )
+         {
+            if ( source.find( *itSet ) == source.end() )
+            {
+               dest.erase( itSet++ ) ;
+            }
+            else
+            {
+               ++itSet ;
+            }
+         }
+
+         if ( dest.empty() )
+         {
+            isNull = TRUE ;
+         }
+      }
+   }
+
+   /*
+      _rtnContextListLob implement
+   */
+
    RTN_CTX_AUTO_REGISTER(_rtnContextListLob, RTN_CONTEXT_LIST_LOB, "LIST_LOB") ;
 
    _rtnContextListLob::_rtnContextListLob( INT64 contextID, UINT64 eduID )
@@ -85,40 +158,87 @@ namespace engine
       PD_TRACE_ENTRY( SDB__RTNCONTEXTLISTLOB_OPEN ) ;
       monAppCB *pMonAppCB = cb ? cb->getMonAppCB() : NULL ;
       rtnLobMetricsSubmitor submitor( cb, this ) ;
-      BSONElement fullName ;
+      BSONElement fullName, pieces ;
 
-      _query = query.getOwned() ;
+      ossPoolSet<OID> queryOIDs ;
+      ossPoolSet<OID> hintOIDs ;
+      ossPoolSet<UINT32> queryGroups ;
+      ossPoolSet<UINT32> hintGroups ;
+      BOOLEAN isNullCond = FALSE ;
+
       _selector = selector.getOwned() ;
       _hint = hint.getOwned() ;
       _skip = skip ;
       _returnNum = returnNum ;
 
+      /// parse query
+      rc = _parseInfoFromQuery( query.getOwned(), queryOIDs, queryGroups, isNullCond, _query ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      /// parse hint
+      rc = _parseInfoFromHint( _hint, hintOIDs, hintGroups ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      /// merge oid
+      _mergeOIDSet( hintOIDs, queryOIDs, isNullCond ) ;
+      /// merge groupid
+      _mergeGroupSet( hintGroups, queryGroups, isNullCond ) ;
+
       if ( !_selector.isEmpty() )
       {
          rc = _selectorParser.loadPattern ( _selector ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to load selector pattern[%s], rc=%d",
+         PD_RC_CHECK( rc, PDERROR, "Failed to load selector pattern[%s], rc: %d",
                       _selector.toString().c_str(), rc ) ;
       }
 
       rc = _matchTree.loadPattern( _query ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to load matchTree pattern[%s], rc=%d",
+      PD_RC_CHECK( rc, PDERROR, "Failed to load matchTree pattern[%s], rc: %d",
                    _query.toString().c_str(), rc ) ;
 
-      fullName = _hint.getField( FIELD_NAME_COLLECTION ) ;
-      if ( String != fullName.type() )
+      try
       {
-         PD_LOG( PDERROR, "invalid collection name in hint:%s",
-                 _hint.toString( FALSE, TRUE ).c_str() ) ;
-         rc = SDB_INVALIDARG ;
+         fullName = _hint.getField( FIELD_NAME_COLLECTION ) ;
+         if ( String != fullName.type() )
+         {
+            PD_LOG_MSG( PDERROR, "invalid collection name in hint(%s)",
+                        _hint.toString( FALSE, TRUE ).c_str() ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+
+         pieces = _hint.getField( FIELD_NAME_LOB_LIST_PIECES_MODE ) ;
+         if ( pieces.isBoolean() )
+         {
+            _fetchLobHead = pieces.boolean() ;
+         }
+         else if ( pieces.isNumber() )
+         {
+            _fetchLobHead = ( 0 != pieces.numberInt() ) ? TRUE : FALSE ;
+         }
+         else if ( !pieces.eoo() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "Param[%s] shoud be boolean", FIELD_NAME_LOB_LIST_PIECES_MODE ) ;
+            goto error ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
          goto error ;
       }
 
-      _fetchLobHead = _hint.getField( FIELD_NAME_LOB_LIST_PIECES_MODE ).eoo() ;
-
-      rc = _fetcher.init( fullName.valuestr(), _fetchLobHead ) ;
+      rc = _fetcher.init( fullName.valuestr(), _fetchLobHead, &hintOIDs ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "failed to init lob fetcher:%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to init lob fetcher, rc: %d", rc ) ;
          goto error ;
       }
       if ( NULL != _fetcher.getSu() )
@@ -132,6 +252,22 @@ namespace engine
 
       _isOpened = TRUE ;
       _hitEnd = FALSE ;
+
+      if ( isNullCond ||
+           ( !hintGroups.empty() &&
+             hintGroups.find( pmdGetNodeID().columns.groupID ) == hintGroups.end() )
+          )
+      {
+         _hitEnd = TRUE ;
+         _returnNum = 0 ;
+      }
+      else if ( _fetchLobHead && !hintOIDs.empty() )
+      {
+         if ( _returnNum < 0 || _returnNum > (INT64)hintOIDs.size() )
+         {
+            _returnNum = hintOIDs.size() ;
+         }
+      }
 
    done:
       PD_TRACE_EXITRC( SDB__RTNCONTEXTLISTLOB_OPEN, rc ) ;
@@ -163,7 +299,7 @@ namespace engine
          if ( SDB_OK == rc )
          {
             rc = _matchTree.matches( obj, isMatch ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to matches obj[%s]:rc=%d",
+            PD_RC_CHECK( rc, PDERROR, "Failed to matches obj[%s], rc: %d",
                          obj.toString().c_str(), rc ) ;
             if ( isMatch )
             {
@@ -182,7 +318,7 @@ namespace engine
                if ( _selectorParser.isInitialized() )
                {
                   rc = _selectorParser.select( obj, selObj ) ;
-                  PD_RC_CHECK( rc, PDERROR, "Failed to select obj[%s]:rc=%d",
+                  PD_RC_CHECK( rc, PDERROR, "Failed to select obj[%s], rc: %d",
                                obj.toString().c_str(), rc ) ;
                }
                else
@@ -191,7 +327,7 @@ namespace engine
                }
 
                rc = append( selObj ) ;
-               PD_RC_CHECK( rc, PDERROR, "Failed to append data to context:%d",
+               PD_RC_CHECK( rc, PDERROR, "Failed to append data to context, rc: %d",
                             rc ) ;
                returnObjNum++ ;
             }
@@ -208,7 +344,7 @@ namespace engine
          }
          else if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "failed to get lob data:%d", rc ) ;
+            PD_LOG( PDERROR, "Failed to get lob data, rc: %d", rc ) ;
             goto error ;
          }
 
@@ -239,22 +375,29 @@ namespace engine
       UINT32 read = 0 ;
       const _dmsLobMeta *meta = NULL ;
       UINT64 modificationTime = 0 ;
-      BSONObjBuilder builder ;
+
+      _builder.reset() ;
 
       rc = _fetcher.fetch( cb, info ) ;
       if ( SDB_OK != rc )
       {
          if ( SDB_DMS_EOC != rc )
          {
-            PD_LOG( PDERROR, "failed to fetch lob:%d", rc ) ;
+            PD_LOG( PDERROR, "Failed to fetch lob, rc: %d", rc ) ;
          }
          goto error ;
+      }
+
+      if ( isCountMode() && _matchTree.isMatchesAll() && _selector.isEmpty() )
+      {
+         obj = BSONObj() ;
+         goto done ;
       }
 
       rc = _reallocate( info._len ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "failed to reallocate buf:%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to reallocate buf, rc: %d", rc ) ;
          goto error ;
       }
 
@@ -263,7 +406,7 @@ namespace engine
                        _fetcher.getMBContext() ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "failed to read lob[%s], rc:%d",
+         PD_LOG( PDERROR, "Failed to read lob[%s], rc: %d",
                  info._oid.str().c_str(), rc ) ;
          goto error ;
       }
@@ -277,47 +420,64 @@ namespace engine
          modificationTime = meta->_createTime ;
       }
 
-      builder.append( FIELD_NAME_LOB_SIZE, meta->_lobLen ) ;
-      builder.appendOID( FIELD_NAME_LOB_OID, &( info._oid ) ) ;
-      builder.appendTimestamp( FIELD_NAME_LOB_CREATETIME,
-                               meta->_createTime,
-                               ( meta->_createTime % 1000 ) * 1000) ;
-      builder.appendTimestamp( FIELD_NAME_LOB_MODIFICATION_TIME,
-                               modificationTime,
-                               (modificationTime % 1000 ) * 1000) ;
-      builder.appendBool( FIELD_NAME_LOB_AVAILABLE, meta->isDone() ) ;
-#ifdef _DEBUG
-      builder.appendBool( FIELD_NAME_LOB_HAS_PIECESINFO, meta->hasPiecesInfo() ) ;
-      if ( meta->hasPiecesInfo() && info._len >= DMS_LOB_META_LENGTH )
+      try
       {
-         BSONArray array ;
-         _rtnLobPiecesInfo piecesInfo ;
+         _builder.append( FIELD_NAME_LOB_SIZE, meta->_lobLen ) ;
+         _builder.appendOID( FIELD_NAME_LOB_OID, &( info._oid ) ) ;
+         _builder.appendTimestamp( FIELD_NAME_LOB_CREATETIME,
+                                   meta->_createTime,
+                                   ( meta->_createTime % 1000 ) * 1000) ;
+         _builder.appendTimestamp( FIELD_NAME_LOB_MODIFICATION_TIME,
+                                   modificationTime,
+                                   (modificationTime % 1000 ) * 1000) ;
+         _builder.appendBool( FIELD_NAME_LOB_AVAILABLE, meta->isDone() ) ;
 
-         INT32 length = meta->_piecesInfoNum * (INT32)sizeof( _rtnLobPieces ) ;
-         const CHAR* piecesInfoBuf = (const CHAR*)
-                                     ( _buf + DMS_LOB_META_LENGTH - length ) ;
-
-         rc = piecesInfo.readFrom( piecesInfoBuf, length ) ;
-         if ( SDB_OK != rc )
+   #ifdef _DEBUG
+         _builder.appendBool( FIELD_NAME_LOB_HAS_PIECESINFO, meta->hasPiecesInfo() ) ;
+         if ( meta->hasPiecesInfo() && info._len >= DMS_LOB_META_LENGTH )
          {
-            PD_LOG( PDERROR, "failed to read pieces info of lob[%s], rc:%d",
-                    info._oid.str().c_str(), rc ) ;
-            goto error ;
+            BSONArray array ;
+            _rtnLobPiecesInfo piecesInfo ;
+
+            INT32 length = meta->_piecesInfoNum * (INT32)sizeof( _rtnLobPieces ) ;
+            const CHAR* piecesInfoBuf = (const CHAR*)
+                                        ( _buf + DMS_LOB_META_LENGTH - length ) ;
+
+            rc = piecesInfo.readFrom( piecesInfoBuf, length ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "Failed to read pieces info of lob[%s], rc: %d",
+                       info._oid.str().c_str(), rc ) ;
+               goto error ;
+            }
+
+            rc = piecesInfo.saveTo( array ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "Failed to save pieces info of lob[%s], rc: %d",
+                       info._oid.str().c_str(), rc ) ;
+               goto error ;
+            }
+
+            _builder.append( FIELD_NAME_LOB_PIECESINFONUM, meta->_piecesInfoNum ) ;
+            _builder.appendArray( FIELD_NAME_LOB_PIECESINFO, array ) ;
+         }
+   #endif
+
+         if ( SDB_ROLE_STANDALONE != pmdGetDBRole() )
+         {
+            _builder.append( FIELD_NAME_GROUPID, (INT32)pmdGetNodeID().columns.groupID ) ;
          }
 
-         rc = piecesInfo.saveTo( array ) ;
-         if ( SDB_OK != rc )
-         {
-            PD_LOG( PDERROR, "failed to save pieces info of lob[%s], rc:%d",
-                    info._oid.str().c_str(), rc ) ;
-            goto error ;
-         }
-
-         builder.append( FIELD_NAME_LOB_PIECESINFONUM, meta->_piecesInfoNum ) ;
-         builder.appendArray( FIELD_NAME_LOB_PIECESINFO, array ) ;
+         obj = _builder.done() ;
       }
-#endif
-      obj = builder.obj() ;
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         goto error ;
+      }
+
    done:
       PD_TRACE_EXITRC( SDB__RTNCONTEXTLISTLOB__GETMETAINFO, rc ) ;
       return rc ;
@@ -331,21 +491,45 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__RTNCONTEXTLISTLOB__GETSEQUENCEINFO ) ;
       _dmsLobInfoOnPage info ;
-      BSONObjBuilder builder ;
+
+      _builder.reset() ;
 
       rc = _fetcher.fetch( cb, info, NULL ) ;
       if ( SDB_OK != rc )
       {
          if ( SDB_DMS_EOC != rc )
          {
-            PD_LOG( PDERROR, "failed to fetch lob:%d", rc ) ;
+            PD_LOG( PDERROR, "Failed to fetch lob, rc: %d", rc ) ;
          }
          goto error ;
       }
 
-      builder.appendOID( FIELD_NAME_LOB_OID, &( info._oid ) ) ;
-      builder.append( "Sequence", info._sequence ) ;
-      obj = builder.obj() ;
+      if ( isCountMode() && _matchTree.isMatchesAll() && _selector.isEmpty() )
+      {
+         obj = BSONObj() ;
+         goto done ;
+      }
+
+      try
+      {
+         _builder.appendOID( FIELD_NAME_LOB_OID, &( info._oid ) ) ;
+         _builder.append( FIELD_NAME_SEQUENCE, info._sequence ) ;
+         _builder.append( FIELD_NAME_LOB_LENGTH, (INT32)info._len ) ;
+
+         if ( SDB_ROLE_STANDALONE != pmdGetDBRole() )
+         {
+            _builder.append( FIELD_NAME_GROUPID, (INT32)pmdGetNodeID().columns.groupID ) ;
+         }
+
+         obj = _builder.done() ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         goto error ;
+      }
+
    done:
       PD_TRACE_EXITRC( SDB__RTNCONTEXTLISTLOB__GETSEQUENCEINFO, rc ) ;
       return rc ;
@@ -451,5 +635,354 @@ namespace engine
    error:
       goto done ;
    }
+
+   INT32 _rtnContextListLob::_parseInfoFromQuery( const BSONObj &match,
+                                                  ossPoolSet<OID> &oids,
+                                                  ossPoolSet<UINT32> &groups,
+                                                  BOOLEAN &isNullCond,
+                                                  BSONObj &newMatch )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObjBuilder builder( match.objsize() ) ;
+      BOOLEAN isModify = FALSE ;
+
+      try
+      {
+         BSONObjIterator itr( match ) ;
+         while( itr.more() && !isNullCond )
+         {
+            BSONElement e = itr.next() ;
+
+            // $and:[{Oid:{$oid:"xxx"}}, {Oid:{$oid:"yyyy"}}]
+            if ( Array == e.type() && 0 == ossStrcmp( e.fieldName(), "$and" ) )
+            {
+               INT32 curBBLen = builder.bb().len() ;
+               INT32 curReserved = builder.bb().getReserveBytes() ;
+               BSONArrayBuilder sub( builder.subarrayStart( e.fieldName() ) ) ;
+               BSONObj tmpNew ;
+
+               BSONObjIterator tmpItr( e.embeddedObject() ) ;
+               while( tmpItr.more() && !isNullCond )
+               {
+                  ossPoolSet<OID> tmpOids ;
+                  ossPoolSet<UINT32> tmpGroups ;
+
+                  BSONElement tmpE = tmpItr.next() ;
+                  BSONObj tmpObj ;
+
+                  if ( Object != tmpE.type() )
+                  {
+                     rc = SDB_INVALIDARG ;
+                     PD_LOG_MSG( PDERROR, "Parse matcher(%s) failed, rc: %d",
+                                 match.toPoolString().c_str(), rc ) ;
+                     goto error ;
+                  }
+
+                  tmpObj = tmpE.embeddedObject() ;
+                  rc = _parseInfoFromQuery( tmpObj, tmpOids, tmpGroups, isNullCond, tmpNew ) ;
+                  if ( rc )
+                  {
+                     goto error ;
+                  }
+                  /// merge set
+                  _mergeOIDSet( oids, tmpOids, isNullCond ) ;
+                  _mergeGroupSet( groups, tmpGroups, isNullCond ) ;
+                  /// build new matcher
+                  if ( tmpNew.objdata() != tmpObj.objdata() )
+                  {
+                     isModify = TRUE ;
+
+                     if ( !tmpNew.isEmpty() )
+                     {
+                        sub.append( tmpNew ) ;
+                     }
+                  }
+                  else
+                  {
+                     sub.append( tmpObj ) ;
+                  }
+               }
+
+               if ( sub.isEmpty() )
+               {
+                  sub.abandon() ;
+                  builder.bb().setlen( curBBLen ) ;
+                  builder.bb().setReserveBytes( curReserved ) ;
+               }
+               else
+               {
+                  sub.done() ;
+               }
+            }
+            // Oid
+            else if ( 0 == ossStrcmp( e.fieldName(), FIELD_NAME_LOB_OID ) )
+            {
+               ossPoolSet<OID> tmpOids ;
+               if ( _parseOID( e, tmpOids, isNullCond, FALSE ) )
+               {
+                  _mergeOIDSet( oids, tmpOids, isNullCond ) ;
+                  isModify = TRUE ;
+               }
+               else
+               {
+                  builder.append( e ) ;
+               }
+            }
+            else if ( 0 == ossStrcmp( e.fieldName(), FIELD_NAME_GROUPID ) )
+            {
+               ossPoolSet<UINT32> tmpGroups ;
+               if ( _parseGroupID( e, tmpGroups, isNullCond, FALSE ) )
+               {
+                  _mergeGroupSet( groups, tmpGroups, isNullCond ) ;
+                  isModify = TRUE ;
+               }
+               else
+               {
+                  builder.append( e ) ;
+               }
+            }
+            else
+            {
+               builder.append( e ) ;
+            }
+         }
+
+         if ( !isNullCond && isModify )
+         {
+            newMatch = builder.obj() ;
+         }
+         else
+         {
+            newMatch = match ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   BOOLEAN _rtnContextListLob::_parseOID( const BSONElement &e,
+                                          ossPoolSet<OID> &oids,
+                                          BOOLEAN &isNullCond,
+                                          BOOLEAN onlyOID )
+   {
+      BOOLEAN hasParsed = FALSE ;
+
+      /// Oid:{}
+      if ( jstOID == e.type() )
+      {
+         oids.insert( e.OID() ) ;
+         hasParsed = TRUE ;
+      }
+      else if ( !onlyOID && e.isABSONObj() )
+      {
+         BSONElement subE = e.embeddedObject().firstElement() ;
+
+         /// Oid:{$et:{}}
+         if ( 0 == ossStrcmp( subE.fieldName(), "$et" ) )
+         {
+            _parseOID( subE, oids, isNullCond, TRUE ) ;
+            hasParsed = TRUE ;
+         }
+         /// Oid:{$in:[]}
+         else if ( 0 == ossStrcmp( subE.fieldName(), "$in" ) && Array == subE.type() )
+         {
+            BOOLEAN tmpIsNullCond = FALSE ;
+            BSONObjIterator itr( subE.embeddedObject() ) ;
+            while( itr.more() )
+            {
+               BSONElement tmpE = itr.next() ;
+               _parseOID( tmpE, oids, tmpIsNullCond, TRUE ) ;
+            }
+            hasParsed = TRUE ;
+            if ( oids.empty() )
+            {
+               isNullCond = TRUE ;
+            }
+         }
+      }
+      else
+      {
+         isNullCond = TRUE ;
+      }
+
+      return hasParsed ;
+   }
+
+   BOOLEAN _rtnContextListLob::_parseGroupID( const BSONElement &e,
+                                              ossPoolSet<UINT32> &groups,
+                                              BOOLEAN &isNullCond,
+                                              BOOLEAN onlyNumber )
+   {
+      BOOLEAN hasParsed = FALSE ;
+
+      /// GroupID:xxx
+      if ( e.isNumber() )
+      {
+         groups.insert( e.numberInt() ) ;
+         hasParsed = TRUE ;
+      }
+      else if ( !onlyNumber && e.isABSONObj() )
+      {
+         BSONElement subE = e.embeddedObject().firstElement() ;
+
+         /// GroupID:{$et:xxx}
+         if ( 0 == ossStrcmp( subE.fieldName(), "$et" ) )
+         {
+            _parseGroupID( subE, groups, isNullCond, TRUE ) ;
+            hasParsed = TRUE ;
+         }
+         /// GroupID:{$in:[]}
+         else if ( 0 == ossStrcmp( subE.fieldName(), "$in" ) && Array == subE.type() )
+         {
+            BOOLEAN tmpIsNullCond = FALSE ;
+            BSONObjIterator itr( subE.embeddedObject() ) ;
+            while( itr.more() )
+            {
+               BSONElement tmpE = itr.next() ;
+               _parseGroupID( tmpE, groups, tmpIsNullCond, TRUE ) ;
+            }
+            hasParsed = TRUE ;
+            if ( groups.empty() )
+            {
+               isNullCond = TRUE ;
+            }
+         }
+      }
+      else
+      {
+         isNullCond = TRUE ;
+      }
+
+      return hasParsed ;
+   }
+
+   INT32 _rtnContextListLob::_parseInfoFromHint( const BSONObj &hint,
+                                                 ossPoolSet<OID> &oids,
+                                                 ossPoolSet<UINT32> &groups )
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         /// OID
+         BSONElement e = hint.getField( FIELD_NAME_LOB_OID ) ;
+         if ( jstOID == e.type() )
+         {
+            oids.insert( e.OID() ) ;
+         }
+         else if ( String == e.type() )
+         {
+            if ( !utilIsValidOID( e.valuestr() ) )
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG_MSG( PDERROR, "Hint param[%s] is invalid lob Oid string",
+                           FIELD_NAME_LOB_OID ) ;
+               goto error ;
+            }
+            else
+            {
+               OID tmpOID ;
+               tmpOID.init( e.valuestr() ) ;
+               oids.insert( tmpOID ) ;
+            }
+         }
+         else if ( Array == e.type() )
+         {
+            BSONObjIterator itr( e.embeddedObject() ) ;
+            while( itr.more() )
+            {
+               BSONElement tmpE = itr.next() ;
+               if ( jstOID == tmpE.type() )
+               {
+                  oids.insert( tmpE.OID() ) ;
+               }
+               else if ( String == tmpE.type() )
+               {
+                  if ( !utilIsValidOID( tmpE.valuestr() ) )
+                  {
+                     rc = SDB_INVALIDARG ;
+                     PD_LOG_MSG( PDERROR, "Hint param[%s] is invalid lob Oid string",
+                                 FIELD_NAME_LOB_OID ) ;
+                     goto error ;
+                  }
+                  else
+                  {
+                     OID tmpOID ;
+                     tmpOID.init( tmpE.valuestr() ) ;
+                     oids.insert( tmpOID ) ;
+                  }
+               }
+               else
+               {
+                  rc = SDB_INVALIDARG ;
+                  PD_LOG_MSG( PDERROR, "Hint param[%s] must be Oid or Oid array",
+                              FIELD_NAME_LOB_OID ) ;
+                  goto error ;
+               }
+            }
+         }
+         else if ( !e.eoo() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "Hint param[%s] must be Oid/String or Oid/String array",
+                        FIELD_NAME_LOB_OID ) ;
+            goto error ;
+         }
+
+         /// GroupID
+         e = hint.getField( FIELD_NAME_GROUPID ) ;
+         if ( e.isNumber() )
+         {
+            groups.insert( e.numberInt() ) ;
+         }
+         else if ( Array == e.type() )
+         {
+            BSONObjIterator itr( e.embeddedObject() ) ;
+            while( itr.more() )
+            {
+               BSONElement tmpE = itr.next() ;
+               if ( tmpE.isNumber() )
+               {
+                  groups.insert( tmpE.numberInt() ) ;
+               }
+               else
+               {
+                  rc = SDB_INVALIDARG ;
+                  PD_LOG_MSG( PDERROR, "Hint param[%s] must be int or int array",
+                              FIELD_NAME_GROUPID ) ;
+                  goto error ;
+               }
+            }
+         }
+         else if ( !e.eoo() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "Hint param[%s] must be int or int array",
+                        FIELD_NAME_GROUPID ) ;
+            goto error ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
 }
 

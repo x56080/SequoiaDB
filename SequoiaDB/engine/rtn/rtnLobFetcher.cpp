@@ -56,7 +56,8 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNLOBFETCHER_INIT, "_rtnLobFetcher::init" )
    INT32 _rtnLobFetcher::init( const CHAR *fullName,
-                               BOOLEAN onlyMetaPage )
+                               BOOLEAN onlyMetaPage,
+                               const ossPoolSet<OID> *pOids )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__RTNLOBFETCHER_INIT ) ;
@@ -91,6 +92,12 @@ namespace engine
       _lastErr = SDB_OK ;
       _pos = 0 ;
       _onlyMetaPage = onlyMetaPage ;
+
+      if ( pOids )
+      {
+         _filterOIDs = *pOids ;
+      }
+
    done:
       PD_TRACE_EXITRC( SDB__RTNLOBFETCHER_INIT, rc ) ;
       return rc ;
@@ -106,6 +113,8 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__RTNLOBFETCHER_FETCH ) ;
+      UINT32 readCnt = 0 ;
+      const UINT32 _readStepCnt = 1000 ;
 
       if ( SDB_OK != _lastErr )
       {
@@ -123,7 +132,7 @@ namespace engine
       rc = _mbContext->mbLock( SHARED ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "failed to get lock:%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to get mblock, rc: %d", rc ) ;
          goto error ;
       }
 
@@ -133,15 +142,47 @@ namespace engine
          goto error ;
       }
 
-      rc = _su->lob()->readPage( _pos, _onlyMetaPage,
-                                 cb, _mbContext, page ) ;
-      if ( SDB_OK != rc )
+      while( TRUE )
       {
-         if ( SDB_DMS_EOC != rc )
+         ++readCnt ;
+         rc = _su->lob()->readPage( _pos, _onlyMetaPage, cb, _mbContext, page ) ;
+         if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "failed to read lob pages:%d", rc ) ;
+            if ( SDB_DMS_EOC != rc )
+            {
+               PD_LOG( PDERROR, "Failed to read lob pages, rc: %d", rc ) ;
+            }
+            goto error ;
          }
-         goto error ;
+
+         /// filter
+         if ( _filterOIDs.empty() )
+         {
+            break ;
+         }
+         else if ( _filterOIDs.find( page._oid ) != _filterOIDs.end() )
+         {
+            break ;            
+         }
+
+         if ( readCnt > _readStepCnt )
+         {
+            readCnt = 0 ;
+            _mbContext->pause() ;
+
+            if ( cb->isInterrupted() )
+            {
+               rc = SDB_APP_INTERRUPT ;
+               goto error ;
+            }
+
+            rc = _mbContext->resume() ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Resume mblock failed, rc: %d", rc ) ;
+               goto error ;
+            }
+         }
       }
 
       if ( NULL != mb )
@@ -154,7 +195,7 @@ namespace engine
             rc = mb->extend( page._len - mb->idleSize() ) ;
             if ( SDB_OK != rc )
             {
-               PD_LOG( PDERROR, "failed to extend mb block:%d", rc ) ;
+               PD_LOG( PDERROR, "Failed to extend mb block, rc: %d", rc ) ;
                goto error ;
             }
          }
@@ -165,7 +206,7 @@ namespace engine
                                 cb, mb->writePtr(), read ) ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "failed to read lob:%d", rc ) ;
+            PD_LOG( PDERROR, "Failed to read lob, rc: %d", rc ) ;
             goto error ;
          }
 
@@ -214,6 +255,7 @@ namespace engine
       }
 
       _onlyMetaPage = FALSE ;
+      _filterOIDs.clear() ;
 
       return ;
    }

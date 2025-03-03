@@ -167,6 +167,14 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
+      if ( obj.objsize() <= 0 )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG( PDERROR, "Invalid object( objsize <= 0 )" ) ;
+         SDB_ASSERT( FALSE, "Invalid object( objsize <= 0 )" ) ;
+         goto error ;
+      }
+
       if ( !isCountMode() )
       {
          _writeOffset = ossAlign4( (UINT32)_writeOffset ) ;

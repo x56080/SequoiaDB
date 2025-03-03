@@ -7,7 +7,7 @@
 getDetail \- get detailed information of the current collection
 .SH SYNOPSIS
 .PP
-\f[B]db.collectionspace.collection.getDetail()\f[]
+\f[B]db.collectionspace.collection.getDetail([aggr], [options])\f[]
 .SH CATEGORY
 .PP
 SdbCollection
@@ -15,8 +15,21 @@ SdbCollection
 .PP
 Get detailed information of the current collection.
 .SH PARAMETERS
+.IP \[bu] 2
+aggr ( \f[I]boolean, optional\f[] )
+.RS 2
 .PP
-None
+Whether to aggregate results, default is false if omitted.
+.RE
+.IP \[bu] 2
+options ( \f[I]object, optional\f[] )
+.RS 2
+.PP
+reserved
+.RE
+.PP
+The above parameters take effect only in SequoiaDB v3.4.14/v5.8.4 and later
+versions.
 .SH RETURN VALUE
 .PP
 When the function executes successfully, it will return a detailed list of

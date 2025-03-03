@@ -39,8 +39,13 @@
 #include "rtnLobFetcher.hpp"
 #include "monInterface.hpp"
 
+using namespace bson ;
+
 namespace engine
 {
+   /*
+      _rtnContextListLob define
+   */
    class _rtnContextListLob : public _rtnContextBase, public _IMonSubmitEvent
    {
       DECLARE_RTN_CTX_AUTO_REGISTER( _rtnContextListLob )
@@ -74,6 +79,22 @@ namespace engine
       INT32 _getSequenceInfo( _pmdEDUCB *cb, BSONObj &obj ) ;
       INT32 _reallocate( UINT32 len ) ;
       void  _close( _pmdEDUCB *cb ) ;
+
+      INT32 _parseInfoFromQuery( const BSONObj &match,
+                                 ossPoolSet<OID> &oids,
+                                 ossPoolSet<UINT32> &groups,
+                                 BOOLEAN &isNullCond,
+                                 BSONObj &newMatch ) ;
+
+      BOOLEAN _parseOID( const BSONElement &e, ossPoolSet<OID> &oids,
+                         BOOLEAN &isNullCond, BOOLEAN onlyOID ) ;
+      BOOLEAN _parseGroupID( const BSONElement &e, ossPoolSet<UINT32> &groups,
+                             BOOLEAN &isNullCond, BOOLEAN onlyNumber ) ;
+
+      INT32 _parseInfoFromHint( const BSONObj &hint,
+                                ossPoolSet<OID> &oids,
+                                ossPoolSet<UINT32> &groups ) ;
+
    private:
       _rtnLobFetcher _fetcher ;
       UINT32 _suLogicalID ;
@@ -86,6 +107,8 @@ namespace engine
       BSONObj _hint ;
       INT64 _skip ;
       INT64 _returnNum ;
+
+      BSONObjBuilder _builder ;
 
       _mthSelector _selectorParser ;
       _mthMatchTree _matchTree ;

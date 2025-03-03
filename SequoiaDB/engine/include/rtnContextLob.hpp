@@ -91,7 +91,9 @@ namespace engine
                   INT64 offset,
                   INT64 length ) ;
 
-      INT32 getRTDetail( _pmdEDUCB *cb, BSONObj &detail ) ;
+      INT32 getRTDetail( _pmdEDUCB *cb, BSONObj &detail, const BSONObj &option = BSONObj() ) ;
+
+      INT32 explain( _pmdEDUCB *cb, BSONObj &detail, const BSONObj &option = BSONObj() ) ;
 
       INT32 close( _pmdEDUCB *cb ) ;
 

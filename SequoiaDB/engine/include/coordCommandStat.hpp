@@ -72,8 +72,11 @@ namespace engine
 
       private:
          INT32 _executeOnVCL( const CHAR *pCLName,
-                                pmdEDUCB *cb,
-                                INT64 &contextID ) ;
+                              pmdEDUCB *cb,
+                              INT64 &contextID ) ;
+
+      protected:
+         BSONObj           _hint ;
 
    } ;
    typedef _coordCMDStatisticsBase coordCMDStatisticsBase ;

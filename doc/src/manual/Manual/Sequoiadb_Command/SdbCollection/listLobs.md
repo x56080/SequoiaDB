@@ -19,11 +19,16 @@ SdbCollection
 SdbQueryOption( *Object*， *选填* )
     
 使用一个对象来指定记录查询参数，使用方法可参考 [SdbQueryOption][QueryOption]
-    
-    
+
+
 >**Note:**
 >
-> 当用户使用 SdbQueryOption 指定 hint 为{"ListPieces": 1}时，可以获取 Lob 详细的分片信息。
+> 用户可以使用 `SdbQueryOption.hint()` 指定
+> - `{"ListPieces": true}`，获取 Lob 详细的分片信息，和 `listLobPieces()` 等效。
+> - `{"Oid": %oid_string%}` 或 `{"Oid":[%oid_string%,...]}`，可以获取指定 Lob 信息，减少IO开销。
+> - `{"GroupID":%group_id%}` 或 `{"GroupID":[%group_id",...]}`，可以获取指定 Group 的 Lob 信息，减少IO开销。
+>
+> 用户可以使用`SdbQueryOption.cond()`中过滤条件为 Oid/GroupID 的等值或$in时（e.g.: `{"Oid":{"$oid":%oid_string%}}`），效果等同于 hint() 指定 Oid/GroupID。
 
 
 ##返回值##
@@ -66,7 +71,8 @@ SdbQueryOption( *Object*， *选填* )
          "$timestamp": "2019-07-23-16.43.17.508000"
        },
        "Available": true,
-       "HasPiecesInfo": false
+       "HasPiecesInfo": false,
+       "GroupID": 1001
      }
      {
        "Size": 51717368,
@@ -80,7 +86,8 @@ SdbQueryOption( *Object*， *选填* )
          "$timestamp": "2019-07-23-16.52.56.977000"
        },
        "Available": true,
-       "HasPiecesInfo": false
+       "HasPiecesInfo": false,
+       "GroupID": 1001
     }
     Return 2 row(s).
     ```
@@ -101,11 +108,33 @@ SdbQueryOption( *Object*， *选填* )
          "$timestamp": "2019-07-23-16.52.56.977000"
        },
        "Available": true,
-       "HasPiecesInfo": false
+       "HasPiecesInfo": false,
+       "GroupID": 1001
     }
     Return 1 row(s).
     ```
 
+* 列举 sample.employee 中 Oid 为 "00005d36cae8370002de7edd" 的大对象
+
+    ```lang-javascript
+    > db.sample.employee.listLobs( SdbQueryOption().hint( {"Oid":"00005d36cae8370002de7edd"} ) )
+    {
+       "Size": 51717368,
+       "Oid": {
+         "$oid": "00005d36cae8370002de7edd"
+       },
+       "CreateTime": {
+         "$timestamp": "2019-07-23-16.52.56.278000"
+       },
+       "ModificationTime": {
+         "$timestamp": "2019-07-23-16.52.56.977000"
+       },
+       "Available": true,
+       "HasPiecesInfo": false,
+       "GroupID": 1001
+    }
+    Return 1 row(s).
+    ```
 
 
 [^_^]:

@@ -3693,7 +3693,7 @@ do                                                            \
 
       // build msg
       rc = clientBuildOpenLobMsgCpp( &_pSendBuffer, &_sendBufferSize,
-                                     obj.objdata(), 0, 1, 0,
+                                     obj.objdata(), 0, 0, 0,
                                      _connection->_endianConvert ) ;
       if ( SDB_OK != rc )
       {
@@ -3790,7 +3790,7 @@ do                                                            \
       }
       // build msg
       rc = clientBuildRemoveLobMsgCpp( &_pSendBuffer, &_sendBufferSize,
-                                       meta.objdata(), 0, 1, 0,
+                                       meta.objdata(), 0, 0, 0,
                                        _connection->_endianConvert ) ;
       if ( SDB_OK != rc )
       {
@@ -3851,7 +3851,7 @@ do                                                            \
       }
       // build msg
       rc = clientBuildTruncateLobMsgCpp( &_pSendBuffer, &_sendBufferSize,
-                                         meta.objdata(), 0, 1, 0,
+                                         meta.objdata(), 0, 0, 0,
                                          _connection->_endianConvert ) ;
       if ( SDB_OK != rc )
       {
@@ -3924,7 +3924,7 @@ do                                                            \
       // build msg
       rc = clientBuildOpenLobMsgCpp( &_pSendBuffer, &_sendBufferSize,
                                      obj.objdata(), flag,
-                                     1, 0, _connection->_endianConvert ) ;
+                                     0, 0, _connection->_endianConvert ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
@@ -4176,7 +4176,7 @@ do                                                            \
 
       // build msg
       rc = clientBuildCreateLobIDMsgCpp( &_pSendBuffer, &_sendBufferSize,
-                                         dateInfo.objdata(), 0, 1, 0,
+                                         dateInfo.objdata(), 0, 0, 0,
                                          _connection->_endianConvert ) ;
       if ( SDB_OK != rc )
       {
@@ -4234,6 +4234,107 @@ do                                                            \
       if ( locked )
       {
          _connection->unlock() ;
+      }
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sdbCollectionImpl::lobExplain( const bson::OID &oid,
+                                         bson::BSONObj &result,
+                                         const bson::BSONObj &options )
+   {
+      INT32 rc = SDB_OK ;
+      INT64 contextID = -1 ;
+      BSONObj obj ;
+      BOOLEAN locked = FALSE ;
+
+      // check
+      if ( '\0' == _collectionFullName[0] )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      if ( !_connection )
+      {
+         rc = SDB_NOT_CONNECTED ;
+         goto error ;
+      }
+
+      // append info
+      try
+      {
+         BSONObjBuilder bob ;
+         bob.append( FIELD_NAME_COLLECTION, _collectionFullName ) ;
+         bob.appendOID( FIELD_NAME_LOB_OID, (bson::OID *)&oid ) ;
+         bob.append( FIELD_NAME_LOB_OPEN_MODE, SDB_LOB_SHAREREAD ) ;
+         if ( !options.isEmpty() )
+         {
+            bob.append( FIELD_NAME_OPTIONS, options ) ;
+         }
+         obj = bob.obj() ;
+      }
+      catch ( std::exception )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+      // build msg
+      rc = clientBuildOpenLobMsgCpp( &_pSendBuffer, &_sendBufferSize,
+                                     obj.objdata(), FLG_LOB_EXPLAIN,
+                                     0, 0, _connection->_endianConvert ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+      _connection->lock() ;
+      locked = TRUE ;
+      // send msg
+      rc = _connection->_send ( _pSendBuffer ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+      // receive and extract msg
+      rc = _connection->_recvExtract ( &_pReceiveBuffer, &_receiveBufferSize,
+                                       contextID ) ;
+      _connection->unlock() ;
+      locked = FALSE ;
+      if ( SDB_OK == rc )
+      {
+         // check return msg header
+         CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, _connection ) ;
+      }
+      /// ignore update result
+      updateCachedVersion( rc, _connection->_getCachedContainer(),
+                          _collectionFullName, _version ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      /// check result
+      if ( -1 != contextID )
+      {
+         _connection->disconnect() ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+      try
+      {
+         result = BSONObj( _pReceiveBuffer + sizeof(MsgOpReply) ) ;
+      }
+      catch( std::exception &e )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
+      }
+
+   done:
+      if ( locked )
+      {
+         _connection->unlock () ;
       }
       return rc ;
    error:
@@ -4509,10 +4610,11 @@ do                                                            \
       return _alterInternal( SDB_ALTER_CL_SET_ATTR, &options, FALSE ) ;
    }
 
-   INT32 _sdbCollectionImpl::getDetail ( _sdbCursor **cursor )
+   INT32 _sdbCollectionImpl::getDetail ( _sdbCursor **cursor, const bson::BSONObj &options )
    {
       INT32 rc = SDB_OK ;
       BSONObj obj ;
+      BSONObjBuilder builder( 200 + options.objsize() ) ;
 
       if ( '\0' == _collectionFullName[0] || !cursor )
       {
@@ -4525,7 +4627,12 @@ do                                                            \
          goto error ;
       }
 
-      obj = BSON( FIELD_NAME_COLLECTION << _collectionFullName ) ;
+      builder.append( FIELD_NAME_COLLECTION, _collectionFullName ) ;
+      if( !options.isEmpty() )
+      {
+         builder.append( FIELD_NAME_HINT, options ) ;
+      }
+      obj = builder.obj() ;
 
       rc = _connection->_runCommand( CMD_ADMIN_PREFIX CMD_NAME_GET_CL_DETAIL,
                                      NULL, NULL, NULL, &obj,
@@ -8435,7 +8542,7 @@ do                                                            \
       }
       // build msg
       rc = clientBuildCloseLobMsg( &_pSendBuffer, &_sendBufferSize,
-                                   0, 1, _contextID, 0,
+                                   0, 0, _contextID, 0,
                                    _connection->_endianConvert ) ;
       if ( SDB_OK != rc )
       {
@@ -8642,7 +8749,7 @@ do                                                            \
          UINT32 sendLen = maxSendLen <= len - totalLen ?
                           maxSendLen : len - totalLen ;
          rc = clientBuildWriteLobMsg( &_pSendBuffer, &_sendBufferSize,
-                                      buf + totalLen, sendLen, offset, 0, 1,
+                                      buf + totalLen, sendLen, offset, 0, 0,
                                       _contextID, 0,
                                       _connection->_endianConvert ) ;
          if ( SDB_OK != rc )
@@ -8797,7 +8904,7 @@ do                                                            \
       }
 
       rc = clientBuildLockLobMsg( &_pSendBuffer, &_sendBufferSize,
-                                  offset, length, 0, 1,
+                                  offset, length, 0, 0,
                                   _contextID, 0,
                                   _connection->_endianConvert ) ;
       if ( SDB_OK != rc )
@@ -8929,7 +9036,8 @@ do                                                            \
       return _currentOffset >= _lobSize ;
    }
 
-   INT32 _sdbLobImpl::getRunTimeDetail( bson::BSONObj &detail )
+   INT32 _sdbLobImpl::getRunTimeDetail( bson::BSONObj &detail,
+                                        const bson::BSONObj &option )
    {
       INT32 rc = SDB_OK ;
       BOOLEAN locked = FALSE ;
@@ -8959,7 +9067,8 @@ do                                                            \
 
       // build msg
       rc = clientBuildGetLobRTimeMsg( &_pSendBuffer, &_sendBufferSize,
-                                      0, 1, _contextID, 0,
+                                      option.isEmpty() ? NULL : option.objdata(),
+                                      0, 0, _contextID, 0,
                                       _connection->_endianConvert ) ;
       if ( SDB_OK != rc )
       {

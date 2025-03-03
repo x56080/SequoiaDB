@@ -2841,7 +2841,7 @@ namespace engine
          rc = mbContext->mbLock( SHARED ) ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "failed to get lock:%d", rc ) ;
+            PD_LOG( PDERROR, "Failed to get mblock, rc: %d", rc ) ;
             goto error ;
          }
          locked = TRUE ;

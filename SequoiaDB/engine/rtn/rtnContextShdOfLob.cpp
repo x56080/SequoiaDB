@@ -193,16 +193,28 @@ namespace engine
                   rc = SDB_FE ;
                }
             }
-            PD_LOG( PDERROR, "Failed to get lob privilege:cl=%s,oid=%s,rc=%d",
+            PD_LOG( PDERROR, "Failed to get lob privilege:cl=%s,oid=%s,rc: %d",
                     _getRealCLName(), _oid.toString().c_str(), rc ) ;
             goto error ;
          }
       }
 
       rc = _open( cb, sectionMgr, data, read ) ;
-      if ( SDB_OK != rc )
+      if ( _isMainShd && SDB_FNE == rc && ( _flags & FLG_LOB_EXPLAIN ) )
       {
-         PD_LOG( PDERROR, "Failed to open lob:%d", rc ) ;
+         rc = _meta2Obj( _metaObj ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Failed to build meta obj, rc: %d", rc ) ;
+            goto error ;
+         }
+
+         *data = _metaObj.objdata() ;
+         read = _metaObj.objsize() ;
+      }
+      else if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "Failed to open lob, rc: %d", rc ) ;
          goto error ;
       }
       _isOpened = TRUE ;
@@ -529,105 +541,114 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      BSONElement ele = lob.getField( FIELD_NAME_LOB_OPEN_MODE ) ;
-      if ( NumberInt != ele.type() )
+      try
       {
-         PD_LOG( PDERROR, "invalid mode type:%d", ele.type() ) ;
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-      _mode = ele.Int() ;
-
-      if ( !SDB_IS_VALID_LOB_MODE( _mode ) )
-      {
-         rc = SDB_INVALIDARG ;
-         PD_LOG( PDERROR, "Invalid LOB mode: %d", _mode ) ;
-         goto error ;
-      }
-
-      ele = lob.getField( FIELD_NAME_COLLECTION ) ;
-      if ( String != ele.type() )
-      {
-         PD_LOG( PDERROR, "Invalid full name type:%d", ele.type() ) ;
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-      _fullName = ele.String() ;
-
-      ele = lob.getField( FIELD_NAME_SUBCLNAME ) ;
-      if ( String == ele.type() )
-      {
-         _subCLName = ele.String() ;
-      }
-
-      ele = lob.getField( FIELD_NAME_LOB_OID ) ;
-      if ( jstOID != ele.type() )
-      {
-         PD_LOG( PDERROR, "Invalid oid type:%d", ele.type() ) ;
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-      _oid = ele.OID() ;
-
-      ele = lob.getField( FIELD_NAME_LOB_IS_MAIN_SHD ) ;
-      if ( Bool != ele.type() )
-      {
-         PD_LOG( PDERROR, "Invalid \"isMainShd\" type:%d", ele.type() ) ;
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-      _isMainShd = ele.Bool() ;
-
-      ele = lob.getField( FIELD_NAME_LOB_REOPENED ) ;
-      if ( Bool == ele.type() )
-      {
-         _reopened = ele.Bool() ;
-      }
-      else if ( !ele.eoo() )
-      {
-         PD_LOG( PDERROR, "invalid \"Reopened\" type:%d", ele.type() ) ;
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-
-      ele = lob.getField( FIELD_NAME_LOB_META_DATA ) ;
-      if ( Object == ele.type() )
-      {
-         _metaObj = ele.embeddedObject() ;
-      }
-      else if ( !ele.eoo() )
-      {
-         PD_LOG( PDERROR, "invalid meta obj type:%d", ele.type() ) ;
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-
-      if ( _isMainShd && SDB_LOB_MODE_CREATEONLY == _mode )
-      {
-         ele = lob.getField( FIELD_NAME_LOB_CREATETIME ) ;
-         if ( NumberLong == ele.type() )
+         BSONElement ele = lob.getField( FIELD_NAME_LOB_OPEN_MODE ) ;
+         if ( NumberInt != ele.type() )
          {
-            _meta._createTime = ele.Long() ;
-            _meta._modificationTime = _meta._createTime ;
-         }
-         else if ( !ele.eoo() )
-         {
-            PD_LOG( PDERROR, "invalid CreateTime type:%d", ele.type() ) ;
+            PD_LOG( PDERROR, "invalid mode type:%d", ele.type() ) ;
             rc = SDB_INVALIDARG ;
             goto error ;
          }
-         else
+         _mode = ele.Int() ;
+
+         if ( !SDB_IS_VALID_LOB_MODE( _mode ) )
          {
-            _meta._createTime = ossGetCurrentMilliseconds() ;
-            _meta._modificationTime = _meta._createTime ;
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Invalid LOB mode: %d", _mode ) ;
+            goto error ;
+         }
+
+         ele = lob.getField( FIELD_NAME_COLLECTION ) ;
+         if ( String != ele.type() )
+         {
+            PD_LOG( PDERROR, "Invalid full name type:%d", ele.type() ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+         _fullName = ele.String() ;
+
+         ele = lob.getField( FIELD_NAME_SUBCLNAME ) ;
+         if ( String == ele.type() )
+         {
+            _subCLName = ele.String() ;
+         }
+
+         ele = lob.getField( FIELD_NAME_LOB_OID ) ;
+         if ( jstOID != ele.type() )
+         {
+            PD_LOG( PDERROR, "Invalid oid type:%d", ele.type() ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+         _oid = ele.OID() ;
+
+         ele = lob.getField( FIELD_NAME_LOB_IS_MAIN_SHD ) ;
+         if ( Bool != ele.type() )
+         {
+            PD_LOG( PDERROR, "Invalid \"isMainShd\" type:%d", ele.type() ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+         _isMainShd = ele.Bool() ;
+
+         ele = lob.getField( FIELD_NAME_LOB_REOPENED ) ;
+         if ( Bool == ele.type() )
+         {
+            _reopened = ele.Bool() ;
+         }
+         else if ( !ele.eoo() )
+         {
+            PD_LOG( PDERROR, "invalid \"Reopened\" type:%d", ele.type() ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+
+         ele = lob.getField( FIELD_NAME_LOB_META_DATA ) ;
+         if ( Object == ele.type() )
+         {
+            _metaObj = ele.embeddedObject() ;
+         }
+         else if ( !ele.eoo() )
+         {
+            PD_LOG( PDERROR, "invalid meta obj type:%d", ele.type() ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+
+         if ( _isMainShd && SDB_LOB_MODE_CREATEONLY == _mode )
+         {
+            ele = lob.getField( FIELD_NAME_LOB_CREATETIME ) ;
+            if ( NumberLong == ele.type() )
+            {
+               _meta._createTime = ele.Long() ;
+               _meta._modificationTime = _meta._createTime ;
+            }
+            else if ( !ele.eoo() )
+            {
+               PD_LOG( PDERROR, "invalid CreateTime type:%d", ele.type() ) ;
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
+            else
+            {
+               _meta._createTime = ossGetCurrentMilliseconds() ;
+               _meta._modificationTime = _meta._createTime ;
+            }
+         }
+
+         if ( _isMainShd && _reopened )
+         {
+            rc = sectionMgr.fromBSONObj( lob ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to parse sections from obj,rc=%d",
+                         rc ) ;
          }
       }
-
-      if ( _isMainShd && _reopened )
+      catch( std::exception &e )
       {
-         rc = sectionMgr.fromBSONObj( lob ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to parse sections from obj,rc=%d",
-                      rc ) ;
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         goto error ;
       }
 
    done:
@@ -700,7 +721,7 @@ namespace engine
          rc = _extendBuf( len * 2 ) ;
          if ( rc )
          {
-            PD_LOG( PDERROR, "Failed to extend buf[%u], rc:%d", len * 2, rc ) ;
+            PD_LOG( PDERROR, "Failed to extend buf[%u], rc: %d", len * 2, rc ) ;
             goto error ;
          }
          /// read the whole page
@@ -801,7 +822,7 @@ namespace engine
             if ( NULL == metaCache )
             {
                rc = SDB_OOM ;
-               PD_LOG( PDERROR, "Failed to new _rtnLobMetaCache, rc:%d", rc ) ;
+               PD_LOG( PDERROR, "Failed to new _rtnLobMetaCache, rc: %d", rc ) ;
                goto error ;
             }
             _accessInfo->setMetaCache( metaCache ) ;
@@ -828,7 +849,7 @@ namespace engine
             rc = _extendBuf( len ) ;
             if ( rc )
             {
-               PD_LOG( PDERROR, "Failed to extend buf[%u], rc:%d", len, rc ) ;
+               PD_LOG( PDERROR, "Failed to extend buf[%u], rc: %d", len, rc ) ;
                goto error ;
             }
 
@@ -863,8 +884,8 @@ namespace engine
                   rc = _lobPieces.readFrom( pieces, length ) ;
                   if ( SDB_OK != rc )
                   {
-                     PD_LOG( PDINFO, "Failed to read pieces info of Lob[%s]",
-                             getOID().str().c_str() ) ;
+                     PD_LOG( PDINFO, "Failed to read pieces info of Lob[%s], rc: %d",
+                             getOID().str().c_str(), rc ) ;
                      goto error ;
                   }
                }
@@ -872,8 +893,8 @@ namespace engine
                rc = metaCache->cache( *(_dmsLobMeta*)_buf ) ;
                if ( SDB_OK != rc )
                {
-                  PD_LOG( PDINFO, "Failed to cache meta data of Lob[%s]",
-                          getOID().str().c_str() ) ;
+                  PD_LOG( PDINFO, "Failed to cache meta data of Lob[%s], rc: %d",
+                          getOID().str().c_str(), rc ) ;
                   goto error ;
                }
             }
@@ -885,7 +906,7 @@ namespace engine
                }
                else if ( SDB_FNE != rc )
                {
-                  PD_LOG( PDERROR, "Failed to get meta of lob, rc:%d", rc ) ;
+                  PD_LOG( PDERROR, "Failed to get meta of lob, rc: %d", rc ) ;
                }
                goto error ;
             }
@@ -902,7 +923,7 @@ namespace engine
                                          length ) ;
                if ( SDB_OK != rc )
                {
-                  PD_LOG( PDERROR, "Failed to read lob pieces info, rc:%d", rc ) ;
+                  PD_LOG( PDERROR, "Failed to read lob pieces info, rc: %d", rc ) ;
                   goto error ;
                }
             }
@@ -919,7 +940,7 @@ namespace engine
                rc = lock( cb, it->begin(), it->length() ) ;
                if ( SDB_OK != rc )
                {
-                  PD_LOG( PDERROR, "Failed to lock lob sections, rc:%d", rc ) ;
+                  PD_LOG( PDERROR, "Failed to lock lob sections, rc: %d", rc ) ;
                   goto error ;
                }
             }
@@ -939,7 +960,7 @@ namespace engine
          }
          else if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "failed to get lob meta data:%d", rc ) ;
+            PD_LOG( PDERROR, "Failed to get lob meta data, rc: %d", rc ) ;
             goto error ;
          }
          else
@@ -958,7 +979,7 @@ namespace engine
                                  _su, _mbContext, TRUE ) ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "failed to get lob meta data:%d", rc ) ;
+            PD_LOG( PDERROR, "Failed to get lob meta data, rc: %d", rc ) ;
             goto error ;
          }
       }
@@ -968,7 +989,7 @@ namespace engine
          rc = _meta2Obj( _metaObj ) ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "failed to build meta obj:%d", rc ) ;
+            PD_LOG( PDERROR, "Failed to build meta obj, rc: %d", rc ) ;
             goto error ;
          }
 
@@ -1043,6 +1064,7 @@ namespace engine
 
       try
       {
+         builder.append( FIELD_NAME_GROUPID, (INT32)pmdGetNodeID().columns.groupID ) ;
          builder.append( FIELD_NAME_CONTEXTID, contextID() ) ;
          detail = builder.obj() ;
       }
@@ -1431,7 +1453,7 @@ namespace engine
    {
       monAppCB *pMonAppCB = cb ? cb->getMonAppCB() : NULL ;
 
-      if ( _isMainShd && _opType )
+      if ( _isMainShd && _opType && !( _flags & FLG_LOB_EXPLAIN ) )
       {
          if ( _opType & MON_LOB_OP_GET )
          {

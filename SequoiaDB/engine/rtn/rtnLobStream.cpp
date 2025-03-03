@@ -248,7 +248,7 @@ namespace engine
 
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "Failed to open lob[%s], rc:%d",
+         PD_LOG( PDERROR, "Failed to open lob[%s], rc: %d",
                  oid.str().c_str(), rc ) ;
          goto error ;
       }
@@ -311,7 +311,7 @@ namespace engine
                      _canCache() ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "Failed to init stream window, rc:%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to init stream window, rc: %d", rc ) ;
          goto error ;
       }
 
@@ -756,7 +756,7 @@ namespace engine
             rc = _writeOrUpdate( tuple, cb ) ;
             if ( SDB_OK != rc )
             {
-               PD_LOG( PDERROR, "Failed to clean lob[%s] write cache, rc:%d",
+               PD_LOG( PDERROR, "Failed to clean lob[%s] write cache, rc: %d",
                        _oid.str().c_str(), rc ) ;
                 goto error ;
             }
@@ -771,8 +771,8 @@ namespace engine
             if ( !_sectionMgr.isContain( _offset, len, FALSE, &lockedEnd ) )
             {
                rc = SDB_INVALIDARG ;
-               PD_LOG( PDERROR, "Section is not locked before write:"
-                       "offset=%lld,len=%d,mode=%d,rc=%d", _offset, len,
+               PD_LOG( PDERROR, "Section is not locked before read("
+                       "offset=%lld, len=%d, mode=%d), rc: %d", _offset, len,
                        _mode, rc ) ;
                goto error ;
             }
@@ -783,7 +783,7 @@ namespace engine
             rc = lock( cb, 0, OSS_SINT64_MAX ) ;
             if ( SDB_OK != rc )
             {
-               PD_LOG( PDERROR, "Failed to lock the whole lob, rc=%d", rc ) ;
+               PD_LOG( PDERROR, "Failed to lock the whole lob, rc: %d", rc ) ;
                goto error ;
             }
          }
@@ -825,22 +825,22 @@ namespace engine
 
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "failed to prepare to read:%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to prepare to read, rc: %d", rc ) ;
          goto error ;
       }
 
       rc = _readv( tuples, cb, _hasPiecesInfo ? &_lobPieces : NULL ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "failed to read lob[%s], rc:%d",
-                    _oid.str().c_str(), rc ) ;
+         PD_LOG( PDERROR, "Failed to read lob[%s], rc: %d",
+                 _oid.str().c_str(), rc ) ;
          goto error ;
       }
 
       rc = _readFromPool( len, context, cb, readLen ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "failed to read data from pool:%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to read data from pool, rc: %d", rc ) ;
          goto error ;
       }
 
@@ -858,9 +858,11 @@ namespace engine
       goto done ;
    }
 
-   INT32 _rtnLobStream::getRTDetail( _pmdEDUCB *cb, bson::BSONObj &detail )
+   INT32 _rtnLobStream::getRTDetail( _pmdEDUCB *cb, bson::BSONObj &detail, const BSONObj &option )
    {
       INT32 rc = SDB_OK ;
+      RTN_LOB_TUPLES tuples ;
+
       if ( !isOpened() )
       {
          PD_LOG( PDERROR, "Lob[%s] is not opened yet", _oid.str().c_str() ) ;
@@ -871,10 +873,17 @@ namespace engine
       rc = _checkPrivileges( cb );
       PD_RC_CHECK( rc, PDERROR, "Failed to check privileges of actions, rc: %d", rc );
 
-      rc = _getRTDetail( cb, detail ) ;
+      rc = _lw.prepare4Read( _meta._lobLen, 0, _meta._lobLen, tuples, RTN_LOB_MAX_HARD_READ_LEN ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Failed to prepare for read, rc: %d", rc ) ;
+         goto error ;
+      }
+
+      rc = _getRTDetail( cb, tuples, detail, _hasPiecesInfo ? &_lobPieces : NULL, option ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "Failed to get lob detail:%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to get lob detail, rc: %d", rc ) ;
          goto error ;
       }
 
@@ -904,6 +913,139 @@ namespace engine
          builder.append( FIELD_NAME_LOB_FLAG, (INT32)_meta._flag ) ;
          builder.appendBool( FIELD_NAME_LOB_HAS_PIECESINFO, _meta.hasPiecesInfo() ) ;
          builder.append( FIELD_NAME_LOB_PIECESINFONUM, _meta._piecesInfoNum ) ;
+
+         detail = builder.obj() ;
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _rtnLobStream::explain( _pmdEDUCB *cb, bson::BSONObj &detail, const BSONObj &option )
+   {
+      INT32 rc = SDB_OK ;
+      RTN_LOB_TUPLES tuples ;
+      INT64 lobSize = 0 ;
+      INT64 offset = 0 ;
+      INT64 len = -1 ;
+
+      BSONElement eOffset ;
+      BSONElement eLength ;
+
+      if ( !isOpened() )
+      {
+         PD_LOG( PDERROR, "Lob[%s] is not opened yet", _oid.str().c_str() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+      eOffset = option.getField( FIELD_NAME_LOB_OFFSET ) ;
+      eLength = option.getField( FIELD_NAME_LOB_LENGTH ) ;
+
+      if ( eOffset.isNumber() )
+      {
+         offset = eOffset.numberLong() ;
+      }
+      else if ( !eOffset.eoo() )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "Param[%s] should be int or long", FIELD_NAME_LOB_OFFSET ) ;
+         goto error ;
+      }
+
+      if ( eLength.isNumber() )
+      {
+         len = eLength.numberLong() ;
+      }
+      else if ( !eLength.eoo() )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "Param[%s] should be int or long", FIELD_NAME_LOB_LENGTH ) ;
+         goto error ;
+      }
+
+      /// check param
+      if ( offset < 0 )
+      {
+         offset = 0 ;
+      }
+
+      if ( 0 == _meta._createTime )
+      {
+         if ( len <= 0 )
+         {
+            len = DMS_PAGE_SIZE512K ;
+         }
+
+         /// lob not exist
+         lobSize = offset + len ;
+      }
+      else
+      {
+         lobSize = _meta._lobLen ;
+
+         if ( len <= 0 )
+         {
+            len = OSS_MIN( _meta._lobLen, (INT64)RTN_LOB_MAX_HARD_READ_LEN ) ;
+         }
+
+         if ( offset > lobSize )
+         {
+            offset = lobSize ;
+            len = 0 ;
+         }
+         else if ( offset + len > lobSize )
+         {
+            len = lobSize - offset ;
+         }
+      }
+
+      if ( len > (INT64)RTN_LOB_MAX_HARD_READ_LEN )
+      {
+         len = RTN_LOB_MAX_HARD_READ_LEN ;
+      }
+
+      rc = _checkPrivileges( cb );
+      PD_RC_CHECK( rc, PDERROR, "Failed to check privileges of actions, rc: %d", rc );
+
+      if ( offset < lobSize )
+      {
+         rc = _lw.prepare4Read( lobSize, offset, len, tuples, RTN_LOB_MAX_HARD_READ_LEN, 1 ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Failed to prepare for read, rc: %d", rc ) ;
+            goto error ;
+         }
+      }
+
+      rc = _explain( cb, tuples, detail, _hasPiecesInfo ? &_lobPieces : NULL, option ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "Failed to explain lob, rc: %d", rc ) ;
+         goto error ;
+      }
+
+      try
+      {
+         /// and lob meta info
+         BSONObjBuilder builder( detail.objsize() + 200 ) ;
+
+         builder.append( FIELD_NAME_LOB_OID, _oid.toString().c_str() ) ;
+         builder.append( FIELD_NAME_LOB_PAGE_SIZE, _lobPageSz ) ;
+         builder.appendBool( FIELD_NAME_EXIST, 0 != _meta._createTime ? TRUE : FALSE ) ;
+
+         builder.append( FIELD_NAME_LOB_OFFSET, offset ) ;
+         builder.append( FIELD_NAME_LOB_LENGTH, len ) ;
+
+         builder.appendElements( detail ) ;
 
          detail = builder.obj() ;
       }
@@ -1664,7 +1806,7 @@ namespace engine
    {
       monAppCB *pMonAppCB = cb ? cb->getMonAppCB() : NULL ;
 
-      if ( _opType )
+      if ( _opType && !( _getFlags() & FLG_LOB_EXPLAIN ) )
       {
          if ( _opType & MON_LOB_OP_GET )
          {

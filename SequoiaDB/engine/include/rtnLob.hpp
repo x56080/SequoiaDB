@@ -99,7 +99,8 @@ namespace engine
                      rtnContextBuf *errBuf = NULL ) ;
 
    INT32 rtnGetLobRTDetail( SINT64 contextID, pmdEDUCB *cb,
-                            rtnContextBuf *bufObj = NULL ) ;
+                            rtnContextBuf *bufObj = NULL,
+                            const BSONObj &option = BSONObj() ) ;
 
    INT32 rtnCloseLob( SINT64 contextID,
                       pmdEDUCB *cb,

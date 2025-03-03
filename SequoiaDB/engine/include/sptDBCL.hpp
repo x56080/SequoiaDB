@@ -80,6 +80,10 @@ namespace engine
                     _sptReturnVal &rval,
                     bson::BSONObj &detail ) ;
 
+      INT32 lobCount( const _sptArguments &arg,
+                      _sptReturnVal &rval,
+                      bson::BSONObj &detail ) ;
+
       INT32 createIndex( const _sptArguments &arg,
                          _sptReturnVal &rval,
                         bson::BSONObj &detail ) ;
@@ -155,6 +159,10 @@ namespace engine
       INT32 getLobRTimeDetail( const _sptArguments &arg,
                                _sptReturnVal &rval,
                                bson::BSONObj &detail ) ;
+
+      INT32 lobExplain( const _sptArguments &arg,
+                        _sptReturnVal &rval,
+                        bson::BSONObj &detail ) ;
 
       INT32 deleteLob( const _sptArguments &arg,
                        _sptReturnVal &rval,

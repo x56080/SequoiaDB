@@ -4259,12 +4259,23 @@ error:
 }
 
 INT32 clientBuildGetLobRTimeMsg( CHAR **ppBuffer, INT32 *bufferSize,
-                                 SINT32 flags, SINT16 w, SINT64 contextID,
-                                 UINT64 reqID, BOOLEAN endianConvert )
+                                 const CHAR *option, SINT32 flags, SINT16 w,
+                                 SINT64 contextID, UINT64 reqID,
+                                 BOOLEAN endianConvert )
 {
    INT32 rc = SDB_OK ;
+
+   bson bh ;
+   bson_init ( &bh ) ;
+
+   if ( option )
+   {
+      bson_init_finished_data ( &bh, option ) ;
+   }
+
    rc = clientBuildLobMsg( ppBuffer, bufferSize,
-                           MSG_BS_LOB_GETRTDETAIL_REQ, NULL,
+                           MSG_BS_LOB_GETRTDETAIL_REQ,
+                           option ? &bh : NULL,
                            flags, w, contextID, reqID, NULL,
                            NULL, NULL, endianConvert ) ;
    if ( SDB_OK != rc )
@@ -4272,6 +4283,7 @@ INT32 clientBuildGetLobRTimeMsg( CHAR **ppBuffer, INT32 *bufferSize,
       goto error ;
    }
 done:
+   bson_destroy ( &bh ) ;
    return rc ;
 error:
    goto done ;
@@ -4356,7 +4368,7 @@ INT32 clientBuildReadLobMsg( CHAR **ppBuffer, INT32 *bufferSize,
    INT32 rc = SDB_OK ;
    rc = clientBuildLobMsg( ppBuffer, bufferSize,
                            MSG_BS_LOB_READ_REQ, NULL,
-                           flags, 1, contextID, reqID,
+                           flags, 0, contextID, reqID,
                            &lobOffset, &len, NULL, endianConvert ) ;
    if ( SDB_OK != rc )
    {

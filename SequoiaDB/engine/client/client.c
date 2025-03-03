@@ -11761,8 +11761,8 @@ SDB_EXPORT INT32 sdbGetRunTimeDetail( sdbLobHandle lobHandle,
 
    // build msg
    rc = clientBuildGetLobRTimeMsg(  &(lob->_pSendBuffer), &lob->_sendBufferSize,
-                                     0, 1, lob->_contextID, 0,
-                                     lob->_endianConvert ) ;
+                                    NULL, 0, 1, lob->_contextID, 0,
+                                    lob->_endianConvert ) ;
    if ( SDB_OK != rc )
    {
       goto error ;

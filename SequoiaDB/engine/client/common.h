@@ -383,8 +383,9 @@ INT32 clientBuildReadLobMsg( CHAR **ppBuffer, INT32 *bufferSize,
                              BOOLEAN endianConvert ) ;
 
 INT32 clientBuildGetLobRTimeMsg( CHAR **ppBuffer, INT32 *bufferSize,
-                                 SINT32 flags, SINT16 w, SINT64 contextID,
-                                 UINT64 reqID, BOOLEAN endianConvert ) ;
+                                 const CHAR *option, SINT32 flags, SINT16 w,
+                                 SINT64 contextID, UINT64 reqID,
+                                 BOOLEAN endianConvert ) ;
 
 INT32 clientBuildWriteLobMsg( CHAR **ppBuffer, INT32 *bufferSize,
                               const CHAR *buf, UINT32 len,

@@ -57,6 +57,7 @@ namespace engine
    JS_MEMBER_FUNC_DEFINE( _sptDBCL, remove )
    JS_MEMBER_FUNC_DEFINE( _sptDBCL, pop )
    JS_MEMBER_FUNC_DEFINE( _sptDBCL, count )
+   JS_MEMBER_FUNC_DEFINE( _sptDBCL, lobCount )
    JS_MEMBER_FUNC_DEFINE( _sptDBCL, createIndex )
    JS_MEMBER_FUNC_DEFINE( _sptDBCL, createIndexAsync )
    JS_MEMBER_FUNC_DEFINE( _sptDBCL, getIndexes )
@@ -76,6 +77,7 @@ namespace engine
    JS_MEMBER_FUNC_DEFINE( _sptDBCL, putLob )
    JS_MEMBER_FUNC_DEFINE( _sptDBCL, getLob )
    JS_MEMBER_FUNC_DEFINE( _sptDBCL, getLobRTimeDetail )
+   JS_MEMBER_FUNC_DEFINE( _sptDBCL, lobExplain )
    JS_MEMBER_FUNC_DEFINE( _sptDBCL, deleteLob )
    JS_MEMBER_FUNC_DEFINE( _sptDBCL, listLobs )
    JS_MEMBER_FUNC_DEFINE( _sptDBCL, createLobID )
@@ -107,6 +109,7 @@ namespace engine
       JS_ADD_MEMBER_FUNC( "remove", remove )
       JS_ADD_MEMBER_FUNC( "pop", pop )
       JS_ADD_MEMBER_FUNC( "_count", count )
+      JS_ADD_MEMBER_FUNC( "_lobCount", lobCount )
       JS_ADD_MEMBER_FUNC( "createIndex", createIndex )
       JS_ADD_MEMBER_FUNC( "createIndexAsync", createIndexAsync )
       JS_ADD_MEMBER_FUNC( "_getIndexes", getIndexes )
@@ -126,6 +129,7 @@ namespace engine
       JS_ADD_MEMBER_FUNC( "putLob", putLob )
       JS_ADD_MEMBER_FUNC( "getLob", getLob )
       JS_ADD_MEMBER_FUNC( "getLobDetail", getLobRTimeDetail )
+      JS_ADD_MEMBER_FUNC( "lobExplain", lobExplain )
       JS_ADD_MEMBER_FUNC( "deleteLob", deleteLob )
       JS_ADD_MEMBER_FUNC( "listLobs", listLobs )
       JS_ADD_MEMBER_FUNC( "createLobID", createLobID )
@@ -936,6 +940,95 @@ namespace engine
          detail = BSON( SPT_ERR << "Hint must be obj" ) ;
          goto error ;
       }
+
+      try
+      {
+         BSONObjBuilder builder( hint.objsize() ) ;
+         BSONObjIterator itr ( hint ) ;
+         while ( itr.more() )
+         {
+            BSONElement e = itr.next() ;
+            if ( 0 == ossStrcmp( e.fieldName(), FIELD_NAME_TYPE ) ||
+                 0 == ossStrcmp( e.fieldName(), FIELD_NAME_COLLECTION ) )
+            {
+               /// ignore
+            }
+            else
+            {
+               builder.append( e ) ;
+            }
+         }
+         hint = builder.obj() ;
+      }
+      catch( std::exception &e )
+      {
+         detail = BSON( SPT_ERR << "Build bson obj failed" ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+      rc = _cl.getCount( count, cond, hint ) ;
+      if( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to get count" ) ;
+         goto error ;
+      }
+      rval.getReturnVal().setValue( count ) ;
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sptDBCL::lobCount( const _sptArguments &arg,
+                             _sptReturnVal &rval,
+                             bson::BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj cond ;
+      BSONObj hint ;
+      SINT64 count = 0 ;
+
+      rc = arg.getBsonobj( 0, cond, FALSE ) ;
+      if( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
+      {
+         detail = BSON( SPT_ERR << "Cond must be obj" ) ;
+         goto error ;
+      }
+      rc = arg.getBsonobj( 1, hint ) ;
+      if( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
+      {
+         detail = BSON( SPT_ERR << "Hint must be obj" ) ;
+         goto error ;
+      }
+
+      try
+      {
+         BSONObjBuilder builder( hint.objsize() + 64 ) ;
+         BSONObjIterator itr ( hint ) ;
+         while ( itr.more() )
+         {
+            BSONElement e = itr.next() ;
+            if ( 0 == ossStrcmp( e.fieldName(), FIELD_NAME_TYPE ) ||
+                 0 == ossStrcmp( e.fieldName(), FIELD_NAME_COLLECTION ) )
+            {
+               /// ignore
+            }
+            else
+            {
+               builder.append( e ) ;
+            }
+         }
+         builder.append( FIELD_NAME_TYPE, VALUE_NAME_LOB ) ;
+         hint = builder.obj() ;
+      }
+      catch( std::exception &e )
+      {
+         detail = BSON( SPT_ERR << "Build bson obj failed" ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
       rc = _cl.getCount( count, cond, hint ) ;
       if( SDB_OK != rc )
       {
@@ -1801,9 +1894,11 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       string oidStr ;
+      BOOLEAN isDetail = FALSE ;
       sdbLob lob ;
       BSONObjBuilder builder ;
       bson::BSONObj lobRunTimeDetail ;
+      bson::BSONObj option ;
 
       rc = arg.getString( 0, oidStr ) ;
       if( SDB_OUT_OF_BOUND == rc )
@@ -1816,12 +1911,23 @@ namespace engine
          detail = BSON( SPT_ERR << "Oid must be string" ) ;
          goto error ;
       }
+
+      rc = arg.getBoolean( 1, isDetail ) ;
+      if ( rc && SDB_OUT_OF_BOUND != rc )
+      {
+         detail = BSON( SPT_ERR << "detail shoud be boolean" ) ;
+         goto error ;
+      }
+
       if ( !utilIsValidOID( oidStr.c_str() ) )
       {
          rc = SDB_INVALIDARG ;
          detail = BSON( SPT_ERR << "Oid string invalid" ) ;
          goto error ;
       }
+
+      builder.appendBool( FIELD_NAME_DETAIL, isDetail ) ;
+      option = builder.obj() ;
 
       rc = _cl.openLob( lob, OID( oidStr ), SDB_LOB_SHAREREAD ) ;
       if( SDB_OK != rc )
@@ -1830,7 +1936,7 @@ namespace engine
          goto error ;
       }
 
-      rc = lob.getRunTimeDetail( lobRunTimeDetail ) ;
+      rc = lob.getRunTimeDetail( lobRunTimeDetail, option ) ;
       if ( SDB_OK != rc )
       {
          lob.close() ;
@@ -1840,6 +1946,91 @@ namespace engine
 
       lob.close() ;
       rval.getReturnVal().setValue( lobRunTimeDetail ) ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sptDBCL::lobExplain( const _sptArguments &arg,
+                               _sptReturnVal &rval,
+                               bson::BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+      string oidStr ;
+      BOOLEAN isDetail = FALSE ;
+      BSONObjBuilder builder ;
+      bson::BSONObj result ;
+      bson::BSONObj options ;
+
+      /// oid, must config
+      rc = arg.getString( 0, oidStr ) ;
+      if( SDB_OUT_OF_BOUND == rc )
+      {
+         detail = BSON( SPT_ERR << "Oid must be config" ) ;
+         goto error ;
+      }
+      else if( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Oid must be string" ) ;
+         goto error ;
+      }
+
+      /// detail, option, default is FALSE
+      rc = arg.getBoolean( 1, isDetail ) ;
+      if ( rc && SDB_OUT_OF_BOUND != rc )
+      {
+         detail = BSON( SPT_ERR << "detail shoud be boolean" ) ;
+         goto error ;
+      }
+
+      /// option, default is {}
+      rc = arg.getBsonobj( 2, options ) ;
+      if ( rc && SDB_OUT_OF_BOUND != rc )
+      {
+         detail = BSON( SPT_ERR << "option shoud be object" ) ;
+         goto error ;
+      }
+
+      if ( !utilIsValidOID( oidStr.c_str() ) )
+      {
+         rc = SDB_INVALIDARG ;
+         detail = BSON( SPT_ERR << "Oid string invalid" ) ;
+         goto error ;
+      }
+
+      try
+      {
+         BSONObjIterator itr( options ) ;
+         while( itr.more() )
+         {
+            BSONElement e = itr.next() ;
+            if ( 0 == ossStrcmp( e.fieldName(), FIELD_NAME_DETAIL ) )
+            {
+               continue ;
+            }
+            builder.append( e ) ;
+         }
+         builder.appendBool( FIELD_NAME_DETAIL, isDetail ) ;
+
+         options = builder.obj() ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         detail = BSON( SPT_ERR << e.what() ) ;
+         goto error ;
+      }
+
+      rc = _cl.lobExplain( OID( oidStr ), result, options ) ;
+      if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to explain lob" ) ;
+         goto error ;
+      }
+
+      rval.getReturnVal().setValue( result ) ;
 
    done:
       return rc ;
@@ -2885,8 +3076,51 @@ namespace engine
                               bson::BSONObj &detail )
    {
       INT32 rc = SDB_OK ;
+      BOOLEAN aggr = FALSE ;
+      BSONObj options ;
+      BSONObjBuilder builder ;
       _sdbCursor *pCursor = NULL ;
-      rc = _cl.getDetail( &pCursor ) ;
+
+      /// aggr, default is FALSE
+      rc = arg.getBoolean( 0, aggr ) ;
+      if ( rc && SDB_OUT_OF_BOUND != rc )
+      {
+         detail = BSON( SPT_ERR << "aggr should be boolean" ) ;
+         goto error ;
+      }
+
+      /// option, default is {}
+      rc = arg.getBsonobj( 1, options ) ;
+      if ( rc && SDB_OUT_OF_BOUND != rc )
+      {
+         detail = BSON( SPT_ERR << "option shoud be object" ) ;
+         goto error ;
+      }
+
+      try
+      {
+         BSONObjIterator itr( options ) ;
+         while( itr.more() )
+         {
+            BSONElement e = itr.next() ;
+            if ( 0 == ossStrcmp( e.fieldName(), FIELD_NAME_AGGR ) )
+            {
+               continue ;
+            }
+            builder.append( e ) ;
+         }
+
+         builder.appendBool( FIELD_NAME_AGGR, aggr ) ;
+         options = builder.obj() ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         detail = BSON( SPT_ERR << e.what() ) ;
+         goto error ;
+      }
+
+      rc = _cl.getDetail( &pCursor, options ) ;
       if( SDB_OK != rc )
       {
          detail = BSON( SPT_ERR << "Failed to get detail" ) ;

@@ -2746,6 +2746,52 @@ namespace engine
       goto done ;
    }
 
+   INT32 _dmsStorageUnit::getLobCount( const CHAR *pName,
+                                       INT64 &lobCount,
+                                       _pmdEDUCB *cb,
+                                       dmsMBContext *context,
+                                       BOOLEAN getPieces )
+   {
+      INT32 rc                     = SDB_OK ;
+      BOOLEAN getContext           = FALSE ;
+      lobCount                     = 0 ;
+
+      if ( NULL == context )
+      {
+         SDB_ASSERT( pName, "Collection name can't be NULL" ) ;
+
+         rc = _pDataSu->getMBContext( &context, pName, -1 ) ;
+         PD_RC_CHECK( rc, PDERROR, "Get collection[%s] mb context failed, "
+                      "rc: %d", pName, rc ) ;
+         getContext = TRUE ;
+      }
+
+      if ( !context->isMBLock() )
+      {
+         rc = context->mbLock( SHARED ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to lock dms mb context[%s], rc: %d",
+                      context->toString().c_str(), rc ) ;
+      }
+
+      if ( !getPieces )
+      {
+         lobCount = context->mbStat()->_totalLobs ;
+      }
+      else
+      {
+         lobCount = context->mbStat()->_totalLobPages ;
+      }
+
+   done :
+      if ( getContext && context )
+      {
+         _pDataSu->releaseMBContext( context ) ;
+      }
+      return rc ;
+   error :
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU_GETCOLLECTIONFLAG, "_dmsStorageUnit::getCollectionFlag" )
    INT32 _dmsStorageUnit::getCollectionFlag( const CHAR *pName, UINT16 &flag,
                                              dmsMBContext *context )

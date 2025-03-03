@@ -610,6 +610,10 @@ namespace sdbclient
 
       virtual INT32 createLobID( bson::OID &oid, const CHAR *pTimeStamp = NULL ) = 0 ;
 
+      virtual INT32 lobExplain( const bson::OID &oid,
+                                bson::BSONObj &result,
+                                const bson::BSONObj &options = _sdbStaticObject ) = 0 ;
+
       virtual INT32 listLobPieces(
                               _sdbCursor **cursor,
                               const bson::BSONObj &condition = _sdbStaticObject,
@@ -656,9 +660,11 @@ namespace sdbclient
 
       virtual INT32 setAttributes ( const bson::BSONObj &options ) = 0 ;
 
-      virtual INT32 getDetail ( _sdbCursor **cursor ) = 0 ;
+      virtual INT32 getDetail ( _sdbCursor **cursor,
+                                const bson::BSONObj &options = _sdbStaticObject ) = 0 ;
 
-      virtual INT32 getDetail ( sdbCursor &cursor ) = 0 ;
+      virtual INT32 getDetail ( sdbCursor &cursor,
+                                const bson::BSONObj &options = _sdbStaticObject ) = 0 ;
 
       virtual INT32 getCollectionStat ( bson::BSONObj &result ) = 0 ;
 
@@ -2370,6 +2376,26 @@ namespace sdbclient
          return pCollection->createLobID( oid, pTimeStamp ) ;
       }
 
+      /** \fn INT32 lobExplain( const bson::OID &oid,
+                                bson::BSONObj &result,
+                                const bson::BSONObj &options )
+          \param [in] oid  The id of the large object
+          \param [in] options The options parameters
+          \param [out] result The explained information of the large object
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 lobExplain( const bson::OID &oid,
+                        bson::BSONObj &result,
+                        const bson::BSONObj &options = _sdbStaticObject )
+      {
+         if ( !pCollection )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pCollection->lobExplain( oid, result, options ) ;
+      }
+
       /** \fn INT32 truncate( const bson::BSONObj &options )
           \brief truncate the collection
           \param [in] options The arguments of truncate
@@ -2652,34 +2678,36 @@ namespace sdbclient
                                             numToReturn ) ;
       }
 
-      /* \fn INT32 getDetail ( _sdbCursor **cursor )
+      /* \fn INT32 getDetail ( _sdbCursor **cursor, const bson::BSONObj &options )
           \brief Get the detail of the collection.
+          \param [in] options The options, ex: { Aggr : true }
           \param [out] cursor Return the all the info of current collection.
           \retval SDB_OK Operation Success
           \retval Others Operation Fail
       */
-      INT32 getDetail ( _sdbCursor **cursor )
+      INT32 getDetail ( _sdbCursor **cursor, const bson::BSONObj &options = _sdbStaticObject )
       {
          if ( !pCollection )
          {
             return SDB_NOT_CONNECTED ;
          }
-         return pCollection->getDetail ( cursor ) ;
+         return pCollection->getDetail ( cursor, options ) ;
       }
 
-      /** \fn INT32 getDetail ( sdbCursor &cursor )
+      /** \fn INT32 getDetail ( sdbCursor &cursor, const bson::BSONObj &options )
           \brief Get the detail of the collection.
+          \param [in] options The options, ex: { Aggr : true }
           \param [out] cursor Return the all the info of current collection.
           \retval SDB_OK Operation Success
           \retval Others Operation Fail
       */
-      INT32 getDetail( sdbCursor &cursor )
+      INT32 getDetail( sdbCursor &cursor, const bson::BSONObj &options = _sdbStaticObject )
       {
          if ( !pCollection)
          {
             return SDB_NOT_CONNECTED ;
          }
-         return pCollection->getDetail( cursor ) ;
+         return pCollection->getDetail( cursor, options ) ;
       }
 
       /** \fn INT32 getCollectionStat ( bson::BSONObj &result )
@@ -5163,7 +5191,8 @@ namespace sdbclient
 
       virtual BOOLEAN isEof() = 0 ;
 
-      virtual INT32 getRunTimeDetail( bson::BSONObj &detail ) = 0 ;
+      virtual INT32 getRunTimeDetail( bson::BSONObj &detail,
+                                      const bson::BSONObj &option = _sdbStaticObject ) = 0 ;
 
    } ;
 
@@ -5464,18 +5493,19 @@ namespace sdbclient
          return pLob->isEof() ;
       }
 
-      /** \fn INT32 getRunTimeDetail( bson::BSONObj &detail )
+      /** \fn INT32 getRunTimeDetail( bson::BSONObj &detail, const bson::BSONObj &option )
           \brief Get the run time detail information of lob.
           \retval SDB_OK Operation Success
           \retval Others Operation Fail
       */
-      INT32 getRunTimeDetail( bson::BSONObj &detail )
+      INT32 getRunTimeDetail( bson::BSONObj &detail,
+                              const bson::BSONObj &option = _sdbStaticObject )
       {
          if ( !pLob )
          {
             return -1 ;
          }
-         return pLob->getRunTimeDetail( detail ) ;
+         return pLob->getRunTimeDetail( detail, option ) ;
       }
 
    } ;

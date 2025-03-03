@@ -128,10 +128,21 @@ namespace engine
       goto done ;
    }
 
-   void _rtnLobDataPool::entrust( const pmdEDUEvent &event )
+   INT32 _rtnLobDataPool::entrust( const pmdEDUEvent &event )
    {
-      _toBeFreed.push_back( event ) ;
-      return ;
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         _toBeFreed.push_back( event ) ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
+      return rc ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNLOBDATAPOOL_NEXT, "_rtnLobDataPool::next" )
@@ -176,15 +187,24 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNLOBDATAPOOL_PUSH, "_rtnLobDataPool::push" )
-   INT32 _rtnLobDataPool::push( const CHAR *data, UINT32 len,
-                                SINT64 offset )
+   INT32 _rtnLobDataPool::push( const CHAR *data, UINT32 len, SINT64 offset )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_RTNLOBDATAPOOL_PUSH ) ;
       SDB_ASSERT( NULL != data, "can not be null" ) ;
-      _pool.push_back( tuple( offset, len, data ) ) ;
-      _lastDataSz += len ;
-      _dataSz += len ;
+
+      try
+      {
+         _pool.push_back( tuple( offset, len, data ) ) ;
+         _lastDataSz += len ;
+         _dataSz += len ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
       PD_TRACE_EXITRC( SDB_RTNLOBDATAPOOL_PUSH, rc ) ;
       return rc ;
    }
