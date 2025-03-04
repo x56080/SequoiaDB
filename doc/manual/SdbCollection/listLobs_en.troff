@@ -26,8 +26,20 @@ SdbQueryOption.
 .PP
 \f[B]Note:\f[]
 .PP
-When using SdbQueryOption to specify hint as {"ListPieces": 1}, users can get
-detailed sharding information about the Lob.
+Users can specify \f[C]SdbQueryOption.hint()\f[] as follows:
+.IP \[bu] 2
+\f[C]{"ListPieces": true}\f[] to retrieve detailed pieces information of the
+LOB, which is equivalent to \f[C]listLobPieces()\f[].
+.IP \[bu] 2
+\f[C]{"Oid":%oid_string%}\f[] or \f[C]{"Oid":[%oid_string%, ...]}\f[] to fetch
+specific LOB information, reducing I/O overhead.
+.IP \[bu] 2
+\f[C]{"GroupID":%group_id%}\f[] or \f[C]{"GroupID":[%group_id%,...]}\f[] to
+retrieve LOB information for a specific Group, reducing I/O overhead.
+.PP
+Users can also use \f[C]SdbQueryOption.cond()\f[] with Oid/GroupID as an
+equality condition or $in filter (e.g., `{"Oid": {"$oid":%oid_string%}}`), which
+has the same effect as specifying Oid/GroupID in hint().
 .RE
 .SH RETURN VALUE
 .PP
@@ -146,7 +158,8 @@ List all LOBs in sample.employee.
      "$timestamp": "2019\-07\-23\-16.43.17.508000"
    },
    "Available": true,
-   "HasPiecesInfo": false
+   "HasPiecesInfo": false,
+   "GroupID": 1001
  }
  {
    "Size": 51717368,
@@ -160,7 +173,8 @@ List all LOBs in sample.employee.
      "$timestamp": "2019\-07\-23\-16.52.56.977000"
    },
    "Available": true,
-   "HasPiecesInfo": false
+   "HasPiecesInfo": false,
+   "GroupID": 1001
 }
 Return 2 row(s).
 \f[]
@@ -185,7 +199,34 @@ List LOBs with size greater than 10 in sample.employee.
      "$timestamp": "2019\-07\-23\-16.52.56.977000"
    },
    "Available": true,
-   "HasPiecesInfo": false
+   "HasPiecesInfo": false,
+   "GroupID": 1001
+}
+Return 1 row(s).
+\f[]
+.fi
+.RE
+.IP \[bu] 2
+List lob in sample.employee where Oid is "00005d36cae8370002de7edd".
+.RS 2
+.IP
+.nf
+\f[C]
+> db.sample.employee.listLobs( SdbQueryOption().hint( {Oid:"00005d36cae8370002de7edd"} ) )
+{
+   "Size": 51717368,
+   "Oid": {
+     "$oid": "00005d36cae8370002de7edd"
+   },
+   "CreateTime": {
+     "$timestamp": "2019\-07\-23\-16.52.56.278000"
+   },
+   "ModificationTime": {
+     "$timestamp": "2019\-07\-23\-16.52.56.977000"
+   },
+   "Available": true,
+   "HasPiecesInfo": false,
+   "GroupID": 1001
 }
 Return 1 row(s).
 \f[]

@@ -38,9 +38,10 @@
 
 namespace engine
 {
-const UINT32 RTN_MIN_READ_LEN = DMS_PAGE_SIZE512K ;
-const UINT32 RTN_MAX_READ_LEN = DMS_PAGE_SIZE128K * 512 ;      /// 64MB
 
+   /*
+      _rtnLobWindow implement
+   */
    _rtnLobWindow::_rtnLobWindow()
    :_pageSize( DMS_DO_NOT_CREATE_LOB ),
     _logarithmic( 0 ),
@@ -404,49 +405,59 @@ const UINT32 RTN_MAX_READ_LEN = DMS_PAGE_SIZE128K * 512 ;      /// 64MB
    INT32 _rtnLobWindow::prepare4Read( INT64 lobLen,
                                       INT64 offset,
                                       UINT32 len,
-                                      RTN_LOB_TUPLES &tuples )
+                                      RTN_LOB_TUPLES &tuples,
+                                      UINT32 maxReadLen,
+                                      UINT32 minReadLen )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_RTNLOBWINDOW_PREPARE4READ ) ;
       SDB_ASSERT( offset < lobLen, "impossible" ) ;
       UINT32 totalRead = 0 ;
       _curOffset = offset ;
-      UINT32 maxLen = RTN_MAX_READ_LEN <= ( lobLen - offset ) ?
-                      RTN_MAX_READ_LEN : ( lobLen - offset ) ;
-      UINT32 needRead = len <= RTN_MIN_READ_LEN ?
-                        RTN_MIN_READ_LEN : len ;
+      UINT32 maxLen = (UINT64)maxReadLen <= (UINT64)( lobLen - offset ) ?
+                      maxReadLen : ( lobLen - offset ) ;
+      UINT32 needRead = len <= minReadLen ?
+                        minReadLen : len ;
       tuples.clear() ;
 
-      while ( _curOffset < lobLen &&
-              totalRead < needRead &&
-              totalRead < maxLen ) 
+      try
       {
-         UINT32 offsetOfTuple = RTN_LOB_GET_OFFSET_IN_SEQUENCE( _curOffset,
-                                                                _mergeMeta,
-                                                                _pageSize ) ;
-         UINT32 lenOfTuple = _pageSize - offsetOfTuple ;
-         if ( ( lobLen - _curOffset ) < lenOfTuple )
+         while ( _curOffset < lobLen &&
+                 totalRead < needRead &&
+                 totalRead < maxLen ) 
          {
-            /// we want to read a whole piece unless hit the end of lob.
-            lenOfTuple = lobLen - _curOffset ;
+            UINT32 offsetOfTuple = RTN_LOB_GET_OFFSET_IN_SEQUENCE( _curOffset,
+                                                                   _mergeMeta,
+                                                                   _pageSize ) ;
+            UINT32 lenOfTuple = _pageSize - offsetOfTuple ;
+            if ( ( lobLen - _curOffset ) < lenOfTuple )
+            {
+               /// we want to read a whole piece unless hit the end of lob.
+               lenOfTuple = lobLen - _curOffset ;
+            }
+
+            if ( 0 == lenOfTuple )
+            {
+               break ;
+            }
+
+            UINT32 sequence = RTN_LOB_GET_SEQUENCE( _curOffset,
+                                                    _mergeMeta,
+                                                    _logarithmic ) ;
+
+            _curOffset += lenOfTuple ;
+            totalRead += lenOfTuple ;
+
+            tuples.push_back( _rtnLobTuple( lenOfTuple,
+                                            sequence,
+                                            offsetOfTuple,
+                                            NULL ) ) ;
          }
-
-         if ( 0 == lenOfTuple )
-         {
-            break ;
-         }
-
-         UINT32 sequence = RTN_LOB_GET_SEQUENCE( _curOffset,
-                                                 _mergeMeta,
-                                                 _logarithmic ) ;
-
-         _curOffset += lenOfTuple ;
-         totalRead += lenOfTuple ;
-
-         tuples.push_back( _rtnLobTuple( lenOfTuple,
-                                         sequence,
-                                         offsetOfTuple,
-                                         NULL ) ) ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG_MSG( PDERROR, "Occur exception: %s", e.what() ) ;
       }
 
       PD_TRACE_EXITRC( SDB_RTNLOBWINDOW_PREPARE4READ, rc ) ;

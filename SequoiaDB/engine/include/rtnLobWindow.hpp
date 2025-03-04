@@ -40,6 +40,14 @@
 
 namespace engine
 {
+   #define RTN_LOB_MIN_READ_LEN   DMS_PAGE_SIZE512K
+   #define RTN_LOB_MAX_READ_LEN   DMS_PAGE_SIZE128K * 512            /// 64MB
+
+   #define RTN_LOB_MAX_HARD_READ_LEN   ( 2 * 1024 * 1024 * 1024LL )  /// 2GB
+
+   /*
+      _rtnLobWindow define
+   */
    class _rtnLobWindow : public SDBObject
    {
    public:
@@ -65,7 +73,9 @@ namespace engine
       INT32 prepare4Read( INT64 lobLen,
                           INT64 offset,
                           UINT32 len,
-                          RTN_LOB_TUPLES &tuples ) ;
+                          RTN_LOB_TUPLES &tuples,
+                          UINT32 maxReadLen = RTN_LOB_MAX_READ_LEN,
+                          UINT32 minReadLen = RTN_LOB_MIN_READ_LEN ) ;
    private:
       BOOLEAN _getNextWriteSequence( _rtnLobTuple &tuple ) ;
       BOOLEAN _hasData() const ;

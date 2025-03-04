@@ -4,7 +4,7 @@
 getLobDetail - Get lob's runtime detail information
 
 ##SYNOPSIS##
-***db.collectionspace.collection.getLobDetail(\<Oid\>)***
+***db.collectionspace.collection.getLobDetail(\<Oid\>, [detail])***
 
 ##CATEGORY##
 
@@ -19,6 +19,15 @@ Get lob's runtime detail information
 * `Oid`( *String*， *Required* )
   
     Lob's ID
+
+* detail ( *boolean, optional* )
+
+    Whether to display detailed pieces in the location information, default is false if omitted.
+
+
+  > **Note:**
+  >
+  > When the LOB size exceeds 2GB, the `Location` and `PiecesNum` will be calculated based on 2GB.
 
 ##RETURN VALUE##
 
@@ -65,6 +74,34 @@ more details.
 	      }
 	    ]
 	  },
-	  "ContextID": 14
+      "GroupID": 1001,
+	  "ContextID": 14,
+      "Location": [
+        {
+          "GroupID": 1000,
+          "PiecesNum": 107
+        },
+        {
+          "GroupID": 1001,
+          "PiecesNum": 120
+        },
+        {
+          "GroupID": 1006,
+          "PiecesNum": 123
+        }
+      ],
+      "PiecesNum": 350,
+      "Size": 91635840,
+      "CreateTime": {
+        "$timestamp": "2025-02-21-16.33.44.460000"
+      },
+      "ModificationTime": {
+        "$timestamp": "2025-02-21-16.33.46.975000"
+      },
+      "Version": 2,
+      "Available": true,
+      "Flag": 0,
+      "HasPiecesInfo": false,
+      "PiecesInfoNum": 0
 	}
 	```

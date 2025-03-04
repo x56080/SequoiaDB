@@ -7,7 +7,7 @@
 getLobDetail \- Get lob\[aq]s runtime detail information
 .SH SYNOPSIS
 .PP
-\f[B]\f[I]db.collectionspace.collection.getLobDetail(<Oid>)\f[]\f[]
+\f[B]\f[I]db.collectionspace.collection.getLobDetail(<Oid>, [detail])\f[]\f[]
 .SH CATEGORY
 .PP
 Collection
@@ -20,6 +20,20 @@ Get lob\[aq]s runtime detail information
 .RS 2
 .PP
 Lob\[aq]s ID
+.RE
+.IP \[bu] 2
+detail ( \f[I]boolean, optional\f[] )
+.RS 2
+.PP
+Whether to display detailed pieces in the location information, default is false
+if omitted.
+.RE
+.RS
+.PP
+\f[B]Note:\f[]
+.PP
+When the LOB size exceeds 2GB, the \f[C]Location\f[] and \f[C]PiecesNum\f[] will
+be calculated based on 2GB.
 .RE
 .SH RETURN VALUE
 .PP
@@ -64,7 +78,35 @@ Get the lob\[aq]s runtime detail information which lob\[aq]s ID is
       }
     ]
   },
-  "ContextID": 14
+  "GroupID": 1001,
+  "ContextID": 14,
+  "Location": [
+    {
+      "GroupID": 1000,
+      "PiecesNum": 107
+    },
+    {
+      "GroupID": 1001,
+      "PiecesNum": 120
+    },
+    {
+      "GroupID": 1006,
+      "PiecesNum": 123
+    }
+  ],
+  "PiecesNum": 350,
+  "Size": 91635840,
+  "CreateTime": {
+    "$timestamp": "2025\-02\-21\-16.33.44.460000"
+  },
+  "ModificationTime": {
+    "$timestamp": "2025\-02\-21\-16.33.46.975000"
+  },
+  "Version": 2,
+  "Available": true,
+  "Flag": 0,
+  "HasPiecesInfo": false,
+  "PiecesInfoNum": 0
 }
 \f[]
 .fi

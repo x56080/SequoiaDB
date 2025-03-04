@@ -318,7 +318,14 @@ namespace engine
       {
          if ( SDB_LOB_SEQUENCE_NOT_EXIST == rc )
          {
-            rc = SDB_FNE ;
+            if ( _getFlags() & FLG_LOB_EXPLAIN )
+            {
+               rc = SDB_OK ;
+            }
+            else
+            {
+               rc = SDB_FNE ;
+            }
          }
          else if ( SDB_FNE != rc )
          {
@@ -1020,7 +1027,10 @@ namespace engine
    }
 
    INT32 _rtnLocalLobStream::_getRTDetail( _pmdEDUCB *cb,
-                                           bson::BSONObj &detail )
+                                           const RTN_LOB_TUPLES &tuples,
+                                           bson::BSONObj &detail,
+                                           const _rtnLobPiecesInfo* piecesInfo,
+                                           const bson::BSONObj &option )
    {
       INT32 rc = SDB_OK ;
       BOOLEAN locked = FALSE ;
@@ -1055,9 +1065,8 @@ namespace engine
       }
       catch ( std::exception &e )
       {
-         PD_LOG( PDERROR, "Failed to build obj, occur unexpected "
-                 "error:%s", e.what() ) ;
-         rc = SDB_INVALIDARG ;
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Occur exception: %s ", e.what() ) ;
          goto error ;
       }
 
@@ -1067,6 +1076,74 @@ namespace engine
          _accessInfo->unlock() ;
          locked = FALSE ;
       }
+      PD_TRACE_EXITRC( SDB_RTNLOCALLOBSTREAM__LOCK, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _rtnLocalLobStream::_explain( _pmdEDUCB *cb,
+                                       const RTN_LOB_TUPLES &tuples,
+                                       bson::BSONObj &detail,
+                                       const _rtnLobPiecesInfo* piecesInfo,
+                                       const bson::BSONObj &option )
+   {
+      INT32 rc = SDB_OK ;
+      BOOLEAN isDetail = FALSE ;
+
+      if ( SDB_ROLE_STANDALONE != pmdGetDBRole() )
+      {
+         rc = SDB_RTN_CMD_NO_SERVICE_AUTH ;
+         PD_LOG_MSG( PDERROR, "Can't run explain lob on local service" ) ;
+         goto error ;
+      }
+
+      try
+      {
+         BSONObjBuilder builder ;
+         builder.append( FIELD_NAME_GROUPID, (INT32)pmdGetNodeID().columns.groupID ) ;
+         BSONArrayBuilder locationBD( builder.subarrayStart( FIELD_NAME_LOCATION ) ) ;
+         BSONObjBuilder groupBD( locationBD.subobjStart() ) ;
+
+         BSONElement e = option.getField( FIELD_NAME_DETAIL ) ;
+         if ( e.isBoolean() )
+         {
+            isDetail = e.boolean() ;
+         }
+
+         // { "GroupID" : 1001, "Pieces" : [ 0, 1, 2 ] }
+         groupBD.append( FIELD_NAME_GROUPID, (INT32)pmdGetNodeID().columns.groupID ) ;
+         groupBD.append( FIELD_NAME_LOB_PIECES_NUM, (INT32)tuples.size() ) ;
+
+         if ( isDetail )
+         {
+            BSONArrayBuilder pieceBD( groupBD.subarrayStart( FIELD_NAME_LOB_PIECES ) ) ;
+            RTN_LOB_TUPLES::const_iterator cit = tuples.begin() ;
+            while( cit != tuples.end() )
+            {
+               const MsgLobTuple *tuple = ( const MsgLobTuple * )(&( *cit )) ;
+               pieceBD.append( (INT32)( tuple->columns.sequence ) ) ;
+               ++cit ;
+            }
+            pieceBD.done() ;
+         }
+
+         groupBD.done() ;
+         locationBD.done() ;
+
+         /// add pieces number
+         builder.append( FIELD_NAME_LOB_PIECES_NUM, (INT32)tuples.size() ) ;
+
+         detail = builder.obj() ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         goto error ;
+      }
+
+   done:
       PD_TRACE_EXITRC( SDB_RTNLOCALLOBSTREAM__LOCK, rc ) ;
       return rc ;
    error:

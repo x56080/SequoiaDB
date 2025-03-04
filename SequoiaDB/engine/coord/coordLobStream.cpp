@@ -286,8 +286,8 @@ namespace engine
       }
       catch ( std::exception &e )
       {
-         PD_LOG( PDERROR, "unexpected err happened:%s", e.what() ) ;
-         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 
@@ -571,17 +571,21 @@ namespace engine
                                   dataTuple.offset ) ;
             if ( rc )
             {
-               PD_LOG( PDERROR, "Push data to pool failed, rc:%d", rc ) ;
+               PD_LOG( PDERROR, "Push data to pool failed, rc: %d", rc ) ;
                goto error ;
             }
             _getPool().pushDone() ;
 
-            _getPool().entrust( *_results.begin() ) ;
+            rc = _getPool().entrust( *_results.begin() ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
             _results.erase( _results.begin() ) ;
          }
          if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "failed to extract meta data from reply msg:%d",
+            PD_LOG( PDERROR, "Failed to extract meta data from reply msg, rc: %d",
                     rc ) ;
             goto error ;
          }
@@ -825,8 +829,8 @@ namespace engine
       }
       catch ( std::exception &e )
       {
-         PD_LOG( PDERROR, "unexpected err happened:%s", e.what() ) ;
-         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 
@@ -871,8 +875,8 @@ namespace engine
          }
          catch ( std::exception &e )
          {
-            PD_LOG( PDERROR, "unexpected err happened:%s", e.what() ) ;
-            rc = SDB_SYS ;
+            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+            rc = ossException2RC( &e ) ;
             goto error ;
          }
       }
@@ -1317,13 +1321,22 @@ namespace engine
                                          _getMeta()._version >= DMS_LOB_META_MERGE_DATA_VERSION ) ) ;
                if ( SDB_OK != rc )
                {
-                  PD_LOG( PDERROR, "failed to push data to pool:%d", rc ) ;
+                  PD_LOG( PDERROR, "Failed to push data to pool, rc: %d", rc ) ;
                   goto error ;
                }
             }
             else
             {
-               newTuples.push_back( t ) ;
+               try
+               {
+                  newTuples.push_back( t ) ;
+               }
+               catch( std::exception &e )
+               {
+                  rc = ossException2RC( &e ) ;
+                  PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+                  goto error ;
+               }
             }
          }
 
@@ -1337,8 +1350,7 @@ namespace engine
       /// reset retry times
       pCtrl->resetRetry() ;
 
-      _initHeader( header, MSG_BS_LOB_READ_REQ,
-                   0, -1 ) ;
+      _initHeader( header, MSG_BS_LOB_READ_REQ, 0, -1 ) ;
 
       do
       {
@@ -1440,14 +1452,14 @@ namespace engine
       rc = _getLobPageSize( pageSz ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "failed to get page size of lob:%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to get page size of lob, rc: %d", rc ) ;
          goto error ;
       }
 
       rc = msgExtractReadResult( header, &begin, &tupleSz ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "failed to extract read result:%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to extract read result, rc: %d", rc ) ;
          goto error ;
       }
 
@@ -1457,7 +1469,7 @@ namespace engine
                                        &curTuple, &data, &got ) ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "failed to extract tuple from msg:%d", rc ) ;
+            PD_LOG( PDERROR, "Failed to extract tuple from msg, rc: %d", rc ) ;
             goto error ;
          }
          else if ( got )
@@ -1481,7 +1493,7 @@ namespace engine
 
             if ( SDB_OK != rc )
             {
-               PD_LOG( PDERROR, "failed to push data to pool:%d", rc ) ;
+               PD_LOG( PDERROR, "Failed to push data to pool, rc: %d", rc ) ;
                goto error ;
             }
          }
@@ -1625,12 +1637,17 @@ namespace engine
       goto done ;
    }
 
-   INT32 _coordLobStream::_getRTDetail( _pmdEDUCB *cb, bson::BSONObj &detail )
+   INT32 _coordLobStream::_getRTDetail( _pmdEDUCB *cb,
+                                        const RTN_LOB_TUPLES &tuples,
+                                        bson::BSONObj &detail,
+                                        const _rtnLobPiecesInfo* piecesInfo,
+                                        const bson::BSONObj &option )
    {
       INT32 rc = SDB_OK ;
 
       MsgOpLob header ;
       UINT32 groupID = 0 ;
+      BOOLEAN isDetail = FALSE ;
       const subStream *sub = NULL ;
       const MsgOpReply *reply = NULL ;
 
@@ -1709,11 +1726,197 @@ namespace engine
       } while ( TRUE ) ;
 
       rc = _extractDetail( reply, detail ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to extract detail from reply msg:rc=%d",
+      PD_RC_CHECK( rc, PDERROR, "Failed to extract detail from reply msg, rc: %d",
                    rc ) ;
+
+      /// build location
+      try
+      {
+         UINT32 validPieceNum = 0 ;
+         BSONObjBuilder builder ;
+         ossPoolMap< UINT32, ossPoolVector<UINT32> > mapPiecesInfo ;
+         ossPoolMap< UINT32, ossPoolVector<UINT32> >::iterator itrPiece ;
+
+         builder.appendElements( detail ) ;
+         BSONArrayBuilder locationBD( builder.subarrayStart( FIELD_NAME_LOCATION ) ) ;
+
+         BSONElement e = option.getField( FIELD_NAME_DETAIL ) ;
+         if ( e.isBoolean() )
+         {
+            isDetail = e.boolean() ;
+         }
+
+         RTN_LOB_TUPLES::const_iterator cit = tuples.begin() ;
+         while( cit != tuples.end() )
+         {
+            const MsgLobTuple *tuple = ( const MsgLobTuple * )(&( *cit )) ;
+
+            /// piece not exist
+            if ( piecesInfo && !piecesInfo->hasPiece( tuple->columns.sequence ) )
+            {
+               ++cit ;
+               continue ;
+            }
+
+            rc = _getLobGroupID( getOID(), tuple->columns.sequence, groupID ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "Failed to get destination group, rc: %d", rc ) ;
+               goto error ;
+            }
+            else
+            {
+               ossPoolVector<UINT32> &vecPieces = mapPiecesInfo[ groupID ] ;
+               vecPieces.push_back( tuple->columns.sequence ) ;
+               ++validPieceNum ;
+            }
+
+            ++cit ;
+         }
+
+         itrPiece = mapPiecesInfo.begin() ;
+         while( itrPiece != mapPiecesInfo.end() )
+         {
+            const ossPoolVector<UINT32> &vecPieces = itrPiece->second ;
+            BSONObjBuilder groupBD( locationBD.subobjStart() ) ;
+
+            // { "GroupID" : 1001, "Pieces" : [ 0, 1, 2 ] }
+            groupBD.append( FIELD_NAME_GROUPID, (INT32)(itrPiece->first) ) ;
+            groupBD.append( FIELD_NAME_LOB_PIECES_NUM, (INT32)vecPieces.size() ) ;
+
+            if ( isDetail )
+            {
+               BSONArrayBuilder pieceBD( groupBD.subarrayStart( FIELD_NAME_LOB_PIECES ) ) ;
+               for ( UINT32 i = 0 ; i < vecPieces.size() ; ++i )
+               {
+                  pieceBD.append( (INT32)vecPieces[i] ) ;
+               }
+               pieceBD.done() ;
+            }
+
+            groupBD.done() ;
+            ++itrPiece ;
+         }
+
+         locationBD.done() ;
+
+         /// add pieces number
+         builder.append( FIELD_NAME_LOB_PIECES_NUM, (INT32)validPieceNum ) ;
+
+         if ( _cataInfo->isMainCL() )
+         {
+            builder.append( FIELD_NAME_SUBCLNAME, _subCLInfo->getName() ) ;
+         }
+
+         detail = builder.obj() ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         goto error ;
+      }
 
    done:
       _clearMsgData() ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _coordLobStream::_explain( _pmdEDUCB *cb,
+                                    const RTN_LOB_TUPLES &tuples,
+                                    bson::BSONObj &detail,
+                                    const _rtnLobPiecesInfo* piecesInfo,
+                                    const bson::BSONObj &option )
+   {
+      INT32 rc = SDB_OK ;
+
+      UINT32 groupID = 0 ;
+      BOOLEAN isDetail = FALSE ;
+
+      /// build location
+      try
+      {
+         UINT32 validPieceNum = 0 ;
+         BSONObjBuilder builder ;
+         ossPoolMap< UINT32, ossPoolVector<UINT32> > mapPiecesInfo ;
+         ossPoolMap< UINT32, ossPoolVector<UINT32> >::iterator itrPiece ;
+
+         builder.append( FIELD_NAME_GROUPID, (INT32)_metaGroup ) ;
+         BSONArrayBuilder locationBD( builder.subarrayStart( FIELD_NAME_LOCATION ) ) ;
+
+         BSONElement e = option.getField( FIELD_NAME_DETAIL ) ;
+         if ( e.isBoolean() )
+         {
+            isDetail = e.boolean() ;
+         }
+
+         RTN_LOB_TUPLES::const_iterator cit = tuples.begin() ;
+         while( cit != tuples.end() )
+         {
+            const MsgLobTuple *tuple = ( const MsgLobTuple * )(&( *cit )) ;
+
+            rc = _getLobGroupID( getOID(), tuple->columns.sequence, groupID ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "Failed to get destination group, rc: %d", rc ) ;
+               goto error ;
+            }
+            else
+            {
+               ossPoolVector<UINT32> &vecPieces = mapPiecesInfo[ groupID ] ;
+               vecPieces.push_back( tuple->columns.sequence ) ;
+               ++validPieceNum ;
+            }
+
+            ++cit ;
+         }
+
+         itrPiece = mapPiecesInfo.begin() ;
+         while( itrPiece != mapPiecesInfo.end() )
+         {
+            const ossPoolVector<UINT32> &vecPieces = itrPiece->second ;
+            BSONObjBuilder groupBD( locationBD.subobjStart() ) ;
+
+            // { "GroupID" : 1001, "Pieces" : [ 0, 1, 2 ] }
+            groupBD.append( FIELD_NAME_GROUPID, (INT32)(itrPiece->first) ) ;
+            groupBD.append( FIELD_NAME_LOB_PIECES_NUM, (INT32)vecPieces.size() ) ;
+
+            if ( isDetail )
+            {
+               BSONArrayBuilder pieceBD( groupBD.subarrayStart( FIELD_NAME_LOB_PIECES ) ) ;
+               for ( UINT32 i = 0 ; i < vecPieces.size() ; ++i )
+               {
+                  pieceBD.append( (INT32)vecPieces[i] ) ;
+               }
+               pieceBD.done() ;
+            }
+
+            groupBD.done() ;
+            ++itrPiece ;
+         }
+
+         locationBD.done() ;
+
+         /// add pieces number
+         builder.append( FIELD_NAME_LOB_PIECES_NUM, (INT32)validPieceNum ) ;
+
+         if ( _cataInfo->isMainCL() )
+         {
+            builder.append( FIELD_NAME_SUBCLNAME, _subCLInfo->getName() ) ;
+         }
+
+         detail = builder.obj() ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         goto error ;
+      }
+
+   done:
       return rc ;
    error:
       goto done ;
@@ -1803,7 +2006,17 @@ namespace engine
          if ( isReadonly() )
          {
             set< INT32 > setIgnore ;
-            setIgnore.insert( SDB_RTN_CONTEXT_NOTEXIST ) ;
+            try
+            {
+               setIgnore.insert( SDB_RTN_CONTEXT_NOTEXIST ) ;
+            }
+            catch( std::exception &e )
+            {
+               rc = ossException2RC( &e ) ;
+               PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+               goto error ;
+            }
+            /// then get reply
             rc = _getReply( cb, TRUE, tag, &setIgnore ) ;
          }
          else
@@ -1934,8 +2147,8 @@ namespace engine
       }
       catch ( std::exception &e )
       {
-         PD_LOG( PDERROR, "unexpected err happened:%s", e.what() ) ;
-         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 
@@ -1981,8 +2194,8 @@ namespace engine
       }
       catch ( std::exception &e )
       {
-         PD_LOG( PDERROR, "unexpected err happened:%s", e.what() ) ;
-         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 
@@ -2197,7 +2410,18 @@ namespace engine
               ( pIgoreErr && pIgoreErr->count( flags ) > 0 ) )
          {
             /// pReply will be released by _clearMsgData()
-            _results.push_back( event ) ;
+            try
+            {
+               _results.push_back( event ) ;
+            }
+            catch( std::exception &e )
+            {
+               rc = ossException2RC( &e ) ;
+               PD_LOG( PDERROR, "Push node result(%d.%d) occur exception: %s",
+                       id.columns.groupID, id.columns.nodeID, e.what() ) ;
+               /// release the event
+               pmdEduEventRelease( event, cb ) ;
+            }
             continue ;
          }
 
@@ -2206,8 +2430,7 @@ namespace engine
                  flags, pReply->startFrom ) ;
 
          // get group info
-         CoordGroupMap::iterator it = _mapGroupInfo.find(
-                                 pSub->getNodeID().columns.groupID ) ;
+         CoordGroupMap::iterator it = _mapGroupInfo.find( pSub->getNodeID().columns.groupID ) ;
          if ( it == _mapGroupInfo.end() )
          {
             flags = SDB_COOR_NO_NODEGROUP_INFO ;
@@ -2235,7 +2458,16 @@ namespace engine
          }
          else
          {
-            _nokRC[ id.value ] = coordErrorInfo( pReply ) ;
+            try
+            {
+               _nokRC[ id.value ] = coordErrorInfo( pReply ) ;
+            }
+            catch( std::exception &e )
+            {
+               rc = ossException2RC( &e ) ;
+               PD_LOG( PDERROR, "Push node reply(%d.%d) to non-ok set occur exception: %s",
+                       id.columns.groupID, id.columns.nodeID, e.what() ) ;
+            }
          }
 
          pmdEduEventRelease( event, cb ) ;
@@ -2321,7 +2553,7 @@ namespace engine
          rc = _getLobGroupID( getOID(), tuple->columns.sequence, groupID ) ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "failed to get destination:%d", rc ) ;
+            PD_LOG( PDERROR, "Failed to get destination, rc: %d", rc ) ;
             goto error ;
          }
 
@@ -2336,8 +2568,8 @@ namespace engine
          }
          catch ( std::exception &e )
          {
-            PD_LOG( PDERROR, "Unexpected err happened:%s", e.what() ) ;
-            rc = SDB_SYS ;
+            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+            rc = ossException2RC( &e ) ;
             goto error ;
          }
       }
@@ -2348,7 +2580,7 @@ namespace engine
          rc = _openSubStreams( newGpList, cb, needReshard ) ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "Failed to get sub stream:%d", rc ) ;
+            PD_LOG( PDERROR, "Failed to get sub stream, rc: %d", rc ) ;
             goto error ;
          }
          if ( needReshard )
@@ -2375,7 +2607,7 @@ namespace engine
                                  groupID ) ;
             if ( SDB_OK != rc )
             {
-               PD_LOG( PDERROR, "failed to get destination:%d", rc ) ;
+               PD_LOG( PDERROR, "Failed to get destination, rc: %d", rc ) ;
                goto error ;
             }
          }
@@ -2383,7 +2615,7 @@ namespace engine
          itrSubStream = _subs.find( groupID ) ;
          if ( _subs.end() == itrSubStream )
          {
-            PD_LOG( PDERROR, "group:%d is not in sub streams", groupID ) ;
+            PD_LOG( PDERROR, "Group(%d) is not in sub streams", groupID ) ;
             rc = SDB_SYS ;
             goto error ;
          }
@@ -2393,12 +2625,12 @@ namespace engine
          if ( !dg->hasData() )
          {
             rc = _pushLobHeader( &header, BSONObj(), dg->body ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to push lob header:rc=%d", rc ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to push lob header, rc: %d", rc ) ;
             dg->bodyLen += sizeof( MsgOpLob ) - sizeof( MsgHeader ) ;
          }
 
          rc = dg->addData( lobTuple->tuple, isWrite ? lobTuple->data : NULL ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to push lob header:rc=%d", rc ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to push lob header, rc: %d", rc ) ;
 
          dg->contextID = sub->contextID ;
          dg->id = sub->id ;
@@ -2434,14 +2666,14 @@ namespace engine
       rc = _getLobGroupID( getOID(), t.columns.sequence, groupID ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "failed to get destination:%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to get destination, rc: %d", rc ) ;
          goto error ;
       }
 
       rc = _getSubStream( groupID, &sub, cb, needReshard ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "failed to get sub stream:%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to get sub stream, rc: %d", rc ) ;
          goto error ;
       }
       if ( needReshard )
@@ -2450,16 +2682,26 @@ namespace engine
          goto retry ;
       }
 
-      dg = &( _dataGroups[groupID] ) ;
+      try
+      {
+         dg = &( _dataGroups[groupID] ) ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         goto error ;
+      }
+
       if ( !dg->hasData() )
       {
          rc = _pushLobHeader( &header, BSONObj(), dg->body ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to push lob header:rc=%d", rc ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to push lob header, rc: %d", rc ) ;
          dg->bodyLen += sizeof( MsgOpLob ) - sizeof( MsgHeader ) ;
       }
 
       rc = dg->addData( t, isWrite ? tuple.data : NULL ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to push lob header:rc=%d", rc ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to push lob header, rc: %d", rc ) ;
 
       dg->contextID = sub->contextID ;
       dg->id = sub->id ;
@@ -2473,8 +2715,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION( COORD_LOBSTREAM_HANDLEREADRESULTS, "_coordLobStream::_handleReadResults" )
-   INT32 _coordLobStream::_handleReadResults( _pmdEDUCB *cb,
-                                              DONE_LST &doneLst )
+   INT32 _coordLobStream::_handleReadResults( _pmdEDUCB *cb, DONE_LST &doneLst )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( COORD_LOBSTREAM_HANDLEREADRESULTS ) ;
@@ -2487,7 +2728,7 @@ namespace engine
          if ( SDB_OK != pReply->flags )
          {
             rc = pReply->flags ;
-            PD_LOG( PDERROR, "failed to read lob on node[%d:%d], rc:%d",
+            PD_LOG( PDERROR, "Failed to read lob on node[%d:%d], rc: %d",
                     pReply->header.routeID.columns.groupID,
                     pReply->header.routeID.columns.nodeID, rc ) ;
             goto error ;
@@ -2496,15 +2737,14 @@ namespace engine
          rc = _push2Pool( pReply ) ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "failed to push data to pool:%d", rc ) ;
+            PD_LOG( PDERROR, "Failed to push data to pool, rc: %d", rc ) ;
             goto error ;
          }
 
-         rc = _add2DoneLst( pReply->header.routeID.columns.groupID,
-                            doneLst ) ;
+         rc = _add2DoneLst( pReply->header.routeID.columns.groupID, doneLst ) ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "failed to add tuples to done list:%d", rc ) ;
+            PD_LOG( PDERROR, "Failed to add tuples to done list, rc: %d", rc ) ;
             goto error ;
          }
       }
@@ -2514,10 +2754,16 @@ namespace engine
          std::vector<pmdEDUEvent>::const_iterator itr = _results.begin() ;
          for ( ; itr != _results.end(); ++itr )
          {
-            _getPool().entrust( *itr ) ;
+            rc = _getPool().entrust( *itr ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
          }
       }
+
       _results.clear() ;
+
    done:
       PD_TRACE_EXITRC( COORD_LOBSTREAM_HANDLEREADRESULTS, rc ) ;
       return rc ;
@@ -2541,7 +2787,7 @@ namespace engine
                             doneLst ) ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "failed to add group to done list:%d", rc ) ;
+            PD_LOG( PDERROR, "Failed to add group to done list, rc: %d", rc ) ;
             goto error ;
          }
       }
@@ -2560,30 +2806,40 @@ namespace engine
       DATA_GROUPS::iterator itr = _dataGroups.find( groupID ) ;
       if ( _dataGroups.end() == itr )
       {
-         PD_LOG( PDERROR, "we can not find group:%d", groupID ) ;
+         PD_LOG( PDERROR, "we can not find group(%d)", groupID ) ;
          rc = SDB_SYS ;
          goto error ;
       }
 
       {
-      dataGroup &dg = itr->second ;
-      for ( list<ossValuePtr>::const_iterator titr =
-                                               dg.tuples.begin() ;
-            titr != dg.tuples.end() ;
-            ++titr )
-      {
-         if ( !doneLst.insert( *titr ).second )
+         dataGroup &dg = itr->second ;
+         for ( list<ossValuePtr>::const_iterator titr = dg.tuples.begin() ;
+               titr != dg.tuples.end() ;
+               ++titr )
          {
-            PD_LOG( PDERROR, "we already pushed tuple to pool[%d:%d:%lld]",
-                    (( MsgLobTuple *)( *titr ))->columns.len,
-                    (( MsgLobTuple *)( *titr ))->columns.sequence,
-                    (( MsgLobTuple *)( *titr ))->columns.offset ) ;
-            rc = SDB_SYS ;
+            try
+            {
+               if ( !doneLst.insert( *titr ).second )
+               {
+                  PD_LOG( PDERROR, "we already pushed tuple to pool[%d:%d:%lld]",
+                          (( MsgLobTuple *)( *titr ))->columns.len,
+                          (( MsgLobTuple *)( *titr ))->columns.sequence,
+                          (( MsgLobTuple *)( *titr ))->columns.offset ) ;
+                  rc = SDB_SYS ;
+                  /// not goto error
+               }
+            }
+            catch( std::exception &e )
+            {
+               rc = ossException2RC( &e ) ;
+               PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+               /// not goto error
+            }
          }
+
+         dg.clearData() ;
       }
 
-      dg.clearData() ;
-      }
    done:
       PD_TRACE_EXITRC( COORD_LOBSTREAM_ADD2DONELST, rc ) ;
       return rc ;
@@ -2638,8 +2894,8 @@ namespace engine
       }
       catch ( std::exception &e )
       {
-         PD_LOG( PDERROR, "unexpected err happened:%s", e.what() ) ;
-         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 
@@ -2660,8 +2916,8 @@ namespace engine
       }
       catch ( std::exception &e )
       {
-         PD_LOG( PDERROR, "unexpected err happened:%s", e.what() ) ;
-         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 
@@ -2691,13 +2947,16 @@ namespace engine
                                     SINT64 contextID,
                                     MsgRouteID id )
    {
-      SDB_ASSERT( 0 == _subs.count( groupID ), "impossible" ) ;
-      // throw exception outside to make sure contextID is closed( disconnect )
-      _subs[groupID] = subStream( contextID, id ) ;
-      PD_LOG( PDDEBUG, "_add2Subs:lobID=%s,groupIDKey=%d,groupID=%u,"
-              "nodeID=%d,contextID=%lld", getOID().toString().c_str(),
-              groupID, id.columns.groupID,
-              id.columns.nodeID, contextID ) ;
+      if ( -1 != contextID )
+      {
+         SDB_ASSERT( 0 == _subs.count( groupID ), "impossible" ) ;
+         // throw exception outside to make sure contextID is closed( disconnect )
+         _subs[groupID] = subStream( contextID, id ) ;
+         PD_LOG( PDDEBUG, "_add2Subs:lobID=%s,groupIDKey=%d,groupID=%u,"
+                 "nodeID=%d,contextID=%lld", getOID().toString().c_str(),
+                 groupID, id.columns.groupID,
+                 id.columns.nodeID, contextID ) ;
+      }
    }
 
    INT32 _coordLobStream::_ensureEmptyPageBuf( INT32 pageSize )

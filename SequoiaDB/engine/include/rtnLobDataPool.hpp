@@ -104,12 +104,11 @@ namespace engine
       INT32 allocate( UINT32 len, CHAR **buf ) ;
 
       /// realBuf will be freed when do clear
-      INT32 push( const CHAR *data, UINT32 len,
-                  SINT64 offset ) ;
+      INT32 push( const CHAR *data, UINT32 len, SINT64 offset ) ;
 
       void pushDone() ;
 
-      void entrust( const pmdEDUEvent &event ) ;
+      INT32 entrust( const pmdEDUEvent &event ) ;
 
       UINT32 getLastDataSize() const
       {

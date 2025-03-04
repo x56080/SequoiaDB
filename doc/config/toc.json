@@ -3043,6 +3043,18 @@
                            "en": "listLobs()"
                         },
                         {
+                           "id": 1741005383,
+                           "file": "lobCount",
+                           "cn": "lobCount()",
+                           "en": "lobCount()"
+                        },
+                        {
+                           "id": 1741011054,
+                           "file": "lobExplain",
+                           "cn": "lobExplain()",
+                           "en": "lobExplain()"
+                        },
+                        {
                            "id": 1432190842,
                            "file": "putLob",
                            "cn": "putLob()",

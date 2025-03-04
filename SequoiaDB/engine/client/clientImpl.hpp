@@ -579,6 +579,10 @@ namespace sdbclient
 
       virtual INT32 createLobID( bson::OID &oid, const CHAR *pTimestamp = NULL ) ;
 
+      virtual INT32 lobExplain( const bson::OID &oid,
+                                bson::BSONObj &result,
+                                const bson::BSONObj &options = _sdbStaticObject ) ;
+
       virtual INT32 listLobPieces(
                               _sdbCursor **cursor,
                               const bson::BSONObj &condition = _sdbStaticObject,
@@ -629,12 +633,12 @@ namespace sdbclient
 
       INT32 setAttributes ( const bson::BSONObj & options ) ;
 
-      INT32 getDetail ( _sdbCursor **cursor ) ;
+      INT32 getDetail ( _sdbCursor **cursor, const bson::BSONObj &options = _sdbStaticObject ) ;
 
-      INT32 getDetail ( sdbCursor &cursor )
+      INT32 getDetail ( sdbCursor &cursor, const bson::BSONObj &options = _sdbStaticObject )
       {
          RELEASE_INNER_HANDLE( cursor.pCursor ) ;
-         return getDetail ( &cursor.pCursor ) ;
+         return getDetail ( &cursor.pCursor, options ) ;
       }
 
       INT32 getIndexStat ( const CHAR *pIndexName, bson::BSONObj &result,
@@ -1245,7 +1249,8 @@ namespace sdbclient
 
       virtual BOOLEAN isEof() ;
 
-      virtual INT32 getRunTimeDetail( bson::BSONObj &detail ) ;
+      virtual INT32 getRunTimeDetail( bson::BSONObj &detail,
+                                      const bson::BSONObj &option = _sdbStaticObject ) ;
 
    } ;
 

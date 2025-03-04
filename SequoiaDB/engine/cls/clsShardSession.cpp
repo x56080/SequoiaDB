@@ -4999,7 +4999,7 @@ namespace engine
                               contextID, _pEDUCB ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "failed to open context:%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to open context, rc: %d", rc ) ;
          goto error ;
       }
 
@@ -5007,7 +5007,7 @@ namespace engine
                           _pDpsCB, _pEDUCB, &pData, dataLen ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "failed to open lob context:%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to open lob context, rc: %d", rc ) ;
          goto error ;
       }
 
@@ -5019,6 +5019,15 @@ namespace engine
       {
          buffObj = rtnContextBuf( pData, dataLen, 1 ) ;
       }
+
+      if ( ( header->flags & FLG_LOB_EXPLAIN ) && -1 != contextID )
+      {
+         /// kill context
+         context->close( _pEDUCB ) ;
+         rtnCB->contextDelete( contextID, _pEDUCB ) ;
+         contextID = -1 ;
+      }
+
    done:
       return rc ;
    error:

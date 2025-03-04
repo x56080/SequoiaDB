@@ -24,8 +24,17 @@ SdbQueryOption( \f[I]Object\f[]， \f[I]选填\f[] )
 .PP
 \f[B]Note:\f[]
 .PP
-当用户使用 SdbQueryOption 指定 hint 为{"ListPieces": 1}时，可以获取 Lob
-详细的分片信息。
+用户可以使用 \f[C]SdbQueryOption.hint()\f[] 指定 \-
+\f[C]{"ListPieces": true}\f[]，获取 Lob 详细的分片信息，和
+\f[C]listLobPieces()\f[] 等效。 \- \f[C]{"Oid": %oid_string%}\f[] 或
+\f[C]{"Oid":[%oid_string%,...]}\f[]，可以获取指定 Lob 信息，减少IO开销。 \-
+\f[C]{"GroupID":%group_id%}\f[] 或
+\f[C]{"GroupID":[%group_id",...]}\f[]，可以获取指定 Group 的 Lob
+信息，减少IO开销。
+.PP
+用户可以使用\f[C]SdbQueryOption.cond()\f[]中过滤条件为 Oid/GroupID
+的等值或$in时（e.g.: `{"Oid":{"$oid":%oid_string%}}`），效果等同于 hint() 指定
+Oid/GroupID。
 .RE
 .SH 返回值
 .PP
@@ -133,7 +142,8 @@ T}
      "$timestamp": "2019\-07\-23\-16.43.17.508000"
    },
    "Available": true,
-   "HasPiecesInfo": false
+   "HasPiecesInfo": false,
+   "GroupID": 1001
  }
  {
    "Size": 51717368,
@@ -147,7 +157,8 @@ T}
      "$timestamp": "2019\-07\-23\-16.52.56.977000"
    },
    "Available": true,
-   "HasPiecesInfo": false
+   "HasPiecesInfo": false,
+   "GroupID": 1001
 }
 Return 2 row(s).
 \f[]
@@ -172,7 +183,34 @@ Return 2 row(s).
      "$timestamp": "2019\-07\-23\-16.52.56.977000"
    },
    "Available": true,
-   "HasPiecesInfo": false
+   "HasPiecesInfo": false,
+   "GroupID": 1001
+}
+Return 1 row(s).
+\f[]
+.fi
+.RE
+.IP \[bu] 2
+列举 sample.employee 中 Oid 为 "00005d36cae8370002de7edd" 的大对象
+.RS 2
+.IP
+.nf
+\f[C]
+> db.sample.employee.listLobs( SdbQueryOption().hint( {"Oid":"00005d36cae8370002de7edd"} ) )
+{
+   "Size": 51717368,
+   "Oid": {
+     "$oid": "00005d36cae8370002de7edd"
+   },
+   "CreateTime": {
+     "$timestamp": "2019\-07\-23\-16.52.56.278000"
+   },
+   "ModificationTime": {
+     "$timestamp": "2019\-07\-23\-16.52.56.977000"
+   },
+   "Available": true,
+   "HasPiecesInfo": false,
+   "GroupID": 1001
 }
 Return 1 row(s).
 \f[]

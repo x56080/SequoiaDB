@@ -531,8 +531,8 @@ INT32 msgExtractLockLobRequest( const CHAR *pBuffer, const MsgOpLob **header,
                                 INT64 *offset, INT64 *len ) ;
 
 INT32 msgExtractGetLobRTDetailRequest( const CHAR *pBuffer,
-                                       const MsgOpLob **header ) ;
-
+                                       const MsgOpLob **header,
+                                       BSONObj *pOption = NULL ) ;
 
 INT32 msgExtractCloseLobRequest( const CHAR *pBuffer, const MsgOpLob **header ) ;
 

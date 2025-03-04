@@ -4,7 +4,7 @@ getDetail - get detailed information of the current collection
 
 ##SYNOPSIS##
 
-**db.collectionspace.collection.getDetail\(\)**
+**db.collectionspace.collection.getDetail([aggr], [options])**
 
 ##CATEGORY##
 
@@ -16,7 +16,15 @@ Get detailed information of the current collection.
 
 ##PARAMETERS##
 
-None
+* aggr ( *boolean, optional* )
+
+    Whether to aggregate results, default is false if omitted.
+
+* options ( *object, optional* )
+
+    reserved
+
+The above parameters take effect only in SequoiaDB v3.4.14/v5.8.4 and later versions.
 
 ##RETURN VALUE##
 

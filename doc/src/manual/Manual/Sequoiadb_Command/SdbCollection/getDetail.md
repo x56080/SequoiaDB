@@ -5,7 +5,7 @@ getDetail - 获取集合具体信息
 
 ##语法##
 
-**db.collectionspace.collection.getDetail\(\)**
+**db.collectionspace.collection.getDetail([aggr], [options])**
 
 ##类别##
 
@@ -17,7 +17,15 @@ SdbCollection
 
 ##参数##
 
-无
+* aggr ( *boolean, 选填* )
+
+    是否聚集结果，缺少为 false
+
+* options ( *object, 选填* )
+
+    保留参数
+
+以上参数仅在 SequoiaDB v3.4.14/v5.8.4 及以上版本生效
 
 ##返回值##
 
