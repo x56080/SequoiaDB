@@ -36,12 +36,14 @@ var datasrcPort = DSSVCNAME;
 var userName = "sdbadmin";
 var passwd = "sdbadmin";
 var datasrcUrl = datasrcIp + ":" + datasrcPort;
-var datasrcDB = new Sdb( datasrcIp, datasrcPort, userName, passwd );
+var datasrcDB;
 
 //main( test ) ;
 
 function test()
 {
+   datasrcDB = new Sdb( datasrcIp, datasrcPort, userName, passwd );
+
    test1() ;
 
    test2() ;

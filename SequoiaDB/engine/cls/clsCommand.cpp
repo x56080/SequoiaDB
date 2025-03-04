@@ -450,29 +450,42 @@ namespace engine
          }
 
          BOOLEAN sysCall = pmdGetOptionCB()->authEnabled() ? FALSE : TRUE ;
-         dmsTaskStatusMgr *pStatMgr = rtnCB->getTaskStatusMgr() ;
-         dmsIdxTaskStatusPtr statusPtr ;
 
-         rc = pStatMgr->createIdxItem( DMS_TASK_CREATE_IDX, statusPtr ) ;
-         PD_RC_CHECK( rc, PDERROR,
-                      "Failed to create task status, rc: %d",
-                      rc ) ;
+         if ( _isStandaloneIdx )
+         {
+            dmsTaskStatusMgr *pStatMgr = rtnCB->getTaskStatusMgr() ;
+            dmsIdxTaskStatusPtr statusPtr ;
 
-         rc = statusPtr->init( _collectionName, _index, _sortBufSize ) ;
-         PD_RC_CHECK( rc, PDERROR,
-                      "Failed to initialize task status, rc: %d",
-                      rc ) ;
+            rc = pStatMgr->createIdxItem( DMS_TASK_CREATE_IDX, statusPtr ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to create task status, rc: %d",
+                         rc ) ;
 
-         statusPtr->setStatus( DMS_TASK_STATUS_RUN ) ;
+            rc = statusPtr->init( _collectionName, _index, _sortBufSize ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to initialize task status, rc: %d",
+                         rc ) ;
 
-         rc = rtnCreateIndexCommand( _collectionName, _index,
-                                     cb, dmsCB, dpsCB, sysCall, _sortBufSize,
-                                     &_writeResult, statusPtr.get() ) ;
-         statusPtr->setStatus2Finish( rc, cb ? cb->getInfo(EDU_INFO_ERROR) :
-                                               NULL, &_writeResult ) ;
-         PD_RC_CHECK( rc, PDERROR,
-                      "Failed to create index[%s] for collection[%s], rc: %d",
-                      _indexName, _collectionName, rc ) ;
+            statusPtr->setStatus( DMS_TASK_STATUS_RUN ) ;
+
+            rc = rtnCreateIndexCommand( _collectionName, _index,
+                                        cb, dmsCB, dpsCB, sysCall, _sortBufSize,
+                                        &_writeResult, statusPtr.get() ) ;
+            statusPtr->setStatus2Finish( rc, cb ? cb->getInfo(EDU_INFO_ERROR) :
+                                         NULL, &_writeResult ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to create index[%s] for collection[%s], rc: %d",
+                         _indexName, _collectionName, rc ) ;
+         }
+         else if ( _onlyUpgradeMeta )
+         {
+            rc = rtnCreateIndexCommand( _collectionName, _index,
+                                        cb, dmsCB, dpsCB, sysCall, _sortBufSize,
+                                        &_writeResult, NULL ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to create index[%s] for collection[%s], rc: %d",
+                         _indexName, _collectionName, rc ) ;
+         }
       }
 
    done:

@@ -5010,42 +5010,57 @@ namespace engine
          pSubCLName = iter->c_str() ;
          wrResult.resetInfo() ;
 
-         // create an index task status
-         if ( nextCL )
-         {
-            rc = statMgr->createIdxItem( DMS_TASK_CREATE_IDX, statusPtr ) ;
-            PD_RC_CHECK( rc, PDERROR,
-                         "Failed to create task status, rc: %d", rc ) ;
-
-            rc = statusPtr->init( pSubCLName, boIndex, sortBufferSize ) ;
-            PD_RC_CHECK( rc, PDERROR,
-                         "Failed to initialize task status, rc: %d",
-                         rc ) ;
-
-            statusPtr->setStatus( DMS_TASK_STATUS_RUN ) ;
-         }
-
          if ( onlyUpgrade )
          {
             rc = rtnAddUniqueIDToIndexDef( pSubCLName, boHint, boIndex, newBoIndex ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to add uniqueID to index def, rc: %d", rc ) ;
-         }
 
-         rcTmp = rtnCreateIndexCommand( pSubCLName, newBoIndex, _pEDUCB,
-                                        _pDmsCB, dpsCB, FALSE, sortBufferSize,
-                                        &wrResult, statusPtr.get() ) ;
-         if ( SDB_OK != rcTmp )
-         {
-            rcTmp = _processSubCLResult( rcTmp, pSubCLName, pCollection ) ;
-            if ( SDB_OK == rcTmp )
+            rcTmp = rtnCreateIndexCommand( pSubCLName, newBoIndex, _pEDUCB,
+                                           _pDmsCB, dpsCB, FALSE, sortBufferSize,
+                                           &wrResult, NULL ) ;
+            if ( SDB_OK != rcTmp )
             {
-               nextCL = FALSE ;
-               continue ;
+               rcTmp = _processSubCLResult( rcTmp, pSubCLName, pCollection ) ;
+               if ( SDB_OK == rcTmp )
+               {
+                  nextCL = FALSE ;
+                  continue ;
+               }
             }
          }
+         else
+         {
+            // create an index task status
+            if ( nextCL )
+            {
+               rc = statMgr->createIdxItem( DMS_TASK_CREATE_IDX, statusPtr ) ;
+               PD_RC_CHECK( rc, PDERROR,
+                           "Failed to create task status, rc: %d", rc ) ;
 
-         const CHAR* detail = _pEDUCB ? _pEDUCB->getInfo(EDU_INFO_ERROR) : NULL ;
-         statusPtr->setStatus2Finish( rcTmp, detail, &wrResult ) ;
+               rc = statusPtr->init( pSubCLName, boIndex, sortBufferSize ) ;
+               PD_RC_CHECK( rc, PDERROR,
+                            "Failed to initialize task status, rc: %d",
+                            rc ) ;
+
+               statusPtr->setStatus( DMS_TASK_STATUS_RUN ) ;
+            }
+
+            rcTmp = rtnCreateIndexCommand( pSubCLName, newBoIndex, _pEDUCB,
+                                           _pDmsCB, dpsCB, FALSE, sortBufferSize,
+                                           &wrResult, statusPtr.get() ) ;
+            if ( SDB_OK != rcTmp )
+            {
+               rcTmp = _processSubCLResult( rcTmp, pSubCLName, pCollection ) ;
+               if ( SDB_OK == rcTmp )
+               {
+                  nextCL = FALSE ;
+                  continue ;
+               }
+            }
+
+            const CHAR* detail = _pEDUCB ? _pEDUCB->getInfo(EDU_INFO_ERROR) : NULL ;
+            statusPtr->setStatus2Finish( rcTmp, detail, &wrResult ) ;
+         }
 
          if ( SDB_OK != rcTmp && SDB_IXM_REDEF != rcTmp )
          {
