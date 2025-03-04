@@ -566,14 +566,23 @@ namespace engine
 
          needWait = 0 ;
 
+         /// wait current write operations
+         if ( waitEdu )
+         {
+            if ( eduMgr->hasWritingEDU( -1, 0, EDU_BLOCK_REELECT ) )
+            {
+               needWait = 1 ;
+            }
+         }
+
          /// wait transactions
-         if ( waitTrans )
+         if ( waitTrans && 0 == needWait )
          {
             UINT32 selfTrans = cb->isTransaction() ? 1 : 0 ;
             /// get trans edu, and except self
             if ( transCB->getTransCBSize() > selfTrans )
             {
-               needWait = 1 ;
+               needWait = 2 ;
             }
          }
 
@@ -582,15 +591,6 @@ namespace engine
          {
             /// except self
             if ( rtnCB->getWritingContextNum( cb->getID() ) > 0 )
-            {
-               needWait = 2 ;
-            }
-         }
-
-         /// wait current write operations
-         if ( waitEdu && 0 == needWait )
-         {
-            if ( eduMgr->hasWritingEDU( -1, 0, EDU_BLOCK_REELECT ) )
             {
                needWait = 3 ;
             }
@@ -618,15 +618,15 @@ namespace engine
                {
                   if ( 1 == needWait )
                   {
-                     PD_LOG_MSG( PDERROR, "Wait for transactions timeout" ) ;
+                     PD_LOG_MSG( PDERROR, "Wait for write operations timeout" ) ;
                   }
                   else if ( 2 == needWait )
                   {
-                     PD_LOG_MSG( PDERROR, "Wait for write context(lob) operations timeout" ) ;
+                     PD_LOG_MSG( PDERROR, "Wait for transactions timeout" ) ;
                   }
                   else
                   {
-                     PD_LOG_MSG( PDERROR, "Wait for write operations timeout" ) ;
+                     PD_LOG_MSG( PDERROR, "Wait for write context(lob) operations timeout" ) ;
                   }
                }
 
