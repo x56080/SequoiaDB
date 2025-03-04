@@ -20,8 +20,9 @@ This function is used to count the total number of lobs in the current
 collection, users can specify the control parameters through hint.
 .SH PARAMETERS
 .PP
-The usage of the parameters \f[C]cond\f[] is used in the same way as find(), and
-the \f[C]hint\f[] is used in the same way as listLobs().
+The usage of the parameters \f[C]cond\f[] is used in the same way as find(),
+\f[C]cond\f[] fields and the \f[C]hint\f[] is used in the same way as
+listLobs().
 .SH RETURN VALUE
 .PP
 When the function executes successfully, it will return an object of type

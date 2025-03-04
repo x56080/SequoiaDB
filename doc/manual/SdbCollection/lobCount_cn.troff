@@ -19,8 +19,8 @@ SdbCollection
 该函数用于统计当前集合符合条件的LOB总数，可通过 hint 指定控制参数。
 .SH 参数
 .PP
-参数 \f[C]cond\f[] 的用法与 find() 的相同，参数 \f[C]hint\f[] 的用法与
-listLobs() 的相同。
+参数 \f[C]cond\f[] 的用法与 find() 的相同，\f[C]cond\f[] 字段以及参数
+\f[C]hint\f[] 的用法与 listLobs() 的相同。
 .SH 返回值
 .PP
 函数执行成功时，将返回一个 CLCount 类型的对象。通过该对象获取符合条件的LOB总数。

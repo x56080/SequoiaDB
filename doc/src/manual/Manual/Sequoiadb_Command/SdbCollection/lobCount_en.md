@@ -18,7 +18,7 @@ This function is used to count the total number of lobs in the current collectio
 
 ##PARAMETERS##
 
-The usage of the parameters `cond` is used in the same way as [find()][find], and the `hint` is used in the same way as [listLobs()][listLobs].
+The usage of the parameters `cond` is used in the same way as [find()][find], `cond` fields and the `hint` is used in the same way as [listLobs()][listLobs].
 
 ##RETURN VALUE##
 

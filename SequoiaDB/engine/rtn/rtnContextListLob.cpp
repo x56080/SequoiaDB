@@ -215,11 +215,11 @@ namespace engine
          pieces = _hint.getField( FIELD_NAME_LOB_LIST_PIECES_MODE ) ;
          if ( pieces.isBoolean() )
          {
-            _fetchLobHead = pieces.boolean() ;
+            _fetchLobHead = pieces.boolean() ? FALSE : TRUE ;
          }
          else if ( pieces.isNumber() )
          {
-            _fetchLobHead = ( 0 != pieces.numberInt() ) ? TRUE : FALSE ;
+            _fetchLobHead = ( 0 != pieces.numberInt() ) ? FALSE : TRUE ;
          }
          else if ( !pieces.eoo() )
          {

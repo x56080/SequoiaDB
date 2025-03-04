@@ -18,7 +18,7 @@ SdbCollection
 
 ##参数##
 
-参数 `cond` 的用法与 [find()][find] 的相同，参数 `hint` 的用法与 [listLobs()][listLobs] 的相同。
+参数 `cond` 的用法与 [find()][find] 的相同，`cond` 字段以及参数 `hint` 的用法与 [listLobs()][listLobs] 的相同。
 
 ##返回值##
 
