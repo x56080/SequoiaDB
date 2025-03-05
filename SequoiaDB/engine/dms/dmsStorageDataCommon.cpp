@@ -4181,88 +4181,85 @@ namespace engine
                       "[position %lld, obj %s], rc: %d",
                       position, PD_SECURE_OBJ( insertObj ), rc ) ;
 
-         if ( !markInsert )
+         rc = _prepareInsertData( record, mustOID, cb, recordData,
+                                    newMem, position ) ;
+         PD_RC_CHECK( rc, PDERROR, "Prepare data for insertion failed, rc: %d",
+                        rc ) ;
+         if ( newMem )
          {
-            rc = _prepareInsertData( record, mustOID, cb, recordData,
-                                     newMem, position ) ;
-            PD_RC_CHECK( rc, PDERROR, "Prepare data for insertion failed, rc: %d",
-                         rc ) ;
-            if ( newMem )
-            {
-               pMergedData = (CHAR *)recordData.data() ;
-            }
-
-            insertObj = BSONObj( recordData.data() ) ;
-            dmsRecordSize = recordData.len() ;
-
-            // check
-            if ( recordData.len() + DMS_RECORD_METADATA_SZ >
-                 DMS_RECORD_USER_MAX_SZ )
-            {
-               rc = SDB_DMS_RECORD_TOO_BIG ;
-               goto error ;
-            }
-
-            {
-               /* For concurrency protection with drop CL and set compresor. */
-               dmsCompressorGuard compGuard( compressorEntry, SHARED ) ;
-               if ( compressorEntry->ready() )
-               {
-                  const CHAR *compressedData    = NULL ;
-                  INT32 compressedDataSize      = 0 ;
-                  UINT8 compressRatio           = 0 ;
-                  rc = dmsCompress( cb, compressorEntry,
-                                    recordData.data(), recordData.len(),
-                                    &compressedData, &compressedDataSize,
-                                    compressRatio ) ;
-                  // Compression is valid and ratio is less the threshold
-                  if ( SDB_OK == rc &&
-                       compressedDataSize + sizeof(UINT32) <
-                       recordData.orgLen() &&
-                       compressRatio < UTIL_COMPRESSOR_DFT_MIN_RATIO )
-                  {
-                     // 4 bytes len + compressed record
-                     dmsRecordSize = compressedDataSize + sizeof(UINT32) ;
-                     PD_TRACE2 ( SDB__DMSSTORAGEDATACOMMON_INSERTRECORD,
-                                 PD_PACK_STRING ( "size after compress" ),
-                                 PD_PACK_UINT ( dmsRecordSize ) ) ;
-
-                     // set the compression data
-                     recordData.setData( compressedData, compressedDataSize,
-                                         compressorEntry->getCompressorType(),
-                                         FALSE ) ;
-                  }
-                  else if ( rc )
-                  {
-                     // In any case of error, leave it, and use the
-                     // original data.
-                     if ( SDB_UTIL_COMPRESS_ABORT == rc )
-                     {
-                        PD_LOG( PDINFO, "Record compression aborted. "
-                                "Insert the original data. rc: %d", rc ) ;
-                     }
-                     else
-                     {
-                        PD_LOG( PDWARNING, "Record compression failed. "
-                                "Insert the original data. rc: %d", rc ) ;
-                     }
-                     rc = SDB_OK ;
-                  }
-               }
-
-               /*
-                * Release the guard to avoid deadlock with truncate/drop
-                * collection.
-                */
-               compGuard.release() ;
-            }
-
-            // Step 2: Calculate the required space size, and allocate it,
-            // both for data record and replication log.
-            // Get the final recordsize that we have to allocate:
-            // reserved space, alignment, etc.
-            _finalRecordSize( dmsRecordSize, recordData ) ;
+            pMergedData = (CHAR *)recordData.data() ;
          }
+
+         insertObj = BSONObj( recordData.data() ) ;
+         dmsRecordSize = recordData.len() ;
+
+         // check
+         if ( recordData.len() + DMS_RECORD_METADATA_SZ >
+               DMS_RECORD_USER_MAX_SZ )
+         {
+            rc = SDB_DMS_RECORD_TOO_BIG ;
+            goto error ;
+         }
+
+         {
+            /* For concurrency protection with drop CL and set compresor. */
+            dmsCompressorGuard compGuard( compressorEntry, SHARED ) ;
+            if ( compressorEntry->ready() )
+            {
+               const CHAR *compressedData    = NULL ;
+               INT32 compressedDataSize      = 0 ;
+               UINT8 compressRatio           = 0 ;
+               rc = dmsCompress( cb, compressorEntry,
+                                 recordData.data(), recordData.len(),
+                                 &compressedData, &compressedDataSize,
+                                 compressRatio ) ;
+               // Compression is valid and ratio is less the threshold
+               if ( SDB_OK == rc &&
+                     compressedDataSize + sizeof(UINT32) <
+                     recordData.orgLen() &&
+                     compressRatio < UTIL_COMPRESSOR_DFT_MIN_RATIO )
+               {
+                  // 4 bytes len + compressed record
+                  dmsRecordSize = compressedDataSize + sizeof(UINT32) ;
+                  PD_TRACE2 ( SDB__DMSSTORAGEDATACOMMON_INSERTRECORD,
+                              PD_PACK_STRING ( "size after compress" ),
+                              PD_PACK_UINT ( dmsRecordSize ) ) ;
+
+                  // set the compression data
+                  recordData.setData( compressedData, compressedDataSize,
+                                       compressorEntry->getCompressorType(),
+                                       FALSE ) ;
+               }
+               else if ( rc )
+               {
+                  // In any case of error, leave it, and use the
+                  // original data.
+                  if ( SDB_UTIL_COMPRESS_ABORT == rc )
+                  {
+                     PD_LOG( PDINFO, "Record compression aborted. "
+                              "Insert the original data. rc: %d", rc ) ;
+                  }
+                  else
+                  {
+                     PD_LOG( PDWARNING, "Record compression failed. "
+                              "Insert the original data. rc: %d", rc ) ;
+                  }
+                  rc = SDB_OK ;
+               }
+            }
+
+            /*
+               * Release the guard to avoid deadlock with truncate/drop
+               * collection.
+               */
+            compGuard.release() ;
+         }
+
+         // Step 2: Calculate the required space size, and allocate it,
+         // both for data record and replication log.
+         // Get the final recordsize that we have to allocate:
+         // reserved space, alignment, etc.
+         _finalRecordSize( dmsRecordSize, recordData ) ;
 
          _clFullName( context->mbStat()->_collectionName, fullName, sizeof(fullName) ) ;
 

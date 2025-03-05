@@ -237,12 +237,6 @@ namespace engine
          }
 
          context->mbUnlock() ;
-
-         if ( markInsert )
-         {
-            recordData.setData( insertObj.objdata(), insertObj.objsize(),
-                                UTIL_COMPRESSOR_INVALID, TRUE ) ;
-         }
       }
 
       // can not use mark insert, the position should be cleared

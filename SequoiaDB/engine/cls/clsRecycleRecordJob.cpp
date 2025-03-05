@@ -46,9 +46,10 @@ namespace engine
    class _clsRecycleCLFilter : public _dmsCLFilter
    {
    public:
-      _clsRecycleCLFilter( UINT32 delayTimeMs )
+      _clsRecycleCLFilter( UINT64 delayTimeMs, UINT32 recordRecycleRatio )
       {
          _delayTimeMs = delayTimeMs ;
+         _recordRecycleRatio = recordRecycleRatio ;
       }
 
       virtual ~_clsRecycleCLFilter() {}
@@ -56,16 +57,31 @@ namespace engine
       virtual BOOLEAN filter( const dmsMBStatInfo &stat )
       {
          static const UINT64 MIN_REC_TO_BE_RECYCLED = 1000 ;
-         if ( 0 == _delayTimeMs ) // feature is disabled
+         if ( 0 == _delayTimeMs )
          {
+            // feature is disabled
             return FALSE ;
          }
-         return ( stat._totalDeletingRecords >= MIN_REC_TO_BE_RECYCLED &&
-                  pmdGetTickSpanTime( stat._lastWriteTick ) > _delayTimeMs ) ;
+         if ( stat._totalDeletingRecords < MIN_REC_TO_BE_RECYCLED )
+         {
+            // too few records to be recycled
+            return FALSE ;
+         }
+         UINT32 deletingPercent = (stat._totalDeletingRecords * 100) /
+               ( stat._totalRecords + stat._totalDeletingRecords ) ;
+         if ( deletingPercent < _recordRecycleRatio && // (1)
+              pmdGetTickSpanTime( stat._lastWriteTick ) <= _delayTimeMs ) // (2)
+         {
+            // (1) no need to do force recycle
+            // (2) cl has write operations recently
+            return FALSE ;
+         }
+         return TRUE ;
       }
 
    private:
       UINT64 _delayTimeMs ;
+      UINT32 _recordRecycleRatio ;
    } ;
 
    /*
@@ -81,6 +97,8 @@ namespace engine
 
    INT32 _clsRecycleRecordJob::doit ()
    {
+      static const UINT64 DO_JOB_INTERVAL = 10 * OSS_ONE_SEC ;
+
       pmdKRCB *krcb = pmdGetKRCB() ;
       pmdEDUMgr *pEduMgr = krcb->getEDUMgr() ;
       SDB_DMSCB *pDmsCB = krcb->getDMSCB() ;
@@ -88,9 +106,11 @@ namespace engine
       pmdOptionsCB *pOptionCB = pmdGetOptionCB() ;
       UINT64 delayTimeMs = 0 ;
       pmdEDUCB *cb = eduCB() ;
-      UINT64 waitMs = 0 ;
+      UINT64 lastDumpTick = pmdGetDBTick() ;
+      UINT64 lastDoJobTick = pmdGetDBTick() ;
+      UINT64 curTick = 0 ;
       pmdEDUEvent event ;
-      MON_CL_SIM_LIST clList ;
+      CLS_JOB_SET jobSet ;
 
       while ( !PMD_IS_DB_DOWN() && !cb->isForced() )
       {
@@ -103,7 +123,6 @@ namespace engine
 
          delayTimeMs = pOptionCB->getRecordRecycleDelay() * 60 * OSS_ONE_SEC ;
          cb->waitEvent( event, OSS_ONE_SEC ) ;
-         waitMs += OSS_ONE_SEC ;
 
          // Check stop signal first
          if ( cb->isInterrupted() )
@@ -111,39 +130,52 @@ namespace engine
             continue ;
          }
 
-         if ( 0 == delayTimeMs || // This feature was disabled, do nothing
-              waitMs < delayTimeMs )
+         if ( 0 == delayTimeMs )
          {
+            // This feature was disabled, do nothing
             continue ;
          }
 
          /// set edu active
          pEduMgr->activateEDU( cb ) ;
-         waitMs = 0 ;
 
-         // do it
+         curTick = pmdGetDBTick() ;
+         if ( pmdDBTickSpan2Time( curTick - lastDumpTick ) >= delayTimeMs )
          {
-            _clsRecycleCLFilter filter( delayTimeMs ) ;
+            MON_CL_SIM_LIST clList ;
+            MON_CL_SIM_LIST::iterator it ;
+            UINT32 ratio = pOptionCB->getRecordRecycleRatio() ;
+            _clsRecycleCLFilter filter( delayTimeMs, ratio ) ;
+
             pDmsCB->dumpInfo( clList, TRUE, FALSE, &filter ) ;
-         }
-         if ( !clList.empty() )
-         {
-            _doRecycleRecordJobs( cb, pDmsCB, pTransCB, clList ) ;
-            cb->incEventCount( 1 ) ;
+
+            for ( it = clList.begin() ; it != clList.end() ; ++it )
+            {
+               _addJob2Set( jobSet, _clsRecycleJobInfo( *it ) ) ;
+            }
+            lastDumpTick = pmdGetDBTick() ;
          }
 
-         /// release mem
-         cb->shrink() ;
+         if ( !jobSet.empty() &&
+              pmdDBTickSpan2Time( curTick - lastDoJobTick ) >= DO_JOB_INTERVAL )
+         {
+            _doRecycleRecordJobs( cb, pDmsCB, pTransCB, jobSet ) ;
+            cb->incEventCount( 1 ) ;
+            lastDoJobTick = pmdGetDBTick() ;
+            /// release mem
+            cb->shrink() ;
+         }
       }
       return SDB_OK ;
    }
 
-   void _clsRecycleRecordJob::_addCL2List( MON_CL_SIM_LIST &clList,
-                                           const monCLSimple &clInfo )
+   void _clsRecycleRecordJob::_addJob2Set( CLS_JOB_SET &set,
+                                           const _clsRecycleJobInfo &jobInfo )
    {
       try
       {
-         clList.insert( clInfo ) ;
+         // If the job exists, keep the old.
+         set.insert( jobInfo ) ;
       }
       catch ( const std::exception &e )
       {
@@ -156,65 +188,34 @@ namespace engine
    void _clsRecycleRecordJob::_doRecycleRecordJobs( pmdEDUCB *pEduCB,
                                                     SDB_DMSCB *pDmsCB,
                                                     dpsTransCB *pTransCB,
-                                                    MON_CL_SIM_LIST& clList )
+                                                    CLS_JOB_SET &jobSet )
    {
-      static const INT32 MAX_RETRY_TIMES = 10 ;
-      static const INT32 RETRY_INTERVAL = 30 * OSS_ONE_SEC ;
-
       PD_TRACE_ENTRY( SDB__CLSRECYCLERECJOB__DORECYCLERECJOBS ) ;
 
       INT32 rc = SDB_OK ;
-      INT32 retryTimes = 0 ;
-      MON_CL_SIM_LIST retryList ;
-      MON_CL_SIM_LIST::iterator it ;
-      pmdEDUEvent event ;
+      CLS_JOB_SET retrySet ;
+      CLS_JOB_SET::iterator it ;
       BOOLEAN hasUserWrite = FALSE ;
-      INT32 lockFailTimes = 0 ;
-      INT32 userWriteTimes = 0 ;
+      UINT64 lastWriteCount = 0 ;
 
-      while ( !clList.empty() && retryTimes++ < MAX_RETRY_TIMES )
+      for ( it = jobSet.begin() ; it != jobSet.end() ; ++it )
       {
-         for ( it = clList.begin() ; it != clList.end() ; ++it )
+         rc = _doRecycleRecordJob( pEduCB, pDmsCB, pTransCB, *it,
+                                   hasUserWrite, lastWriteCount ) ;
+         if ( SDB_LOCK_FAILED == rc || hasUserWrite )
          {
-            rc = _doRecycleRecordJob( pEduCB, pDmsCB, pTransCB, *it,
-                                      hasUserWrite ) ;
-            if ( SDB_LOCK_FAILED == rc || hasUserWrite )
+            _clsRecycleJobInfo job( it->_cl ) ;
+            if ( hasUserWrite )
             {
-               if ( SDB_LOCK_FAILED == rc )
-               {
-                  ++lockFailTimes ;
-               }
-               else if ( hasUserWrite )
-               {
-                  ++userWriteTimes ;
-               }
-               _addCL2List( retryList, *it ) ;
+               job._lastWriteCount = lastWriteCount ;
             }
-         }
-         clList.clear() ;
-         for ( it = retryList.begin() ; it != retryList.end() ; ++it )
-         {
-            _addCL2List( clList, *it ) ;
-         }
-         retryList.clear() ;
-
-         if ( !clList.empty() )
-         {
-            pEduCB->waitEvent( event, RETRY_INTERVAL ) ;
+            _addJob2Set( retrySet, job ) ;
          }
       }
-
-      if ( !clList.empty() )
+      jobSet.clear() ;
+      for ( it = retrySet.begin() ; it != retrySet.end() ; ++it )
       {
-         // Quit these collections. Wait for the next dump
-         clList.clear() ;
-      }
-
-      if ( lockFailTimes > 0 || userWriteTimes > 0 )
-      {
-         PD_LOG( PDINFO, "Retry recycling records %d times for lock failure "
-                 "and %d times for user write operations.", lockFailTimes,
-                 userWriteTimes ) ;
+         _addJob2Set( jobSet, *it ) ;
       }
 
       PD_TRACE_EXIT( SDB__CLSRECYCLERECJOB__DORECYCLERECJOBS ) ;
@@ -224,21 +225,24 @@ namespace engine
    INT32 _clsRecycleRecordJob::_doRecycleRecordJob( pmdEDUCB *pEduCB,
                                                     SDB_DMSCB *pDmsCB,
                                                     dpsTransCB *pTransCB,
-                                                    const monCLSimple& clInfo,
-                                                    BOOLEAN &hasUserWrite )
+                                                    const _clsRecycleJobInfo &jobInfo,
+                                                    BOOLEAN &hasUserWrite,
+                                                    UINT64 &lastWriteCount )
    {
       static const UINT64 CHECK_WRITE_INTERVAL = 1000 ; // ms
 
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CLSRECYCLERECJOB__DORECYCLERECJOB ) ;
 
+      const monCLSimple &clInfo = jobInfo._cl ;
       dmsStorageUnit *pSu = NULL ;
       dmsMBContext *pContext = NULL ;
       dmsStorageUnitID suID = DMS_INVALID_SUID ;
+      IDmsScannerChecker *checker = NULL ;
       INT32 deletedCount = 0 ;
       UINT64 startTick = pmdGetDBTick() ;
       UINT64 lastCheckTick = 0 ;
-      INT32 lastWriteCount = 0 ;
+      UINT64 curWriteCount = 0 ;
 
       hasUserWrite = FALSE ;
 
@@ -255,8 +259,35 @@ namespace engine
          goto done ;
       }
 
+      rc = pDmsCB->createScannerChecker( pSu->data()->logicalID(),
+                                         pContext->clLID(),
+                                         clInfo._csname,
+                                         clInfo._clname,
+                                         "recycle record",
+                                         pEduCB,
+                                         &checker ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Failed to open storage unit checker for "
+                   "collection [%s], rc: %d", clInfo._name, rc ) ;
+
       lastCheckTick = startTick ;
-      lastWriteCount = pContext->mbStat()->_crudCB._totalDataWrite ;
+      curWriteCount = pContext->mbStat()->_crudCB._totalDataWrite ;
+
+      if ( jobInfo._lastWriteCount != OSS_UINT64_MAX )
+      {
+         // Don't recycle, until no user write operations
+         lastWriteCount = jobInfo._lastWriteCount ;
+         if ( curWriteCount != lastWriteCount )
+         {
+            hasUserWrite = TRUE ;
+            lastWriteCount = curWriteCount ;
+            rc = SDB_OK ;
+            goto done ;
+         }
+      }
+      else
+      {
+         lastWriteCount = curWriteCount ;
+      }
 
       while ( SDB_OK == rc )
       {
@@ -279,14 +310,24 @@ namespace engine
 
          ++ deletedCount ;
 
+         // check if interrupt
+         if ( NULL != checker && checker->needInterrupt() )
+         {
+            PD_LOG( PDWARNING, "Scanner for collection [%s] need "
+                    "interrupt", clInfo._name ) ;
+            rc = SDB_DMS_SCANNER_INTERRUPT ;
+            goto error ;
+         }
+
          // In each Interval, sleep to release the lock and pause this job
          // if user has write operations to yield IO resource.
          if ( pmdGetTickSpanTime( lastCheckTick ) > CHECK_WRITE_INTERVAL )
          {
-            INT32 curWriteCount = pContext->mbStat()->_crudCB._totalDataWrite ;
-            if ( curWriteCount - lastWriteCount > 0 )
+            curWriteCount = pContext->mbStat()->_crudCB._totalDataWrite ;
+            if ( curWriteCount != lastWriteCount )
             {
                hasUserWrite = TRUE ;
+               lastWriteCount = curWriteCount ;
                rc = SDB_OK ;
                goto done ;
             }
@@ -301,6 +342,10 @@ namespace engine
          PD_LOG( PDEVENT, "Recycled %d deleting records in collection[ %s ], "
                  "total cost: %d ms", deletedCount, clInfo._name,
                  pmdGetTickSpanTime( startTick ) ) ;
+      }
+      if ( NULL != checker )
+      {
+         pDmsCB->releaseScannerChecker( checker ) ;
       }
       if ( pContext )
       {
@@ -320,10 +365,11 @@ namespace engine
                                                            dpsTransCB *pTransCB,
                                                            dmsStorageUnit *pSu,
                                                            dmsMBContext *pContext,
-                                                           const monCLSimple &clInfo )
+                                                           const _clsRecycleJobInfo &jobInfo )
    {
       /// Test Lock
       INT32 rc = SDB_OK ;
+      const monCLSimple &clInfo = jobInfo._cl ;
       dmsRecordRW recordRW ;
       const dmsRecord *pRecord = NULL ;
       dmsRecordID rid ;
