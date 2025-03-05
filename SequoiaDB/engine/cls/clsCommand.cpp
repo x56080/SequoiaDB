@@ -1442,17 +1442,35 @@ namespace engine
          {
             _keepSeconds = e.numberInt() ;
          }
+         else if ( !e.eoo() )
+         {
+            PD_LOG_MSG( PDERROR, "Param[%s] should be int", FIELD_NAME_FORCE_STEP_UP_TIME ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
 
          e = options.getField( FIELD_NAME_WAIT_SECONDS ) ;
          if ( e.isNumber() )
          {
             _waitSeconds = e.numberInt() ;
          }
+         else if ( !e.eoo() )
+         {
+            PD_LOG_MSG( PDERROR, "Param[%s] should be int", FIELD_NAME_WAIT_SECONDS ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
 
          e = options.getField( FIELD_NAME_ENFORCED1 ) ;
          if ( e.isBoolean() )
          {
             _enforced = e.boolean() ;
+         }
+         else if ( !e.eoo() )
+         {
+            PD_LOG_MSG( PDERROR, "Param[%s] should be boolean", FIELD_NAME_ENFORCED1 ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
          }
       }
       catch ( std::exception &e )
