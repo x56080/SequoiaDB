@@ -680,6 +680,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       INT32 opCode = msg->opCode;
 
+      UINT32 dmsLockHWCount = 0 ;
       SINT64 contextID = -1 ;
       INT32 startFrom = 0 ;
       rtnContextBuf buffObj ;
@@ -745,6 +746,9 @@ namespace engine
 
             DMS_MON_OP_COUNT_INC( _pEDUCB->getMonAppCB(), MON_GENERAL_QUERY, 1 ) ;
          }
+
+         /// save dms lock hard count
+         dmsLockHWCount = _pEDUCB->getLockItem( SDB_LOCK_DMS )->lockHWCount() ;
 
          switch ( opCode )
          {
@@ -1086,6 +1090,14 @@ namespace engine
                  SDB_OK != _pEDUCB->getInterruptRC() )
             {
                rc = _pEDUCB->getInterruptRC() ;
+
+               /// when interrupt by not primary, but the session has do something in dms level,
+               /// we can't try again, so, we need change the result
+               if ( SDB_CLS_NOT_PRIMARY == rc &&
+                    dmsLockHWCount != _pEDUCB->getLockItem( SDB_LOCK_DMS )->lockHWCount() )
+               {
+                  rc = SDB_CLS_PRIMARY_DOWN ;
+               }
                PD_LOG ( PDDEBUG, "Interrupted EDU [%llu] with return code %d",
                         _pEDUCB->getID(), rc ) ;
             }
