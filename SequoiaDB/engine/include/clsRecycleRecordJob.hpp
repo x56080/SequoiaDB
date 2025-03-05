@@ -42,8 +42,28 @@ namespace engine
    /*
     *  _clsRecycleRecordJob define
     */
+   struct _clsRecycleJobInfo : public SDBObject
+   {
+      monCLSimple _cl ;
+      UINT64 _lastWriteCount ;
+
+      _clsRecycleJobInfo( const monCLSimple &cl ) :
+            _cl( cl ),
+            _lastWriteCount( OSS_UINT64_MAX ) {}
+
+      BOOLEAN operator < ( const _clsRecycleJobInfo &r ) const
+      {
+         return _cl < r._cl ;
+      }
+   } ;
+
+   /*
+    *  _clsRecycleRecordJob define
+    */
    class _clsRecycleRecordJob : public _rtnBaseJob
    {
+      typedef ossPoolSet< _clsRecycleJobInfo > CLS_JOB_SET ;
+
    public:
       _clsRecycleRecordJob () ;
       virtual ~_clsRecycleRecordJob () ;
@@ -58,24 +78,25 @@ namespace engine
       virtual INT32 doit () ;
 
    private:
-      void _addCL2List( MON_CL_SIM_LIST &clList, const monCLSimple &clInfo ) ;
+      void _addJob2Set( CLS_JOB_SET &set, const _clsRecycleJobInfo &jobInfo ) ;
 
       void _doRecycleRecordJobs( pmdEDUCB *eduCB,
                                  SDB_DMSCB *pDmsCB,
                                  dpsTransCB *pTransCB,
-                                 MON_CL_SIM_LIST &clList ) ;
+                                 CLS_JOB_SET &set ) ;
 
       INT32 _doRecycleRecordJob( pmdEDUCB *eduCB,
                                  SDB_DMSCB *pDmsCB,
                                  dpsTransCB *pTransCB,
-                                 const monCLSimple& clInfo,
-                                 BOOLEAN &hasUserWrite ) ;
+                                 const _clsRecycleJobInfo &jobInfo,
+                                 BOOLEAN &hasUserWrite,
+                                 UINT64 &lastWriteCount ) ;
 
       INT32 _deleteFirstDeletingRecord( pmdEDUCB *eduCB,
                                         dpsTransCB *pTransCB,
                                         dmsStorageUnit *su,
                                         dmsMBContext *pContext,
-                                        const monCLSimple &clInfo ) ;
+                                        const _clsRecycleJobInfo &jobInfo ) ;
    } ;
 
    typedef _clsRecycleRecordJob clsRecycleRecordJob ;

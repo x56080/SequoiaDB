@@ -702,6 +702,7 @@ namespace engine
 
          OSS_INLINE const INT32 getReplSize() const { return _replSize ; }
          OSS_INLINE UINT32 getRecordRecycleDelay() const { return _recordRecycleDelay ; }
+         OSS_INLINE UINT32 getRecordRecycleRatio() const { return _recordRecycleRatio ; }
 
 #ifdef SDB_ENTERPRISE
 
@@ -862,6 +863,7 @@ namespace engine
 
          INT32       _replSize ;
          UINT32      _recordRecycleDelay ;
+         UINT32      _recordRecycleRatio ;
 
 #ifdef SDB_ENTERPRISE
 
