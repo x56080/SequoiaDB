@@ -89,7 +89,7 @@ class Lob22225And22226(testlib.SdbTestBase):
         # list pieces
         cursor = self.cl.list_lobs(
             condition={},
-            selected={}, hint={"ListPieces": 1},
+            selected={"Oid": {"$include": 1}, "Sequence": { "$include": 1}}, hint={"ListPieces": 1},
             order_by={"Size": 1}, num_to_skip=0, num_to_Return=self.lob_num)
         # check result
         i = 0
