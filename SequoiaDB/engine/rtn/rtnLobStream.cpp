@@ -873,11 +873,14 @@ namespace engine
       rc = _checkPrivileges( cb );
       PD_RC_CHECK( rc, PDERROR, "Failed to check privileges of actions, rc: %d", rc );
 
-      rc = _lw.prepare4Read( _meta._lobLen, 0, _meta._lobLen, tuples, RTN_LOB_MAX_HARD_READ_LEN ) ;
-      if ( rc )
+      if ( _meta._lobLen > 0 )
       {
-         PD_LOG( PDERROR, "Failed to prepare for read, rc: %d", rc ) ;
-         goto error ;
+         rc = _lw.prepare4Read( _meta._lobLen, 0, _meta._lobLen, tuples, RTN_LOB_MAX_HARD_READ_LEN ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Failed to prepare for read, rc: %d", rc ) ;
+            goto error ;
+         }
       }
 
       rc = _getRTDetail( cb, tuples, detail, _hasPiecesInfo ? &_lobPieces : NULL, option ) ;
