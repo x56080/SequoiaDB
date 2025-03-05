@@ -12,6 +12,7 @@
 @Modify list :
                2025-02-19 fangjiabin  Init
 ******************************************************************************/
+testConf.skipStandAlone = true;
 
 var csName = "upgrade_index_10204_2_cs" ;
 var clName1 = "upgrade_index_10204_2_1_cl" ;

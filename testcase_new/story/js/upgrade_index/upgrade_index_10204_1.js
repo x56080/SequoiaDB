@@ -9,6 +9,8 @@
 @Modify list :
                2025-02-19 fangjiabin  Init
 ******************************************************************************/
+testConf.skipStandAlone = true;
+
 main( test ) ;
 
 function test ()
