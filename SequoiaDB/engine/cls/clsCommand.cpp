@@ -451,7 +451,16 @@ namespace engine
 
          BOOLEAN sysCall = pmdGetOptionCB()->authEnabled() ? FALSE : TRUE ;
 
-         if ( _isStandaloneIdx )
+         if ( _onlyUpgradeMeta )
+         {
+            rc = rtnCreateIndexCommand( _collectionName, _index,
+                                        cb, dmsCB, dpsCB, sysCall, _sortBufSize,
+                                        &_writeResult, NULL ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to create index[%s] for collection[%s], rc: %d",
+                         _indexName, _collectionName, rc ) ;
+         }
+         else
          {
             dmsTaskStatusMgr *pStatMgr = rtnCB->getTaskStatusMgr() ;
             dmsIdxTaskStatusPtr statusPtr ;
@@ -473,15 +482,6 @@ namespace engine
                                         &_writeResult, statusPtr.get() ) ;
             statusPtr->setStatus2Finish( rc, cb ? cb->getInfo(EDU_INFO_ERROR) :
                                          NULL, &_writeResult ) ;
-            PD_RC_CHECK( rc, PDERROR,
-                         "Failed to create index[%s] for collection[%s], rc: %d",
-                         _indexName, _collectionName, rc ) ;
-         }
-         else if ( _onlyUpgradeMeta )
-         {
-            rc = rtnCreateIndexCommand( _collectionName, _index,
-                                        cb, dmsCB, dpsCB, sysCall, _sortBufSize,
-                                        &_writeResult, NULL ) ;
             PD_RC_CHECK( rc, PDERROR,
                          "Failed to create index[%s] for collection[%s], rc: %d",
                          _indexName, _collectionName, rc ) ;
