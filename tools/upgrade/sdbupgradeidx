@@ -1,6 +1,8 @@
 #!/bin/bash
 
-# author: Ting YU 2021-04-09
+# author:
+#   Ting YU 2021-04-09
+#   FangJiaBin 2024-11-20
 
 #   error code list:
 #   64    command line usage error
@@ -58,9 +60,10 @@ function build_help()
    echo "  -w [ --password ] arg        password, default: \"\""
    echo "  --cipher arg                 use cipher file or not, default: false"
    echo "  --cipherfile arg             cipher file location, default: ~/sequoiadb/passwd"
-   echo "  --token arg                  password encryption token, default: \"\"" 
+   echo "  --token arg                  password encryption token, default: \"\""
    echo "  -o [ --output ] arg          specify the output file, default: ./sdbupgradeidx.log"
-   echo "  --action arg                 check or upgrade"
+   echo "  --action arg                 clear, check or generate"
+   echo "  --sdbShellPath arg           sdb shell path, default: ${installPath}/bin/sdb"
    echo "  -h [ --help ]                print help message"
    echo "  --version                    print version information"
    echo ""
@@ -88,6 +91,7 @@ HAS_USER=false
 HAS_PASSWD=false
 HAS_ACTION=false
 HAS_TOKEN=false
+HAS_SDBSHELLPATH=false
 IS_USE_CIPHER_FILE=false
 HOSTNAME=""
 SVCNAME=""
@@ -97,10 +101,11 @@ CIPHER_FILE="~/sequoiadb/passwd"
 TOKEN=""
 ACTION=""
 OUTPUT="./sdbupgradeidx.log"
+SDBSHELLPATH=""
 
 # Parse command line parameters
 
-ARGS=`getopt -o hs:p:u:w:o: --long help,version,hostname:,svcname:,user:,password:,cipher:,cipherfile:,token:,action: -n 'sdbupgradeidx' -- "$@"`
+ARGS=`getopt -o hs:p:u:w:o: --long help,version,hostname:,svcname:,user:,password:,cipher:,cipherfile:,token:,action:,sdbShellPath: -n 'sdbupgradeidx' -- "$@"`
 ret=$?
 test $ret -ne 0 && exit $ret
 
@@ -111,8 +116,12 @@ do
    case "$1" in
       --action )          ACTION="$2"
                           HAS_ACTION=true
-                          test "$ACTION" == "check" -o "$ACTION" == "upgrade" \
+                          test "$ACTION" == "clear" -o "$ACTION" == "check" -o "$ACTION" == "generate" \
                              || err_para ACTION "$ACTION"
+                          shift 2
+                          ;;
+      --sdbShellPath )    SDBSHELLPATH=$2
+                          HAS_SDBSHELLPATH=true
                           shift 2
                           ;;
       -s | --hostname )   HOSTNAME=$2
@@ -184,7 +193,7 @@ if [ $IS_USE_CIPHER_FILE == true ]; then
    fi
 else
    if [ $HAS_USER == true ] && [ $HAS_PASSWD != true ]; then
-      echo "sdbupgradeidx: missing argument: password" >&2 
+      echo "sdbupgradeidx: missing argument: password" >&2
       echo 'Try "sdbupgradeidx --help" for more information.'
       exit 64
    fi
@@ -194,7 +203,6 @@ if [ $HAS_ACTION != true ]; then
    echo 'Try "sdbupgradeidx --help" for more information.'
    exit 64
 fi
-
 if [ "$*" != "" ]; then
    echo "sdbupgradeidx: too many arguments: $*" >&2
    echo 'Try "sdbupgradeidx --help" for more information.'
@@ -211,10 +219,15 @@ else
 fi
 
 # get sdb shell path
-sdbShellPath=$myPath/../../bin/sdb
+if [ $HAS_SDBSHELLPATH == true ]; then
+   sdbShellPath=$SDBSHELLPATH
+else
+   sdbShellPath=$myPath/../../bin/sdb
+fi
 
 # get upgradeIndex.js path
-jsFile=$myPath/upgradeIndex.js
+upgradeIndexJsFile=$myPath/upgradeIndex.js
+collectDataIndexInfoJsFile=$myPath/collectDataIdxInfo.js
 
 # generate parameters
 jsParameter="var hostname=\""$HOSTNAME"\";"
@@ -226,16 +239,16 @@ if [ $IS_USE_CIPHER_FILE == true ]; then
 else
    jsParameter=$jsParameter"var password=\""$PASSWD"\";"
 fi
-if [ "$ACTION" == "check" ]; then
-   jsParameter=$jsParameter"var checkonly=true;"
-else
-   jsParameter=$jsParameter"var checkonly=false;"
-fi
+
+jsParameter=$jsParameter"var action=\""$ACTION"\";"
+jsParameter=$jsParameter"var sdbShellPath=\""$sdbShellPath"\";"
+jsParameter=$jsParameter"var collectDataIndexInfoJsFile=\""$collectDataIndexInfoJsFile"\";"
+jsParameter=$jsParameter"var outputFilePath=\""$OUTPUT"\";"
 
 jsParameter="'"$jsParameter"'"
 
 # execute command
-command=$sdbShellPath" -f "$jsFile" -e "$jsParameter" --runtime-size 4096 > "$OUTPUT
+command=$sdbShellPath" -f "$upgradeIndexJsFile" -e "$jsParameter" --runtime-size 4096"
 #echo "Execute command: "$command
 eval $command
 echo "Generate report: "$OUTPUT

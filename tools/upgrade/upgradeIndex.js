@@ -7,14 +7,16 @@
                password:   String, default: ""
                cipherfile: String
                token:      String
-               checkonly:  Boolean, check only, don't do upgrade, required
 
 @example:
     ../../bin/sdb -f upgradeIndex.js -e 'var hostname="localhost";
-                                         var svcname=11810;var checkonly=true;'
+                                         var svcname=11810;var action="xxx";'
 
 @author:       Ting YU 2021-03-23
+               FangJiaBin 2024-11-20
 ****************************************************************/
+
+import("./config.js")
 
 var HOSTNAME = "" ;
 var SVCNAME = "" ;
@@ -22,7 +24,7 @@ var USERNAME = "" ;
 var PASSWD = "" ;
 var CIPHER_FILE = "" ;
 var TOKEN = "" ;
-var CHECKONLY = "" ;
+var CHECK_INFO_FILE_PATH = "" ;
 
 // check parameter
 if ( typeof( hostname ) === "undefined" )
@@ -83,89 +85,184 @@ else
    PASSWD = password ;
 }
 
-if ( typeof( checkonly ) === "undefined" )
+if ( typeof( action ) === "undefined" )
 {
-   throw new Error( "no parameter [checkonly] specified" ) ;
+   throw new Error( "no parameter [action] specified" ) ;
 }
-else if( checkonly.constructor !== Boolean )
+else if( action.constructor !== String )
 {
-   throw new Error( "Invalid para[checkonly], should be Boolean" ) ;
+   throw new Error( "Invalid para[action], should be String" ) ;
 }
-CHECKONLY = checkonly ;
+if ( "clear" != action && "check" != action && "generate" != action )
+{
+   throw new Error( "Invalid para[action], should be 'clear', or 'check' or 'generate'" ) ;
+}
+
+if ( typeof( outputFilePath ) === "undefined" )
+{
+   throw new Error( "no parameter [outputFilePath] specified" ) ;
+}
+else if( outputFilePath.constructor !== String )
+{
+   throw new Error( "Invalid para[outputFilePath], should be String" ) ;
+}
+CHECK_INFO_FILE_PATH = outputFilePath ;
 
 /*************** main entry *****************/
 
-const IDX_TYPE_UNKNOWN     = 0 ;
-const IDX_TYPE_CONSISTENT  = 1 ;
-const IDX_TYPE_STANDALONE  = 2 ;
-const IDX_TYPE_CAN_UPGRADE = 3 ;
-const IDX_TYPE_MISSING     = 4 ;
-const IDX_TYPE_CONFLICT    = 5 ;
-
-const FIELD_ID          = "ID" ;
-const FIELD_COLLECTION  = "Collection" ;
-const FIELD_INDEXNAME   = "IndexName" ;
-const FIELD_INDEXTYPE   = "IndexType" ;
-const FIELD_INDEXATTR   = "IndexAttr" ;
-const FIELD_INDEXKEY    = "IndexKey" ;
-const FIELD_REASON      = "Reason" ;
-const FIELD_RESULT      = "Result" ;
-const FIELD_RESULTCODE  = "ResultCode" ;
-const FIELD_GROUPNAME   = "GroupName" ;
-const FIELD_NODENAME    = "NodeName" ;
-const FIELD_MISSING     = "Missing" ;
-const FIELD_LOCAL_CL    = "Local CL" ;
-const FIELD_AUTOINDEXID = "AutoIndexId=false" ;
-const FIELD_ENSURESHARD = "EnsureShardingIndex=false" ;
-
-const MASK_CLATTR_NOIDIDX = 0x02 ;
-
-var GROUP_NODES_MAP = new UtilMap() ; // < groupName, nodeList >
-var CATALOG_NODE_LIST = [] ;
-
-var NONEED_UPGRADE_FMT = new NoNeedUpgradeFormator() ;
-var CAN_UPGRADE_FMT = new CanUpgradeFormator() ;
-var CANNOT_UPGRADE_FMT = new CannotUpgradeFormator() ;
-var DETAIL_FMT = new DetailFormator() ;
-var UPGRADE_RESULT_FMT = new UpgradeResultFormator() ;
-var SUGGEST_FMT = new SuggestionFormator() ;
-var TOTAL_FMT = new TotalCntFormator() ;
-
-var UPGRADE_CLUNIT_LIST = [] ;
-var SUBCLUNIT_LIST = [] ;
-var UPGRADE_MAINCLUNIT_LIST = [] ;
 var USER = null ;
-
-var IS_OLD_VERSION_DB = false ;   // under 3.6 and 5.8
-
-const UPGRADE_INDEX_TMP_CS_NAME = "upgrade_index_tmp_cs" ;
-const DATA_INDEX_INFO_TMP_CL_NAME = "data_index_info" ;
-
-function clearUpgradeIndexTmpTables()
+var step = 1 ;
+var STEP_NUM = 1 ;
+if ( "clear" == action )
 {
+   STEP_NUM = _CLEAR_STEP_ARR.length ;
+}
+else if ( "check" == action )
+{
+   STEP_NUM = _CHECK_STEP_ARR.length ;
+}
+else if ( "generate" == action )
+{
+   STEP_NUM = _GENERATE_STEP_ARR.length ;
+}
+
+var checkInfos = "" ;
+var infoCount = 0 ;
+var jsCodes = "" ;
+var codeCount = 0 ;
+var supportOnlyUpgradeMeta = false ;
+
+function clearTmpCollectionSpace()
+{
+   var oldVersion = false ;
+
    try
    {
-      db.dropCS( UPGRADE_INDEX_TMP_CS_NAME ) ;
+      var beginTime = Date.now() ;
+      println( "(" + step + "/" + STEP_NUM + ")Begin to clear tmp collection space" ) ;
+      db.dropCS( TMP_CS_UPGRADE_INDEX, { "SkipRecycleBin": true } ) ;
    }
    catch( e )
    {
-      if ( e != -34 )
+      if ( e != -34 && e != -6 )
       {
          println( "Failed to drop upgrade index tmp tables, rc: " + e ) ;
          throw e ;
       }
+      if ( -6 == e )
+      {
+         oldVersion = true ;
+      }
    }
+
+   if ( oldVersion )
+   {
+      try
+      {
+         db.dropCS( TMP_CS_UPGRADE_INDEX ) ;
+      }
+      catch( e )
+      {
+         if ( e != -34 )
+         {
+            println( "Failed to drop upgrade index tmp tables, rc: " + e ) ;
+            throw e ;
+         }
+      }
+   }
+
+   println( "(" + step + "/" + STEP_NUM + ")End to clear tmp collection space, spent time: " +
+            ( (Date.now()) - beginTime )/1000 + "s" ) ;
+   step++ ;
 }
 
-function initUpgradeIndexTmpTables()
+function clearResultFiles( onlyJsFile )
 {
    try
    {
-      db.createCS( UPGRADE_INDEX_TMP_CS_NAME ).createCL( DATA_INDEX_INFO_TMP_CL_NAME ) ;
+      var beginTime = Date.now() ;
+      println( "(" + step + "/" + STEP_NUM + ")Begin to clear result files" ) ;
+
+      if ( File.exist( CHECK_INFO_FILE_PATH ) && !onlyJsFile )
+      {
+         File.remove( CHECK_INFO_FILE_PATH ) ;
+      }
+      if ( File.exist( UPGRADE_INDEX_JS_FILE ) )
+      {
+         File.remove( UPGRADE_INDEX_JS_FILE ) ;
+      }
+      if ( File.exist( MISS_INDEX_JS_FILE ) )
+      {
+         File.remove( MISS_INDEX_JS_FILE ) ;
+      }
+      if ( File.exist( CONFLICT_INDEX_JS_FILE ) )
+      {
+         File.remove( CONFLICT_INDEX_JS_FILE ) ;
+      }
+      if ( File.exist( INVALID_ID_INDEX_JS_FILE ) )
+      {
+         File.remove( INVALID_ID_INDEX_JS_FILE ) ;
+      }
+      if ( File.exist( LOCAL_CL_JS_FILE ) )
+      {
+         File.remove( LOCAL_CL_JS_FILE ) ;
+      }
+
+      println( "(" + step + "/" + STEP_NUM + ")End to clear result files, spent time: " +
+               ( (Date.now()) - beginTime )/1000 + "s" ) ;
+      step++ ;
    }
    catch( e )
    {
-      println( "Failed to create upgrade index tmp tables, rc: " + e ) ;
+      if( e instanceof Error )
+      {
+         println( "Failed to clear generate js files, error Stack:\n" + e.stack ) ;
+      }
+      throw e ;
+   }
+}
+
+function clear()
+{
+   clearTmpCollectionSpace() ;
+   clearResultFiles( false ) ;
+}
+
+function init()
+{
+   try
+   {
+      var beginTime = Date.now() ;
+      println( "(" + step + "/" + STEP_NUM + ")Begin to init tmp collections and result file" ) ;
+
+      // 1. 创建临时表
+      var cs = db.createCS( TMP_CS_UPGRADE_INDEX ) ;
+      var cl = null ;
+      cs.createCL( TMP_CL_CACHE_INFO ) ;
+      cs.createCL( TMP_CL_GROUP_NODE_INFO ) ;
+      cl = cs.createCL( TMP_CL_CATA_CLUSTER_CL_INFO ) ;
+      cl.createIndex( "clFullName_idx", { ClFullName: 1 }, true );
+      cs.createCL( TMP_CL_CATA_MAIN_CL_INFO ) ;
+      cs.createCL( TMP_CL_DATA_CLUSTER_CL_INFO ) ;
+      cs.createCL( TMP_CL_LOCAL_CL_INFO ) ;
+      cs.createCL( TMP_CL_DATA_INDEX_INFO ) ;
+      cs.createCL( TMP_CL_CATA_INDEX_INFO ) ;
+      cs.createCL( TMP_CL_DATA_INDEX_CHECK_INFO ) ;
+      cs.createCL( TMP_CL_DATA_INDEX_CHECK_INFO_TMP ) ;
+      cs.createCL( TMP_CL_CANNOT_UPGRADE_INDEX_INFO ) ;
+      cs.createCL( TMP_CL_MAIN_CL_INDEX_CHECK_INFO ) ;
+      cs.createCL( TMP_CL_NO_NEED_UPGRADE_INDEX_INFO ) ;
+
+      println( "(" + step + "/" + STEP_NUM + ")End to init tmp collections and result file, spent time: " +
+               ( (Date.now()) - beginTime )/1000 + "s" ) ;
+      step++ ;
+   }
+   catch( e )
+   {
+      if( e instanceof Error )
+      {
+         println( "Error Stack:\n" + e.stack ) ;
+      }
       throw e ;
    }
 }
@@ -197,887 +294,1782 @@ catch( e )
    throw new Error() ;
 }
 
-try
+main() ;
+
+function main()
 {
-   clearUpgradeIndexTmpTables();
+   var beginTime = Date.now() ;
 
-   check() ;
-   NONEED_UPGRADE_FMT.print() ;
-   CAN_UPGRADE_FMT.print() ;
-   CANNOT_UPGRADE_FMT.print() ;
-   DETAIL_FMT.print() ;
-   TOTAL_FMT.set( NONEED_UPGRADE_FMT.count(),
-                  CAN_UPGRADE_FMT.count(),
-                  CANNOT_UPGRADE_FMT.count() ) ;
-
-   if ( !CHECKONLY )
+   if ( "clear" == action )
    {
-      execute() ;
-      UPGRADE_RESULT_FMT.print() ;
-      TOTAL_FMT.setUpgradeInfo( UPGRADE_RESULT_FMT.succCnt(),
-                                UPGRADE_RESULT_FMT.failCnt() ) ;
+      clear() ;
+   }
+   else if ( "check" == action )
+   {
+      clear() ;
+
+      if ( !preCheck1() )
+      {
+         println( "We don't need to upgrade indexes" ) ;
+         return ;
+      }
+
+      init() ;
+
+      collect() ;
+
+      check() ;
+
+      writeReport() ;
+   }
+   else if ( "generate" == action )
+   {
+      if ( !preCheck2() )
+      {
+         println( "Error: We must first execute the check process" ) ;
+         return ;
+      }
+      checkIfSupportOnlyUpgradeMeta() ;
+      clearResultFiles( true ) ;
+      File.mkdir( JS_DIR ) ;
+      generateJsScripts() ;
    }
 
-   SUGGEST_FMT.print() ;
-   TOTAL_FMT.print() ;
-
-   clearUpgradeIndexTmpTables() ;
-}
-catch( e )
-{
-   if( e instanceof Error )
-   {
-      print( "Error Stack:\n" + e.stack ) ;
-   }
-   throw e ;
-}
-
-function getNodeInfo()
-{
-   var rc = db.list( SDB_LIST_GROUPS ) ;
-   while ( rc.next() )
-   {
-      var obj = rc.current().toObj() ;
-      var groupName = obj.GroupName ;
-
-      if ( groupName == "SYSCoord" )
-      {
-         continue ;
-      }
-
-      var nodeList = [] ;
-      var groupList = obj.Group ;
-      for ( var i in groupList )
-      {
-         var hostname = groupList[i].HostName ;
-         var svcname = groupList[i].Service[0].Name ;
-         var nodename = hostname + ":" + svcname ; // eg: hostname1:11810
-         nodeList.push( nodename ) ;
-      }
-      if ( groupName == "SYSCatalogGroup" )
-      {
-         CATALOG_NODE_LIST = nodeList.concat() ;
-      }
-      else
-      {
-         GROUP_NODES_MAP.add( groupName, nodeList ) ;
-      }
-   }
+   println( "Check index infos done, spent time: " + ( (Date.now()) - beginTime )/1000 + "s" ) ;
 }
 
-// clusterCLList formate:
-// [
-//   { Collection: 'foo.bar', GroupNameList: ['db1','db2'],
-//     AutoIndexId: false, EnsureShardingIndex: false, MainCLName: null },
-//   ...
-// ]
-// mainCLList formate:
-// [
-//   { Collection: 'foo.maincl', ShardingKey: {a:1},
-//     SubCLList: ['foo.subcl1',...] },
-//   ...
-// ]
-// localCLList formate:
-// [
-//   { Collection: 'foo.bar', NodeNameList: ['host1:20000',...] },
-//   ...
-// ]
-function getCollectionInfo( clusterCLList, mainCLList, localCLList )
+function preCheck1()
 {
-   // check split task before
-   var rc = db.listTasks( { TaskType: 0, Status: { $ne: 9 } } ) ;
-   if ( rc.next() )
-   {
-      println( "There are some split tasks, which may affect check result" ) ;
-      throw new Error() ;
-   }
-
-   // get collection from catalog
-   var clusterCLMap = new UtilMap() ; // < cl name, group name list >
-   var rc = db.snapshot( SDB_SNAP_CATALOG ) ;
-   while ( rc.next() )
-   {
-      var rcObj = rc.current().toObj() ;
-      var cataInfoObj = rcObj.CataInfo ;
-      var clName = rcObj.Name ;
-
-      if ( rcObj.DataSourceID != undefined )
-      {
-         // it is data source collection, just ignore it
-         continue ;
-      }
-      if ( rcObj.IsMainCL )
-      {
-         // it is main collection
-         var subCLNameList = [] ;
-         for ( var i in cataInfoObj )
-         {
-            var obj = cataInfoObj[i] ;
-            subCLNameList.push( obj.SubCLName ) ;
-         }
-         mainCLList.push( { Collection: clName, ShardingKey: rcObj.ShardingKey,
-                            SubCLList: subCLNameList } ) ;
-      }
-      else
-      {
-         var groupList = [] ;
-         for ( var i in cataInfoObj )
-         {
-            var obj = cataInfoObj[i] ;
-            var groupname = obj.GroupName ;
-            groupList.push( groupname ) ;
-         }
-
-         var ensureShard = false ;
-         if ( true == rcObj.EnsureShardingIndex )
-         {
-            ensureShard = true ;
-         }
-         var autoId = true ;
-         if ( rcObj.Attribute & MASK_CLATTR_NOIDIDX )
-         {
-            autoId = false ;
-         }
-         var mainclName = null ;
-         if ( rcObj.MainCLName != undefined )
-         {
-            mainclName = rcObj.MainCLName ;
-         }
-
-         clusterCLList.push( { Collection: clName,
-                               GroupNameList: groupList,
-                               AutoIndexId: autoId,
-                               EnsureShardingIndex: ensureShard,
-                               MainCLName: mainclName } ) ;
-         clusterCLMap.add( clName, groupList ) ;
-      }
-   }
-
-   // get collection from data
-   var rc = db.snapshot( SDB_SNAP_COLLECTIONS ) ;
-   while ( rc.next() )
-   {
-      var rcObj = rc.current().toObj() ;
-      var collection = rcObj.Name ;
-      var detailObj = rcObj.Details ;
-      var nodesInLocal = [] ;
-      var groupsInCata = clusterCLMap.get( collection ) ;
-      for ( var i in detailObj )
-      {
-         var obj = detailObj[i] ;
-         var groupname = obj.GroupName ;
-         if ( null == groupsInCata ||
-              -1 == groupsInCata.indexOf( groupname ) )
-         {
-            var groupObj = obj.Group ;
-            for ( var j in groupObj )
-            {
-               var nodename = groupObj[j].NodeName ;
-               nodesInLocal.push( groupObj[j].NodeName ) ;
-            }
-         }
-      }
-      if ( nodesInLocal.length > 0 )
-      {
-         localCLList.push( { Collection: collection,
-                             NodeNameList: nodesInLocal } ) ;
-      }
-   }
-}
-
-function isOldVersion( clName )
-{
-   var csName      = clName.split( "." )[0] ;
-   var clShortName = clName.split( "." )[1] ;
-   var collection  = db.getCS( csName ).getCL( clShortName ) ;
-   var isoldversion = false ;
-
    try
    {
-      collection.snapshotIndexes() ;
+      var beginTime = Date.now() ;
+      var rc = null ;
+      var sqlStr = "" ;
+
+      println( "(" + step + "/" + STEP_NUM + ")Begin to prepare check index info" ) ;
+
+      sqlStr = "select count(1) as Count from $SNAPSHOT_CATA" ;
+      rc = db.exec( sqlStr ) ;
+      if ( rc.next() && 0 == rc.current().toObj().Count )
+      {
+         println( "Cata No Collections" ) ;
+         return 0 ;
+      }
+
+      sqlStr = "select count(1) as Count from $SNAPSHOT_CL" ;
+      rc = db.exec( sqlStr ) ;
+      if ( rc.next() && 0 == rc.current().toObj().Count )
+      {
+         println( "Data No Collections" ) ;
+         return 0 ;
+      }
+
+      println( "(" + step + "/" + STEP_NUM + ")End to prepare check index infos done, spent time: " +
+                ( (Date.now()) - beginTime )/1000 + "s" ) ;
+      step++ ;
+
+      return 1 ;
    }
    catch( e )
    {
-      if ( e != -6 )
+      if( e instanceof Error )
       {
-         println( "Unexpected error, rc: " + e ) ;
-         throw e ;
+         println( "Failed to pre check, error Stack:\n" + e.stack ) ;
       }
-      isoldversion = true ;
+      throw e ;
    }
-
-   return isoldversion ;
 }
 
-function generateSnapshotIndexesInfo( clusterCLList )
+function preCheck2()
 {
    try
    {
-      var batchRecords = [] ;
-      var tmpCL = db.getCS(UPGRADE_INDEX_TMP_CS_NAME).getCL(DATA_INDEX_INFO_TMP_CL_NAME) ;
+      var beginTime = Date.now() ;
+      println( "(" + step + "/" + STEP_NUM + ")Begin to prepare check index info" ) ;
+      db.getCS( TMP_CS_UPGRADE_INDEX ) ;
+      println( "(" + step + "/" + STEP_NUM + ")End to prepare check index infos done, spent time: " +
+                ( (Date.now()) - beginTime )/1000 + "s" ) ;
+      step++ ;
 
-      for ( var i in clusterCLList )
+      return 1 ;
+   }
+   catch( e )
+   {
+      if( -34 == e )
       {
-         var clFullName = clusterCLList[i].Collection ;
-         var csName = clFullName.split( "." )[0] ;
-         var clShortName = clFullName.split( "." )[1] ;
-         var collection  = db.getCS( csName ).getCL( clShortName ) ;
-         var groupNameList = clusterCLList[i].GroupNameList ;
+         return 0 ;
+      }
+      println( "Failed to pre check, error Stack:\n" + e.stack ) ;
+      throw e ;
+   }
+}
 
-         for ( var i in groupNameList )
+function checkIfSupportOnlyUpgradeMeta()
+{
+   try
+   {
+      var beginTime = Date.now() ;
+      println( "(" + step + "/" + STEP_NUM + ")Begin to check if support only upgrade index meta" ) ;
+      var cl = db.getCS( TMP_CS_UPGRADE_INDEX ).getCL( TMP_CL_CACHE_INFO ) ;
+      cl.createIndex( "tmpIdx", { "tmpField": 1 }, {}, { "OnlyUpgradeMeta": true } ) ;
+      cl.dropIndex( "tmpIdx" ) ;
+      println( "Support OnlyUpgradeMeta parameter" ) ;
+      println( "(" + step + "/" + STEP_NUM + ")End to check if support only upgrade index meta: " +
+                ( (Date.now()) - beginTime )/1000 + "s" ) ;
+      step++ ;
+
+      supportOnlyUpgradeMeta = true ;
+   }
+   catch( e )
+   {
+      if( -6 == e )
+      {
+         println( "Don't support OnlyUpgradeMeta parameter" ) ;
+         supportOnlyUpgradeMeta = false ;
+      }
+      else
+      {
+         println( "Failed to check, error Stack:\n" + e.stack ) ;
+         throw e ;
+      }
+   }
+}
+
+function collectNodesInfo()
+{
+   /*
+
+   {
+      "GroupName": "SYSCatalogGroup",
+      "NodeList": [
          {
-            var groupName = groupNameList[i] ;
-            var nodeNameList = GROUP_NODES_MAP.get( groupName ) ;
+            "HostName": "dell-c79-1701-3081",
+            "NodeName": "30000"
+         }
+      ],
+      "NodeCount": 1
+   }
 
-            for ( var j in nodeNameList )
+   {
+      "GroupName": "db1",
+      "NodeList": [
+         {
+            "HostName": "dell-c79-1701-3081",
+            "NodeName": "20000"
+         },
+         {
+            "HostName": "dell-c79-1701-3081",
+            "NodeName": "21000"
+         },
+         {
+            "HostName": "dell-c79-1701-3081",
+            "NodeName": "22000"
+         }
+      ],
+      "NodeCount": 3
+   }
+
+   */
+
+   try
+   {
+      var beginTime = Date.now() ;
+      var sqlStr1 = "select Group,GroupName from $LIST_GROUP where GroupName<>'SYSCoord' split by Group" ;
+      var sqlStr2 = "select T1.GroupName as GroupName,T1.Group.HostName as HostName,T1.Group.Service.0.Name as NodeName from ( " + sqlStr1 + " ) as T1" ;
+      var sqlStr3 = "select T2.GroupName as GroupName,buildobj(T2.HostName,T2.NodeName) as NodeName from ( " + sqlStr2 + " ) as T2" ;
+      var sqlStr4 = "select T3.GroupName,addtoset(T3.NodeName) as NodeList,count(T3.NodeName) as NodeCount from ( " + sqlStr3 + " ) as T3 group by T3.GroupName" ;
+      var sqlStr5 = "insert into " + TMP_CL_FULL_GROUP_NODE_INFO + " " + sqlStr4 ;
+
+      println( "(" + step + "/" + STEP_NUM + ")Begin to collect groups and nodes info" ) ;
+      db.execUpdate( sqlStr5 ) ;
+      println( "(" + step + "/" + STEP_NUM + ")End to collect groups and nodes info, spent time: " +
+               ( Date.now() - beginTime )/1000 + "s" ) ;
+      step++ ;
+   }
+   catch( e )
+   {
+      if( e instanceof Error )
+      {
+         println( "Failed to collect groups and nodes info, error Stack:\n" + e.stack ) ;
+      }
+      throw e ;
+   }
+}
+
+function collectCataClusterClInfo()
+{
+   /*
+   T2 cl
+
+   {
+      "GroupName": "db2",
+      "EnsureShardingIndex": true,
+      "Attribute": 1,
+      "MainClName": "csName_0.maincl",
+      "Name": "csName_0.subcl_0",
+      "ShardingKey": {
+         "a": 1
+      }
+   }
+
+   tmp_cl_cata_cluster_cl_info cl
+
+   {
+      "ClFullName": "csName_0.subcl_0",
+      "MainClName": "csName_0.maincl",
+      "EnsureShardingIndex": true,
+      "ShardingKey": {
+         "a": 1
+      },
+      "Attribute": 1,
+      "Groups": [
+         {
+            "GroupName": "db2",
+            "NodeList": [
             {
-               var nodeName = nodeNameList[j] ;
-               var arr = nodeName.split( ":" ) ;
+               "HostName": "u16-fjb",
+               "NodeName": "40000"
+            },
+            {
+               "HostName": "u16-fjb",
+               "NodeName": "41000"
+            },
+            {
+               "HostName": "u16-fjb",
+               "NodeName": "42000"
+            }
+            ]
+         },
+         ...
+      ]
+   }
+
+   */
+
+   try
+   {
+      var beginTime = Date.now() ;
+
+      var t1SqlStr = "select CataInfo,EnsureShardingIndex,MainCLName,Name,ShardingKey,Attribute from $SNAPSHOT_CATA where IsMainCL is null and " + SQL_COMMON_STR + " split by CataInfo" ;
+      var t2SqlStr = "select T1.CataInfo.GroupName as GroupName,T1.EnsureShardingIndex as EnsureShardingIndex,T1.Attribute as Attribute,T1.MainCLName as MainClName,T1.Name as Name,T1.ShardingKey as ShardingKey from ( " + t1SqlStr + " ) as T1" ;
+      var t3SqlStr = "select T2.GroupName,T2.EnsureShardingIndex,T2.MainClName,T2.Name,T2.ShardingKey,T2.Attribute,T3.NodeList,T3.NodeCount from " + TMP_CL_FULL_GROUP_NODE_INFO ;
+      var joinSqlStr = t3SqlStr + " as T3 inner join ( " + t2SqlStr + " ) as T2 on T3.GroupName = T2.GroupName /*+use_hash()*/" ;
+      var t5SqlStr = "select T4.EnsureShardingIndex as EnsureShardingIndex,T4.MainClName as MainClName, T4.Name as Name,T4.ShardingKey,T4.Attribute,buildobj( T4.GroupName,T4.NodeList) as GroupNodes,T4.NodeCount from ( " + joinSqlStr + " ) as T4" ;
+      var t6SqlStr = "select T5.Name as ClFullName,T5.MainClName as MainClName,T5.EnsureShardingIndex as EnsureShardingIndex, T5.ShardingKey as ShardingKey,T5.Attribute as Attribute,addtoset(T5.GroupNodes) as Groups,count(T5.GroupNodes) as GroupCount,sum(T5.NodeCount) as NodeCount from ( " + t5SqlStr + " ) as T5 group by T5.Name" ;
+
+      var sqlStr = "insert into " + TMP_CL_FULL_CATA_CLUSTER_CL_INFO + " " + t6SqlStr ;
+
+      println( "(" + step + "/" + STEP_NUM + ")Begin to collect cata cluster collections info" ) ;
+      db.execUpdate( sqlStr ) ;
+      println( "(" + step + "/" + STEP_NUM + ")End to collect cata cluster collections info, spent time: " +
+               ( (Date.now()) - beginTime )/1000 + "s" ) ;
+      step++ ;
+   }
+   catch( e )
+   {
+      if( e instanceof Error )
+      {
+         println( "Failed to collect cata cluster collections info, error Stack:\n" + e.stack ) ;
+      }
+      throw e ;
+   }
+}
+
+function collectCataMainClInfo()
+{
+   /*
+   tmp_cl_cata_main_cl_info
+
+   {
+      "Name": "csName_9.maincl",
+      "ShardingKey": {
+         "a": 1
+      },
+      "SubCLList": [
+         "csName_9.subcl_9",
+         "csName_9.subcl_0",
+         "csName_9.subcl_1",
+         "csName_9.subcl_2",
+         "csName_9.subcl_3",
+         "csName_9.subcl_4",
+         "csName_9.subcl_5",
+         "csName_9.subcl_6",
+         "csName_9.subcl_7",
+         "csName_9.subcl_8"
+      ],
+      "SubCLCount": 10
+   }
+
+   */
+
+   try
+   {
+      var beginTime = Date.now() ;
+
+      var sqlStr1 = "select count(1) as Count from $SNAPSHOT_CATA where IsMainCL=true" ;
+
+      var sqlStr2 = "insert into " + TMP_CL_FULL_CATA_MAIN_CL_INFO + " select T2.Name as Name,T2.ShardingKey as ShardingKey,addtoset(T2.SubCLName) as SubCLList,count(T2.SubCLName) as SubCLCount from (select T1.CataInfo.SubCLName as SubCLName,T1.Name as Name,T1.ShardingKey as ShardingKey from (select CataInfo,Name,ShardingKey from $SNAPSHOT_CATA where IsMainCL=true split by CataInfo) as T1) as T2 group by T2.Name" ;
+
+      println( "(" + step + "/" + STEP_NUM + ")Begin to collect cata main collections info" ) ;
+
+      var rc = db.exec( sqlStr1 ) ;
+      if ( rc.next() && 0 == rc.current().toObj().Count )
+      {
+         println( "(" + step + "/" + STEP_NUM + ")Cata No Main Collections" ) ;
+      }
+      else
+      {
+         db.execUpdate( sqlStr2 ) ;
+      }
+
+      println( "(" + step + "/" + STEP_NUM + ")End to collect cata main collections info, spent time: " +
+               ( (Date.now()) - beginTime )/1000 + "s" ) ;
+      step++ ;
+   }
+   catch( e )
+   {
+      if( e instanceof Error )
+      {
+         println( "Failed to collect cata main collections info, error Stack:\n" + e.stack ) ;
+      }
+      throw e ;
+   }
+}
+
+function collectDataClusterClInfo()
+{
+   /*
+   tmp_cl_data_cluster_cl_info
+
+   {
+      "ClFullName": "csName_0.subcl_0",
+      "DataClFullName": "csName_0.subcl_0",
+      "Groups": [
+         {
+            "GroupName": "db1",
+            "NodeList": [
+               "u16-fjb:20000",
+               "u16-fjb:22000",
+               "u16-fjb:21000"
+            ]
+         },
+         ...
+      ],
+      "GroupCount": 3,
+      "NodeCount": 9
+   }
+
+   */
+
+   try
+   {
+      var beginTime = Date.now() ;
+      var t1SqlStr = "select * from $SNAPSHOT_CL where " + SQL_COMMON_STR + " split by Details" ;
+      var t2SqlStr = "select T1.Name as Name,T1.Details.NodeName as NodeName,T1.Details.GroupName as GroupName from ( " + t1SqlStr + " ) as T1" ;
+      var t3SqlStr = "select T2.Name as Name,T2.GroupName as GroupName,addtoset(T2.NodeName) as NodeTmpList from ( " + t2SqlStr + " ) as T2 group by T2.Name,T2.GroupName" ;
+      var t4SqlStr = "select T3.Name as Name,T3.GroupName as GroupName,T3.NodeTmpList from ( " + t3SqlStr + " ) as T3 split by T3.NodeTmpList" ;
+      var t5SqlStr = "select T4.Name as Name,T4.GroupName as GroupName,addtoset(T4.NodeTmpList) as NodeList,count(T4.NodeTmpList) as NodeCount from ( " + t4SqlStr + " ) as T4 group by T4.Name,T4.GroupName" ;
+      var t6SqlStr = "select T5.Name as Name,buildobj(T5.GroupName,T5.NodeList) as Group,T5.NodeCount as NodeCount from ( " + t5SqlStr + " ) as T5" ;
+      var sqlStr = "insert into " + TMP_CL_FULL_DATA_CLUSTER_CL_INFO + " select T6.Name as ClFullName,T6.Name as DataClFullName,addtoset(T6.Group) as Groups,count(T6.Group) as GroupCount,sum(T6.NodeCount) as NodeCount from ( " + t6SqlStr + " ) as T6 group by T6.Name" ;
+
+      println( "(" + step + "/" + STEP_NUM + ")Begin to collect data cluster collections info" ) ;
+      db.execUpdate( sqlStr ) ;
+      println( "(" + step + "/" + STEP_NUM + ")End to collect data cluster collections info, spent time: " +
+               ( (Date.now()) - beginTime )/1000 + "s" ) ;
+      step++ ;
+   }
+   catch( e )
+   {
+      if( e instanceof Error )
+      {
+         println( "Failed to collect data cluster collections info, error Stack:\n" + e.stack ) ;
+      }
+      throw e ;
+   }
+}
+
+function collectLocalClInfo()
+{
+   /*
+   注意：cata_cluster_cl_info 会多出本地集合信息
+
+   tmp_cl_local_cl_info
+
+   {
+      "ClFullName": "cs40000.cl",
+      "DataClFullName": "cs40000.cl",
+      "Groups": [
+         {
+            "GroupName": "db2",
+            "NodeList": [
+            "dell-c79-1701-3081:40000"
+            ]
+         }
+      ],
+      "GroupCount": 1,
+      "NodeCount": 1
+   }
+
+   */
+
+   try
+   {
+      var beginTime = Date.now() ;
+      var sqlStr1 = "select * from " + TMP_CL_FULL_DATA_CLUSTER_CL_INFO ;
+      var batchRecords = [] ;
+      var cataClInfoCl = db.getCS( TMP_CS_UPGRADE_INDEX ).getCL( TMP_CL_CATA_CLUSTER_CL_INFO ) ;
+
+      println( "(" + step + "/" + STEP_NUM + ")Begin to collect local collections info" ) ;
+      var rc = db.exec( sqlStr1 ) ;
+      while ( rc.next() )
+      {
+         batchRecords.push( rc.current().toObj() ) ;
+         if ( batchRecords.length > BATCH_NUM )
+         {
+            cataClInfoCl.insert( batchRecords, SDB_INSERT_CONTONDUP ) ;
+            batchRecords = [] ;
+         }
+      }
+      if ( batchRecords.length > 0 )
+      {
+         cataClInfoCl.insert( batchRecords, SDB_INSERT_CONTONDUP ) ;
+         batchRecords = [] ;
+      }
+
+      println( "(" + step + "/" + STEP_NUM + ")Collect local collections info done" ) ;
+
+      var sqlStr2 = "insert into " + TMP_CL_FULL_LOCAL_CL_INFO + " select * from " + TMP_CL_FULL_CATA_CLUSTER_CL_INFO + " where DataClFullName is not null" ;
+      db.execUpdate( sqlStr2 ) ;
+
+      var sqlStr3 = "delete from " + TMP_CL_FULL_CATA_CLUSTER_CL_INFO + " where DataClFullName is not null" ;
+      db.execUpdate( sqlStr3 ) ;
+
+      println( "(" + step + "/" + STEP_NUM + ")Save local collections info done" ) ;
+
+      println( "(" + step + "/" + STEP_NUM + ")End to collect local collections info, spent time: " +
+               ( (Date.now()) - beginTime )/1000 + "s" ) ;
+      step++ ;
+   }
+   catch( e )
+   {
+      if( e instanceof Error )
+      {
+         println( "Failed to collect local collections info, error Stack:\n" + e.stack ) ;
+      }
+      throw e ;
+   }
+}
+
+function collectCataIndexInfo()
+{
+   /*
+      {
+         "ClFullName": "csName_0.subcl_0",
+         "IndexName": "bIdx",
+         "IndexDataType": 4294967298
+      }
+   */
+   try
+   {
+      var beginTime = Date.now() ;
+      var sqlStr = "insert into " + TMP_CL_FULL_CATA_INDEX_INFO + " select Collection as ClFullName, Name as IndexName, CLUniqueID as IndexDataType from $LIST_INDEXES" ;
+      println( "(" + step + "/" + STEP_NUM + ")Begin to collect cata indexs info" ) ;
+      db.execUpdate( sqlStr ) ;
+      println( "(" + step + "/" + STEP_NUM + ")End to collect cata indexs info, spent time: " +
+               ( (Date.now()) - beginTime )/1000 + "s" ) ;
+      step++ ;
+   }
+   catch( e )
+   {
+      if( e instanceof Error )
+      {
+         println( "Failed to collect cata indexs info, error Stack:\n" + e.stack ) ;
+      }
+      throw e ;
+   }
+}
+
+function generateCollectDataIndexInfoPlans( plans, clCount )
+{
+   try
+   {
+      var beginTime = Date.now() ;
+      var rc = null ;
+      var everyPlanClCount = 0 ;
+      var planNum = 0 ;
+      var coordAddrs = [] ;
+      var plan = null ;
+      var remainderClCount = 0 ;
+
+      if ( clCount <= COLLECT_DATA_INDEX_INFO_THREAD_NUM )
+      {
+         planNum = clCount ;
+         everyPlanClCount = 1 ;
+         remainderClCount = 0 ;
+      }
+      else
+      {
+         planNum = COLLECT_DATA_INDEX_INFO_THREAD_NUM ;
+         everyPlanClCount = Math.floor( clCount/COLLECT_DATA_INDEX_INFO_THREAD_NUM ) ;
+         remainderClCount = clCount - everyPlanClCount * planNum ;
+      }
+
+      println( "(" + step + "/" + STEP_NUM + ")Begin to generate collect data indexs info plans[ plan num: " +
+               planNum + ", collections num: " + clCount + " ]" ) ;
+
+      var sqlStr = "select T1.Group.HostName,T1.Group.Service.0.Name as NodeName from (select * from $LIST_GROUP where GroupName='SYSCoord' split by Group) as T1" ;
+      rc = db.exec( sqlStr ) ;
+      while( rc.next() )
+      {
+         /*
+         eg: obj = { HostName: "192.168.17.50", NodeName: 11810 }
+         */
+         coordAddrs.push( rc.current().toObj() ) ;
+      }
+
+      var skip = 0 ;
+      for ( var i = 1 ; i <= planNum ; i++ )
+      {
+         var planClCount = everyPlanClCount ;
+         var randomIndex = Math.floor( Math.random()*1000 ) % coordAddrs.length ;
+
+         if ( remainderClCount > 0 )
+         {
+            planClCount += 1 ;
+            remainderClCount -= 1 ;
+         }
+
+         plan = { "Skip": skip, "Limit": planClCount, "CoordAddr": coordAddrs[randomIndex],
+                  "UserName": USERNAME, "Password": PASSWD, "Token": TOKEN,
+                  "CipherFile": CIPHER_FILE, "CollectionsNum": planClCount } ;
+         println( "(" + step + "/" + STEP_NUM + ")Generate plan done and it will collect " +
+                  planClCount + " collections data index infos, use coord[" +
+                  JSON.stringify( coordAddrs[randomIndex] ) + "]" ) ;
+
+         plans.push( plan ) ;
+         skip += planClCount ;
+      }
+
+      if ( clCount != skip )
+      {
+         throw new Error( "Invalid plans[expect cl num: " +
+                          clCount + ", actual cl num: " + skip + "]\n" ) ;
+      }
+
+      println( "(" + step + "/" + STEP_NUM + ")End to generate collect data indexs info plans, spent time: " +
+               ( (Date.now()) - beginTime )/1000 + "s" ) ;
+      step++ ;
+   }
+   catch( e )
+   {
+      if( e instanceof Error )
+      {
+         println( "Failed to generate collect data indexs info plans, error Stack:\n" + e.stack ) ;
+      }
+      throw e ;
+   }
+}
+
+function waitPlansDone( plans, clCount )
+{
+   var beginTime = Date.now() ;
+   var hasPidExist = true ;
+   var printProgressCount = _PRINT_PROGRESS_COUNT ;
+   var tmpNum = clCount/printProgressCount ;
+   tmpNum = tmpNum > 1 ? tmpNum : 1 ;
+   var aProgressCollectClNum = tmpNum ;
+
+   try
+   {
+      println( "(" + step + "/" + STEP_NUM + ")Begin to wait plans done" ) ;
+      var dataInfoCl = db.getCS( TMP_CS_UPGRADE_INDEX ).getCL( TMP_CL_DATA_INDEX_INFO ) ;
+      var cmd = new Cmd() ;
+
+      // 每完成四十分之一打印一个 #
+      println( "Collecting\n0% ______________ 50% ______________ 100%" ) ;
+
+      while ( hasPidExist )
+      {
+         var plansHasCollectClNum = 0 ;
+
+         hasPidExist = false ;
+
+         sleep( COLLECT_DATA_INDEX_INFO_SLEEP_TIME ) ;
+
+         for ( i in plans )
+         {
+            var plan = plans[i] ;
+            var pid = "" + plan.PID ;
+            var collectionNum = plan.CollectionsNum ;
+            var filePath = PROGRESS_TMP_FILEPATH_PREFIXX + pid ;
+            var pidExist = System.isProcExist( { "value": pid, "type": "pid" } ) ;
+            if ( !pidExist )
+            {
+               if ( !File.exist( filePath ) )
+               {
+                  throw new Error( "Failed to collect data index info[plan: " +
+                                   JSON.stringify(plan) + "], file[" + filePath + "] does not exist \n" ) ;
+               }
+
+               var file = new File( filePath ) ;
+               var content = file.read() ;
+               if ( 0 == content )
+               {
+                  /*
+                  println( "(" + step + "/" + STEP_NUM + ")Plan[PID:" + pid +
+                           "] succeccfully, spent time: " +
+                           ( (Date.now()) - beginTime )/1000 + "s" ) ;*/
+                  plansHasCollectClNum += collectionNum ;
+                  continue ;
+               }
+               else
+               {
+                  throw new Error( "Failed to collect data index info[plan: " +
+                                   JSON.stringify(plan) + "], error msg: " +
+                                   content + "\n" ) ;
+               }
+            }
+            else
+            {
+               if ( File.exist( filePath ) )
+               {
+                  plansHasCollectClNum += parseInt( cmd.run( "wc -l " + filePath + " | awk '{print $1}'" ) ) ;
+               }
+               hasPidExist = true ;
+            }
+         }
+
+         while( plansHasCollectClNum >= tmpNum && 0 != printProgressCount )
+         {
+            print( "#" ) ;
+            tmpNum += aProgressCollectClNum ;
+            printProgressCount-- ;
+         }
+      }
+
+      for ( var i = 0 ; i < printProgressCount ; i++ )
+      {
+         print( "#" ) ;
+      }
+      print( "\n" ) ;
+
+      println( "(" + step + "/" + STEP_NUM + ")End to wait plans done[data index infos count: " +
+               dataInfoCl.count() + "], spent time: " + ( (Date.now()) - beginTime )/1000 + "s" ) ;
+      step++ ;
+   }
+   catch( e )
+   {
+      if( e instanceof Error )
+      {
+         println( "Failed to wait plans done, error Stack:\n" + e.stack ) ;
+      }
+      throw e ;
+   }
+}
+
+function startCollectDataIndexInfoPlans( plans )
+{
+   try
+   {
+      var commandStr = "" ;
+      var cmd = new Cmd() ;
+      var beginTime = Date.now() ;
+      println( "(" + step + "/" + STEP_NUM + ")Begin to start plans to collect data indexs info" ) ;
+      for( i in plans )
+      {
+         var pid = 0 ;
+         var plan = plans[i] ;
+         commandStr = sdbShellPath + " -f " + collectDataIndexInfoJsFile +
+                      " -e \'var PLAN=" + JSON.stringify( plan ) + "\'" ;
+         plan.Command = commandStr ;
+         //println( commandStr ) ;
+         //println( cmd.run( commandStr ) ) ;
+         pid = cmd.start( commandStr, "", 100, 0 ) ;
+         //println( "PID: " + pid ) ;
+         //println( "Last out: " + cmd.getLastOut() ) ;
+         //println( "Last ret: " + cmd.getLastRet() ) ;
+         println( "(" + step + "/" + STEP_NUM + ")Start plan[PID:" + pid + "] to collect data indexs info" ) ;
+         plan.PID = pid ;
+      }
+      println( "(" + step + "/" + STEP_NUM + ")End to start plans to collect data indexs info, spent time: " +
+               ( (Date.now()) - beginTime )/1000 + "s" ) ;
+      step++ ;
+   }
+   catch( e )
+   {
+      if( e instanceof Error )
+      {
+         println( "Failed to start collect data indexs info plans, error Stack:\n" + e.stack ) ;
+      }
+      throw e ;
+   }
+}
+
+function clearTmpFiles( plans )
+{
+   try
+   {
+      var beginTime = Date.now() ;
+      println( "(" + step + "/" + STEP_NUM + ")Begin to clear tmp files" ) ;
+      for( i in plans )
+      {
+         var filePath = PROGRESS_TMP_FILEPATH_PREFIXX + plans[i].PID ;
+         if ( File.exist( filePath ) )
+         {
+            File.remove( filePath ) ;
+         }
+      }
+      println( "(" + step + "/" + STEP_NUM + ")End to clear tmp files, spent time: " +
+               ( (Date.now()) - beginTime )/1000 + "s" ) ;
+      step++ ;
+   }
+   catch( e )
+   {
+      if( e instanceof Error )
+      {
+         println( "Failed to clear tmp files, error Stack:\n" + e.stack ) ;
+      }
+      throw e ;
+   }
+}
+
+function collectDataIndexInfoConcurrent()
+{
+   var plans = [] ;
+   var cl = null ;
+   var clCount = 0 ;
+
+   try
+   {
+      cl = db.getCS( TMP_CS_UPGRADE_INDEX ).getCL( TMP_CL_CATA_CLUSTER_CL_INFO ) ;
+      clCount = cl.count( { "DataClFullName": { "$isnull": 1 } } ) ;
+   }
+   catch( e )
+   {
+      if( e instanceof Error )
+      {
+         println( "Failed to get cata cluster collections count, error Stack:\n" + e.stack ) ;
+      }
+      throw e ;
+   }
+
+   generateCollectDataIndexInfoPlans( plans, clCount )
+
+   startCollectDataIndexInfoPlans( plans ) ;
+
+   waitPlansDone( plans, clCount ) ;
+
+   clearTmpFiles( plans ) ;
+}
+
+function collect()
+{
+   collectNodesInfo() ;
+
+   collectCataClusterClInfo() ;
+
+   collectCataMainClInfo() ;
+
+   collectDataClusterClInfo() ;
+
+   collectLocalClInfo() ;
+
+   collectCataIndexInfo() ;
+
+   collectDataIndexInfoConcurrent() ;
+}
+
+function aggregateIndexInfo()
+{
+   /*
+
+   聚集，获取每个集合每个索引的索引信息和节点信息
+
+   tmp_cl_data_index_check_info
+
+   {
+      "GroupName": "db3",
+      "IndexDef": {
+         "UniqueID": 390842023936,
+         "key": {
+            "_id": 1
+         },
+         "v": 0,
+         ...
+      },
+      "ClFullName": "cs.cl",
+      "MainClName": null,
+      "DataClFullName": "cs.cl",
+      "IndexName": [
+         [
+            "$id"
+         ]
+      ],
+      "Groups": [
+         {
+            "GroupName": "db3",
+            "NodeInfos": [
+            {
+               "NodeName": "u16-fjb:25000",
+               "IndexName": "$id",
+               "UniqueID": 390842023936
+            },
+            ...
+            ]
+         }
+      ],
+      "NodeCount": 3,
+      "GroupCount": 1,
+      "UniqueIDs": [
+         390842023936
+      ],
+      "UniqueIDCount": 1,
+      "IndexDataType": 1
+   }
+
+   tmp_cl_data_index_check_info_tmp
+
+   {
+      "GroupName": "db3",
+      "ClFullName": "cs.cl",
+      "MainClName": null,
+      "DataClFullName": "cs.cl",
+      "IndexName": "$id",
+      "IndexDefs": [
+         [
+            {
+               "UniqueID": 390842023936,
+               "key": {
+                  "_id": 1
+               },
+               "v": 0,
+               ...
+            }
+         ]
+      ],
+      "Groups": [
+         {
+            "GroupName": "db3",
+            "NodeInfos": [
+            {
+               "NodeName": "u16-fjb:25000",
+               "IndexName": "$id",
+               "UniqueID": 390842023936
+            },
+            ...
+            ]
+         }
+      ],
+      "NodeCount": 3,
+      "GroupCount": 1,
+      "IndexDataType": 1
+   }
+
+   */
+
+   try
+   {
+      var beginTime = Date.now() ;
+
+      var t1SqlStr1 = "select GroupName,IndexDef,ClFullName,MainClName,DataClFullName,IndexDataType,addtoset(IndexName) as IndexNames,addtoset(UniqueID) as UniqueIDs,addtoset(NodeInfo) as NodeInfos,count(NodeInfo) as NodeCount from " + TMP_CL_FULL_DATA_INDEX_INFO + " group by GroupName,ClFullName,IndexDef" ;
+
+      var t2SqlStr1 = "select T1.GroupName as GroupName,T1.IndexDef as IndexDef,T1.ClFullName as ClFullName,T1.MainClName as MainClName,T1.DataClFullName as DataClFullName,T1.IndexDataType as IndexDataType,T1.IndexNames as IndexNames,T1.UniqueIDs as UniqueIDs,T1.NodeCount as NodeCount,buildobj(T1.GroupName,T1.NodeInfos) as Group from ( " + t1SqlStr1 + " ) as T1 group by T1.GroupName,T1.ClFullName,T1.IndexDef" ;
+
+      var t3SqlStr1 = "select T2.GroupName as GroupName,T2.IndexDef as IndexDef,T2.ClFullName as ClFullName,T2.MainClName as MainClName,T2.DataClFullName as DataClFullName,T2.IndexDataType as IndexDataType,addtoset(T2.IndexNames) as IndexNames,addtoset(T2.UniqueIDs) as UniqueIDs,addtoset(T2.Group) as Groups,sum(T2.NodeCount) as NodeCount,count(T2.Group) as GroupCount from ( " + t2SqlStr1 + " ) as T2 group by T2.ClFullName,T2.IndexDef" ;
+
+      var t4SqlStr1 = "select * from ( " + t3SqlStr1 + " ) as T3 split by T3.UniqueIDs" ;
+
+      var t5SqlStr1 = "select * from ( " + t4SqlStr1 + " ) as T4 split by T4.UniqueIDs" ;
+
+      var sqlStr1 = "insert into " + TMP_CL_FULL_DATA_INDEX_CHECK_INFO + " select T5.GroupName as GroupName,T5.IndexDef as IndexDef,T5.ClFullName as ClFullName,T5.MainClName as MainClName,T5.DataClFullName as DataClFullName,T5.IndexDataType as IndexDataType,T5.IndexNames as IndexNames,T5.Groups as Groups,T5.NodeCount as NodeCount,T5.GroupCount as GroupCount,addtoset(T5.UniqueIDs) as UniqueIDs,count(T5.UniqueIDs) as UniqueIDCount from ( " + t5SqlStr1 + " ) as T5 group by T5.ClFullName,T5.IndexDef" ;
+
+      println( "(" + step + "/" + STEP_NUM + ")Begin to aggregate data index infos( GROUP BY: GroupName, ClFullName, IndexDef )" );
+      db.execUpdate( sqlStr1 ) ;
+      println( "(" + step + "/" + STEP_NUM + ")End to aggregate data index infos( GROUP BY: GroupName, ClFullName, IndexDef ), spent time: " +
+               ( (Date.now()) - beginTime )/1000 + "s" ) ;
+      beginTime = Date.now() ;
+      step++ ;
+
+      println( "(" + step + "/" + STEP_NUM + ")Begin to update uniqueID infos" ) ;
+      var sqlStr2 = "update " + TMP_CL_FULL_DATA_INDEX_CHECK_INFO + " set UniqueIDCount=0 where UniqueIDs=''" ;
+      db.execUpdate( sqlStr2 ) ;
+      println( "(" + step + "/" + STEP_NUM + ")End to update uniqueID infos, spent time: " +
+               ( (Date.now()) - beginTime )/1000 + "s" ) ;
+      beginTime = Date.now() ;
+      step++ ;
+
+      var t1SqlStr3 = "select GroupName,ClFullName,MainClName,DataClFullName,IndexName,addtoset(IndexDef) as IndexDefs,addtoset(NodeInfo) as NodeInfos,count(NodeInfo) as NodeCount from " + TMP_CL_FULL_DATA_INDEX_INFO + " group by GroupName,ClFullName,IndexName" ;
+      var t2SqlStr3 = "select T1.GroupName as GroupName,T1.ClFullName as ClFullName,T1.MainClName as MainClName,T1.DataClFullName as DataClFullName,T1.IndexName as IndexName,T1.IndexDefs as IndexDefs,T1.NodeCount as NodeCount,buildobj(T1.GroupName,T1.NodeInfos) as Group from ( " + t1SqlStr3 + " ) as T1 group by T1.GroupName,T1.ClFullName,T1.IndexName" ;
+
+      var sqlStr3 = "insert into " + TMP_CL_FULL_DATA_INDEX_CHECK_INFO_TMP + " select T2.GroupName as GroupName,T2.ClFullName as ClFullName,T2.MainClName as MainClName,T2.DataClFullName as DataClFullName,T2.IndexName as IndexName,addtoset(T2.IndexDefs) as IndexDefs,addtoset(T2.Group) as Groups,sum(T2.NodeCount) as NodeCount,count(T2.Group) as GroupCount from ( " + t2SqlStr3 + " ) as T2 group by T2.ClFullName,T2.IndexName" ;
+
+      println( "(" + step + "/" + STEP_NUM + ")Begin to aggregate data index infos( GROUP BY: GroupName, ClFullName, IndexName )" );
+      db.execUpdate( sqlStr3 ) ;
+      println( "(" + step + "/" + STEP_NUM + ")End to aggregate data index infos( GROUP BY: GroupName, ClFullName, IndexName ), spent time: " +
+               ( (Date.now()) - beginTime )/1000 + "s" ) ;
+      step++ ;
+   }
+   catch( e )
+   {
+      if( e instanceof Error )
+      {
+         println( "Failed to check aggregate data index infos, error Stack:\n" + e.stack ) ;
+      }
+      throw e ;
+   }
+}
+
+function checkConflictSameDefIndex()
+{
+   try
+   {
+      var beginTime = Date.now() ;
+      var cannotUpgradeIdxInfoCl = db.getCS( TMP_CS_UPGRADE_INDEX ).getCL( TMP_CL_CANNOT_UPGRADE_INDEX_INFO ) ;
+
+      // 同定义不同名的冲突索引
+      var t1SqlStr1 = "select * from " + TMP_CL_FULL_DATA_INDEX_CHECK_INFO + " split by IndexNames" ;
+      var t2SqlStr1 = "select * from ( " + t1SqlStr1 + " ) as T1 split by T1.IndexNames" ;
+      var t3SqlStr1 = "select T2.GroupName as GroupName,T2.IndexDef as IndexDef,T2.ClFullName as ClFullName,T2.MainClName as MainClName,T2.DataClFullName as DataClFullName,T2.Groups as Groups,T2.NodeCount as NodeCount,T2.GroupCount as GroupCount,T2.UniqueIDs as UniqueIDs,T2.UniqueIDCount as UniqueIDCount,addtoset(T2.IndexNames) as IndexNames,count(T2.IndexNames) as IndexNameCount from ( " + t2SqlStr1 + " ) as T2 group by T2.ClFullName,T2.IndexDef" ;
+
+      println( "(" + step + "/" + STEP_NUM + ")Begin to check conflict indexes( same index def, diff index name )" ) ;
+      var sqlStr1 = "select * from ( " + t3SqlStr1 + " ) as T3 where T3.IndexNameCount > 1" ;
+      var batchRecords = [] ;
+      var rc = db.exec( sqlStr1 ) ;
+      while ( rc.next() )
+      {
+         var obj = rc.current().toObj() ;
+
+         obj.UpgradeIndexType = IDX_TYPE_CONFLICT ;
+
+         batchRecords.push( obj ) ;
+
+         if ( batchRecords.length > BATCH_NUM )
+         {
+            cannotUpgradeIdxInfoCl.insert( batchRecords ) ;
+            batchRecords = [] ;
+         }
+      }
+      if ( batchRecords.length > 0 )
+      {
+         cannotUpgradeIdxInfoCl.insert( batchRecords ) ;
+         batchRecords = [] ;
+      }
+      println( "(" + step + "/" + STEP_NUM + ")End to check conflict indexes( same index def, diff index name ), spent time: " +
+               ( (Date.now()) - beginTime )/1000 + "s" ) ;
+      step++ ;
+   }
+   catch( e )
+   {
+      if( e instanceof Error )
+      {
+         println( "Failed to check conflict indexes( same index def, diff index name ), error Stack:\n" + e.stack ) ;
+      }
+      throw e ;
+   }
+}
+
+function checkConflictSameNameIndex()
+{
+   try
+   {
+      var beginTime = Date.now() ;
+      var cannotUpgradeIdxInfoCl = db.getCS( TMP_CS_UPGRADE_INDEX ).getCL( TMP_CL_CANNOT_UPGRADE_INDEX_INFO ) ;
+
+      // 同名不同定义的冲突索引
+      var t1SqlStr1 = "select * from " + TMP_CL_FULL_DATA_INDEX_CHECK_INFO_TMP + " split by IndexDefs" ;
+      var t2SqlStr1 = "select * from ( " + t1SqlStr1 + " ) as T1 split by T1.IndexDefs" ;
+      var t3SqlStr1 = "select T2.GroupName as GroupName,T2.ClFullName as ClFullName,T2.MainClName as MainClName,T2.DataClFullName as DataClFullName,T2.IndexName as IndexName,T2.Groups as Groups,T2.NodeCount as NodeCount,T2.GroupCount as GroupCount,addtoset(T2.IndexDefs) as IndexDefs,count(T2.IndexDefs) as IndexDefCount from ( " + t2SqlStr1 + " ) as T2 group by T2.ClFullName,T2.IndexName" ;
+
+      var sqlStr1 = "select * from ( " + t3SqlStr1 + " ) as T3 where T3.IndexDefCount > 1" ;
+
+      println( "(" + step + "/" + STEP_NUM + ")Begin to check conflict indexes( diff index def, same index name )" ) ;
+      var batchRecords = [] ;
+      var rc = db.exec( sqlStr1 ) ;
+      while ( rc.next() )
+      {
+         var obj = rc.current().toObj() ;
+
+         obj.UpgradeIndexType = IDX_TYPE_CONFLICT ;
+
+         batchRecords.push( obj ) ;
+
+         if ( batchRecords.length > BATCH_NUM )
+         {
+            cannotUpgradeIdxInfoCl.insert( batchRecords ) ;
+            batchRecords = [] ;
+         }
+      }
+      if ( batchRecords.length > 0 )
+      {
+         cannotUpgradeIdxInfoCl.insert( batchRecords ) ;
+         batchRecords = [] ;
+      }
+
+      println( "(" + step + "/" + STEP_NUM + ")End to check conflict indexes( diff index def, same index name ), spent time: " +
+               ( (Date.now()) - beginTime )/1000 + "s" ) ;
+      step++ ;
+   }
+   catch( e )
+   {
+      if( e instanceof Error )
+      {
+         println( "Failed to check conflict indexes( diff index def, same index name ), error Stack:\n" + e.stack ) ;
+      }
+      throw e ;
+   }
+}
+
+function swapTmpClName( clName1, clName2 )
+{
+   try
+   {
+      var tmpCS = db.getCS( TMP_CS_UPGRADE_INDEX ) ;
+
+      tmpCS.renameCL( clName1, "tmp" ) ;
+      tmpCS.renameCL( clName2, clName1 ) ;
+      tmpCS.renameCL( "tmp", clName2 ) ;
+   }
+   catch( e )
+   {
+      if( e instanceof Error )
+      {
+         println( "Failed to swap tmp cl name, error Stack:\n" + e.stack ) ;
+      }
+      throw e ;
+   }
+}
+
+function checkConflictIndex()
+{
+   try
+   {
+      var beginTime = Date.now() ;
+      var tmpCS = db.getCS( TMP_CS_UPGRADE_INDEX ) ;
+      var cacheInfoCl = tmpCS.getCL( TMP_CL_CACHE_INFO ) ;
+      var dataIndexCheckInfoDefCl = tmpCS.getCL( TMP_CL_DATA_INDEX_CHECK_INFO ) ;
+      var cataIdxInfo = tmpCS.getCL( TMP_CL_CATA_INDEX_INFO ) ;
+
+      checkConflictSameDefIndex() ;
+
+      checkConflictSameNameIndex() ;
+
+      println( "(" + step + "/" + STEP_NUM + ")Begin to clear conflict indexes info" ) ;
+      var sqlStr1 = "select * from " + TMP_CL_FULL_CANNOT_UPGRADE_INDEX_INFO + " where UpgradeIndexType='" + IDX_TYPE_CONFLICT + "'" ;
+      rc = db.exec( sqlStr1 ) ;
+      while ( rc.next() )
+      {
+         var obj = rc.current().toObj() ;
+
+         if ( undefined != obj.IndexName )
+         {
+            cataIdxInfo.remove( { "ClFullName": obj.ClFullName, "IndexName": obj.IndexName } ) ;
+            dataIndexCheckInfoDefCl.remove( { "ClFullName": obj.ClFullName, "IndexNames": [ obj.IndexName ] } ) ;
+         }
+         else if ( undefined != obj.IndexNames )
+         {
+            for ( i in obj.IndexNames )
+            {
+               var idxName = obj.IndexNames[i]
+               cataIdxInfo.remove( { "ClFullName": obj.ClFullName, "IndexName": idxName } ) ;
+            }
+            dataIndexCheckInfoDefCl.remove( { "ClFullName": obj.ClFullName, "IndexDef": obj.IndexDef } ) ;
+         }
+      }
+
+      /*
+
+      split by IndexNames
+
+      {
+         ...
+         IndexNames: [ [ "$id" ] ],
+         ...
+      }
+
+      change to
+
+      {
+         ...
+         IndexNames: "$id",
+         ...
+      }
+
+      */
+      var t1SqlStr2 = "select * from " + TMP_CL_FULL_DATA_INDEX_CHECK_INFO + " split by IndexNames" ;
+
+      var sqlStr2 = "insert into " + TMP_CL_FULL_CACHE_INFO + " select T1.GroupName as GroupName,T1.IndexDef as IndexDef,T1.ClFullName as ClFullName,T1.MainClName as MainClName,T1.DataClFullName as DataClFullName,T1.IndexDataType as IndexDataType,T1.IndexNames as IndexName,T1.Groups as Groups,T1.NodeCount as NodeCount,T1.GroupCount as GroupCount,T1.UniqueIDs as UniqueIDs,T1.UniqueIDCount as UniqueIDCount from ( " + t1SqlStr2 + " ) as T1 split by T1.IndexNames" ;
+
+      cacheInfoCl.truncate() ;
+      cacheInfoCl.createAutoIncrement( { Field: "AutoIncrementFiled" } )
+      db.execUpdate( sqlStr2 ) ;
+
+      swapTmpClName( TMP_CL_CACHE_INFO, TMP_CL_DATA_INDEX_CHECK_INFO ) ;
+
+      println( "(" + step + "/" + STEP_NUM + ")End to clear conflict indexes info, spent time: " +
+               ( (Date.now()) - beginTime )/1000 + "s" ) ;
+      step++ ;
+   }
+   catch( e )
+   {
+      if( e instanceof Error )
+      {
+         println( "Failed to check conflict indexes( diff index def, same index name ), error Stack:\n" + e.stack ) ;
+      }
+      throw e ;
+   }
+}
+
+function isLocalID( uniqueid )
+{
+   if ( 0 == ( uniqueid & 0x80000000 ) )
+   {
+      return false ;
+   }
+   else
+   {
+      return true ;
+   }
+}
+
+function checkMissIndex()
+{
+   try
+   {
+      var rc = null ;
+      var beginTime = Date.now() ;
+      var tmpCS = db.getCS( TMP_CS_UPGRADE_INDEX ) ;
+      var cacheInfoCl = tmpCS.getCL( TMP_CL_CACHE_INFO ) ;
+      var dataIndexCheckInfoDefCl = tmpCS.getCL( TMP_CL_DATA_INDEX_CHECK_INFO ) ;
+      var cataIdxInfo = tmpCS.getCL( TMP_CL_CATA_INDEX_INFO ) ;
+      var cannotUpgradeIdxInfoCl = tmpCS.getCL( TMP_CL_CANNOT_UPGRADE_INDEX_INFO ) ;
+      var noNeedUpgradeIdxInfoCl = tmpCS.getCL( TMP_CL_NO_NEED_UPGRADE_INDEX_INFO ) ;
+
+      println( "(" + step + "/" + STEP_NUM + ")Begin to collect consistent indexes" ) ;
+      // 获取编目和数据一致的索引
+      var t1SqlStr1 = "select ClFullName,MainClName,EnsureShardingIndex,ShardingKey,Attribute,Groups,GroupCount,NodeCount,buildobj(ClFullName,GroupCount,NodeCount) as JoinMatch from " + TMP_CL_FULL_CATA_CLUSTER_CL_INFO + " group by ClFullName" ;
+      var t2SqlStr1 = "select GroupName,IndexDef,ClFullName,MainClName,DataClFullName,IndexDataType,IndexName,Groups,NodeCount,GroupCount,UniqueIDs,UniqueIDCount,AutoIncrementFiled,buildobj(ClFullName,GroupCount,NodeCount) as JoinMatch from " + TMP_CL_FULL_DATA_INDEX_CHECK_INFO + " group by ClFullName,IndexName" ;
+
+      var sqlStr1 = "insert into " + TMP_CL_FULL_CACHE_INFO + " select T1.ClFullName as CataClFullName,T1.MainClName,T1.EnsureShardingIndex,T1.ShardingKey,T1.Attribute,T1.Groups as CataGroups,T1.GroupCount,T1.NodeCount,T2.ClFullName,T2.DataClFullName,T2.GroupName,T2.Groups as DataGroups,T2.IndexDef,T2.IndexName as IndexName,T2.UniqueIDCount,T2.UniqueIDs,T2.IndexDataType,T2.AutoIncrementFiled from ( " + t1SqlStr1 + " ) as T1 inner join ( " + t2SqlStr1 + " ) as T2 on T1.JoinMatch=T2.JoinMatch /*+use_hash()*/" ;
+
+      cacheInfoCl.truncate() ;
+      db.execUpdate( sqlStr1 ) ;
+      println( "(" + step + "/" + STEP_NUM + ")End to collect consistent indexes, spent time: " +
+               ( (Date.now()) - beginTime )/1000 + "s" ) ;
+      beginTime = Date.now() ;
+      step++ ;
+
+      // 删除一致的索引，剩下的就是缺失索引
+      println( "(" + step + "/" + STEP_NUM + ")Begin to collect miss index infos" ) ;
+      dataIndexCheckInfoDefCl.createIndex( "autoIncrementFiled_idx", { "AutoIncrementFiled": 1 } ) ;
+      var sqlStr2 = "select AutoIncrementFiled from " + TMP_CL_FULL_CACHE_INFO ;
+      rc = db.exec( sqlStr2 ) ;
+      var batchRecords = [] ;
+      while ( rc.next() )
+      {
+         batchRecords.push( rc.current().toObj().AutoIncrementFiled ) ;
+
+         if ( batchRecords.length > BATCH_NUM )
+         {
+            dataIndexCheckInfoDefCl.remove( { "AutoIncrementFiled": { "$in": batchRecords } } ) ;
+            batchRecords = [] ;
+         }
+      }
+      if ( batchRecords.length > 0 )
+      {
+         dataIndexCheckInfoDefCl.remove( { "AutoIncrementFiled": { "$in": batchRecords } } ) ;
+         batchRecords = [] ;
+      }
+
+      println( "(" + step + "/" + STEP_NUM + ")End to collect miss index infos, spent time: " +
+               ( (Date.now()) - beginTime )/1000 + "s" ) ;
+      beginTime = Date.now() ;
+      step++ ;
+
+      println( "(" + step + "/" + STEP_NUM + ")Begin to clear miss index infos" ) ;
+      var sqlStr2 = "select * from " + TMP_CL_FULL_DATA_INDEX_CHECK_INFO ;
+      rc = db.exec( sqlStr2 ) ;
+      while ( rc.next() )
+      {
+         var obj = rc.current().toObj() ;
+         var standaloneIdx = false ;
+
+         cataIdxInfo.remove( { "ClFullName": obj.ClFullName, "IndexName": obj.IndexName } ) ;
+
+         if ( obj.UniqueIDCount > 0 )
+         {
+            for ( i in obj.UniqueIDs )
+            {
+               if ( isLocalID( obj.UniqueIDs[i] ) )
+               {
+                  standaloneIdx = true ;
+                  break ;
+               }
+            }
+         }
+
+         if ( standaloneIdx )
+         {
+            obj.UpgradeIndexType = IDX_TYPE_STANDALONE ;
+            noNeedUpgradeIdxInfoCl.insert( obj ) ;
+         }
+         else
+         {
+            obj.UpgradeIndexType = IDX_TYPE_MISSING ;
+            cannotUpgradeIdxInfoCl.insert( obj ) ;
+         }
+      }
+
+      swapTmpClName( TMP_CL_CACHE_INFO, TMP_CL_DATA_INDEX_CHECK_INFO ) ;
+
+      println( "(" + step + "/" + STEP_NUM + ")End to clear miss index infos, spent time: " +
+               ( (Date.now()) - beginTime )/1000 + "s" ) ;
+      step++ ;
+   }
+   catch( e )
+   {
+      if( e instanceof Error )
+      {
+         println( "Failed to check miss indexes, error Stack:\n" + e.stack ) ;
+      }
+      throw e ;
+   }
+}
+
+function checkInvalidIdAndShardIdx()
+{
+   try
+   {
+      var rc = null ;
+      var beginTime = Date.now() ;
+
+      println( "(" + step + "/" + STEP_NUM + ")Begin to check invalid $id and $shard indexes" ) ;
+
+      var tmpCS = db.getCS( TMP_CS_UPGRADE_INDEX ) ;
+      var dataIndexCheckInfoDefCl = tmpCS.getCL( TMP_CL_DATA_INDEX_CHECK_INFO ) ;
+      var cataIdxInfo = tmpCS.getCL( TMP_CL_CATA_INDEX_INFO ) ;
+      var cannotUpgradeIdxInfoCl = tmpCS.getCL( TMP_CL_CANNOT_UPGRADE_INDEX_INFO ) ;
+
+      dataIndexCheckInfoDefCl.update( { "$bit": { "Attribute": { "and": MASK_CLATTR_NOIDIDX } } }, { "IndexName": "$id" } ) ;
+
+      dataIndexCheckInfoDefCl.update( { "$set": { "UpgradeIndexType": IDX_TYPE_INVALID_SHARD } }, { "IndexName": "$shard", "EnsureShardingIndex": false } ) ;
+
+      dataIndexCheckInfoDefCl.update( { "$set": { "UpgradeIndexType": IDX_TYPE_INVALID_ID } }, { "IndexName": "$id", "Attribute": { "$ne": 0 } } ) ;
+
+      rc = dataIndexCheckInfoDefCl.find( { "UpgradeIndexType": { "$in": [ IDX_TYPE_INVALID_SHARD, IDX_TYPE_INVALID_ID ] } } ) ;
+      while ( rc.next() )
+      {
+         var obj = rc.current().toObj() ;
+         dataIndexCheckInfoDefCl.remove( { "ClFullName": obj.ClFullName, "IndexName": obj.IndexName } ) ;
+         cataIdxInfo.remove( { "ClFullName": obj.ClFullName, "IndexName": obj.IndexName } ) ;
+         cannotUpgradeIdxInfoCl.insert( obj ) ;
+      }
+
+      println( "(" + step + "/" + STEP_NUM + ")End to check invalid $id and $shard indexes, spent time: " +
+               ( (Date.now()) - beginTime )/1000 + "s" ) ;
+      step++ ;
+   }
+   catch( e )
+   {
+      if( e instanceof Error )
+      {
+         println( "Failed to check invalid $id and $shard indexes, error Stack:\n" + e.stack ) ;
+      }
+      throw e ;
+   }
+}
+
+function checkCataIndexMetaData()
+{
+   try
+   {
+      var beginTime = Date.now() ;
+
+      println( "(" + step + "/" + STEP_NUM + ")Begin to check index cata meta infos" ) ;
+
+      var tmpCS = db.getCS( TMP_CS_UPGRADE_INDEX ) ;
+      var cacheInfoCl = tmpCS.getCL( TMP_CL_CACHE_INFO ) ;
+
+      var sqlStr1 = "insert into " + TMP_CL_FULL_DATA_INDEX_CHECK_INFO + " select * from (select T1.MainClName,T2.ClFullName, T2.IndexName, T2.IndexDataType from " + TMP_CL_FULL_CATA_CLUSTER_CL_INFO + " as T1 inner join " + TMP_CL_FULL_CATA_INDEX_INFO + " as T2 on T1.ClFullName=T2.ClFullName /*+use_hash()*/) as T3" ;
+      db.execUpdate( sqlStr1 ) ;
+
+      var sqlStr2 = "insert into " + TMP_CL_FULL_CACHE_INFO + " select ClFullName,MainClName,max(IndexDef) as IndexDef,IndexName,max(IndexDataType) as IndexDataType,max(GroupName) as GroupName,max(EnsureShardingIndex) as EnsureShardingIndex,max(ShardingKey) as ShardingKey,max(Attribute) as Attribute,max(DataGroups) as Groups,max(NodeCount) as NodeCount,max(GroupCount) as GroupCount,max(UniqueIDCount) as UniqueIDCount,max(UniqueIDs) as UniqueIDs from " + TMP_CL_FULL_DATA_INDEX_CHECK_INFO + " group by ClFullName,IndexName" ;
+      cacheInfoCl.truncate() ;
+      db.execUpdate( sqlStr2 ) ;
+
+      swapTmpClName( TMP_CL_CACHE_INFO, TMP_CL_DATA_INDEX_CHECK_INFO ) ;
+
+      println( "(" + step + "/" + STEP_NUM + ")End to check index cata meta infos, spent time: " +
+               ( (Date.now()) - beginTime )/1000 + "s" ) ;
+      step++ ;
+   }
+   catch( e )
+   {
+      if( e instanceof Error )
+      {
+         println( "Failed to check index cata meta infos, error Stack:\n" + e.stack ) ;
+      }
+      throw e ;
+   }
+}
+
+function checkCanUpgradeAndStandaloneIdx()
+{
+   try
+   {
+      var rc = null ;
+      var beginTime = Date.now() ;
+      /*
+      IndexDataType != 0 表示编目有元数据
+
+      IndexDataType != 0 and UniqueIDCount = 1,  IDX_TYPE_CONSISTENT
+      IndexDataType != 0 and UniqueIDCount != 1, IDX_TYPE_CAN_UPGRADE
+
+      IndexDataType = 0 表示编目没有元数据
+
+      IndexDataType = 0 and UniqueIDCount = 0,  IDX_TYPE_CAN_UPGRADE
+      IndexDataType = 0 and UniqueIDCount != 0, IDX_TYPE_STANDALONE or IDX_TYPE_CAN_UPGRADE
+      */
+
+      println( "(" + step + "/" + STEP_NUM + ")Begin to check can upgrade indexes and standalone indexes" ) ;
+
+      var tmpCS = db.getCS( TMP_CS_UPGRADE_INDEX ) ;
+      var dataIdxCheckInfoCl = tmpCS.getCL( TMP_CL_DATA_INDEX_CHECK_INFO ) ;
+      var noNeedUpgradeIdxInfoCl = tmpCS.getCL( TMP_CL_NO_NEED_UPGRADE_INDEX_INFO ) ;
+
+      var sqlStr1 = "update " + TMP_CL_FULL_DATA_INDEX_CHECK_INFO + " set UpgradeIndexType='" + IDX_TYPE_CONSISTENT + "' where IndexDataType<>0 and UniqueIDCount=1" ;
+      db.execUpdate( sqlStr1 ) ;
+
+      var sqlStr2 = "select * from " + TMP_CL_FULL_DATA_INDEX_CHECK_INFO + " where IndexDataType=0 and UniqueIDCount<>0" ;
+      rc = db.exec( sqlStr2 ) ;
+      while ( rc.next() )
+      {
+         var obj = rc.current().toObj() ;
+
+         for ( i in obj.UniqueIDs )
+         {
+            if ( isLocalID( obj.UniqueIDs[i] ) )
+            {
+               obj.UpgradeIndexType = IDX_TYPE_STANDALONE ;
+               noNeedUpgradeIdxInfoCl.insert( obj ) ;
+               break ;
+            }
+         }
+      }
+
+      var sqlStr3 = "select * from " + TMP_CL_FULL_NO_NEED_UPGRADE_INDEX_INFO + " where UpgradeIndexType='" + IDX_TYPE_STANDALONE + "'" ;
+      rc = db.exec( sqlStr3 ) ;
+      while ( rc.next() )
+      {
+         var obj = rc.current().toObj() ;
+         dataIdxCheckInfoCl.remove( { "ClFullName": obj.ClFullName, "IndexName": obj.IndexName } ) ;
+      }
+
+      println( "(" + step + "/" + STEP_NUM + ")End to check can upgrade indexes and standalone indexes, spent time: " +
+               ( (Date.now()) - beginTime )/1000 + "s" ) ;
+      step++ ;
+   }
+   catch( e )
+   {
+      if( e instanceof Error )
+      {
+         println( "Failed to check can upgrade indexes and standalone indexes, error Stack:\n" + e.stack ) ;
+      }
+      throw e ;
+   }
+}
+
+function checkClusterClIndexInfo()
+{
+   aggregateIndexInfo() ;
+
+   checkConflictIndex() ;
+
+   checkMissIndex() ;
+
+   checkInvalidIdAndShardIdx() ;
+
+   checkCataIndexMetaData() ;
+
+   checkCanUpgradeAndStandaloneIdx() ;
+}
+
+function checkMainClIndexInfo()
+{
+   try
+   {
+      var beginTime = Date.now() ;
+      var cacheInfoCl = db.getCS( TMP_CS_UPGRADE_INDEX ).getCL( TMP_CL_CACHE_INFO ) ;
+      var mainClInfoCl = db.getCS( TMP_CS_UPGRADE_INDEX ).getCL( TMP_CL_CATA_MAIN_CL_INFO ) ;
+
+      println( "(" + step + "/" + STEP_NUM + ")Begin to check main collection index infos" ) ;
+
+      cacheInfoCl.truncate() ;
+
+      if ( 0 == mainClInfoCl.count() )
+      {
+         println( "(" + step + "/" + STEP_NUM + ")No Main Collections" ) ;
+      }
+      else
+      {
+         var t2SqlStr1 = "select IndexName,EnsureShardingIndex,IndexDef,MainClName,count(ClFullName) as SubCLCount,addtoset(ShardingKey) as SubClShardingKeys from " + TMP_CL_FULL_DATA_INDEX_CHECK_INFO + " group by MainClName,IndexName" ;
+         var t3SqlStr1 = "select T2.IndexName as IndexName,T2.EnsureShardingIndex as EnsureShardingIndex,T2.IndexDef as IndexDef,T2.MainClName as MainClName,T2.SubClShardingKeys as SubClShardingKeys, T2.SubCLCount as SubCLCount from " + TMP_CL_FULL_CATA_MAIN_CL_INFO + " as T1 inner join ( " + t2SqlStr1 + " ) as T2 on T1.Name=T2.MainClName and T1.SubCLCount=T2.SubCLCount" ;
+
+         var sqlStr1 = "insert into " + TMP_CL_FULL_CACHE_INFO + " select T3.EnsureShardingIndex as EnsureShardingIndex,T3.MainClName as ClFullName,T3.SubClShardingKeys as SubClShardingKeys,T3.IndexName as IndexName,T3.IndexDef as IndexDef, count(T3.IndexName) as IndexDataType, T3.SubCLCount as SubCLCount from ( " + t3SqlStr1 + " ) as T3 group by T3.MainClName,T3.IndexName" ;
+         db.execUpdate( sqlStr1 ) ;
+
+         var sqlStr2 = "insert into " + TMP_CL_FULL_CACHE_INFO + " select * from ( select T2.ClFullName, T2.IndexName, T2.IndexDataType from " + TMP_CL_FULL_CATA_MAIN_CL_INFO + " as T1 inner join " + TMP_CL_FULL_CATA_INDEX_INFO + " as T2 on T1.Name=T2.ClFullName /*+use_hash()*/ ) as T3" ;
+         db.execUpdate( sqlStr2 ) ;
+
+         var sqlStr3 = "insert into " + TMP_CL_FULL_MAIN_CL_INDEX_CHECK_INFO + " select ClFullName,IndexName,max(IndexDataType) as IndexDataType,max(EnsureShardingIndex) as EnsureShardingIndex,max(SubClShardingKeys) as SubClShardingKeys,max(IndexDef) as IndexDef,max(SubCLCount) as SubCLCount from " + TMP_CL_FULL_CACHE_INFO + " group by ClFullName,IndexName" ;
+         db.execUpdate( sqlStr3 ) ;
+
+         var sqlStr4 = "delete from " + TMP_CL_FULL_MAIN_CL_INDEX_CHECK_INFO + " where IndexName='$id' or IndexName='$shard'"
+         db.execUpdate( sqlStr4 ) ;
+
+         var sqlStr5 = "update " + TMP_CL_FULL_MAIN_CL_INDEX_CHECK_INFO + " set UpgradeIndexType='" + IDX_TYPE_CONSISTENT + "' where IndexDataType<>1" ;
+         db.execUpdate( sqlStr5 ) ;
+      }
+
+      println( "(" + step + "/" + STEP_NUM + ")End to check main collection index infos, spent time: " +
+               ( (Date.now()) - beginTime )/1000 + "s" ) ;
+      step++ ;
+   }
+   catch( e )
+   {
+      if( e instanceof Error )
+      {
+         println( "Failed to check main collection index infos, error Stack:\n" + e.stack ) ;
+      }
+      throw e ;
+   }
+}
+
+function checkLocalClIndexInfo()
+{
+   try
+   {
+      var beginTime = Date.now() ;
+
+      println( "(" + step + "/" + STEP_NUM + ")Begin to check local collection index inofs" ) ;
+
+      var cannotUpgradeIdxInfoCl = db.getCS( TMP_CS_UPGRADE_INDEX ).getCL( TMP_CL_CANNOT_UPGRADE_INDEX_INFO ) ;
+      var sqlStr = "select * from " + TMP_CL_FULL_LOCAL_CL_INFO ;
+      var rc = db.exec( sqlStr ) ;
+      while ( rc.next() )
+      {
+         var obj = rc.current().toObj() ;
+         var clFullName = obj.ClFullName ;
+         var csName = clFullName.split( "." )[0] ;
+         var clName = clFullName.split( "." )[1] ;
+         var groups = obj.Groups ;
+
+         for ( var i in groups )
+         {
+            var nodeList = groups[i].NodeList ;
+            var groupName = groups[i].GroupName ;
+
+            for ( var j in nodeList )
+            {
+               var arr = nodeList[j].split( ":" ) ;
                var hostname = arr[0] ;
                var svcname = arr[1] ;
                var dataDB = new Sdb( hostname, svcname, USER ) ;
+               var collection = dataDB.getCS( csName ).getCL( clName ) ;
 
-               var collection = dataDB.getCS( csName ).getCL( clShortName ) ;
-
-               var rc = collection.listIndexes() ;
-               while ( rc.next() )
+               var rc1 = collection.listIndexes() ;
+               while ( rc1.next() )
                {
-                  var rcObj = rc.current().toObj() ;
-                  var def = rcObj.IndexDef ;
-                  if ( def == undefined )
-                  {
-                     continue ;
-                  }
-                  rcObj.NodeName = nodeName ;
-                  rcObj.GroupName = groupName ;
-                  rcObj.ClFullName = clFullName ;
-                  batchRecords.push( rcObj ) ;
+                  var indexObj = rc1.current().toObj() ;
 
-                  if ( batchRecords.length > 1000 )
-                  {
-                     tmpCL.insert( batchRecords ) ;
-                     batchRecords = [] ;
-                  }
+                  indexObj.IndexName = indexObj.IndexDef.name ;
+                  indexObj.GroupName = groupName ;
+                  indexObj.ClFullName = clFullName ;
+                  indexObj.NodeName = nodeList[j] ;
+                  indexObj.UpgradeIndexType = IDX_TYPE_LOCAL_IDX ;
+
+                  cannotUpgradeIdxInfoCl.insert( indexObj ) ;
                }
                dataDB.close() ;
             }
          }
       }
 
-      if ( batchRecords.length > 0 )
-      {
-         tmpCL.insert( batchRecords ) ;
-      }
+      println( "(" + step + "/" + STEP_NUM + ")End to check local collection index inofs, spent time: " +
+               ( (Date.now()) - beginTime )/1000 + "s" ) ;
+      step++ ;
    }
    catch( e )
    {
-      println( "Failed to generate snapshot indexes info, rc: " + e ) ;
+      if( e instanceof Error )
+      {
+         println( "Failed to check local collection index infos, error Stack:\n" + e.stack ) ;
+      }
       throw e ;
    }
 }
 
 function check()
 {
-   getNodeInfo() ;
+   checkClusterClIndexInfo() ;
 
-   // clusterCLList formate:
-   // [
-   //   { Collection: 'foo.bar', GroupNameList: ['db1','db2'],
-   //     AutoIndexId: false, EnsureShardingIndex: false }, MainCLName: null
-   //   ...
-   // ]
-   var clusterCLList = [] ;
-   // mainCLList formate:
-   // [
-   //   { Collection: 'foo.maincl', ShardingKey: {a:1},
-   //     SubCLList: ['foo.subcl1',...] },
-   //   ...
-   // ]
-   var mainCLList = [] ;
-   // localCLList formate:
-   // [
-   //   { Collection: 'foo.bar', NodeNameList: ['host1:20000',...] },
-   //   ...
-   // ]
-   var localCLList = [] ;
+   checkMainClIndexInfo() ;
 
-   getCollectionInfo( clusterCLList, mainCLList, localCLList ) ;
-
-   IS_OLD_VERSION_DB = isOldVersion( clusterCLList[0].Collection ) ;
-
-   initUpgradeIndexTmpTables() ;
-
-   generateSnapshotIndexesInfo( clusterCLList ) ;
-
-   for ( var i in clusterCLList )
-   {
-      var cl = clusterCLList[i] ;
-      checkClusterCL( cl.Collection, cl.GroupNameList, cl.AutoIndexId,
-                      cl.EnsureShardingIndex, cl.MainCLName ) ;
-   }
-
-   for ( var i in mainCLList )
-   {
-      var cl = mainCLList[i] ;
-      checkMainCL( cl.Collection, cl.ShardingKey, cl.SubCLList ) ;
-   }
-
-   for ( var i in localCLList )
-   {
-      var cl = localCLList[i] ;
-      checkLocalCL( cl.Collection, cl.NodeNameList ) ;
-   }
+   checkLocalClIndexInfo() ;
 }
 
-function checkClusterCL( clName, groupNameList, autoIdxId, ensureShardingIdx,
-                         mainCLName )
+function pad( s, len )
 {
-   var csName      = clName.split( "." )[0] ;
-   var clShortName = clName.split( "." )[1] ;
-   var collection  = db.getCS( csName ).getCL( clShortName ) ;
-
-   // build cataObjList, format:
-   // [
-   //   { GroupName: "group1", NodeNameList: [ "hostname1:11810", ... ] },
-   //   ...
-   // ]
-   var cataObjList = [] ;
-   for ( var i in groupNameList )
+   var expLen = 0 ;
+   if ( s.length > len )
    {
-      var groupName = groupNameList[i] ;
-      var nodeList = GROUP_NODES_MAP.get( groupName ) ;
-      cataObjList.push( { GroupName: groupName, NodeNameList: nodeList } ) ;
-   }
-
-   var clUnit = new ClusterCLUnit( clName, cataObjList, autoIdxId,
-                                   ensureShardingIdx, mainCLName ) ;
-
-   // loop indexes in all data nodes
-   var rc ;
-   var lastDef = {} ;
-   var lastGroupName = "" ;
-   var hasLast = false ;
-   var nodeObjList = [] ;  // format:
-                           // [
-                           //   { NodeName: "hostname1:11810", UniqueID: 123 },
-                           //   ...
-                           // ]
-
-   if ( !IS_OLD_VERSION_DB )
-   {
-      // loop indexes in catalog
-      rc = collection.listIndexes() ;
-      while ( rc.next() )
-      {
-         var rcObj = rc.current().toObj() ;
-         clUnit.addByCatalog( rcObj.IndexDef ) ;
-      }
-
-      // get indexes from data, sort by IndexDef and GroupName
-      rc = collection.snapshotIndexes( { RawData: true }, {},
-                                          { "IndexDef.name": 1,
-                                             "IndexDef.key": 1,
-                                             "IndexDef.unique": 1,
-                                             "IndexDef.dropDups": 1,
-                                             "IndexDef.enforced": 1,
-                                             "IndexDef.NotNull": 1,
-                                             "IndexDef.NotArray": 1,
-                                             "IndexDef.Global": 1,
-                                             "GroupName": 1 } ) ;
+      expLen = s.length ;
    }
    else
    {
-      var cl = db.getCS( UPGRADE_INDEX_TMP_CS_NAME ).getCL( DATA_INDEX_INFO_TMP_CL_NAME ) ;
-      rc = cl.find( { "ClFullName": clName } ).sort( { "IndexDef.name": 1,
-                                                       "IndexDef.key": 1,
-                                                       "IndexDef.unique": 1,
-                                                       "IndexDef.dropDups": 1,
-                                                       "IndexDef.enforced": 1,
-                                                       "IndexDef.NotNull": 1,
-                                                       "IndexDef.NotArray": 1,
-                                                       "IndexDef.Global": 1,
-                                                       "GroupName": 1 } ) ;
+      expLen = len ;
    }
-   while ( rc.next() )
-   {
-      var rcObj = rc.current().toObj() ;
-      var def = rcObj.IndexDef ;
-      if ( def == undefined )
-      {
-         continue ;
-      }
-      var uniqueID = def.UniqueID ;
-      var groupname = rcObj.GroupName ;
-      var nodename = rcObj.NodeName ;
-      var nodeObj = { NodeName: nodename, UniqueID: uniqueID } ;
-
-      if ( !hasLast )
-      {
-         lastDef = def ;
-         lastGroupName = groupname ;
-         hasLast = true ;
-         nodeObjList.push( nodeObj ) ;
-         continue ;
-      }
-      if ( isEqualIdx( lastDef, def ) )
-      {
-         if ( lastGroupName == groupname )
-         {
-            nodeObjList.push( nodeObj ) ;
-         }
-         else
-         {
-            clUnit.setByData( lastDef, lastGroupName, nodeObjList ) ;
-            nodeObjList = [] ;
-            nodeObjList.push( nodeObj ) ;
-            lastGroupName = groupname ;
-         }
-      }
-      else
-      {
-         clUnit.setByData( lastDef, lastGroupName, nodeObjList ) ;
-         nodeObjList = [] ;
-         nodeObjList.push( nodeObj ) ;
-         lastDef = def ;
-         lastGroupName = groupname ;
-      }
-   }
-   if ( nodeObjList.length > 0 )
-   {
-      clUnit.setByData( def, groupname, nodeObjList ) ;
-   }
-
-   // format
-   clUnit.format( NONEED_UPGRADE_FMT,
-                  CAN_UPGRADE_FMT,
-                  CANNOT_UPGRADE_FMT,
-                  DETAIL_FMT ) ;
-
-   if ( clUnit.canUpgradeCnt() > 0 )
-   {
-      UPGRADE_CLUNIT_LIST.push( clUnit ) ;
-   }
-   if ( clUnit.mainCLName() != null )
-   {
-      SUBCLUNIT_LIST.push( clUnit ) ;
-   }
+   var buf = "                                                                              " + s ;
+   return buf.substr( buf.length - expLen ) ;
 }
 
-function checkMainCL( clName, shardingKey, subCLNameList )
+function writeCheckInfo( checkInfo, printRightnow )
 {
-   if ( subCLNameList.length == 0 )
+   if ( 0 != checkInfo.length )
    {
-      // it is empty main-collection
-      return ;
+      checkInfos += checkInfo ;
+      infoCount++ ;
    }
 
-   // find the sub-collections, and find the sub-collections with
-   // least number of indexes
-   var subCLUnitList = [] ;
-   var posOfLeastIdxCL = 0 ;
-   for ( var i in SUBCLUNIT_LIST )
+   if ( printRightnow )
    {
-      var clUnit = SUBCLUNIT_LIST[i] ;
-      if ( clUnit.mainCLName() == clName )
-      {
-         subCLUnitList.push( clUnit ) ;
-         if ( clUnit.idxUnitList.length <
-              subCLUnitList[posOfLeastIdxCL].idxUnitList.length )
-         {
-            // mark the position of the sub-collection with least
-            // number of indexes in subCLUnitList
-            posOfLeastIdxCL = subCLUnitList.length - 1 ;
-         }
-      }
-      if ( subCLUnitList.length == subCLNameList.length )
-      {
-         // found out all sub-collection
-         break ;
-      }
+      writeFile( CHECK_INFO_FILE_PATH, checkInfos, false ) ;
+      infoCount = 0 ;
+      checkInfos = "" ;
    }
-
-   if ( subCLUnitList.length < subCLNameList.length )
+   else
    {
-      // some sub-collections are missing
-      return ;
-   }
-
-   var mainCLUnit = new MainCLUnit( clName, shardingKey ) ;
-
-   if ( !IS_OLD_VERSION_DB )
-   {
-      // loop indexes in catalog
-      var csName      = clName.split( "." )[0] ;
-      var clShortName = clName.split( "." )[1] ;
-      var collection  = db.getCS( csName ).getCL( clShortName ) ;
-      var rc = collection.listIndexes() ;
-      while ( rc.next() )
+      if ( infoCount >= PRINT_BATCH_NUM )
       {
-         mainCLUnit.addByCatalog( rc.current().toObj().IndexDef ) ;
-      }
-   }
-
-   // loop the sub-collection's every indexes
-   var leastIdxCLUnit = subCLUnitList[posOfLeastIdxCL] ;
-   for ( var i in leastIdxCLUnit.idxUnitList )
-   {
-      var idxUnit = leastIdxCLUnit.idxUnitList[i] ;
-      var idxDef = idxUnit.getIdxDef() ;
-      var allSubCLHas = true ;
-
-      if ( idxUnit.getIdxName() == '$id' || idxUnit.getIdxName()  == '$shard' )
-      {
-         // main-collection doesn't have system index
-         continue ;
-      }
-      if ( idxUnit.getUpgradeType() != IDX_TYPE_CAN_UPGRADE &&
-           idxUnit.getUpgradeType() != IDX_TYPE_CONSISTENT )
-      {
-         // only check consistent index and index can be upgrade to consistent
-         continue ;
-      }
-
-      // loop every sub-collection, find the same index
-      for ( var j in subCLUnitList )
-      {
-         var clUnit = subCLUnitList[j] ;
-         var foundOut = false ;
-         if ( j == posOfLeastIdxCL )
-         {
-            foundOut = true ;
-            continue ;
-         }
-         for ( var k in clUnit.idxUnitList )
-         {
-            var idxUnit1 = clUnit.idxUnitList[k] ;
-            if ( ( idxUnit1.getUpgradeType() == IDX_TYPE_CAN_UPGRADE ||
-                   idxUnit1.getUpgradeType() == IDX_TYPE_CONSISTENT ) &&
-                 idxUnit1.is( idxDef ) )
-            {
-               foundOut = true ;
-               break ;
-            }
-         }
-         if ( !foundOut )
-         {
-            // this sub-collection doesn't find out the index
-            allSubCLHas = false ;
-            break ;
-         }
-      }
-      if ( allSubCLHas )
-      {
-         mainCLUnit.setBySubcl( idxDef ) ;
-      }
-   }
-
-   if ( mainCLUnit.canUpgradeCnt() > 0 )
-   {
-      // format
-      for ( var i in mainCLUnit.canUpgradeIdxDefList )
-      {
-         var def = mainCLUnit.canUpgradeIdxDefList[i] ;
-         CAN_UPGRADE_FMT.push( clName,
-                               def.name,
-                               JSON.stringify( def.key ),
-                               getIdxAttrDesc( def ),
-                               "Consistent" ) ;
-      }
-
-      UPGRADE_MAINCLUNIT_LIST.push( mainCLUnit ) ;
-   }
-   // format: no need to upgrade index
-   for ( var i in mainCLUnit.catIdxDefList )
-   {
-      var def = mainCLUnit.catIdxDefList[i] ;
-      NONEED_UPGRADE_FMT.push( clName, def.name, "Consistent" ) ;
-   }
-
-}
-
-function checkLocalCL( clName, nodeNameList )
-{
-   var csName      = clName.split( "." )[0] ;
-   var clShortName = clName.split( "." )[1] ;
-
-   var clUnit = new LocalCLUnit( clName, nodeNameList ) ;
-
-   // get every data-node's indexes
-   for ( var i in nodeNameList )
-   {
-      var arr = nodeNameList[i].split( ":" ) ;
-      var hostname = arr[0] ;
-      var svcname = arr[1] ;
-      var dataDB = new Sdb( hostname, svcname, USER ) ;
-
-      var collection = dataDB.getCS( csName ).getCL( clShortName ) ;
-
-      var rc = collection.listIndexes() ;
-      while ( rc.next() )
-      {
-         var rcObj = rc.current().toObj() ;
-         clUnit.set( rcObj.IndexDef ) ;
-      }
-   }
-
-   clUnit.format( CANNOT_UPGRADE_FMT, DETAIL_FMT ) ;
-}
-
-function execute()
-{
-   upgradeSysCollection() ;
-
-   for ( var i in UPGRADE_CLUNIT_LIST )
-   {
-      var clUnit = UPGRADE_CLUNIT_LIST[i] ;
-      for ( var j in clUnit.idxUnitList )
-      {
-         var idxUnit = clUnit.idxUnitList[j] ;
-         if ( idxUnit.getUpgradeType() == IDX_TYPE_CAN_UPGRADE )
-         {
-            upgradeIdx( clUnit._clName, idxUnit.getIdxDef() ) ;
-         }
-      }
-   }
-
-   for ( var i in UPGRADE_MAINCLUNIT_LIST )
-   {
-      var clUnit = UPGRADE_MAINCLUNIT_LIST[i] ;
-      for ( var j in clUnit.canUpgradeIdxDefList )
-      {
-         upgradeIdx( clUnit._clName, clUnit.canUpgradeIdxDefList[j] ) ;
+         writeFile( CHECK_INFO_FILE_PATH, checkInfos, false ) ;
+         infoCount = 0 ;
+         checkInfos = "" ;
       }
    }
 }
 
-function isCatalogUpgrade()
+function writeUpgradeJsCode( filePath, jsCode, printRightnow )
 {
-  /*
-   * check catalog node has been upgrade or not
-   */
-   // loop every node
-   for ( var j in CATALOG_NODE_LIST )
+   if ( 0 != jsCode.length )
    {
-      var arr = CATALOG_NODE_LIST[j].split( ":" ) ;
-      var hostname = arr[0] ;
-      var svcname = arr[1] ;
-      var dataDb = new Sdb( hostname, svcname, USER ) ;
-
-      // loop every system collection
-      var rc1 = dataDb.list( SDB_LIST_COLLECTIONS ) ;
-      while( rc1.next() )
-      {
-         var clFullName  = rc1.current().toObj().Name ;
-         var csName      = clFullName.split( "." )[0] ;
-         var clShortName = clFullName.split( "." )[1] ;
-         var collection  = dataDb.getCS( csName ).getCL( clShortName ) ;
-
-         // loop every index
-         var rc2 = collection.listIndexes() ;
-         while ( rc2.next() )
-         {
-            var def = rc2.current().toObj().IndexDef ;
-            if ( def.UniqueID == undefined )
-            {
-               return false ;
-            }
-
-         }
-      }
+      jsCodes += jsCode + "\n" ;
+      codeCount++ ;
    }
 
-   return true ;
-}
-
-function upgradeSysCollectionAtNode( nodeName )
-{
-   var arr = nodeName.split( ":" ) ;
-   var hostname = arr[0] ;
-   var svcname = arr[1] ;
-   var dataDb = new Sdb( hostname, svcname, USER ) ;
-
-   // loop every system collection
-   var rc1 = dataDb.list( SDB_LIST_COLLECTIONS ) ;
-   while( rc1.next() )
+   if ( printRightnow )
    {
-      var clFullName  = rc1.current().toObj().Name ;
-
-      // only upgrade system collection
-      if ( clFullName.substr(0,3) != "SYS" )
-      {
-         continue ;
-      }
-
-      // get colleciton
-      var csName      = clFullName.split( "." )[0] ;
-      var clShortName = clFullName.split( "." )[1] ;
-      var collection  = dataDb.getCS( csName ).getCL( clShortName ) ;
-
-      // loop every index
-      var rc2 = collection.listIndexes() ;
-      while ( rc2.next() )
-      {
-         var def = rc2.current().toObj().IndexDef ;
-         if ( def.UniqueID == undefined )
-         {
-            var attr = getIdxAttr( def ) ;
-            try
-            {
-               if ( def.name == "$id" )
-               {
-                  collection.createIdIndex() ;
-               }
-               else
-               {
-                  collection.createIndex( def.name, def.key, attr ) ;
-               }
-            }
-            catch( e )
-            {
-               if ( e != -247 )
-               {
-                  println( "Failed to upgrade index: nodeName[" +
-                           nodeName + "] clName[" + clFullName +
-                           "] indexName[" + def.name + "] rc: " + e ) ;
-               }
-            }
-         }
-
-      }
+      writeFile( filePath, jsCodes, false ) ;
+      codeCount = 0 ;
+      jsCodes = "" ;
    }
-   dataDb.close() ;
-}
-
-function upgradeSysCollection()
-{
-   // If catalog has been upgraded, means all groups's system collection
-   // has been upgraded
-   if ( isCatalogUpgrade() )
+   else
    {
-      return ;
-   }
-
-   // upgrade data node's system collection's index
-   var nodeListList = GROUP_NODES_MAP.getValues() ;
-   for ( var i in nodeListList )
-   {
-      // loop every node
-      var nodeList = nodeListList[i] ;
-      for ( var j in nodeList )
+      if ( codeCount >= WRITE_JS_FILE_BATCH_NUM )
       {
-         var nodeName = nodeList[j] ;
-         upgradeSysCollectionAtNode( nodeName ) ;
+         writeFile( filePath, jsCodes, false ) ;
+         codeCount = 0 ;
+         jsCodes = "" ;
       }
-   }
-
-   // upgrade data node's system collection's index
-   for ( var j in CATALOG_NODE_LIST )
-   {
-      var nodeName = CATALOG_NODE_LIST[j] ;
-      upgradeSysCollectionAtNode( nodeName ) ;
    }
 }
 
-function upgradeIdx( clName, idxDef )
+function getMaxNoNeedClFullNameLength( dataIdxCheckInfoCl, mainIdxCheckInfoCl, noNeedUpgradeIdxInfoCl )
 {
-   var csName = clName.split( "." )[0] ;
-   var clShortName = clName.split( "." )[1] ;
-   var errCode = 0 ;
-
-   var collection = db.getCS( csName ).getCL( clShortName ) ;
-
    try
    {
-      if ( idxDef.name == "$id" )
+      var rc = null ;
+      var len1 = 0 ;
+      var len2 = 0 ;
+      var len3 = 0 ;
+      var maxLength = 0 ;
+
+      rc = dataIdxCheckInfoCl.find( { "UpgradeIndexType": "Consistent" }, { "ClFullName": { "$strlen": 1 }, "_id": 1 } ).sort( { "ClFullName": -1 } ).limit(1) ;
+      len1 = rc.next() ? rc.current().toObj().ClFullName : 0 ;
+
+      rc = mainIdxCheckInfoCl.find( { "UpgradeIndexType": "Consistent" }, { "ClFullName": { "$strlen": 1 }, "_id": 1 } ).sort( { "ClFullName": -1 } ).limit(1) ;
+      len2 = rc.next() ? rc.current().toObj().ClFullName : 0 ;
+
+      rc = noNeedUpgradeIdxInfoCl.find( {}, { "ClFullName": { "$strlen": 1 }, "_id": 1 } ).sort( { "ClFullName": -1 } ).limit(1) ;
+      len3 = rc.next() ? rc.current().toObj().ClFullName : 0 ;
+
+      maxLength = Math.max( len1, len2, len3 ) ;
+
+      if ( maxLength < FIELD_COLLECTION.length )
       {
-         collection.createIdIndex() ;
+         maxLength = FIELD_COLLECTION.length ;
       }
-      else if ( idxDef.name == "$shard" )
+      else if ( maxLength > MAX_CLFULLNAME_LENGTH )
       {
-         collection.enableSharding( { ShardingKey: idxDef.key } ) ;
+         maxLength = MAX_CLFULLNAME_LENGTH ;
       }
-      else
-      {
-         collection.createIndex( idxDef.name, idxDef.key,
-                                 getIdxAttr( idxDef ) ) ;
-      }
+
+      return maxLength ;
    }
    catch( e )
    {
-      if ( e != -247 )
+      if( e instanceof Error )
       {
-         errCode = e ;
+         println( "Failed to get cl fullname length, error Stack:\n" + e.stack ) ;
       }
+      throw e ;
    }
-
-   UPGRADE_RESULT_FMT.push( clName, idxDef.name, errCode ) ;
 }
 
-function isEqualIdx( def1, def2 )
+function getMaxNoNeedIndexNameLength( dataIdxCheckInfoCl, mainIdxCheckInfoCl, noNeedUpgradeIdxInfoCl )
 {
-   delete def1._id ;
-   delete def2._id ;
-   delete def1.UniqueID ;
-   delete def2.UniqueID ;
-   delete def1.CreateTime ;  // v5.0.3 has this field
-   delete def2.CreateTime ;  // v5.0.3 has this field
-   delete def1.RebuildTime ; // v5.0.3 has this field
-   delete def2.RebuildTime ; // v5.0.3 has this field
-   delete def1.Standalone ;
-   delete def2.Standalone ;
-   return isEqual( def1, def2 )
-}
-
-function isConflictIdx( def1, def2 )
-{
-   if ( isEqual( def1.name, def2.name ) )
+   try
    {
-      return true ;
-   }
-   return compareIndexDef( def1, def2 ) ;
-}
+      var rc = null ;
+      var len1 = 0 ;
+      var len2 = 0 ;
+      var len3 = 0 ;
+      var maxLength = 0 ;
 
-function isObjInclude( obj, subObj )
-{
-   for ( var i in subObj )
-   {
-      if ( i in obj )
+      rc = dataIdxCheckInfoCl.find( { "UpgradeIndexType": "Consistent" }, { "IndexName": { "$strlen": 1 }, "_id": 1 } ).sort( { "IndexName": -1 } ).limit(1) ;
+      len1 = rc.next() ? rc.current().toObj().IndexName : 0 ;
+
+      rc = mainIdxCheckInfoCl.find( { "UpgradeIndexType": "Consistent" }, { "IndexName": { "$strlen": 1 }, "_id": 1 } ).sort( { "IndexName": -1 } ).limit(1) ;
+      len2 = rc.next() ? rc.current().toObj().IndexName : 0 ;
+
+      rc = noNeedUpgradeIdxInfoCl.find( {}, { "IndexName": { "$strlen": 1 }, "_id": 1 } ).sort( { "IndexName": -1 } ).limit(1) ;
+      len3 = rc.next() ? rc.current().toObj().IndexName : 0 ;
+
+      maxLength = Math.max( len1, len2, len3 ) ;
+
+      if ( maxLength < FIELD_INDEXNAME.length )
       {
-         // include
+         maxLength = FIELD_INDEXNAME.length ;
       }
-      else
+      else if ( maxLength > FIELD_INDEXNAME )
       {
-         return false ;
+         maxLength = FIELD_INDEXNAME ;
       }
+
+      return maxLength ;
    }
-   return true ;
+   catch( e )
+   {
+      if( e instanceof Error )
+      {
+         println( "Failed to get index name length, error Stack:\n" + e.stack ) ;
+      }
+      throw e ;
+   }
 }
 
-function getIdxAttr( idxDef )
+function writeNoNeedUpgradeIdxReport( noNeedIdxCount, dataIdxCheckInfoCl, mainIdxCheckInfoCl, noNeedUpgradeIdxInfoCl )
 {
-   var attr = {} ;
-   if ( idxDef.unique )
+   try
    {
-      attr.unique = true ;
-   }
-   if ( idxDef.enforced )
-   {
-      attr.enforced = true ;
-   }
-   if ( idxDef.NotNull )
-   {
-      attr.NotNull = true ;
-   }
-   if ( idxDef.NotArray )
-   {
-      attr.NotArray = true ;
-   }
-   if ( idxDef.Global )
-   {
-      attr.Global = true ;
-   }
+      var rc = null ;
+      var id = 1 ;
+      var beginTime = Date.now() ;
+      var printProgressCount = _PRINT_PROGRESS_COUNT ;
+      var tmpNum = noNeedIdxCount/printProgressCount ;
+      tmpNum = tmpNum > 1 ? tmpNum : 1 ;
+      var aProgressCollectClNum = tmpNum ;
 
-   return attr ;
+      println( "(" + step + "/" + STEP_NUM + ")Begin to write no need upgrade index infos" ) ;
+      println( "(" + step + "/" + STEP_NUM + ")No Need Upgrade Indexes Count: " + noNeedIdxCount ) ;
+      // 每完成四十分之一打印一个 #
+      println( "Writing\n0% ______________ 50% ______________ 100%" ) ;
+
+      var maxClFullNameLength = getMaxNoNeedClFullNameLength( dataIdxCheckInfoCl,
+                                                              mainIdxCheckInfoCl,
+                                                              noNeedUpgradeIdxInfoCl ) ;
+      var maxIndexNameLength = getMaxNoNeedIndexNameLength( dataIdxCheckInfoCl,
+                                                            mainIdxCheckInfoCl,
+                                                            noNeedUpgradeIdxInfoCl ) ;
+
+      var idLen = ( noNeedIdxCount + "" ).length ;
+      idLen = Math.max( idLen, FIELD_ID.length + 1 ) ;
+
+      writeCheckInfo( "===================== Check Result ( No Need to Upgrade ) ======================\n" +
+                      pad( FIELD_ID, idLen ) + " " +
+                      pad( FIELD_COLLECTION, maxClFullNameLength ) + " " +
+                      pad( FIELD_INDEXNAME, maxIndexNameLength ) + " " +
+                      pad( FIELD_INDEXTYPE, NO_NEED_MAX_INDEX_TYPE_LENGTH ) + "\n", false ) ;
+
+      rc = dataIdxCheckInfoCl.find( { "UpgradeIndexType": IDX_TYPE_CONSISTENT } ).sort( { "ClFullName": 1 } ) ;
+      while ( rc.next() )
+      {
+         var obj = rc.current().toObj() ;
+         writeCheckInfo( pad( id, idLen ) + " " +
+                         pad( obj.ClFullName, maxClFullNameLength ) + " " +
+                         pad( obj.IndexName, maxIndexNameLength ) + " " +
+                         pad( IDX_TYPE_CONSISTENT, NO_NEED_MAX_INDEX_TYPE_LENGTH ) + "\n", false ) ;
+         id++ ;
+         while ( id >= tmpNum && 0 != printProgressCount )
+         {
+            print( "#" ) ;
+            tmpNum += aProgressCollectClNum ;
+            printProgressCount-- ;
+         }
+      }
+
+      rc = mainIdxCheckInfoCl.find( { "UpgradeIndexType": IDX_TYPE_CONSISTENT } ).sort( { "ClFullName": 1 } ) ;
+      while ( rc.next() )
+      {
+         var obj = rc.current().toObj() ;
+         writeCheckInfo( pad( id, idLen ) + " " +
+                         pad( obj.ClFullName, maxClFullNameLength ) + " " +
+                         pad( obj.IndexName, maxIndexNameLength ) + " " +
+                         pad( IDX_TYPE_CONSISTENT, NO_NEED_MAX_INDEX_TYPE_LENGTH ) + "\n", false ) ;
+         id++ ;
+         while ( id >= tmpNum && 0 != printProgressCount )
+         {
+            print( "#" ) ;
+            tmpNum += aProgressCollectClNum ;
+            printProgressCount-- ;
+         }
+      }
+
+      rc = noNeedUpgradeIdxInfoCl.find().sort( { "ClFullName": 1 } ) ;
+      while ( rc.next() )
+      {
+         var obj = rc.current().toObj() ;
+         writeCheckInfo( pad( id, idLen ) + " " +
+                         pad( obj.ClFullName, maxClFullNameLength ) + " " +
+                         pad( obj.IndexName, maxIndexNameLength ) + " " +
+                         pad( IDX_TYPE_STANDALONE, NO_NEED_MAX_INDEX_TYPE_LENGTH ) + "\n", false ) ;
+         id++ ;
+         while ( id >= tmpNum && 0 != printProgressCount )
+         {
+            print( "#" ) ;
+            tmpNum += aProgressCollectClNum ;
+            printProgressCount-- ;
+         }
+      }
+
+      writeCheckInfo( "\n", true ) ;
+
+      for ( var i = 0 ; i < printProgressCount ; i++ )
+      {
+         print( "#" ) ;
+      }
+      print( "\n" ) ;
+
+      println( "(" + step + "/" + STEP_NUM + ")End to write no need upgrade index infos, spent time: " +
+               ( (Date.now()) - beginTime )/1000 + "s" ) ;
+      step++ ;
+   }
+   catch( e )
+   {
+      if( e instanceof Error )
+      {
+         println( "Failed to write no need upgrade index infos, error Stack:\n" + e.stack ) ;
+      }
+      throw e ;
+   }
 }
 
 function getIdxAttrDesc( idxDef )
@@ -1099,10 +2091,6 @@ function getIdxAttrDesc( idxDef )
    {
       attr += "|NotArray" ;
    }
-   if ( idxDef.Global )
-   {
-      attr += "|Global" ;
-   }
 
    if ( attr.length > 0 )
    {
@@ -1114,1209 +2102,1454 @@ function getIdxAttrDesc( idxDef )
    }
 }
 
-function NoNeedUpgradeFormator()
+function getIdxAttr( idxDef )
 {
-   this._id = 0 ;
-   this._clNameList = [] ;
-   this._idxNameList = [] ;
-   this._idxTypeList = [] ;
-   this._maxCLLen = 0 ;
-   this._maxIdxLen = 0 ;
-   this._maxTypeLen = 0 ;
-   this.push = function( collection, idxName, idxType )
+   var attr = {} ;
+   if ( idxDef.unique )
    {
-      this._id++ ;
-      this._clNameList.push( collection ) ;
-      this._idxNameList.push( idxName ) ;
-      this._idxTypeList.push( idxType ) ;
-      this._maxCLLen   = Math.max( collection.length, this._maxCLLen ) ;
-      this._maxIdxLen  = Math.max( idxName.length,    this._maxIdxLen ) ;
-      this._maxTypeLen = Math.max( idxType.length,    this._maxTypeLen ) ;
-      return this._id ;
+      attr.unique = true ;
    }
-   this.count = function()
+   if ( idxDef.enforced )
    {
-      return this._id ;
+      attr.enforced = true ;
    }
-   this.print = function()
+   if ( idxDef.NotNull )
    {
-      // get pad length
-      var idLen = Math.max( this._id.toString().length, FIELD_ID.length + 1 ) ;
-      var clLen = Math.max( this._maxCLLen, FIELD_COLLECTION.length + 5 ) ;
-      clLen = Math.min( clLen, 20 ) ;
-      var idxLen = Math.max( this._maxIdxLen, FIELD_INDEXNAME.length + 5 ) ;
-      idxLen = Math.min( idxLen, 20 ) ;
-      var typeLen = Math.max( this._maxTypeLen, FIELD_INDEXTYPE.length + 3 ) ;
-      typeLen = Math.min( typeLen, 20 ) ;
-      // format
-      var str = "===================== Check Result ( No Need to Upgrade ) ======================\n" +
-                pad( FIELD_ID,         idLen )   + " " +
-                pad( FIELD_COLLECTION, clLen )   + " " +
-                pad( FIELD_INDEXNAME,  idxLen )  + " : " +
-                pad( FIELD_INDEXTYPE,  typeLen ) + "\n" ;
-      for ( var i = 0 ; i < this._id ; i++ )
-      {
-         str += pad( i + 1,                idLen )   + " " +
-                pad( this._clNameList[i],  clLen )   + " " +
-                pad( this._idxNameList[i], idxLen )  + " : " +
-                pad( this._idxTypeList[i], typeLen ) + "\n" ;
-      }
-      println( str ) ;
+      attr.NotNull = true ;
    }
+   if ( idxDef.NotArray )
+   {
+      attr.NotArray = true ;
+   }
+
+   return attr ;
 }
 
-function CanUpgradeFormator()
+function generateCreateIdxJsCodeWithoutSpentTime( clFullName, indexName, idxDef )
 {
-   this._id = 0 ;
-   this._clNameList = [] ;
-   this._idxNameList = [] ;
-   this._idxKeyList = [] ;
-   this._idxAttrList = [] ;
-   this._idxTypeList = [] ;
-   this._maxCLLen = 0 ;
-   this._maxNameLen = 0 ;
-   this._maxKeyLen = 0 ;
-   this._maxAttrLen = 0 ;
-   this._maxTypeLen = 0 ;
-   this.push = function( collection, idxName, keyStr, attrStr, idxType )
+   try
    {
-      this._id++ ;
-      this._clNameList.push( collection ) ;
-      this._idxNameList.push( idxName ) ;
-      this._idxKeyList.push( keyStr ) ;
-      this._idxAttrList.push( attrStr ) ;
-      this._idxTypeList.push( idxType ) ;
-      this._maxCLLen   = Math.max( collection.length, this._maxCLLen ) ;
-      this._maxNameLen = Math.max( idxName.length,    this._maxNameLen ) ;
-      this._maxKeyLen  = Math.max( keyStr.length,     this._maxKeyLen ) ;
-      this._maxAttrLen = Math.max( attrStr.length,    this._maxAttrLen ) ;
-      this._maxTypeLen = Math.max( idxType.length,    this._maxTypeLen ) ;
-      return this._id ;
-   }
-   this.count = function()
-   {
-      return this._id ;
-   }
-   this.print = function()
-   {
-      // get pad length
-      var idLen = Math.max( this._id.toString().length, FIELD_ID.length + 1 ) ;
-      var clLen = Math.max( this._maxCLLen, FIELD_COLLECTION.length + 5 ) ;
-      clLen = Math.min( clLen, 20 ) ;
-      var nameLen = Math.max( this._maxNameLen, FIELD_INDEXNAME.length + 5 ) ;
-      nameLen = Math.min( nameLen, 20 ) ;
-      var keyLen = Math.max( this._maxKeyLen, FIELD_INDEXKEY.length + 5 ) ;
-      keyLen = Math.min( keyLen, 20 ) ;
-      var attrLen = Math.max( this._maxAttrLen, FIELD_INDEXATTR.length + 3 ) ;
-      attrLen = Math.min( attrLen, 24 ) ;
-      var typeLen = Math.max( this._maxTypeLen, FIELD_INDEXTYPE.length + 3 ) ;
-      typeLen = Math.min( typeLen, 20 ) ;
-      // format
-      var str = "===================== Check Result ( Can be Upgraded ) =========================\n" +
-                pad( FIELD_ID,         idLen )   + " " +
-                pad( FIELD_COLLECTION, clLen )   + " " +
-                pad( FIELD_INDEXNAME,  nameLen ) + " : " +
-                pad( FIELD_INDEXKEY,   keyLen )  + " " +
-                pad( FIELD_INDEXATTR,  attrLen ) + " " +
-                pad( FIELD_INDEXTYPE,  typeLen ) + "\n" ;
-      for ( var i = 0 ; i < this._id ; i++ )
-      {
-         str += pad( i + 1,                idLen )   + " " +
-                pad( this._clNameList[i],  clLen )   + " " +
-                pad( this._idxNameList[i], nameLen ) + " : " +
-                pad( this._idxKeyList[i],  keyLen )  + " " +
-                pad( this._idxAttrList[i], attrLen ) + " " +
-                pad( this._idxTypeList[i], typeLen ) + "\n" ;
-      }
-      println( str ) ;
-   }
-}
+      var code = "" ;
 
-function CannotUpgradeFormator()
-{
-   this._id = 0 ;
-   this._clNameList = [] ;
-   this._idxNameList = [] ;
-   this._idxKeyList = [] ;
-   this._idxAttrList = [] ;
-   this._reasonList = [] ;
-   this._maxCLLen = 0 ;
-   this._maxNameLen = 0 ;
-   this._maxKeyLen = 0 ;
-   this._maxAttrLen = 0 ;
-   this._maxReasonLen = 0 ;
-   this.push = function( collection, idxName, keyStr, attrStr, reason )
-   {
-      this._id++ ;
-      this._clNameList.push( collection ) ;
-      this._idxNameList.push( idxName ) ;
-      this._idxKeyList.push( keyStr ) ;
-      this._idxAttrList.push( attrStr ) ;
-      this._reasonList.push( reason ) ;
-      this._maxCLLen     = Math.max( collection.length, this._maxCLLen ) ;
-      this._maxNameLen   = Math.max( idxName.length,    this._maxNameLen ) ;
-      this._maxKeyLen    = Math.max( keyStr.length,     this._maxKeyLen ) ;
-      this._maxAttrLen   = Math.max( attrStr.length,    this._maxAttrLen ) ;
-      this._maxReasonLen = Math.max( reason.length,     this._maxReasonLen ) ;
-      return this._id ;
-   }
-   this.count = function()
-   {
-      return this._id ;
-   }
-   this.print = function()
-   {
-      // get pad length
-      var idLen = Math.max( this._id.toString().length, FIELD_ID.length + 1 ) ;
-      var clLen = Math.max( this._maxCLLen, FIELD_COLLECTION.length + 5 ) ;
-      clLen = Math.min( clLen, 20 ) ;
-      var nameLen = Math.max( this._maxNameLen, FIELD_INDEXNAME.length + 5 ) ;
-      nameLen = Math.min( nameLen, 20 ) ;
-      var keyLen = Math.max( this._maxKeyLen, FIELD_INDEXKEY.length + 5 ) ;
-      keyLen = Math.min( keyLen, 20 ) ;
-      var attrLen = Math.max( this._maxAttrLen, FIELD_INDEXATTR.length + 3 ) ;
-      attrLen = Math.min( attrLen, 24 ) ;
-      var reaLen = Math.max( this._maxReasonLen, FIELD_REASON.length + 5 ) ;
-      reaLen = Math.min( reaLen, 20 ) ;
-      // format
-      var str = "===================== Check Result ( Cannot be Upgraded ) ======================\n" +
-                pad( FIELD_ID,         idLen )   + " " +
-                pad( FIELD_COLLECTION, clLen )   + " " +
-                pad( FIELD_INDEXNAME,  nameLen ) + " : " +
-                pad( FIELD_INDEXKEY,   keyLen )  + " " +
-                pad( FIELD_INDEXATTR,  attrLen ) + " " +
-                pad( FIELD_REASON,     reaLen ) + "\n" ;
-      for ( var i = 0 ; i < this._id ; i++ )
+      if ( indexName == "$id" )
       {
-         str += pad( i + 1,                idLen )   + " " +
-                pad( this._clNameList[i],  clLen )   + " " +
-                pad( this._idxNameList[i], nameLen ) + " : " +
-                pad( this._idxKeyList[i],  keyLen )  + " " +
-                pad( this._idxAttrList[i], attrLen ) + " " +
-                pad( this._reasonList[i],  reaLen )  + "\n" ;
-      }
-      println( str ) ;
-   }
-}
-
-function DetailFormator()
-{
-   this._str = "" ;
-   this.pushMissing = function ( id, idxUnit )
-   {
-      // get max length
-      var maxGroupLen = 0 ;
-      var maxNodeLen = 0 ;
-      for ( var i in idxUnit.groupUnitList )
-      {
-         var gUnit = idxUnit.groupUnitList[i] ;
-         maxGroupLen = Math.max( gUnit.groupName.length, maxGroupLen ) ;
-         for ( var j in gUnit.nodeNameList )
+         if ( supportOnlyUpgradeMeta )
          {
-            maxNodeLen = Math.max( gUnit.nodeNameList[j].length, maxNodeLen ) ;
+            code = "db." + clFullName +".createIdIndex( { 'OnlyUpgradeMeta': true } )\n" ;
+         }
+         else
+         {
+            code = "db." + clFullName +".createIdIndex()\n" ;
          }
       }
-      // get pad length
-      var groupLen = Math.max( maxGroupLen, FIELD_GROUPNAME.length + 1 ) ;
-      var nodeLen  = Math.max( maxNodeLen,  FIELD_NODENAME.length + 12 ) ;
-      var missLen  = FIELD_MISSING.length + 1 ;
-      // format
-      this._str += "  " + "---------- Index ( ID: " + id + " ) Missing -----------\n" +
-                   "  " + pad( FIELD_GROUPNAME, groupLen ) + " " +
-                          pad( FIELD_NODENAME,  nodeLen )  + " " +
-                          pad( FIELD_MISSING,   missLen )  + "\n" ;
-      for ( var i in idxUnit.groupUnitList )
+      else if ( indexName == "$shard" )
       {
-         var gUnit = idxUnit.groupUnitList[i] ;
-         for ( var j in gUnit.nodeNameList )
+         code = "db." + clFullName + ".enableSharding( { 'ShardingKey': " + JSON.stringify( idxDef.key ) + " } )\n" ;
+      }
+      else
+      {
+         if ( supportOnlyUpgradeMeta )
          {
-            var missStr = gUnit.hasIndexList[j] ? "N" : "Y" ;
-            this._str += "  " + pad( gUnit.groupName,       groupLen ) + " " +
-                                pad( gUnit.nodeNameList[j], nodeLen )  + " " +
-                                pad( missStr,               missLen )  + "\n" ;
+            code = "db."+ clFullName +
+                   ".createIndex( '" + indexName +
+                   "', " + JSON.stringify( idxDef.key ) + ", " +
+                   JSON.stringify( getIdxAttr( idxDef ) ) + ", { 'OnlyUpgradeMeta': true } )\n" ;
+         }
+         else
+         {
+            code = "db."+ clFullName +
+                   ".createIndex( '" + indexName +
+                   "', " + JSON.stringify( idxDef.key ) + ", " +
+                   JSON.stringify( getIdxAttr( idxDef ) ) + " )\n" ;
          }
       }
-      this._str += "\n" ;
+      code += ( "println('Create index successfully[ ClFullName: " +
+                clFullName + ", IndexName: " + indexName + " ]' ) ;\n" ) ;
+
+      return code ;
    }
-   this.pushConflict = function ( id, idxUnitList )
+   catch( e )
    {
-      // get max length
-      var maxNameLen = 0 ;
-      var maxKeyLen = 0 ;
-      var maxAttrLen = 0 ;
-      var maxGroupLen = 0 ;
-      for ( var x in idxUnitList )
+      if( e instanceof Error )
       {
-         var idxUnit = idxUnitList[x] ;
-         maxNameLen = Math.max( idxUnit.getIdxName().length, maxNameLen ) ;
-         maxKeyLen  = Math.max( JSON.stringify( idxUnit.getIdxKey() ).length,
-                                maxKeyLen ) ;
-         maxAttrLen = Math.max( getIdxAttrDesc( idxUnit.getIdxDef() ).length,
-                                maxAttrLen ) ;
-         for ( var i in idxUnit.groupUnitList )
+         println( "Failed to generate createIndex js code without spent time, error Stack:\n" +
+                  e.stack ) ;
+      }
+      throw e ;
+   }
+}
+
+function generateCreateIdxJsCodeWithSpentTime( clFullName, indexName, idxDef )
+{
+   try
+   {
+      var code = "var beginTime = Date.now() ;\n" ;
+      code += ( "println('Begin to create index [ ClFullName: " +
+                clFullName + ", IndexName: " + indexName + " ]' ) ;\n" ) ;
+
+      if ( indexName == "$id" )
+      {
+         code += "db." + clFullName +".createIdIndex()\n" ;
+      }
+      else if ( indexName == "$shard" )
+      {
+         code += "db." + clFullName + ".enableSharding( { 'ShardingKey': " + JSON.stringify( idxDef.key ) + " } )\n" ;
+      }
+      else
+      {
+         code += "db."+ clFullName +
+                 ".createIndex( '" + indexName +
+                 "', " + JSON.stringify( idxDef.key ) + ", " +
+                 JSON.stringify( getIdxAttr( idxDef ) ) + " )\n" ;
+      }
+
+      code += ( "println('Create index successfully, spent time: ' + ( (Date.now()) - beginTime )/1000 + 's' ) ;\n" ) ;
+
+      return code ;
+   }
+   catch( e )
+   {
+      if( e instanceof Error )
+      {
+         println( "Failed to generate createIndex js code with spent time, error Stack:\n" +
+                  e.stack ) ;
+      }
+      throw e ;
+   }
+}
+
+function generateDropIdxJsCode( clFullName, indexName )
+{
+   try
+   {
+      var code = "var beginTime = Date.now() ;\n" ;
+      code += ( "println('Begin to drop index [ ClFullName: " +
+                clFullName + ", IndexName: " + indexName + " ]' ) ;\n" ) ;
+
+      if ( indexName == "$id" )
+      {
+         code += "db."+ clFullName +".dropIdIndex()\n" ;
+      }
+      else if ( indexName == "$shard" )
+      {
+         // do nothing
+      }
+      else
+      {
+         code += "db."+ clFullName + ".dropIndex( '" + indexName + "' )\n" ;
+      }
+
+      code += ( "println('Drop index successfully, spent time: ' + ( (Date.now()) - beginTime )/1000 + 's' ) ;\n" ) ;
+
+      return code ;
+   }
+   catch( e )
+   {
+      if( e instanceof Error )
+      {
+         println( "Failed to generate dropIndex js code, error Stack:\n" + e.stack ) ;
+      }
+      throw e ;
+   }
+}
+
+function generateUpgradeIdxJsCode( indexInfoObj )
+{
+   return generateCreateIdxJsCodeWithoutSpentTime( indexInfoObj.ClFullName, indexInfoObj.IndexName, indexInfoObj.IndexDef ) ;
+}
+
+function generateSdbConnStr( hostname, svcname, username, passwd, cipherFile, token )
+{
+   var ciperUserStr = "" ;
+   var sdbConnStr = "" ;
+
+   if ( cipherFile == "" )
+   {
+      sdbConnStr = "var db = new Sdb( '" + hostname + "', '" + svcname + "', '" + username + "', '" + passwd + "' ) ;\n"
+   }
+   else
+   {
+      var ciperUserStr = "" ;
+      if ( cipherFile == "~/sequoiadb/passwd" )
+      {
+         ciperUserStr = "var USER = new CipherUser( '" + username + "' ).token( '" + token + "' ) ;\n" ;
+      }
+      else
+      {
+         ciperUserStr = "var USER = new CipherUser( '" + username + "' ).token( '" + token + "' ).cipherFile( '" + cipherFile + "' ) ;\n" ;
+      }
+      sdbConnStr = ciperUserStr + "var db = new Sdb( '" + hostname + "', '" + svcname + "', USER ) ;\n" ;
+   }
+
+   return sdbConnStr ;
+}
+
+function writeFile( filePath, content, needTruncate )
+{
+   try
+   {
+      var file = new File( filePath, 0644, SDB_FILE_READWRITE|SDB_FILE_CREATE ) ;
+
+      if ( needTruncate )
+      {
+         file.truncate() ;
+      }
+
+      file.seek( 0, "e" ) ;
+      file.write( content ) ;
+      file.close() ;
+   }
+   catch( e )
+   {
+      if( e instanceof Error )
+      {
+         println( "Failed to write file['" + filePath + "'], error Stack:\n" + e.stack ) ;
+      }
+      throw e ;
+   }
+}
+
+function getMaxCanClFullNameLength( dataIdxCheckInfoCl, mainIdxCheckInfoCl )
+{
+   try
+   {
+      var rc = null ;
+      var len1 = 0 ;
+      var len2 = 0 ;
+      var maxLength = 0 ;
+
+      rc = dataIdxCheckInfoCl.find( { "UpgradeIndexType": { "$isnull": 1 } }, { "ClFullName": { "$strlen": 1 }, "_id": 1 } ).sort( { "ClFullName": -1 } ).limit(1) ;
+      len1 = rc.next() ? rc.current().toObj().ClFullName : 0 ;
+
+      rc = mainIdxCheckInfoCl.find( { "UpgradeIndexType": { "$isnull": 1 } }, { "ClFullName": { "$strlen": 1 }, "_id": 1 } ).sort( { "ClFullName": -1 } ).limit(1) ;
+      len2 = rc.next() ? rc.current().toObj().ClFullName : 0 ;
+
+      maxLength = Math.max( len1, len2 ) ;
+
+      if ( maxLength < FIELD_COLLECTION.length )
+      {
+         maxLength = FIELD_COLLECTION.length ;
+      }
+      else if ( maxLength > MAX_CLFULLNAME_LENGTH )
+      {
+         maxLength = MAX_CLFULLNAME_LENGTH ;
+      }
+
+      return maxLength ;
+   }
+   catch( e )
+   {
+      if( e instanceof Error )
+      {
+         println( "Failed to get cl fullname length, error Stack:\n" + e.stack ) ;
+      }
+      throw e ;
+   }
+}
+
+function getMaxCanIndexNameLength( dataIdxCheckInfoCl, mainIdxCheckInfoCl )
+{
+   try
+   {
+      var rc = null ;
+      var len1 = 0 ;
+      var len2 = 0 ;
+      var maxLength = 0 ;
+
+      rc = dataIdxCheckInfoCl.find( { "UpgradeIndexType": { "$isnull": 1 } }, { "IndexName": { "$strlen": 1 }, "_id": 1 } ).sort( { "IndexName": -1 } ).limit(1) ;
+      len1 = rc.next() ? rc.current().toObj().IndexName : 0 ;
+
+      rc = mainIdxCheckInfoCl.find( { "UpgradeIndexType": { "$isnull": 1 } }, { "IndexName": { "$strlen": 1 }, "_id": 1 } ).sort( { "IndexName": -1 } ).limit(1) ;
+      len2 = rc.next() ? rc.current().toObj().IndexName : 0 ;
+
+      maxLength = Math.max( len1, len2 ) ;
+
+      if ( maxLength < FIELD_INDEXNAME.length )
+      {
+         maxLength = FIELD_INDEXNAME.length ;
+      }
+      else if ( maxLength > MAX_INDEX_NAME_LENGTH )
+      {
+         maxLength = MAX_INDEX_NAME_LENGTH ;
+      }
+
+      return maxLength ;
+   }
+   catch( e )
+   {
+      if( e instanceof Error )
+      {
+         println( "Failed to get index name length, error Stack:\n" + e.stack ) ;
+      }
+      throw e ;
+   }
+}
+
+function writeCanUpgradeIdxReport( canUpgradeIdxCount, dataIdxCheckInfoCl, mainIdxCheckInfoCl )
+{
+   try
+   {
+      var rc = null ;
+      var id = 1 ;
+      var beginTime = Date.now() ;
+      var printProgressCount = _PRINT_PROGRESS_COUNT ;
+      var printClTmpNum = canUpgradeIdxCount/printProgressCount ;
+      printClTmpNum = printClTmpNum > 1 ? printClTmpNum : 1 ;
+      var aProgressCollectClNum = printClTmpNum ;
+
+      println( "(" + step + "/" + STEP_NUM + ")Begin to write can upgrade index infos" ) ;
+      println( "(" + step + "/" + STEP_NUM + ")Can Upgrade Indexes Count: " + canUpgradeIdxCount ) ;
+      // 每完成四十分之一打印一个 #
+      println( "Writing\n0% ______________ 50% ______________ 100%" ) ;
+
+      var idLen = ( canUpgradeIdxCount + "" ).length ;
+      idLen = Math.max( idLen, FIELD_ID.length + 1 ) ;
+
+      var maxClFullNameLength = getMaxCanClFullNameLength( dataIdxCheckInfoCl, mainIdxCheckInfoCl ) ;
+      var maxIndexNameLength = getMaxCanIndexNameLength( dataIdxCheckInfoCl, mainIdxCheckInfoCl ) ;
+
+      writeCheckInfo( "===================== Check Result ( Can be Upgraded ) =========================\n" +
+                      pad( FIELD_ID, idLen ) + " " +
+                      pad( FIELD_COLLECTION, maxClFullNameLength ) + " " +
+                      pad( FIELD_INDEXNAME, maxIndexNameLength ) + " " +
+                      pad( FIELD_INDEXATTR, MAX_INDEX_ATTR_DESC_LENGTH ) + " " +
+                      FIELD_INDEXKEY + "\n", false ) ;
+
+      rc = dataIdxCheckInfoCl.find( { "UpgradeIndexType": { "$isnull": 1 } } ).sort( { "ClFullName": 1 } ) ;
+      while ( rc.next() )
+      {
+         var obj = rc.current().toObj() ;
+         writeCheckInfo( pad( id, idLen ) + " " +
+                         pad( obj.ClFullName, maxClFullNameLength ) + " " +
+                         pad( obj.IndexName, maxIndexNameLength ) + " " +
+                         pad( getIdxAttrDesc( obj.IndexDef ), MAX_INDEX_ATTR_DESC_LENGTH ) + " " +
+                         JSON.stringify( obj.IndexDef.key ) + "\n", false ) ;
+         id++ ;
+         if ( id >= printClTmpNum && 0 != printProgressCount )
          {
-            var gUnit = idxUnit.groupUnitList[i] ;
-            for ( var j in gUnit.hasIndexList )
+            print( "#" ) ;
+            printClTmpNum += aProgressCollectClNum ;
+            printProgressCount-- ;
+         }
+      }
+
+      rc = mainIdxCheckInfoCl.find( { "UpgradeIndexType": { "$isnull": 1 } } ).sort( { "ClFullName": 1 } ) ;
+      while ( rc.next() )
+      {
+         var obj = rc.current().toObj() ;
+         writeCheckInfo( pad( id, idLen ) + " " +
+                         pad( obj.ClFullName, maxClFullNameLength ) + " " +
+                         pad( obj.IndexName, maxIndexNameLength ) + " " +
+                         pad( getIdxAttrDesc( obj.IndexDef ), MAX_INDEX_ATTR_DESC_LENGTH ) + " " +
+                         JSON.stringify( obj.IndexDef.key ) + "\n", false ) ;
+         id++ ;
+         if ( id >= printClTmpNum && 0 != printProgressCount )
+         {
+            print( "#" ) ;
+            printClTmpNum += aProgressCollectClNum ;
+            printProgressCount-- ;
+         }
+      }
+
+      writeCheckInfo( "\n", true ) ;
+
+      for ( var i = 0 ; i < printProgressCount ; i++ )
+      {
+         print( "#" ) ;
+      }
+      print( "\n" ) ;
+
+      println( "(" + step + "/" + STEP_NUM + ")End to write can upgrade index infos, spent time: " +
+               ( (Date.now()) - beginTime )/1000 + "s" ) ;
+      step++ ;
+   }
+   catch( e )
+   {
+      if( e instanceof Error )
+      {
+         println( "Failed to write can upgrade index infos, error Stack:\n" + e.stack ) ;
+      }
+      throw e ;
+   }
+}
+
+function generateMissIdxDetailInfo( id, indexInfoObj, missIdxDetail )
+{
+   try
+   {
+      var detailStr = "" ;
+      var clGroups = null ;
+      var cataClusterClInfoCl = db.getCS( TMP_CS_UPGRADE_INDEX ).getCL( TMP_CL_CATA_CLUSTER_CL_INFO ) ;
+      var missGroups = indexInfoObj.Groups ;
+
+      var rc = cataClusterClInfoCl.find( { "ClFullName": indexInfoObj.ClFullName }, { "Groups": 1 } ) ;
+      clGroups = rc.current().toObj().Groups ;
+
+      for ( i in clGroups )
+      {
+         var clGroup = clGroups[i].GroupName ;
+         var clNodeList = clGroups[i].NodeList ;
+
+         for ( j in clNodeList )
+         {
+            var missStr = "" ;
+            var hasFound = false ;
+            var node = clNodeList[j].HostName + ":" + clNodeList[j].NodeName ;
+
+            for ( k in missGroups )
             {
-               if ( gUnit.hasIndexList[j] )
+               var missGroup = missGroups[k].GroupName ;
+
+               if ( missGroup == clGroup )
                {
-                  maxGroupLen = Math.max( gUnit.groupName.length, maxGroupLen ) ;
-                  break ;
-               }
-            }
-         }
-      }
-      // get pad length
-      var nameLen = Math.max( maxNameLen, FIELD_INDEXNAME.length + 1 ) ;
-      nameLen = Math.min( nameLen, 20 ) ;
-      var keyLen = Math.max( maxKeyLen, FIELD_INDEXKEY.length + 2 ) ;
-      keyLen = Math.min( keyLen, 20 ) ;
-      var attrLen = Math.max( maxAttrLen, FIELD_INDEXATTR.length + 1 ) ;
-      attrLen = Math.min( attrLen, 24 ) ;
-      var groupLen = Math.max( maxGroupLen, FIELD_GROUPNAME.length + 1 ) ;
-      groupLen = Math.min( groupLen, 15 ) ;
-      // format
-      this._str += "  " + "---------- Index ( ID: " + id + " ) Conflict -----------\n" +
-                   "  " + pad( FIELD_INDEXNAME, nameLen )  + " " +
-                          pad( FIELD_INDEXKEY,  keyLen )   + " " +
-                          pad( FIELD_INDEXATTR, attrLen )  + " " +
-                          pad( FIELD_GROUPNAME, groupLen ) + "  " +
-                          FIELD_NODENAME                   + "\n" ;
-      for ( var x in idxUnitList )
-      {
-         var idxUnit = idxUnitList[x] ;
-         this._str += "  " +
-                      pad( idxUnit.getIdxName(), nameLen ) + " " +
-                      pad( JSON.stringify( idxUnit.getIdxKey() ), keyLen ) + " " +
-                      pad( getIdxAttrDesc( idxUnit.getIdxDef() ), attrLen ) + " " ;
-         var lineNum = 0 ;
-         for ( var i in idxUnit.groupUnitList )
-         {
-            // build NodeName
-            var gUnit = idxUnit.groupUnitList[i] ;
-            var nodeStr = "" ;
-            for ( var j in gUnit.hasIndexList )
-            {
-               if ( gUnit.hasIndexList[j] )
-               {
-                  if ( nodeStr.length != 0 )
+                  var missNodeList = missGroups[k].NodeInfos ;
+
+                  for ( l in missNodeList )
                   {
-                     nodeStr += "," ;
-                  }
-                  nodeStr += gUnit.nodeNameList[j] ;
-               }
-            }
-            if ( nodeStr.length != 0 )
-            {
-               lineNum++ ;
-               if ( lineNum != 1 )
-               {
-                  // +5: before groupname has 5 space
-                  this._str += pad( "", nameLen + keyLen + attrLen + 5 ) ;
-               }
-               this._str += pad( gUnit.groupName, groupLen ) + "  " +
-                            nodeStr                          + "\n" ;
-            }
-         }
-      }
-      this._str += "\n" ;
-   }
-   this.pushLocalCL = function( id, collection, nodeNameList )
-   {
-      this._printCLNode( id, collection, nodeNameList, FIELD_LOCAL_CL ) ;
-   }
-   this.pushAutoIdxId = function( id, collection, idxUnit )
-   {
-      var nodeNameList = [] ;
-      for ( var i in idxUnit.groupUnitList )
-      {
-         var gUnit = idxUnit.groupUnitList[i] ;
-         for ( var j in gUnit.nodeNameList )
-         {
-            if ( gUnit.hasIndexList[j] )
-            {
-               nodeNameList.push( gUnit.nodeNameList[j] ) ;
-            }
-         }
-      }
-      this._printCLNode( id, collection, nodeNameList, FIELD_AUTOINDEXID ) ;
-   }
-   this.pushEnsureShard = function( id, collection, idxUnit )
-   {
-      var nodeNameList = [] ;
-      for ( var i in idxUnit.groupUnitList )
-      {
-         var gUnit = idxUnit.groupUnitList[i] ;
-         for ( var j in gUnit.nodeNameList )
-         {
-            if ( gUnit.hasIndexList[j] )
-            {
-               nodeNameList.push( gUnit.nodeNameList[j] ) ;
-            }
-         }
-      }
-      this._printCLNode( id, collection, nodeNameList, FIELD_ENSURESHARD ) ;
-   }
-   this._printCLNode = function( id, collection, nodeNameList, title )
-   {
-      // get max length
-      var maxNodeLen = 0 ;
-      for ( var i in nodeNameList )
-      {
-         maxNodeLen = Math.max( nodeNameList[i].length, maxNodeLen ) ;
-      }
-      // get pad length
-      var clLen = Math.max( collection.length, FIELD_COLLECTION.length + 1 ) ;
-      var nodeLen = Math.max( maxNodeLen, FIELD_NODENAME.length + 12 ) ;
-      // format
-      this._str += "  " + "---------- Index ( ID: " + id + " ) " + title + " -----------\n" +
-                   "  " + pad( FIELD_COLLECTION, clLen )   + " " +
-                          pad( FIELD_NODENAME,   nodeLen ) + "\n" ;
-      for ( var i in nodeNameList )
-      {
-         this._str += "  " + pad( collection,      clLen )   + " " +
-                             pad( nodeNameList[i], nodeLen ) + "\n" ;
-      }
-      this._str += "\n" ;
-   }
+                     var missNode = missNodeList[l].NodeName ;
 
-   this.print = function()
-   {
-      println( this._str ) ;
-   }
-}
-
-function UpgradeResultFormator()
-{
-   this._id = 0 ;
-   this._clNameList = [] ;
-   this._idxNameList = [] ;
-   this._resultCodeList = [] ;
-   this._maxCLLen = 0 ;
-   this._maxIdxLen = 0 ;
-   this._succCnt = 0 ;
-   this._failCnt = 0 ;
-   this.push = function( collection, idxName, resultCode )
-   {
-      this._id++ ;
-      this._clNameList.push( collection ) ;
-      this._idxNameList.push( idxName ) ;
-      this._resultCodeList.push( resultCode ) ;
-      this._maxCLLen  = Math.max( collection.length, this._maxCLLen ) ;
-      this._maxIdxLen = Math.max( idxName.length,    this._maxIdxLen ) ;
-      if ( 0 == resultCode )
-      {
-         this._succCnt++ ;
-      }
-      else
-      {
-         this._failCnt++ ;
-      }
-      return this._id ;
-   }
-   this.count = function()
-   {
-      return this._id ;
-   }
-   this.succCnt = function()
-   {
-      return this._succCnt ;
-   }
-   this.failCnt = function()
-   {
-      return this._failCnt ;
-   }
-   this.print = function()
-   {
-      // get pad length
-      var idLen = Math.max( this._id.toString().length, FIELD_ID.length + 1 ) ;
-      var clLen = Math.max( this._maxCLLen, FIELD_COLLECTION.length + 5 ) ;
-      clLen = Math.min( clLen, 20 ) ;
-      var idxLen = Math.max( this._maxIdxLen, FIELD_INDEXNAME.length + 5 ) ;
-      idxLen = Math.min( idxLen, 20 ) ;
-      var rstLen = FIELD_RESULT.length + 3 ;
-      var codeLen = FIELD_RESULTCODE.length + 2 ;
-      // format
-      var str = "===================== Upgrade Index ============================================\n" +
-                pad( FIELD_ID,         idLen )   + " " +
-                pad( FIELD_COLLECTION, clLen )   + " " +
-                pad( FIELD_INDEXNAME,  idxLen )  + " : " +
-                pad( FIELD_RESULT,     rstLen )  + " " +
-                pad( FIELD_RESULTCODE, codeLen ) + "\n" ;
-      for ( var i = 0 ; i < this._id ; i++ )
-      {
-         var isSucc = ( 0 == this._resultCodeList[i] ) ;
-         str += pad( i + 1,                                 idLen )   + " " +
-                pad( this._clNameList[i],                   clLen )   + " " +
-                pad( this._idxNameList[i],                  idxLen )  + " : " +
-                pad( isSucc ? "Succeed" : "Fail",           rstLen )  + " " +
-                pad( isSucc ? "" : this._resultCodeList[i], codeLen ) + "\n" ;
-      }
-      println( str ) ;
-   }
-}
-
-function SuggestionFormator()
-{
-   this.print = function ()
-   {
-      println(
-"For indexes that cannot be upgraded, you need to intervene.\n" +
-"  For missing index on data nodes, you can choose one of the following\n" +
-"  options:\n" +
-"    Option 1\n" +
-"      Description: Create missing indexes to become consistent index.\n" +
-"      Operation:   Connect to coord node to create index.\n" +
-"      Influence:   It may takes a long time to create index.\n" +
-"    Option 2\n" +
-"      Description: Make existing indexes become standalone index.\n" +
-"      Operation:   Specify the data node which exists index to create\n" +
-"                   standalone index, and UniqueID will generate for it.\n" +
-"      Influence:   Generate UniqueID only at data node.\n" +
-"\n" +
-"  For conflicting index on data nodes, you can choose one of the\n" +
-"  following options:\n" +
-"    Option 1\n" +
-"      Description: Drop conflicting indexes to become consistent index.\n" +
-"      Operation:   Connect to data node with conflicting index to drop\n" +
-"                   index, then connect to coord node to create index.\n" +
-"      Influence:   It may takes a long time to create index.\n" +
-"    Option 2\n" +
-"      Description: Make existing indexes become standalone index.\n" +
-"      Operation:   Specify the data node which exists index to create\n" +
-"                   standalone index, and UniqueID will generate for it.\n" +
-"      Influence:   Generate UniqueID only at data node.\n" +
-"\n" +
-"  For local collection's indexes, you can do nothing.\n"
-) ;
-   }
-}
-
-function TotalCntFormator()
-{
-   this._noNeedUpgrade = 0 ;
-   this._canUpgrade = 0 ;
-   this._cannnotUpgrade = 0 ;
-   this._doUpgrade = false ;
-   this._succUpgrade = 0 ;
-   this._failUpgrade = 0 ;
-
-   this.set = function ( noNeedCnt, canCnt, cannotCnt )
-   {
-      this._noNeedUpgrade = noNeedCnt ;
-      this._canUpgrade = canCnt ;
-      this._cannnotUpgrade = cannotCnt ;
-   }
-   this.setUpgradeInfo = function( succCnt, failCnt )
-   {
-      this._doUpgrade = true ;
-      this._succUpgrade = succCnt ;
-      this._failUpgrade = failCnt ;
-   }
-   this.print = function ()
-   {
-      var content = "++++++++++++++++++++++++++\n" +
-                    "No need to upgrade : " + this._noNeedUpgrade  + "\n" +
-                    "Cannot be upgraded : " + this._cannnotUpgrade + "\n" +
-                    "   Can be upgraded : " + this._canUpgrade     + "\n" ;
-      if ( this._doUpgrade )
-      {
-         content += "Succeed to Upgrade : " + this._succUpgrade + "\n" +
-                    " Failed to Upgrade : " + this._failUpgrade + "\n" ;
-      }
-      content += "++++++++++++++++++++++++++\n" ;
-      println( content ) ;
-   }
-}
-
-function pad( s, len )
-{
-   var expLen = 0 ;
-   if ( s.length > len )
-   {
-      expLen = s.length ;
-   }
-   else
-   {
-      expLen = len ;
-   }
-   var buf = "                                                           " + s ;
-   return buf.substr( buf.length - expLen ) ;
-}
-
-// string, array
-function GroupUnit( groupName, nodeNameList )
-{
-   this.groupName = groupName ;
-   this.nodeNameList = nodeNameList.concat() ;
-   // Correspond to nodeNameList one by one.
-   // Indicate whether there has the index on the node.
-   this.hasIndexList = new Array( nodeNameList.length ) ;
-
-   for( var i=0 ; i < this.hasIndexList.length ; i++ )
-   {
-      this.hasIndexList[i] = 0 ;
-   }
-
-   this.setNodeHasIdx = function( nodeName )
-   {
-      var pos = this.nodeNameList.indexOf( nodeName ) ;
-      if ( pos != -1 )
-      {
-         this.hasIndexList[ pos ] = 1 ;
-      }
-   }
-   this.is = function( groupname )
-   {
-      return this.groupName == groupname ;
-   }
-   this.print = function()
-   {
-      println( "    groupName: " + this.groupName ) ;
-      println( "    nodeNameList: " + JSON.stringify( this.nodeNameList ) ) ;
-      println( "    hasIdxlist: " + JSON.stringify( this.hasIndexList ) ) ;
-   }
-}
-
-function isLocalID( uniqueid )
-{
-   if ( 0 == ( uniqueid & 0x80000000 ) )
-   {
-      return false ;
-   }
-   else
-   {
-      return true ;
-   }
-}
-
-// groupObjList format:
-// [
-//   { GroupName: "group1", NodeNameList: [ "hostname1:11810", ... ] },
-//   ...
-// ]
-function IndexUnit( idxDef, isInCata, groupObjList )
-{
-   this._idxDef = {} ;  // exclude _id, UniqueID
-   this._hasIdxInfoInCata = isInCata ;
-   this.uniqueID = 0 ;
-   this.groupUnitList = [] ;
-   this._nodeCnt = 0 ;
-   this._idxCnt = 0 ;
-   this._consistentUID = true ; // all nodes have same unique id
-   this._allLocalID = true ;    // all data nodes's id is local id
-   this._conflictWithOtherIdx = false ;
-   this._hasBeenSet = false ;
-
-   if ( idxDef.UniqueID === undefined )
-   {
-      this._consistentUID = false ;
-   }
-   else
-   {
-      this.uniqueID = idxDef.UniqueID ;
-   }
-   delete idxDef._id ;
-   delete idxDef.UniqueID ;
-   this._idxDef = idxDef ;
-
-   for ( var i in groupObjList )
-   {
-      var obj = groupObjList[i] ;
-      var groupUnit = new GroupUnit( obj.GroupName, obj.NodeNameList ) ;
-      this.groupUnitList.push( groupUnit ) ;
-      this._nodeCnt += obj.NodeNameList.length ;
-   }
-   // nodeObjList format:
-   // [
-   //   { NodeName: "hostname1:11810", UniqueID: 123 },
-   //   ...
-   // ]
-   this.set = function( groupName, nodeObjList )
-   {
-      for ( var i in this.groupUnitList )
-      {
-         var groupUnit = this.groupUnitList[i] ;
-         if ( groupUnit.is( groupName ) )
-         {
-            for( var j in nodeObjList )
-            {
-               var obj = nodeObjList[j] ;
-               groupUnit.setNodeHasIdx( obj.NodeName ) ;
-               this._idxCnt++ ;
-               if ( this._consistentUID && this.uniqueID != obj.UniqueID )
-               {
-                  this._consistentUID = false ;
-               }
-               if ( this._allLocalID && !isLocalID( obj.UniqueID ) )
-               {
-                  this._allLocalID = false ;
-               }
-            }
-            break ;
-         }
-      }
-      this._hasBeenSet = true ;
-   }
-   this.is = function( idxDef )
-   {
-      return isEqualIdx( this._idxDef, idxDef ) ;
-   }
-   this.hasBeenSet = function()
-   {
-      return this._hasBeenSet ;
-   }
-   this.getIdxKey = function()
-   {
-      return this._idxDef.key ;
-   }
-   this.getIdxName = function()
-   {
-      return this._idxDef.name ;
-   }
-   this.getIdxDef = function()
-   {
-      return this._idxDef ;
-   }
-   this.setConflict = function()
-   {
-      this._conflictWithOtherIdx = true ;
-   }
-   this.isConflict = function()
-   {
-      return this._conflictWithOtherIdx ;
-   }
-   this.getUpgradeType = function()
-   {
-      if ( this._conflictWithOtherIdx )
-      {
-         return IDX_TYPE_CONFLICT ;
-      }
-      if ( this._hasIdxInfoInCata &&
-           this._idxCnt == this._nodeCnt && this._consistentUID )
-      {
-         return IDX_TYPE_CONSISTENT ;
-      }
-      if ( !this._hasIdxInfoInCata && this._allLocalID )
-      {
-         return IDX_TYPE_STANDALONE ;
-      }
-      if ( this._idxCnt == this._nodeCnt )
-      {
-         return IDX_TYPE_CAN_UPGRADE ;
-      }
-      else
-      {
-         return IDX_TYPE_MISSING ;
-      }
-   }
-   this.print = function()
-   {
-      println( "  idxInCata: "+this._hasIdxInfoInCata ) ;
-      println( "  idxDef: "+JSON.stringify( this._idxDef ) ) ;
-      println( "  conflict: "+this._conflictWithOtherIdx ) ;
-      for ( var i in this.groupUnitList )
-      {
-         this.groupUnitList[i].print() ;
-      }
-   }
-}
-
-// return true:  index1 equal to index2
-// return false: not equal
-function compareIndexDef( def1, def2 )
-{
-   if ( isEqual( def1.key, def2.key ) )
-   {
-      if ( def1.unique )
-      {
-         return true ;
-      }
-      else if ( def2.unique )
-      {
-         // def1 is not unique, def2 is unique
-         // when an non unique index already exists, unique index can be created
-         return false ;
-      }
-      if ( def1.NotNull != def2.NotNull )
-      {
-         return false ;
-      }
-      if ( def1.NotArray != def2.NotArray )
-      {
-         return false ;
-      }
-      return true ;
-   }
-   else
-   {
-      return false ;
-   }
-}
-
-// cataObjList format:
-// [
-//   { GroupName: "group1", NodeNameList: [ "hostname1:11810", ... ] },
-//   ...
-// ]
-function ClusterCLUnit( clName, cataObjList, autoIndexId, ensureShardingIdx,
-                        mainclName )
-{
-   this._clName = clName ;
-   this._cataObjList = cataObjList ;
-   this.idxUnitList = [] ;
-   this._defMap = new UtilMap( compareIndexDef ) ; // < index def, array of this.idxUnitList pos >
-   this._nameMap = new UtilMap() ; // < index name, array of this.idxUnitList pos >
-   this._canUpgradeCnt = 0 ;
-   this._autoIndexId = autoIndexId ;
-   this._ensureShardingIdxx = ensureShardingIdx ;
-   this._mainclName = mainclName ;
-
-   this.mainCLName = function()
-   {
-      return this._mainclName ;
-   }
-   this.addByCatalog = function( idxDef )
-   {
-      var idxUnit = new IndexUnit( idxDef, true, this._cataObjList ) ;
-      this.idxUnitList.push( idxUnit ) ;
-   }
-   // nodeObjList format:
-   // [
-   //   { NodeName: "hostname1:11810", UniqueID: 123 },
-   //   ...
-   // ]
-   this.setByData = function( idxDef, groupName, nodeObjList )
-   {
-      var found = false ;
-      for ( var i in this.idxUnitList )
-      {
-         var idxUnit = this.idxUnitList[i] ;
-         if ( idxUnit.is( idxDef ) )
-         {
-            // may be addByCatalog
-            var firstSet = idxUnit.hasBeenSet() ? false : true ;
-            idxUnit.set( groupName, nodeObjList ) ;
-            if ( firstSet )
-            {
-               this._checkConflict( idxUnit, Number(i) ) ;
-            }
-            found = true ;
-            break ;
-         }
-      }
-      if ( !found )
-      {
-         var idxUnit = new IndexUnit( idxDef, false, this._cataObjList ) ;
-         idxUnit.set( groupName, nodeObjList ) ;
-         this.idxUnitList.push( idxUnit ) ;
-         this._checkConflict( idxUnit, this.idxUnitList.length - 1 ) ;
-      }
-      //this.print() ;
-   }
-   this._checkConflict = function( idxUnit, pos )
-   {
-      // check it is conflict index by index key
-      var posList = this._defMap.get( idxUnit.getIdxDef() ) ;
-      if ( posList == null )
-      {
-         this._defMap.add( idxUnit.getIdxDef(), [ pos ] ) ;
-      }
-      else
-      {
-         if ( 1 == posList.length )
-         {
-            this.idxUnitList[posList[0]].setConflict() ;
-         }
-         idxUnit.setConflict() ;
-         posList.push( pos ) ;
-         this._defMap.set( idxUnit.getIdxDef(), posList ) ;
-      }
-      // check it is conflict index by index name
-      posList = this._nameMap.get( idxUnit.getIdxName() ) ;
-      if ( posList == null )
-      {
-         this._nameMap.add( idxUnit.getIdxName(), [ pos ] ) ;
-      }
-      else
-      {
-         if ( 1 == posList.length )
-         {
-            this.idxUnitList[posList[0]].setConflict() ;
-         }
-         idxUnit.setConflict() ;
-         posList.push( pos ) ;
-         this._nameMap.set( idxUnit.getIdxName(), posList ) ;
-      }
-   }
-   this.canUpgradeCnt = function()
-   {
-      // call it after format()
-      return this._canUpgradeCnt ;
-   }
-   this.format = function( noNeedFmtor, canFmtor, cannotFmtor, detailFmtor )
-   {
-      for ( var i in this.idxUnitList )
-      {
-         var idxUnit = this.idxUnitList[i] ;
-         var type = idxUnit.getUpgradeType() ;
-         // deal with AutoIndexId and EnsureShardingIndex first
-         if ( !this._autoIndexId && "$id" == idxUnit.getIdxName() )
-         {
-            var id = cannotFmtor.push( this._clName,
-                                       idxUnit.getIdxName(),
-                                       JSON.stringify( idxUnit.getIdxKey() ),
-                                       getIdxAttrDesc( idxUnit.getIdxDef() ),
-                                       "AutoIndexId=false" ) ;
-            detailFmtor.pushAutoIdxId( id, this._clName, idxUnit ) ;
-            continue ;
-         }
-         else if ( !this._ensureShardingIdxx &&
-                   "$shard" == idxUnit.getIdxName() )
-         {
-            var id = cannotFmtor.push( this._clName,
-                                       idxUnit.getIdxName(),
-                                       JSON.stringify( idxUnit.getIdxKey() ),
-                                       getIdxAttrDesc( idxUnit.getIdxDef() ),
-                                       "EnsureShardingIndex=false" ) ;
-            detailFmtor.pushEnsureShard( id, this._clName, idxUnit ) ;
-            continue ;
-         }
-         // push index info to formator
-         switch( type )
-         {
-            case IDX_TYPE_CONSISTENT:
-               noNeedFmtor.push( this._clName,
-                                 idxUnit.getIdxName(),
-                                 "Consistent" ) ;
-               break ;
-            case IDX_TYPE_STANDALONE:
-               noNeedFmtor.push( this._clName,
-                                 idxUnit.getIdxName(),
-                                 "Standalone" ) ;
-               break ;
-            case IDX_TYPE_CAN_UPGRADE:
-               canFmtor.push( this._clName,
-                              idxUnit.getIdxName(),
-                              JSON.stringify( idxUnit.getIdxKey() ),
-                              getIdxAttrDesc( idxUnit.getIdxDef() ),
-                              "Consistent" ) ;
-               this._canUpgradeCnt++ ;
-               break ;
-            case IDX_TYPE_MISSING:
-               // If index1 {name:'a1',key:{a:1}} is missing, but index2
-               // {name:'a2',key:{a:1},unique:true} exists, so index1 is conflict
-               var conflictUnitList = [] ;
-               conflictUnitList.push( this.idxUnitList[i] ) ;// push myself to print myself first
-               if ( ! idxUnit.getIdxDef().unique )
-               {
-                  for ( var j in this.idxUnitList )
-                  {
-                     if ( j != i && this.idxUnitList[j].getIdxDef().unique &&
-                          isEqual( idxUnit.getIdxKey(),
-                                   this.idxUnitList[j].getIdxKey() ) )
+                     if ( node == missNode )
                      {
-                        idxUnit.setConflict() ;
-                        conflictUnitList.push( this.idxUnitList[j] ) ;
+                        hasFound = true ;
+                        break ;
                      }
                   }
+                  if ( hasFound )
+                  {
+                     break ;
+                  }
                }
-               if ( conflictUnitList.length > 1 )
+            }
+
+            if ( hasFound )
+            {
+               missStr = "Y" ;
+            }
+            else
+            {
+               missStr = "N" ;
+            }
+
+            detailStr += "  " + pad( clGroup, MAX_GROUP_NAME_LENGTH ) + " " +
+                         pad( node, MAX_NODE_NAME_LENGTH ) + " " +
+                         pad( missStr, IDX_TYPE_MISSING.length ) + "\n" ;
+         }
+      }
+
+      missIdxDetail.push( { "ID": id, "Detail": detailStr } ) ;
+   }
+   catch( e )
+   {
+      if( e instanceof Error )
+      {
+         println( "Failed to generate miss index detail info, error Stack:\n" + e.stack ) ;
+      }
+      throw e ;
+   }
+}
+
+function generateConflictIdxDetailInfo( id, indexInfoObj, conflictIdxDetail,
+                                        maxIndexNameLength, maxIndexKeyLength )
+{
+   try
+   {
+      var detailStr = "" ;
+
+      if ( undefined != indexInfoObj.IndexNameCount && indexInfoObj.IndexNameCount > 1 )
+      {
+         // same index def, diff index name
+         for ( i in indexInfoObj.IndexNames )
+         {
+            var indexName = indexInfoObj.IndexNames[i] ;
+            var firstFoundIdxInfo = true ;
+            var firstGroup = true ;
+
+            detailStr += "  " + pad( indexName, maxIndexNameLength ) ;
+
+            for ( j in indexInfoObj.Groups )
+            {
+               var group = indexInfoObj.Groups[j] ;
+               var groupName = group.GroupName ;
+               var nodeInfos = group.NodeInfos ;
+               var nodeNameStr = "" ;
+
+               for ( k in nodeInfos )
                {
-                  var id = cannotFmtor.push( this._clName,
-                                             idxUnit.getIdxName(),
-                                             JSON.stringify( idxUnit.getIdxKey() ),
-                                             getIdxAttrDesc( idxUnit.getIdxDef() ),
-                                             "Conflict" ) ;
-                  detailFmtor.pushConflict( id, conflictUnitList ) ;
+                  var nodeInfo = nodeInfos[k] ;
+                  var idxName = nodeInfo.IndexName ;
+
+                  if ( idxName == indexName )
+                  {
+                     if ( firstFoundIdxInfo )
+                     {
+                        detailStr += " " +
+                                     pad( JSON.stringify( nodeInfo.IndexDef.key ), maxIndexKeyLength ) + " " +
+                                     pad( getIdxAttrDesc( indexInfoObj.IndexDef ), MAX_INDEX_ATTR_DESC_LENGTH ) + " " ;
+                        firstFoundIdxInfo = false ;
+                     }
+                     nodeNameStr += nodeInfo.NodeName + "," ;
+                  }
+               }
+               nodeNameStr = nodeNameStr.slice( 0, -1 ) ;
+
+               if ( firstGroup )
+               {
+                  detailStr += pad( groupName, MAX_GROUP_NAME_LENGTH ) + "  " + nodeNameStr + "\n" ;
                }
                else
                {
-                  var id = cannotFmtor.push( this._clName,
-                                             idxUnit.getIdxName(),
-                                             JSON.stringify( idxUnit.getIdxKey() ),
-                                             getIdxAttrDesc( idxUnit.getIdxDef() ),
-                                             "Missing" ) ;
-                  detailFmtor.pushMissing( id, idxUnit ) ;
+                  detailStr += "  " + pad( "" ) + " " + pad( "" ) + " " + pad( "" ) + " " +
+                               pad( groupName, MAX_GROUP_NAME_LENGTH ) + "  " + nodeNameStr + "\n" ;
                }
-               break ;
-            case IDX_TYPE_CONFLICT:
-            {
-               var id = cannotFmtor.push( this._clName,
-                                          idxUnit.getIdxName(),
-                                          JSON.stringify( idxUnit.getIdxKey() ),
-                                          getIdxAttrDesc( idxUnit.getIdxDef() ),
-                                          "Conflict" ) ;
-               // remove duplicate pos
-               var conflictPosList = this._defMap.get( idxUnit.getIdxDef() ) ;
-               var conflictPosSet = new UtilSet() ;
-               conflictPosSet.push( i ) ; // push myself to print myself first
-               if ( conflictPosList != null )
-               {
-                  for ( var i in conflictPosList )
-                  {
-                     var pos = conflictPosList[i] ;
-                     conflictPosSet.push( pos ) ;
-                  }
-               }
-               var conflictPosList = this._nameMap.get( idxUnit.getIdxName() ) ;
-               if ( conflictPosList != null )
-               {
-                  for ( var i in conflictPosList )
-                  {
-                     var pos = conflictPosList[i] ;
-                     conflictPosSet.push( pos ) ;
-                  }
-               }
-               // get conflict units
-               var conflictUnitList = [] ;
-               for ( var i in conflictPosSet.data )
-               {
-                  var pos = conflictPosSet.data[i] ;
-                  conflictUnitList.push( this.idxUnitList[pos] ) ;
-               }
-               detailFmtor.pushConflict( id, conflictUnitList ) ;
-               break ;
             }
          }
       }
-   }
-   this.print = function()
-   {
-      println( "clName: "+this._clName ) ;
-      println( "cataObj: "+JSON.stringify( this._cataObjList ) ) ;
-      for ( var i in this.idxUnitList )
+      else if ( undefined != indexInfoObj.IndexDefCount && indexInfoObj.IndexDefCount > 1 )
       {
-         this.idxUnitList[i].print() ;
+         // diff index def, same index name
+         var indexName = indexInfoObj.IndexName ;
+
+         for ( i in indexInfoObj.IndexDefs )
+         {
+            var indexDef = indexInfoObj.IndexDefs[i] ;
+            var firstFoundIdxInfo = true ;
+            var firstGroup = true ;
+
+            detailStr += "  " + pad( indexName, maxIndexNameLength ) ;
+
+            for ( j in indexInfoObj.Groups )
+            {
+               var group = indexInfoObj.Groups[j] ;
+               var groupName = group.GroupName ;
+               var nodeInfos = group.NodeInfos ;
+               var nodeNameStr = "" ;
+
+               for ( k in nodeInfos )
+               {
+                  var nodeInfo = nodeInfos[k] ;
+                  var idxDef = nodeInfo.IndexDef ;
+
+                  if ( JSON.stringify( idxDef ) == JSON.stringify( indexDef ) )
+                  {
+                     if ( firstFoundIdxInfo )
+                     {
+                        detailStr += " " +
+                                     pad( JSON.stringify( indexDef.key ), maxIndexKeyLength ) + " " +
+                                     pad( getIdxAttrDesc( indexDef ), MAX_INDEX_ATTR_DESC_LENGTH ) + " " ;
+                        firstFoundIdxInfo = false ;
+                     }
+                     nodeNameStr += nodeInfo.NodeName + "," ;
+                  }
+               }
+               nodeNameStr = nodeNameStr.slice( 0, -1 ) ;
+
+               if ( firstGroup )
+               {
+                  detailStr += pad( groupName, MAX_GROUP_NAME_LENGTH ) + "  " + nodeNameStr + "\n" ;
+               }
+               else
+               {
+                  detailStr += "  " + pad( "" ) + " " + pad( "" ) + " " + pad( "" ) + " " +
+                               pad( groupName, MAX_GROUP_NAME_LENGTH ) + "  " + nodeNameStr + "\n" ;
+               }
+            }
+         }
       }
-      print( "defMap: " ) ; this._defMap.print() ;
-      print( "nameMap: " ) ; this._nameMap.print() ;
+
+      conflictIdxDetail.push( { "ID": id, "Detail": detailStr } ) ;
+   }
+   catch( e )
+   {
+      if( e instanceof Error )
+      {
+         println( "Failed to generate conflict index detail info, error Stack:\n" + e.stack ) ;
+      }
+      throw e ;
    }
 }
 
-function MainCLUnit( clName, shardingKey )
+function generateInvalShardIdIdxDetailInfo( id, indexInfoObj, invalidShardIdxDetail, maxClFullNameLength )
 {
-   this._clName = clName ;
-   this._shardingKey = shardingKey ;
-   this.catIdxDefList = [] ;
-   this.canUpgradeIdxDefList = [] ;
+   try
+   {
+      var detailStr = "" ;
 
-   this.addByCatalog = function( idxDef )
-   {
-      this.catIdxDefList.push( idxDef ) ;
-   }
-   this.setBySubcl = function( idxDef )
-   {
-      if ( idxDef.unique && ! isObjInclude( idxDef.key, this._shardingKey ) )
+      for ( i in indexInfoObj.DataGroups )
       {
-         // unique index should include sharding key
+         var group = indexInfoObj.DataGroups[i] ;
+         var nodeInfos = group.NodeInfos ;
+         for ( j in nodeInfos )
+         {
+            var nodeName = nodeInfos[j].NodeName ;
+            detailStr += "  " + pad( indexInfoObj.ClFullName, maxClFullNameLength ) + " " + nodeName + "\n" ;
+         }
+      }
+
+      invalidShardIdxDetail.push( { "ID": id, "Detail": detailStr } ) ;
+   }
+   catch( e )
+   {
+      if( e instanceof Error )
+      {
+         println( "Failed to generate invalid $shard index detail info, error Stack:\n" + e.stack ) ;
+      }
+      throw e ;
+   }
+}
+
+function generateInvalidIdIdxDetailInfo( id, indexInfoObj, invalidIdIdxDetail, maxClFullNameLength )
+{
+   try
+   {
+      var detailStr = "" ;
+
+      for ( i in indexInfoObj.DataGroups )
+      {
+         var group = indexInfoObj.DataGroups[i] ;
+         var nodeInfos = group.NodeInfos ;
+         for ( j in nodeInfos )
+         {
+            var nodeName = nodeInfos[j].NodeName ;
+            detailStr += "  " + pad( indexInfoObj.ClFullName, maxClFullNameLength ) + " " + nodeName + "\n" ;
+         }
+      }
+
+      invalidIdIdxDetail.push( { "ID": id, "Detail": detailStr } ) ;
+   }
+   catch( e )
+   {
+      if( e instanceof Error )
+      {
+         println( "Failed to generate invalid $id index detail info, error Stack:\n" + e.stack ) ;
+      }
+      throw e ;
+   }
+}
+
+function generateLocalClIdxDetailInfo( id, indexInfoObj, localclIdxDetail, maxClFullNameLength )
+{
+   try
+   {
+      var detailStr = "" ;
+
+      detailStr += "  " + pad( indexInfoObj.ClFullName, maxClFullNameLength ) + " " + indexInfoObj.NodeName + "\n" ;
+
+      localclIdxDetail.push( { "ID": id, "Detail": detailStr } ) ;
+   }
+   catch( e )
+   {
+      if( e instanceof Error )
+      {
+         println( "Failed to generate local cl index detail info, error Stack:\n" + e.stack ) ;
+      }
+      throw e ;
+   }
+}
+
+function generateMissIdxJsCode( indexInfoObj )
+{
+   var jsCode = "// Deal with Miss Indexs\n" ;
+
+   if ( IGNORE_STRATEGY == DEALWITH_MISS_INDEX )
+   {
+      return jsCode ;
+   }
+
+   try
+   {
+      var groups = indexInfoObj.Groups ;
+
+      if ( DROP_STRATEGY == DEALWITH_MISS_INDEX )
+      {
+         jsCode += "/*\n" ;
+         // drop idx
+         for ( i in groups )
+         {
+            var group = groups[i] ;
+            var nodeInfos = group.NodeInfos ;
+            for ( j in nodeInfos )
+            {
+               var nodeName = nodeInfos[j].NodeName ;
+               var hostname = nodeName.split( ":" )[0] ;
+               var svcname = nodeName.split( ":" )[1] ;
+
+               jsCode += generateSdbConnStr( hostname, svcname, USERNAME, PASSWD, CIPHER_FILE, TOKEN ) ;
+               jsCode += generateDropIdxJsCode( indexInfoObj.ClFullName, indexInfoObj.IndexName ) ;
+               jsCode += "db.close()\n\n" ;
+            }
+         }
+         jsCode += "*/\n" ;
+      }
+      else if ( RE_CREATE_STRATEGY == DEALWITH_MISS_INDEX )
+      {
+         // recreate idx
+         jsCode += generateSdbConnStr( HOSTNAME, SVCNAME, USERNAME, PASSWD, CIPHER_FILE, TOKEN ) ;
+         jsCode += generateCreateIdxJsCodeWithSpentTime( indexInfoObj.ClFullName, indexInfoObj.IndexName, indexInfoObj.IndexDef ) ;
+         jsCode += "db.close()\n" ;
+      }
+      else
+      {
+         // ignore ;
+      }
+
+      return jsCode ;
+   }
+   catch( e )
+   {
+      if( e instanceof Error )
+      {
+         println( "Failed to generate drop miss index js code, error Stack:\n" + e.stack ) ;
+      }
+      throw e ;
+   }
+}
+
+function generateConflictIdxJsCode( indexInfoObj )
+{
+   var jsCode = "// Deal with Conflict Indexs\n" ;
+
+   if ( IGNORE_STRATEGY == DEALWITH_CONFLICT_INDEX )
+   {
+      return jsCode ;
+   }
+
+   try
+   {
+      var groups = indexInfoObj.Groups ;
+      var idxDef = null ;
+      var idxName = null ;
+
+      jsCode += "/*\n" ;
+
+      for ( i in groups )
+      {
+         var group = groups[i] ;
+         var nodeInfos = group.NodeInfos ;
+         for ( j in nodeInfos )
+         {
+            var nodeName = nodeInfos[j].NodeName ;
+            var hostname = nodeName.split( ":" )[0] ;
+            var svcname = nodeName.split( ":" )[1] ;
+            idxName = nodeInfos[j].IndexName ;
+            idxDef = nodeInfos[j].IndexDef ;
+
+            jsCode += generateSdbConnStr( hostname, svcname, USERNAME, PASSWD, CIPHER_FILE, TOKEN ) ;
+            jsCode += generateDropIdxJsCode( indexInfoObj.ClFullName, idxName ) ;
+            jsCode += "db.close()\n\n" ;
+         }
+      }
+
+      if ( RE_CREATE_STRATEGY == DEALWITH_CONFLICT_INDEX )
+      {
+         // recreate idx
+         jsCode += generateSdbConnStr( HOSTNAME, SVCNAME, USERNAME, PASSWD, CIPHER_FILE, TOKEN ) ;
+         jsCode += generateCreateIdxJsCodeWithSpentTime( indexInfoObj.ClFullName, idxName, idxDef ) ;
+         jsCode += "db.close()\n\n" ;
+      }
+      else
+      {
+         // ignore ;
+      }
+      jsCode += "*/\n" ;
+
+      return jsCode ;
+   }
+   catch( e )
+   {
+      if( e instanceof Error )
+      {
+         println( "Failed to generate drop conflict index js code, error Stack:\n" + e.stack ) ;
+      }
+      throw e ;
+   }
+}
+
+function generateInvalidIdIdxJsCode( indexInfoObj )
+{
+   var jsCode = "// Deal with Invalid $id Indexs\n" ;
+
+   try
+   {
+      jsCode += "/*\n" ;
+      jsCode += generateSdbConnStr( HOSTNAME, SVCNAME, USERNAME, PASSWD, CIPHER_FILE, TOKEN ) ;
+      jsCode += generateDropIdxJsCode( indexInfoObj.ClFullName, indexInfoObj.IndexName ) ;
+      jsCode += "db.close()\n\n" ;
+      jsCode += "*/\n" ;
+      return jsCode ;
+   }
+   catch( e )
+   {
+      if( e instanceof Error )
+      {
+         println( "Failed to generate drop invalid $id index js code, error Stack:\n" + e.stack ) ;
+      }
+      throw e ;
+   }
+}
+
+function writeAndgenerateLocalClJsCode()
+{
+   var jsCode = "// Deal with Local collections\n" ;
+
+   if ( IGNORE_STRATEGY == DEALWITH_LOCAL_CL )
+   {
+      return ;
+   }
+
+   try
+   {
+      var sqlStr = "select T1.ClFullName, T1.NodeName from (select * from " + TMP_CL_FULL_CANNOT_UPGRADE_INDEX_INFO + " where UpgradeIndexType='" + IDX_TYPE_LOCAL_IDX + "') as T1 group by T1.ClFullName,T1.NodeName" ;
+
+      var count = 0 ;
+      var rc = db.exec( sqlStr ) ;
+      while ( rc.next() )
+      {
+         var obj = rc.current().toObj() ;
+
+         var clFullName = obj.ClFullName ;
+         var nodeName = obj.NodeName ;
+
+         var hostname = nodeName.split( ":" )[0] ;
+         var svcname = nodeName.split( ":" )[1] ;
+
+         var csName = clFullName.split( "." )[0] ;
+         var clName = clFullName.split( "." )[1] ;
+
+         jsCode += "/*\n" ;
+         jsCode += generateSdbConnStr( hostname, svcname, USERNAME, PASSWD, CIPHER_FILE, TOKEN ) ;
+         jsCode += "var beginTime = Date.now() ;\n" ;
+         jsCode += ( "println( 'Begin to drop local collection [ ClFullName: " + clFullName + " ]' ) ;\n" ) ;
+         jsCode += "db." + csName + ".dropCL( '" + clName + "' ) ;\n" ;
+         jsCode += ( "println('Drop local collection successfully, spent time: ' + ( (Date.now()) - beginTime )/1000 + 's' ) ;\n" ) ;
+         jsCode += "db.close() ;\n\n" ;
+         jsCode += "*/\n" ;
+
+         count++ ;
+      }
+
+      if ( count > 0 )
+      {
+         writeFile( LOCAL_CL_JS_FILE, jsCode, false ) ;
+      }
+   }
+   catch( e )
+   {
+      if( e instanceof Error )
+      {
+         println( "Failed to generate drop local cl js code, error Stack:\n" + e.stack ) ;
+      }
+      throw e ;
+   }
+}
+
+function getMaxCannotClFullNameLength( cannotUpgradeIdxInfoCl )
+{
+   try
+   {
+      var rc = null ;
+      var maxLength = 0 ;
+
+      rc = cannotUpgradeIdxInfoCl.find( {}, { "ClFullName": { "$strlen": 1 }, "_id": 1 } ).sort( { "ClFullName": -1 } ).limit(1) ;
+      maxLength = rc.next() ? rc.current().toObj().ClFullName : 0 ;
+
+      if ( maxLength < FIELD_COLLECTION.length )
+      {
+         maxLength = FIELD_COLLECTION.length ;
+      }
+      else if ( maxLength > MAX_CLFULLNAME_LENGTH )
+      {
+         maxLength = MAX_CLFULLNAME_LENGTH ;
+      }
+
+      return maxLength ;
+   }
+   catch( e )
+   {
+      if( e instanceof Error )
+      {
+         println( "Failed to get cl fullname length, error Stack:\n" + e.stack ) ;
+      }
+      throw e ;
+   }
+}
+
+function getMaxCannotIndexNameLength( cannotUpgradeIdxInfoCl )
+{
+   try
+   {
+      var rc = null ;
+      var len1 = 0 ;
+      var len2 = 0 ;
+      var maxLength = 0 ;
+
+      rc = cannotUpgradeIdxInfoCl.find( { "IndexNames": { "$isnull": 0 } }, { "IndexNames": { "$strlen": 1 }, "_id": 1 } ).sort( { "IndexNames": -1 } ).limit(1) ;
+      while ( rc.next() )
+      {
+         var indexNames = rc.current().toObj().IndexNames ;
+         for ( i in indexNames )
+         {
+            if ( len1 < indexNames[i] )
+            {
+               len1 = indexNames[i] ;
+            }
+         }
+      }
+
+      rc = cannotUpgradeIdxInfoCl.find( { "IndexNames": { "$isnull": 1 } }, { "IndexName": { "$strlen": 1 }, "_id": 1 } ).sort( { "IndexName": -1 } ).limit(1) ;
+      len2 = rc.next() ? rc.current().toObj().IndexName : 0 ;
+
+      maxLength = Math.max( len1, len2 ) ;
+
+      if ( maxLength < FIELD_INDEXNAME.length )
+      {
+         maxLength = FIELD_INDEXNAME.length ;
+      }
+      else if ( maxLength > MAX_INDEX_NAME_LENGTH )
+      {
+         maxLength = MAX_INDEX_NAME_LENGTH ;
+      }
+
+      return maxLength ;
+   }
+   catch( e )
+   {
+      if( e instanceof Error )
+      {
+         println( "Failed to get index name length, error Stack:\n" + e.stack ) ;
+      }
+      throw e ;
+   }
+}
+
+function getMaxCannotUpgradeIndexTypeLength( cannotUpgradeIdxInfoCl )
+{
+   try
+   {
+      var rc = null ;
+      var maxLength = 0 ;
+
+      rc = cannotUpgradeIdxInfoCl.find( {}, { "UpgradeIndexType": { "$strlen": 1 }, "_id": 1 } ).sort( { "UpgradeIndexType": -1 } ).limit(1) ;
+      maxLength = rc.next() ? rc.current().toObj().UpgradeIndexType : 0 ;
+
+      if ( maxLength > MAX_INDEX_TYPE_LENGTH )
+      {
+         maxLength = MAX_INDEX_TYPE_LENGTH ;
+      }
+
+      return maxLength ;
+   }
+   catch( e )
+   {
+      if( e instanceof Error )
+      {
+         println( "Failed to get cl fullname length, error Stack:\n" + e.stack ) ;
+      }
+      throw e ;
+   }
+}
+
+function getMaxConflictIndexKeyLength( cannotUpgradeIdxInfoCl )
+{
+   try
+   {
+      var rc = null ;
+      var maxLength = 0 ;
+
+      rc = cannotUpgradeIdxInfoCl.find( { "UpgradeIndexType": IDX_TYPE_CONFLICT } ) ;
+      while ( rc.next() )
+      {
+         var obj = rc.current().toObj() ;
+
+         if ( undefined != obj.IndexDef )
+         {
+            var key = JSON.stringify( obj.IndexDef.key ) ;
+            if ( maxLength < key.length )
+            {
+               maxLength = key.length ;
+            }
+         }
+         else if( undefined != obj.IndexDefs )
+         {
+            for ( i in obj.IndexDefs )
+            {
+               var key = JSON.stringify( obj.IndexDefs[i].key ) ;
+               if ( maxLength < key.length )
+               {
+                  maxLength = key.length ;
+               }
+            }
+         }
+      }
+
+      if ( maxLength < FIELD_INDEXKEY.length )
+      {
+         maxLength = FIELD_INDEXKEY.length ;
+      }
+      else if ( maxLength > MAX_INDEX_KEY_LENGTH )
+      {
+         maxLength = MAX_INDEX_KEY_LENGTH ;
+      }
+
+      return maxLength ;
+   }
+   catch( e )
+   {
+      if( e instanceof Error )
+      {
+         println( "Failed to get cl fullname length, error Stack:\n" + e.stack ) ;
+      }
+      throw e ;
+   }
+}
+
+function writeCannotUpgradeIdxReport( cannotUpgradeIdxCount, cannotUpgradeIdxInfoCl )
+{
+   try
+   {
+      var rc = null ;
+      var id = 1 ;
+      var beginTime = Date.now() ;
+      var missIdxDetail = [] ;
+      var conflictIdxDetail = [] ;
+      var invalidIdIdxDetail = [] ;
+      var invalidShardIdxDetail = [] ;
+      var localclIdxDetail = [] ;
+
+      println( "(" + step + "/" + STEP_NUM + ")Begin to write cannot upgrade index infos" ) ;
+      println( "(" + step + "/" + STEP_NUM + ")Cannot Indexes Count: " + cannotUpgradeIdxCount ) ;
+
+      var idLen = ( cannotUpgradeIdxCount + "" ).length ;
+      idLen = Math.max( idLen, FIELD_ID.length + 1 ) ;
+
+      var maxClFullNameLength = getMaxCannotClFullNameLength( cannotUpgradeIdxInfoCl ) ;
+
+      var maxIndexNameLength = getMaxCannotIndexNameLength( cannotUpgradeIdxInfoCl ) ;
+
+      var maxIndexTypeLength = getMaxCannotUpgradeIndexTypeLength( cannotUpgradeIdxInfoCl ) ;
+
+      var maxIndexKeyLength = getMaxConflictIndexKeyLength( cannotUpgradeIdxInfoCl ) ;
+
+      writeCheckInfo( "===================== Check Result ( Cannot be Upgraded ) ======================\n" +
+                      pad( FIELD_ID, idLen ) + " " +
+                      pad( FIELD_REASON, maxIndexTypeLength ) + " " +
+                      pad( FIELD_COLLECTION, maxClFullNameLength )   + " " +
+                      pad( FIELD_INDEXNAME, maxIndexNameLength ) + " " +
+                      pad( FIELD_INDEXATTR, MAX_INDEX_ATTR_DESC_LENGTH ) + " " +
+                      FIELD_INDEXKEY + "\n", false ) ;
+
+      rc = cannotUpgradeIdxInfoCl.find().sort( { "ClFullName": 1 } ) ;
+      while ( rc.next() )
+      {
+         var obj = rc.current().toObj() ;
+
+         if ( IDX_TYPE_MISSING == obj.UpgradeIndexType )
+         {
+            writeCheckInfo( pad( id, idLen ) + " " +
+                            pad( obj.UpgradeIndexType, maxIndexTypeLength ) + " " +
+                            pad( obj.ClFullName, maxClFullNameLength ) + " " +
+                            pad( obj.IndexName, maxIndexNameLength ) + " " +
+                            pad( getIdxAttrDesc( obj.IndexDef ), MAX_INDEX_ATTR_DESC_LENGTH ) + " " +
+                            JSON.stringify( obj.IndexDef.key ) + "\n", false ) ;
+
+            generateMissIdxDetailInfo( id, obj, missIdxDetail ) ;
+         }
+         else if ( IDX_TYPE_CONFLICT == obj.UpgradeIndexType )
+         {
+            if ( undefined != obj.IndexNames )
+            {
+               for ( i in obj.IndexNames )
+               {
+                  var indexName = obj.IndexNames[i] ;
+                  writeCheckInfo( pad( id, idLen ) + " " +
+                                  pad( obj.UpgradeIndexType, maxIndexTypeLength ) + " " +
+                                  pad( obj.ClFullName, maxClFullNameLength ) + " " +
+                                  pad( indexName, maxIndexNameLength ) + " " +
+                                  pad( getIdxAttrDesc( obj.IndexDef ), MAX_INDEX_ATTR_DESC_LENGTH ) + " " +
+                                  JSON.stringify( obj.IndexDef.key ) + "\n", false ) ;
+               }
+            }
+            else if ( undefined != obj.IndexDefs )
+            {
+               for ( i in obj.IndexDefs )
+               {
+                  var indexDef = obj.IndexDefs[i] ;
+                  writeCheckInfo( pad( id, idLen ) + " " +
+                                  pad( obj.UpgradeIndexType, maxIndexTypeLength ) + " " +
+                                  pad( obj.ClFullName, maxClFullNameLength ) + " " +
+                                  pad( obj.IndexName, maxIndexNameLength ) + " " +
+                                  pad( getIdxAttrDesc( indexDef ), MAX_INDEX_ATTR_DESC_LENGTH ) + " " +
+                                  JSON.stringify( indexDef.key ) + "\n", false ) ;
+               }
+            }
+
+            generateConflictIdxDetailInfo( id, obj, conflictIdxDetail,
+                                           maxIndexNameLength, maxIndexKeyLength ) ;
+         }
+         else if ( IDX_TYPE_INVALID_SHARD == obj.UpgradeIndexType )
+         {
+            writeCheckInfo( pad( id, idLen ) + " " +
+                            pad( obj.UpgradeIndexType, maxIndexTypeLength ) + " " +
+                            pad( obj.ClFullName, maxClFullNameLength ) + " " +
+                            pad( obj.IndexName, maxIndexNameLength ) + " " +
+                            pad( getIdxAttrDesc( obj.IndexDef ), MAX_INDEX_ATTR_DESC_LENGTH ) + " " +
+                            JSON.stringify( obj.IndexDef.key ) + "\n", false ) ;
+
+            generateInvalShardIdIdxDetailInfo( id, obj, invalidShardIdxDetail, maxClFullNameLength ) ;
+            // ignore $shard
+         }
+         else if ( IDX_TYPE_INVALID_ID == obj.UpgradeIndexType )
+         {
+            writeCheckInfo( pad( id, idLen ) + " " +
+                            pad( obj.UpgradeIndexType, maxIndexTypeLength ) + " " +
+                            pad( obj.ClFullName, maxClFullNameLength ) + " " +
+                            pad( obj.IndexName, maxIndexNameLength ) + " " +
+                            pad( getIdxAttrDesc( obj.IndexDef ), MAX_INDEX_ATTR_DESC_LENGTH ) + " " +
+                            JSON.stringify( obj.IndexDef.key ) + "\n", false ) ;
+
+            generateInvalidIdIdxDetailInfo( id, obj, invalidIdIdxDetail, maxClFullNameLength ) ;
+         }
+         else if ( IDX_TYPE_LOCAL_IDX == obj.UpgradeIndexType )
+         {
+            writeCheckInfo( pad( id, idLen ) + " " +
+                            pad( obj.UpgradeIndexType, maxIndexTypeLength ) + " " +
+                            pad( obj.ClFullName, maxClFullNameLength ) + " " +
+                            pad( obj.IndexDef.name, maxIndexNameLength ) + " " +
+                            pad( getIdxAttrDesc( obj.IndexDef ), MAX_INDEX_ATTR_DESC_LENGTH ) + " " +
+                            JSON.stringify( obj.IndexDef.key ) + "\n", false ) ;
+
+            generateLocalClIdxDetailInfo( id, obj, localclIdxDetail, maxClFullNameLength ) ;
+         }
+         else
+         {
+            // do nothing
+         }
+
+         id++ ;
+      }
+
+      writeCheckInfo( "\n", false ) ;
+
+      for ( i in missIdxDetail )
+      {
+         writeCheckInfo( "  " + "---------- Index ( ID: " + missIdxDetail[i].ID + " ) " +
+                         IDX_TYPE_MISSING + " -----------\n" + "  " +
+                         pad( FIELD_GROUPNAME, MAX_GROUP_NAME_LENGTH ) + " " +
+                         pad( FIELD_NODENAME, MAX_NODE_NAME_LENGTH )  + " " +
+                         pad( IDX_TYPE_MISSING, IDX_TYPE_MISSING.length ) + "\n" +
+                         missIdxDetail[i].Detail + "\n", false ) ;
+      }
+
+      for ( i in conflictIdxDetail )
+      {
+         writeCheckInfo( "  " + "---------- Index ( ID: " + conflictIdxDetail[i].ID + " ) " +
+                         IDX_TYPE_CONFLICT + " -----------\n" + "  " +
+                         pad( FIELD_INDEXNAME, maxIndexNameLength )  + " " +
+                         pad( FIELD_INDEXKEY, maxIndexKeyLength )   + " " +
+                         pad( FIELD_INDEXATTR, MAX_INDEX_ATTR_DESC_LENGTH )  + " " +
+                         pad( FIELD_GROUPNAME, MAX_GROUP_NAME_LENGTH ) + "  " +
+                         FIELD_NODENAME + "\n" + conflictIdxDetail[i].Detail + "\n", false ) ;
+      }
+
+      for ( i in invalidShardIdxDetail )
+      {
+         writeCheckInfo( "  " + "---------- Index ( ID: " + invalidShardIdxDetail[i].ID + " ) " +
+                         IDX_TYPE_INVALID_SHARD + " -----------\n" + "  " +
+                         pad( FIELD_COLLECTION, maxClFullNameLength ) + " " +
+                         FIELD_NODENAME + "\n" + invalidShardIdxDetail[i].Detail + "\n", false ) ;
+      }
+
+      for ( i in invalidIdIdxDetail )
+      {
+         writeCheckInfo( "  " + "---------- Index ( ID: " + invalidIdIdxDetail[i].ID + " ) " +
+                         IDX_TYPE_INVALID_ID + " -----------\n" + "  " +
+                         pad( FIELD_COLLECTION, maxClFullNameLength ) + " " +
+                         FIELD_NODENAME + "\n" + invalidIdIdxDetail[i].Detail + "\n", false ) ;
+      }
+
+      for ( i in localclIdxDetail )
+      {
+         writeCheckInfo( "  " + "---------- Index ( ID: " + localclIdxDetail[i].ID + " ) " +
+                         IDX_TYPE_LOCAL_IDX + " -----------\n" + "  " +
+                         pad( FIELD_COLLECTION, maxClFullNameLength ) + " " +
+                         FIELD_NODENAME + "\n" + localclIdxDetail[i].Detail + "\n", false ) ;
+      }
+
+      writeCheckInfo( "", true ) ;
+
+      println( "(" + step + "/" + STEP_NUM + ")End to write cannot upgrade index infos, spent time: " +
+               ( (Date.now()) - beginTime )/1000 + "s" ) ;
+      step++ ;
+   }
+   catch( e )
+   {
+      if( e instanceof Error )
+      {
+         println( "Failed to write cannot upgrade index infos, error Stack:\n" +
+                  e.stack ) ;
+      }
+      throw e ;
+   }
+}
+
+function writeReport()
+{
+   var beginTime = Date.now() ;
+
+   println( "(" + step + "/" + STEP_NUM + ")Begin to get indexes count" ) ;
+
+   var tmpCS = db.getCS( TMP_CS_UPGRADE_INDEX ) ;
+   var dataIdxCheckInfoCl = tmpCS.getCL( TMP_CL_DATA_INDEX_CHECK_INFO ) ;
+   var mainIdxCheckInfoCl = tmpCS.getCL( TMP_CL_MAIN_CL_INDEX_CHECK_INFO ) ;
+   var noNeedUpgradeIdxInfoCl = tmpCS.getCL( TMP_CL_NO_NEED_UPGRADE_INDEX_INFO ) ;
+   var cannotUpgradeIdxInfoCl = tmpCS.getCL( TMP_CL_CANNOT_UPGRADE_INDEX_INFO ) ;
+
+   var noNeedIdxCount = ( dataIdxCheckInfoCl.count( { "UpgradeIndexType": IDX_TYPE_CONSISTENT } ) ) +
+                        ( mainIdxCheckInfoCl.count( { "UpgradeIndexType": IDX_TYPE_CONSISTENT } ) ) +
+                        ( noNeedUpgradeIdxInfoCl.count() ) ;
+   var canUpgradeIdxCount = ( dataIdxCheckInfoCl.count( { "UpgradeIndexType": { "$isnull": 1 } } ) ) +
+                            ( mainIdxCheckInfoCl.count( { "UpgradeIndexType": { "$isnull": 1 } } ) )  ;
+   var cannotUpgradeIdxCount = cannotUpgradeIdxInfoCl.count() ;
+
+   println( "(" + step + "/" + STEP_NUM + ")End to get indexes count, spent time: " +
+            ( (Date.now()) - beginTime )/1000 + "s" ) ;
+   step++ ;
+
+   writeNoNeedUpgradeIdxReport( noNeedIdxCount, dataIdxCheckInfoCl, mainIdxCheckInfoCl,
+                                noNeedUpgradeIdxInfoCl ) ;
+
+   writeCanUpgradeIdxReport( canUpgradeIdxCount, dataIdxCheckInfoCl, mainIdxCheckInfoCl ) ;
+
+   writeCannotUpgradeIdxReport( cannotUpgradeIdxCount, cannotUpgradeIdxInfoCl ) ;
+
+   writeCheckInfo( SUGGEST_INFO +
+                   "++++++++++++++++++++++++++\n" +
+                   "No need to upgrade : " + noNeedIdxCount + "\n" +
+                   "Cannot be upgraded : " + cannotUpgradeIdxCount + "\n" +
+                   "   Can be upgraded : " + canUpgradeIdxCount + "\n" +
+                   "++++++++++++++++++++++++++\n", true ) ;
+}
+
+function generateJsScripts()
+{
+   generateCanUpgradeIdxJsScript() ;
+
+   generateCannotUpgradeIdxJsScripts() ;
+}
+
+function generateCanUpgradeIdxJsScript()
+{
+   try
+   {
+      var rc = null ;
+      var id = 1 ;
+      var beginTime = Date.now() ;
+
+      var tmpCS = db.getCS( TMP_CS_UPGRADE_INDEX ) ;
+      var dataIdxCheckInfoCl = tmpCS.getCL( TMP_CL_DATA_INDEX_CHECK_INFO ) ;
+      var mainIdxCheckInfoCl = tmpCS.getCL( TMP_CL_MAIN_CL_INDEX_CHECK_INFO ) ;
+      var canUpgradeIdxCount = ( dataIdxCheckInfoCl.count( { "UpgradeIndexType": { "$isnull": 1 } } ) ) +
+                               ( mainIdxCheckInfoCl.count( { "UpgradeIndexType": { "$isnull": 1 } } ) )  ;
+
+      var printProgressCount = _PRINT_PROGRESS_COUNT ;
+      var printClTmpNum = canUpgradeIdxCount/printProgressCount ;
+      printClTmpNum = printClTmpNum > 1 ? printClTmpNum : 1 ;
+      var aProgressCollectClNum = printClTmpNum ;
+
+      var writeProgressCount = canUpgradeIdxCount ;
+      var writeJsCodeTmpNum = WRITE_JS_FILE_BATCH_NUM ;
+      var aProgressWriteJsCodeNum = writeJsCodeTmpNum ;
+
+      var tmpCS = db.getCS( TMP_CS_UPGRADE_INDEX ) ;
+      var dataIdxCheckInfoCl = tmpCS.getCL( TMP_CL_DATA_INDEX_CHECK_INFO ) ;
+      var mainIdxCheckInfoCl = tmpCS.getCL( TMP_CL_MAIN_CL_INDEX_CHECK_INFO ) ;
+
+      if ( 0 == dataIdxCheckInfoCl.count( { "UpgradeIndexType": { "$isnull": 1 } } ) &&
+           0 == mainIdxCheckInfoCl.count( { "UpgradeIndexType": { "$isnull": 1 } } ) )
+      {
+         println( "(" + step + "/" + STEP_NUM + ")Don't need to generate can upgrade indexes js script" ) ;
+         step++ ;
          return ;
       }
-      var conflict = false ;
-      for ( var i in this.catIdxDefList )
+
+      println( "(" + step + "/" + STEP_NUM + ")Begin to generate can upgrade indexes js script" ) ;
+      // 每完成四十分之一打印一个 #
+      println( "Writing\n0% ______________ 50% ______________ 100%" ) ;
+
+      writeUpgradeJsCode( UPGRADE_INDEX_JS_FILE,
+                          "var beginTime = Date.now() ;\n" +
+                          "var spentTime = 0 ;\n" +
+                          "var everyIndexSpentTime = 0 ;\n" +
+                          "var everyIndexSpentTimeTmp = 0 ;\n" +
+                          "var leftTime = 0 ;\n" +
+                          "var leftTimeTmp = 0 ;", false ) ;
+      writeUpgradeJsCode( UPGRADE_INDEX_JS_FILE,
+                          generateSdbConnStr( HOSTNAME, SVCNAME, USERNAME, PASSWD, CIPHER_FILE, TOKEN ),
+                          false ) ;
+
+      rc = dataIdxCheckInfoCl.find( { "UpgradeIndexType": { "$isnull": 1 } } ).sort( { "ClFullName": 1 } ) ;
+      while ( rc.next() )
       {
-         var catDef = this.catIdxDefList[i] ;
-         if ( isConflictIdx( catDef, idxDef ) )
+         var obj = rc.current().toObj() ;
+
+         writeUpgradeJsCode( UPGRADE_INDEX_JS_FILE, generateUpgradeIdxJsCode( obj ), false ) ;
+         if ( id >= writeJsCodeTmpNum && 0 != writeProgressCount )
          {
-            conflict = true ;
-            break ;
+            var progressCode = "spentTime = ( (Date.now()) - beginTime )/1000 ;\n" ;
+            progressCode += "everyIndexSpentTimeTmp = spentTime/" + id + " ;\n" ;
+            progressCode += "everyIndexSpentTime = parseFloat( everyIndexSpentTimeTmp.toFixed( 3 ) ) ;\n" ;
+            progressCode += "leftTimeTmp = everyIndexSpentTime * " + ( canUpgradeIdxCount - id ) + " ;\n" ;
+            progressCode += "leftTime = parseFloat( leftTimeTmp.toFixed( 3 ) ) ;\n" ;
+            // [2/300] Cost: xxxs, Speed: xxxs/index, Left: xxxs
+            progressCode +=
+            ( "println('[" + id + "/" + canUpgradeIdxCount + "] Cost: ' + spentTime + 's, " +
+               "Speed: ' + everyIndexSpentTime + 's/index, " +
+               "Left time: ' + leftTime + 's' ) ;\n" ) ;
+            writeUpgradeJsCode( UPGRADE_INDEX_JS_FILE, progressCode, false ) ;
+            writeJsCodeTmpNum += aProgressWriteJsCodeNum ;
+            writeProgressCount -= id ;
+         }
+
+         id++ ;
+         if ( id >= printClTmpNum && 0 != printProgressCount )
+         {
+            print( "#" ) ;
+            printClTmpNum += aProgressCollectClNum ;
+            printProgressCount-- ;
          }
       }
-      if ( !conflict )
+
+      rc = mainIdxCheckInfoCl.find( { "UpgradeIndexType": { "$isnull": 1 } } ).sort( { "ClFullName": 1 } ) ;
+      while ( rc.next() )
       {
-         this.canUpgradeIdxDefList.push( idxDef ) ;
+         var obj = rc.current().toObj() ;
+
+         writeUpgradeJsCode( UPGRADE_INDEX_JS_FILE, generateUpgradeIdxJsCode( obj ), false ) ;
+         if ( id >= writeJsCodeTmpNum && 0 != writeProgressCount )
+         {
+            var progressCode = "spentTime = ( (Date.now()) - beginTime )/1000 ;\n" ;
+            progressCode += "everyIndexSpentTimeTmp = spentTime/" + id + " ;\n" ;
+            progressCode += "everyIndexSpentTime = parseFloat( everyIndexSpentTimeTmp.toFixed( 3 ) ) ;\n" ;
+            progressCode += "leftTimeTmp = everyIndexSpentTime * " + ( canUpgradeIdxCount - id ) + " ;\n" ;
+            progressCode += "leftTime = parseFloat( leftTimeTmp.toFixed( 3 ) ) ;\n" ;
+            progressCode +=
+            ( "println('[" + id + "/" + canUpgradeIdxCount + "] Cost: ' + spentTime + 's, " +
+              "Speed: ' + everyIndexSpentTime + 's/index, " +
+              "Left time: ' + leftTime + 's' ) ;\n" ) ;
+            writeUpgradeJsCode( UPGRADE_INDEX_JS_FILE, progressCode, false ) ;
+            writeJsCodeTmpNum += aProgressWriteJsCodeNum ;
+            writeProgressCount -= id ;
+         }
+
+         id++ ;
+         if ( id >= printClTmpNum && 0 != printProgressCount )
+         {
+            print( "#" ) ;
+            printClTmpNum += aProgressCollectClNum ;
+            printProgressCount-- ;
+         }
       }
+
+      id-- ;
+      if ( 0 != writeProgressCount )
+      {
+         var progressCode = "spentTime = ( (Date.now()) - beginTime )/1000 ;\n" ;
+         progressCode += "everyIndexSpentTimeTmp = spentTime/" + id + " ;\n" ;
+         progressCode += "everyIndexSpentTime = parseFloat( everyIndexSpentTimeTmp.toFixed( 3 ) ) ;\n" ;
+         progressCode += "leftTimeTmp = everyIndexSpentTime * " + ( canUpgradeIdxCount - id ) + " ;\n" ;
+         progressCode += "leftTime = parseFloat( leftTimeTmp.toFixed( 3 ) ) ;\n" ;
+         progressCode +=
+         ( "println('[" + id + "/" + canUpgradeIdxCount + "] Cost: ' + spentTime + 's, " +
+           "Speed: ' + everyIndexSpentTime + 's/index, " +
+           "Left time: ' + leftTime + 's' ) ;\n" ) ;
+         writeUpgradeJsCode( UPGRADE_INDEX_JS_FILE, progressCode, false ) ;
+      }
+      writeUpgradeJsCode( UPGRADE_INDEX_JS_FILE, "db.close()\n", true ) ;
+
+      for ( var i = 0 ; i < printProgressCount ; i++ )
+      {
+         print( "#" ) ;
+      }
+      print( "\n" ) ;
+
+      println( "(" + step + "/" + STEP_NUM + ")End to generate can upgrade indexes js script, spent time: " +
+               ( (Date.now()) - beginTime )/1000 + "s" ) ;
+      step++ ;
    }
-   this.canUpgradeCnt = function()
+   catch( e )
    {
-      return this.canUpgradeIdxDefList.length ;
+      if( e instanceof Error )
+      {
+         println( "Failed to generate can upgrade indexes js script, error Stack:\n" +
+                  e.stack ) ;
+      }
+      throw e ;
    }
 }
 
-function LocalCLUnit( clName, nodeNameList )
+function generateCannotUpgradeIdxJsScripts()
 {
-   this._clName = clName ;
-   this._nodeNameList = nodeNameList ;
-   this.idxDefList = [] ;
+   try
+   {
+      var beginTime = Date.now() ;
+      var tmpCS = db.getCS( TMP_CS_UPGRADE_INDEX ) ;
+      var cannotUpgradeIdxInfoCl = tmpCS.getCL( TMP_CL_CANNOT_UPGRADE_INDEX_INFO ) ;
 
-   this.set = function( idxDef )
-   {
-      this.idxDefList.push( idxDef ) ;
-   }
-   this.format = function( cannotFmtor, detailFmtor )
-   {
-      for ( var i in this.idxDefList )
+      if ( 0 == cannotUpgradeIdxInfoCl.count() )
       {
-         var def = this.idxDefList[i] ;
-         var id = cannotFmtor.push( this._clName,
-                                    def.name,
-                                    JSON.stringify( def.key ),
-                                    getIdxAttrDesc( def ),
-                                    "Local CL" ) ;
-         detailFmtor.pushLocalCL( id, this._clName, this._nodeNameList ) ;
+         println( "(" + step + "/" + STEP_NUM + ")Don't need to generate cannot upgrade indexes js script" ) ;
+         step++ ;
+         return ;
       }
-   }
-   this.print = function()
-   {
-      println( "clName: "+this._clName ) ;
-      println( "nodeNameList: "+this._nodeNameList ) ;
-      println( "idxDefList: "+JSON.stringify( this.idxDefList ) ) ;
-      println( "hasUIDList: "+this.hasUIDList ) ;
-   }
-}
 
-function UtilSet()
-{
-   this.data = [] ;
-   this.push = function( key )
-   {
-      for( var i = 0 ; i < this.data.length ; i++ )
+      println( "(" + step + "/" + STEP_NUM + ")Begin to generate cannot upgrade indexes js script" ) ;
+
+      rc = cannotUpgradeIdxInfoCl.find().sort( { "ClFullName": 1 } ) ;
+      while ( rc.next() )
       {
-         if ( isEqual( key, this.data[i] ) )
+         var obj = rc.current().toObj() ;
+
+         if ( IDX_TYPE_MISSING == obj.UpgradeIndexType )
          {
-            return ;
+            writeFile( MISS_INDEX_JS_FILE, generateMissIdxJsCode( obj ), false ) ;
          }
-      }
-      this.data.push( key ) ;
-   }
-   this.clear = function()
-   {
-      this.data = [] ;
-   }
-   this.size = function()
-   {
-      return this.data.length ;
-   }
-}
-
-function isEqual( k1, k2 )
-{
-   if ( k1.constructor == Object || k2.constructor == Object )
-   {
-      return JSON.stringify( k1 ) == JSON.stringify( k2 ) ;
-   }
-   else
-   {
-      return k1 == k2 ;
-   }
-}
-
-function UtilMap( compareFunc )
-{
-   this._data = [] ;
-   this._compareFunc = isEqual ;
-   if ( typeof( compareFunc ) != "undefined" )
-   {
-      this._compareFunc = compareFunc ;
-   }
-
-   this.add = function( key, value )
-   {
-      this._data.push( { Key: key, Value: value } ) ;
-   }
-   this.set = function( key, value )
-   {
-      var found = false ;
-      for( var i = 0 ; i < this._data.length ; i++ )
-      {
-         if ( this._compareFunc( this._data[i].Key, key ) )
+         else if ( IDX_TYPE_CONFLICT == obj.UpgradeIndexType )
          {
-            this._data[i] = { Key: key, Value: value } ;
-            found = true ;
-            break ;
+            writeFile( CONFLICT_INDEX_JS_FILE, generateConflictIdxJsCode( obj ), false ) ;
          }
-      }
-      if ( !found )
-      {
-         this._data.push( { Key: key, Value: value } ) ;
-      }
-   }
-   this.get = function( key )
-   {
-      for( var i = 0 ; i < this._data.length ; i++ )
-      {
-         if ( this._compareFunc( this._data[i].Key, key ) )
+         else if ( IDX_TYPE_INVALID_SHARD == obj.UpgradeIndexType )
          {
-            return this._data[i].Value ;
+            // ignore $shard
          }
-      }
-      return null ;
-   }
-   this.remove = function( key )
-   {
-      for( var i = 0 ; i < this._data.length ; i++ )
-      {
-         if ( this._compareFunc( this._data[i].Key, key ) )
+         else if ( IDX_TYPE_INVALID_ID == obj.UpgradeIndexType )
          {
-            this._data.splice( i, 1 ) ;
-            return ;
+            writeFile( INVALID_ID_INDEX_JS_FILE, generateInvalidIdIdxJsCode( obj ), false ) ;
          }
-      }
-   }
-   this.clear = function()
-   {
-      this._data = [] ;
-   }
-   this.size = function()
-   {
-      return this._data.length ;
-   }
-   this.has = function( key )
-   {
-      return -1 != this.pos( key ) ;
-   }
-   this.getKeys = function( )
-   {
-      var arr = [] ;
-      for( var i = 0 ; i < this._data.length ; i++ )
-      {
-         arr.push( this._data[i].Key ) ;
-      }
-      return arr ;
-   }
-   this.getValues = function( )
-   {
-      var arr = [] ;
-      for( var i = 0 ; i < this._data.length ; i++ )
-      {
-         arr.push( this._data[i].Value ) ;
-      }
-      return arr ;
-   }
-   this.clone = function()
-   {
-      var newObj = new UtilMap() ;
-      newObj._data = this._data.concat() ;
-      return newObj ;
-   }
-   this.print = function()
-   {
-      // print: [group1:100,group2:0,group3:100,... ]
-      println( "---Map: " ) ;
-      for( var i in this._data )
-      {
-         var k = this._data[i].Key ;
-         var v = this._data[i].Value ;
-         if ( k.constructor == Object || k.constructor == Array )
+         else if ( IDX_TYPE_LOCAL_IDX == obj.UpgradeIndexType )
          {
-            print( JSON.stringify( k ) ) ;
+            // do nothing
          }
          else
          {
-            print( k ) ;
+            // do nothing
          }
-         print( " " ) ;
-         if ( v.constructor == Object || v.constructor == Array )
-         {
-            print( JSON.stringify( v ) ) ;
-         }
-         else
-         {
-            print( v ) ;
-         }
-         println() ;
       }
-      println( "---end Map" ) ;
+
+      /*
+      单个集合在一个节点上，可能有 n 条索引记录，所以需要按照 ClFullName 和 NodeName 聚集，找出单条集合记录
+      */
+      writeAndgenerateLocalClJsCode() ;
+
+      println( "(" + step + "/" + STEP_NUM + ")End to generate cannot upgrade indexes js script, spent time: " +
+               ( (Date.now()) - beginTime )/1000 + "s" ) ;
+      step++ ;
+   }
+   catch( e )
+   {
+      if( e instanceof Error )
+      {
+         println( "Failed to generate cannot upgrade indexes js script, error Stack:\n" +
+                  e.stack ) ;
+      }
+      throw e ;
    }
 }
-

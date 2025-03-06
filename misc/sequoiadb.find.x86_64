@@ -3089,6 +3089,8 @@ sequoiadb/tools/sdbmigrate/conf/sample/import.conf
 sequoiadb/tools/upgrade
 sequoiadb/tools/upgrade/sdbupgradeidx
 sequoiadb/tools/upgrade/upgradeIndex.js
+sequoiadb/tools/upgrade/collectDataIdxInfo.js
+sequoiadb/tools/upgrade/config.js
 sequoiadb/tools/dr_ha
 sequoiadb/tools/dr_ha/detachGroupNode.sh
 sequoiadb/tools/dr_ha/split.sh
