@@ -753,7 +753,7 @@ namespace engine
                statusPtr = dmsIdxTaskStatusPtr( pItem ) ;
             }
             catch( std::exception &e )
-            {  
+            {
                pItem = NULL ;
                rc = ossException2RC( &e ) ;
                PD_RC_CHECK( rc, PDERROR, "Exception occurred: %s", e.what() ) ;
@@ -912,7 +912,8 @@ namespace engine
       while ( it != _mapStatus.end() )
       {
          dmsTaskStatusPtr statPtr = it->second ;
-         if ( isPrimary && statPtr->hasTaskInCatalog() )
+         if ( isPrimary && statPtr->hasTaskInCatalog() &&
+              rtnGetJobMgr()->jobExist( RTN_JOB_TASKINFO_UPDATE ) )
          {
             // Clean it after the corresponding catalog task was finished.
             // When catalog task is canceled or rollback, current local task

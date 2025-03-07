@@ -121,6 +121,8 @@ namespace engine
             _mapResult.clear() ;
          }
 
+         BOOLEAN jobExist ( RTN_JOB_TYPE type ) ;
+
       protected:
          INT32 _stopJob ( EDUID eduID ) ;
          INT32 _removeJob ( EDUID eduID, INT32 result = SDB_OK ) ;

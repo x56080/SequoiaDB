@@ -66,6 +66,28 @@ namespace engine
       return _mapJobs.size() ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNJOBMGR_JOBEXIST, "_rtnJobMgr::jobExist" )
+   BOOLEAN _rtnJobMgr::jobExist ( RTN_JOB_TYPE type )
+   {
+      PD_TRACE_ENTRY ( SDB__RTNJOBMGR_JOBEXIST ) ;
+
+      ossScopedLock lock ( &_latch, SHARED ) ;
+      _rtnBaseJob *itJob = NULL ;
+      ossPoolMap<EDUID, _rtnBaseJob*>::iterator it = _mapJobs.begin() ;
+      while ( it != _mapJobs.end() )
+      {
+         itJob = it->second ;
+         if ( type == itJob->type() )
+         {
+            return TRUE ;
+         }
+         ++it ;
+      }
+
+      PD_TRACE_EXIT ( SDB__RTNJOBMGR_JOBEXIST ) ;
+      return FALSE ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNJOBMGR_FINDJOB, "_rtnJobMgr::findJob" )
    _rtnBaseJob* _rtnJobMgr::findJob( EDUID eduID, INT32 *pResult )
    {
