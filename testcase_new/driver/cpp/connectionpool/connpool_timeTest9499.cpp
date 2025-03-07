@@ -1,7 +1,7 @@
 /*********************************************************************************
  * @Description: test case for connectionpool
  *               seqDB-9499:申请连接超过最大闲置连接数后,一段时间内持续归还连接,
- *                          等待空闲时长大于checkInterval 
+ *                          等待空闲时长大于checkInterval
  *               seqDB-9500:申请连接超过最大闲置连接数后,一段时间内持续归还连接,
  *                          等待空闲时长小于checkInterval
  *               seqDB-9503:设置keepalive=0
@@ -93,7 +93,7 @@ TEST_F( timeTest9499, checkIntervalShort9500 )
    }
 
    // check idle connection num without sleep
-   INT32 connNum = ds.getIdleConnNum() ;   
+   INT32 connNum = ds.getIdleConnNum() ;
    ASSERT_LE( 20, connNum ) << "fail to check idle conn num when no sleep" ;
 }
 
@@ -158,20 +158,20 @@ TEST_F( timeTest9499, keepAliveTimoutNotZeroAgain9504 )
    // get connection and check idle conn num
    rc = ds.getConnection( conn ) ;
    ASSERT_EQ( SDB_OK, rc ) << "fail to get connection" ;
-   ASSERT_EQ( 9, ds.getIdleConnNum() ) ;   
-   ossSleep( 3*1000 ) ; 
    ASSERT_EQ( 9, ds.getIdleConnNum() ) ;
-   ossSleep( 1*1000 ) ; 
+   ossSleep( 3*1000 ) ;
    ASSERT_EQ( 9, ds.getIdleConnNum() ) ;
    ossSleep( 1*1000 ) ;
-   ASSERT_EQ( 9, ds.getIdleConnNum() ) ;   
-   ossSleep( 2*1000 ) ; 
+   ASSERT_EQ( 9, ds.getIdleConnNum() ) ;
+   ossSleep( 1*1000 ) ;
+   ASSERT_EQ( 9, ds.getIdleConnNum() ) ;
+   ossSleep( 2*1000 ) ;
    ASSERT_EQ( 0, ds.getIdleConnNum() ) ;
 
    // craete/drop cs to check connection valid
-   const CHAR* csName = "connectionpoolTestCs_9504" ;      
+   const CHAR* csName = "connectionpoolTestCs_9504" ;
    rc = conn->createCollectionSpace( csName, SDB_PAGESIZE_4K, cs ) ;
-   ASSERT_EQ( SDB_OK, rc ) << "fail to create cs " << csName ;   
+   ASSERT_EQ( SDB_OK, rc ) << "fail to create cs " << csName ;
    rc = conn->dropCollectionSpace( csName ) ;
    ASSERT_EQ( SDB_OK, rc ) << "fail to drop cs" << csName ;
 
@@ -200,7 +200,7 @@ TEST_F( timeTest9499, trueTest9501 )
    conf.setSyncCoordInterval( false ) ;
    rc = ds.init( url, conf ) ;
    ASSERT_EQ( SDB_OK, rc ) << "fail to init connectionpool" ;
-   
+
    // get connection
    rc = ds.getConnection( conn ) ;
    ASSERT_EQ( SDB_OK, rc ) << "fail to get connection" ;
@@ -230,7 +230,7 @@ TEST_F( timeTest9499, trueTest9501 )
    sdb db ;
    for( INT32 i = 0;i < nodes.size();i++ )
    {
-      if( nodes[i] == nodeName ) 
+      if( nodes[i] == nodeName )
          continue ;
       size_t pos = nodes[i].find_first_of( ":" ) ;
       string host = nodes[i].substr( 0, pos ) ;
@@ -251,6 +251,7 @@ TEST_F( timeTest9499, trueTest9501 )
    rc = tmp.connect( hostName, svcName ) ;
    ASSERT_EQ( SDB_NET_CANNOT_CONNECT, rc ) << "fail to check connect after stop node" ;
    ASSERT_EQ( 0, conn->isValid() ) << "fail to check conn invalid after stop node" ;
+   ossSleep( 3000 ) ;
    rc = ds.getConnection( conn ) ;
    ASSERT_EQ( SDB_CLIENT_CONNPOOL_NO_REACHABLE_COORD, rc ) << "fail to test get connection after stop node" ;
 
@@ -340,13 +341,13 @@ TEST_F( timeTest9499, falseTest9502 )
    rc = node.stop() ;
    ASSERT_EQ( SDB_OK, rc ) << "fail to stop node" ;
    rc = ds.getConnection( conn ) ;
-   ASSERT_EQ( SDB_OK, rc ) << "fail to test get connection after stop node" ;  
+   ASSERT_EQ( SDB_OK, rc ) << "fail to test get connection after stop node" ;
    ASSERT_EQ( 0, conn->isValid() ) << "fail to check connection invalid after stop node" ;
-   
+
    // start node
    rc = node.start() ;
    ASSERT_EQ( SDB_OK, rc ) << "fail to start node" ;
-      
+
    db.disconnect() ;
    ds.releaseConnection( conn ) ;
 }
