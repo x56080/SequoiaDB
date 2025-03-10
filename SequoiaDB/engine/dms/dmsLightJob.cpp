@@ -163,7 +163,7 @@ namespace engine
          }
 
          su->saveMeta() ;
-         pDmsCB->suLock( suID ) ;
+         pDmsCB->suUnlock( suID ) ;
          su = NULL ;
          suID = DMS_INVALID_SUID ;
 
