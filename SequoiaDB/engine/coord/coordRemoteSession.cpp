@@ -1991,6 +1991,12 @@ namespace engine
          goto done ;
       }
 
+      if ( SDB_CLS_NOT_PRIMARY == flag &&
+           _maxRetryTimes < COORD_OPR_NOTPRIMARY_RETRY_TIMES )
+      {
+         setMaxRetryTimes( _maxRetryTimes + 1 ) ;
+      }
+
       bRetry = _canRetry() ;
 
       if ( SDB_CLS_NOT_PRIMARY == flag && 0 != newPrimaryID )
@@ -2044,7 +2050,30 @@ namespace engine
       // status by return flag
       if ( SDB_CLS_NOT_PRIMARY == flag || SDB_INVALID_ROUTEID == flag )
       {
-         if ( groupPtr.get() && SDB_CLS_NOT_PRIMARY == flag )
+         if ( SDB_INVALID_ROUTEID == flag && _pGroupSel->isPrimary() && groupPtr.get() )
+         {
+            MsgRouteID primaryNodeID ;
+            primaryNodeID = groupPtr->primary() ;
+
+            if ( nodeID.value == primaryNodeID.value )
+            {
+               PD_LOG( PDWARNING, "Primary node[%d.%d] is not registered, sleep "
+                       "%d seconds", primaryNodeID.columns.groupID,
+                       primaryNodeID.columns.nodeID,
+                       NET_NODE_FAULTUP_MIN_TIME ) ;
+
+               cb->setBlock( EDU_BLOCK_NODEFAULT, "" ) ;
+               cb->printInfo( EDU_INFO_DOING,
+                              "Primary node[%d.%d] is not registered, sleep %d seconds",
+                              primaryNodeID.columns.groupID,
+                              primaryNodeID.columns.nodeID,
+                              NET_NODE_FAULTUP_MIN_TIME ) ;
+               ossSleep( NET_NODE_FAULTUP_MIN_TIME * OSS_ONE_SEC ) ;
+               cb->unsetBlock() ;
+            }
+         }
+
+         if ( groupPtr.get() )
          {
             // report it is not primary
             groupPtr->updatePrimary( nodeID, FALSE ) ;
@@ -2096,6 +2125,21 @@ namespace engine
          {
             groupPtr->updateNodeStat( nodeID.columns.nodeID,
                                       netResult2Status( flag ) ) ;
+
+            if ( SDB_CLS_FULL_SYNC == flag && _pGroupSel->isPrimary() )
+            {
+               MsgRouteID tmpNodeID ;
+               /// set other node to primary, then switch to other node and wait primary
+               for ( UINT32 pos = 0 ; pos < groupPtr->nodeCount() ; ++pos )
+               {
+                  groupPtr->getNodeID( pos, tmpNodeID ) ;
+                  if ( MSG_INVALID_ROUTEID != tmpNodeID.value && tmpNodeID.value != nodeID.value )
+                  {
+                     groupPtr->updatePrimary( tmpNodeID, TRUE ) ;
+                     break ;
+                  }
+               }
+            }
          }
 
          if ( !isReadCmd && SDB_DATABASE_DOWN == flag )

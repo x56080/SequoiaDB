@@ -2160,6 +2160,12 @@ namespace engine
               "Then close all shard connections", sessionName(),
               routeID2String( _selector.src() ).c_str(),
               _expectLSN.version, _expectLSN.offset ) ;
+
+      /// first interrupt write operation
+      pmdGetKRCB()->getEDUMgr()->interruptWritingAndTransEDUs( SDB_CLS_FULL_SYNC ) ;
+      /// sleep one second
+      ossSleep( OSS_ONE_SEC ) ;
+      /// then close all shard connections
       sdbGetClsCB()->getShardRouteAgent()->disconnectAll() ;
 
       //clear all catalog info

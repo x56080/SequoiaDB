@@ -1715,6 +1715,7 @@ namespace engine
          goto done ;
       }
 
+      /*
       //if don't know who is primary node, don't reply
       if ( MSG_INVALID_ROUTEID == _repl->getPrimary().value )
       {
@@ -1722,6 +1723,7 @@ namespace engine
                   "not reply", sessionName() ) ;
          goto done ;
       }
+      */
 
       /// when processed reqid >= msg's reqid and msg queque is not empty,
       /// dispatch the request
