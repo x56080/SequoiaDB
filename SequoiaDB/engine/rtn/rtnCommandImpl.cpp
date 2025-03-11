@@ -88,6 +88,15 @@ namespace engine
     *    collectionspace + oldname + newname
     ***********************************************/
 
+   /*
+      DEFINE
+   */
+   #define RTN_IDX_EXTENT_USERATIO_DFT          ( 0.4f )
+   #define RTN_IDX_EXTENT_KEYNUM_DFT            ( 100 )
+
+   /*
+      Tool functions
+   */
    static BOOLEAN _isSimpleTextSearch( BSONObj condition )
    {
       BOOLEAN result = FALSE ;
@@ -831,7 +840,9 @@ namespace engine
       UINT32 targetLevelKeyCount = 0 ;
       UINT64 curLevelKeyCount = 0, curLevelExtCount = 0,
              nextLevelExtCount = 0 ;
-      UINT32 maxExtKeyCount = 1 ;
+
+      UINT64 calcKeySize = 0 ;
+      UINT64 calcKeyNum = 0 ;
 
       BOOLEAN foundTargetLevel = FALSE ;
 
@@ -868,11 +879,10 @@ namespace engine
                   extentCount ++ ;
                }
             }
+
             curLevelKeyCount += extent.getNumKeyNode() ;
-            if ( extent.getNumKeyNode() > maxExtKeyCount )
-            {
-               maxExtKeyCount = extent.getNumKeyNode() ;
-            }
+            calcKeySize += extent.getTotalKeySize() ;
+            calcKeyNum += extent.getNumKeyNode() ;
          }
 
          nextLevelExtCount = extentIDStack.size() ;
@@ -904,35 +914,54 @@ namespace engine
       if ( 0 != nextLevelExtCount )
       {
          // Estimate the level of index tree
-         // 1. the max number of keys in a extent is "maxExtKeyCount"
+         // 1. the max number of keys in a extent is "avgExtKeyNum"
          // 2. the average number of keys in scanned extents of the last level
          //    is "avgExtKeyCount"
          // From the last scanned level:
          // 1. For each extent in the last scanned level, there would be
-         //    ( avgExtKeyCount + 1 ) child extents by estimation. So the
+         //    ( avgExtKeyNum + 1 ) child extents by estimation. So the
          //    total number of extents in the next level will be
-         //       lastLevelExtCount * ( avgExtKeyCount + 1 )
-         // 2. For each extent in the next level, there are maxExtKeyCount at
+         //       lastLevelExtCount * ( avgExtKeyNum + 1 )
+         // 2. For each extent in the next level, there are avgExtKeyNum at
          //    most, so the maximum number of keys in the next level will be
-         //       lastLevelExtCount * ( avgExtKeyCount + 1 ) * maxExtKeyCount
+         //       lastLevelExtCount * ( avgExtKeyNum + 1 ) * avgExtKeyNum
          // 3. If this value is larger than totalRecords, it means the next
          //    level would be enough for all keys, which might be the leaf
          //    level. Then we could stop the estimation.
-         UINT32 avgExtKeyCount = (UINT32)ceil( (double)curLevelKeyCount /
-                                               (double)curLevelExtCount ) ;
+
+         FLOAT64 avgExtUseRatio = calcKeySize / ( extentCount * (FLOAT64)su->getPageSize() ) ;
+         if ( avgExtUseRatio < RTN_IDX_EXTENT_USERATIO_DFT )
+         {
+            avgExtUseRatio = RTN_IDX_EXTENT_USERATIO_DFT ;
+         }
+
+         UINT32 avgKeySize = calcKeySize / calcKeyNum ;
+         UINT32 avgExtKeyNum = RTN_IDX_EXTENT_KEYNUM_DFT ;
+
+         if ( avgKeySize > 0 )
+         {
+            avgExtKeyNum = su->getPageSize() * avgExtUseRatio / avgKeySize ;
+         }
 
          // Calculate from next level
-         UINT32 levelExtCount = nextLevelExtCount ;
-         UINT32 levelKeyCount = nextLevelExtCount * maxExtKeyCount ;
+         UINT64 calcExtentCount = extentCount ;
+         UINT64 levelExtCount = nextLevelExtCount ;
+         UINT64 levelKeyCount = nextLevelExtCount * avgExtKeyNum ;
          levelCount ++ ;
 
          while ( levelKeyCount < totalRecords )
          {
-            levelExtCount *= ( avgExtKeyCount + 1 ) ;
-            levelKeyCount = levelExtCount * maxExtKeyCount ;
-            extentCount += levelExtCount ;
+            levelExtCount *= ( avgExtKeyNum + 1 ) ;
+            levelKeyCount = levelExtCount * avgExtKeyNum ;
+            calcExtentCount += levelExtCount ;
             levelCount ++ ;
          }
+
+         if ( calcExtentCount > DMS_MAX_PG )
+         {
+            calcExtentCount = DMS_MAX_PG ;
+         }
+         extentCount = calcExtentCount ;
       }
 
       targetKeyCount = targetLevelKeyCount ;
@@ -1228,13 +1257,22 @@ namespace engine
       UINT32 sampleIndex = 0 ;
       UINT32 keyNodeCount = 0 ;
 
-      rc = _rtnIndexKeyNodeInfo( rootID, su, cb, sampleRecords, totalRecords,
-                                 fullScan, targetLevel, levels, pages,
-                                 keyNodeCount ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get index node info, rc: %d", rc ) ;
+      try
+      {
+         rc = _rtnIndexKeyNodeInfo( rootID, su, cb, sampleRecords, totalRecords,
+                                    fullScan, targetLevel, levels, pages,
+                                    keyNodeCount ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get index node info, rc: %d", rc ) ;
 
-      PD_LOG( PDDEBUG, "Estimate index [%s] info levels %u pages %u",
-              indexCB->getName(), levels, pages ) ;
+         PD_LOG( PDDEBUG, "Estimate index [%s] info levels %u pages %u",
+                 indexCB->getName(), levels, pages ) ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         goto error ;
+      }
 
       if ( keyNodeCount > 0 && keyNodeCount < sampleRecords )
       {
