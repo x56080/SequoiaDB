@@ -82,6 +82,11 @@ public class Transaction16147 extends SdbTestBase {
                 DBCollection cl = db.getCollectionSpace( csName )
                         .getCollection( clName );
                 cl.truncate();
+            } catch ( BaseException e ) {
+                if ( e.getErrorCode() != SDBError.SDB_DPS_TRANS_LOCK_INCOMPATIBLE.getErrorCode() ) {
+                    e.printStackTrace();
+                    throw e;
+                }
             }
         }
     }
