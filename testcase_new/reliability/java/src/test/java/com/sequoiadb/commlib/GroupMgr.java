@@ -470,7 +470,7 @@ public class GroupMgr {
         boolean printAndThrowAllException = false;
         do {
             ret = true;
-            printAndThrowAllException = true;
+            printAndThrowAllException = false;
             if ( System.currentTimeMillis() - timestamp > timeOutSecond
                     * 1000 ) {
                 printAndThrowAllException = true;
