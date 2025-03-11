@@ -1827,9 +1827,15 @@ namespace engine
       SDB_ASSERT( indexCB, "indexCB is invalid" ) ;
       SDB_ASSERT( sortArea, "Sort area is invalid" ) ;
 
+      dmsMBStatInfo *pStat = mbContext->mbStat() ;
+
       const CHAR *pCSName = pSU->CSName() ;
-      const CHAR *pCLName = mbContext->mbStat()->_collectionName ;
+      const CHAR *pCLName = pStat->_collectionName ;
       const CHAR *pIXName = indexCB->getName() ;
+
+      UINT32 indexNum = pStat->_numIndexes ;
+      UINT32 totalIndexPages = pStat->_totalIndexPages ;
+      UINT32 maxIndexPages = 0 ;
 
       BSONObj boOrder = _rtnBuildAnalyzeOrder( indexCB->keyPattern() ) ;
       UINT32 sortCount = 0, prevCount = 0 ;
@@ -1859,6 +1865,29 @@ namespace engine
 
       rc = pIndexStat->initMCVSet( sortCount ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to initialize MCV set, rc: %d", rc ) ;
+
+      /// check pages
+      if ( indexNum <= 1 )
+      {
+         maxIndexPages = totalIndexPages ;
+      }
+      else if ( indexNum <= 3 )
+      {
+         maxIndexPages = totalIndexPages * 4 / 5 ;
+      }
+      else if ( indexNum <= 8 )
+      {
+         maxIndexPages = totalIndexPages * 2 / 3 ;
+      }
+      else
+      {
+         maxIndexPages = totalIndexPages * 3 / indexNum ;
+      }
+
+      if ( pages > maxIndexPages )
+      {
+         pages = maxIndexPages ;
+      }
 
       pIndexStat->setIndexLevels( levels ) ;
       pIndexStat->setIndexPages( pages ) ;
