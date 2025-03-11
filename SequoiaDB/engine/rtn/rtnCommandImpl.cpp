@@ -91,8 +91,9 @@ namespace engine
    /*
       DEFINE
    */
-   #define RTN_IDX_EXTENT_USERATIO_DFT          ( 0.4f )
+   #define RTN_IDX_EXTENT_USERATIO_DFT          ( 0.35f )
    #define RTN_IDX_EXTENT_KEYNUM_DFT            ( 100 )
+   #define RTN_IDX_CALC_RATIO_EXTENT_NUM        ( 30 )
 
    /*
       Tool functions
@@ -841,9 +842,6 @@ namespace engine
       UINT64 curLevelKeyCount = 0, curLevelExtCount = 0,
              nextLevelExtCount = 0 ;
 
-      UINT64 calcKeySize = 0 ;
-      UINT64 calcKeyNum = 0 ;
-
       BOOLEAN foundTargetLevel = FALSE ;
 
       // First search the root extent
@@ -881,8 +879,6 @@ namespace engine
             }
 
             curLevelKeyCount += extent.getNumKeyNode() ;
-            calcKeySize += extent.getTotalKeySize() ;
-            calcKeyNum += extent.getNumKeyNode() ;
          }
 
          nextLevelExtCount = extentIDStack.size() ;
@@ -911,7 +907,7 @@ namespace engine
       }
 
       // Finish the estimation
-      if ( 0 != nextLevelExtCount )
+      if ( 0 != nextLevelExtCount && !extentIDStack.empty() )
       {
          // Estimate the level of index tree
          // 1. the max number of keys in a extent is "avgExtKeyNum"
@@ -929,15 +925,42 @@ namespace engine
          //    level would be enough for all keys, which might be the leaf
          //    level. Then we could stop the estimation.
 
-         FLOAT64 avgExtUseRatio = calcKeySize / ( extentCount * (FLOAT64)su->getPageSize() ) ;
+         UINT64 calcKeySize = 0 ;
+         UINT64 calcKeyNum = 0 ;
+         UINT32 calcExtNum = 0 ;
+         UINT32 step = OSS_MAX( 1, (UINT32)( extentIDStack.size() / RTN_IDX_CALC_RATIO_EXTENT_NUM ) ) ;
+         UINT32 calcStepCount = 0 ;
+
+         FLOAT64 avgExtUseRatio = 0.0 ;
+         UINT32 avgKeySize = 0 ;
+         UINT32 avgExtKeyNum = RTN_IDX_EXTENT_KEYNUM_DFT ;
+
+         ossPoolList< dmsExtentID>::iterator it = extentIDStack.begin() ;
+         while( it != extentIDStack.end() )
+         {
+            if ( 0 == calcStepCount )
+            {
+               ixmExtent extent( *it, su->index() ) ;
+               calcKeySize += extent.getTotalKeySize() ;
+               calcKeyNum += extent.getNumKeyNode() ;
+               ++calcExtNum ;
+            }
+
+            ++calcStepCount ;
+            if ( calcStepCount >= step )
+            {
+               calcStepCount = 0 ;
+            }
+            ++it ;
+         }
+
+         avgExtUseRatio = calcKeySize / ( calcExtNum * (FLOAT64)su->getPageSize() ) ;
          if ( avgExtUseRatio < RTN_IDX_EXTENT_USERATIO_DFT )
          {
             avgExtUseRatio = RTN_IDX_EXTENT_USERATIO_DFT ;
          }
 
-         UINT32 avgKeySize = calcKeySize / calcKeyNum ;
-         UINT32 avgExtKeyNum = RTN_IDX_EXTENT_KEYNUM_DFT ;
-
+         avgKeySize = calcKeySize / calcKeyNum ;
          if ( avgKeySize > 0 )
          {
             avgExtKeyNum = su->getPageSize() * avgExtUseRatio / avgKeySize ;
@@ -951,10 +974,21 @@ namespace engine
 
          while ( levelKeyCount < totalRecords )
          {
-            levelExtCount *= ( avgExtKeyNum + 1 ) ;
-            levelKeyCount = levelExtCount * avgExtKeyNum ;
-            calcExtentCount += levelExtCount ;
+            UINT64 tmpLevelExtCount = levelExtCount * ( avgExtKeyNum + 1 ) ;
+            UINT64 tmpLevelKeyCount = tmpLevelExtCount * avgExtKeyNum ;
+
+            if ( tmpLevelKeyCount < totalRecords )
+            {
+               calcExtentCount += tmpLevelKeyCount ;
+            }
+            else
+            {
+               calcExtentCount += ( ( totalRecords - levelKeyCount ) / avgExtKeyNum + 1 ) ;
+            }
             levelCount ++ ;
+
+            levelExtCount = tmpLevelExtCount ;
+            levelKeyCount = tmpLevelKeyCount ;
          }
 
          if ( calcExtentCount > DMS_MAX_PG )
