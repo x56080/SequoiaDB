@@ -860,6 +860,8 @@ namespace engine
             goto error ;
          }
 
+         curLevelKeyCount = 0 ;
+
          // Breadth-first search each levels
          for ( UINT32 extIdx = 0 ; extIdx < curLevelExtCount ; extIdx ++ )
          {
