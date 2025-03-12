@@ -3479,6 +3479,8 @@ namespace engine
          {
             // Notify all group nodes to update group info in clsReplicateSet
             helper.notify2GroupNodes( _pResource, _groupID, cb ) ;
+            /// wait the nodes to update group info
+            ossSleep( OSS_ONE_SEC ) ;
          }
          else
          {
@@ -3492,7 +3494,7 @@ namespace engine
             // Notify all group nodes to update group info in _clsShardMgr
             helper.notify2AllNodes( _pResource, TRUE, cb ) ;
          }
-         
+
          {
             std::string groupName ;
             rc = _pResource->groupID2Name( _groupID, groupName ) ;
