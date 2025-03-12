@@ -199,7 +199,17 @@ namespace engine
          }
       }
 
-      rc = _open( cb, sectionMgr, data, read ) ;
+      /// when the lob is not open and with explain, don't open
+      if ( ( _flags & FLG_LOB_EXPLAIN ) && !_su->lob()->isOpened() )
+      {
+         rc = SDB_FNE ;
+      }
+      else
+      {
+         rc = _open( cb, sectionMgr, data, read ) ;
+      }
+
+      /// process result
       if ( _isMainShd && SDB_FNE == rc && ( _flags & FLG_LOB_EXPLAIN ) )
       {
          rc = _meta2Obj( _metaObj ) ;
