@@ -63,7 +63,7 @@ TEST_F( lobModTime13429, ModifyTime )
    rc = sdbGetLobModificationTime( lob, &modTime1 ) ;
    ASSERT_EQ( SDB_OK, rc ) << "fail to getModificationTime" ;
    ASSERT_EQ( createTime1, modTime1 ) << "fail to check modTime before close" ;
-
+   sleep(1) ;
    // after close, modTime is updated, createTime still the same
    rc = sdbCloseLob( &lob ) ;                                         
    ASSERT_EQ( SDB_OK, rc ) << "fail to close lob" ;
