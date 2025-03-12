@@ -1309,8 +1309,14 @@ namespace engine
 
       if ( _needDelayOpen )
       {
-         rc = _delayOpen() ;
-         PD_RC_CHECK( rc, PDERROR, "Delay open failed in read, rc: %d", rc ) ;
+         ossScopedLock lock( &_delayOpenLatch ) ;
+
+         /// when not opened, return error, and not delay open
+         if ( _needDelayOpen )
+         {
+            rc = SDB_LOB_SEQUENCE_NOT_EXIST ;
+            goto error ;
+         }
       }
 
       if ( !mbContext->isMBLock() )
@@ -2832,8 +2838,14 @@ namespace engine
 
       if ( _needDelayOpen )
       {
-         rc = _delayOpen() ;
-         PD_RC_CHECK( rc, PDERROR, "Delay open failed in read, rc: %d", rc ) ;
+         ossScopedLock lock( &_delayOpenLatch ) ;
+
+         /// when not opened, return error, and not delay open
+         if ( _needDelayOpen )
+         {
+            rc = SDB_DMS_EOC ;
+            goto error ;
+         }
       }
 
       if ( !mbContext->isMBLock() )
