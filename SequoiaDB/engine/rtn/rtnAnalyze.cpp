@@ -1841,6 +1841,7 @@ namespace engine
       UINT32 sortCount = 0, prevCount = 0 ;
       BSONObj prevKey, dummy ;
       UINT32 levels = 0, pages = 0 ;
+      BOOLEAN isEstimated = FALSE ;
       double fraction = 0.0 ;
 
       _rtnSortTuple *tuple = NULL ;
@@ -1852,7 +1853,7 @@ namespace engine
                                   &(sortArea->_tupleBuff), -1 ) ;
 
       rc = rtnGetIndexSamples( pSU, indexCB, cb, sampleRecords, totalRecords,
-                               fullScan, sorter, levels, pages ) ;
+                               fullScan, sorter, levels, pages, isEstimated ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get samples of index "
                    "[%s.%s %s], rc: %d", pCSName, pCLName, pIXName, rc ) ;
 
@@ -1867,26 +1868,41 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to initialize MCV set, rc: %d", rc ) ;
 
       /// check pages
-      if ( indexNum <= 1 )
+      if ( isEstimated )
       {
-         maxIndexPages = totalIndexPages ;
-      }
-      else if ( indexNum <= 3 )
-      {
-         maxIndexPages = totalIndexPages * 4 / 5 ;
-      }
-      else if ( indexNum <= 8 )
-      {
-         maxIndexPages = totalIndexPages * 2 / 3 ;
-      }
-      else
-      {
-         maxIndexPages = totalIndexPages * 3 / indexNum ;
-      }
+         if ( totalIndexPages > indexNum )
+         {
+            /// dec the define page
+            totalIndexPages -= indexNum ;
+         }
 
-      if ( pages > maxIndexPages )
-      {
-         pages = maxIndexPages ;
+         if ( indexNum > pStat->_globIdxNum + pStat->_textIdxNum )
+         {
+            /// dec the global and text index
+            indexNum -= ( pStat->_globIdxNum + pStat->_textIdxNum ) ;
+         }
+
+         if ( indexNum <= 1 )
+         {
+            maxIndexPages = totalIndexPages ;
+         }
+         else if ( indexNum <= 3 )
+         {
+            maxIndexPages = totalIndexPages * 4 / 5 ;
+         }
+         else if ( indexNum <= 8 )
+         {
+            maxIndexPages = totalIndexPages * 2 / 3 ;
+         }
+         else
+         {
+            maxIndexPages = totalIndexPages * 3 / indexNum ;
+         }
+
+         if ( pages > maxIndexPages )
+         {
+            pages = maxIndexPages ;
+         }
       }
 
       pIndexStat->setIndexLevels( levels ) ;

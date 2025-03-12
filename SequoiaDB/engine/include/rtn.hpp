@@ -123,7 +123,8 @@ namespace engine
                               UINT64 totalRecords,
                               BOOLEAN fullScan,
                               _rtnInternalSorting &sorter,
-                              UINT32 &levels, UINT32 &pages ) ;
+                              UINT32 &levels, UINT32 &pages,
+                              BOOLEAN & isEstimated ) ;
 
    INT32 rtnInsert ( const CHAR *pCollectionName,
                      const BSONObj &objs, INT32 objNum,
