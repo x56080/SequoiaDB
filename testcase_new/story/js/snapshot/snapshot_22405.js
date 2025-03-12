@@ -25,7 +25,7 @@ function test ( testPara )
    db.analyze( { "Collection": COMMCSNAME + "." + testConf.clName, "SampleNum": 200 } );
 
    var count = 0;
-   var expResult = { "TotalIndexLevels": 3, "TotalIndexPages": 99, "DistinctValNum": [183, 183, 183], "NullFrac": 0, "UndefFrac": 0, "SampleRecords": 183, "TotalRecords": 1000 };
+   var expResult = { "TotalIndexLevels": 3, "TotalIndexPages": 99, "DistinctValNum": [200, 200, 200], "NullFrac": 0, "UndefFrac": 0, "SampleRecords": 200, "TotalRecords": 1000 };
    var cursor = db.snapshot( SDB_SNAP_INDEXSTATS, { "Collection": COMMCSNAME + "." + testConf.clName, "Index": indexName } );
    while( cursor.next() )
    {
