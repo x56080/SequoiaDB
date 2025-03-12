@@ -3480,7 +3480,11 @@ namespace engine
             // Notify all group nodes to update group info in clsReplicateSet
             helper.notify2GroupNodes( _pResource, _groupID, cb ) ;
             /// wait the nodes to update group info
-            ossSleep( OSS_ONE_SEC ) ;
+            if ( 0 == ossStrcmp( CMD_VALUE_NAME_START_MAINTENANCE_MODE, _pActionName ) ||
+                 0 == ossStrcmp( CMD_VALUE_NAME_STOP_MAINTENANCE_MODE, _pActionName ) )
+            {
+               ossSleep( OSS_ONE_SEC ) ;
+            }
          }
          else
          {
