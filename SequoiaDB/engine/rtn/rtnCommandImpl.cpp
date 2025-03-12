@@ -94,6 +94,7 @@ namespace engine
    #define RTN_IDX_EXTENT_USERATIO_DFT          ( 0.35f )
    #define RTN_IDX_EXTENT_KEYNUM_DFT            ( 100 )
    #define RTN_IDX_CALC_RATIO_EXTENT_NUM        ( 30 )
+   #define RTN_IDX_USERATIO_OVERFLOW            ( 1.12f )
 
    /*
       Tool functions
@@ -833,7 +834,8 @@ namespace engine
                                        UINT32 & targetLevel,
                                        UINT32 & levelCount,
                                        UINT32 & extentCount,
-                                       UINT32 & targetKeyCount )
+                                       UINT32 & targetKeyCount,
+                                       BOOLEAN & isEstimated )
    {
       INT32 rc = SDB_OK ;
 
@@ -841,6 +843,7 @@ namespace engine
       UINT32 targetLevelKeyCount = 0 ;
       UINT64 curLevelKeyCount = 0, curLevelExtCount = 0,
              nextLevelExtCount = 0 ;
+      UINT64 sumLevelKeyCount = 0 ;
 
       BOOLEAN foundTargetLevel = FALSE ;
 
@@ -851,6 +854,8 @@ namespace engine
       targetLevel = 1 ;
       levelCount = 1 ;
       extentCount = 1 ;
+
+      isEstimated = FALSE ;
 
       while ( curLevelExtCount > 0 )
       {
@@ -882,6 +887,8 @@ namespace engine
 
             curLevelKeyCount += extent.getNumKeyNode() ;
          }
+
+         sumLevelKeyCount += curLevelKeyCount ;
 
          nextLevelExtCount = extentIDStack.size() ;
 
@@ -956,10 +963,15 @@ namespace engine
             ++it ;
          }
 
-         avgExtUseRatio = calcKeySize / ( calcExtNum * (FLOAT64)su->getPageSize() ) ;
+         avgExtUseRatio = calcKeySize / ( calcExtNum * (FLOAT64)su->getPageSize() ) *
+                          RTN_IDX_USERATIO_OVERFLOW ;
          if ( avgExtUseRatio < RTN_IDX_EXTENT_USERATIO_DFT )
          {
             avgExtUseRatio = RTN_IDX_EXTENT_USERATIO_DFT ;
+         }
+         else if ( avgExtUseRatio > 1.0 )
+         {
+            avgExtUseRatio = 1.0 ;
          }
 
          avgKeySize = calcKeySize / calcKeyNum ;
@@ -971,26 +983,30 @@ namespace engine
          // Calculate from next level
          UINT64 calcExtentCount = extentCount ;
          UINT64 levelExtCount = nextLevelExtCount ;
-         UINT64 levelKeyCount = nextLevelExtCount * avgExtKeyNum ;
+         UINT64 levelKeyCount = sumLevelKeyCount + nextLevelExtCount * avgExtKeyNum ;
          levelCount ++ ;
 
          while ( levelKeyCount < totalRecords )
          {
             UINT64 tmpLevelExtCount = levelExtCount * ( avgExtKeyNum + 1 ) ;
-            UINT64 tmpLevelKeyCount = tmpLevelExtCount * avgExtKeyNum ;
+            UINT64 tmpLevelKeyCount = levelKeyCount + tmpLevelExtCount * avgExtKeyNum ;
+            UINT64 tmpExtInc = 0 ;
 
             if ( tmpLevelKeyCount < totalRecords )
             {
-               calcExtentCount += tmpLevelKeyCount ;
+               tmpExtInc = tmpLevelKeyCount ;
             }
             else
             {
-               calcExtentCount += ( ( totalRecords - levelKeyCount ) / avgExtKeyNum + 1 ) ;
+               tmpExtInc = ( totalRecords - levelKeyCount ) / avgExtKeyNum + 1 ;
             }
+            calcExtentCount += tmpExtInc ;
             levelCount ++ ;
 
             levelExtCount = tmpLevelExtCount ;
             levelKeyCount = tmpLevelKeyCount ;
+
+            isEstimated = TRUE ;
          }
 
          if ( calcExtentCount > DMS_MAX_PG )
@@ -1278,7 +1294,9 @@ namespace engine
                               UINT64 totalRecords,
                               BOOLEAN fullScan,
                               _rtnInternalSorting &sorter,
-                              UINT32 &levels, UINT32 &pages )
+                              UINT32 &levels,
+                              UINT32 &pages,
+                              BOOLEAN & isEstimated )
    {
       INT32 rc = SDB_OK ;
 
@@ -1297,7 +1315,7 @@ namespace engine
       {
          rc = _rtnIndexKeyNodeInfo( rootID, su, cb, sampleRecords, totalRecords,
                                     fullScan, targetLevel, levels, pages,
-                                    keyNodeCount ) ;
+                                    keyNodeCount, isEstimated ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get index node info, rc: %d", rc ) ;
 
          PD_LOG( PDDEBUG, "Estimate index [%s] info levels %u pages %u",
