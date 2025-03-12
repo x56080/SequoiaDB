@@ -68,8 +68,6 @@ public class Faulttolerance22202 extends SdbTestBase {
         CollectionSpace cs = sdb.createCollectionSpace( csName );
         DBCollection dbcl = cs.createCollection( clName,
                 new BasicBSONObject( "Group", groupName ) );
-        int recordNum = 500000;
-        FaultToleranceUtils.insertData( dbcl, recordNum );
 
         cs.createCollection( testCLName,
                 new BasicBSONObject( "Group", groupName ).append( "ReplSize",
@@ -85,6 +83,9 @@ public class Faulttolerance22202 extends SdbTestBase {
         config.put( "replsize", 1 );
         sdb.updateConfig( config,
                 new BasicBSONObject( "GroupName", groupName ) );
+
+        int recordNum = 500000;
+        FaultToleranceUtils.insertData( dbcl, recordNum );
 
         GroupWrapper gwp = groupMgr.getGroupByName( groupName );
         String masterName = sdb.getReplicaGroup( groupName ).getMaster()
