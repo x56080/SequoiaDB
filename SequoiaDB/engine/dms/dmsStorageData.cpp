@@ -274,7 +274,7 @@ namespace engine
       pRecord = recordRW.writePtr< dmsRecord >() ;
       pRecord->unsetDeleting() ;
       eraseFromDeletingList( context, pRecord ) ;
-      if ( recordData.len() <= pRecord->getSize() )
+      if ( (DMS_RECORD_METADATA_SZ + recordData.len()) <= pRecord->getSize() )
       {
          pRecord->setData( recordData ) ;
       }
