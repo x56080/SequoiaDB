@@ -134,6 +134,12 @@
             <package name="com.sequoiadb.transaction.metadataserial" />
         </packages>
     </test>
+
+    <test name="recyclerecordsync" parallel="classes" thread-count="1">
+        <packages>
+            <package name="com.sequoiadb.recyclerecord" />
+        </packages>
+    </test>
     
 </suite>
 
