@@ -113,6 +113,7 @@ class reelectTest extends PHPUnit_Framework_TestCase
       $this->assertEquals( 0, $err['errno'] ) ;
       
       $node = $group->getMaster();
+      $this->assertNotNull($node, "Error: getMaster() returned NULL!");
       $this->assertEquals(true, !empty($node)) ;
       $this->assertEquals(true, $this->findNode($nodes, $node)) ;
       

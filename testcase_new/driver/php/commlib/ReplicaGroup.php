@@ -125,6 +125,27 @@ class ReplicaGroup
     
     public function getMaster()
     {
+        $attempts = 10; // max retry times
+        $node = null;
+
+        for ($retry = 0; $retry < $attempts; ++$retry)
+        {
+            $node = $this->group->getMaster();
+            if ($node !== null)
+            {
+                break;
+            }
+
+            echo "[WARN] getMaster() returned NULL, retrying in 1 second... ($retry/10)\n";
+            sleep(1);
+        }
+
+        if ($node === null)
+        {
+            echo "[ERROR] getMaster() failed after 10 retries.\n";
+            return null;
+        }
+
         $node = $this->group->getMaster();
         for ($i=0; $i<count($this->nodes); ++$i)
         {
@@ -135,7 +156,7 @@ class ReplicaGroup
                break;
             }
         }
-        
+
         if ($i != count($this->nodes))
         {
            return $node;
@@ -145,7 +166,7 @@ class ReplicaGroup
            return NULL;
         }
     }
-    
+
     public function getSlave()
     {
         $node = $this->group->getSlave();
