@@ -1,5 +1,5 @@
 /************************************************************************
-*@Description: seqDB-18504: 配置filePrefix和fileSuffix，值为空  
+*@Description: seqDB-18504: 配置filePrefix和fileSuffix，值为空
 *@Author: 2019-7-4  xiaoni zhao init
 ************************************************************************/
 main( test );
@@ -17,9 +17,7 @@ function test ()
    var cl = readyCL( csName, clName, { Group: groupNames[0] } );
 
    //get minLSN
-   var cursor = db.list( SDB_SNAP_SYSTEM, { GroupName: groupNames[0] } );
-   var svcName = cursor.current().toObj().Group[0].Service[0].Name;
-   cursor = db.snapshot( 6, { ServiceName: svcName, RawData: true, IsPrimary: true } );
+   var cursor = db.snapshot( 6, { GroupName: groupNames[0], RawData: true, IsPrimary: true } );
    var minLSN = cursor.current().toObj().CompleteLSN;
 
    var expDataArr = [];
@@ -48,7 +46,7 @@ function test ()
       var fieldType = "MAPPING_INT";
       var clNameArr = [csName + "." + clName];
       var filter = filter = '\'{CL: ["' + clNameArr + '"], MinLSN: ' + minLSN + ' }\'';
-      getOutputConfFile( groupNames[0], csName, clName );
+      getOutputConfFile( rtCmd, csName, clName );
       configOutputConfFile( rtCmd, csName, clName, filePrefix, fileSuffix, fieldType );
       execSdbReplay( rtCmd, groupNames[0], clNameArr, undefined, undefined, undefined, undefined, undefined, filter );
       checkCsv( rtCmd, fileSuffix, expDataArr );
@@ -57,7 +55,7 @@ function test ()
       //配置filePrefix为任意字符串和fileSuffix为空
       filePrefix = "$";
       fileSuffix = "";
-      getOutputConfFile( groupNames[0], csName, clName );
+      getOutputConfFile( rtCmd, csName, clName );
       configOutputConfFile( rtCmd, csName, clName, filePrefix, fileSuffix, fieldType );
       execSdbReplay( rtCmd, groupNames[0], clNameArr, undefined, undefined, undefined, undefined, undefined, filter );
       checkCsv( rtCmd, filePrefix, expDataArr );

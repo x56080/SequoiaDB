@@ -47,7 +47,7 @@ function test ()
 
       // ready outputconf for sdbreplay
       var tmpConfName = "sdbreplay_18447.conf";
-      getOutputConfFile( groupName, csName, sclName1, tmpConfName );
+      getOutputConfFile( rtCmd, csName, sclName1, tmpConfName );
       configOutputConfFile( rtCmd, groupName, csName, sclName1, sclName2 );
       // replay
       var clNameArr = [csName + "." + sclName1, csName + "." + sclName2];

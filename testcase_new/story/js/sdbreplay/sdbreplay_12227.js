@@ -1,5 +1,5 @@
 /************************************************************************
-*@Description: seqDB-12227:重放复制日志时指定LSN  
+*@Description: seqDB-12227:重放复制日志时指定LSN
 *@Author: 2019-7-3  xiaoni zhao init
 ************************************************************************/
 main( test );
@@ -18,9 +18,7 @@ function test ()
    var cl = readyCL( csName, clName, { Group: groupNames[0] } );
 
    //get minLSN
-   var cursor = db.list( SDB_SNAP_SYSTEM, { GroupName: groupNames[0] } );
-   var svcName = cursor.current().toObj().Group[0].Service[0].Name;
-   cursor = db.snapshot( 6, { ServiceName: svcName, RawData: true, IsPrimary: true } );
+   var cursor = db.snapshot( 6, { GroupName: groupNames[0], RawData: true, IsPrimary: true } );
    var minLSN = cursor.current().toObj().CompleteLSN;
 
    var expDataArr = [];
@@ -38,7 +36,7 @@ function test ()
       expDataArr.push( '"D","' + ( 100 + i ) + '"' );
    }
 
-   cursor = db.snapshot( 6, { ServiceName: svcName, RawData: true, IsPrimary: true } );
+   cursor = db.snapshot( 6, { GroupName: groupNames[0], RawData: true, IsPrimary: true } );
    var maxLSN = cursor.current().toObj().CompleteLSN;
 
    for( var i = 0; i < 100; i++ )

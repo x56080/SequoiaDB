@@ -1,5 +1,5 @@
 /************************************************************************
-*@Description: seqDB-18537: tables.fields.defaultValue配置默认值，fieldType配置为MAPPING_STRING 
+*@Description: seqDB-18537: tables.fields.defaultValue配置默认值，fieldType配置为MAPPING_STRING
 *@Author: 2019-7-4  xiaoni zhao init
 ************************************************************************/
 main( test );
@@ -14,6 +14,7 @@ function test ()
    var csName = COMMCSNAME;
    var clName = "clName_18537";
    var groupNames = getDataGroupNames();
+   println("groupName: "+groupNames[0]);
 
    var cl = readyCL( csName, clName, { Group: groupNames[0] } );
 
@@ -39,13 +40,12 @@ function test ()
    try
    {
       var confName = "sdbreplay_18537.conf";
-      getOutputConfFile( groupNames[0], csName, clName, confName );
+      getOutputConfFile( rtCmd, csName, clName, confName );
       configOutputConfFile( rtCmd, csName, clName );
 
       var clNameArr = [csName + "." + clName];
       var filter = '\'{CL: ["' + clNameArr + '"], MinLSN:' + minLSN + ' }\'';
       execSdbReplay( rtCmd, groupNames[0], clNameArr, undefined, undefined, undefined, undefined, undefined, filter );
-
       checkCsvFileLocal( rtCmd, clName, expDataArr, groupNames[0] );
 
       cleanCL( csName, clName );
@@ -62,19 +62,13 @@ function configOutputConfFile ( rtCmd, csName, clName )
    rtCmd.run( "sed -i 's/csName.clName_source/" + csName + "." + clName + "/g' " + targetConfPath );
    rtCmd.run( "sed -i 's/csName.clName_target/" + csName + "." + clName + "/g' " + targetConfPath );
 }
-function getRemote ( groupName )
-{
-   var hostName = getMasterHostName( groupName );
-   var remote = new Remote( hostName, CMSVCNAME );
-   return remote;
-}
 function checkCsvFileLocal ( rtCmd, clName, expDataArr, groupName )
 {
    var expCsvFileName = clName + ".result";
    var expCsvFilePath = tmpFileDir + expCsvFileName;
    var actCsvFileName = rtCmd.run( "ls " + tmpFileDir + " | grep " + clName + " | grep csv" ).split( "\n" )[0];
    var actCsvFilePath = tmpFileDir + actCsvFileName;
-   var remote = getRemote( groupName );
+   var remote = rtCmd._remote;
    var file = remote.getFile( expCsvFilePath );
    for( var i = 0; i < expDataArr.length; i++ )
    {

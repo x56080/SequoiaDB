@@ -30,7 +30,7 @@ function test ()
       var cl = readyCL( csName, clName, { Group: groupName } );
 
       var recordsNum = 600000;
-      for( k = 0; k < recordsNum; k += 50000 ) 
+      for( k = 0; k < recordsNum; k += 50000 )
       {
          var doc = [];
          for( i = 0 + k; i < 50000 + k; i++ )
@@ -42,7 +42,7 @@ function test ()
 
       // ready outputconf for sdbreplay
       var tmpConfName = "sdbreplay_18598.conf";
-      getOutputConfFile( groupName, csName, clName, tmpConfName );
+      getOutputConfFile( rtCmd, csName, clName, tmpConfName );
       configOutputConfFile( rtCmd, groupName, csName, clName );
       // replay
       var clNameArr = [csName + "." + clName];
