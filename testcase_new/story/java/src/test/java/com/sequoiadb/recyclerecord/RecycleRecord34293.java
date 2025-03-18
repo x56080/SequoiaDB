@@ -32,7 +32,7 @@ import com.sequoiadb.threadexecutor.annotation.ExecuteOrder;
  * @version 1.0
  */
 
-public class RecycleRecord002 extends SdbTestBase {
+public class RecycleRecord34293 extends SdbTestBase {
     private boolean runSuccess = false;
     private Sequoiadb sdb = null;
     private CollectionSpace cs;
