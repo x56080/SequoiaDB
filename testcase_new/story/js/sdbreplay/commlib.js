@@ -10,7 +10,7 @@ isSdbReplayEnable();
 
 var cmd = initCmd();
 var localPath = null;
-var installDir = getInstallDir();
+var installDir = getInstallDir("");
 
 var tmpFileDir = WORKDIR + '/sdbreplay/';
 var testCaseDir = getTestCaseDir();
@@ -79,7 +79,7 @@ function execSdbReplay ( rtCmd, groupName, clNameArr, type, confPath, statusPath
    if( typeof ( type ) == "undefined" ) { type = "archive"; }  //archive is the main user scenario.
    if( typeof ( daemon ) == "undefined" ) { daemon = false; }
    if( typeof ( watch ) == "undefined" ) { watch = false; }
-   if( typeof ( filter ) == "undefined" ) 
+   if( typeof ( filter ) == "undefined" )
    {
       filter = '\'{CL: [' + tmpCLNameArr + '], OP: ["insert", "update", "delete"] }\'';
    }
@@ -87,7 +87,7 @@ function execSdbReplay ( rtCmd, groupName, clNameArr, type, confPath, statusPath
    // ready file
    var dbPath = getMasterDBPath( groupName );
    var logPath = "";
-   if( type === "archive" ) 
+   if( type === "archive" )
    {
       logPath = dbPath + "archivelog";
    }
@@ -95,6 +95,8 @@ function execSdbReplay ( rtCmd, groupName, clNameArr, type, confPath, statusPath
    {
       logPath = dbPath + "replicalog";
    }
+
+   installDir = getInstallDir(rtCmd._remote._host);
 
    var command = installDir + 'bin/sdbreplay'
       + ' --type ' + type
@@ -104,6 +106,7 @@ function execSdbReplay ( rtCmd, groupName, clNameArr, type, confPath, statusPath
       + ' --status ' + statusPath
       + ' --daemon ' + daemon
       + ' --watch ' + watch;
+   println("command: "+command);
 
    var totalRetryTimes = 200;
    var currentRetryTimes = 0;
@@ -112,11 +115,11 @@ function execSdbReplay ( rtCmd, groupName, clNameArr, type, confPath, statusPath
 
    //重放前对之前的操作进行刷盘
    db.sync();
-   while( true ) 
+   while( true )
    {
       var rcSdbreplay = rtCmd.run( "cd " + tmpFileDir + "; " + command );
       var rcLS;
-      try 
+      try
       {
          rcLS = rtCmd.run( lsCommand ).split( "\n" )[0];
          break;
@@ -125,7 +128,7 @@ function execSdbReplay ( rtCmd, groupName, clNameArr, type, confPath, statusPath
          currentRetryTimes++;
          sleep( 100 );
          rtCmd.run( "cd " + tmpFileDir + "; rm *" + clName + "*.status" );
-         if( currentRetryTimes >= totalRetryTimes ) 
+         if( currentRetryTimes >= totalRetryTimes )
          {
             throw new Error( "Failed to get csv file, after retry " + currentRetryTimes + "." );
          }
@@ -137,7 +140,7 @@ function execSdbReplay ( rtCmd, groupName, clNameArr, type, confPath, statusPath
 
 /* ****************************************************
 @description: config the output csv file
-    fieldType:   
+    fieldType:
         ORIGINAL_TIME��
         AUTO_OP��
         CONST_STRING��
@@ -149,19 +152,19 @@ function execSdbReplay ( rtCmd, groupName, clNameArr, type, confPath, statusPath
 **************************************************** */
 function readyOutputConfFile ( rtCmd, groupName, csName, clName, fieldType, delimiter )
 {
-   getOutputConfFile( groupName, csName, clName );
+   getOutputConfFile( rtCmd, csName, clName );
    configOutputConfFile( rtCmd, groupName, csName, clName, fieldType, delimiter );
 }
 
 /* ****************************************************
 @description: get outputconf file
 **************************************************** */
-function getOutputConfFile ( groupName, csName, clName, confName )
+function getOutputConfFile ( rtCmd, csName, clName, confName )
 {
    if( typeof ( confName ) == "undefined" ) { confName = "sdbreplay.conf"; }
 
    var fullCLName = csName + "." + clName;
-   var mstHostName = getMasterHostName( groupName );
+   var mstHostName = rtCmd._remote._host;
    var sourceFilePath = testCaseDir + "conf/" + confName;
    var targetConfPath = tmpFileDir + fullCLName + ".conf";
    File.scp( sourceFilePath, mstHostName + ":" + CMSVCNAME + "@" + targetConfPath );
@@ -171,7 +174,7 @@ function getOutputConfFile ( groupName, csName, clName, confName )
 
 /* ****************************************************
 @description: config the output csv file
-    fieldType:   
+    fieldType:
         ORIGINAL_TIME��
         AUTO_OP��
         CONST_STRING��
@@ -208,6 +211,7 @@ function checkCsvFile ( rtCmd, clName, expDataArr )
    var csvFilePath = tmpFileDir + csvFileName;
 
    var actDataArr = rtCmd.run( "cat " + csvFilePath ).split( "\n" );
+   println("actDataArr: "+actDataArr.length+", expDataArr: "+expDataArr.length);
    for( i = 0; i < actDataArr.length; i++ )
    {
       assert.equal( actDataArr[i], expDataArr[i] );
@@ -229,7 +233,7 @@ function checkStatusFile ( rtCmd, statusFilePath, expSubString )
 **************************************************** */
 function getTestCaseDir ()
 {
-   if( typeof ( TESTCASEDIR ) == "undefined" ) 
+   if( typeof ( TESTCASEDIR ) == "undefined" )
    {
       var testCaseDir = './testcase_new/story/js/sdbreplay/';
    }
@@ -247,9 +251,13 @@ function getTestCaseDir ()
    所以获取远程机器sequoiadb安装目录下的bin/sdbreplay即可。
 @return: install_dir
 **************************************************** */
-function getInstallDir ()
+function getInstallDir ( hostname )
 {
-   var remote = new Remote( COORDHOSTNAME, CMSVCNAME );
+   if ( "" == hostname )
+   {
+      hostname = COORDHOSTNAME ;
+   }
+   var remote = new Remote( hostname, CMSVCNAME );
    var rtCmd = remote.getCmd();
    //get sequoiadb, if not exists to throw
    var tmpDir = rtCmd.run( 'find /etc/default/sequoiadb' );
@@ -292,7 +300,6 @@ function readyCL ( csName, clName, optionObj, message )
 **************************************************** */
 function cleanCL ( csName, clName )
 {
-
    commDropCL( db, csName, clName, false, false );
 }
 
@@ -356,7 +363,7 @@ function getMasterHostName ( groupName )
 @description: get the data directory of the sequoiadb node
 @return: dir
 **************************************************** */
-function getMasterDBPath ( groupName ) 
+function getMasterDBPath ( groupName )
 {
    var info = db.list( SDB_SNAP_SYSTEM, { "GroupName": groupName } ).current().toObj();
    var primaryNode = info.PrimaryNode;
@@ -365,7 +372,7 @@ function getMasterDBPath ( groupName )
    {
       var group = groups[i];
       var nodeID = group.NodeID;
-      if( nodeID === primaryNode ) 
+      if( nodeID === primaryNode )
       {
          var dbpath = group.dbpath;
          break;
@@ -378,7 +385,7 @@ function getMasterDBPath ( groupName )
 @description: get random string
 @return: string
 **************************************************** */
-function getRandomString ( strLen ) 
+function getRandomString ( strLen )
 {
    var str = "";
    for( var i = 0; i < strLen; i++ )
@@ -406,7 +413,7 @@ function getRandomInt ( min, max ) // [min, max)
 @parameter:
    time: Timestamp with time zone to millisecond,eg:'1901-12-31T15:54:03.000Z'
    format: eg:%Y-%m-%d-%H.%M.%S.000000
-@return: 
+@return:
    localtime, eg: '1901-12-31-15.54.03.000000'
 **************************************************** */
 function turnLocaltime ( time, format )

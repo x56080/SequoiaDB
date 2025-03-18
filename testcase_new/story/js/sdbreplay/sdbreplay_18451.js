@@ -1,5 +1,5 @@
 /************************************************************************
-*@Description: seqDB-18451:主子表，多张子表其中包括普通表和分区表，重放复制日志到文件   
+*@Description: seqDB-18451:主子表，多张子表其中包括普通表和分区表，重放复制日志到文件
 *@Author: 2019-7-2  xiaoni zhao init
 ************************************************************************/
 main( test );
@@ -46,7 +46,7 @@ function test ()
    try
    {
       var confName = "sdbreplay_18451.conf";
-      getOutputConfFile( groupNames[0], csName, mainClName, confName );
+      getOutputConfFile( rtCmd, csName, mainClName, confName );
       configOutputConfFile( rtCmd, csName, subClName1, subClName2, mainClName );
 
       var mainClNameArr = [csName + "." + mainClName];

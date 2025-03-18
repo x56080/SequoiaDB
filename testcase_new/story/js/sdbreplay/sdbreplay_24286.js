@@ -13,6 +13,12 @@ function test ()
    {
       return;
    }
+
+   if( commGetGroupsNum( db ) < 2 )
+   {
+      return;
+   }
+
    //创建集合, 覆盖分区表和主子表
    var csName1 = "csName_24286_1";
    var clName = "clName_24286";
@@ -25,6 +31,9 @@ function test ()
    var mcl = readyCL( csName2, mclName, { IsMainCL: true, ShardingKey: { date: 1 }, ShardingType: "range" } );
    var scl = readyCL( csName2, sclName, { Group: groupNames[0], ShardingKey: { date: 1 }, ShardingType: "range" } );
    mcl.attachCL( csName2 + "." + sclName, { LowBound: { date: "20220101" }, UpBound: { date: "20220131" } } );
+
+   var cursor = db.snapshot( 6, { GroupName: groupNames[0], RawData: true, IsPrimary: true } );
+   var minLSN = cursor.current().toObj().CompleteLSN;
 
    //创建唯一索引
    commCreateIndex( cl1, 'idx1', { b: 1 }, { Unique: true } );
@@ -65,10 +74,10 @@ function test ()
       //重放分区表数据
       var fieldType1 = "MAPPING_INT";
       var confName1 = "sdbreplay_24286_1.conf";
-      getOutputConfFile( groupNames[0], csName1, clName, confName1 );
+      getOutputConfFile( rtCmd, csName1, clName, confName1 );
       configOutputConfFile( rtCmd, groupNames[0], csName1, clName, fieldType1 );
       var clNameArray1 = [csName1 + "." + clName];
-      var filter1 = '\'{CL: ["' + csName1 + '.' + clName + '"] }\'';
+      var filter1 = '\'{CL: ["' + csName1 + '.' + clName + '"], MinLSN: '+ minLSN + ' }\'';
       sdbReplay( rtCmd, groupNames[0], clNameArray1, type, undefined, undefined, undefined, undefined, filter1, undefined );
       sdbReplay( rtCmd, groupNames[0], clNameArray1, type, undefined, undefined, undefined, undefined, filter1, keepshardingkey );
       checkCsvFile( rtCmd, clName, expDataArr1 );
@@ -85,10 +94,10 @@ function test ()
       //重放主子表数据
       var fieldType2 = "MAPPING_STRING";
       var confName2 = "sdbreplay_24286_2.conf";
-      getOutputConfFile( groupNames[0], csName2, sclName, confName2 );
+      getOutputConfFile( rtCmd, csName2, sclName, confName2 );
       configOutputConfFile( rtCmd, groupNames[0], csName2, sclName, fieldType2 );
       var clNameArray2 = [csName2 + "." + sclName];
-      var filter2 = '\'{CL: ["' + csName2 + '.' + sclName + '"] }\'';
+      var filter2 = '\'{CL: ["' + csName2 + '.' + sclName + '"], MinLSN: ' + minLSN + ' }\'';
       sdbReplay( rtCmd, groupNames[0], clNameArray2, type, undefined, undefined, undefined, undefined, filter2, undefined );
       sdbReplay( rtCmd, groupNames[0], clNameArray2, type, undefined, undefined, undefined, undefined, filter2, keepshardingkey );
       checkCsvFile( rtCmd, sclName, expDataArr2 );
@@ -117,7 +126,7 @@ function sdbReplay ( rtCmd, groupName, clNameArr, type, confPath, statusPath, da
    if ( typeof ( type ) == "undefined" ) { type = "archive"; }  //archive is the main user scenario.
    if ( typeof ( daemon ) == "undefined" ) { daemon = false; }
    if ( typeof ( watch ) == "undefined" ) { watch = false; }
-   if ( typeof ( filter ) == "undefined" ) 
+   if ( typeof ( filter ) == "undefined" )
    {
       filter = '\'{CL: [' + tmpCLNameArr + '], OP: ["insert", "update", "delete"] }\'';
    }
@@ -126,7 +135,7 @@ function sdbReplay ( rtCmd, groupName, clNameArr, type, confPath, statusPath, da
    // ready file
    var dbPath = getMasterDBPath( groupName );
    var logPath = "";
-   if ( type === "archive" ) 
+   if ( type === "archive" )
    {
       logPath = dbPath + "archivelog";
    }
@@ -134,6 +143,8 @@ function sdbReplay ( rtCmd, groupName, clNameArr, type, confPath, statusPath, da
    {
       logPath = dbPath + "replicalog";
    }
+
+   installDir = getInstallDir(rtCmd._remote._host);
 
    var command = installDir + 'bin/sdbreplay'
       + ' --type ' + type
@@ -144,6 +155,7 @@ function sdbReplay ( rtCmd, groupName, clNameArr, type, confPath, statusPath, da
       + ' --daemon ' + daemon
       + ' --watch ' + watch
       + ' --keepshardingkey ' + keepshardingkey;
+   println("command: "+command);
 
    var totalRetryTimes = 200;
    var currentRetryTimes = 0;
@@ -152,11 +164,11 @@ function sdbReplay ( rtCmd, groupName, clNameArr, type, confPath, statusPath, da
 
    //重放前对之前的操作进行刷盘
    db.sync();
-   while ( true ) 
+   while ( true )
    {
       var rcSdbreplay = rtCmd.run( "cd " + tmpFileDir + "; " + command );
       var rcLS;
-      try 
+      try
       {
          rcLS = rtCmd.run( lsCommand ).split( "\n" )[0];
          break;
@@ -165,7 +177,7 @@ function sdbReplay ( rtCmd, groupName, clNameArr, type, confPath, statusPath, da
          currentRetryTimes++;
          sleep( 100 );
          rtCmd.run( "cd " + tmpFileDir + "; rm *" + clName + "*.status" );
-         if ( currentRetryTimes >= totalRetryTimes ) 
+         if ( currentRetryTimes >= totalRetryTimes )
          {
             throw new Error( "Failed to get csv file, after retry " + currentRetryTimes + "." );
          }

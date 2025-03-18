@@ -1,5 +1,5 @@
 /************************************************************************
-*@Description: seqDB-18464: tables配置多个不同集合，集合间字段包含相同和不同字段 
+*@Description: seqDB-18464: tables配置多个不同集合，集合间字段包含相同和不同字段
 *@Author: 2019-7-4  xiaoni zhao init
 ************************************************************************/
 main( test );
@@ -45,7 +45,7 @@ function test ()
    try
    {
       var confName = "sdbreplay_18464.conf";
-      getOutputConfFile( groupNames[0], csName, clName1, confName );
+      getOutputConfFile( rtCmd, csName, clName1, confName );
       configOutputConfFile( rtCmd, csName, clName1, clName2 );
 
       var clName1Arr = [csName + "." + clName1];

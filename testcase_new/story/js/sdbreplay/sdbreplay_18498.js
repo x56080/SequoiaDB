@@ -1,5 +1,5 @@
 /************************************************************************
-*@Description: seqDB-18498: tables.fields配置多个字段，部分字段不存在 
+*@Description: seqDB-18498: tables.fields配置多个字段，部分字段不存在
 *@Author: 2019-7-4  xiaoni zhao init
 ************************************************************************/
 main( test );
@@ -39,7 +39,7 @@ function test ()
    try
    {
       var confName = "sdbreplay_18498.conf";
-      getOutputConfFile( groupNames[0], csName, clName, confName );
+      getOutputConfFile( rtCmd, csName, clName, confName );
       configOutputConfFile( rtCmd, csName, clName );
 
       var clNameArr = [csName + "." + clName];
