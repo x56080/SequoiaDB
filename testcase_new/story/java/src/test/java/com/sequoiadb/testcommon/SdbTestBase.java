@@ -44,6 +44,7 @@ public class SdbTestBase {
     protected static String reservedDir;
     protected static String workDir;
     private static String confToolScript;
+    public static String rootPwd;
     private static String enableTransaction;
     private static Sequoiadb sequoiadb = null;
     public static String esHostName;
@@ -184,13 +185,15 @@ public class SdbTestBase {
     }
 
     @Parameters({ "HOSTNAME", "SVCNAME", "CHANGEDPREFIX", "RSRVPORTBEGIN",
-            "RSRVPORTEND", "RSRVNODEDIR", "WORKDIR", "CONFTOOL",
+            "RSRVPORTEND", "RSRVNODEDIR", "WORKDIR", "ROOTPASSWD", "CONFTOOL",
             "ENABLETRANSACTION", "ESHOSTNAME", "ESSVCNAME", "FULLTEXTPREFIX",
             "DSHOSTNAME", "DSSVCNAME" })
     @BeforeSuite(alwaysRun = true)
     public static void initSuite( String HOSTNAME, String SVCNAME,
             String COMMCSNAME, int RSRVPORTBEGIN, int RSRVPORTEND,
-            String RSRVNODEDIR, String WORKDIR, @Optional("") String CONFTOOL,
+            String RSRVNODEDIR, String WORKDIR,
+            @Optional("sequoiadb") String ROOTPASSWD,
+            @Optional("") String CONFTOOL,
             @Optional("false") String ENABLETRANSACTION,
             @Optional("localhost") String ESHOSTNAME,
             @Optional("9200") String ESSVCNAME,
@@ -209,6 +212,7 @@ public class SdbTestBase {
         reservedDir = RSRVNODEDIR;
         workDir = WORKDIR;
         coordUrl = HOSTNAME + ":" + SVCNAME;
+        rootPwd = ROOTPASSWD;
         confToolScript = CONFTOOL;
         enableTransaction = ENABLETRANSACTION;
         FullTextUtils.setFulltextPrefix( FULLTEXTPREFIX );

@@ -28,6 +28,8 @@
     <parameter name="CONFTOOL"          value="trunk/misc/ci_new/src/test/exec_testcase/changeConf.js" />
     <!--是否开启事务-->
     <parameter name="ENABLETRANSACTION" value="true" />
+    <!--远程机器root用户密码-->
+    <parameter name="ROOTPASSWD"      value="${ROOTPASSWD}" />
 
     <listeners>
         <listener
