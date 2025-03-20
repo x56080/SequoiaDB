@@ -22,7 +22,7 @@ function RecycleChecker( db, csName, clName, groupName )
    var installDir = cmd.run("grep 'INSTALL_DIR' /etc/default/sequoiadb | " +
                             "awk -F '=' '{ print $2 }'");
    installDir = installDir.slice(0, -1)
-   dumpCommand += installDir + "bin/sdbdmsdump ";
+   dumpCommand += installDir + "/bin/sdbdmsdump ";
    var nodeDir = node.getDetailObj().toObj().dbpath;
    dumpCommand += "-d " + nodeDir + " ";
    this.outputFile = "/tmp/" + csName + "." + clName + ".dump";

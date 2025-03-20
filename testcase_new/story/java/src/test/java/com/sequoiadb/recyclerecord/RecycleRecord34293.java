@@ -36,7 +36,7 @@ public class RecycleRecord34293 extends SdbTestBase {
     private boolean runSuccess = false;
     private Sequoiadb sdb = null;
     private CollectionSpace cs;
-    private String clName = "cl_000";
+    private String clName = "cl_34293";
     private int recordNum = 20000;
     private boolean recycledFinished = false;
 
@@ -179,6 +179,7 @@ public class RecycleRecord34293 extends SdbTestBase {
                             new BasicBSONObject( "$lte", rand.nextInt(recordNum)));
                     BSONObject obj = dbcl.queryOne(cond, empty, empty, empty, 0);
                     db.commit();
+                    Thread.sleep( rand.nextInt( 500 ) );
                 }
 
             } catch ( BaseException e ) {
