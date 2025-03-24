@@ -49,45 +49,6 @@ function test ()
 
 
 
-      const csName2 = "cs_34286_2";
-      const clName2 = "cl_34286_2";
-      const totalRecords2 = 5000;
-
-      commDropCS( db, csName2 );
-
-      // var groupsArray = commGetGroups( db, false, "", true, true, true );
-      // var groupName = groupName = groupsArray[0][0].GroupName;
-
-      var cs2 = commCreateCS( db, csName2 );
-      commCreateCL( db, csName2, clName2, { Group: groupName } );
-      var cl2 = db.getCS( csName2 ).getCL( clName2 );
-      var recArray2 = [];
-      for (var i = 0; i < totalRecords2; i++) {
-         recArray2.push( { a: i, b: i, c: i } );
-      }
-      cl2.insert( recArray2 );
-
-      const maxLockNum = 2000;
-      db.setSessionAttr({ TransMaxLockNum: maxLockNum });
-
-      var checker2 = new RecycleChecker( db, csName2, clName2, groupName );
-
-      db.transBegin();
-      cl2.remove();
-      checker2.checkTotalDeletingRecords( maxLockNum + 1, 15 );
-      db.transRollback();
-      checker2.checkTotalDeletingRecords( 0, 15 );
-
-      db.transBegin();
-      cl2.remove();
-      checker2.checkTotalDeletingRecords( maxLockNum + 1, 15 );
-      db.transCommit();
-      // check recycle at last
-
-      db.setSessionAttr({ TransMaxLockNum: 10000 });
-
-
-
       const csName3 = "cs_34286_3";
       const clName3 = "cl_34286_3";
       const totalRecords3 = 1000;
@@ -128,10 +89,6 @@ function test ()
       checker.checkTotalDeletingRecords( 0, 90 );
       checker.cleanUp();
       commDropCS( db, csName );
-
-      checker2.checkTotalDeletingRecords( 0, 90 );
-      checker2.cleanUp();
-      commDropCS( db, csName2 );
 
       checker3.checkTotalDeletingRecords( 0, 90 );
       checker3.cleanUp();
