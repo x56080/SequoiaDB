@@ -11,8 +11,8 @@ function err_para()
 {
    local para_name="$1"
    local para_value="$2"
-   echo "sdbupgradeidx: unrecognized $para_name \"$para_value\"" >&2
-   echo 'Try "sdbupgradeidx --help" for more information.'
+   echo "sdbconsistencycheck: unrecognized $para_name \"$para_value\"" >&2
+   echo 'Try "sdbconsistencycheck --help" for more information.'
    exit 64
 }
 
@@ -23,8 +23,8 @@ function check_num_para()
 
    local regex='^[0-9]+$'
    if ! [[ "$para_value" =~ $regex ]]; then
-      echo "sdbupgradeidx: invalid value for parameter \"$para_name\": \"$para_value\", should be number" >&2
-      echo 'Try "sdbupgradeidx --help" for more information.'
+      echo "sdbconsistencycheck: invalid value for parameter \"$para_name\": \"$para_value\", should be number" >&2
+      echo 'Try "sdbconsistencycheck --help" for more information.'
       exit 64
    fi
 }
@@ -35,15 +35,15 @@ function check_bool_para()
    local para_value=$2
 
    if [ "$para_value" != true ] && [ "$para_value" != false ]; then
-      echo "sdbupgradeidx: invalid value for parameter \"$para_name\": \"$para_value\", should be true or false" >&2
-      echo 'Try "sdbupgradeidx --help" for more information.'
+      echo "sdbconsistencycheck: invalid value for parameter \"$para_name\": \"$para_value\", should be true or false" >&2
+      echo 'Try "sdbconsistencycheck --help" for more information.'
       exit 64
    fi
 }
 
 function show_version()
 {
-   echo "sdbupgradeidx: "$DB_VERSION
+   echo "sdbconsistencycheck: "$DB_VERSION
    echo "Release: "$RELEASE
    echo "Git version: "$GIT_VERSION
    echo $BUILD_TIME
@@ -51,7 +51,7 @@ function show_version()
 
 function build_help()
 {
-   echo "sdbupgradeidx is a utility to upgrade index."
+   echo "sdbconsistencycheck is a utility to check data consistency."
    echo ""
    echo "Common options:"
    echo "  -s [ --hostname ] arg        host name"
@@ -61,16 +61,16 @@ function build_help()
    echo "  --cipher arg                 use cipher file or not, default: false"
    echo "  --cipherfile arg             cipher file location, default: ~/sequoiadb/passwd"
    echo "  --token arg                  password encryption token, default: \"\""
-   echo "  -o [ --output ] arg          specify the output file, default: ./sdbupgradeidx.log"
+   echo "  -o [ --output ] arg          specify the output file, default: ./sdbconsistencycheck.log"
    echo "  --action arg                 clear, check or generate"
    echo "  --sdbShellPath arg           sdb shell path, default: ${installPath}/bin/sdb"
    echo "  -h [ --help ]                print help message"
    echo "  --version                    print version information"
    echo ""
    echo "Example: "
-   echo "  ./sdbupgradeidx -s localhost -p 11810 --action check"
-   echo "  ./sdbupgradeidx -s localhost -p 11810 -u sdbadmin -w sdbadmin --action check"
-   echo "  ./sdbupgradeidx -s localhost -p 11810 --cipher true -u sdbadmin --token sdb --action check"
+   echo "  ./sdbconsistencycheck -s localhost -p 11810 --action check"
+   echo "  ./sdbconsistencycheck -s localhost -p 11810 -u sdbadmin -w sdbadmin --action check"
+   echo "  ./sdbconsistencycheck -s localhost -p 11810 --cipher true -u sdbadmin --token sdb --action check"
    echo ""
 }
 
@@ -100,12 +100,12 @@ PASSWD=""
 CIPHER_FILE="~/sequoiadb/passwd"
 TOKEN=""
 ACTION=""
-OUTPUT="./sdbupgradeidx.log"
+OUTPUT="./sdbconsistencycheck.log"
 SDBSHELLPATH=""
 
 # Parse command line parameters
 
-ARGS=`getopt -o hs:p:u:w:o: --long help,version,hostname:,svcname:,user:,password:,cipher:,cipherfile:,token:,action:,sdbShellPath: -n 'sdbupgradeidx' -- "$@"`
+ARGS=`getopt -o hs:p:u:w:o: --long help,version,hostname:,svcname:,user:,password:,cipher:,cipherfile:,token:,action:,sdbShellPath: -n 'sdbconsistencycheck' -- "$@"`
 ret=$?
 test $ret -ne 0 && exit $ret
 
@@ -171,41 +171,41 @@ do
 done
 
 if [ $HAS_HOSTNAME != true ]; then
-   echo "sdbupgradeidx: missing argument: hostname" >&2
-   echo 'Try "sdbupgradeidx --help" for more information.'
+   echo "sdbconsistencycheck: missing argument: hostname" >&2
+   echo 'Try "sdbconsistencycheck --help" for more information.'
    exit 64
 fi
 if [ $HAS_SVCNAME != true ]; then
-   echo "sdbupgradeidx: missing argument: svcname" >&2
-   echo 'Try "sdbupgradeidx --help" for more information.'
+   echo "sdbconsistencycheck: missing argument: svcname" >&2
+   echo 'Try "sdbconsistencycheck --help" for more information.'
    exit 64
 fi
 if [ $IS_USE_CIPHER_FILE == true ]; then
    if [ $HAS_USER != true ]; then
-      echo "sdbupgradeidx: missing argument: user" >&2
-      echo 'Try "sdbupgradeidx --help" for more information.'
+      echo "sdbconsistencycheck: missing argument: user" >&2
+      echo 'Try "sdbconsistencycheck --help" for more information.'
       exit 64
    fi
    if [ $HAS_PASSWD == true ]; then
-      echo "sdbupgradeidx: can't specify --cipher true and --password at the same time" >&2
-      echo 'Try "sdbupgradeidx --help" for more information.'
+      echo "sdbconsistencycheck: can't specify --cipher true and --password at the same time" >&2
+      echo 'Try "sdbconsistencycheck --help" for more information.'
       exit 64
    fi
 else
    if [ $HAS_USER == true ] && [ $HAS_PASSWD != true ]; then
-      echo "sdbupgradeidx: missing argument: password" >&2
-      echo 'Try "sdbupgradeidx --help" for more information.'
+      echo "sdbconsistencycheck: missing argument: password" >&2
+      echo 'Try "sdbconsistencycheck --help" for more information.'
       exit 64
    fi
 fi
 if [ $HAS_ACTION != true ]; then
-   echo "sdbupgradeidx: missing argument: action" >&2
-   echo 'Try "sdbupgradeidx --help" for more information.'
+   echo "sdbconsistencycheck: missing argument: action" >&2
+   echo 'Try "sdbconsistencycheck --help" for more information.'
    exit 64
 fi
 if [ "$*" != "" ]; then
-   echo "sdbupgradeidx: too many arguments: $*" >&2
-   echo 'Try "sdbupgradeidx --help" for more information.'
+   echo "sdbconsistencycheck: too many arguments: $*" >&2
+   echo 'Try "sdbconsistencycheck --help" for more information.'
    exit 64
 fi
 

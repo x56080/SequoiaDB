@@ -3111,11 +3111,11 @@ sequoiadb/tools/sdbmigrate/conf
 sequoiadb/tools/sdbmigrate/conf/sample
 sequoiadb/tools/sdbmigrate/conf/sample/export.conf
 sequoiadb/tools/sdbmigrate/conf/sample/import.conf
-sequoiadb/tools/upgrade
-sequoiadb/tools/upgrade/sdbupgradeidx
-sequoiadb/tools/upgrade/upgradeIndex.js
-sequoiadb/tools/upgrade/collectDataIdxInfo.js
-sequoiadb/tools/upgrade/config.js
+sequoiadb/tools/consistencycheck
+sequoiadb/tools/consistencycheck/sdbconsistencycheck
+sequoiadb/tools/consistencycheck/consistencycheck.js
+sequoiadb/tools/consistencycheck/collectDataIdxInfo.js
+sequoiadb/tools/consistencycheck/config.js
 sequoiadb/tools/dr_ha
 sequoiadb/tools/dr_ha/detachGroupNode.sh
 sequoiadb/tools/dr_ha/split.sh

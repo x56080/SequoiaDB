@@ -15,8 +15,8 @@
 #define TASK_CTL_FILE       CRONTASK_PATH"sdbtaskctl"
 #define TASK_DAEMON_FILE    CRONTASK_PATH"sdbtaskdaemon"
 
-#define UPGRADE_PATH        TOOLS_PATH"upgrade/"
-#define UPGRADE_IDX_FILE    UPGRADE_PATH"sdbupgradeidx"
+#define CONSISTENCY_CHECK_PATH        TOOLS_PATH"consistencycheck/"
+#define CONSISTENCY_CHECK_FILE        CONSISTENCY_CHECK_PATH"sdbconsistencycheck"
 
 #if defined (GENERAL_VER_TOOLS_FILE)
 IMPLEMENT_GENERATOR_AUTO_REGISTER( versionGenForTools, GENERAL_VER_TOOLS_FILE ) ;
@@ -27,7 +27,7 @@ versionGenForTools::versionGenForTools()
 {
    _fileList.push_back( TASK_CTL_FILE ) ;
    _fileList.push_back( TASK_DAEMON_FILE ) ;
-   _fileList.push_back( UPGRADE_IDX_FILE ) ;
+   _fileList.push_back( CONSISTENCY_CHECK_FILE ) ;
 }
 
 versionGenForTools::~versionGenForTools()
