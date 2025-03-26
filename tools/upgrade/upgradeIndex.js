@@ -252,6 +252,7 @@ function init()
       cs.createCL( TMP_CL_CANNOT_UPGRADE_INDEX_INFO ) ;
       cs.createCL( TMP_CL_MAIN_CL_INDEX_CHECK_INFO ) ;
       cs.createCL( TMP_CL_NO_NEED_UPGRADE_INDEX_INFO ) ;
+      cs.createCL( TMP_CL_INVALID_CL_INFO ) ;
 
       println( "(" + step + "/" + STEP_NUM + ")End to init tmp collections and result file, spent time: " +
                ( (Date.now()) - beginTime )/1000 + "s" ) ;
@@ -1062,6 +1063,93 @@ function collectDataIndexInfoConcurrent()
    clearTmpFiles( plans ) ;
 }
 
+function collectInvalidClInfos()
+{
+   try
+   {
+      var beginTime = Date.now() ;
+
+      println( "(" + step + "/" + STEP_NUM + ")Begin to collect invalid collection inofs" ) ;
+
+      var tmpCS = db.getCS( TMP_CS_UPGRADE_INDEX ) ;
+      var invalidClInfoCl = tmpCS.getCL( TMP_CL_INVALID_CL_INFO ) ;
+      var sqlStr1 = "select * from " + TMP_CL_FULL_LOCAL_CL_INFO ;
+      var rc = db.exec( sqlStr1 ) ;
+      while ( rc.next() )
+      {
+         var obj = rc.current().toObj() ;
+         var clFullName = obj.ClFullName ;
+         var csName = clFullName.split( "." )[0] ;
+         var clName = clFullName.split( "." )[1] ;
+         var groups = obj.Groups ;
+
+         for ( var i in groups )
+         {
+            var nodeList = groups[i].NodeList ;
+            var groupName = groups[i].GroupName ;
+
+            for ( var j in nodeList )
+            {
+               var info = {} ;
+               var arr = nodeList[j].split( ":" ) ;
+               var hostname = arr[0] ;
+               var svcname = arr[1] ;
+               var dataDB = new Sdb( hostname, svcname, USER ) ;
+               var collection = dataDB.getCS( csName ).getCL( clName ) ;
+               var clUniqeID = 0 ;
+               var recordCount  = collection.count().valueOf() ;
+               var lobCount = collection.listLobs().size() ;
+               var sqlStr2 = "select UniqueID from $SNAPSHOT_CL where Name='" + clFullName + "'" ;
+
+               /*
+               {
+                  "ClFullName": "cs.cl",
+                  "NodeName": 192.168.17.50:11820,
+                  "GroupName": "group1",
+                  "UniqueID": 123456789,
+                  "InvalidType": "Local" or "Residual",
+                  "RecordCount": 10000,
+                  "LobCount": 100
+               }
+               */
+
+               var rc1 = dataDB.exec( sqlStr2 ) ;
+               if ( rc1.next() )
+               {
+                  clUniqeID = rc1.current().toObj().UniqueID ;
+               }
+               else
+               {
+                  println( "(" + step + "/" + STEP_NUM + ")Can't find " + clFullName +
+                           " cl UniqueID from $SNAPSHOT_CL" ) ;
+               }
+
+               info = { "ClFullName": clFullName, "NodeName": hostname + ":" + svcname,
+                        "GroupName": groupName, "UniqueID": clUniqeID,
+                        "RecordCount": recordCount, "LobCount": lobCount,
+                        "InvalidType": isLocalID( clUniqeID ) ? "Local" : "Residual" } ;
+
+               invalidClInfoCl.insert( info ) ;
+
+               dataDB.close() ;
+            }
+         }
+      }
+
+      println( "(" + step + "/" + STEP_NUM + ")End to collect invalid collection inofs, spent time: " +
+               ( (Date.now()) - beginTime )/1000 + "s" ) ;
+      step++ ;
+   }
+   catch( e )
+   {
+      if( e instanceof Error )
+      {
+         println( "Failed to collect invalid collection inofs, error Stack:\n" + e.stack ) ;
+      }
+      throw e ;
+   }
+}
+
 function collect()
 {
    collectNodesInfo() ;
@@ -1077,6 +1165,8 @@ function collect()
    collectCataIndexInfo() ;
 
    collectDataIndexInfoConcurrent() ;
+
+   collectInvalidClInfos() ;
 }
 
 function aggregateIndexInfo()
@@ -1753,7 +1843,7 @@ function checkLocalClIndexInfo()
       println( "(" + step + "/" + STEP_NUM + ")Begin to check local collection index inofs" ) ;
 
       var cannotUpgradeIdxInfoCl = db.getCS( TMP_CS_UPGRADE_INDEX ).getCL( TMP_CL_CANNOT_UPGRADE_INDEX_INFO ) ;
-      var sqlStr = "select * from " + TMP_CL_FULL_LOCAL_CL_INFO ;
+      var sqlStr = "select * from " + TMP_CL_FULL_INVALID_CL_INFO ;
       var rc = db.exec( sqlStr ) ;
       while ( rc.next() )
       {
@@ -1761,37 +1851,31 @@ function checkLocalClIndexInfo()
          var clFullName = obj.ClFullName ;
          var csName = clFullName.split( "." )[0] ;
          var clName = clFullName.split( "." )[1] ;
-         var groups = obj.Groups ;
+         var groupName = obj.GroupName ;
+         var nodeName = obj.NodeName ;
+         var invalidType = obj.InvalidType ;
 
-         for ( var i in groups )
+         var arr = nodeName.split( ":" ) ;
+         var hostname = arr[0] ;
+         var svcname = arr[1] ;
+         var dataDB = new Sdb( hostname, svcname, USER ) ;
+         var collection = dataDB.getCS( csName ).getCL( clName ) ;
+
+         var rc1 = collection.listIndexes() ;
+         while ( rc1.next() )
          {
-            var nodeList = groups[i].NodeList ;
-            var groupName = groups[i].GroupName ;
+            var indexObj = rc1.current().toObj() ;
 
-            for ( var j in nodeList )
-            {
-               var arr = nodeList[j].split( ":" ) ;
-               var hostname = arr[0] ;
-               var svcname = arr[1] ;
-               var dataDB = new Sdb( hostname, svcname, USER ) ;
-               var collection = dataDB.getCS( csName ).getCL( clName ) ;
+            indexObj.IndexName = indexObj.IndexDef.name ;
+            indexObj.GroupName = groupName ;
+            indexObj.ClFullName = clFullName ;
+            indexObj.NodeName = nodeName ;
+            indexObj.InvalidType = invalidType ;
+            indexObj.UpgradeIndexType = IDX_TYPE_LOCAL_IDX ;
 
-               var rc1 = collection.listIndexes() ;
-               while ( rc1.next() )
-               {
-                  var indexObj = rc1.current().toObj() ;
-
-                  indexObj.IndexName = indexObj.IndexDef.name ;
-                  indexObj.GroupName = groupName ;
-                  indexObj.ClFullName = clFullName ;
-                  indexObj.NodeName = nodeList[j] ;
-                  indexObj.UpgradeIndexType = IDX_TYPE_LOCAL_IDX ;
-
-                  cannotUpgradeIdxInfoCl.insert( indexObj ) ;
-               }
-               dataDB.close() ;
-            }
+            cannotUpgradeIdxInfoCl.insert( indexObj ) ;
          }
+         dataDB.close() ;
       }
 
       println( "(" + step + "/" + STEP_NUM + ")End to check local collection index inofs, spent time: " +
@@ -2734,7 +2818,7 @@ function generateLocalClIdxDetailInfo( id, indexInfoObj, localclIdxDetail, maxCl
 
       detailStr += "  " + pad( indexInfoObj.ClFullName, maxClFullNameLength ) + " " + indexInfoObj.NodeName + "\n" ;
 
-      localclIdxDetail.push( { "ID": id, "Detail": detailStr } ) ;
+      localclIdxDetail.push( { "ID": id, "Detail": detailStr, "InvalidType": indexInfoObj.InvalidType } ) ;
    }
    catch( e )
    {
@@ -2898,8 +2982,7 @@ function writeAndgenerateLocalClJsCode()
 
    try
    {
-      var sqlStr = "select T1.ClFullName, T1.NodeName from (select * from " + TMP_CL_FULL_CANNOT_UPGRADE_INDEX_INFO + " where UpgradeIndexType='" + IDX_TYPE_LOCAL_IDX + "') as T1 group by T1.ClFullName,T1.NodeName" ;
-
+      var sqlStr = "select * from " + TMP_CL_FULL_INVALID_CL_INFO ;
       var count = 0 ;
       var rc = db.exec( sqlStr ) ;
       while ( rc.next() )
@@ -2918,9 +3001,9 @@ function writeAndgenerateLocalClJsCode()
          jsCode += "/*\n" ;
          jsCode += generateSdbConnStr( hostname, svcname, USERNAME, PASSWD, CIPHER_FILE, TOKEN ) ;
          jsCode += "var beginTime = Date.now() ;\n" ;
-         jsCode += ( "println( 'Begin to drop local collection [ ClFullName: " + clFullName + " ]' ) ;\n" ) ;
+         jsCode += ( "println( 'Begin to drop invalid collection [ ClFullName: " + clFullName + " ]' ) ;\n" ) ;
          jsCode += "db." + csName + ".dropCL( '" + clName + "' ) ;\n" ;
-         jsCode += ( "println('Drop local collection successfully, spent time: ' + ( (Date.now()) - beginTime )/1000 + 's' ) ;\n" ) ;
+         jsCode += ( "println('Drop invalid collection successfully, spent time: ' + ( (Date.now()) - beginTime )/1000 + 's' ) ;\n" ) ;
          jsCode += "db.close() ;\n\n" ;
          jsCode += "*/\n" ;
 
@@ -3269,7 +3352,7 @@ function writeCannotUpgradeIdxReport( cannotUpgradeIdxCount, cannotUpgradeIdxInf
       for ( i in localclIdxDetail )
       {
          writeCheckInfo( "  " + "---------- Index ( ID: " + localclIdxDetail[i].ID + " ) " +
-                         IDX_TYPE_LOCAL_IDX + " -----------\n" + "  " +
+                         localclIdxDetail[i].InvalidType + " CL -----------\n" + "  " +
                          pad( FIELD_COLLECTION, maxClFullNameLength ) + " " +
                          FIELD_NODENAME + "\n" + localclIdxDetail[i].Detail + "\n", false ) ;
       }
@@ -3291,6 +3374,60 @@ function writeCannotUpgradeIdxReport( cannotUpgradeIdxCount, cannotUpgradeIdxInf
    }
 }
 
+function writeInvalidClReport( invalidClInfoCl, invalidClCount )
+{
+   try
+   {
+      var beginTime = Date.now() ;
+
+      println( "(" + step + "/" + STEP_NUM + ")Begin to write invalid collection inofs" ) ;
+
+      var id = 1 ;
+      var idLen = ( invalidClCount + "" ).length ;
+      idLen = Math.max( idLen, FIELD_ID.length + 1 ) ;
+
+      var maxClFullNameLength = getMaxCannotClFullNameLength( invalidClInfoCl ) ;
+
+      writeCheckInfo( "===================== Check Result ( Invalid CL ) ======================\n" +
+                      pad( FIELD_ID, idLen ) + " " +
+                      pad( FIELD_COLLECTION, maxClFullNameLength )   + " " +
+                      pad( FIELD_INVALID_TYPE, MAX_INVALID_CL_TYPE_LENGTH ) + " " +
+                      pad( FIELD_UNIQUEID, MAX_UNIQUEID_LENGTH ) + " " +
+                      pad( FIELD_RECORD_COUNT, MAX_RECORD_OR_LOB_COUNT_LENGTH ) + " " +
+                      pad( FIELD_LOB_COUNT, MAX_RECORD_OR_LOB_COUNT_LENGTH ) + " " +
+                      pad( FIELD_GROUPNAME, MAX_GROUP_NAME_LENGTH ) + " " +
+                      FIELD_NODENAME + "\n", false ) ;
+
+      var rc = invalidClInfoCl.find() ;
+      while( rc.next() )
+      {
+         var obj = rc.current().toObj() ;
+         writeCheckInfo( pad( id, idLen ) + " " +
+                         pad( obj.ClFullName, maxClFullNameLength )   + " " +
+                         pad( obj.InvalidType, MAX_INVALID_CL_TYPE_LENGTH ) + " " +
+                         pad( obj.UniqueID, MAX_UNIQUEID_LENGTH ) + " " +
+                         pad( obj.RecordCount, MAX_RECORD_OR_LOB_COUNT_LENGTH ) + " " +
+                         pad( obj.LobCount, MAX_RECORD_OR_LOB_COUNT_LENGTH ) + " " +
+                         pad( obj.GroupName, MAX_GROUP_NAME_LENGTH ) + " " +
+                         obj.NodeName + "\n", false ) ;
+         id++ ;
+      }
+      writeCheckInfo( "\n", true ) ;
+
+      println( "(" + step + "/" + STEP_NUM + ")End to write invalid collection inofs, spent time: " +
+               ( (Date.now()) - beginTime )/1000 + "s" ) ;
+      step++ ;
+   }
+   catch( e )
+   {
+      if( e instanceof Error )
+      {
+         println( "Failed to write invalid collection inofs, error Stack:\n" + e.stack ) ;
+      }
+      throw e ;
+   }
+}
+
 function writeReport()
 {
    var beginTime = Date.now() ;
@@ -3302,6 +3439,7 @@ function writeReport()
    var mainIdxCheckInfoCl = tmpCS.getCL( TMP_CL_MAIN_CL_INDEX_CHECK_INFO ) ;
    var noNeedUpgradeIdxInfoCl = tmpCS.getCL( TMP_CL_NO_NEED_UPGRADE_INDEX_INFO ) ;
    var cannotUpgradeIdxInfoCl = tmpCS.getCL( TMP_CL_CANNOT_UPGRADE_INDEX_INFO ) ;
+   var invalidClInfoCl = tmpCS.getCL( TMP_CL_INVALID_CL_INFO ) ;
 
    var noNeedIdxCount = ( dataIdxCheckInfoCl.count( { "UpgradeIndexType": IDX_TYPE_CONSISTENT } ) ) +
                         ( mainIdxCheckInfoCl.count( { "UpgradeIndexType": IDX_TYPE_CONSISTENT } ) ) +
@@ -3309,6 +3447,7 @@ function writeReport()
    var canUpgradeIdxCount = ( dataIdxCheckInfoCl.count( { "UpgradeIndexType": { "$isnull": 1 } } ) ) +
                             ( mainIdxCheckInfoCl.count( { "UpgradeIndexType": { "$isnull": 1 } } ) )  ;
    var cannotUpgradeIdxCount = cannotUpgradeIdxInfoCl.count() ;
+   var invalidClCount = invalidClInfoCl.count() ;
 
    println( "(" + step + "/" + STEP_NUM + ")End to get indexes count, spent time: " +
             ( (Date.now()) - beginTime )/1000 + "s" ) ;
@@ -3321,11 +3460,14 @@ function writeReport()
 
    writeCannotUpgradeIdxReport( cannotUpgradeIdxCount, cannotUpgradeIdxInfoCl ) ;
 
+   writeInvalidClReport( invalidClInfoCl, invalidClCount ) ;
+
    writeCheckInfo( SUGGEST_INFO +
                    "++++++++++++++++++++++++++\n" +
                    "No need to upgrade : " + noNeedIdxCount + "\n" +
                    "Cannot be upgraded : " + cannotUpgradeIdxCount + "\n" +
                    "   Can be upgraded : " + canUpgradeIdxCount + "\n" +
+                   "  Invalid cl count : " + invalidClCount + "\n" +
                    "++++++++++++++++++++++++++\n", true ) ;
 }
 
@@ -3534,9 +3676,6 @@ function generateCannotUpgradeIdxJsScripts()
          }
       }
 
-      /*
-      单个集合在一个节点上，可能有 n 条索引记录，所以需要按照 ClFullName 和 NodeName 聚集，找出单条集合记录
-      */
       writeAndgenerateLocalClJsCode() ;
 
       println( "(" + step + "/" + STEP_NUM + ")End to generate cannot upgrade indexes js script, spent time: " +

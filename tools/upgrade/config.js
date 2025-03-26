@@ -11,7 +11,17 @@ const IDX_TYPE_MISSING       = "Missing" ;
 const IDX_TYPE_CONFLICT      = "Conflict" ;
 const IDX_TYPE_INVALID_SHARD = "ResidualShardIndex" ;
 const IDX_TYPE_INVALID_ID    = "ResidualIdIndex" ;
-const IDX_TYPE_LOCAL_IDX     = "Local CL" ;
+const IDX_TYPE_LOCAL_IDX     = "Invalid CL" ;
+
+// 无效集合类型
+const INVALID_CL_TYPE_LOCAL = "Local" ;
+const INVALID_CL_TYPE_RESIDUAL = "Residual" ;
+
+const MAX_INVALID_CL_TYPE_LENGTH = 11 ; // sizeof(FIELD_INVALID_TYPE)
+
+const MAX_UNIQUEID_LENGTH = 13 ;
+
+const MAX_RECORD_OR_LOB_COUNT_LENGTH = 11 ;
 
 const MAX_CLFULLNAME_LENGTH = 64 ;
 const MAX_INDEX_NAME_LENGTH = 64 ;
@@ -23,7 +33,7 @@ const MAX_INDEX_TYPE_LENGTH = 18 ;
 const MAX_INDEX_ATTR_DESC_LENGTH = 32 ;
 
 const MAX_GROUP_NAME_LENGTH = 20 ;
-const MAX_NODE_NAME_LENGTH = 20 ;
+const MAX_NODE_NAME_LENGTH = 30 ;
 
 const FIELD_ID          = "ID" ;
 const FIELD_COLLECTION  = "Collection" ;
@@ -36,6 +46,10 @@ const FIELD_RESULT      = "Result" ;
 const FIELD_RESULTCODE  = "ResultCode" ;
 const FIELD_GROUPNAME   = "GroupName" ;
 const FIELD_NODENAME    = "NodeName" ;
+const FIELD_INVALID_TYPE = "InvalidType" ;
+const FIELD_UNIQUEID = "UniqueID" ;
+const FIELD_RECORD_COUNT = "RecordCount" ;
+const FIELD_LOB_COUNT = "LobCount" ;
 
 const MASK_CLATTR_NOIDIDX = 0x02 ;
 
@@ -83,6 +97,7 @@ const TMP_CL_DATA_INDEX_CHECK_INFO = "tmp_cl_data_index_check_info" ;
 const TMP_CL_MAIN_CL_INDEX_CHECK_INFO = "tmp_cl_main_cl_index_check_info" ;
 const TMP_CL_NO_NEED_UPGRADE_INDEX_INFO = "tmp_cl_no_need_upgrade_index_info" ;
 const TMP_CL_CANNOT_UPGRADE_INDEX_INFO = "tmp_cl_cannot_upgrade_index_info" ;
+const TMP_CL_INVALID_CL_INFO = "tmp_cl_invalid_cl_info" ;
 
 const TMP_CL_FULL_CACHE_INFO = TMP_CS_UPGRADE_INDEX + "." + TMP_CL_CACHE_INFO ;
 const TMP_CL_FULL_GROUP_NODE_INFO = TMP_CS_UPGRADE_INDEX + "." + TMP_CL_GROUP_NODE_INFO ;
@@ -97,8 +112,9 @@ const TMP_CL_FULL_DATA_INDEX_CHECK_INFO = TMP_CS_UPGRADE_INDEX + "." + TMP_CL_DA
 const TMP_CL_FULL_MAIN_CL_INDEX_CHECK_INFO = TMP_CS_UPGRADE_INDEX + "." + TMP_CL_MAIN_CL_INDEX_CHECK_INFO ;
 const TMP_CL_FULL_NO_NEED_UPGRADE_INDEX_INFO = TMP_CS_UPGRADE_INDEX + "." + TMP_CL_NO_NEED_UPGRADE_INDEX_INFO ;
 const TMP_CL_FULL_CANNOT_UPGRADE_INDEX_INFO = TMP_CS_UPGRADE_INDEX + "." + TMP_CL_CANNOT_UPGRADE_INDEX_INFO ;
+const TMP_CL_FULL_INVALID_CL_INFO = TMP_CS_UPGRADE_INDEX + "." + TMP_CL_INVALID_CL_INFO ;
 
-const SQL_COMMON_STR = "Name<>'" + TMP_CL_FULL_CACHE_INFO + "' and Name<>'" + TMP_CL_FULL_GROUP_NODE_INFO + "' and Name<>'" + TMP_CL_FULL_CATA_CLUSTER_CL_INFO + "' and Name<>'" + TMP_CL_FULL_DATA_CLUSTER_CL_INFO + "' and Name<>'" + TMP_CL_FULL_LOCAL_CL_INFO + "' and Name<>'" + TMP_CL_FULL_DATA_INDEX_INFO + "' and Name<>'" + TMP_CL_FULL_CATA_MAIN_CL_INFO + "' and Name<>'" + TMP_CL_FULL_DATA_INDEX_CHECK_INFO + "' and Name<>'" + TMP_CL_FULL_DATA_INDEX_CHECK_INFO_TMP + "' and Name<>'" + TMP_CL_FULL_CANNOT_UPGRADE_INDEX_INFO + "' and Name<>'" + TMP_CL_FULL_MAIN_CL_INDEX_CHECK_INFO + "' and Name<>'" + TMP_CL_FULL_NO_NEED_UPGRADE_INDEX_INFO + "' and Name<>'" + TMP_CL_FULL_CATA_INDEX_INFO + "'" ;
+const SQL_COMMON_STR = "not Name like '^" + TMP_CS_UPGRADE_INDEX + "\\.'" ;
 
 // 工具生成的所有临时检查信息会写入临时表中，或从临时表中删除记录，该参数是配置批插或者批删的记录数
 const BATCH_NUM = 10000 ;
@@ -182,6 +198,7 @@ const _CHECK_STEP_ARR =
    "collectDataClusterClInfo",
    "collectLocalClInfo",
    "collectCataIndexInfo",
+   "collectInvalidClInfos",
    "generateCollectDataIndexInfoPlan",
    "startCollectDataIndexInfoPlan",
    "waitPlanDone",
@@ -203,7 +220,8 @@ const _CHECK_STEP_ARR =
    "get indexes count",
    "writeNoNeedUpgradeIdxReport",
    "writeCanUpgradeIdxReport",
-   "writeCannotUpgradeIdxReport"
+   "writeCannotUpgradeIdxReport",
+   "writeLocalClReport"
 ] ;
 
 // 内部使用，不能更改
