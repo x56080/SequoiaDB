@@ -3,6 +3,48 @@
 @author:       FangJiabin 2024-11-20
 ****************************************************************/
 
+// 收集数据节点所有集合的索引信息可以配置多进程收集，该参数是配置进程数。当集合数小于等于进程数时，只会开启一个进程收集索引信息。
+const COLLECT_DATA_INDEX_INFO_THREAD_NUM = 12 ;
+
+/*
+
+无法升级索引或者本地集合处理策略
+
+DROP_STRATEGY : 删除索引/集合
+RE_CREATE_STRATEGY : 重建索引
+IGNORE_STRATEGY : 忽略
+
+*/
+const DROP_STRATEGY = 1 ;
+const RE_CREATE_STRATEGY = 2 ;
+const IGNORE_STRATEGY = 3 ;
+
+/*
+   丢失索引处理策略：
+   1 表示删除丢失索引
+   2 表示重建丢失索引
+   3 表示忽略该索引
+*/
+const DEALWITH_MISS_INDEX = RE_CREATE_STRATEGY ;
+/*
+   冲突索引处理策略：
+   1 表示删除冲突索引
+   2 表示重建冲突索引
+   3 表示忽略该索引
+*/
+const DEALWITH_CONFLICT_INDEX = RE_CREATE_STRATEGY ;
+/*
+   本地集合处理策略：
+   1 表示删除本地集合
+   3 表示忽略该本地集合
+*/
+const DEALWITH_LOCAL_CL = DROP_STRATEGY ;
+
+/*
+
+******以下是内部使用的配置，不能更改******
+
+*/
 // 无需升级索引
 const IDX_TYPE_CONSISTENT    = "Consistent" ;
 const IDX_TYPE_STANDALONE    = "Standalone" ;
@@ -116,19 +158,19 @@ const TMP_CL_FULL_INVALID_CL_INFO = TMP_CS_UPGRADE_INDEX + "." + TMP_CL_INVALID_
 
 const SQL_COMMON_STR = "not Name like '^" + TMP_CS_UPGRADE_INDEX + "\\.'" ;
 
+// 收集数据节点所有集合的索引信息，进程是后台运行。通过循环定时检测进程 PID 是否存在来判断收集信息是否结束。该参数用于配置检测间隔时间，单位 ms
+const COLLECT_DATA_INDEX_INFO_SLEEP_TIME = 5000 ;
+
+const PROGRESS_TMP_FILEPATH_PREFIXX = "./getDataIndexInfo_4d0df605f351abc6_"
+
+const _PRINT_PROGRESS_COUNT = 40 ;
+
 // 工具生成的所有临时检查信息会写入临时表中，或从临时表中删除记录，该参数是配置批插或者批删的记录数
 const BATCH_NUM = 10000 ;
 // 为了使用过多内存或者频繁写文件带来的性能开销，每生成 PRINT_BATCH_NUM 行检查信息就写一次文件
 const PRINT_BATCH_NUM = 50 ;
 // 为了使用过多内存或者频繁写文件带来的性能开销，每生成 WRITE_JS_FILE_BATCH_NUM 行代码就写一次文件
 const WRITE_JS_FILE_BATCH_NUM = 50 ;
-
-// 收集数据节点所有集合的索引信息可以配置多进程收集，该参数是配置进程数。当集合数小于等于进程数时，只会开启一个进程收集索引信息。
-const COLLECT_DATA_INDEX_INFO_THREAD_NUM = 12 ;
-// 收集数据节点所有集合的索引信息，进程是后台运行。通过循环定时检测进程 PID 是否存在来判断收集信息是否结束。该参数用于配置检测间隔时间，单位 ms
-const COLLECT_DATA_INDEX_INFO_SLEEP_TIME = 5000 ;
-
-const PROGRESS_TMP_FILEPATH_PREFIXX = "./getDataIndexInfo_4d0df605f351abc6_"
 
 const JS_DIR = "./js" ;
 // 生成代码文件，升级可以升级的索引
@@ -140,52 +182,14 @@ const CONFLICT_INDEX_JS_FILE = JS_DIR + "/conflictIndexes.js" ;
 // 生成代码文件，删除非法 $id
 const INVALID_ID_INDEX_JS_FILE = JS_DIR + "/invalidIdIndexes.js" ;
 // 生成代码文件，处理本地集合，处理策略见 DEALWITH_LOCAL_CL，默认是删除本地集合
-const LOCAL_CL_JS_FILE = JS_DIR + "/localCls.js" ;
+const LOCAL_CL_JS_FILE = JS_DIR + "/invalidCls.js" ;
 
-/*
-
-无法升级索引或者本地集合处理策略
-
-DROP_STRATEGY : 删除索引/集合
-RE_CREATE_STRATEGY : 重建索引
-IGNORE_STRATEGY : 忽略
-
-*/
-const DROP_STRATEGY = 1 ;
-const RE_CREATE_STRATEGY = 2 ;
-const IGNORE_STRATEGY = 3 ;
-
-/*
-   丢失索引处理策略：
-   1 表示删除丢失索引
-   2 表示重建丢失索引
-   3 表示忽略该索引
-*/
-const DEALWITH_MISS_INDEX = RE_CREATE_STRATEGY ;
-/*
-   冲突索引处理策略：
-   1 表示删除冲突索引
-   2 表示重建冲突索引
-   3 表示忽略该索引
-*/
-const DEALWITH_CONFLICT_INDEX = RE_CREATE_STRATEGY ;
-/*
-   本地集合处理策略：
-   1 表示删除本地集合
-   3 表示忽略该本地集合
-*/
-const DEALWITH_LOCAL_CL = DROP_STRATEGY ;
-
-// 内部使用，不能更改
-const _PRINT_PROGRESS_COUNT = 40 ;
-// 内部使用，不能更改
 const _CLEAR_STEP_ARR =
 [
    "clearTmpCollectionSpace",
    "clearGenerateJsFile"
 ] ;
 
-// 内部使用，不能更改
 const _CHECK_STEP_ARR =
 [
    "clearTmpCollectionSpace",
@@ -224,7 +228,6 @@ const _CHECK_STEP_ARR =
    "writeLocalClReport"
 ] ;
 
-// 内部使用，不能更改
 const _GENERATE_STEP_ARR =
 [
    "preCheck2",

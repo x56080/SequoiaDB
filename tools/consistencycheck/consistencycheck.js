@@ -9,8 +9,8 @@
                token:      String
 
 @example:
-    ../../bin/sdb -f upgradeIndex.js -e 'var hostname="localhost";
-                                         var svcname=11810;var action="xxx";'
+    ../../bin/sdb -f consistencycheck.js -e 'var hostname="localhost";
+                                             var svcname=11810;var action="xxx";'
 
 @author:       Ting YU 2021-03-23
                FangJiaBin 2024-11-20
@@ -322,6 +322,8 @@ function main()
       check() ;
 
       writeReport() ;
+
+      println( "Generate report: " + CHECK_INFO_FILE_PATH ) ;
    }
    else if ( "generate" == action )
    {
@@ -336,7 +338,9 @@ function main()
       generateJsScripts() ;
    }
 
-   println( "Check index infos done, spent time: " + ( (Date.now()) - beginTime )/1000 + "s" ) ;
+   println( "Execute data consistency check done, spent time: " + ( (Date.now()) - beginTime )/1000 + "s" ) ;
+
+   return "" ;
 }
 
 function preCheck1()

@@ -63,7 +63,7 @@ function build_help()
    echo "  --token arg                  password encryption token, default: \"\""
    echo "  -o [ --output ] arg          specify the output file, default: ./sdbconsistencycheck.log"
    echo "  --action arg                 clear, check or generate"
-   echo "  --sdbShellPath arg           sdb shell path, default: ${installPath}/bin/sdb"
+   echo "  --sdbShellPath arg           sdb shell path, default: \${installPath}/bin/sdb"
    echo "  -h [ --help ]                print help message"
    echo "  --version                    print version information"
    echo ""
@@ -225,8 +225,8 @@ else
    sdbShellPath=$myPath/../../bin/sdb
 fi
 
-# get upgradeIndex.js path
-upgradeIndexJsFile=$myPath/upgradeIndex.js
+# get consistencycheck.js path
+consistencycheckJsFile=$myPath/consistencycheck.js
 collectDataIndexInfoJsFile=$myPath/collectDataIdxInfo.js
 
 # generate parameters
@@ -248,9 +248,8 @@ jsParameter=$jsParameter"var outputFilePath=\""$OUTPUT"\";"
 jsParameter="'"$jsParameter"'"
 
 # execute command
-command=$sdbShellPath" -f "$upgradeIndexJsFile" -e "$jsParameter" --runtime-size 4096"
+command=$sdbShellPath" -f "$consistencycheckJsFile" -e "$jsParameter" --runtime-size 4096"
 #echo "Execute command: "$command
 eval $command
-echo "Generate report: "$OUTPUT
 
-exit 0
+exit $?
