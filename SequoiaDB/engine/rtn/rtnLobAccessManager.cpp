@@ -278,7 +278,7 @@ namespace engine
    INT32 _rtnLobAccessManager::_checkCompatible( _rtnLobAccessInfo* accessInfo,
                                                  INT32 mode )
    {
-      if ( mode == SDB_LOB_MODE_CREATEONLY && accessInfo->_createCount == 0 )
+      if ( mode == SDB_LOB_MODE_CREATEONLY && accessInfo->_createCount != 0 )
       {
          // create an exist lob
          return SDB_LOB_IS_IN_USE ;
