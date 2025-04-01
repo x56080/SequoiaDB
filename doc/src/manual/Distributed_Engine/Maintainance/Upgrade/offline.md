@@ -138,11 +138,11 @@
     安装成功，安装报告可查看：/opt/sequoiadb/install_report
     ```
 
-在集群中所有主机完成软件升级后，如果 SequoiaDB 是由 v3.6/5.0.3 以下版本升级至 v3.6/5.0.3 及以上版本，需要手动执行 [sdbupgradeidx][upgrade_index] 工具进行索引升级。
+在集群中所有主机完成软件升级后，如果 SequoiaDB 是由 v3.6/5.0.3 以下版本升级至 v3.6/5.0.3 及以上版本，需要手动执行 [sdbconsistencycheck][sdbconsistencycheck] 工具检测集群元数据一致性，并执行索引升级脚本。
 
 [^_^]:
     本文中用到的所有链接
 [install]:http://download.sequoiadb.com/cn/
-[upgrade_index]:manual/Distributed_Engine/Maintainance/Mgmt_Tools/upgrade_index.md
+[sdbconsistencycheck]:manual/Distributed_Engine/Maintainance/Mgmt_Tools/upgrade_index.md
 [report]:manual/Distributed_Engine/Maintainance/Mgmt_Tools/upgrade_index.md#示例
 [compatibility]:manual/Distributed_Engine/Maintainance/Upgrade/compatibility.md
