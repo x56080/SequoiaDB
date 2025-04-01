@@ -1661,8 +1661,8 @@
                         {
                            "id": 1599730476,
                            "file": "upgrade_index",
-                           "cn": "索引升级工具",
-                           "en": "Upgrade Index Tool"
+                           "cn": "元数据一致性检查工具",
+                           "en": "Metadata Consistency Check Tool"
                         },
                         {
                            "id": 1599730477,
