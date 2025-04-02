@@ -1643,7 +1643,7 @@ namespace engine
                     rc ) ;
             SAFE_OSS_DELETE( pCollectionStat ) ;
 
-            if ( !couldContinue )
+            if ( couldContinue )
             {
                rc = SDB_OK ;
             }
@@ -1767,7 +1767,7 @@ namespace engine
                     pIndexStat->getIndexName(), rc ) ;
             SAFE_OSS_DELETE( pIndexStat ) ;
 
-            if ( !couldContinue )
+            if ( couldContinue )
             {
                rc = SDB_OK ;
             }
