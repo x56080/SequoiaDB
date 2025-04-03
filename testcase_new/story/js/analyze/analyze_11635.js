@@ -77,11 +77,10 @@ function test ()
    try
    {
       db.analyze( { Mode: 4, Collection: COMMCSNAME + "." + clName } );
-      throw new Error( "NEED_ERR" );
    }
    catch( e )
    {
-      if( e.message != SDB_COORD_NOT_ALL_DONE && e.message != SDB_IXM_NOTEXIST )
+      if( e.message != SDB_COORD_NOT_ALL_DONE )
       {
          throw e;
       }
@@ -93,14 +92,14 @@ function test ()
 
    //检查访问计划快照
    var actAccessPlan = getCommonAccessPlans( db, { Collection: clFullName } );
-   checkSnapShotAccessPlans( clFullName, expAccessPlan2, actAccessPlan );
+   checkSnapShotAccessPlans( clFullName, expAccessPlan3, actAccessPlan );
 
    //执行查询
    query( dbclPrimary, findConf, null, null, insertNum );
 
    //检查访问计划快照
    var actAccessPlan = getCommonAccessPlans( db, { Collection: clFullName } );
-   checkSnapShotAccessPlans( clFullName, expAccessPlan2, actAccessPlan );
+   checkSnapShotAccessPlans( clFullName, expAccessPlan3, actAccessPlan );
 
    //手工修改主节点统计信息
    var mcvValues = [{ a: 8000 }, { a: 9000 }, { a: 9001 }];
@@ -112,11 +111,10 @@ function test ()
    try
    {
       db.analyze( { Mode: 4, Collection: COMMCSNAME + "." + clName } );
-      throw new Error( "NEED_ERR" );
    }
    catch( e )
    {
-      if( e.message != SDB_COORD_NOT_ALL_DONE && e.message != SDB_IXM_NOTEXIST )
+      if( e.message != SDB_COORD_NOT_ALL_DONE )
       {
          throw e;
       }
@@ -128,14 +126,14 @@ function test ()
 
    //检查访问计划快照
    var actAccessPlan = getCommonAccessPlans( db, { Collection: clFullName } );
-   checkSnapShotAccessPlans( clFullName, expAccessPlan2, actAccessPlan );
+   checkSnapShotAccessPlans( clFullName, expAccessPlan3, actAccessPlan );
 
    //执行查询
    query( dbclPrimary, findConf, null, null, insertNum );
 
    //检查访问计划快照
    var actAccessPlan = getCommonAccessPlans( db, { Collection: clFullName } );
-   checkSnapShotAccessPlans( clFullName, expAccessPlan2, actAccessPlan );
+   checkSnapShotAccessPlans( clFullName, expAccessPlan3, actAccessPlan );
 
    //再次执行统计
    db.analyze( { Collection: COMMCSNAME + "." + clName } );
