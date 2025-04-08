@@ -139,7 +139,9 @@ sdbconsistencycheck [ options ] ...
     $ ./sdbconsistencycheck -s localhost -p 11810 --action generate
     ```
 
-4. 执行 js 脚本，升级索引，清理不一致索引和清理残留集合
+4. 确认 js 脚本中的删除索引/集合代码，手工删除注释代码
+
+5. 执行 js 脚本，升级索引，清理不一致索引和清理残留集合
 
     ```lang-bash
     $ /opt/sequoiadb/bin/sdb -f /opt/sequoiadb/tools/consistencycheck/js/upgradeIndexes.js
@@ -149,14 +151,14 @@ sdbconsistencycheck [ options ] ...
     $ /opt/sequoiadb/bin/sdb -f /opt/sequoiadb/tools/consistencycheck/js/invalidCls.js
     ```
 
-5. 重新检验元数据信息
+6. 重新检验元数据信息
 
     ```lang-bash
     $ ./sdbconsistencycheck -s localhost -p 11810 --action check
     $ vi sdbconsistencycheck.log
     ```
 
-6. 确认索引都已经升级，不一致索引和无效集合都清理完毕，清理 check 和 generate 操作生成的临时表和 js 脚本
+7. 确认索引都已经升级，不一致索引和无效集合都清理完毕，清理 check 和 generate 操作生成的临时表和 js 脚本
 
     ```lang-bash
     $ ./sdbconsistencycheck -s localhost -p 11810 --action clear
