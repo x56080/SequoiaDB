@@ -70,7 +70,7 @@ namespace engine
    class _SDB_RTNCB : public _IControlBlock, public _IContextMgr, public _IEventHander
    {
    private :
-      typedef utilConcurrentMap<INT64, rtnContextPtr> RTN_CTX_MAP ;
+      typedef utilConcurrentMap<INT64, rtnContextInternalPtr> RTN_CTX_MAP ;
       typedef ossPoolMultiMap< EDUID, INT64 > _RTN_EDU_CTX_MAP ;
 
       ossAtomicSigned64    _contextIdGenerator ;

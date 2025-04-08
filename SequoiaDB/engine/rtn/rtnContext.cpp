@@ -517,6 +517,7 @@ namespace engine
 
       _countOnly           = FALSE ;
       _pDpsCB              = NULL ;
+      _endLSN              = DPS_INVALID_LSN_OFFSET ;
       _w                   = 1 ;
       _orgW                = 1 ;
 
@@ -593,6 +594,11 @@ namespace engine
 
       if ( cb && isWrite() && getDPSCB() && getW() > 1 )
       {
+         if ( DPS_INVALID_LSN_OFFSET != getEndLSN() &&
+              ( DPS_INVALID_LSN_OFFSET == cb->getEndLsn() || getEndLSN() > cb->getEndLsn() ) )
+         {
+            cb->insertLsn( (UINT64)( getEndLSN() ) ) ;
+         }
          cb->setOrgReplSize( getOrgW() ) ;
          rc = getDPSCB()->completeOpr( cb, getW() ) ;
          if ( rc )
@@ -1739,11 +1745,11 @@ namespace engine
       _releaseContextInfos() ;
    }
 
-   rtnContextPtr _rtnContextBuilder::create ( RTN_CONTEXT_TYPE type,
-                                              INT64 contextId,
-                                              EDUID eduId )
+   rtnContextInternalPtr _rtnContextBuilder::create ( RTN_CONTEXT_TYPE type,
+                                                      INT64 contextId,
+                                                      EDUID eduId )
    {
-      rtnContextPtr ctx ;
+      rtnContextInternalPtr ctx ;
       const _rtnContextInfo* info = find( type ) ;
       if ( NULL != info )
       {

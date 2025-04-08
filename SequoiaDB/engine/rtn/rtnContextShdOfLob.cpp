@@ -1307,8 +1307,9 @@ namespace engine
          _su = NULL ;
       }
 
-      /// sync and ignore error
+      /// wait for sync
       waitSync( cb ) ;
+      resetEndLSN() ;
 
       PD_TRACE_EXIT( SDB__RTNCONTEXTSHDOFLOB_CLOSE ) ;
       return SDB_OK ;

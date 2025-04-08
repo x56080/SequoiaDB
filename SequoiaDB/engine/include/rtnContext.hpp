@@ -366,6 +366,21 @@ namespace engine
          INT16          getOrgW() const { return _orgW ; }
          INT32          waitSync( _pmdEDUCB *cb ) ;
 
+         void           setEndLSN( const DPS_LSN_OFFSET &lsn )
+         {
+            _endLSN = lsn ;
+         }
+
+         void           resetEndLSN()
+         {
+            _endLSN = DPS_INVALID_LSN_OFFSET ;
+         }
+
+         const DPS_LSN_OFFSET &getEndLSN() const
+         {
+            return _endLSN ;
+         }
+
          void           setTransContext( BOOLEAN transCtx ) ;
          BOOLEAN        isTransContext() const ;
 
@@ -612,6 +627,8 @@ namespace engine
          BOOLEAN                 _isOpened ;
 
          SDB_DPSCB               *_pDpsCB ;
+         // the last LSN written by this context
+         DPS_LSN_OFFSET          _endLSN ;
          INT16                   _w ;
          INT16                   _orgW ;
 
@@ -660,7 +677,89 @@ namespace engine
    } ;
    typedef _rtnContextBase rtnContextBase ;
    typedef _rtnContextBase rtnContext ;
-   typedef utilThreadLocalPtr< rtnContext > rtnContextPtr ;
+
+   // thread-local pointer to context
+   typedef utilThreadLocalPtr< rtnContext > rtnContextInternalPtr ;
+
+   /*
+      _rtnContextPtr define and implement
+    */
+   // thread-local pointer to context with its executor
+   class _rtnContextPtr : public rtnContextInternalPtr
+   {
+   public:
+      _rtnContextPtr()
+      : _pExecutor( NULL )
+      {
+      }
+
+      _rtnContextPtr( const _rtnContextPtr &rhs )
+      : rtnContextInternalPtr( rhs ),
+        _pExecutor( rhs._pExecutor )
+      {
+      }
+
+      _rtnContextPtr( const rtnContextInternalPtr &rhs )
+      : rtnContextInternalPtr( rhs ),
+        _pExecutor( NULL)
+      {
+      }
+
+      ~_rtnContextPtr()
+      {
+         release() ;
+      }
+
+      _rtnContextPtr &operator =( const _rtnContextPtr &rhs )
+      {
+         release() ;
+         rtnContextInternalPtr::operator =( rhs ) ;
+         _pExecutor = rhs._pExecutor ;
+         return *this ;
+      }
+
+      _rtnContextPtr &operator =( const rtnContextInternalPtr &rhs )
+      {
+         release() ;
+         rtnContextInternalPtr::operator =( rhs ) ;
+         return *this ;
+      }
+
+      rtnContextInternalPtr &getInternalPtr()
+      {
+         return *this ;
+      }
+
+      void init( const rtnContextInternalPtr &contextPtr,
+                 IExecutor *pExecutor )
+      {
+         SDB_ASSERT( NULL == get(), "should not be initialized" ) ;
+
+         rtnContextInternalPtr::operator =( contextPtr ) ;
+         _pExecutor = pExecutor ;
+      }
+
+      void release()
+      {
+         // set the last LSN of context from executor
+         if ( ( NULL != get() ) &&
+              ( get()->isOpened() ) &&
+              ( get()->isWrite() ) &&
+              ( get()->getDPSCB() ) &&
+              ( NULL != _pExecutor ) &&
+              ( DPS_INVALID_LSN_OFFSET != _pExecutor->getEndLsn() ) &&
+              ( ( DPS_INVALID_LSN_OFFSET == get()->getEndLSN() ) ||
+                ( _pExecutor->getEndLsn() > get()->getEndLSN() ) ) )
+         {
+            get()->setEndLSN( _pExecutor->getEndLsn() ) ;
+         }
+         rtnContextInternalPtr::release() ;
+      }
+
+   protected:
+      IExecutor *    _pExecutor ;
+   } ;
+   typedef class _rtnContextPtr rtnContextPtr ;
 
    typedef ossPoolSet< INT64 > RTN_CTX_ID_SET ;
 
@@ -730,7 +829,7 @@ namespace engine
       if ( NULL != ptr.get() && \
            NULL != new ( ptr.get() ) theClass( contextId, eduId ) ) \
       { \
-         res = ptr ; \
+         res.getInternalPtr() = ptr ; \
          SDB_ASSERT( NULL != res.get(), "should be valid cast" ) ; \
       } \
       return res ; \
@@ -752,9 +851,9 @@ namespace engine
       _rtnContextBuilder() ;
       ~_rtnContextBuilder() ;
 
-      rtnContextPtr  create( RTN_CONTEXT_TYPE type,
-                             INT64 contextId,
-                             EDUID eduId ) ;
+      rtnContextInternalPtr  create( RTN_CONTEXT_TYPE type,
+                                     INT64 contextId,
+                                     EDUID eduId ) ;
       const _rtnContextInfo* find( RTN_CONTEXT_TYPE type ) const ;
 
    private:

@@ -360,7 +360,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      std::pair<rtnContextPtr, bool> ret = _contextMap.find( contextID ) ;
+      std::pair<rtnContextInternalPtr, bool> ret = _contextMap.find( contextID ) ;
       if ( ret.second )
       {
          if ( cb && !cb->contextFind( contextID ) )
@@ -371,7 +371,7 @@ namespace engine
          }
          else
          {
-            context = ret.first ;
+            context.init( ret.first, cb ) ;
             _setGlobalID( cb, context ) ;
          }
       }
@@ -427,7 +427,7 @@ namespace engine
    {
       PD_TRACE_ENTRY ( SDB__SDB_RTNCB_CONTEXTDEL ) ;
 
-      rtnContextPtr pContext ;
+      rtnContextInternalPtr pContext ;
       pmdEDUCB *cb = ( pmdEDUCB* )pExe ;
 
       if ( cb )
@@ -436,7 +436,7 @@ namespace engine
       }
 
       {
-         pair<rtnContextPtr, bool> ret = _contextMap.find( contextID ) ;
+         pair<rtnContextInternalPtr, bool> ret = _contextMap.find( contextID ) ;
          if ( ret.second )
          {
             pContext = ret.first ;
@@ -451,9 +451,9 @@ namespace engine
 
          // wait for pre-fetching
          pContext->waitForPrefetch() ;
-
          /// wait for sync
          pContext->waitSync( cb ) ;
+         pContext->resetEndLSN() ;
 
          monClassQuery *monQueryCB = pContext->getMonQueryCB() ;
          if ( NULL != monQueryCB )
@@ -697,6 +697,7 @@ namespace engine
                                  INT64 &contextID,
                                  _pmdEDUCB * pEDUCB )
    {
+      rtnContextInternalPtr newContext ;
       monSvcTaskInfo *pTaskInfo = NULL ;
 
       if ( pEDUCB->isFromLocal() )
@@ -733,27 +734,27 @@ namespace engine
          return SDB_SYS ;
       }
 
-      context = sdbGetRTNContextBuilder()->create(
-                     type, _contextId, pEDUCB->getID() ) ;
+      newContext = sdbGetRTNContextBuilder()->create( type, _contextId, pEDUCB->getID() ) ;
 
-      if ( !context )
+      if ( !newContext )
       {
          return SDB_OOM ;
       }
 
-      if ( !( _contextMap.insert( _contextId, context ).second ) )
+      if ( !( _contextMap.insert( _contextId, newContext ).second ) )
       {
-         context.release() ;
+         newContext.release() ;
          return SDB_OOM ;
       }
 
       if ( !pEDUCB->contextInsert( _contextId ) )
       {
          _contextMap.erase( _contextId ) ;
-         context.release() ;
+         newContext.release() ;
          return SDB_OOM ;
       }
 
+      context.init( newContext, pEDUCB ) ;
       contextID = _contextId ;
 
       pTaskInfo = pEDUCB->getMonAppCB()->getSvcTaskInfo() ;
