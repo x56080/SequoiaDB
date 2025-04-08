@@ -9,19 +9,20 @@ main( test );
 
 function test ()
 {
+   var backupName = "backup_21907";
    var groupName = commGetDataGroupNames( db )[0];
    var groupID = db.list( SDB_LIST_GROUPS, { GroupName: groupName } ).current().toObj()["GroupID"];
 
-   var options = { GroupID: groupID, GroupName: groupName, OverWrite: true, Name: "backup_21907" };
+   var options = { GroupID: groupID, GroupName: groupName, OverWrite: true, Name: backupName };
    db.backup( options );
 
    // 内置 sql 语句查询备份列表信息
-   var cur = db.exec( "select * from $LIST_BACKUP" );
+   var cur = db.exec( "select * from $LIST_BACKUP where Name='" + backupName + "' and GroupName='" + groupName + "'" );
    while( cur.next() )
    {
       var tmpObj = cur.current().toObj();
       // 选取部分字段信息验证
-      var snapshotCur = db.list( SDB_LIST_BACKUPS, { ID: tmpObj["ID"] } );
+      var snapshotCur = db.list( SDB_LIST_BACKUPS, { Name: tmpObj["Name"], GroupName: tmpObj["GroupName"] } );
       var snapshotCount = 0;
       while( snapshotCur.next() )
       {
@@ -47,6 +48,6 @@ function test ()
       }
    }
 
-   var options = { GroupID: groupID, GroupName: groupName, Name: "backup_21907" };
+   var options = { GroupID: groupID, GroupName: groupName, Name: backupName };
    db.removeBackup( options );
 }
