@@ -346,7 +346,8 @@ namespace engine
 
          // check sub-collection ( write operators, version, etc )
          INT32 _checkSubCL( const CHAR *mainCLName,
-                            const CHAR *subCLName ) ;
+                            const CHAR *subCLName,
+                            BOOLEAN needCheckForWrite = FALSE ) ;
 
          // get sub-collection list
          INT32 _getSubCLList( const CHAR *pCollectionName,
@@ -354,6 +355,8 @@ namespace engine
                               CLS_SUBCL_SORT_TYPE sortType = SUBCL_SORT_BY_ID ) ;
 
          INT32 _truncateMainCL( const CHAR *fullName ) ;
+
+         INT32 _checkCLForWrite( const CHAR *pCollectionName ) ;
 
          INT32 _testMainCollection( const CHAR *fullName ) ;
 
