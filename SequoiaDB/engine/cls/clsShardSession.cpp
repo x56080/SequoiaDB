@@ -3673,6 +3673,12 @@ namespace engine
 
             if ( onlyCheck )
             {
+               rc = _checkCLForWrite( pSubCLName ) ;
+               if ( rc )
+               {
+                  goto error ;
+               }
+
                rc = _pFreezingWindow->waitForOpr( pSubCLName, _pEDUCB,
                                                   _pEDUCB->isWritingDB() ) ;
                PD_RC_CHECK( rc, PDERROR, "Wait freezing window for "
@@ -4318,6 +4324,12 @@ namespace engine
                iter != subCLList.end() ;
                ++ iter )
          {
+            rc = _checkCLForWrite( iter->c_str() ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
+
             rc = _pFreezingWindow->waitForOpr( iter->c_str(),
                                                _pEDUCB,
                                                _pEDUCB->isWritingDB() ) ;
@@ -4341,9 +4353,19 @@ namespace engine
    }
 
    INT32 _clsShdSession::_checkSubCL( const CHAR *mainCLName,
-                                      const CHAR *subCLName )
+                                      const CHAR *subCLName,
+                                      BOOLEAN needCheckForWrite )
    {
       INT32 rc = SDB_OK ;
+
+      if ( needCheckForWrite )
+      {
+         rc = _checkCLForWrite( subCLName ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+      }
 
       rc = _pFreezingWindow->waitForOpr( subCLName,
                                          _pEDUCB,
@@ -4436,6 +4458,59 @@ namespace engine
          _pCatAgent->clear( pCollectionName ) ;
          _pCatAgent->release_w() ;
       }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _clsShdSession::_checkCLForWrite( const CHAR *pCollectionName )
+   {
+      INT32 rc = SDB_OK ;
+      clsCatalogSet *pCataSet = NULL ;
+      BOOLEAN repairCheck = FALSE ;
+
+      while( TRUE )
+      {
+         _pCatAgent->lock_r() ;
+         pCataSet = _pCatAgent->collectionSet( pCollectionName ) ;
+         if ( NULL == pCataSet )
+         {
+            _pCatAgent->release_r() ;
+
+            rc = _pShdMgr->syncUpdateCatalog( pCollectionName ) ;
+            if ( SDB_OK == rc )
+            {
+               continue ;
+            }
+            else
+            {
+               PD_LOG( PDERROR, "Check collection(%s) failed, rc: %d", rc ) ;
+               goto error ;
+            }
+         }
+         /// not on the node, ignore
+         else if ( 0 == pCataSet->groupCount() )
+         {
+            _pCatAgent->release_r() ;
+
+            _pCatAgent->lock_w() ;
+            _pCatAgent->clear( pCollectionName ) ;
+            _pCatAgent->release_w() ;
+         }
+         else
+         {
+            repairCheck = pCataSet->isRepairCheck() ;
+            _pCatAgent->release_r() ;
+         }
+
+         break ;
+      }
+
+      PD_LOG_MSG_CHECK( FALSE == repairCheck, SDB_OPERATION_INCOMPATIBLE,
+                        error, PDERROR, "collection(%s) is in repair check "
+                        "status, rc: %d", pCollectionName, rc ) ;
 
    done:
       return rc ;
@@ -5546,6 +5621,7 @@ namespace engine
       _rtnContextShdOfLob::sharePtr context ;
       SDB_RTNCB *rtnCB = sdbGetRTNCB() ;
       enum CLS_CL_OP_TYPE opType = CLS_CL_OP_UNKNOWN ;
+      BOOLEAN repairCheck = FALSE ;
 
       rc = msgExtractOpenLobRequest( ( const CHAR * )msg, &header, lob ) ;
       if ( SDB_OK != rc )
@@ -5633,11 +5709,20 @@ namespace engine
       rc = _checkCLStatusAndGetSth( fullName,
                                     header->version,
                                     opType,
-                                    &replSize ) ;
+                                    &replSize,
+                                    NULL,
+                                    &repairCheck ) ;
 
       if ( SDB_OK != rc )
       {
          goto error ;
+      }
+
+      if ( !SDB_IS_LOBREADONLY_MODE( mode ) )
+      {
+         PD_LOG_MSG_CHECK( FALSE == repairCheck, SDB_OPERATION_INCOMPATIBLE,
+                           error, PDERROR, "collection(%s) is in repair check "
+                           "status, rc: %d", fullName, rc ) ;
       }
 
       if ( NULL != subCLName )
@@ -5645,7 +5730,7 @@ namespace engine
          // switch to sub-collection
          _pEDUCB->switchToSubCL( subCLName ) ;
 
-         rc = _checkSubCL( fullName, subCLName ) ;
+         rc = _checkSubCL( fullName, subCLName, !SDB_IS_LOBREADONLY_MODE( mode ) ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to check sub-collection [%s] in "
                       "main-collection [%s], rc: %d", subCLName, fullName,
                       rc ) ;

@@ -443,6 +443,8 @@ namespace engine
       {
          PD_LOG( PDERROR, "failed to remove lob:%s, rc:%d",
                  ele.__oid().str().c_str(), rc ) ;
+         /// get error info
+         stream.getErrorInfo( rc, cb, buf ) ;
          goto error ;
       }
 
