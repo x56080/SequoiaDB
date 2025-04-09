@@ -725,6 +725,7 @@ namespace engine
          rc = SDB_OOM ;
          goto error ;
       }
+      _replNetRtAgent->getFrame()->setAsyncSend( TRUE ) ;
 
       _shardNetRtAgent = SDB_OSS_NEW _netRouteAgent( _shdMsgHandlerObj ) ;
       if ( !_shardNetRtAgent )
