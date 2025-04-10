@@ -5050,7 +5050,7 @@ namespace engine
 
       rc = _checkCLStatusAndGetSth( fullName,
                                     header->version,
-                                    &replSize ) ;
+                                    &replSize,
                                     NULL,
                                     &repairCheck ) ;
 
