@@ -795,4 +795,80 @@ namespace engine
       goto done ;
    }
 
+   #define CLS_SYNCNOTIFY_QUE_WIATTIME             ( 300 )        // ms
+   #define CLS_SYNCNOTIFY_SHRINK_TIMEINTERVAL      ( 30 * OSS_ONE_SEC )
+
+   /*
+      _clsSyncNotifyJob implement
+   */
+   _clsSyncNotifyJob::_clsSyncNotifyJob()
+   {
+   }
+
+   _clsSyncNotifyJob::~_clsSyncNotifyJob()
+   {
+   }
+
+   INT32 _clsSyncNotifyJob::doit()
+   {
+      pmdKRCB *krcb = pmdGetKRCB() ;
+      clsCB *pClsCB = krcb->getClsCB() ;
+      replCB *pReplCB = pClsCB->getReplCB() ;
+      clsSyncNotifyQueue *pSyncQue = pReplCB->getSyncNotifyQue() ;
+      _clsSyncManager *pSyncMgr = pReplCB->syncMgr() ;
+      pmdEDUMgr *pEduMgr = krcb->getEDUMgr() ;
+      pmdEDUCB *cb = eduCB() ;
+      DPS_LSN_OFFSET lsn = 0 ;
+      UINT64 lastShrinkTick = pmdGetDBTick() ;
+
+      while ( !PMD_IS_DB_DOWN() && !cb->isForced() )
+      {
+         /*
+          * Before any one is found in the queue, the status of this thread is
+          * wait. Once found, it will be changed to running.
+         */
+         pEduMgr->waitEDU( cb ) ;
+         cb->resetDisconnect() ;
+
+         if ( pSyncQue->timed_wait_and_pop( lsn, CLS_SYNCNOTIFY_QUE_WIATTIME ) )
+         {
+            /// set edu active
+            pEduMgr->activateEDU( cb ) ;
+
+            pSyncMgr->notify( lsn ) ;
+            cb->incEventCount() ;
+         }
+
+         if ( pmdGetTickSpanTime( lastShrinkTick ) >= CLS_SYNCNOTIFY_SHRINK_TIMEINTERVAL )
+         {
+            /// release mem
+            cb->shrink() ;
+            lastShrinkTick = pmdGetDBTick() ;
+         }
+      }
+
+      return SDB_OK ;
+   }
+
+   INT32 clsStartSyncNotifyJob( EDUID *pEDUID )
+   {
+      INT32 rc = SDB_OK ;
+      clsSyncNotifyJob *pJob = NULL ;
+
+      pJob = SDB_OSS_NEW clsSyncNotifyJob() ;
+      if ( !pJob )
+      {
+         rc = SDB_OOM ;
+         PD_LOG( PDERROR, "Allocate failed" ) ;
+         goto error ;
+      }
+      rc = rtnGetJobMgr()->startJob( pJob, RTN_JOB_MUTEX_NONE, pEDUID ) ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
 }
+

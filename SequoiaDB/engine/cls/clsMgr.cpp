@@ -725,7 +725,6 @@ namespace engine
          rc = SDB_OOM ;
          goto error ;
       }
-      _replNetRtAgent->getFrame()->setAsyncSend( TRUE ) ;
 
       _shardNetRtAgent = SDB_OSS_NEW _netRouteAgent( _shdMsgHandlerObj ) ;
       if ( !_shardNetRtAgent )
@@ -1002,6 +1001,11 @@ namespace engine
          rc = startStorageCheckJob( NULL ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Start storage checking job thread failed, rc: %d",
+                      rc ) ;
+
+         rc = clsStartSyncNotifyJob( NULL ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Start repl sync notify job thread failed, rc: %d",
                       rc ) ;
 
          rc = _recycleBinMgr.startBGJob() ;

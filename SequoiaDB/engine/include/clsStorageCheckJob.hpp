@@ -129,6 +129,31 @@ namespace engine
 
    INT32 startStorageCheckJob ( EDUID *pEDUID ) ;
 
+   /*
+      _clsSyncNotifyJob define
+   */
+   class _clsSyncNotifyJob : public _rtnBaseJob
+   {
+   public:
+      _clsSyncNotifyJob() ;
+      virtual ~_clsSyncNotifyJob() ;
+
+   public:
+      virtual RTN_JOB_TYPE type () const { return RTN_JOB_CLS_SYNCNOTIFY ; }
+
+      virtual const CHAR* name () const { return "ReplSyncNotify" ; }
+
+      virtual BOOLEAN muteXOn ( const _rtnBaseJob *pOther ) { return FALSE ; }
+
+      virtual BOOLEAN isSystem() const { return TRUE ; }
+
+      virtual INT32 doit () ;
+
+   } ;
+   typedef _clsSyncNotifyJob clsSyncNotifyJob ;
+
+   INT32 clsStartSyncNotifyJob( EDUID *pEDUID ) ;
+
 }
 
 #endif //CLS_STORAGE_CHECK_JOB_HPP__

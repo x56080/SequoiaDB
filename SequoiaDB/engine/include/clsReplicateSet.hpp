@@ -51,6 +51,7 @@
 #include "clsReplBucket.hpp"
 #include "dpsDef.hpp"
 #include "ossQueue.hpp"
+#include "utilCircularQueue.hpp"
 #include "clsReelection.hpp"
 #include "utilReplSizePlan.hpp"
 #include "utilBitmap.hpp"
@@ -71,6 +72,34 @@ namespace engine
 
    #define CLS_SYNCWAIT_FIX_TIME_SLICE          ( 10 * OSS_ONE_SEC )
    #define CLS_DISABLE_SRC_INTERVAL             ( 3600 * OSS_ONE_SEC )
+
+   #define CLS_SYNC_NOTIFY_CAPACITY             ( 5 )
+
+   typedef _utilCircularStackBuffer< DPS_LSN_OFFSET, CLS_SYNC_NOTIFY_CAPACITY > CLS_SYNCNTY_QUEUE_BUFFER ;
+   typedef _utilCircularQueue< DPS_LSN_OFFSET >                                 CLS_SYNCNTY_QUEUE_CONTAINER ;
+
+   /*
+      _clsSyncNotifyQueue define
+   */
+   class _clsSyncNotifyQueue : public ossQueue< DPS_LSN_OFFSET, CLS_SYNCNTY_QUEUE_CONTAINER >
+   {
+   protected:
+      typedef ossQueue< DPS_LSN_OFFSET, CLS_SYNCNTY_QUEUE_CONTAINER > _BASE ;
+
+   public:
+      _clsSyncNotifyQueue()
+      : _BASE( CLS_SYNCNTY_QUEUE_CONTAINER( &_buffer ) )
+      {
+      }
+
+      ~_clsSyncNotifyQueue()
+      {
+      }
+
+   protected:
+      CLS_SYNCNTY_QUEUE_BUFFER _buffer ;
+   } ;
+   typedef _clsSyncNotifyQueue clsSyncNotifyQueue ;
 
    /*
       _clsReplicateSet define
@@ -509,6 +538,8 @@ namespace engine
          UINT64   getLastConsultTick() const ;
          void     setLastConsultTick( UINT64 tick ) ;
 
+         clsSyncNotifyQueue* getSyncNotifyQue() { return &_syncNotifyQue ; }
+
       private:
          INT32 _checkGroupInfo( const CLS_GROUP_VERSION &version,
                                 const map<UINT64, _netRouteNode> &nodes ) ;
@@ -623,6 +654,8 @@ namespace engine
 
          ossAtomic64             _lastLogMoveTick ;
          BOOLEAN                 _remoteLocationConsistency ;
+
+         clsSyncNotifyQueue      _syncNotifyQue ;
    } ;
 
    typedef class _clsReplicateSet clsReplicateSet ;

@@ -165,7 +165,14 @@ namespace engine
 
    void _clsReplicateSet::onWriteLog( DPS_LSN_OFFSET offset )
    {
-      _sync.notify( offset ) ;
+      try
+      {
+         _syncNotifyQue.push( offset ) ;
+      }
+      catch( ... )
+      {
+         _sync.notify( offset ) ;
+      }
    }
 
    void _clsReplicateSet::onPrepareLog( UINT32 csLID, UINT32 clLID,

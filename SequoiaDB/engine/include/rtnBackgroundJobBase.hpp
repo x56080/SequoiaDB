@@ -85,6 +85,8 @@ namespace engine
 
       RTN_JOB_DMS_RECYCLE_RECORD     = 31,
 
+      RTN_JOB_CLS_SYNCNOTIFY         = 32,
+
       RTN_JOB_MAX
    } ;
 
