@@ -987,11 +987,6 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR,
                       "Start storage checking job thread failed, rc: %d",
                       rc ) ;
-
-         rc = clsStartSyncNotifyJob( NULL ) ;
-         PD_RC_CHECK( rc, PDERROR,
-                      "Start repl sync notify job thread failed, rc: %d",
-                      rc ) ;
       }
 
       if ( SDB_ROLE_DATA == pmdGetKRCB()->getDBRole() ||
@@ -1000,6 +995,11 @@ namespace engine
          rc = startRecycleRecordJob( NULL ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Start recycle record job thread failed, rc: %d",
+                      rc ) ;
+
+         rc = clsStartSyncNotifyJob( NULL ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Start repl sync notify job thread failed, rc: %d",
                       rc ) ;
       }
 
