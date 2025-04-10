@@ -1003,11 +1003,6 @@ namespace engine
                       "Start storage checking job thread failed, rc: %d",
                       rc ) ;
 
-         rc = clsStartSyncNotifyJob( NULL ) ;
-         PD_RC_CHECK( rc, PDERROR,
-                      "Start repl sync notify job thread failed, rc: %d",
-                      rc ) ;
-
          rc = _recycleBinMgr.startBGJob() ;
          PD_RC_CHECK( rc, PDERROR, "Failed to start background job for "
                       "recycle bin manager, rc: %d", rc ) ;
@@ -1019,6 +1014,11 @@ namespace engine
          rc = startRecycleRecordJob( NULL ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Start recycle record job thread failed, rc: %d",
+                      rc ) ;
+
+         rc = clsStartSyncNotifyJob( NULL ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Start repl sync notify job thread failed, rc: %d",
                       rc ) ;
       }
 
