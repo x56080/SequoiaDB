@@ -165,13 +165,20 @@ namespace engine
 
    void _clsReplicateSet::onWriteLog( DPS_LSN_OFFSET offset )
    {
-      try
+      CLS_NODE_ARRAY nodes ;
+
+      UINT32 nodeCnt = _sync.getNotifyNodes( offset, nodes ) ;
+
+      if ( nodeCnt > 0 )
       {
-         _syncNotifyQue.push( offset ) ;
-      }
-      catch( ... )
-      {
-         _sync.notify( offset ) ;
+         try
+         {
+            _syncNotifyQue.push( nodes ) ;
+         }
+         catch( ... )
+         {
+            _sync.notify( offset ) ;
+         }
       }
    }
 

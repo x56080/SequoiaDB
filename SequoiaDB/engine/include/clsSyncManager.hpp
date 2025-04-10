@@ -56,6 +56,45 @@ namespace engine
    typedef ossPoolMultiMap<DPS_LSN_OFFSET, utilReplSizePlan>      CLS_WAKE_PLAN ;
 
    /*
+      CLS_NODE_ARRAY define
+   */
+   struct CLS_NODE_ARRAY
+   {
+   private:
+      UINT64      _nodes[ CLS_REPLSET_MAX_NODE_SIZE - 1 ] ;
+      UINT32      _length ;
+
+   public:
+      CLS_NODE_ARRAY()
+      {
+         ossMemset( _nodes, MSG_INVALID_ROUTEID, sizeof(_nodes) ) ;
+         _length = 0 ;
+      }
+
+      BOOLEAN  addNode( UINT64 value )
+      {
+         if ( _length < CLS_REPLSET_MAX_NODE_SIZE - 1 )
+         {
+            _nodes[ _length ] = value ;
+            ++_length ;
+            return TRUE ;
+         }
+         return FALSE ;
+      }
+
+      UINT64 getNode( UINT32 pos ) const
+      {
+         if ( pos < _length )
+         {
+            return _nodes[ pos ] ;
+         }
+         return MSG_INVALID_ROUTEID ;
+      }
+
+      UINT32 getLength() const { return _length ; }
+   } ;
+
+   /*
       _clsSyncManager define
    */
    class _clsSyncManager : public SDBObject
@@ -84,7 +123,10 @@ namespace engine
 
       void handleTimeout( const UINT32 &interval ) ;
 
+      UINT32 getNotifyNodes( const DPS_LSN_OFFSET &offset, CLS_NODE_ARRAY &nodes ) ;
+
       void notify( const DPS_LSN_OFFSET &offset ) ;
+      void notifyNodes( const CLS_NODE_ARRAY &nodes ) ;
 
       MsgRouteID getSyncSrc( const set<UINT64> &blacklist,
                              CLS_GROUP_VERSION &version,

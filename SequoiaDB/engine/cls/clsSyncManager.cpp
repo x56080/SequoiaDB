@@ -456,6 +456,40 @@ namespace engine
    }
 
    // The function is called by repl session(src), so need use lock
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSYNCMAG_GETNOTIFYNOES, "_clsSyncManager::getNotifyNodes" )
+   UINT32 _clsSyncManager::getNotifyNodes( const DPS_LSN_OFFSET &offset, CLS_NODE_ARRAY &nodes )
+   {
+      UINT32 nodeCnt = 0 ;
+
+      PD_TRACE_ENTRY ( SDB__CLSSYNCMAG_GETNOTIFYNOES ) ;
+      SDB_ASSERT( DPS_INVALID_LSN_OFFSET != offset,
+                  "offset should not be invalid" ) ;
+
+      ossScopedRWLock lock( &_info->mtx, SHARED ) ;
+
+      for ( UINT32 i = 0; i < _validSync ; i++ )
+      {
+         if ( 0 == _notifyList[i].id.value )
+         {
+            SDB_ASSERT( FALSE, "impossible" ) ;
+         }
+         /// compare the offset of lsn.
+         /// the node which request the latest lsn
+         /// will be nofitied.
+         else if ( offset == _notifyList[i].offset )
+         {
+            if ( nodes.addNode( _notifyList[i].id.value ) )
+            {
+               ++nodeCnt ;
+            }
+         }
+      }
+
+      PD_TRACE_EXIT ( SDB__CLSSYNCMAG_GETNOTIFYNOES ) ;
+      return nodeCnt ;
+   }
+
+   // The function is called by repl session(src), so need use lock
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSYNCMAG_NOTIFY, "_clsSyncManager::notify" )
    void _clsSyncManager::notify( const DPS_LSN_OFFSET &offset )
    {
@@ -488,6 +522,24 @@ namespace engine
       }
 
       PD_TRACE_EXIT ( SDB__CLSSYNCMAG_NOTIFY ) ;
+      return ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSYNCMAG_NOTIFYNODES, "_clsSyncManager::notifyNodes" )
+   void _clsSyncManager::notifyNodes( const CLS_NODE_ARRAY &nodes )
+   {
+      PD_TRACE_ENTRY ( SDB__CLSSYNCMAG_NOTIFYNODES ) ;
+
+      _MsgSyncNotify msg ;
+      msg.header.TID = CLS_TID_REPL_SYC ;
+
+      for ( UINT32 i = 0 ; i < nodes.getLength() ; ++i )
+      {
+         msg.header.routeID.value = nodes.getNode( i ) ;
+         _agent->syncSend( _notifyList[i].id, (MsgHeader *)&msg ) ;
+      }
+
+      PD_TRACE_EXIT ( SDB__CLSSYNCMAG_NOTIFYNODES ) ;
       return ;
    }
 

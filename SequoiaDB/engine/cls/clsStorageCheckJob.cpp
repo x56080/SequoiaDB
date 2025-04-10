@@ -818,7 +818,7 @@ namespace engine
       _clsSyncManager *pSyncMgr = pReplCB->syncMgr() ;
       pmdEDUMgr *pEduMgr = krcb->getEDUMgr() ;
       pmdEDUCB *cb = eduCB() ;
-      DPS_LSN_OFFSET lsn = 0 ;
+      CLS_NODE_ARRAY nodes ;
       UINT64 lastShrinkTick = pmdGetDBTick() ;
 
       while ( !PMD_IS_DB_DOWN() && !cb->isForced() )
@@ -830,12 +830,11 @@ namespace engine
          pEduMgr->waitEDU( cb ) ;
          cb->resetDisconnect() ;
 
-         if ( pSyncQue->timed_wait_and_pop( lsn, CLS_SYNCNOTIFY_QUE_WIATTIME ) )
+         if ( pSyncQue->timed_wait_and_pop( nodes, CLS_SYNCNOTIFY_QUE_WIATTIME ) )
          {
             /// set edu active
             pEduMgr->activateEDU( cb ) ;
-
-            pSyncMgr->notify( lsn ) ;
+            pSyncMgr->notifyNodes( nodes ) ;
             cb->incEventCount() ;
          }
 

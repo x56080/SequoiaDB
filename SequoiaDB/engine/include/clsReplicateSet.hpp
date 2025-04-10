@@ -73,18 +73,18 @@ namespace engine
    #define CLS_SYNCWAIT_FIX_TIME_SLICE          ( 10 * OSS_ONE_SEC )
    #define CLS_DISABLE_SRC_INTERVAL             ( 3600 * OSS_ONE_SEC )
 
-   #define CLS_SYNC_NOTIFY_CAPACITY             ( 5 )
+   #define CLS_SYNC_NOTIFY_CAPACITY             ( 32 )
 
-   typedef _utilCircularStackBuffer< DPS_LSN_OFFSET, CLS_SYNC_NOTIFY_CAPACITY > CLS_SYNCNTY_QUEUE_BUFFER ;
-   typedef _utilCircularQueue< DPS_LSN_OFFSET >                                 CLS_SYNCNTY_QUEUE_CONTAINER ;
+   typedef _utilCircularStackBuffer< CLS_NODE_ARRAY, CLS_SYNC_NOTIFY_CAPACITY > CLS_SYNCNTY_QUEUE_BUFFER ;
+   typedef _utilCircularQueue< CLS_NODE_ARRAY >                                 CLS_SYNCNTY_QUEUE_CONTAINER ;
 
    /*
       _clsSyncNotifyQueue define
    */
-   class _clsSyncNotifyQueue : public ossQueue< DPS_LSN_OFFSET, CLS_SYNCNTY_QUEUE_CONTAINER >
+   class _clsSyncNotifyQueue : public ossQueue< CLS_NODE_ARRAY, CLS_SYNCNTY_QUEUE_CONTAINER >
    {
    protected:
-      typedef ossQueue< DPS_LSN_OFFSET, CLS_SYNCNTY_QUEUE_CONTAINER > _BASE ;
+      typedef ossQueue< CLS_NODE_ARRAY, CLS_SYNCNTY_QUEUE_CONTAINER > _BASE ;
 
    public:
       _clsSyncNotifyQueue()
