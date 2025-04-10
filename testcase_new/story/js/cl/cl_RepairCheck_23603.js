@@ -44,17 +44,27 @@ function test ( testPara )
    cl.truncate();
    assert.equal( cl.count(), 0 );
 
+   cl.alter( { "RepairCheck": false } );
+
    // 非结构化数据操作
    var file = new File( lobPath1 );
    file.close();
 
    var oid = cl.putLob( lobPath1 );
+
+   cl.alter( { "RepairCheck": true } );
+
+   assert.tryThrow( SDB_OPERATION_INCOMPATIBLE, function() { cl.putLob( lobPath1 ) ; } );
+
    var rc = cl.getLob( oid, lobPath2 );
    assert.notEqual( JSON.stringify( rc.toObj() ).indexOf( "LobSize" ), -1 );
 
-   cl.truncateLob( oid, 0 );
+   assert.tryThrow( SDB_OPERATION_INCOMPATIBLE, function() { cl.deleteLob( oid ) ; } );
+   assert.tryThrow( SDB_OPERATION_INCOMPATIBLE, function() { cl.truncateLob( oid, 0 ); } );
 
    // 清理环境
+   cl.truncate();
+   cl.alter( { "RepairCheck": false } );
    cmd.run( "rm -rf " + lobPath1 );
    cmd.run( "rm -rf " + lobPath2 );
 }
