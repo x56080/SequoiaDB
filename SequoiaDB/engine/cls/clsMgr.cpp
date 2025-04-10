@@ -987,6 +987,11 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR,
                       "Start storage checking job thread failed, rc: %d",
                       rc ) ;
+
+         rc = clsStartSyncNotifyJob( NULL ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Start repl sync notify job thread failed, rc: %d",
+                      rc ) ;
       }
 
       if ( SDB_ROLE_DATA == pmdGetKRCB()->getDBRole() ||
