@@ -2671,7 +2671,7 @@ namespace engine
 
             /// when current extent is empty
             /// ( for old, the non-leaf node will has leaf node, so can't rebalance)
-            if ( 0 == getNumKeyNode() )
+            if ( !tmpResult && 0 == getNumKeyNode() )
             {
                ixmExtent parent( getParent(), _pIndexSu ) ;
                UINT16 mbID = _extentHead->_mbID ;
