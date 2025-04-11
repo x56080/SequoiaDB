@@ -772,7 +772,11 @@ namespace engine
       {
          goto done ;
       }
-      else if ( _commitFlag && !_getHasWritten() && 0 == _dirtyList.dirtyNumber() )
+
+      /// restore
+      _forceSync = FALSE ;
+
+      if ( _commitFlag && !_getHasWritten() && 0 == _dirtyList.dirtyNumber() )
       {
          goto done ;
       }
@@ -784,7 +788,6 @@ namespace engine
       /// then flush dirty
       /// then check commitFlag, when valid, need to reflush header
       _commitFlag = 1 ;
-      _forceSync = FALSE ;
       _hasWriten = FALSE ;
 
       if ( _dirtyList.isFullDirty() )
