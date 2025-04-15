@@ -61,6 +61,8 @@ public class Sequoiadb implements Closeable {
     private int currentCacheSize = 0;
     private boolean isOldVersionLobServer = false;
 
+    private DBVersion dbVersion;
+
     // cache cs/cl name
     private Map<String, Long> nameCache = new HashMap<String, Long>();
     private static ClientOptions globalClientConf = new ClientOptions();
@@ -634,6 +636,9 @@ public class Sequoiadb implements Closeable {
         byteOrder = sysInfoResponse.byteOrder();
         protocolVersion = sysInfoResponse.getPeerProtocolVersion();
         authVersion = sysInfoResponse.getAuthVersion();
+        dbVersion = new DBVersion(sysInfoResponse.getVersion(),
+                                  sysInfoResponse.getSubVersion(),
+                                  sysInfoResponse.getFixVersion());
 
         authenticate(username, password, authVersion);
         this.userName = username;
@@ -3823,5 +3828,17 @@ public class Sequoiadb implements Closeable {
             }
             return new Sequoiadb( this );
         }
+    }
+
+    /**
+     * Get the SequoiaDB version information.
+     *
+     * <p> The v3.2.7 / v3.4.1 / v5.0.1 and below SequoiaDB does not support get version information,
+     * all the version number in <code> DBVersion </code> object will be set to <code> 0 </code>.
+     *
+     * @return An object of {@link DBVersion}.
+     */
+    public DBVersion getDBVersion() {
+        return dbVersion;
     }
 }
