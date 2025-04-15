@@ -138,10 +138,10 @@ namespace engine
 
       // free in destructor
       _pages = SDB_OSS_NEW _dpsLogPage[pageNum];
-      if ( NULL == _pages )
+      if ( ( NULL == _pages ) || ( _pages && NULL == _pages->mb() ) )
       {
          rc = SDB_OOM;
-         PD_LOG (PDERROR, "new _dpsLogPage[pageNum] failed!" );
+         PD_LOG (PDERROR, "new _dpsLogPage[%d]] failed, rc: %d", pageNum, rc );
          goto error;
       }
       // set ID for each page
