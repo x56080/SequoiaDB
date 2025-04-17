@@ -1084,17 +1084,6 @@ namespace engine
          rc = SDB_SYS ;
          goto error ;
       }
-      if ( _extentHead->_beginFreeOffset - sizeof(ixmExtentHead) -
-           _extentHead->_totalKeyNodeNum*sizeof(ixmKeyNode) !=
-           _extentHead->_totalFreeSize )
-      {
-         PD_LOG ( PDERROR, "Inconsistent free size in extent(%d), BeginFreeOffset:%u, "
-                  "KeyNodeNum:%u, TotalFreeSize:%u", _me, _extentHead->_beginFreeOffset,
-                  _extentHead->_totalKeyNodeNum, _extentHead->_totalFreeSize ) ;
-         dumpIndexExtentIntoLog () ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
       if ( !(_extentHead->_flag & DMS_MB_FLAG_USED) )
       {
          PD_LOG ( PDERROR, "Invalid flag(0x%02x) in extent(%d)", _extentHead->_flag, _me ) ;
@@ -1102,20 +1091,32 @@ namespace engine
          rc = SDB_SYS ;
          goto error ;
       }
-
-      if ( DMS_INVALID_EXTENT != parent && getParent() != parent )
+      if ( getMBID() != indexCB->getMBID() )
       {
-         PD_LOG( PDERROR, "Invalid index extent(%d) parent(%d != %d)",
-                 _me, getParent(), parent ) ;
+         PD_LOG( PDERROR, "Invalid index extent(%d) mb id(%u != %u)",
+                 _me, getMBID(), indexCB->getMBID() ) ;
          dumpIndexExtentIntoLog() ;
          rc = SDB_SYS ;
          goto error ;
       }
 
-      if ( getMBID() != indexCB->getMBID() )
+      if ( _extentHead->_beginFreeOffset - sizeof(ixmExtentHead) -
+           _extentHead->_totalKeyNodeNum*sizeof(ixmKeyNode) !=
+           _extentHead->_totalFreeSize )
       {
-         PD_LOG( PDERROR, "Invalid index extent(%d) mb id(%u != %u)",
-                 _me, getMBID(), indexCB->getMBID() ) ;
+         PD_LOG ( PDERROR, "Inconsistent free size in extent(%d): "
+                  "BeginFreeOffset(%u) - ExtentHeadSz(%u) - KeyNodeNum(%u) * KeyNodeSz(%u) != "
+                  "TotalFreeSize(%u)", _me, _extentHead->_beginFreeOffset,
+                  sizeof(ixmExtentHead), _extentHead->_totalKeyNodeNum,
+                  sizeof(ixmKeyNode), _extentHead->_totalFreeSize ) ;
+         dumpIndexExtentIntoLog () ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+      if ( DMS_INVALID_EXTENT != parent && getParent() != parent )
+      {
+         PD_LOG( PDERROR, "Invalid index extent(%d) parent(%d != %d)",
+                 _me, getParent(), parent ) ;
          dumpIndexExtentIntoLog() ;
          rc = SDB_SYS ;
          goto error ;
