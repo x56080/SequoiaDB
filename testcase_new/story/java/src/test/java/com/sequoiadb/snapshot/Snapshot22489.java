@@ -32,12 +32,12 @@ public class Snapshot22489 extends SdbTestBase {
     private int times = 0;
     private int totalTimes = 100;
     private static boolean isSuccess = false;
-    
+
     @BeforeClass
     public void setup(){
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        lobSb = LobOprUtils.getRandomString( 1024*1024*10 );
-        
+        lobSb = LobOprUtils.getRandomString( 1024*1024*200 );
+
         if ( CommLib.isStandAlone( sdb ) ) {
             throw new SkipException( "STANDALONE MODE" );
         }
@@ -45,32 +45,34 @@ public class Snapshot22489 extends SdbTestBase {
         if ( groupNames.size() < 2 ) {
             throw new SkipException( "ONE GROUP MODE" );
         }
-        
+
         groupName = groupNames.get( 0 );
         sdb.getCollectionSpace( csName ).createCollection( clName, (BSONObject)JSON.parse( "{ ReplSize: 7, "
                 + "ShardingKey: { 'a': 1 }, ShardingType: 'hash', Group: '" + groupName + "' }" ) );
     }
-    
+
     @Test
     public void test() throws Exception{
         WriteLob writeLob = new WriteLob();
         writeLob.start();
-        
+
         DBCursor cursor = null;
-        do{ 
-            Thread.sleep( 100 );
+        do{
+            Thread.sleep( 5 );
             cursor = sdb.getSnapshot( Sequoiadb.SDB_SNAP_SESSIONS, "{ 'NodeSelect': 'master', 'IsBlocked': true, "
                     + "'Doing': 'Waiting for freezing window(Name:story_java_test.cl_22489)' }", null, null );
-            if( cursor.hasNext() ){
+            if( cursor.hasNext() )
+            {
                 isSuccess = true;
+                System.out.println( "success" );
                 break;
             }
         }while( times < totalTimes );
 
         Assert.assertTrue( writeLob.isSuccess() );
     }
-    
-    
+
+
     public class WriteLob extends SdbThreadBase{
         DBCollection cl = null;
         Split split = new Split();
@@ -84,7 +86,10 @@ public class Snapshot22489 extends SdbTestBase {
                     DBLob lob = cl.createLob();
                     lob.write( lobSb.getBytes() );
                     lob.close();
-                    if( times == 20 ){
+
+                    System.out.println( "createLob, isSuccess: " + isSuccess + ", times: " + times + ", totalTimes: " + totalTimes );
+                    if( times == 5 ){
+                        System.out.println( "Begin to split" );
                         split.start();
                     }
 
@@ -97,8 +102,8 @@ public class Snapshot22489 extends SdbTestBase {
                 Assert.assertTrue( split.isSuccess() );
             }
         }
-    }    
-    
+    }
+
     public class Split extends SdbThreadBase{
         DBCollection cl = null;
         @Override
@@ -111,6 +116,7 @@ public class Snapshot22489 extends SdbTestBase {
                 String desGroup = groupNames.get( 1 );
                 while( !isSuccess && times < totalTimes ){
                     cl.split( srcGroup, desGroup, 100 );
+                    System.out.println( "split from " + srcGroup + " to " + desGroup + ", times: " + times + ", totalTimes: " + totalTimes );
                     tmpGroup = srcGroup;
                     srcGroup = desGroup;
                     desGroup = tmpGroup;
@@ -118,7 +124,7 @@ public class Snapshot22489 extends SdbTestBase {
             }
         }
     }
-    
+
     @AfterClass
     public void tearDown(){
         sdb.getCollectionSpace( csName ).dropCollection( clName );
