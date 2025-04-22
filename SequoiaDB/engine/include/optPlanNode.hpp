@@ -276,6 +276,8 @@ namespace engine
             return OPT_FIELD_CHILD_NODES ;
          }
 
+         virtual UINT64 _calcOutputRecord( UINT64 inputRecords ) const = 0 ;
+
          virtual INT32 _toBSONBasic ( BSONObjBuilder & builder,
                                       const rtnExplainOptions &expOptions ) const = 0 ;
 
@@ -626,6 +628,9 @@ namespace engine
          // Number of records in the collection
          UINT64            _inputRecords ;
 
+         // Number of real records in the collection
+         UINT64            _realRecords ;
+
          // Number of pages in the collection
          UINT32            _inputPages ;
 
@@ -651,6 +656,7 @@ namespace engine
 
          // number of prefix matched fields in sort order
          UINT32            _matchedOrders ;
+
    } ;
 
    /*
@@ -716,6 +722,8 @@ namespace engine
          virtual INT32 toBSONEvaluation ( BSONObjBuilder & builder ) const ;
 
       protected :
+         virtual UINT64 _calcOutputRecord( UINT64 inputRecords ) const ;
+
          virtual INT32 _toBSONBasic ( BSONObjBuilder & builder,
                                       const rtnExplainOptions &expOptions ) const ;
 
@@ -883,6 +891,8 @@ namespace engine
          virtual INT32 toBSONIXStatInfo ( BSONObjBuilder & builder ) const ;
 
       protected :
+         virtual UINT64 _calcOutputRecord( UINT64 inputRecords ) const ;
+
          virtual INT32 _toBSONBasic ( BSONObjBuilder & builder,
                                       const rtnExplainOptions &expOptions ) const ;
 
@@ -1046,6 +1056,8 @@ namespace engine
          virtual INT32 toBSONEvaluation ( BSONObjBuilder & builder ) const ;
 
       protected :
+         virtual UINT64 _calcOutputRecord( UINT64 inputRecords ) const ;
+
          virtual INT32 _toBSONBasic ( BSONObjBuilder & builder,
                                       const rtnExplainOptions &expOptions ) const ;
 
@@ -1140,6 +1152,8 @@ namespace engine
          virtual const CHAR * _getChildListName () const = 0 ;
 
          virtual const CHAR * _getChildNumName () const = 0 ;
+
+         virtual UINT64 _calcOutputRecord( UINT64 inputRecords ) const ;
 
          virtual INT32 _toBSONBasic ( BSONObjBuilder & builder,
                                       const rtnExplainOptions &expOptions ) const ;

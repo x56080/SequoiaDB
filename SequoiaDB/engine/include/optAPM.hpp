@@ -364,14 +364,17 @@ namespace engine
                       UINT32 sortBufferSize,
                       INT32 optCostThreshold,
                       BOOLEAN enableMixCmp,
-                      INT32 planCacheMainCLThreshold ) ;
+                      INT32 planCacheMainCLThreshold,
+                      UINT32 optStartCostLimit ) ;
 
          INT32 reinit ( UINT32 bucketNum,
                         OPT_PLAN_CACHE_LEVEL cacheLevel,
                         UINT32 sortBufferSize,
                         INT32 optCostThreshold,
                         BOOLEAN enableMixCmp,
-                        INT32 planCacheMainCLThreshold ) ;
+                        INT32 planCacheMainCLThreshold,
+                        UINT32 optStartCostLimit ) ;
+
 
          INT32 fini () ;
 

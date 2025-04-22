@@ -57,20 +57,23 @@ namespace engine
       _optAccessPlanConfig ()
       : _sortBufferSize( 0 ),
         _optCostThreshold( 0 ),
-        _planCacheMainThreshold( 0 )
+        _planCacheMainThreshold( 0 ),
+        _optStartCostLimit( 0 )
       {
       }
 
       _optAccessPlanConfig ( const _optAccessPlanConfig &config )
       : _sortBufferSize( config._sortBufferSize ),
         _optCostThreshold( config._optCostThreshold ),
-        _planCacheMainThreshold( config._planCacheMainThreshold )
+        _planCacheMainThreshold( config._planCacheMainThreshold ),
+        _optStartCostLimit( config._optStartCostLimit )
       {
       }
 
       UINT32   _sortBufferSize ;
       INT32    _optCostThreshold ;
       INT32    _planCacheMainThreshold ;
+      UINT32   _optStartCostLimit ;
    } optAccessPlanConfig ;
 
    /*
@@ -129,6 +132,15 @@ namespace engine
          OSS_INLINE INT32 getPlanCacheMainCLThreshold() const
          {
             return _config._planCacheMainThreshold ;
+         }
+         OSS_INLINE void setOptStartCostLimit( UINT32 optStartCostLimit )
+         {
+            _config._optStartCostLimit = optStartCostLimit ;
+         }
+
+         OSS_INLINE UINT32 getOptStartCostLimit() const
+         {
+            return _config._optStartCostLimit ;
          }
 
       protected :

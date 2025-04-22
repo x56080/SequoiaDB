@@ -202,7 +202,8 @@ namespace engine
             optionCB->getSortBufSize(),
             optionCB->getOptCostThreshold(),
             optionCB->isEnabledMixCmp(),
-            optionCB->getPlanCacheMainCLThreshold() ) ;
+            optionCB->getPlanCacheMainCLThreshold(),
+            optionCB->getOptStartCostLimit() ) ;
 
       _maxContextNum = optionCB->maxContextNum() ;
       _maxSessionContextNum = optionCB->maxSessionContextNum() ;
@@ -325,7 +326,8 @@ namespace engine
             optionCB->getSortBufSize(),
             optionCB->getOptCostThreshold(),
             optionCB->isEnabledMixCmp(),
-            optionCB->getPlanCacheMainCLThreshold() ) ;
+            optionCB->getPlanCacheMainCLThreshold(),
+            optionCB->getOptStartCostLimit() ) ;
 
       _maxContextNum = optionCB->maxContextNum() ;
       _maxSessionContextNum = optionCB->maxSessionContextNum() ;

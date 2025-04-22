@@ -3414,4 +3414,19 @@
       <typeofweb>int</typeofweb>
    </opt>
 
+   <opt>
+      <name>PMD_OPTION_OPT_START_COST_LIMIT</name>
+      <long>optstartcostlimit</long>
+      <description>
+         <en>Maximum limit parameter given by query which can be evaluated with start cost, default is 1000, range:[0, 2^31 - 1], 0 means disable evaluate with start cost</en>
+         <cn>可以通过启动代价计算选择查询计划的最大的limit参数，默认值为1000，取值范围:[0, 2^31 - 1]，0表示不通过启动代价计算</cn>
+      </description>
+      <reloadable>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
+      </reloadable>
+     <type>int</type>
+     <hidden>true</hidden>
+   </opt>
+
 </optlist>

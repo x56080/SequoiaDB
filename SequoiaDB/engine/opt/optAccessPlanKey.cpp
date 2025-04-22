@@ -61,11 +61,6 @@ namespace engine
      _cacheLevel( cacheLevel )
    {
       SDB_ASSERT( NULL != getCLFullName(), "pCLFullName is invalid" ) ;
-
-      // Selector, skip and limit is not used to generate keys, reset them
-      setSelector( BSONObj() ) ;
-      setSkip( 0 ) ;
-      setLimit( -1 ) ;
    }
 
    _optAccessPlanKey::_optAccessPlanKey ( _optAccessPlanKey &planKey )
@@ -159,6 +154,12 @@ namespace engine
          {
             return FALSE ;
          }
+         lhsFlag = isEvalStartCost() ;
+         rhsFlag = planKey.isEvalStartCost() ;
+         if ( lhsFlag != rhsFlag )
+         {
+            return FALSE ;
+         }
       }
 
       /// Hint must compare field by field, and need ignore object field and
@@ -201,6 +202,49 @@ namespace engine
       }
 
       return TRUE ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTAPKEY_PREPARE, "_optAccessPlanKey::prepare" )
+   INT32 _optAccessPlanKey::prepare ( const optAccessPlanConfig &config )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_OPTAPKEY_PREPARE ) ;
+
+      if ( getLimit() >= 0 || getSkip() > 0 )
+      {
+         INT64 tmpLimit = -1 ;
+
+         if ( getLimit() >= 0 )
+         {
+            tmpLimit = getLimit() ;
+            if ( getSkip() > 0 )
+            {
+               tmpLimit += getSkip() ;
+            }
+         }
+
+         if ( config._optStartCostLimit > 0 && tmpLimit <= (INT64)config._optStartCostLimit )
+         {
+            setInternalFlag( RTN_INTERNAL_QUERY_EVAL_START_FLAG ) ;
+         }
+         else
+         {
+            /// don't cache
+            _cacheLevel = OPT_PLAN_NOCACHE ;
+         }
+      }
+      else
+      {
+         setSkip( 0 ) ;
+         setLimit( -1 ) ;
+      }
+
+      setSelector( BSONObj() ) ;
+
+      PD_TRACE_EXITRC( SDB_OPTAPKEY_PREPARE, rc ) ;
+
+      return rc ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTAPKEY_NORMALIZE, "_optAccessPlanKey::normalize" )
