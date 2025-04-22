@@ -1110,7 +1110,8 @@ namespace engine
                                        OPT_PLAN_CACHE_LEVEL cacheLevel,
                                        UINT32 sortBufferSize,
                                        INT32 optCostThreshold,
-                                       BOOLEAN enableMixCmp )
+                                       BOOLEAN enableMixCmp,
+                                       UINT32 optStartCostLimit )
    {
       INT32 rc = SDB_OK ;
 
@@ -1126,6 +1127,8 @@ namespace engine
 
       // Always update mix-compare mode
       setMthEnableMixCmp( enableMixCmp ) ;
+
+      setOptStartCostLimit( optStartCostLimit ) ;
 
       if ( bucketNum > 0 && cacheLevel > OPT_PLAN_NOCACHE )
       {
@@ -1181,7 +1184,8 @@ namespace engine
                                          OPT_PLAN_CACHE_LEVEL cacheLevel,
                                          UINT32 sortBufferSize,
                                          INT32 optCostThreshold,
-                                         BOOLEAN enableMixCmp )
+                                         BOOLEAN enableMixCmp,
+                                         UINT32 optStartCostLimit )
    {
       INT32 rc = SDB_OK ;
 
@@ -1198,7 +1202,8 @@ namespace engine
               cacheLevel != _cacheLevel ||
               sortBufferSize != getSortBufferSizeMB() ||
               optCostThreshold != getOptCostThreshold() ||
-              enableMixCmp != mthEnabledMixCmp() )
+              enableMixCmp != mthEnabledMixCmp() ||
+              optStartCostLimit != getOptStartCostLimit() )
          {
             if ( 0 == bucketNum ||
                  OPT_PLAN_NOCACHE == cacheLevel )
@@ -1214,6 +1219,7 @@ namespace engine
                setSortBufferSize( sortBufferSize ) ;
                setOptCostThreshold( optCostThreshold ) ;
                setMthEnableMixCmp( enableMixCmp ) ;
+               setOptStartCostLimit( optStartCostLimit ) ;
 
                sdbGetDMSCB()->clearSUCaches( DMS_EVENT_MASK_PLAN ) ;
 
@@ -1241,7 +1247,8 @@ namespace engine
 
                // Initialize the cache again with new value of bucketNum
                rc = init( bucketNum, cacheLevel, sortBufferSize,
-                          optCostThreshold, enableMixCmp ) ;
+                          optCostThreshold, enableMixCmp,
+                          optStartCostLimit ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to initialize access plan "
                             "manager, rc: %d", rc ) ;
             }
@@ -1250,7 +1257,7 @@ namespace engine
       else
       {
          rc = init( bucketNum, cacheLevel, sortBufferSize,
-                    optCostThreshold, enableMixCmp ) ;
+                    optCostThreshold, enableMixCmp, optStartCostLimit ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to initialize access plan manager, "
                       "rc: %d", rc ) ;
       }
@@ -2137,6 +2144,9 @@ namespace engine
       PD_LOG( PDDEBUG, "Original query: [%s] %s", planKey.getCLFullName(),
               planKey.getQuery().toString( FALSE, TRUE ).c_str() ) ;
 #endif
+
+      rc = planKey.prepare( planHelper.getPlanConfig() ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to prepare plan key, rc: %d", rc ) ;
 
       if ( planKey.getCacheLevel() >= OPT_PLAN_NORMALIZED )
       {

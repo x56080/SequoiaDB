@@ -137,6 +137,8 @@ namespace engine
    #define PMD_DFT_RECORD_RECYCLE_DELAY (15)
    #define PMD_DFT_RECORD_RECYCLE_RATIO (10)
 
+   #define PMD_DFT_START_COST_LIMIT     (1000)
+
    /*
       _pmdCfgExchange implement
    */
@@ -2033,6 +2035,8 @@ done:
 
       _recordRecycleDelay = PMD_DFT_RECORD_RECYCLE_DELAY ;
       _recordRecycleRatio = PMD_DFT_RECORD_RECYCLE_RATIO ;
+      _optStartCostLimit = PMD_DFT_START_COST_LIMIT ;
+
 #ifdef SDB_ENTERPRISE
 
 #ifdef SDB_SSL
@@ -2641,6 +2645,10 @@ done:
       rdxUInt( pEX, PMD_OPTION_RECORD_RECYCLE_RATIO, _recordRecycleRatio, FALSE,
                PMD_CFG_CHANGE_RUN, PMD_DFT_RECORD_RECYCLE_RATIO, FALSE ) ;
       rdvMinMax( pEX, _recordRecycleRatio, 1, 100 ) ;
+
+      // --optstartcostlimit
+      rdxUInt( pEX, PMD_OPTION_OPT_START_COST_LIMIT, _optStartCostLimit, FALSE,
+               PMD_CFG_CHANGE_RUN, PMD_DFT_START_COST_LIMIT, TRUE ) ;
 
       // end map
 

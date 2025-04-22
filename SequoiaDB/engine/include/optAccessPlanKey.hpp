@@ -203,6 +203,11 @@ namespace engine
             return testInternalFlag( RTN_INTERNAL_QUERY_COUNT_FLAG ) ;
          }
 
+         OSS_INLINE BOOLEAN isEvalStartCost() const
+         {
+            return testInternalFlag( RTN_INTERNAL_QUERY_EVAL_START_FLAG ) ;
+         }
+
          OSS_INLINE void setCollectionInfo ( dmsStorageUnit *su,
                                              dmsMBContext *mbContext )
          {
@@ -218,6 +223,7 @@ namespace engine
             _isValid = TRUE ;
          }
 
+         INT32 prepare ( const optAccessPlanConfig &config ) ;
          INT32 normalize ( optAccessPlanHelper &planHelper,
                            mthMatchRuntime *matchRuntime ) ;
 

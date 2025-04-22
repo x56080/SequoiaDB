@@ -683,6 +683,7 @@ namespace engine
          OSS_INLINE UINT32 getMetaCacheExpired() const { return _metacacheexpired ; }
          OSS_INLINE UINT32 getMetaCacheLWM() const { return _metacachelwm ; }
          OSS_INLINE UINT32 getStatMCVLimit() const { return _statMCVLimit ; }
+         OSS_INLINE UINT32 getOptStartCostLimit() const { return _optStartCostLimit ; }
 
          OSS_INLINE INT32  getMemMXFast() const { return _memMXFast ; }
          OSS_INLINE INT32  getMemTrimThreshold() const
@@ -850,6 +851,7 @@ namespace engine
          UINT32      _metacachelwm ;
 
          UINT32      _statMCVLimit ;
+         UINT32      _optStartCostLimit ;
 
          /// memory info
          INT32       _memMXFast ;

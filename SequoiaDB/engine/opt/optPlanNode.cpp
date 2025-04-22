@@ -147,36 +147,58 @@ namespace engine
 
       if ( _returnOptions.getSkip() > 0 || _returnOptions.getLimit() >= 0 )
       {
+         UINT64 calcRecords = _calcOutputRecord( inputRecords ) ;
+         FLOAT64 recordRatio = 1.0 ;
+         UINT64 calcSkip = 0 ;
+
+         if ( calcRecords < inputRecords )
+         {
+            calcRecords = inputRecords ;
+         }
+
+         if ( calcRecords > 0 && inputRecords > 0 )
+         {
+            recordRatio = (FLOAT64)inputRecords / calcRecords ;
+         }
+
+         if ( _returnOptions.getSkip() > 0 )
+         {
+            calcSkip = (UINT64)( _returnOptions.getSkip() * recordRatio ) ;
+         }
+
          if ( _returnOptions.getLimit() == 0 )
          {
             // No return records
             outputRecords = 0 ;
             outputSkipRecords = 0 ;
          }
-         else if ( inputRecords < (UINT64)_returnOptions.getSkip() )
+         else if ( inputRecords <= calcSkip )
          {
             // All input records are skipped
-            outputRecords = 0 ;
-            outputSkipRecords = inputRecords ;
+            /// can't set to zero, because the inputRecords is only sample number
+            outputRecords = 1 ;
+            outputSkipRecords = inputRecords > 0 ? inputRecords - 1 : 0 ;
          }
-         else if ( inputRecords < (UINT64)( _returnOptions.getLimit() +
-                                            _returnOptions.getSkip() ) )
-         {
-            // Input records could not cover limit and skip options
-            outputRecords = inputRecords - _returnOptions.getSkip() ;
-            outputSkipRecords = _returnOptions.getSkip() ;
-         }
+         // Limit options is given
          else if ( _returnOptions.getLimit() > 0 )
          {
-            // Limit options is given
-            outputRecords = _returnOptions.getLimit() ;
-            outputSkipRecords = _returnOptions.getSkip() ;
+            if ( inputRecords < (UINT64)( _returnOptions.getLimit() + calcSkip ) )
+            {
+               // Input records could not cover limit and skip options
+               outputRecords = inputRecords - calcSkip ;
+               outputSkipRecords = calcSkip ;
+            }
+            else
+            {
+               outputRecords = _returnOptions.getLimit() ;
+               outputSkipRecords = calcSkip ;
+            }
          }
+         // Limit options is not given
          else
          {
-            // Limit options is not given
-            outputRecords = inputRecords - _returnOptions.getSkip() ;
-            outputSkipRecords = _returnOptions.getSkip() ;
+            outputRecords = inputRecords - calcSkip ;
+            outputSkipRecords = calcSkip ;            
          }
       }
       else
@@ -711,6 +733,7 @@ namespace engine
      _mthCPUCost( OPT_MTH_DEFAULT_CPU_COST ),
      _needMatch( TRUE ),
      _inputRecords( 0 ),
+     _realRecords( 0 ),
      _inputPages( 0 ),
      _inputNumFields( 0 ),
      _inputRecordSize( 0 ),
@@ -733,6 +756,7 @@ namespace engine
      _mthCPUCost( OPT_MTH_DEFAULT_CPU_COST ),
      _needMatch( TRUE ),
      _inputRecords( 0 ),
+     _realRecords( 0 ),
      _inputPages( 0 ),
      _inputNumFields( 0 ),
      _inputRecordSize( 0 ),
@@ -755,6 +779,7 @@ namespace engine
      _mthCPUCost( node._mthCPUCost ),
      _needMatch( node._needMatch ),
      _inputRecords( node._inputRecords ),
+     _realRecords( node._realRecords ),
      _inputPages( node._inputPages ),
      _inputNumFields( node._inputNumFields ),
      _inputRecordSize( node._inputRecordSize ),
@@ -799,6 +824,7 @@ namespace engine
 
       _inputRecords = OPT_ROUND_NUM_DEF( collectionStat->getTotalRecords(),
                                          DMS_STAT_DEF_TOTAL_RECORDS ) ;
+      _realRecords = collectionStat->getTotalRecords( TRUE ) ;
       _inputPages = OPT_ROUND_NUM( collectionStat->getTotalDataPages() ) ;
       _inputRecordSize = OPT_ROUND_NUM(
                   (UINT32)ceil( (double)collectionStat->getTotalDataSize() /
@@ -1247,6 +1273,11 @@ namespace engine
       }
 
       PD_TRACE_EXIT( SDB_OPTTBSCAN__EVALORDER ) ;
+   }
+
+   UINT64 _optTbScanNode::_calcOutputRecord( UINT64 inputRecords ) const
+   {
+      return OPT_ROUND_NUM( (UINT64)ceil( (double)inputRecords * _mthSelectivity ) ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTTBSCAN__TOBSONBASIC, "_optTbScanNode::_toBSONBasic" )
@@ -1772,11 +1803,11 @@ namespace engine
       idxReadSkipPages = (UINT32)ceil( (double)idxNoLimitReadPages * skipRate ) ;
       idxReadSkipRecords = (UINT64)ceil( (double)idxNoLimitReadRecords * skipRate ) ;
 
-      idxReadReturnPages = _idxReadPages - idxReadSkipPages ;
-      idxReadReturnRecords = _idxReadRecords - idxReadSkipRecords ;
-
       _idxReadPages = (UINT32)ceil( (double)idxNoLimitReadPages * scanRate ) ;
       _idxReadRecords = (UINT64)ceil( (double)idxNoLimitReadRecords * scanRate ) ;
+
+      idxReadReturnPages = _idxReadPages - idxReadSkipPages ;
+      idxReadReturnRecords = _idxReadRecords - idxReadSkipRecords ;
 
       if ( _readIndexOnly )
       {
@@ -2397,6 +2428,18 @@ namespace engine
       return rc ;
    }
 
+   UINT64 _optIxScanNode::_calcOutputRecord( UINT64 inputRecords ) const
+   {
+      if ( _predSelectivity < _mthSelectivity )
+      {
+         return OPT_ROUND_NUM( (UINT64)ceil( (double)_realRecords * _predSelectivity ) ) ;
+      }
+      else
+      {
+         return OPT_ROUND_NUM( (UINT64)ceil( (double)_realRecords * _mthSelectivity ) ) ;
+      }
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTIXSCAN__TOBSONBASIC, "_optIxScanNode::_toBSONBasic" )
    INT32 _optIxScanNode::_toBSONBasic ( BSONObjBuilder & builder,
                                         const rtnExplainOptions &expOptions ) const
@@ -2878,6 +2921,11 @@ namespace engine
 
    error :
       goto done ;
+   }
+
+   UINT64 _optSortNode::_calcOutputRecord( UINT64 inputRecords ) const
+   {
+      return inputRecords ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTSORT__TOBSONBASIC, "_optSortNode::_toBSONBasic" )
@@ -3435,6 +3483,11 @@ namespace engine
 
    error :
       goto done ;
+   }
+
+   UINT64 _optMergeNodeBase::_calcOutputRecord( UINT64 inputRecords ) const
+   {
+      return inputRecords ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTMERGENODEBASE__TOBSONBASIC, "_optMergeNodeBase::_toBSONBasic" )
