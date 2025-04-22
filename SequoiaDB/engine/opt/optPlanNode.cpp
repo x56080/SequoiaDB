@@ -1745,9 +1745,10 @@ namespace engine
       }
       else
       {
+         UINT32 inputPages = _inputPages > _inputRecords ? _inputRecords : _inputPages ;
          // Number of data pages and records will be read ( based on _predSelectivity )
          // which is also the number of items output from index
-         _readPages = OPT_ROUND_NUM( (UINT32)ceil( (double)_inputPages *
+         _readPages = OPT_ROUND_NUM( (UINT32)ceil( (double)inputPages *
                                                    _predSelectivity ) ) ;
          _readRecords = OPT_ROUND_NUM( (UINT64)ceil( (double)_inputRecords *
                                                      _predSelectivity ) ) ;
@@ -1816,9 +1817,10 @@ namespace engine
       }
       else
       {
+         UINT32 inputPages = _inputPages > _inputRecords ? _inputRecords : _inputPages ;
          // Number of data pages and records will be read ( based on _predSelectivity )
          // which is also the number of items output from index
-         noLimitReadPages = OPT_ROUND_NUM( (UINT32)ceil( (double)_inputPages *
+         noLimitReadPages = OPT_ROUND_NUM( (UINT32)ceil( (double)inputPages *
                                                          _predSelectivity ) ) ;
          noLimitReadRecords = OPT_ROUND_NUM( (UINT64)ceil( (double)_inputRecords *
                                                            _predSelectivity ) ) ;
