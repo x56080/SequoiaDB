@@ -1277,7 +1277,7 @@ namespace engine
 
    UINT64 _optTbScanNode::_calcOutputRecord( UINT64 inputRecords ) const
    {
-      return OPT_ROUND_NUM( (UINT64)ceil( (double)inputRecords * _mthSelectivity ) ) ;
+      return OPT_ROUND_NUM( (UINT64)ceil( (double)_realRecords * _mthSelectivity ) ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTTBSCAN__TOBSONBASIC, "_optTbScanNode::_toBSONBasic" )
