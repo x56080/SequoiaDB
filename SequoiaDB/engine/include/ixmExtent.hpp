@@ -221,6 +221,7 @@ namespace engine
       INT32 _doMergeChildren ( UINT16 pos,
                                const Ordering &order,
                                ixmIndexCB *indexCB,
+                               INT32 direction,       /// 1 for forward, -1 for backword
                                BOOLEAN &result ) ;
 
       INT32 _delExtent ( ixmIndexCB *indexCB ) ;
