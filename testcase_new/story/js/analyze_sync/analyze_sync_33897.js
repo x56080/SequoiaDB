@@ -6,19 +6,21 @@
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
+var csName = "analyze_sync_33897_cs" ;
 
 main( test )
 
 function test ()
 {
-   var csName = COMMCSNAME;
    var mainCLName = "maincl_33897";
    var subCLName1 = "subcl_33897_1";
    var subCLName2 = "subcl_33897_2";
 
+   commDropCS( db, csName );
+   var cs = commCreateCS( db, csName );
+
    db.deleteConf( { plancachemainclthreshold: 1 } );
    var group = commGetDataGroupNames( db )[0];
-   var cs = testPara.testCS;
    var maincl = cs.createCL( mainCLName, { IsMainCL: true, ShardingKey: { a: 1 } } );
    cs.createCL( subCLName1, { Group: group } );
    cs.createCL( subCLName2, { Group: group } );
@@ -62,7 +64,6 @@ function test ()
 
 function testPlan ( alwaysMainCLPlan )
 {
-   var csName = COMMCSNAME;
    var mainCLName = "maincl_33897";
    var subCLName1 = "subcl_33897_1";
    var subCLName2 = "subcl_33897_2";
