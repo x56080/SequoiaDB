@@ -527,11 +527,12 @@ namespace engine
          try
          {
             VEC_INT32 vecPos( _predicateLst.size(), 0 ) ;
+            SET_UINT32 setGroup ;
             BOOLEAN isEnd = FALSE ;
 
             while( !isEnd )
             {
-               rc = _calc( pSet, vecPos, setItem ) ;
+               rc = _calc( pSet, vecPos, setItem, setGroup ) ;
                if ( rc )
                {
                   goto error ;
@@ -540,7 +541,7 @@ namespace engine
                // If the matching condition covers all groups or subcollections,
                // stop the hit calculation in advance.
                if ( ( !pSet->isMainCL() &&
-                       pSet->getCataItem()->size() == setItem.size() ) ||
+                       pSet->groupCount() == setGroup.size() ) ||
                     ( pSet->isMainCL() &&
                        ( UINT32 )pSet->getSubCLCount() == setItem.size() ) )
                {
@@ -620,7 +621,8 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CLSCATAPREDICATETREE__CALC, "clsCatalogPredicateTree::_calc" )
    INT32 clsCatalogPredicateTree::_calc( const _clsCatalogSet *pSet,
                                          VEC_INT32 &vecCur,
-                                         CLS_SET_CATAITEM &setItem )
+                                         CLS_SET_CATAITEM &setItem,
+                                         SET_UINT32 &setGroup )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_CLSCATAPREDICATETREE__CALC ) ;
@@ -646,6 +648,7 @@ namespace engine
             while( cit != pMapCata->end() )
             {
                setItem.insert( cit->second ) ;
+               setGroup.insert( cit->second->getGroupID() ) ;
                ++cit ;
             }
          }
@@ -660,11 +663,13 @@ namespace engine
                if ( pSet->getLastItem() )
                {
                   setItem.insert( pSet->getLastItem() ) ;
+                  setGroup.insert( cit->second->getGroupID() ) ;
                }
             }
             else
             {
                setItem.insert( cit->second ) ;
+               setGroup.insert( cit->second->getGroupID() ) ;
             }
          }
       }
@@ -678,11 +683,13 @@ namespace engine
             if ( pSet->getLastItem() )
             {
                setItem.insert( pSet->getLastItem() ) ;
+               setGroup.insert( cit->second->getGroupID() ) ;
             }
          }
          else if ( isEqual && pSet->isWholeRange() )
          {
             setItem.insert( cit->second ) ;
+            setGroup.insert( cit->second->getGroupID() ) ;
          }
          else
          {
@@ -708,6 +715,7 @@ namespace engine
                }
 
                setItem.insert( pItem ) ;
+               setGroup.insert( cit->second->getGroupID() ) ;
                ++cit ;
             }
          }

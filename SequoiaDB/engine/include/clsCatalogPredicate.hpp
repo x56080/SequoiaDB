@@ -106,7 +106,8 @@ namespace engine
 
       INT32 _calc( const _clsCatalogSet *pSet,
                    VEC_INT32 &vecCur,
-                   CLS_SET_CATAITEM &setItem ) ;
+                   CLS_SET_CATAITEM &setItem,
+                   SET_UINT32 &setGroup ) ;
 
       INT32 _buildStartObj( VEC_INT32 &vecCur,
                             BSONObj &obj,
