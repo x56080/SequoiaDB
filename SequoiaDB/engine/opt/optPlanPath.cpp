@@ -1192,7 +1192,7 @@ namespace engine
       constantBuilder.append( OPT_FIELD_SEQ_WRITE_IO_COST,
                               OPT_SEQ_WRITE_IO_COST ) ;
       constantBuilder.append( OPT_FIELD_PAGE_UINT,
-                              DMS_PAGE_SIZE_BASE ) ;
+                              DMS_PAGE_SIZE_ONCEREAD ) ;
       constantBuilder.append( OPT_FIELD_REC_CPU_COST,
                               OPT_RECORD_CPU_COST ) ;
       constantBuilder.append( OPT_FIELD_IDX_CPU_COST,

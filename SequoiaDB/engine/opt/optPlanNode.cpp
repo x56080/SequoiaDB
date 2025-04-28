@@ -67,6 +67,8 @@ namespace engine
      _outputNumFields( 0 ),
      _estIOCost( 0 ),
      _estCPUCost( 0 ),
+     _estStartIOCostRatio( 0.0 ),
+     _estStartCPUCostRatio( 0.0 ),
      _sorted( FALSE )
    {
    }
@@ -81,6 +83,8 @@ namespace engine
      _outputNumFields( node._outputNumFields ),
      _estIOCost( node._estIOCost ),
      _estCPUCost( node._estCPUCost ),
+     _estStartIOCostRatio( node._estStartIOCostRatio ),
+     _estStartCPUCostRatio( node._estStartCPUCostRatio ),
      _sorted( node._sorted ),
      _returnOptions( node._returnOptions ),
      _runtimeMonitor( NULL == context ? node._runtimeMonitor :
@@ -742,7 +746,10 @@ namespace engine
      _clFromStat( FALSE ),
      _clStatTime( 0 ),
      _isCandidate( FALSE ),
-     _matchedOrders( 0 )
+     _matchedOrders( 0 ),
+     _scanRate( 1.0 ),
+     _skipRate( 0.0 ),
+     _limitRate( 1.0 )
    {
    }
 
@@ -765,7 +772,10 @@ namespace engine
      _clFromStat( FALSE ),
      _clStatTime( 0 ),
      _isCandidate( FALSE ),
-     _matchedOrders( 0 )
+     _matchedOrders( 0 ),
+     _scanRate( 1.0 ),
+     _skipRate( 0.0 ),
+     _limitRate( 1.0 )
    {
    }
 
@@ -789,7 +799,10 @@ namespace engine
      _clStatTime( node._clStatTime ),
      _isCandidate( node._isCandidate ),
      _runtimeMatcher( node._runtimeMatcher ),
-     _matchedOrders( node._matchedOrders )
+     _matchedOrders( node._matchedOrders ),
+     _scanRate( node._scanRate ),
+     _skipRate( node._skipRate ),
+     _limitRate( node._limitRate )
    {
       if ( NULL != context )
       {
@@ -976,16 +989,16 @@ namespace engine
       if ( needIOCost )
       {
          formBuilder << OPT_FIELD_IO_CPU_RATE << " * "
-                     << OPT_FIELD_IO_COST << " + "
-                     << OPT_FIELD_CPU_COST ;
+                     << OPT_FIELD_IO_COST << " * ( 1 - " << OPT_FIELD_STARTIOCOST_RATIO << " ) + "
+                     << OPT_FIELD_CPU_COST << " * ( 1 - " << OPT_FIELD_STARTCPUCOST_RATIO << " )" ;
          evalBuilder << OPT_IO_CPU_RATE << " * "
-                     << _estIOCost << " + "
-                     << _estCPUCost ;
+                     << _estIOCost << " * ( 1 - " << _estStartIOCostRatio << " ) + "
+                     << _estCPUCost << " * ( 1 - " << _estStartCPUCostRatio << " )" ;
       }
       else
       {
-         formBuilder << OPT_FIELD_CPU_COST ;
-         evalBuilder << _estCPUCost ;
+         formBuilder << OPT_FIELD_CPU_COST << " * ( 1 - " << OPT_FIELD_STARTCPUCOST_RATIO << " )";
+         evalBuilder << _estCPUCost << " * ( 1 - " << _estStartCPUCostRatio << " )" ;
       }
 
       return _toBSONFieldEval( builder, OPT_FIELD_RUN_COST,
@@ -998,17 +1011,19 @@ namespace engine
                                           const CHAR * outputName,
                                           const CHAR * inputName,
                                           const CHAR * selName,
+                                          const CHAR * rateName,
                                           UINT32 inputValue,
                                           double selectivity,
+                                          double scanRate,
                                           UINT32 outputValue ) const
    {
       StringBuilder formBuilder, evalBuilder ;
 
       // max( 1, ceil( input * selectivity ) )
       formBuilder << "max( 1, ceil( " << inputName << " * "
-                  << selName << " ) )" ;
+                  << selName << " * " << rateName << " ) )" ;
       evalBuilder << "max( 1, ceil( " << inputValue << " * "
-                  << selectivity << " ) )";
+                  << selectivity << " * " << scanRate << " ) )";
 
       return _toBSONFieldEval( builder, outputName, formBuilder.str().c_str(),
                                evalBuilder.str().c_str(),
@@ -1019,17 +1034,19 @@ namespace engine
                                             const CHAR * outputName,
                                             const CHAR * inputName,
                                             const CHAR * selName,
+                                            const CHAR * rateName,
                                             UINT64 inputValue,
                                             double selectivity,
+                                            double scanRate,
                                             UINT64 outputValue ) const
    {
       StringBuilder formBuilder, evalBuilder ;
 
       // max( 1, ceil( input * selectivity ) )
       formBuilder << "max( 1, ceil( " << inputName << " * "
-                  << selName << " ) )" ;
+                  << selName << " * " << rateName << " ) )" ;
       evalBuilder << "max( 1, ceil( " << inputValue << " * "
-                  << selectivity << " ) )" ;
+                  << selectivity << " * " << scanRate << " ) )" ;
 
       return _toBSONFieldEval( builder, outputName,
                                formBuilder.str().c_str(),
@@ -1057,19 +1074,22 @@ namespace engine
       _optTbScanNode implement
     */
    _optTbScanNode::_optTbScanNode ()
-   : _optScanNode()
+   : _optScanNode(),
+     _hitRatio( 1.0 )
    {
    }
 
    _optTbScanNode::_optTbScanNode ( const CHAR * pCollection,
                                     INT32 estCacheSize )
-   : _optScanNode( pCollection, estCacheSize )
+   : _optScanNode( pCollection, estCacheSize ),
+     _hitRatio( 1.0 )
    {
    }
 
    _optTbScanNode::_optTbScanNode ( const optTbScanNode & node,
                                     const rtnContext * context )
-   : _optScanNode( node, context )
+   : _optScanNode( node, context ),
+     _hitRatio( node._hitRatio )
    {
       if ( NULL != context )
       {
@@ -1127,6 +1147,7 @@ namespace engine
                   (UINT64)ceil( (double)_inputRecords * _mthSelectivity ) ) ;
       UINT64 returnSkipRecords = 0 ;
 
+      _hitRatio = _getHitRatio( _mthSelectivity ) ;
       _outputRecords = _evaluateOutputRecords( noLimitRecords,
                                                returnSkipRecords ) ;
 
@@ -1153,9 +1174,15 @@ namespace engine
    {
       PD_TRACE_ENTRY( SDB_OPTTBSCAN__EVALNORET ) ;
 
+      _scanRate = 0.0 ;
+      _skipRate = 0.0 ;
+      _limitRate = 0.0 ;
+
       _readPages = 0 ;
       _readRecords = 0 ;
 
+      _estIOCost = 0 ;
+      _estCPUCost = 0 ;
       _estStartCost = OPT_TBSCAN_DEFAULT_START_COST ;
       _estRunCost = 0 ;
       _estTotalCost = _estStartCost + _estRunCost ;
@@ -1167,6 +1194,10 @@ namespace engine
    void _optTbScanNode::_evalNoReturnOptions ()
    {
       PD_TRACE_ENTRY( SDB_OPTTBSCAN__EVALNORETOPTS ) ;
+
+      _scanRate = 1.0 ;
+      _skipRate = 0.0 ;
+      _limitRate = 1.0 ;
 
       _readPages = _inputPages ;
       _readRecords = _inputRecords ;
@@ -1193,29 +1224,41 @@ namespace engine
       UINT64 scanSkipCPUCost = 0, scanReturnCPUCost = 0 ;
       UINT32 readSkipPages = 0, readReturnPages = 0 ;
       UINT64 readSkipRecords = 0, readReturnRecords = 0 ;
-      double skipRate = 0.0, returnRate = 1.0, scanRate = 1.0 ;
 
-      skipRate = (double)returnSkipRecords / (double)noLimitRecords ;
-      returnRate = (double)_outputRecords / (double)noLimitRecords ;
-      scanRate = skipRate + returnRate ;
+      _skipRate = (double)returnSkipRecords / (double)noLimitRecords ;
+      _limitRate = (double)_outputRecords / (double)noLimitRecords ;
+      _scanRate = _skipRate + _limitRate ;
 
-      readSkipPages = (UINT32)ceil( (double)_inputPages * skipRate ) ;
-      readSkipRecords = (UINT64)ceil( (double)_inputRecords * skipRate ) ;
+      _readPages = OSS_MIN( (UINT32)( ceil( (double)_inputPages * _scanRate ) / _hitRatio ),
+                            _inputPages ) ;
+      _readRecords = OSS_MIN( (UINT64)( ceil( (double)_inputRecords * _scanRate ) / _hitRatio ),
+                              _inputRecords );
 
-      _readPages = (UINT32)ceil( (double)_inputPages * scanRate ) ;
-      _readRecords = (UINT64)ceil( (double)_inputRecords * scanRate ) ;
+      readSkipPages = (UINT32)ceil( (double)_inputPages * _skipRate ) ;
+      readSkipRecords = (UINT64)ceil( (double)_inputRecords * _skipRate ) ;
 
       readReturnPages = _readPages - readSkipPages ;
       readReturnRecords = _readRecords - readSkipRecords ;
 
+      if ( _readPages > 0 )
+      {
+         _estStartIOCostRatio = (double)readSkipPages / _readPages ;
+      }
+      if ( _readRecords > 0 )
+      {
+         _estStartCPUCostRatio = (double)readSkipRecords / _readRecords ;
+      }
+
       scanSkipIOCost = _evalScanIOCost( OPT_SEQ_SCAN_IO_COST, readSkipPages ) ;
       scanReturnIOCost = _evalScanIOCost( OPT_SEQ_SCAN_IO_COST, readReturnPages ) ;
 
+      _estIOCost = scanSkipIOCost + scanReturnIOCost ;
+
       // Need to extract every records and evaluate matchers
-      scanSkipCPUCost = ( OPT_RECORD_CPU_COST + _mthCPUCost ) *
-                        readSkipRecords ;
-      scanReturnCPUCost = ( OPT_RECORD_CPU_COST + _mthCPUCost ) *
-                          readReturnRecords ;
+      scanSkipCPUCost = ( OPT_RECORD_CPU_COST + _mthCPUCost ) * readSkipRecords ;
+      scanReturnCPUCost = ( OPT_RECORD_CPU_COST + _mthCPUCost ) * readReturnRecords ;
+
+      _estCPUCost = scanSkipCPUCost + scanReturnCPUCost ;
 
       _estStartCost = OPT_TBSCAN_DEFAULT_START_COST +
                       OPT_IO_CPU_RATE * scanSkipIOCost +
@@ -1278,6 +1321,38 @@ namespace engine
    UINT64 _optTbScanNode::_calcOutputRecord( UINT64 inputRecords ) const
    {
       return OPT_ROUND_NUM( (UINT64)ceil( (double)_realRecords * _mthSelectivity ) ) ;
+   }
+
+   double _optTbScanNode::_getHitRatio( double selectivity ) const
+   {
+      if ( ( selectivity >= 1.0 && !isNeedMatch() ) || selectivity <= 0.0 )
+      {
+         return 1.0 ;
+      }
+      else if ( selectivity >= 0.8 )
+      {
+         return selectivity * 0.05 ;
+      }
+      else if ( selectivity >= 0.6 )
+      {
+         return selectivity * 0.06 ;
+      }
+      else if ( selectivity >= 0.4 )
+      {
+         return selectivity * 0.08 ;
+      }
+      else if ( selectivity >= 0.2 )
+      {
+         return selectivity * 0.12 ;
+      }
+      else if ( selectivity >= 0.01 )
+      {
+         return selectivity * 0.2 ;
+      }
+      else
+      {
+         return OSS_MAX( selectivity, 0.00001 ) ;
+      }
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTTBSCAN__TOBSONBASIC, "_optTbScanNode::_toBSONBasic" )
@@ -1367,7 +1442,39 @@ namespace engine
       BOOLEAN needIOCost = needEvalIOCost() ;
 
       builder.append( OPT_FIELD_MTH_SEL, _mthSelectivity ) ;
+      builder.append( OPT_FIELD_SCANRATE, _scanRate ) ;
+      builder.append( OPT_FIELD_LIMITRATE, _limitRate ) ;
+      builder.append( OPT_FIELD_HITRATIO, _hitRatio ) ;
+      builder.append( OPT_FIELD_STARTIOCOST_RATIO, _estStartIOCostRatio ) ;
+      builder.append( OPT_FIELD_STARTCPUCOST_RATIO, _estStartCPUCostRatio ) ;
       builder.append( OPT_FIELD_MTH_COST, (INT32)_mthCPUCost ) ;
+
+      if ( needIOCost )
+      {
+         rc = _toBSONPagesEval( builder,
+                                OPT_FIELD_READ_PAGES,
+                                OPT_FIELD_PAGES,
+                                OPT_FIELD_SCANRATE,
+                                OPT_FIELD_HITRATIO,
+                                _inputPages,
+                                _scanRate,
+                                _hitRatio,
+                                _readPages ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for %s evaluation, "
+                      "rc: %d", OPT_FIELD_READ_PAGES, rc ) ;
+      }
+
+      rc = _toBSONRecordsEval( builder,
+                               OPT_FIELD_READ_RECORDS,
+                               OPT_FIELD_RECORDS,
+                               OPT_FIELD_SCANRATE,
+                               OPT_FIELD_HITRATIO,
+                               _inputRecords,
+                               _scanRate,
+                               _hitRatio,
+                               _readRecords ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for %s evaluation, "
+                   "rc: %d", OPT_FIELD_READ_RECORDS, rc ) ;
 
       if ( needIOCost )
       {
@@ -1412,16 +1519,16 @@ namespace engine
    {
       StringBuilder formBuilder, evalBuilder ;
 
-      // SeqReadIOCostUnit * ( Pages * ( PageSize / PageUnit ) )
+      // SeqReadIOCostUnit * ( ReadPages * ( PageSize / PageUnit ) )
       formBuilder << OPT_FIELD_SEQ_IO_COST << " * "
-                  << OPT_FIELD_PAGES << " * ( "
+                  << OPT_FIELD_READ_PAGES << " * ( "
                   << OPT_FIELD_PAGE_SIZE << " / "
                   << OPT_FIELD_PAGE_UINT << " )" ;
 
       evalBuilder << OPT_SEQ_SCAN_IO_COST << " * "
-                  << _inputPages << " * ( "
+                  << _readPages << " * ( "
                   << getPageSize() << " / "
-                  << DMS_PAGE_SIZE_BASE << " )" ;
+                  << DMS_PAGE_SIZE_ONCEREAD << " )" ;
 
       return _toBSONFieldEval( builder, OPT_FIELD_IO_COST,
                                formBuilder.str().c_str(),
@@ -1433,12 +1540,12 @@ namespace engine
    {
       StringBuilder formBuilder, evalBuilder ;
 
-      // TotalRecords * ( RecExtractCPUCost + MthCPUCost )
-      formBuilder << OPT_FIELD_RECORDS << " * ( "
+      // ReadRecords * ( RecExtractCPUCost + MthCPUCost )
+      formBuilder << OPT_FIELD_READ_RECORDS << " * ( "
                   << OPT_FIELD_REC_CPU_COST << " + "
                   << OPT_FIELD_MTH_COST << " )" ;
 
-      evalBuilder << _inputRecords << " * ( "
+      evalBuilder << _readRecords << " * ( "
                   << OPT_RECORD_CPU_COST << " + "
                   << _mthCPUCost << " )" ;
 
@@ -1451,8 +1558,13 @@ namespace engine
    INT32 _optTbScanNode::_toBSONStartCostEval ( BSONObjBuilder & builder ) const
    {
       StringBuilder formBuilder, evalBuilder ;
-      formBuilder << OPT_FIELD_TB_START_COST ;
-      evalBuilder << OPT_IXSCAN_DEFAULT_START_COST ;
+
+      formBuilder << OPT_FIELD_TB_START_COST << " + " OPT_FIELD_IO_CPU_RATE << " * "
+                  << OPT_FIELD_IO_COST << " * " << OPT_FIELD_STARTIOCOST_RATIO << " + "
+                  << OPT_FIELD_CPU_COST << " * " << OPT_FIELD_STARTCPUCOST_RATIO ;
+      evalBuilder << OPT_IXSCAN_DEFAULT_START_COST << " + " << OPT_IO_CPU_RATE << " * "
+                  << _estIOCost << " * " << _estStartIOCostRatio << " + "
+                  << _estCPUCost << " * " << _estStartCPUCostRatio ;
 
       return _toBSONFieldEval( builder, OPT_FIELD_START_COST,
                                formBuilder.str().c_str(),
@@ -1466,9 +1578,58 @@ namespace engine
                                  OPT_FIELD_OUTPUT_RECORDS,
                                  OPT_FIELD_RECORDS,
                                  OPT_FIELD_MTH_SEL,
+                                 OPT_FIELD_LIMITRATE,
                                  _inputRecords,
                                  _mthSelectivity,
+                                 _limitRate,
                                  _outputRecords ) ;
+   }
+
+   INT32 _optTbScanNode::_toBSONPagesEval ( BSONObjBuilder & builder,
+                                            const CHAR * outputName,
+                                            const CHAR * inputName,
+                                            const CHAR * rateName,
+                                            const CHAR * hitRatioName,
+                                            UINT32 inputValue,
+                                            double scanRate,
+                                            double hitRatio,
+                                            UINT32 outputValue ) const
+   {
+      StringBuilder formBuilder, evalBuilder ;
+
+      // min( ceil( input * rate ) / ratio, input )
+      formBuilder << "min( ceil( " << inputName << " * " << rateName << " ) / "
+                  << hitRatioName << ", " << inputName << " )" ;
+      evalBuilder << "min( ceil( " << inputValue << " * " << scanRate << " ) / "
+                  << hitRatio << ", " << inputValue << " )";
+
+      return _toBSONFieldEval( builder, outputName, formBuilder.str().c_str(),
+                               evalBuilder.str().c_str(),
+                               (INT32)outputValue ) ;
+   }
+
+   INT32 _optTbScanNode::_toBSONRecordsEval ( BSONObjBuilder & builder,
+                                              const CHAR * outputName,
+                                              const CHAR * inputName,
+                                              const CHAR * rateName,
+                                              const CHAR * hitRatioName,
+                                              UINT64 inputValue,
+                                              double scanRate,
+                                              double hitRatio,
+                                              UINT64 outputValue ) const
+   {
+      StringBuilder formBuilder, evalBuilder ;
+
+      // min( ceil( input * rate ) / ratio, input )
+      formBuilder << "min( ceil( " << inputName << " * " << rateName << " ) / "
+                  << hitRatioName << ", " << inputName << " )" ;
+      evalBuilder << "min( ceil( " << inputValue << " * " << scanRate << " ) / "
+                  << hitRatio << ", " << inputValue << " )" ;
+
+      return _toBSONFieldEval( builder, outputName,
+                               formBuilder.str().c_str(),
+                               evalBuilder.str().c_str(),
+                               (INT64)outputValue ) ;
    }
 
    /*
@@ -1612,10 +1773,30 @@ namespace engine
       SDB_ASSERT( collectionStat, "collectionStat is invalid" ) ;
       SDB_ASSERT( indexStat, "indexStat is invalid" ) ;
 
+      double scanRate = 1.0 ;
+
       _preEvaluate( queryOptions, planHelper, collectionStat ) ;
 
       _indexPages = indexStat->getIndexPages() ;
       _indexLevels = indexStat->getIndexLevels() ;
+
+      if ( 0 == _returnOptions.getLimit() )
+      {
+         scanRate = 0.0 ;
+      }
+      else if ( _returnOptions.getLimit() > 0 )
+      {
+         UINT64 skipLimit = _returnOptions.getLimit() ;
+         if ( _returnOptions.getSkip() > 0 )
+         {
+            skipLimit += _returnOptions.getSkip() ;
+         }
+
+         if ( skipLimit < _realRecords )
+         {
+            scanRate = (double)skipLimit / _realRecords ;
+         }
+      }
 
       BOOLEAN isBestIndex = collectionStat->isBestIndex( indexStat ) ;
       BOOLEAN canReadIndexOnly = queryOptions.testInternalFlag( RTN_INTERNAL_QUERY_COUNT_FLAG ) ;
@@ -1654,6 +1835,8 @@ namespace engine
             // smaller than threshold
             if ( ( _readIndexOnly && _matchedPrefixFields > 0 ) ||
                  ( _scanSelectivity <= OPT_PRED_THRESHOLD_SELECTIVITY ) ||
+                 ( _scanSelectivity * scanRate <= OPT_PRED_THRESHOLD_SELECTIVITY &&
+                   _matchedPrefixFields > 0 ) ||
                  ( _sorted && ( _matchedPrefixFields > 0 || _sortMatchedIndexFields > 0 ) ) )
             {
                _isCandidate = TRUE ;
@@ -1715,11 +1898,17 @@ namespace engine
    {
       PD_TRACE_ENTRY( SDB_OPTIXSCAN__EVALNORET ) ;
 
+      _scanRate = 0.0 ;
+      _skipRate = 0.0 ;
+      _limitRate = 0.0 ;
+
       _idxReadPages = 0 ;
       _idxReadRecords = 0 ;
       _readPages = 0 ;
       _readRecords = 0 ;
 
+      _estIOCost = 0 ;
+      _estCPUCost = 0 ;
       _estStartCost = OPT_IXSCAN_DEFAULT_START_COST ;
       _estRunCost = 0 ;
       _estTotalCost = _estStartCost + _estRunCost ;
@@ -1731,6 +1920,10 @@ namespace engine
    void _optIxScanNode::_evalNoReturnOptions ()
    {
       PD_TRACE_ENTRY( SDB_OPTIXSCAN__EVALNORETOPTS ) ;
+
+      _scanRate = 1.0 ;
+      _skipRate = 0.0 ;
+      _limitRate = 1.0 ;
 
       // Number of index pages and records will be read ( based on _scanSelectivity )
       _idxReadPages = OPT_ROUND_NUM( (UINT32)ceil( (double)_indexPages *
@@ -1787,13 +1980,12 @@ namespace engine
       UINT64 idxNoLimitReadRecords = 0, noLimitReadRecords = 0 ;
       UINT64 idxReadSkipRecords = 0, readSkipRecords = 0 ;
       UINT64 idxReadReturnRecords, readReturnRecords = 0 ;
-      double skipRate = 0.0, returnRate = 1.0, scanRate = 1.0 ;
       UINT64 scanSkipIOCost = 0, scanReturnIOCost = 0 ;
       UINT64 scanSkipCPUCost = 0, scanReturnCPUCost = 0 ;
 
-      skipRate = (double)returnSkipRecords / (double)noLimitRecords ;
-      returnRate = (double)_outputRecords / (double)noLimitRecords ;
-      scanRate = skipRate + returnRate ;
+      _skipRate = (double)returnSkipRecords / (double)noLimitRecords ;
+      _limitRate = (double)_outputRecords / (double)noLimitRecords ;
+      _scanRate = _skipRate + _limitRate ;
 
       // Number of index pages and records will be read ( based on _scanSelectivity )
       idxNoLimitReadPages = OPT_ROUND_NUM( (UINT32)ceil( (double)_indexPages *
@@ -1801,11 +1993,11 @@ namespace engine
       idxNoLimitReadRecords = OPT_ROUND_NUM( (UINT64)ceil( (double)_inputRecords *
                                                            _scanSelectivity ) ) ;
 
-      idxReadSkipPages = (UINT32)ceil( (double)idxNoLimitReadPages * skipRate ) ;
-      idxReadSkipRecords = (UINT64)ceil( (double)idxNoLimitReadRecords * skipRate ) ;
+      idxReadSkipPages = (UINT32)ceil( (double)idxNoLimitReadPages * _skipRate ) ;
+      idxReadSkipRecords = (UINT64)ceil( (double)idxNoLimitReadRecords * _skipRate ) ;
 
-      _idxReadPages = (UINT32)ceil( (double)idxNoLimitReadPages * scanRate ) ;
-      _idxReadRecords = (UINT64)ceil( (double)idxNoLimitReadRecords * scanRate ) ;
+      _idxReadPages = (UINT32)ceil( (double)idxNoLimitReadPages * _scanRate ) ;
+      _idxReadRecords = (UINT64)ceil( (double)idxNoLimitReadRecords * _scanRate ) ;
 
       idxReadReturnPages = _idxReadPages - idxReadSkipPages ;
       idxReadReturnRecords = _idxReadRecords - idxReadSkipRecords ;
@@ -1825,20 +2017,33 @@ namespace engine
          noLimitReadRecords = OPT_ROUND_NUM( (UINT64)ceil( (double)_inputRecords *
                                                            _predSelectivity ) ) ;
 
-         readSkipPages = (UINT32)ceil( (double)noLimitReadPages * skipRate ) ;
-         readSkipRecords = (UINT64)ceil( (double)noLimitReadRecords * skipRate ) ;
+         readSkipPages = (UINT32)ceil( (double)noLimitReadPages * _skipRate ) ;
+         readSkipRecords = (UINT64)ceil( (double)noLimitReadRecords * _skipRate ) ;
 
-         _readPages = (UINT32)ceil( (double)noLimitReadPages * scanRate ) ;
-         _readRecords = (UINT64)ceil( (double)noLimitReadRecords * scanRate ) ;
+         _readPages = (UINT32)ceil( (double)noLimitReadPages * _scanRate ) ;
+         _readRecords = (UINT64)ceil( (double)noLimitReadRecords * _scanRate ) ;
 
          readReturnPages = _readPages - readSkipPages ;
          readReturnRecords = _readRecords - readSkipRecords ;
+      }
+
+      if ( _idxReadPages + _readPages > 0 )
+      {
+         _estStartIOCostRatio = (double)( idxReadSkipPages + readSkipPages ) /
+            ( _idxReadPages + _readPages ) ;
+      }
+      if ( _idxReadRecords + _readRecords > 0 )
+      {
+         _estStartCPUCostRatio = (double)( idxReadSkipRecords + readSkipRecords ) /
+            ( _idxReadRecords + _readRecords ) ;
       }
 
       scanSkipIOCost = _evalScanIOCost( OPT_RANDOM_SCAN_IO_COST,
                                         idxReadSkipPages + readSkipPages ) ;
       scanReturnIOCost = _evalScanIOCost( OPT_RANDOM_SCAN_IO_COST,
                                           idxReadReturnPages + readReturnPages ) ;
+
+      _estIOCost = scanSkipIOCost + scanReturnIOCost ;
 
       // For each index read records, need to be extracted from index page and
       // evaluated against predicates
@@ -1853,10 +2058,13 @@ namespace engine
                           ( readReturnRecords *
                           ( OPT_RECORD_CPU_COST + ( _needMatch ? _mthCPUCost : 0 ) ) ) ;
 
+      _estCPUCost = scanSkipCPUCost + scanReturnCPUCost ;
+
       _estStartCost = OPT_IXSCAN_DEFAULT_START_COST +
                       _predCPUCost * _indexLevels +
                       OPT_IO_CPU_RATE * scanSkipIOCost + scanSkipCPUCost ;
       _estRunCost = OPT_IO_CPU_RATE * scanReturnIOCost + scanReturnCPUCost ;
+
       _estTotalCost = _estStartCost + _estRunCost ;
 
       PD_TRACE_EXIT( SDB_OPTIXSCAN__EVALRETOPTS ) ;
@@ -2319,9 +2527,13 @@ namespace engine
       builder.append( OPT_FIELD_INDEX_PAGES, (INT32)_indexPages ) ;
       builder.append( OPT_FIELD_INDEX_LEVELS, (INT32)_indexLevels ) ;
       builder.append( OPT_FIELD_MTH_SEL, _mthSelectivity ) ;
+      builder.append( OPT_FIELD_SCANRATE, _scanRate ) ;
+      builder.append( OPT_FIELD_LIMITRATE, _limitRate ) ;
       builder.append( OPT_FIELD_MTH_COST, (INT32)_mthCPUCost ) ;
       builder.append( OPT_FIELD_SCAN_SEL, _scanSelectivity ) ;
       builder.append( OPT_FIELD_PRED_SEL, _predSelectivity ) ;
+      builder.append( OPT_FIELD_STARTIOCOST_RATIO, _estStartIOCostRatio ) ;
+      builder.append( OPT_FIELD_STARTCPUCOST_RATIO, _estStartCPUCostRatio ) ;
       builder.append( OPT_FIELD_PRED_COST, (INT32)_predCPUCost ) ;
 
       if ( needIOCost )
@@ -2330,8 +2542,10 @@ namespace engine
                                 OPT_FIELD_INDEX_READ_PAGES,
                                 OPT_FIELD_INDEX_PAGES,
                                 OPT_FIELD_SCAN_SEL,
+                                OPT_FIELD_SCANRATE,
                                 _indexPages,
                                 _scanSelectivity,
+                                _scanRate,
                                 _idxReadPages ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for %s evaluation, "
                       "rc: %d", OPT_FIELD_INDEX_READ_PAGES, rc ) ;
@@ -2341,8 +2555,10 @@ namespace engine
                                OPT_FIELD_INDEX_READ_RECORDS,
                                OPT_FIELD_RECORDS,
                                OPT_FIELD_SCAN_SEL,
+                               OPT_FIELD_SCANRATE,
                                _inputRecords,
                                _scanSelectivity,
+                               _scanRate,
                                _idxReadRecords ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for %s evaluation, "
                    "rc: %d", OPT_FIELD_INDEX_READ_RECORDS, rc ) ;
@@ -2353,8 +2569,10 @@ namespace engine
                                 OPT_FIELD_READ_PAGES,
                                 OPT_FIELD_PAGES,
                                 OPT_FIELD_PRED_SEL,
-                                _indexPages,
+                                OPT_FIELD_SCANRATE,
+                                _inputPages,
                                 _predSelectivity,
+                                ( _readIndexOnly ? 0.0 : _scanRate ),
                                 _readPages ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for %s evaluation, "
                       "rc: %d", OPT_FIELD_READ_PAGES, rc ) ;
@@ -2364,8 +2582,10 @@ namespace engine
                                OPT_FIELD_READ_RECORDS,
                                OPT_FIELD_RECORDS,
                                OPT_FIELD_PRED_SEL,
+                               OPT_FIELD_SCANRATE,
                                _inputRecords,
                                _predSelectivity,
+                               ( _readIndexOnly ? 0.0 : _scanRate ),
                                _readRecords ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for %s evaluation, "
                    "rc: %d", OPT_FIELD_READ_RECORDS, rc ) ;
@@ -2650,7 +2870,7 @@ namespace engine
                   << _idxReadPages << " + "
                   << _readPages << " ) * ( "
                   << getPageSize() << " / "
-                  << DMS_PAGE_SIZE_BASE << " )" ;
+                  << DMS_PAGE_SIZE_ONCEREAD << " )" ;
 
       return _toBSONFieldEval( builder, OPT_FIELD_IO_COST,
                                formBuilder.str().c_str(),
@@ -2706,11 +2926,17 @@ namespace engine
       // IXScanStartCost + PredCPUCost * IndexLevels
       formBuilder << OPT_FIELD_IX_START_COST << " + "
                   << OPT_FIELD_PRED_COST << " * "
-                  << OPT_FIELD_INDEX_LEVELS ;
+                  << OPT_FIELD_INDEX_LEVELS << " + "
+                  << OPT_FIELD_IO_CPU_RATE << " * "
+                  << OPT_FIELD_IO_COST << " * " << OPT_FIELD_STARTIOCOST_RATIO << " + "
+                  << OPT_FIELD_CPU_COST << " * " << OPT_FIELD_STARTCPUCOST_RATIO ;
 
       evalBuilder << OPT_IXSCAN_DEFAULT_START_COST << " + "
                   << _predCPUCost << " * "
-                  << _indexLevels ;
+                  << _indexLevels << " + "
+                  << OPT_IO_CPU_RATE << " * "
+                  << _estIOCost << " * " << _estStartIOCostRatio << " + "
+                  << _estCPUCost << " * " << _estStartCPUCostRatio ;
 
       return _toBSONFieldEval( builder, OPT_FIELD_START_COST,
                                formBuilder.str().c_str(),
@@ -2724,9 +2950,11 @@ namespace engine
 
       // max( 1, ceil( Records * min( IXPredSelectivity, MthSelectivity ) ) )
       formBuilder << "max( 1, ceil( " << OPT_FIELD_RECORDS << " * min( "
-                  << OPT_FIELD_PRED_SEL << ", " << OPT_FIELD_MTH_SEL << " ) ) )" ;
+                  << OPT_FIELD_PRED_SEL << ", " << OPT_FIELD_MTH_SEL << " ) "
+                  << " * " << OPT_FIELD_LIMITRATE << " ) )" ;
       evalBuilder << "max( 1, ceil( " << _inputRecords << " * min( "
-                  << _predSelectivity << ", " << _mthSelectivity << " ) ) )" ;
+                  << _predSelectivity << ", " << _mthSelectivity << " ) "
+                  << " * " << _limitRate << " ) )" ;
 
       return _toBSONFieldEval( builder, OPT_FIELD_OUTPUT_RECORDS,
                                formBuilder.str().c_str(),
@@ -3120,7 +3348,7 @@ namespace engine
                   << OPT_FIELD_PAGE_UINT << ") )" ;
 
       evalBuilder << "max( 1, ceil( "
-                  << totalSize << " / " << DMS_PAGE_SIZE_BASE << ") )" ;
+                  << totalSize << " / " << DMS_PAGE_SIZE_ONCEREAD << ") )" ;
 
       return _toBSONFieldEval( builder, OPT_FIELD_PAGES,
                                formBuilder.str().c_str(),
