@@ -363,6 +363,9 @@ namespace engine
          UINT64            _estIOCost ;
          UINT64            _estCPUCost ;
 
+         double            _estStartIOCostRatio ;
+         double            _estStartCPUCostRatio ;
+
          // If output is sorted by required
          BOOLEAN           _sorted ;
 
@@ -552,13 +555,14 @@ namespace engine
                                              UINT32 scanPages ) const
          {
             return needEvalIOCost() ?
-                   ( unitIOCost * scanPages * _evalNormalizedPageRate() ) :
+                   ( ( unitIOCost * scanPages ) << _evalNormalizedPageRate() ) :
                    0 ;
          }
 
          OSS_INLINE UINT32 _evalNormalizedPageRate () const
          {
-            return _pageSizeLog2 - DMS_PAGE_SIZE_LOG2_BASE ;
+            return OSS_MAX( _pageSizeLog2, DMS_PAGE_SIZE_LOG2_ONCEREAD ) -
+               DMS_PAGE_SIZE_LOG2_ONCEREAD ;
          }
 
       public :
@@ -592,16 +596,20 @@ namespace engine
                                   const CHAR * outputName,
                                   const CHAR * inputName,
                                   const CHAR * selName,
+                                  const CHAR * rateName,
                                   UINT32 inputValue,
                                   double selectivity,
+                                  double scanRate,
                                   UINT32 outputValue ) const ;
 
          INT32 _toBSONRecordsEval ( BSONObjBuilder & builder,
                                     const CHAR * outputName,
                                     const CHAR * inputName,
                                     const CHAR * selName,
+                                    const CHAR * rateName,
                                     UINT64 inputValue,
                                     double selectivity,
+                                    double scanRate,
                                     UINT64 outputValue ) const ;
 
          BOOLEAN _checkEqualOrder( BSONElement &orderElement,
@@ -656,6 +664,11 @@ namespace engine
 
          // number of prefix matched fields in sort order
          UINT32            _matchedOrders ;
+
+         // scan rate
+         double            _scanRate ;
+         double            _skipRate ;
+         double            _limitRate ;
 
    } ;
 
@@ -729,6 +742,8 @@ namespace engine
 
          virtual INT32 _fromBSONBasic ( const BSONObj & object ) ;
 
+         double _getHitRatio( double selectivity ) const ;
+
          INT32 _toBSONIOCostEval ( BSONObjBuilder & builder ) const ;
 
          INT32 _toBSONCPUCostEval ( BSONObjBuilder & builder ) const ;
@@ -736,6 +751,29 @@ namespace engine
          INT32 _toBSONStartCostEval ( BSONObjBuilder & builder ) const ;
 
          INT32 _toBSONOutputRecordsEval ( BSONObjBuilder & builder ) const ;
+
+         INT32 _toBSONPagesEval ( BSONObjBuilder & builder,
+                                  const CHAR * outputName,
+                                  const CHAR * inputName,
+                                  const CHAR * rateName,
+                                  const CHAR * hitRatioName,
+                                  UINT32 inputValue,
+                                  double scanRate,
+                                  double hitRatio,
+                                  UINT32 outputValue ) const ;
+         
+         INT32 _toBSONRecordsEval ( BSONObjBuilder & builder,
+                                    const CHAR * outputName,
+                                    const CHAR * inputName,
+                                    const CHAR * rateName,
+                                    const CHAR * hitRatioName,
+                                    UINT64 inputValue,
+                                    double scanRate,
+                                    double hitRatio,
+                                    UINT64 outputValue ) const ;
+
+      private:
+         double            _hitRatio ;
    } ;
 
    /*
@@ -855,6 +893,8 @@ namespace engine
             return ( _isCandidate ) &&
                    ( ( _readIndexOnly && _matchedPrefixFields > 0 ) ||
                      ( _scanSelectivity <= OPT_PRED_THRESHOLD_SELECTIVITY ) ||
+                     ( _scanSelectivity * _scanRate <= OPT_PRED_THRESHOLD_SELECTIVITY &&
+                       _matchedPrefixFields > 0 ) ||
                      ( _sorted && ( _matchedPrefixFields > 0 ||
                                     ( _sortMatchedIndexFields > 0 && 0 == _predicateSize ) ) ) ) ;
          }
@@ -1042,7 +1082,7 @@ namespace engine
          OSS_INLINE UINT32 _getInputPages ( UINT64 inputSize ) const
          {
             return OPT_ROUND_NUM( (UINT32)ceil( (double)inputSize /
-                                                (double)DMS_PAGE_SIZE_BASE ) ) ;
+                                                (double)DMS_PAGE_SIZE_DFT ) ) ;
          }
 
          OSS_INLINE UINT64 _getInputTotalCost () const
