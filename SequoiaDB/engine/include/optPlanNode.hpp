@@ -762,15 +762,15 @@ namespace engine
                                   double hitRatio,
                                   UINT32 outputValue ) const ;
          
-         INT32 _toBSONRecordsEval ( BSONObjBuilder & builder,
-                                    const CHAR * outputName,
-                                    const CHAR * inputName,
-                                    const CHAR * rateName,
-                                    const CHAR * hitRatioName,
-                                    UINT64 inputValue,
-                                    double scanRate,
-                                    double hitRatio,
-                                    UINT64 outputValue ) const ;
+         INT32 _toBSONRecordsEvalWithHitRatio ( BSONObjBuilder & builder,
+                                                const CHAR * outputName,
+                                                const CHAR * inputName,
+                                                const CHAR * rateName,
+                                                const CHAR * hitRatioName,
+                                                UINT64 inputValue,
+                                                double scanRate,
+                                                double hitRatio,
+                                                UINT64 outputValue ) const ;
 
       private:
          double            _hitRatio ;

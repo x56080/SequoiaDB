@@ -1464,15 +1464,15 @@ namespace engine
                       "rc: %d", OPT_FIELD_READ_PAGES, rc ) ;
       }
 
-      rc = _toBSONRecordsEval( builder,
-                               OPT_FIELD_READ_RECORDS,
-                               OPT_FIELD_RECORDS,
-                               OPT_FIELD_SCANRATE,
-                               OPT_FIELD_HITRATIO,
-                               _inputRecords,
-                               _scanRate,
-                               _hitRatio,
-                               _readRecords ) ;
+      rc = _toBSONRecordsEvalWithHitRatio( builder,
+                                           OPT_FIELD_READ_RECORDS,
+                                           OPT_FIELD_RECORDS,
+                                           OPT_FIELD_SCANRATE,
+                                           OPT_FIELD_HITRATIO,
+                                           _inputRecords,
+                                           _scanRate,
+                                           _hitRatio,
+                                           _readRecords ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for %s evaluation, "
                    "rc: %d", OPT_FIELD_READ_RECORDS, rc ) ;
 
@@ -1608,15 +1608,15 @@ namespace engine
                                (INT32)outputValue ) ;
    }
 
-   INT32 _optTbScanNode::_toBSONRecordsEval ( BSONObjBuilder & builder,
-                                              const CHAR * outputName,
-                                              const CHAR * inputName,
-                                              const CHAR * rateName,
-                                              const CHAR * hitRatioName,
-                                              UINT64 inputValue,
-                                              double scanRate,
-                                              double hitRatio,
-                                              UINT64 outputValue ) const
+   INT32 _optTbScanNode::_toBSONRecordsEvalWithHitRatio ( BSONObjBuilder & builder,
+                                                          const CHAR * outputName,
+                                                          const CHAR * inputName,
+                                                          const CHAR * rateName,
+                                                          const CHAR * hitRatioName,
+                                                          UINT64 inputValue,
+                                                          double scanRate,
+                                                          double hitRatio,
+                                                          UINT64 outputValue ) const
    {
       StringBuilder formBuilder, evalBuilder ;
 
@@ -2950,11 +2950,11 @@ namespace engine
 
       // max( 1, ceil( Records * min( IXPredSelectivity, MthSelectivity ) ) )
       formBuilder << "max( 1, ceil( " << OPT_FIELD_RECORDS << " * min( "
-                  << OPT_FIELD_PRED_SEL << ", " << OPT_FIELD_MTH_SEL << " ) "
-                  << " * " << OPT_FIELD_LIMITRATE << " ) )" ;
+                  << OPT_FIELD_PRED_SEL << ", " << OPT_FIELD_MTH_SEL << " ) * "
+                  << OPT_FIELD_LIMITRATE << " ) )" ;
       evalBuilder << "max( 1, ceil( " << _inputRecords << " * min( "
-                  << _predSelectivity << ", " << _mthSelectivity << " ) "
-                  << " * " << _limitRate << " ) )" ;
+                  << _predSelectivity << ", " << _mthSelectivity << " ) * "
+                  << _limitRate << " ) )" ;
 
       return _toBSONFieldEval( builder, OPT_FIELD_OUTPUT_RECORDS,
                                formBuilder.str().c_str(),
