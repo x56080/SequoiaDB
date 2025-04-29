@@ -213,18 +213,30 @@ namespace engine
 
       if ( getLimit() >= 0 || getSkip() > 0 )
       {
-         INT64 tmpLimit = -1 ;
+         INT64 skipLimit = -1 ;
 
          if ( getLimit() >= 0 )
          {
-            tmpLimit = getLimit() ;
+            skipLimit = getLimit() ;
             if ( getSkip() > 0 )
             {
-               tmpLimit += getSkip() ;
+               skipLimit += getSkip() ;
             }
          }
 
-         if ( config._optStartCostLimit > 0 && tmpLimit <= (INT64)config._optStartCostLimit )
+         if ( -1 == skipLimit )
+         {
+            if ( config._optStartCostLimit > 0 && getSkip() <= (INT64)config._optStartCostLimit )
+            {
+               /// do nothing
+            }
+            else
+            {
+               /// don't cache
+               _cacheLevel = OPT_PLAN_NOCACHE ;
+            }
+         }
+         else if ( config._optStartCostLimit > 0 && skipLimit <= (INT64)config._optStartCostLimit )
          {
             setInternalFlag( RTN_INTERNAL_QUERY_EVAL_START_FLAG ) ;
          }
