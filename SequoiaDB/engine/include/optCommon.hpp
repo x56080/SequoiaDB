@@ -82,7 +82,7 @@ namespace engine
    #define OPT_SEQ_WRITE_IO_COST             ( 2 )
 
    // Rate to convert cost to ms
-   #define OPT_COST_TO_MS                    ( 0.0005 )
+   #define OPT_COST_TO_MS                    ( 0.00001 )
 
    // Rate to convert cost to sec
    #define OPT_COST_TO_SEC                   ( OPT_COST_TO_MS * 0.001 )
