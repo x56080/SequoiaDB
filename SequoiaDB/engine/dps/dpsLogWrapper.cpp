@@ -410,11 +410,7 @@ namespace engine
       _lastWriteTick = pmdGetDBTick() ;
       ++_writeReordNum ;
 
-      _buf.writeData( info ) ;
-
       cb = dynamic_cast<pmdEDUCB*>( info.getEDUCB() ) ;
-
-      /// insert lsn
       if ( cb )
       {
          monQuery = cb->getMonQueryCB() ;
@@ -423,7 +419,13 @@ namespace engine
          {
             monQuery->startQueryTick( MON_TICK_LOG ) ;
          }
+      }
 
+      _buf.writeData( info ) ;
+
+      /// insert lsn
+      if ( cb )
+      {
          if ( info.hasDummy() )
          {
             cb->insertLsn( info.getDummyBlock().record().head()._lsn ) ;
