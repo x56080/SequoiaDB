@@ -536,7 +536,7 @@ namespace engine
       for ( UINT32 i = 0 ; i < nodes.getLength() ; ++i )
       {
          msg.header.routeID.value = nodes.getNode( i ) ;
-         _agent->syncSend( _notifyList[i].id, (MsgHeader *)&msg ) ;
+         _agent->syncSend( msg.header.routeID, (MsgHeader *)&msg ) ;
       }
 
       PD_TRACE_EXIT ( SDB__CLSSYNCMAG_NOTIFYNODES ) ;
