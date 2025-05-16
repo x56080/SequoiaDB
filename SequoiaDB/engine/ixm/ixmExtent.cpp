@@ -1859,28 +1859,11 @@ namespace engine
          if ( mayBalanceLeft )
          {
             // for left balance, we merge pos-1 and pos
-            rc = parent._doMergeChildren ( pos, order, indexCB, -1, result ) ;
+            rc = parent._doMergeChildren ( pos-1, order, indexCB, result ) ;
             if ( rc )
             {
-               PD_LOG ( PDERROR, "Failed to try merge children(Pos:%u) with left "
-                        "in extent(%d), rc: %d", pos, getParent(), rc ) ;
-               goto error ;
-            }
-            if ( result )
-            {
-               goto done ;
-            }
-         }
-
-         // attempt to merge right child
-         if ( mayBalanceRight )
-         {
-            // for right balance, we merge pos and pos+1
-            rc = parent._doMergeChildren ( pos, order, indexCB, 1, result ) ;
-            if ( rc )
-            {
-               PD_LOG ( PDERROR, "Failed to try merge children(Pos:%u) with right "
-                        "in extent(%d), rc: %d", pos, getParent(), rc ) ;
+               PD_LOG ( PDERROR, "Failed to try merge children(Pos:%u) in extent(%d), rc: %d",
+                        pos-1, getParent(), rc ) ;
                goto error ;
             }
             if ( result )
@@ -1898,6 +1881,23 @@ namespace engine
             {
                PD_LOG ( PDERROR, "Failed to try balance children(Pos:%u) with right "
                         "in extent(%d), rc: %d", pos, getParent(), rc ) ;
+               goto error ;
+            }
+            if ( result )
+            {
+               goto done ;
+            }
+         }
+
+         // attempt to merge right child
+         if ( mayBalanceRight )
+         {
+            // for right balance, we merge pos and pos+1
+            rc = parent._doMergeChildren ( pos, order, indexCB, result ) ;
+            if ( rc )
+            {
+               PD_LOG ( PDERROR, "Failed to try merge children(Pos:%u) in extent(%d), rc: %d",
+                        pos, getParent(), rc ) ;
                goto error ;
             }
             if ( result )
@@ -2521,8 +2521,7 @@ namespace engine
    }
 
    INT32 _ixmExtent::_doMergeChildren ( UINT16 pos, const Ordering &order,
-                                        ixmIndexCB *indexCB, INT32 direction,
-                                        BOOLEAN &result )
+                                        ixmIndexCB *indexCB, BOOLEAN &result )
    {
       INT32 rc = SDB_OK ;
       dmsExtentID childExtent = DMS_INVALID_EXTENT ;
@@ -2530,18 +2529,17 @@ namespace engine
 
       UINT16 childKeyNum = 0 ;
       UINT16 siblingKeyNum = 0 ;
-      UINT16 leftPos = direction > 0 ? pos : pos - 1 ;
 
       UINT16 hasMergedNum = 0 ;
 
-      if ( leftPos >= getNumKeyNode() )
+      if ( pos >= getNumKeyNode() )
       {
          rc = SDB_SYS ;
          goto error ;
       }
 
       childExtent = getChildExtentID( pos ) ;
-      siblingExtent = getChildExtentID( pos + direction ) ;
+      siblingExtent = getChildExtentID( pos + 1 ) ;
 
       if ( DMS_INVALID_EXTENT == childExtent || DMS_INVALID_EXTENT == siblingExtent )
       {
@@ -2560,49 +2558,48 @@ namespace engine
          UINT16 insertPos = 0 ;
          dmsExtentID tmpExtentID = DMS_INVALID_EXTENT ;
          dmsExtentID childRightExtID = DMS_INVALID_EXTENT ;
-         dmsExtentID siblingRightExtID = DMS_INVALID_EXTENT ;
 
          /// reorg first to prevent deleting merged key nodes that inserted by _basicInsert
-         if ( !siblingExt.isCompact() )
+         if ( !childExt.isCompact() )
          {
-            rc = siblingExt._reorg( order ) ;
+            rc = childExt._reorg( order ) ;
             if ( rc )
             {
-               PD_LOG( PDERROR, "Reorg child extent(%d) failed, rc: %d", siblingExtent, rc ) ;
+               PD_LOG( PDERROR, "Reorg child extent(%d) failed, rc: %d", childExtent, rc ) ;
                goto error ;
             }
             /// need re-calc, because reorg
-            siblingKeyNum = siblingExt.getNumKeyNode() ;
+            childKeyNum = childExt.getNumKeyNode() ;
          }
 
-         /// first, push down left pos
-         kn = getKeyNode( leftPos ) ;
-         insertPos = direction > 0 ? 0 : siblingExt.getNumKeyNode() ;
-         rc = siblingExt._basicInsert( insertPos, kn->_rid,
-                                       ixmKey( getKeyData( leftPos ) ),
-                                       order ) ;
+         /// first, push down cur pos
+         kn = getKeyNode( pos ) ;
+         insertPos = childExt.getNumKeyNode() ;
+         rc = childExt._basicInsert( insertPos, kn->_rid,
+                                     ixmKey( getKeyData( pos ) ),
+                                     order ) ;
          if ( rc )
          {
             PD_LOG ( PDWARNING, "Failed to insert back key(%d) to extent(%d) from "
-                     "parent(%d), rc: %d", (INT32)leftPos, siblingExtent, _me, rc ) ;
+                     "parent(%d), rc: %d", (INT32)pos, childExtent, _me, rc ) ;
             /// ignore error
             rc = SDB_OK ;
             goto done ;
          }
          ++hasMergedNum ;
 
-         /// then, push down child key
-         for ( UINT16 i = 0 ; i < childKeyNum ; ++i )
+         /// then, push down sibling key
+         for ( UINT16 i = 0 ; i < siblingKeyNum ; ++i )
          {
-            kn = childExt.getKeyNode( i ) ;
-            ixmKey keyData( childExt.getKeyData( i ) ) ;
-            insertPos = direction > 0 ? i : siblingExt.getNumKeyNode() ;
+            kn = siblingExt.getKeyNode( i ) ;
+            ixmKey keyData( siblingExt.getKeyData( i ) ) ;
+            insertPos = childExt.getNumKeyNode() ;
             /// skip used key
-            rc = siblingExt._basicInsert( insertPos, kn->_rid, keyData, order ) ;
+            rc = childExt._basicInsert( insertPos, kn->_rid, keyData, order ) ;
             if ( rc )
             {
-               PD_LOG ( PDWARNING, "Failed to insert key(%d) to extent(%d) from extent(%d), "
-                        "rc: %d", (INT32)i, siblingExtent, childExtent, rc ) ;
+               PD_LOG ( PDWARNING, "Failed to insert key(%d) to extent(%d) from sibling(%d), "
+                        "rc: %d", (INT32)i, childExtent, siblingExtent, rc ) ;
                /// ignore error
                rc = SDB_OK ;
                goto done ;
@@ -2610,50 +2607,38 @@ namespace engine
             ++hasMergedNum ;
          }
 
+         /// set push down key node child
+         childRightExtID = childExt.getRightExtentID() ;
+         if ( DMS_INVALID_EXTENT != childRightExtID )
+         {
+            childExt.setChildExtentID( childKeyNum, childRightExtID ) ;
+         }
+
          /// set merge key node child
          for ( UINT16 i = 0 ; i < hasMergedNum - 1 ; ++i )
          {
-            insertPos = direction > 0 ? i : siblingKeyNum + i + 1 ;
-            tmpExtentID = childExt.getChildExtentID( i ) ;
+            insertPos = childKeyNum + i + 1 ;
+            tmpExtentID = siblingExt.getChildExtentID( i ) ;
             if ( DMS_INVALID_EXTENT != tmpExtentID )
             {
-               siblingExt.setChildExtentID( insertPos, tmpExtentID ) ;
+               childExt.setChildExtentID( insertPos, tmpExtentID ) ;
             }
          }
 
-         /// assign right
-         if ( direction < 0 )
+         /// adjust right
+         tmpExtentID = siblingExt.getRightExtentID() ;
+         if ( childRightExtID != tmpExtentID )
          {
-            /// set push down key node child
-            siblingRightExtID = siblingExt.getRightExtentID() ;
-            if ( DMS_INVALID_EXTENT != siblingRightExtID )
-            {
-               siblingExt.setChildExtentID( siblingKeyNum, siblingRightExtID ) ;
-            }
-
-            /// adjust right
-            tmpExtentID = childExt.getRightExtentID() ;
-            if ( siblingRightExtID != tmpExtentID )
-            {
-               siblingExt._assignRight( tmpExtentID ) ;
-            }
-         }
-         else
-         {
-            childRightExtID = childExt.getRightExtentID() ;
-            if ( DMS_INVALID_EXTENT != childRightExtID )
-            {
-               siblingExt.setChildExtentID( hasMergedNum - 1, childRightExtID ) ;
-            }
+            childExt._assignRight( tmpExtentID ) ;
          }
 
-         /// delete child page
-         childExt._delExtent( indexCB ) ;
+         /// delete sibling page
+         siblingExt._delExtent( indexCB ) ;
 
          /// update current page
-         setChildExtentID( leftPos, DMS_INVALID_EXTENT ) ;
-         setChildExtentID( leftPos + 1, siblingExtent ) ;
-         _delKeyAtPos( leftPos ) ;
+         setChildExtentID( pos, DMS_INVALID_EXTENT ) ;
+         setChildExtentID( pos+1, childExtent ) ;
+         _delKeyAtPos( pos ) ;
 
          result = TRUE ;
          hasMergedNum = 0 ;
@@ -2664,8 +2649,8 @@ namespace engine
             if ( 0 == getNumKeyNode() )
             {
                /// set new root
-               siblingExt.setParent( DMS_INVALID_EXTENT ) ;
-               indexCB->setRoot( siblingExtent ) ;
+               childExt.setParent( DMS_INVALID_EXTENT ) ;
+               indexCB->setRoot( childExtent ) ;
                /// release old root
                UINT16 mbID = _extentHead->_mbID ;
                UINT16 freeSize = _extentHead->_totalFreeSize ;
@@ -2701,7 +2686,7 @@ namespace engine
                            _me, getParent(), rc ) ;
                   goto error ;
                }
-               parent.setChildExtentID ( tmpPos, siblingExtent ) ;
+               parent.setChildExtentID ( tmpPos, childExtent ) ;
                /// release current extent
                indexCB->freeExtent( _me ) ;
                _pIndexSu->decStatFreeSpace( mbID, freeSize ) ;
@@ -2714,16 +2699,9 @@ namespace engine
       if ( hasMergedNum )
       {
          /// restore
-         _ixmExtent siblingExt( siblingExtent, _pIndexSu ) ;
-         if ( direction > 0 )
-         {
-            siblingExt._popFront( hasMergedNum, order ) ;
-         }
-         else
-         {
-            UINT16 tmpPos = 0xFFFF ;
-            siblingExt._truncate( siblingKeyNum, tmpPos, order ) ;
-         }
+         _ixmExtent childExt( childExtent, _pIndexSu ) ;
+         UINT16 tmpPos = 0xFFFF ;
+         childExt._truncate( childKeyNum, tmpPos, order ) ;
       }
       return rc ;
    error:
