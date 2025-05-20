@@ -1904,7 +1904,7 @@ namespace engine
          {
             // if add child failed. child is not longer in the tree.
             mthGetMatchNodeFactory()->releaseNode( child ) ;
-            PD_LOG( PDERROR, "add child failed:rc=%d" ) ;
+            PD_LOG( PDERROR, "add child failed:rc=%d", rc ) ;
 
             goto error ;
          }
