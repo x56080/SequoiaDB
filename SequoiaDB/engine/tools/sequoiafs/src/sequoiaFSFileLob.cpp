@@ -96,7 +96,7 @@ INT32 fileLob::flwrite(INT64 offset,
    INT64 cacheNo = 0;
    INT64 cacheNo2 = 0;
 
-   PD_LOG(PDDEBUG, "flwrite(), offset:%ld, size:%ld, flId:%d", offset, size, _flId);
+   PD_LOG(PDDEBUG, "flwrite(), offset:%lld, size:%lld, flId:%d", offset, size, _flId);
    
    if(_errCode != SDB_OK)
    {
@@ -126,7 +126,7 @@ INT32 fileLob::flwrite(INT64 offset,
       rc = _lwrite(newOffset, writeSize, buf + writeLen);
       if(rc != SDB_OK)
       {
-         PD_LOG(PDERROR, "Failed to lwrite, offset:%d, size:%d, rc=%d", offset, size, rc);
+         PD_LOG(PDERROR, "Failed to lwrite, offset:%lld, size:%lld, rc=%d", offset, size, rc);
          goto error;
       }
       
