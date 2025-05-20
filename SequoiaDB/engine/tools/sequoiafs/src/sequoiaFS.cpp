@@ -1825,7 +1825,7 @@ INT32 sequoiaFS::mkdir(const CHAR *path, mode_t mode, struct fuse_context *conte
    rc = _doSetDirNodeAttr(sysDirMetaCL, newDirMeta);
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to insert attr, path:%s, parentId:%d, name:%s, rc=%d", path, basePath.c_str(), rc);
+      PD_LOG(PDERROR, "Failed to insert attr, path:%s, parentId:%d, name:%s, rc=%d", path, parentId, basePath.c_str(), rc);
       goto error;
    }
 
@@ -2990,7 +2990,7 @@ INT32 sequoiaFS::release(const CHAR *path, struct fuse_file_info *fi)
    rc = _fileCreatingMgr.release(lh->parentId, lh->fileName, lh, isProcessed);
    if(SDB_OK != rc)
    {
-      PD_LOG(PDERROR, "Failed to release file, name=%s, offset:%d, size:%d, rc=%d", 
+      PD_LOG(PDERROR, "Failed to release file, name=%s, rc=%d", 
                        path, rc);
       goto error;
    }
