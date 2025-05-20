@@ -3175,7 +3175,7 @@ namespace engine
          rc = _removePage( current, blk, NULL, cb, mbContext, FALSE ) ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "failed to remove page:%d, rc:%d", rc ) ;
+            PD_LOG( PDERROR, "failed to remove page:%d, rc:%d", current, rc ) ;
             goto error ;
          }
          /// when the page is dirty, dicard the page, size is 0, will not
