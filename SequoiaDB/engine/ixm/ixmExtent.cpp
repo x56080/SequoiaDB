@@ -2733,7 +2733,7 @@ namespace engine
       rc = find( indexCB, key, rid, order, pos, keyFoundPos, found ) ;
       if ( rc )
       {
-         PD_LOG ( PDERROR, "Failed to find in extent(%d), rc: %d", rc ) ;
+         PD_LOG ( PDERROR, "Failed to find in extent(%d), rc: %d", _me, rc ) ;
          goto error ;
       }
 
