@@ -1305,7 +1305,7 @@ namespace engine
             if ( SDB_DMS_EOC != rc )
             {
                PD_LOG( PDERROR, "Get more from context[%lld] failed, rc: %d",
-                       contextID ) ;
+                       contextID, rc ) ;
                contextID = -1;
                goto error ;
             }
