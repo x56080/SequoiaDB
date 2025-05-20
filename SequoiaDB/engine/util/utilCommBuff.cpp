@@ -180,7 +180,7 @@ namespace engine
          if ( SDB_HIT_HIGH_WATERMARK != rc )
          {
             PD_LOG( PDERROR, "Ensure space of size[%u] in buffer failed[%d]",
-                    rc ) ;
+                    size, rc ) ;
          }
          goto error ;
       }
