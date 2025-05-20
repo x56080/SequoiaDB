@@ -4168,7 +4168,7 @@ namespace engine
             }
             else
             {
-               PD_LOG( PDERROR, "Check collection(%s) failed, rc: %d", rc ) ;
+               PD_LOG( PDERROR, "Check collection(%s) failed, rc: %d", pCollectionName, rc ) ;
                goto error ;
             }
          }
