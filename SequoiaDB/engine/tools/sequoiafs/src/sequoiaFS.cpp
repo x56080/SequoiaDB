@@ -3625,7 +3625,7 @@ INT32 sequoiaFS::ftruncate(const CHAR *path,
       rc = buildFileLobForFile(lh);
       if(SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "Failed to buildFileLobForFile, name=%s, lobOid:%d, rc=%d", 
+         PD_LOG(PDERROR, "Failed to buildFileLobForFile, name=%s, lobOid:%s, rc=%d", 
                           path, lh->oid.toString().c_str(), rc);
          goto error;
       }
