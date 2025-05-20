@@ -139,7 +139,7 @@ INT32 utilDecodeBson::_checkFormat( const CHAR *pFloatFmt )
    if( pFloatFmt[0] != '%' )
    {
       rc = SDB_INVALIDARG ;
-      PD_LOG ( PDERROR, "floatfmt is invalid, format is %[+][.Precision]Type" ) ;
+      PD_LOG ( PDERROR, "floatfmt is invalid, format is %%[+][.Precision]Type" ) ;
       goto error ;
    }
 
@@ -171,7 +171,7 @@ INT32 utilDecodeBson::_checkFormat( const CHAR *pFloatFmt )
    if( pFloatFmt[0] != 0 )
    {
       rc = SDB_INVALIDARG ;
-      PD_LOG ( PDERROR, "floatfmt is invalid, format is %[+][.Precision]Type" ) ;
+      PD_LOG ( PDERROR, "floatfmt is invalid, format is %%[+][.Precision]Type" ) ;
       goto error ;
    }
 
@@ -463,7 +463,7 @@ INT32 utilDecodeBson::_parseJSONSize( CHAR *pbson, INT32 *pJSONSize )
       PD_LOG ( PDERROR, "Failed to get json size, rc = %d", rc ) ;
       goto error ;
    }
-   //ÒòÎªbson_sprint_lengthÆÀ¹ÀµÄ³¤¶È¸úÊµ¼ÊĞèÒªÓĞ²î¾à£¬ËùÒÔ¼Ó´ó¹ÀËã³¤¶È
+   //å› ä¸ºbson_sprint_lengthè¯„ä¼°çš„é•¿åº¦è·Ÿå®é™…éœ€è¦æœ‰å·®è·ï¼Œæ‰€ä»¥åŠ å¤§ä¼°ç®—é•¿åº¦
    *pJSONSize = (*pJSONSize) * 2 ;
 done:
    return rc ;
