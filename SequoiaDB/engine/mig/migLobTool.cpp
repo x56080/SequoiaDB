@@ -794,7 +794,7 @@ const UINT32 BUF_SIZE = 2 * 1024 * 1024 ;
       if ( itr.keepSize() < *bsonLen )
       {
          PD_LOG( PDERROR, "bson len:%d, keep in memory:%d."
-                 " this tool's version may not match the file's version" ) ;
+                 " this tool's version may not match the file's version", *bsonLen, itr.keepSize() ) ;
          rc = SDB_SYS ;
          goto error ;
       }
