@@ -116,7 +116,7 @@ INT32 fileLob::flwrite(INT64 offset,
    rc = _lwrite(offset, writeSize, buf);
    if(rc != SDB_OK)
    {
-      PD_LOG(PDERROR, "Failed to lwrite,  offset, size, rc=%d", offset, size, rc);
+      PD_LOG(PDERROR, "Failed to lwrite,  offset: %lld, size: %lld, rc=%d", offset, size, rc);
       goto error;
    }
    writeLen = writeSize;
