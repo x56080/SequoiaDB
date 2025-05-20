@@ -751,7 +751,7 @@ namespace engine
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "On node[%s] push oprUnit[%s] failed, rc: %d",
-                 fromNode->toString().c_str(), oprUnit->toString().c_str() ) ;
+                 fromNode->toString().c_str(), oprUnit->toString().c_str(), rc ) ;
          goto error ;
       }
 
