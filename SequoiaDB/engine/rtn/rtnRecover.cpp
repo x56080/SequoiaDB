@@ -942,13 +942,13 @@ namespace engine
             if ( !OSS_BIT_TEST( mbContext->mb()->_compressFlags,
                                 UTIL_COMPRESS_ALTERABLE_FLAG ) )
             {
-               PD_LOG( PDERROR, "Record[%d.%d] should not be compressed" ) ;
+               PD_LOG( PDERROR, "Record[%d.%d] should not be compressed", rid._extent, rid._offset ) ;
                continue ;
             }
             else if ( NULL == getCompressorByType(
                            (UTIL_COMPRESSOR_TYPE)pRecord->getCompressType() ) )
             {
-               PD_LOG( PDERROR, "Record[%d.%d] with wrong compression type" ) ;
+               PD_LOG( PDERROR, "Record[%d.%d] with wrong compression type", rid._extent, rid._offset ) ;
                continue ;
             }
          }
