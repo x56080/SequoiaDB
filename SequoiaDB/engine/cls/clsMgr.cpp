@@ -672,7 +672,7 @@ namespace engine
          rc = _pShardAdapter->init( _shardSessionMgr.getTaskInfo(), queType ) ;
          if ( rc )
          {
-            PD_LOG( PDERROR, "Init task adapter failed, rc: %d" ) ;
+            PD_LOG( PDERROR, "Init task adapter failed, rc: %d", rc ) ;
             goto error ;
          }
       }
