@@ -526,7 +526,7 @@ namespace engine
       if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to seek back %d bytes offset, rc = %d",
-                  sizeof(dmsExtent) ) ;
+                  sizeof(dmsExtent), rc ) ;
          goto error ;
       }
 
