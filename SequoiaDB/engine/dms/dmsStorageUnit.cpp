@@ -4527,7 +4527,7 @@ namespace engine
          if ( !indexCB.isInitialized() )
          {
             shoudCache = FALSE ;
-            PD_LOG( PDERROR, "Failed to initialize index[%u], indexID" ) ;
+            PD_LOG( PDERROR, "Failed to initialize index[%u]", indexID ) ;
             continue ;
          }
 
