@@ -438,7 +438,7 @@ namespace engine
          }
          else if ( SDB_OK != rc )
          {
-            PD_LOG(PDERROR, "Failed to check privileges, rc: %d");
+            PD_LOG(PDERROR, "Failed to check privileges, rc: %d", rc );
             goto error;
          }
       }
