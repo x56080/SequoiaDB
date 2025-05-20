@@ -427,7 +427,7 @@ namespace engine
       catch ( std::exception &e )
       {
          rc = ossException2RC( &e );
-         PD_LOG( PDERROR, "Occur exception, %s, rc: %d", e.what() );
+         PD_LOG( PDERROR, "Occur exception, %s, rc: %d", e.what(), rc );
          goto error;
       }
 
