@@ -361,7 +361,7 @@ namespace engine
                   pFunc[3] == 'm' && pFunc[4] == '\0' ) ||
                 ( pFunc[1] == 'c' && pFunc[2] == 'o' &&
                   pFunc[3] == 'u' && pFunc[4] == 'n' &&
-                  pFunc[3] == 't' && pFunc[4] == '\0' )
+                  pFunc[5] == 't' && pFunc[6] == '\0' )
                ) )
          {
             ss << AGGR_CL_DEFAULT_ALIAS"." ;
