@@ -2235,7 +2235,7 @@ void *bson_realloc( void *ptr, int size ) {
 
 int _bson_errprintf( const char *format, ... ) {
     va_list ap;
-    int ret;
+    int ret = 0 ;
     va_start( ap, format );
 #ifndef R_SAFETY_NET
     ret = vfprintf( stderr, format, ap );
