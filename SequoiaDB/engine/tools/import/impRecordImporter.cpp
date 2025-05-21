@@ -556,6 +556,7 @@ namespace import
       INT32 minReplySize       = ( SDB_PROTOCOL_VER_1 == _peerProtocolVersion ) ?
                                  sizeof(MsgOpReplyV1) : sizeof(MsgOpReply) ;
       CHAR **ppBuffer          = &_recvBuffer ;
+      CHAR *pNewRecvBuffer = NULL ;
 
       if ( NULL == sock )
       {
@@ -604,18 +605,18 @@ namespace import
 
       if ( _recvBufferSize < realLen )
       {
-         _recvBufferSize = realLen ;
-
-         _recvBuffer = (CHAR*)SDB_OSS_REALLOC( _recvBuffer, _recvBufferSize ) ;
-         if ( NULL == _recvBuffer )
+         pNewRecvBuffer = (CHAR*)SDB_OSS_REALLOC( _recvBuffer, realLen ) ;
+         if ( NULL == pNewRecvBuffer )
          {
             rc = SDB_OOM ;
-            PD_LOG( PDERROR, "Failed to malloc buffer, size=%d",
-                    _recvBufferSize ) ;
+            PD_LOG( PDERROR, "Failed to malloc buffer, size: %d, rc: %d",
+                    realLen, rc ) ;
             goto error ;
          }
 
-         ossMemcpy( _recvBuffer, &realLen, sizeof( realLen ) ) ;
+         _recvBuffer = pNewRecvBuffer ;
+         _recvBufferSize = realLen ;
+         ossMemcpy( _recvBuffer, &_recvBufferSize, sizeof( _recvBufferSize ) ) ;
       }
 
       receivedLen = 0 ;
