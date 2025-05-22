@@ -133,6 +133,7 @@ namespace engine
       CHAR verText[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
       po::variables_map vm ;
       UINT32 pidFileCheckTimer = 0 ;
+      BOOLEAN needCreatePidFile = FALSE ;
 
       rc = initArgs( argc, argv, vm ) ;
       if ( rc )
@@ -142,6 +143,11 @@ namespace engine
             rc = SDB_OK ;
          }
          goto done ;
+      }
+
+      if ( !vm.count( PMD_OPTION_STANDALONE ) )
+      {
+         needCreatePidFile = TRUE ;
       }
 
       // 1. get root path
@@ -190,11 +196,15 @@ namespace engine
          std::cout << "Build dialog path failed: " << rc << std::endl ;
          goto error ;
       }
-      rc = createPIDFile( pidFile ) ;
-      if ( rc )
+
+      if ( needCreatePidFile )
       {
-         PD_LOG( PDWARNING, "Failed to create pid file, rc: %d", rc ) ;
-         rc = SDB_OK ;
+         rc = createPIDFile( pidFile ) ;
+         if ( rc )
+         {
+            PD_LOG( PDWARNING, "Failed to create pid file, rc: %d", rc ) ;
+            rc = SDB_OK ;
+         }
       }
 
       // 4. init param
@@ -277,7 +287,7 @@ namespace engine
          krcb->onTimer( OSS_ONE_SEC ) ;
          pidFileCheckTimer += OSS_ONE_SEC ;
 
-         if ( pidFileCheckTimer >= 5 * OSS_ONE_SEC )
+         if ( needCreatePidFile && pidFileCheckTimer >= 5 * OSS_ONE_SEC )
          {
             BOOLEAN hasCreated = FALSE ;
             checkAndCreatePIDFile( pidFile, &hasCreated ) ;
@@ -294,7 +304,10 @@ namespace engine
    done:
       PMD_SHUTDOWN_DB( rc ) ;
       pmdSetQuit() ;
-      removePIDFile( pidFile ) ;
+      if ( needCreatePidFile )
+      {
+         removePIDFile( pidFile ) ;
+      }
       krcb->destroy () ;
       pmdDisableSignalEvent() ;
       PD_LOG ( PDEVENT, "Stop programme, exit code: %d",
