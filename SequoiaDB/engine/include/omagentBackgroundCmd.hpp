@@ -208,7 +208,7 @@ namespace engine
    class _omaInstallDataNode : public _omaCommand
    {
       public:
-         _omaInstallDataNode ( INT64 taskID, string tmpCoordSvcName,
+         _omaInstallDataNode ( INT64 taskID, const string &tmpCoordSvcName,
                                InstDBInfo &info ) ;
          virtual ~_omaInstallDataNode () ;
 
@@ -608,8 +608,6 @@ namespace engine
       void _aggrFlowArray( const BSONObj& array1, const BSONObj& array2,
                            BSONArray& out ) ;
 
-   private:
-      INT64 _taskID ;
    } ;
 
    /*
@@ -633,8 +631,6 @@ namespace engine
       void _aggrFlowArray( const BSONObj& array1, const BSONObj& array2,
                            BSONArray& out ) ;
 
-   private:
-      INT64 _taskID ;
    } ;
 
    /*
@@ -659,8 +655,6 @@ namespace engine
       void _aggrFlowArray( const BSONObj& array1, const BSONObj& array2,
                            BSONArray& out ) ;
 
-   private:
-      INT64 _taskID ;
    } ;
 
    /*
@@ -685,8 +679,6 @@ namespace engine
       void _aggrFlowArray( const BSONObj& array1, const BSONObj& array2,
                            BSONArray& out ) ;
 
-   private:
-      INT64 _taskID ;
    } ;
 
    /*
@@ -711,8 +703,6 @@ namespace engine
       void _aggrFlowArray( const BSONObj& array1, const BSONObj& array2,
                            BSONArray& out ) ;
 
-   private:
-      INT64 _taskID ;
    } ;
 
    /*

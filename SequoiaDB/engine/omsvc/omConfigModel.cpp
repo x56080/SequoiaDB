@@ -702,7 +702,7 @@ namespace engine
       return deployPath ;
    }
 
-   const simpleDiskInfo* OmHost::getDisk( const string path )
+   const simpleDiskInfo* OmHost::getDisk( const string &path )
    {
       INT32 maxFitSize = 0 ;
       const simpleDiskInfo* disk = NULL ;

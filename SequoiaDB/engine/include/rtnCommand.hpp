@@ -605,7 +605,7 @@ namespace engine
                                  UINT32 attribute,
                                  BOOLEAN ensureShardingIndex,
                                  UTIL_COMPRESSOR_TYPE compType = UTIL_COMPRESSOR_INVALID,
-                                 const BSONObj extOptions = BSONObj() ) ;
+                                 const BSONObj &extOptions = BSONObj() ) ;
 
          void setCLUniqueID( utilCLUniqueID clUniqueID ) ;
 

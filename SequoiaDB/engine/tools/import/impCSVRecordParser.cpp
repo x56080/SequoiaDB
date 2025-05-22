@@ -4537,9 +4537,9 @@ namespace import
       return rc;
    error:
       {
-         string field(data, length);
+         string errfield(data, length);
          PD_LOG(PDERROR, "Failed to parse field value, type=%s, value=[%s]",
-                _CSVTypeToString(type, opt).c_str(), field.c_str());
+                _CSVTypeToString(type, opt).c_str(), errfield.c_str());
       }
       goto done;
    }

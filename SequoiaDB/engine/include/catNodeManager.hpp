@@ -93,7 +93,7 @@ namespace engine
       INT32 generateGroupInfo( BSONObj &boConf,
                                BSONObj &boGroupInfo );
       INT32 saveGroupInfo ( BSONObj &boGroupInfo, INT16 w );
-      INT32 parseIDInfo( BSONObj &obj );
+      INT32 parseIDInfo( const BSONObj &obj );
       INT32 getNodeInfo( const BSONObj &boReq, BSONObj &boNodeInfo,
                          INT32 &role ) ;
 

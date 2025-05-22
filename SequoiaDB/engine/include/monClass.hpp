@@ -506,6 +506,7 @@ public:
 
    _monClassQuery ()
    {
+      tid = 0 ;
       reset() ;
       _type = MON_CLASS_QUERY ;
    }
@@ -522,6 +523,7 @@ public:
    {
       monClassQueryTimeInfo *pTimeInfo = ( monClassQueryTimeInfo* )data ;
 
+      tid = 0 ;
       reset() ;
       _type = MON_CLASS_QUERY ;
       dispatchTime = pTimeInfo->_beginTime - pTimeInfo->_msgRecvTime ;
@@ -776,7 +778,7 @@ public:
       }
    }
 
-   void incMetrics( monClassQueryTmpData &tmpData )
+   void incMetrics( const monClassQueryTmpData &tmpData )
    {
       dataRead += tmpData.dataRead ;
       dataWrite += tmpData.dataWrite ;

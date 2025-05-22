@@ -65,6 +65,7 @@ namespace engine
       _needUpdate = FALSE ;
       _hasUpdated = FALSE ;
       _needClearAfterDone = FALSE ;
+      _cmdType = MSG_NULL ;
       _version = -1 ;
       _hitEnd = FALSE ;
    }

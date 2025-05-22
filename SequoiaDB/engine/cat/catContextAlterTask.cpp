@@ -120,7 +120,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB_CATCTXALTERCLTASK_CLEARPOSTTASK ) ;
       for ( ossPoolList<UINT64>::const_iterator iterTask = _postTasks.begin() ;
             iterTask != _postTasks.end() ;
-            iterTask ++ )
+            ++iterTask )
       {
          UINT64 taskID =  *iterTask ;
          rc = catGetTask( taskID, taskObj, cb);
@@ -645,7 +645,7 @@ namespace engine
       }
 
       for ( ossPoolList<BSONObj>::iterator it = _createIdxList.begin() ;
-            it != _createIdxList.end() ; it++ )
+            it != _createIdxList.end() ; ++it )
       {
          rc = catAddIndex( collection, *it, cb, w ) ;
          PD_RC_CHECK( rc, PDERROR,
@@ -675,7 +675,7 @@ namespace engine
 
       for ( ossPoolList< UINT64 >::const_iterator iter = _postTasks.begin() ;
             iter != _postTasks.end() ;
-            iter ++ )
+            ++iter )
       {
          catRemoveTask( *iter, FALSE, cb, w ) ;
       }
@@ -2185,7 +2185,7 @@ namespace engine
 
          for ( CAT_DOMAIN_GROUP_MAP::const_iterator it = dstGroups.begin() ;
                it != dstGroups.end();
-               it ++ )
+               ++it )
          {
             BSONObj splitInfo ;
             UINT32 dstGroupID = CAT_INVALID_GROUPID ;
@@ -2235,7 +2235,7 @@ namespace engine
    error :
       for ( ossPoolList< UINT64 >::const_iterator iter = _postTasks.begin() ;
             iter != _postTasks.end() ;
-            iter ++ )
+            ++iter )
       {
          catRemoveTask( *iter, FALSE, cb, w ) ;
       }
@@ -2301,7 +2301,7 @@ namespace engine
    error :
       for ( ossPoolList< UINT64 >::const_iterator iter = _postTasks.begin() ;
             iter != _postTasks.end() ;
-            iter ++ )
+            ++iter )
       {
          catRemoveTask( *iter, FALSE, cb, w ) ;
       }
@@ -3357,7 +3357,7 @@ namespace engine
 
       for ( vector< UINT32 >::iterator iterGroup = occupiedGroups.begin() ;
             iterGroup != occupiedGroups.end() ;
-            iterGroup ++ )
+            ++iterGroup )
       {
          UINT32 groupID = ( *iterGroup ) ;
          const CHAR * groupName = catCB->groupID2Name( groupID ) ;
@@ -3692,7 +3692,7 @@ namespace engine
       {
          for ( CAT_DOMAIN_GROUP_MAP::iterator iterGroup = _groupMap.begin() ;
                iterGroup != _groupMap.end() ;
-               iterGroup ++ )
+               ++iterGroup )
          {
             PD_CHECK( lockMgr.tryLockGroup( iterGroup->first, groupLatch ),
                       SDB_LOCK_FAILED, error, PDERROR,
@@ -4015,7 +4015,7 @@ namespace engine
          for ( ossPoolList< utilCSUniqueID >::iterator itCS =
                                                    collectionSpaces.begin() ;
                itCS != collectionSpaces.end() ;
-               itCS ++ )
+               ++itCS )
          {
             /// For each collection space:
             /// 1. Get groups from collections
@@ -4030,7 +4030,7 @@ namespace engine
 
          for ( ossPoolSet< UINT32 >::iterator itGroup = removingGroups.begin() ;
                itGroup != removingGroups.end() ;
-               itGroup ++ )
+               ++itGroup )
          {
             UINT32 groupID = ( *itGroup ) ;
             const CHAR * groupName = catCB->groupID2Name( groupID ) ;
@@ -4067,7 +4067,7 @@ namespace engine
 
       for ( RTN_DOMAIN_GROUP_LIST::const_iterator iterGroup = groups.begin() ;
             iterGroup != groups.end() ;
-            iterGroup ++ )
+            ++iterGroup )
       {
          const CHAR * group = ( *iterGroup ) ;
          CAT_DOMAIN_GROUP_MAP::const_iterator iter = _groupMap.find( group ) ;
@@ -4084,7 +4084,7 @@ namespace engine
 
       for ( CAT_DOMAIN_GROUP_MAP::const_iterator iter = _groupMap.begin() ;
             iter != _groupMap.end() ;
-            iter ++ )
+            ++iter )
       {
          if ( keepingGroups.end() == keepingGroups.find( iter->first ) )
          {
@@ -4107,7 +4107,7 @@ namespace engine
 
       for ( CAT_DOMAIN_GROUP_MAP::iterator iterGroup = _groupMap.begin() ;
             iterGroup != _groupMap.end() ;
-            iterGroup ++ )
+            ++iterGroup )
       {
          BSONObjBuilder groupBuilder( groupInfoBuilder.subobjStart() ) ;
          groupBuilder.append( CAT_GROUPNAME_NAME, iterGroup->first ) ;

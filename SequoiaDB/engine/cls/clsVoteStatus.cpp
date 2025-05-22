@@ -55,6 +55,9 @@ namespace engine
    {
       SDB_ASSERT( CLS_INVALID_VOTE_ID != _id,
                   "id should not be invalid" ) ;
+      _time = 0 ;
+      _acceptedNum = 0 ;
+      _criticalAcceptedNum = 0 ;
    }
 
    _clsVoteStatus::~_clsVoteStatus()
@@ -186,7 +189,7 @@ namespace engine
          }
          else
          {
-            for ( ; itr != _groupInfo->alives.end(); itr++ )
+            for ( ; itr != _groupInfo->alives.end(); ++itr )
             {
                // if my bs is ok, but peer is not ok, skip
                if ( SERVICE_ABNORMAL == itr->second->beat.serviceStatus && pmdGetStartup().isOK() )
@@ -316,7 +319,7 @@ namespace engine
       else
       {
          map<UINT64, _clsSharingStatus *>::const_iterator itr = _groupInfo->alives.begin() ;
-         for ( ; itr != _groupInfo->alives.end(); itr++ )
+         for ( ; itr != _groupInfo->alives.end(); ++itr )
          {
             if ( !peerAbnormal &&
                  SERVICE_ABNORMAL == itr->second->beat.serviceStatus )
@@ -440,7 +443,7 @@ namespace engine
    {
       PD_TRACE_ENTRY ( SDB__CLSVTSTUS__BCALIVES ) ;
       map<UINT64, _clsSharingStatus *>::iterator itr = _groupInfo->alives.begin() ;
-      for ( ; itr != _groupInfo->alives.end(); itr++ )
+      for ( ; itr != _groupInfo->alives.end(); ++itr )
       {
          _agent->syncSend( itr->second->beat.identity, (MsgHeader *)msg ) ;
       }

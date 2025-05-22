@@ -333,7 +333,6 @@ JS_MAPPING_END()
       SDB_ASSERT( NULL != _session, "can not be null" ) ;
       string cmd ;
       string errMsg ;
-      string sig ;
       _lastRet = 0 ;
       _lastOutStr = "" ;
 

@@ -651,44 +651,48 @@ namespace engine
       // case :
       //       e
       //     { range ?
-      if ( dir >= 0 )
-      {
-         posStop  = rtnKeyCompare ( ele, _stopKey._bound ) ;
-      }
       else
-      {
-         posStop = rtnKeyCompare ( ele, _startKey._bound ) ;
-      }
-      // case :
-      //       e
-      //    { range }
-      if ( posStart > 0 && posStop < 0 )
-      {
-         pos = RTN_SSK_VALUE_POS_WITHIN ;
-      }
-      // case :
-      //           e
-      //   { range }
-      else if ( posStop == 0 )
       {
          if ( dir >= 0 )
          {
-            pos = _stopKey._inclusive ?
-                     RTN_SSK_VALUE_POS_GET : RTN_SSK_VALUE_POS_GT ;
+            posStop  = rtnKeyCompare ( ele, _stopKey._bound ) ;
          }
          else
          {
-            pos = _startKey._inclusive ?
-                     RTN_SSK_VALUE_POS_GET : RTN_SSK_VALUE_POS_GT ;
+            posStop = rtnKeyCompare ( ele, _startKey._bound ) ;
+         }
+         // case :
+         //       e
+         //    { range }
+         if ( posStart > 0 && posStop < 0 )
+         {
+            pos = RTN_SSK_VALUE_POS_WITHIN ;
+         }
+         // case :
+         //           e
+         //   { range }
+         else if ( posStop == 0 )
+         {
+            if ( dir >= 0 )
+            {
+               pos = _stopKey._inclusive ?
+                        RTN_SSK_VALUE_POS_GET : RTN_SSK_VALUE_POS_GT ;
+            }
+            else
+            {
+               pos = _startKey._inclusive ?
+                        RTN_SSK_VALUE_POS_GET : RTN_SSK_VALUE_POS_GT ;
+            }
+         }
+         // case :
+         //             e
+         //   { range }
+         else
+         {
+            pos = RTN_SSK_VALUE_POS_GT ;
          }
       }
-      // case :
-      //             e
-      //   { range }
-      else
-      {
-         pos = RTN_SSK_VALUE_POS_GT ;
-      }
+
       if ( dir < 0 )
       {
          pos = (RTN_SSK_VALUE_POS)(((INT32)pos) * -1) ;
@@ -763,7 +767,10 @@ namespace engine
          // or :
          //    [   key     ]
          //       [ this ]
-         pos = RTN_SSK_RANGE_POS_CONTAIN ;
+         else
+         {
+            pos = RTN_SSK_RANGE_POS_CONTAIN ;
+         }
       }
       else if ( RTN_SSK_VALUE_POS_LET == posStart )
       {
@@ -785,7 +792,10 @@ namespace engine
          // or :
          //    [ key          ]
          //    [ this ]
-         pos = RTN_SSK_RANGE_POS_CONTAIN ;
+         else
+         {
+            pos = RTN_SSK_RANGE_POS_CONTAIN ;
+         }
       }
       else if ( RTN_SSK_VALUE_POS_WITHIN == posStart )
       {
@@ -804,7 +814,10 @@ namespace engine
          // or :
          //     [ key ]
          //   [ this   ]
-         pos = RTN_SSK_RANGE_POS_CONTAIN ;
+         else
+         {
+            pos = RTN_SSK_RANGE_POS_CONTAIN ;
+         }
       }
       else if ( RTN_SSK_VALUE_POS_GET == posStart )
       {
@@ -834,6 +847,11 @@ namespace engine
       // case :
       //                  [ key ]
       //       [ this ]
+      else
+      {
+         pos = RTN_SSK_RANGE_POS_RT ;
+      }
+
       PD_TRACE_EXIT ( SDB_RTNSSKEY_COMPARE2 ) ;
       return pos ;
    }

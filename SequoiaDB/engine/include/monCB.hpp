@@ -693,7 +693,7 @@ namespace engine
       void     connDec() { _curConns.dec() ; }
       BOOLEAN  isConnLimited( UINT32 maxConn ) ;
 
-      void monOperationTimeInc( MON_OPERATION_TYPES op, ossTickDelta &delta )
+      void monOperationTimeInc( MON_OPERATION_TYPES op, const ossTickDelta &delta )
       {
          switch ( op )
          {
@@ -1434,7 +1434,7 @@ namespace engine
             _lobAddressing += delta ;
          }
 
-         OSS_INLINE void monWaitTimeInc ( ossTickDelta &delta )
+         OSS_INLINE void monWaitTimeInc ( const ossTickDelta &delta )
          {
             _waitTime += delta ;
          }
@@ -1446,7 +1446,7 @@ namespace engine
             monWaitTimeInc( delta ) ;
          }
 
-         OSS_INLINE void monQueryTimeInc ( ossTickDelta &delta )
+         OSS_INLINE void monQueryTimeInc ( const ossTickDelta &delta )
          {
             _queryTime += delta ;
          }
@@ -1458,7 +1458,7 @@ namespace engine
             monQueryTimeInc( delta ) ;
          }
 
-         OSS_INLINE void monExecuteTimeInc ( ossTickDelta &delta )
+         OSS_INLINE void monExecuteTimeInc ( const ossTickDelta &delta )
          {
             _executeTime += delta ;
          }

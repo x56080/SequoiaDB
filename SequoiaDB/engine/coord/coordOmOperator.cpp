@@ -174,8 +174,8 @@ namespace engine
       // make sure to clear context whenever error happened
       if ( pContext )
       {
-         INT64 contextID = pContext->contextID() ;
-         pmdGetKRCB()->getRTNCB()->contextDelete( contextID, cb ) ;
+         INT64 tmpcontextID = pContext->contextID() ;
+         pmdGetKRCB()->getRTNCB()->contextDelete( tmpcontextID, cb ) ;
          pContext.release() ;
       }
       goto done ;

@@ -699,7 +699,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( COORD_GET_CL_STAT_GENRESULT ) ;
 
-      ossPoolString collectionName ;
       rtnContextBuf buffObj ;
       collectionStatInfo resStat ;
       const BSONObj obj ;

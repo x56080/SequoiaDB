@@ -68,7 +68,7 @@ namespace engine
    static UINT32 DPS_SUB_BIT = 0 ;
 
    _dpsReplicaLogMgr::_dpsReplicaLogMgr()
-   :_logger(this), _pages(NULL),
+   :_queue( NULL ), _logger(this), _pages(NULL),
     _mtx( MON_LATCH_DPSREPLICALOGMGR_MTX ),
     _writeMutex( MON_LATCH_DPSREPLICALOGMGR_WRITEMUTEX ),
     _idleSize(0), _totalSize(0),

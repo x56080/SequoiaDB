@@ -158,7 +158,7 @@ namespace engine
    {
       PD_TRACE_ENTRY ( SDB__CLSCATCLR_HNDTMOUT );
       callerMeta::iterator itr = _meta.begin() ;
-      for ( ; itr != _meta.end(); itr++ )
+      for ( ; itr != _meta.end(); ++itr )
       {
          if ( CLS_CALLER_NO_SEND != itr->second.timeout )
          {

@@ -809,17 +809,17 @@ public://consturct function
 public: // operation
 
    INT32 assignActivatedPanelByLabelName( BodyMap **activatedPanel,
-                                          string labelName ) ;
+                                          const string &labelName ) ;
 
    INT32 assignActivatedPanel( BodyMap **activatedPanel,
-                               string bodyPanelType ) ;
+                               const string &bodyPanelType ) ;
 
    INT32 getActivatedHeadTailMap(  BodyMap *activatedPanel,
                                    HeadTailMap **header,
                                    HeadTailMap **footer ) ;
 
    INT32 getActualPosition( Position &actualPosition, Position &referPosition,
-                            const string zoomMode, const string occupyMode ) ;
+                            const string &zoomMode, const string &occupyMode ) ;
 
    INT32 getActivatedKeySuite( KeySuite **keySuite ) ;
 
@@ -863,7 +863,7 @@ public: // operation
    INT32 refreshDE( DynamicExpressionOutPut &DE, Position &position ) ;
 
    INT32 refreshDS_Table( DynamicSnapshotOutPut &DS, INT32 ROW, INT32 COL,
-                          Position &position, string autoSetType ) ;
+                          Position &position, const string &autoSetType ) ;
    INT32 refreshDS_List( DynamicSnapshotOutPut &DS,
                                 Position &position,
                                 const string &autoSetType ) ;
@@ -885,8 +885,8 @@ public: // operation
    INT32 addFixedHotKey() ;
 
    INT32 matchNameInFieldStruct( const FieldStruct *src,
-                                 const string DisplayName ) ;
-   INT32 matchSourceFieldByDisplayName( const string DisplayName ) ;
+                                 const string &DisplayName ) ;
+   INT32 matchSourceFieldByDisplayName( const string &DisplayName ) ;
 
    INT32 eventManagement( INT64 key ,BOOLEAN isFirstStart ) ;
    INT32 refreshAll( HeadTailMap *header, BodyMap *body,
@@ -1560,7 +1560,7 @@ error:
 }
 
 INT32 storeDisplayContent( ptree pt_displayContent,
-                           DisplayContent &display, string displayType )
+                           DisplayContent &display, const string &displayType )
 {
    INT32 rc                           = SDB_OK ;
    StaticTextOutPut &sTContent        = display.staticTextOutPut ;
@@ -2317,7 +2317,6 @@ Event::Event(): coord( NULL )
    root.input.filterNumber                   = 0 ;
    root.input.snapshotModeChooser            = GLOBAL ;
    root.input.forcedToRefresh_Global         = NOTREFRESH ;
-   root.input.forcedToRefresh_Global         = NOTREFRESH ;
    root.input.fieldPosition                  = 0 ;
    root.input.groupName                      = NULLSTRING ;
    root.input.nodeName                       = NULLSTRING ;
@@ -2451,7 +2450,7 @@ Event::~Event()
 
 //find the current actived panel by the bodyPanelType
 INT32 Event::assignActivatedPanel( BodyMap **activatedPanel,
-                                   string bodyPanelType )
+                                   const string &bodyPanelType )
 {
    INT32 rc        = SDB_OK ;
    INT32 i         = 0 ;
@@ -2477,7 +2476,7 @@ error :
 
 //find the current actived panel by the bodyLabelName
 INT32 Event::assignActivatedPanelByLabelName( BodyMap **activatedPanel,
-                                              string labelName )
+                                              const string &labelName )
 {
    INT32 rc = SDB_OK ;
    INT32 i  = 0 ;
@@ -2573,8 +2572,8 @@ error :
 // occupyMode decide whether occupy the remainging window'size
 INT32 Event::getActualPosition( Position &actualPosition,
                                 Position &referPosition,
-                                const string zoomMode,
-                                const string occupyMode )
+                                const string &zoomMode,
+                                const string &occupyMode )
 {
    INT32 rc          = SDB_OK ;
    INT32 row         = 0 ;
@@ -2590,7 +2589,6 @@ INT32 Event::getActualPosition( Position &actualPosition,
                    "%dx%d, found %dx%d"OSS_NEWLINE,
                    errStrBuf, root.actualWindowMinRow,
                    root.actualWindowMinColumn, row, col ) ;
-      rc = SDB_ERROR ;
       goto error ;
    }
    SCALE_ROW = (FLOAT32)row / (FLOAT32)root.referWindowRow ;
@@ -2763,7 +2761,6 @@ INT32 Event::getActualPosition( Position &actualPosition,
                 "%s getActualPosition failed:"
                 "wrong zoomMode:%s"OSS_NEWLINE,
                 errStrBuf, zoomMode.c_str() ) ;
-      rc = SDB_ERROR ;
       goto error ;
    }
    // whether change ROW or COL
@@ -2782,7 +2779,6 @@ INT32 Event::getActualPosition( Position &actualPosition,
                       "%s getActualPosition failed:"
                       "wrong occupyMode:%s"OSS_NEWLINE,
                       errStrBuf, occupyMode.c_str() ) ;
-         rc = SDB_ERROR ;
          goto error ;
       }
    }
@@ -4520,7 +4516,7 @@ error :
 
 // when displayType is DISPLAYTYPE_DYNAMIC_SNAPSHOT and Style is Table
 INT32 Event::refreshDS_Table( DynamicSnapshotOutPut &DS, INT32 ROW, INT32 COL,
-                              Position &position, string autoSetType )
+                              Position &position, const string &autoSetType )
 {
 // step 1: print the fixed snapshot field title and then print the mobile
 //         snapshot field title
@@ -5476,7 +5472,7 @@ error :
 }
 
 INT32 Event::matchNameInFieldStruct( const FieldStruct *src,
-                                     const string DisplayName )
+                                     const string &DisplayName )
 {
    INT32 rc           = SDB_OK ;
    InputPanel &input  = root.input ;
@@ -5561,7 +5557,7 @@ INT32 Event::matchNameInFieldStruct( const FieldStruct *src,
 // "DisplayName" come from terminal which is input by people
 // according to "DisplayName", find the field name on the BSONObj
 // which is combined into the filter condition
-INT32 Event::matchSourceFieldByDisplayName( const string DisplayName )
+INT32 Event::matchSourceFieldByDisplayName( const string &DisplayName )
 {
    INT32 rc = SDB_OK ;
    INT32 numOfSubWindow = 0 ;

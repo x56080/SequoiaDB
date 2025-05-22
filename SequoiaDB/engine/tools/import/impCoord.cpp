@@ -199,6 +199,7 @@ namespace import
 
    Coords::Coords()
    {
+      _useSSL = FALSE ;
       _inited = FALSE;
       _refCount = 0;
    }

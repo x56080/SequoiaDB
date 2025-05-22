@@ -1363,7 +1363,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       INT64 taskID = -1 ;
       BSONObj businessInfo ;
-      vector<simpleAddressInfo> addressList ;
       omDatabaseTool dbTool( _cb ) ;
 
       if ( FALSE == dbTool.isClusterExist( _clusterName ) )

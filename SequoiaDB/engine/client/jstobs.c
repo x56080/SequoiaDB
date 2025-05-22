@@ -1611,12 +1611,11 @@ static BOOLEAN bsonConvertJson ( CHAR **pbuf,
                                  BOOLEAN isStrict )
 {
    bson_iterator i ;
-   const CHAR *key ;
+   const CHAR *key = NULL ;
    bson_timestamp_t ts ;
-   CHAR oidhex [ 25 ] ;
-   struct tm psr ;
+   CHAR oidhex [ 25 ] = { 0 } ;
    INT32 first = 1 ;
-   if ( *left <= 0 || !pbuf || !data )
+   if ( !left || !pbuf || !data )
       return FALSE ;
    bson_iterator_from_buffer( &i, data ) ;
    if ( !toCSV )
@@ -1677,9 +1676,9 @@ static BOOLEAN bsonConvertJson ( CHAR **pbuf,
          FLOAT64 valNum = bson_iterator_double( &i ) ;
          if( bson_is_inf( valNum, &sign ) == FALSE )
          {
-            CHAR temp[ BSON_TEMP_SIZE_512 ] ;
+            CHAR temp[ BSON_TEMP_SIZE_512 ] = {0} ;
             FLOAT64 z = 0.0;
-            memset ( temp, 0, BSON_TEMP_SIZE_512 ) ;
+            // memset ( temp, 0, BSON_TEMP_SIZE_512 ) ;
             z = valNum;
             if ( valNum == z )
             {
@@ -1777,10 +1776,10 @@ static BOOLEAN bsonConvertJson ( CHAR **pbuf,
       {
          /* for date type, DATE_OUTPUT_FORMAT is the format we need to use, and
           * use snprintf to display */
-         CHAR temp[ BSON_TEMP_SIZE_64 ] ;
-         struct tm psr;
+         CHAR temp[ BSON_TEMP_SIZE_64 ] = { 0 } ;
+         struct tm psr = { 0 } ;
          time_t timer = bson_iterator_date( &i ) / 1000 ;
-         memset ( temp, 0, BSON_TEMP_SIZE_64 ) ;
+         // memset ( temp, 0, BSON_TEMP_SIZE_64 ) ;
          local_time ( &timer, &psr ) ;
          if( psr.tm_year + RELATIVE_YEAR >= INT64_FIRST_YEAR &&
              psr.tm_year + RELATIVE_YEAR <= INT64_LAST_YEAR )
@@ -1805,18 +1804,18 @@ static BOOLEAN bsonConvertJson ( CHAR **pbuf,
          }
          else
          {
-            CHAR temp[ BSON_TEMP_SIZE_512 ] ;
-            memset ( temp, 0, BSON_TEMP_SIZE_512 ) ;
+            CHAR temp[ BSON_TEMP_SIZE_512 ] = {0} ;
+            // memset ( temp, 0, BSON_TEMP_SIZE_512 ) ;
 #ifdef WIN32
             _snprintf ( temp,
                         BSON_TEMP_SIZE_512,
                         "%lld",
-                        (UINT64)bson_iterator_date( &i ) ) ;
+                        (INT64)bson_iterator_date( &i ) ) ;
 #else
             snprintf ( temp,
                        BSON_TEMP_SIZE_512,
                        "%lld",
-                       (UINT64)bson_iterator_date( &i ) ) ;
+                       (INT64)bson_iterator_date( &i ) ) ;
 #endif
             bsonConvertJsonRawConcat ( pbuf, left, "{ \"$date\": ", FALSE ) ;
             CHECK_LEFT ( left )
@@ -2027,10 +2026,10 @@ static BOOLEAN bsonConvertJson ( CHAR **pbuf,
       {
          /* for 64 bit integer, most likely it's more than 1000, so we always
           * snprintf */
-         CHAR temp[ BSON_TEMP_SIZE_512 ] ;
-         CHAR *format ;
+         CHAR temp[ BSON_TEMP_SIZE_512 ] = { 0 } ;
+         const CHAR *format = "" ;
          int64_t val = bson_iterator_long( &i ) ;
-         memset ( temp, 0, BSON_TEMP_SIZE_512 ) ;
+         // memset ( temp, 0, BSON_TEMP_SIZE_512 ) ;
          if ( isStrict == TRUE ||
               ( val < LONG_JS_MIN || val > LONG_JS_MAX ) )
          {
@@ -2044,11 +2043,11 @@ static BOOLEAN bsonConvertJson ( CHAR **pbuf,
 #ifdef WIN32
          _snprintf ( temp,
                      BSON_TEMP_SIZE_512,
-                     format, val ) ;
+                     format, (INT64)val ) ;
 #else
          snprintf ( temp,
                     BSON_TEMP_SIZE_512,
-                     format, val ) ;
+                    format, (INT64)val ) ;
 #endif
 
          bsonConvertJsonRawConcat ( pbuf, left, temp, FALSE ) ;
@@ -2093,8 +2092,9 @@ static BOOLEAN bsonConvertJson ( CHAR **pbuf,
       {
          /* for timestamp, it's yyyy-mm-dd-hh.mm.ss.uuuuuu */
          CHAR temp[ BSON_TEMP_SIZE_64 ] = {0} ;
+         struct tm psr = { 0 } ;
          time_t timer ;
-         memset ( temp, 0, BSON_TEMP_SIZE_64 ) ;
+         // memset ( temp, 0, BSON_TEMP_SIZE_64 ) ;
          ts = bson_iterator_timestamp( &i ) ;
          timer = (time_t)( ts.t ) ;
          local_time ( &timer, &psr ) ;

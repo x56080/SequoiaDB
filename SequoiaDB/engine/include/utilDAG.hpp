@@ -396,7 +396,7 @@ namespace engine
                   }
                   onStart = FALSE;
                }
-               else if ( !onStart )
+               else
                {
                   v.push_back( node );
                }

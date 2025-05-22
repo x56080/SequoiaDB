@@ -194,6 +194,9 @@ namespace engine
       _monContextFull &operator= ( const _monContextFull &rhs )
       {
          _contextID  = rhs._contextID ;
+         _typeDesp   = rhs._typeDesp ;
+         _info       = rhs._info ;
+         _queryID    = rhs._queryID ;
          _monContext = rhs._monContext ;
          return *this ;
       }

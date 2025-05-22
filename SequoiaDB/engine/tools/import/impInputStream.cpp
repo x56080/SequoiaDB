@@ -303,6 +303,7 @@ namespace import
    SubProcessInputStream::SubProcessInputStream(const string& subProcessCmd)
    : _subProcessCmd(subProcessCmd)
    {
+      _subPid = OSS_INVALID_PID ;
    }
 
    SubProcessInputStream::~SubProcessInputStream()

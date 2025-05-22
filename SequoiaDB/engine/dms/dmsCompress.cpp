@@ -152,7 +152,7 @@ namespace engine
       {
          *pDataSize = (INT32)compressedLen ;
       }
-      ratio = (UINT8)( (*pDataSize) * 100 / inputSize ) ;
+      ratio = (UINT8)( compressedLen * 100 / inputSize ) ;
 
    done :
       PD_TRACE_EXITRC( SDB_DMSCOMPRESS2, rc ) ;

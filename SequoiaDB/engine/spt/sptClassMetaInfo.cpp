@@ -595,7 +595,6 @@ namespace engine
 
    void _sptClassMetaInfo::_mergeMetaInfo()
    {
-      string fullName ;
       MAP_FUNC_META_INFO_IT map_meta_it ;
       MAP_FUNC_DEF_INFO_IT map_def_it = _map_func_def_info.begin() ;
  

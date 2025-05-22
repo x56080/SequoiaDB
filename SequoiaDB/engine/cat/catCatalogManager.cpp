@@ -930,7 +930,7 @@ namespace engine
       }
 
       // set cl unique id
-      for ( clIt = clInfoList.begin() ; clIt != clInfoList.end() ; clIt++ )
+      for ( clIt = clInfoList.begin() ; clIt != clInfoList.end() ; ++clIt )
       {
          string clFullName = csName + '.' + clIt->first ;
          BSONObj setInfo = BSON( CAT_CL_UNIQUEID << (INT64)clIt->second ) ;
@@ -1048,7 +1048,7 @@ namespace engine
       {
          goto done ;
       }
-      if ( rc && rc != SDB_FIELD_NOT_EXIST )
+      else if ( rc != SDB_FIELD_NOT_EXIST )
       {
          goto error ;
       }
@@ -1879,7 +1879,7 @@ namespace engine
          const RTN_ALTER_TASK_LIST & tasks = alterJob.getAlterTasks() ;
          for ( RTN_ALTER_TASK_LIST::const_iterator iterTask = tasks.begin() ;
                iterTask != tasks.end() ;
-               iterTask ++ )
+               ++iterTask )
          {
             const rtnAlterTask * task = ( *iterTask ) ;
             catCtxAlterDomainTask catTask( domain, task ) ;

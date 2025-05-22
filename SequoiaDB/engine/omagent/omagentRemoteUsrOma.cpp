@@ -176,7 +176,6 @@ namespace engine
    INT32 _remoteOmaGetOmaConfigs::doit( BSONObj &retObj )
    {
       INT32 rc = SDB_OK ;
-      string confFile ;
       BSONObj conf ;
       string err ;
 
@@ -459,7 +458,6 @@ namespace engine
    INT32 _remoteOmaGetIniConfigs::doit( BSONObj &retObj )
    {
       INT32 rc = SDB_OK ;
-      string confFile ;
       BSONObj conf ;
       string err ;
 
@@ -496,7 +494,6 @@ namespace engine
    INT32 _remoteOmaSetIniConfigs::doit( BSONObj &retObj )
    {
       INT32 rc = SDB_OK ;
-      string confFile ;
       BSONObj conf ;
       string err ;
 

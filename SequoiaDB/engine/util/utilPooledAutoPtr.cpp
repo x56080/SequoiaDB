@@ -56,7 +56,7 @@ namespace engine
       _ptr = NULL ;
       _pRef = NULL ;
       _allocType = type ;
-      if ( _pRef )
+      if ( ptr )
       {
          /// create ref
          if ( ALLOC_OSS == _allocType )

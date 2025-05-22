@@ -70,6 +70,7 @@ namespace engine
    {
       ossMemset ( _data, 0, sizeof(_data) ) ;
       _result = SDB_OK ;
+      _timeMicroSeconds = 0 ;
    }
 
    _dpsLogRecord::_dpsLogRecord( const _dpsLogRecord &record )
@@ -79,6 +80,7 @@ namespace engine
       ossMemcpy( _data, record._data, sizeof(_data) ) ;
       ossMemcpy( _dataHeader, record._dataHeader, sizeof(_dataHeader) ) ;
       _result = record._result ;
+      _timeMicroSeconds = record._timeMicroSeconds ;
    }
 
    _dpsLogRecord::~_dpsLogRecord ()

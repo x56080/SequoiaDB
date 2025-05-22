@@ -64,7 +64,7 @@ namespace engine
          return _filename ;
       }
 
-      INT32 open( const string &filename, bson::BSONObj optionObj,
+      INT32 open( const string &filename, const bson::BSONObj &optionObj,
                   std::string &err ) ;
 
       INT32 read( const bson::BSONObj &optionObj, std::string &err,
@@ -102,13 +102,13 @@ namespace engine
                          bson::BSONObj &retObj ) ;
 
       static INT32 chmod( std::string &pathname, INT32 mode,
-                          bson::BSONObj optionObj, std::string &err ) ;
+                          const bson::BSONObj &optionObj, std::string &err ) ;
 
-      static INT32 chown( std::string &pathname, bson::BSONObj ownerObj,
-                          bson::BSONObj optionObj, std::string &err ) ;
+      static INT32 chown( std::string &pathname, const bson::BSONObj &ownerObj,
+                          const bson::BSONObj &optionObj, std::string &err ) ;
 
-      static INT32 chgrp( std::string &pathname, std::string groupname,
-                          bson::BSONObj optionObj,std::string &err ) ;
+      static INT32 chgrp( std::string &pathname, const std::string &groupname,
+                          const bson::BSONObj &optionObj,std::string &err ) ;
 
       static INT32 getUmask( std::string &err, std::string &retStr ) ;
 

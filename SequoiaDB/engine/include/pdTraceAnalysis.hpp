@@ -143,7 +143,6 @@ struct _pdFunctionSummaryRecord
    UINT64               _maxIn2OutCost ;
    UINT64               _maxCurrentCost ;
    UINT64               _totalCost ;
-   double               _avgcost ;
    pdFunctionRecord     _reserveRecords[ NUMBER_OF_FUNCTION_RECORD_RESERVATION ] ;
 
    _pdFunctionSummaryRecord()

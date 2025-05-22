@@ -345,9 +345,9 @@ namespace engine
                      }
 
                      /// init
-                     for ( UINT32 i = 0 ; i < SIZE - staticSize ; ++i )
+                     for ( UINT32 tmp = 0 ; tmp < SIZE - staticSize ; ++tmp )
                      {
-                        pSlotEx[ i ] = NULL ;
+                        pSlotEx[ tmp ] = NULL ;
                      }
 
                      /// when after init, then asiggn to _pSlotEx. Because operator[] use the
@@ -398,11 +398,11 @@ namespace engine
             }
             else
             {
-               INT32 i = -1 ;
+               INT32 stackIndex = -1 ;
                if ( i < staticSize )
                {
-                  i = _isInStack( _slot[i] ) ;
-                  if ( -1 == i )
+                  stackIndex = _isInStack( _slot[i] ) ;
+                  if ( -1 == stackIndex )
                   {
                      SDB_OSS_DEL _slot[i] ;
                   }
@@ -410,18 +410,18 @@ namespace engine
                }
                else
                {
-                  i = _isInStack( _pSlotEx[ i - staticSize ] ) ;
-                  if ( -1 == i )
+                  stackIndex = _isInStack( _pSlotEx[ i - staticSize ] ) ;
+                  if ( -1 == stackIndex )
                   {
                      SDB_OSS_DEL _pSlotEx[ i - staticSize ] ;
                   }
                   _pSlotEx[ i - staticSize ] = NULL ;
                }
 
-               if ( -1 != i )
+               if ( -1 != stackIndex )
                {
                   ossScopedLock lock( &_latch ) ;
-                  _slotStackFlag[i] = 0 ;
+                  _slotStackFlag[stackIndex] = 0 ;
                }
             }
          }

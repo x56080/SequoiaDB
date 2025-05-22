@@ -36,6 +36,7 @@ namespace omTool
 {
    omToolCmdBase::omToolCmdBase()
    {
+      _options = NULL ;
    }
 
    omToolCmdBase::~omToolCmdBase()

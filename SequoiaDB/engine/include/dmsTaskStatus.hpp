@@ -251,7 +251,7 @@ namespace engine
          volatile DMS_TASK_STATUS _taskStatus ;
 
          utilCLUniqueID   _clUniqueID ;
-         CHAR             _indexName[ IXM_INDEX_NAME_SIZE ] ;
+         CHAR             _indexName[ IXM_INDEX_NAME_SIZE + 1 ] ;
          INT32            _sortBufSize ;
 
          ossTimestamp     _beginTimestamp ;

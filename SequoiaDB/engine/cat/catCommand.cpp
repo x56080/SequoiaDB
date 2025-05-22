@@ -3690,7 +3690,6 @@ namespace engine
                                             BSONObj& boCollection )
    {
       INT32 rc = SDB_OK ;
-      vector<string> groupNameList ;
 
       // get main-collection info
       rc = catGetCollection( _pCollection, boCollection, cb ) ;

@@ -171,7 +171,7 @@ namespace engine
 
             for( iter = _keyFieldMap.begin() ;
                  iter != _keyFieldMap.end() ;
-                 iter ++ )
+                 ++iter )
             {
                ixmIndexNode *node = NULL ;
                // the node is the leaf of the field
@@ -409,10 +409,10 @@ namespace engine
    {
       BOOLEAN indexCover = FALSE ;
 
-      IXM_FIELD_NAME_SET::iterator iter = fieldSet.begin() ;
+      IXM_FIELD_NAME_SET::iterator iter ;
       for( iter = fieldSet.begin() ;
-         iter != fieldSet.end() ;
-         iter ++ )
+           iter != fieldSet.end() ;
+           ++iter )
       {
          if( FALSE == cover( *iter ) )
          {

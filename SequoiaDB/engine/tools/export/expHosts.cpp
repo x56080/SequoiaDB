@@ -134,7 +134,7 @@ namespace exprt
             }
 
             // second is svcname
-            *nameIt++ ;
+            ++nameIt ;
             if ( nameIt == nameTok.end() )
             {
                rc = SDB_INVALIDARG ;
@@ -153,7 +153,7 @@ namespace exprt
             }
 
             // error if still have string
-            *nameIt++ ;
+            ++nameIt ;
             if ( nameIt != nameTok.end() )
             {
                rc = SDB_INVALIDARG ;

@@ -103,14 +103,13 @@ namespace engine
       std::string _fullName ;
       BOOLEAN _fetchLobHead ;
       BSONObj _query ;
-      BSONObj _selector ;
+      BSONObj _selectorObj ;
       BSONObj _hint ;
       INT64 _skip ;
       INT64 _returnNum ;
 
       BSONObjBuilder _builder ;
 
-      _mthSelector _selectorParser ;
       _mthMatchTree _matchTree ;
 
       monAppCB      _totalDeltaMonApp ;

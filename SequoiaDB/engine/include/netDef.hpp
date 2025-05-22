@@ -151,6 +151,7 @@ namespace engine
          _id = node._id ;
          _isActive = node._isActive ;
          _status = node._status ;
+         _faultTime = node._faultTime ;
          ossStrcpy( _host, node._host ) ;
          for ( UINT32 i = 0; i < MSG_ROUTE_SERVICE_TYPE_MAX; i++ )
          {

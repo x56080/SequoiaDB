@@ -117,7 +117,7 @@ namespace engine
             return _pBuf ;
          }
 
-         _SimpleBSONBuilder* appendElement( BSONElement &ele )
+         _SimpleBSONBuilder* appendElement( const BSONElement &ele )
          {
             ossMemcpy( _pCur, ele.rawdata(), ele.size() ) ;
             _pCur += ele.size() ;

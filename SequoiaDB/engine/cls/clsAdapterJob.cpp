@@ -91,6 +91,7 @@ namespace engine
          rc = SDB_SYS ;
          PD_LOG( PDERROR, "%s: Failed to handle message, exception: %s",
                  name(), e.what() ) ;
+         goto error ;
       }
 
       rc = sdbGetShardCB()->replyToRemoteEndpoint(

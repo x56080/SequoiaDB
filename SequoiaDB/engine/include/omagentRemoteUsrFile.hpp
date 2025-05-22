@@ -101,7 +101,7 @@ namespace engine
       private:
          UINT32 _FID ;
          SINT32 _size ;
-         const CHAR* _content ;
+         const CHAR* _pFileContent ;
    } ;
 
    /*

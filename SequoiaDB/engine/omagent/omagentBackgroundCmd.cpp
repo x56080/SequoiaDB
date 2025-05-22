@@ -710,7 +710,7 @@ namespace engine
       _omaInstallDataNode
    */
    _omaInstallDataNode::_omaInstallDataNode( INT64 taskID,
-                                             string tmpCoordSvcName,
+                                             const string &tmpCoordSvcName,
                                              InstDBInfo &info )
    {
       _taskID              = taskID ;
@@ -1435,7 +1435,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       BSONObjBuilder bob ;
       BSONArrayBuilder bab ;
-      vector<string>::iterator it ;
 
       // the output bson format for standalone is:
       // { 

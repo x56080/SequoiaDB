@@ -374,27 +374,27 @@ void msgExpandBSQuery2String( stringstream &ss,
          BSONObj objOrderby( orderby ) ;
          BSONObj objHint( hint ) ;
 
-         if ( expandMask | MSG_EXP_MASK_CLNAME )
+         if ( expandMask & MSG_EXP_MASK_CLNAME )
          {
             ss << "Collection Name: " << collection << "," ;
          }
-         if ( expandMask | MSG_EXP_MASK_OTHER )
+         if ( expandMask & MSG_EXP_MASK_OTHER )
          {
             ss << "Limit: " << limit << ", Skip: " << skip << "," ;
          }
-         if ( expandMask | MSG_EXP_MASK_MATCHER )
+         if ( expandMask & MSG_EXP_MASK_MATCHER )
          {
             ss << "Matcher: " << objQuery.toString() << "," ;
          }
-         if ( expandMask | MSG_EXP_MASK_SELECTOR )
+         if ( expandMask & MSG_EXP_MASK_SELECTOR )
          {
             ss << "Selector: " << objSelector.toString() << "," ;
          }
-         if ( expandMask | MSG_EXP_MASK_ORDERBY )
+         if ( expandMask & MSG_EXP_MASK_ORDERBY )
          {
             ss << "Orderby: " << objOrderby.toString() << "," ;
          }
-         if ( expandMask | MSG_EXP_MASK_HINT )
+         if ( expandMask & MSG_EXP_MASK_HINT )
          {
             ss << "Hint: " << objHint.toString() << "," ;
          }

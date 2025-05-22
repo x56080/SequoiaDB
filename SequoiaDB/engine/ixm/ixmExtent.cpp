@@ -2423,8 +2423,8 @@ namespace engine
             if ( keyBorrow.dataSize() > keyCur.dataSize() )
             {
                UINT16 incSize = keyBorrow.dataSize() - keyCur.dataSize() ;
-               BOOLEAN result = FALSE ;
-               rc = _ensureSpace( incSize, order, TRUE, FALSE, leftPos, result ) ;
+               BOOLEAN tmpResult = FALSE ;
+               rc = _ensureSpace( incSize, order, TRUE, FALSE, leftPos, tmpResult ) ;
                if ( rc )
                {
                   PD_LOG( PDERROR, "Ensure space(%u) on extent(%d) failed, rc: %d",
@@ -2433,7 +2433,7 @@ namespace engine
                }
 
                /// no space
-               if ( !result )
+               if ( !tmpResult )
                {
                   goto done ;
                }

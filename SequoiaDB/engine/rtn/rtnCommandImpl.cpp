@@ -93,6 +93,7 @@ namespace engine
    */
    #define RTN_IDX_EXTENT_USERATIO_DFT          ( 0.35f )
    #define RTN_IDX_EXTENT_KEYNUM_DFT            ( 100 )
+   #define RTN_IDX_EXTENT_KEYNUM_MIN            ( 3 )
    #define RTN_IDX_CALC_RATIO_EXTENT_NUM        ( 30 )
    #define RTN_IDX_USERATIO_OVERFLOW            ( 1.12f )
 
@@ -974,10 +975,20 @@ namespace engine
             avgExtUseRatio = 1.0 ;
          }
 
+         /// prevent to division by zero
+         if ( 0 == calcKeyNum )
+         {
+            calcKeyNum = 1 ;
+         }
+
          avgKeySize = calcKeySize / calcKeyNum ;
          if ( avgKeySize > 0 )
          {
             avgExtKeyNum = su->getPageSize() * avgExtUseRatio / avgKeySize ;
+            if ( avgExtKeyNum < RTN_IDX_EXTENT_KEYNUM_MIN )
+            {
+               avgExtKeyNum = RTN_IDX_EXTENT_KEYNUM_MIN ;
+            }
          }
 
          // Calculate from next level

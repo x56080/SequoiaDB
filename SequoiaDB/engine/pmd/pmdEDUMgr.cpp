@@ -2536,38 +2536,40 @@ namespace engine
                rc = SDB_SYS ;
                PMD_SHUTDOWN_DB( SDB_SYS ) ;
             }
-
-            eduMgr->waitEDU( cb ) ;
-            pdInitCurAuditMask( pdGetAuditMask() ) ;
-
-            *(cb->getMonConfigCB()) = *(krcb->getMonCB()) ;
-            cb->initMonAppCB() ;
-            cb->initConf() ;
-
-            if ( cb->getOperator()->getGlobalID().isInvalid() &&
-                 0 != pmdGetNodeID().columns.nodeID )
+            else
             {
-               cb->initOperator() ;
-            }
+               eduMgr->waitEDU( cb ) ;
+               pdInitCurAuditMask( pdGetAuditMask() ) ;
 
-            rc = pItem->_pFunc( cb, event._Data ) ;
-            // copy name
-            ossStrncpy( eduName, cb->getName(), OSS_MAX_PATHSIZE ) ;
+               *(cb->getMonConfigCB()) = *(krcb->getMonCB()) ;
+               cb->initMonAppCB() ;
+               cb->initConf() ;
 
-            if ( PMD_IS_DB_UP() )
-            {
-               if ( pItem->isSystem() )
+               if ( cb->getOperator()->getGlobalID().isInvalid() &&
+                    0 != pmdGetNodeID().columns.nodeID )
                {
-                  PD_LOG( PDSEVERE, "System EDU[ID:%lld, type:%s, Name:%s] "
-                          "exit with %d. Restart DB", cb->getID(),
-                          pItem->_name.c_str(), cb->getName(), rc ) ;
-                  PMD_RESTART_DB( rc ) ;
+                  cb->initOperator() ;
                }
-               else if ( SDB_OK != rc )
+
+               rc = pItem->_pFunc( cb, event._Data ) ;
+               // copy name
+               ossStrncpy( eduName, cb->getName(), OSS_MAX_PATHSIZE ) ;
+
+               if ( PMD_IS_DB_UP() )
                {
-                  PD_LOG( PDWARNING, "EDU[ID:%lld, type:%s, Name:%s] exit "
-                          "with %d", cb->getID(), pItem->_name.c_str(),
-                          cb->getName(), rc ) ;
+                  if ( pItem->isSystem() )
+                  {
+                     PD_LOG( PDSEVERE, "System EDU[ID:%lld, type:%s, Name:%s] "
+                             "exit with %d. Restart DB", cb->getID(),
+                             pItem->_name.c_str(), cb->getName(), rc ) ;
+                     PMD_RESTART_DB( rc ) ;
+                  }
+                  else if ( SDB_OK != rc )
+                  {
+                     PD_LOG( PDWARNING, "EDU[ID:%lld, type:%s, Name:%s] exit "
+                             "with %d", cb->getID(), pItem->_name.c_str(),
+                             cb->getName(), rc ) ;
+                  }
                }
             }
 

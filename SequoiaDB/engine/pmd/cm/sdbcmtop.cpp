@@ -272,7 +272,6 @@ namespace engine
       po::options_description desc ( "Command options" ) ;
       po::options_description all ( "Command options" ) ;
       po::variables_map vm ;
-      ossResultCode result ;
       CHAR dialogFile[ OSS_MAX_PATHSIZE + 1 ] = {0} ;
       BOOLEAN asProc = FALSE ;
       string port = "" ;

@@ -468,7 +468,7 @@ SDB_EXPORT int bson_sprint_iterator ( char **pbuf, int *left, bson_iterator *i,
    bson_type t ;
    delCharStr[0] = delChar ;
    delCharStr[1] = 0 ;
-   if ( left <= 0 || !pbuf || !i )
+   if ( !left || !pbuf || !i )
       return 0 ;
    t = bson_iterator_type ( i ) ;
    if ( t == 0 )
@@ -513,7 +513,7 @@ SDB_EXPORT int bson_sprint_iterator ( char **pbuf, int *left, bson_iterator *i,
       }
       case BSON_OID:
       {
-         char oidhex[25];
+         char oidhex[25] = {0} ;
          bson_oid_to_string( bson_iterator_oid( i ), oidhex );
          bson_sprint_raw_concat ( pbuf, left, "{ \"$oid\": \"", 0 ) ;
          CHECK_LEFT ( left )
@@ -535,7 +535,7 @@ SDB_EXPORT int bson_sprint_iterator ( char **pbuf, int *left, bson_iterator *i,
       {
          char temp[64] = {0} ;
          time_t timer = bson_iterator_date( i ) / 1000 ;
-         struct tm psr;
+         struct tm psr = { 0 } ;
          LocalTime ( &timer, &psr ) ;
          if ( (psr.tm_year + 1900) >= 0 && (psr.tm_year + 1900) <= 9999 )
          {
@@ -544,7 +544,7 @@ SDB_EXPORT int bson_sprint_iterator ( char **pbuf, int *left, bson_iterator *i,
          }
          else
          {
-            sprintf ( temp, "{ \"$date\": %lld }", (unsigned long long)bson_iterator_date( i ) ) ;
+            sprintf ( temp, "{ \"$date\": %lld }", (long long)bson_iterator_date( i ) ) ;
          }
          bson_sprint_raw_concat ( pbuf, left, temp, 0 ) ;
          CHECK_LEFT ( left )
@@ -715,7 +715,7 @@ SDB_EXPORT int bson_sprint_iterator ( char **pbuf, int *left, bson_iterator *i,
          bson_timestamp_t ts;
          char temp[64] = {0} ;
          time_t timer ;
-         struct tm psr;
+         struct tm psr = { 0 } ;
          ts = bson_iterator_timestamp( i );
          timer = (time_t)ts.t;
          LocalTime ( &timer, &psr ) ;
@@ -742,7 +742,7 @@ SDB_EXPORT int bson_sprint_iterator ( char **pbuf, int *left, bson_iterator *i,
       }
       case BSON_DBREF:
       {
-         char oidhex[25] ;
+         char oidhex[25] = {0} ;
          bson_oid_to_string( bson_iterator_dbref_oid( i ), oidhex ) ;
 
          bson_sprint_raw_concat ( pbuf, left, "{ \"$db\" : \"", 0 ) ;
@@ -766,9 +766,9 @@ SDB_EXPORT int bson_sprint_iterator ( char **pbuf, int *left, bson_iterator *i,
 SDB_EXPORT int bson_sprint_raw ( char **pbuf, int *left, const char *data, int isobj )
 {
     bson_iterator i;
-    const char *key;
+    const char *key = "" ;
     int first = 1 ;
-    if ( left <= 0 || !pbuf || !data )
+    if ( !left || !pbuf || !data )
        return 0 ;
 
     bson_iterator_from_buffer( &i, data );

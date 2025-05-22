@@ -1938,6 +1938,7 @@ done:
       ossMemset( _auditMaskStr, 0, sizeof( _auditMaskStr ) ) ;
       ossMemset( _ftMaskStr, 0, sizeof( _ftMaskStr ) ) ;
       ossMemset( _memDebugMaskStr, 0, sizeof( _memDebugMaskStr ) ) ;
+      ossMemset( _monGroupMaskStr, 0, sizeof( _monGroupMaskStr ) ) ;
       ossMemset( _serviceMaskStr, 0, sizeof( _serviceMaskStr ) ) ;
 
       _krcbMaxPool         = 0 ;
@@ -2004,6 +2005,7 @@ done:
       _maxSessionContextNum = RTN_MAX_SESS_CTX_NUM_DFT ;
       _contextTimeout      = RTN_CTX_TIMEOUT_DFT ;
 
+      ossMemset( _omAddrLine, 0, sizeof( _omAddrLine ) ) ;
       // archive related
       _archiveOn = FALSE ;
       _archiveCompressOn = TRUE ;
@@ -2017,6 +2019,7 @@ done:
       _pageAllocTimeout = PMD_DFT_PAGE_ALLOC_TIMEOUT ;
       _perfStat = FALSE ;
       _optCostThreshold = PMD_DFT_OPT_COST_THRESHOLD ;
+      _planCacheMainCLThreshold = PMD_DFT_PLAN_CACHE_MAINCL_THRESHOLD ;
       _enableMixCmp = PMD_DFT_ENABLE_MIX_CMP ;
       _planCacheLevel = OPT_PLAN_NOCACHE ;
       _instanceID = PMD_DFT_INSTANCE_ID ;

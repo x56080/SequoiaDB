@@ -144,7 +144,7 @@ namespace engine
 
          const_iterator& operator++ ()
          {
-            _sectionListIter++;
+            ++_sectionListIter ;
             return *this ;
          }
 
@@ -157,7 +157,7 @@ namespace engine
 
          const_iterator& operator-- ()
          {
-            _sectionListIter--;
+            --_sectionListIter;
             return *this ;
          }
 

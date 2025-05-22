@@ -1129,7 +1129,7 @@ namespace engine
 
       for ( vector<BSONObj>::const_iterator itr = infoFromCata.begin();
             itr != infoFromCata.end();
-            itr++ )
+            ++itr )
       {
          BSONElement cl ;
          BSONElement cs = itr->getField( FIELD_NAME_NAME ) ;

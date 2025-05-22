@@ -10919,6 +10919,10 @@ static INT32 sdbOnceRead( sdbLobStruct *lob,
                                alignedLen, lob->_currentOffset,
                                0, lob->_contextID, 0,
                                lob->_endianConvert ) ;
+   if ( SDB_OK != rc )
+   {
+      goto error ;
+   }
 
    // send and recv
    rc = _sendAndRecv( lob->_connection, lob->_sock,

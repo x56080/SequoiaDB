@@ -1485,7 +1485,7 @@ namespace engine
    }
 
    /* write */
-   void restRequest::setUrlPath( string path )
+   void restRequest::setUrlPath( const string &path )
    {
       SDB_ASSERT( _write, "rest is read only" ) ;
 

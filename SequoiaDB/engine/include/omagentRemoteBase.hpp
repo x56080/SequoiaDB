@@ -82,7 +82,7 @@ namespace engine
          INT32  _confObj2Str( const bson::BSONObj &conf, string &str,
                               string &errMsg, const CHAR* pExcept = NULL ) ;
 
-         INT32 _getNodeConfigFile( string svcname, string &filePath ) ;
+         INT32 _getNodeConfigFile( const string &svcname, string &filePath ) ;
 
          INT32 _getNodeConfInfo( const string & confFile, bson::BSONObj &conf,
                              string &errMsg, BOOLEAN allowNotExist = FALSE  ) ;

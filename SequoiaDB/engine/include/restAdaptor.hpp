@@ -294,7 +294,7 @@ namespace engine
       BOOLEAN isQueryArgExist( const string &key ) ;
 
       /* write */
-      void setUrlPath( string path ) ;
+      void setUrlPath( const string &path ) ;
 
       void setDataType( HTTP_DATA_TYPE type = HTTP_FILE_HTML ) ;
 

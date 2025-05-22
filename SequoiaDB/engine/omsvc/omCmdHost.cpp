@@ -337,7 +337,6 @@ namespace engine
                                                 OM_CLUSTER_FIELD_SDBPASSWD ) ;
       string sdbUserGroup = clusterInfo.getStringField(
                                              OM_CLUSTER_FIELD_SDBUSERGROUP ) ;
-      string omVersion ;
 
       taskConfigBuilder.append( OM_TASKINFO_FIELD_CLUSTERNAME, _clusterName ) ;
       taskConfigBuilder.append( OM_TASKINFO_FIELD_SDBUSER, sdbUser ) ;

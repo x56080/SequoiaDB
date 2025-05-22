@@ -63,7 +63,7 @@ namespace engine
       INT32       _status ;
       INT32       _result ;
 
-      _hostAndPort( std::string host, std::string svc, MsgRouteID nodeID )
+      _hostAndPort( const std::string &host, const std::string &svc, const MsgRouteID &nodeID )
       {
          _host = host ;
          _svc = svc ;

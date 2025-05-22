@@ -166,6 +166,11 @@ private:
    monSpinSLatch& operator=(const monSpinSLatch& rhs )
    {
       latchID = rhs.latchID ;
+      lastOwnerTID = rhs.lastOwnerTID ;
+      lastOwnerType = rhs.lastOwnerType ;
+      lastOwnerMode = rhs.lastOwnerMode ;
+      numSOwner.init( rhs.numSOwner.peek() ) ;
+      numXOwner = rhs.numXOwner ;
       return *this ;
    }
    friend class _dmsStorageDataCommon;

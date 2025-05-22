@@ -1090,7 +1090,7 @@ namespace engine
                ossSleep( OSS_ONE_SEC ) ;
                continue ;
             }
-            if ( CLS_FREEZING_CHECKER_EDU == result._step )
+            else if ( CLS_FREEZING_CHECKER_EDU == result._step )
             {
                rc = SDB_LOCK_FAILED ;
                PD_LOG_MSG( PDERROR, "Failed to wait for other write EDUs "

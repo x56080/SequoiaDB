@@ -1038,19 +1038,19 @@ namespace engine
       // then, we check user name and password is correct or not
       if ( password )
       {
-         BSONObj obj = BSON( SDB_AUTH_USER << username <<
-                             SDB_AUTH_PASSWD << password ) ;
-         rc = md5Authenticate( obj, cb ) ;
+         BSONObj authObj = BSON( SDB_AUTH_USER << username <<
+                                 SDB_AUTH_PASSWD << password ) ;
+         rc = md5Authenticate( authObj, cb ) ;
       }
       else
       {
-         BSONObj obj = BSON( SDB_AUTH_STEP << SDB_AUTH_STEP_2 <<
-                             SDB_AUTH_USER << username <<
-                             SDB_AUTH_NONCE << nonce <<
-                             SDB_AUTH_IDENTIFY << identify <<
-                             SDB_AUTH_TYPE << type <<
-                             SDB_AUTH_PROOF << clientProof ) ;
-         rc = SCRAMSHAAuthenticate( obj, cb ) ;
+         BSONObj authObj = BSON( SDB_AUTH_STEP << SDB_AUTH_STEP_2 <<
+                                 SDB_AUTH_USER << username <<
+                                 SDB_AUTH_NONCE << nonce <<
+                                 SDB_AUTH_IDENTIFY << identify <<
+                                 SDB_AUTH_TYPE << type <<
+                                 SDB_AUTH_PROOF << clientProof ) ;
+         rc = SCRAMSHAAuthenticate( authObj, cb ) ;
       }
       if ( SDB_OK != rc )
       {

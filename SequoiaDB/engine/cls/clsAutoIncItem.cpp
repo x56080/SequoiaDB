@@ -576,6 +576,7 @@ namespace engine
    _clsAutoIncSet::_clsAutoIncSet()
    {
       _fieldCount = 0 ;
+      _eleSize = 0 ;
    }
 
    _clsAutoIncSet::~_clsAutoIncSet()

@@ -799,7 +799,8 @@ do                                                            \
    _sdbCollectionImpl::_sdbCollectionImpl () :
    _sdbBase( CLIENT_CLASS_CL ),
    _pAppendOIDBuffer ( NULL ),
-   _appendOIDBufferSize ( 0 )
+   _appendOIDBufferSize ( 0 ),
+   _version ( CATALOG_DEFAULT_VERSION )
    {
       ossMemset ( _collectionSpaceName, 0, sizeof ( _collectionSpaceName ) ) ;
       ossMemset ( _collectionName, 0, sizeof ( _collectionName ) ) ;
@@ -4420,6 +4421,7 @@ do                                                            \
       catch ( exception &e )
       {
          rc = SDB_DRIVER_BSON_ERROR ;
+         goto error ;
       }
 
       rc = _connection->_runCommand( CMD_ADMIN_PREFIX CMD_NAME_TRUNCATE,
@@ -4808,6 +4810,7 @@ do                                                            \
       ossMemset ( _hostName, 0, sizeof(_hostName) ) ;
       ossMemset ( _serviceName, 0, sizeof(_serviceName) ) ;
       ossMemset ( _nodeName, 0, sizeof(_nodeName) ) ;
+      _replicaGroupID = 0 ;
       _nodeID = SDB_NODE_INVALID_NODEID ;
    }
 
@@ -5587,7 +5590,7 @@ do                                                            \
          goto error ;
       }
 
-      for ( it = positions.begin(); it != positions.end(); it++ )
+      for ( it = positions.begin(); it != positions.end(); ++it )
       {
          vector<INT32>::iterator it_inner = validPositions.begin() ;
          BOOLEAN hasContained = FALSE ;
@@ -5596,7 +5599,7 @@ do                                                            \
             rc = SDB_INVALIDARG ;
             goto error ;
          }
-         for ( ; it_inner != validPositions.end(); it_inner++ )
+         for ( ; it_inner != validPositions.end(); ++it_inner )
          {
             if ( *it == *it_inner )
             {
@@ -5747,7 +5750,7 @@ do                                                            \
          vector<INT32> includePrimaryPositions ;
          vector<INT32> excludePrimaryPositions ;
          vector<INT32>::iterator it = validPositions.begin() ;
-         for ( ; it != validPositions.end() ; it++ )
+         for ( ; it != validPositions.end() ; ++it )
          {
             INT32 pos = *it ;
             if ( pos <= nodeCount )
@@ -8451,6 +8454,11 @@ do                                                            \
                                   alignedLen, _currentOffset,
                                   0, _contextID, 0,
                                   _connection->_endianConvert ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
       _connection->lock() ;
       locked = TRUE ;
       rc = _connection->_send ( _pSendBuffer ) ;
@@ -13749,7 +13757,7 @@ do                                                            \
             BSONArrayBuilder threadsBuilder(
                queryBuilder.subarrayStart( FIELD_NAME_THREADS ) ) ;
             for( vector< UINT32 >::const_iterator itr = tidVec.begin();
-                 itr != tidVec.end(); itr++ )
+                 itr != tidVec.end(); ++itr )
             {
                threadsBuilder.append( *itr ) ;
             }

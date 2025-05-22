@@ -65,6 +65,12 @@ namespace engine
       string mountPath ;
       UINT64 totalSize ;
       UINT64 freeSize ;
+
+      simpleDiskInfo()
+      {
+         totalSize = 0 ;
+         freeSize = 0 ;
+      }
    } ;
 
    struct simpleHostDisk : public SDBObject 
@@ -157,7 +163,7 @@ namespace engine
          INT32             _deleteHost( const string &hostName ) ;
          INT32             _getClusterInfo( const string &clusterName, 
                                             BSONObj &clusterInfo ) ;
-         INT32             _getHostInfo( string hostName, 
+         INT32             _getHostInfo( const string &hostName, 
                                          BSONObj &hostInfo ) ;
          INT32             _fetchHostDiskInfo( const string &clusterName, 
                                           list<string> &hostNameList, 

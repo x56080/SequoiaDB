@@ -1060,6 +1060,7 @@ namespace engine
                                              OMA_TASK_STATUS_DESC_RUNNING,
                                              SDB_OK, "" } ;
          CHAR flow[OMA_BUFF_SIZE + 1] = { 0 } ;
+         string strDetail ;
          const CHAR *pDetail          = NULL ;
          const CHAR *pIP              = NULL ;
          const CHAR *pHostName        = NULL ;
@@ -1131,7 +1132,8 @@ namespace engine
                     " removing host[%s], rc = %d", pIP, rc ) ;
             ss << "Failed to get errno from js after"
                   " removing host[" << pIP << "]" ;
-            pDetail = ss.str().c_str() ;
+            strDetail = ss.str() ;
+            pDetail = strDetail.c_str() ;
             goto build_error_result ;
          }
          // to see whether execute js successfully or not
@@ -1145,7 +1147,8 @@ namespace engine
                        "removing host[%s], rc = %d", pIP, tmpRc ) ;
                ss << "Failed to get error detail from js after"
                      " removing host[" << pIP << "]" ;
-               pDetail = ss.str().c_str() ;
+               strDetail = ss.str() ;
+               pDetail = strDetail.c_str() ;
                goto build_error_result ;
             }
             rc = errNum ;
@@ -2534,6 +2537,7 @@ namespace engine
       INT32 rc                     = SDB_OK ;
       INT32 tmpRc                  = SDB_OK ;
       CHAR flow[OMA_BUFF_SIZE + 1] = { 0 } ;
+      string strDetail ;
       const CHAR *pDetail          = "" ;
       INT32 errNum                 = 0 ;
       vector<InstDBBusInfo>::iterator itr = _catalog.begin() ;
@@ -2603,7 +2607,8 @@ namespace engine
                     pHostName, pSvcName, rc ) ;
             ss << "Failed to get errno from js after installing catalog[" <<
                pHostName << ":" << pSvcName << "]" ;
-            pDetail = ss.str().c_str() ;
+            strDetail = ss.str() ;
+            pDetail = strDetail.c_str() ;
             ossSnprintf( flow, OMA_BUFF_SIZE, "Failed to install "
                          "catalog[%s:%s], going to rollback",
                          pHostName, pSvcName ) ;
@@ -2622,7 +2627,8 @@ namespace engine
                        pHostName, pSvcName, tmpRc ) ;
                ss << "Failed to get error detail from js after "
                      "installing catalog[" << pHostName << ":" << pSvcName << "]" ; 
-               pDetail = ss.str().c_str() ;
+               strDetail = ss.str() ;
+               pDetail = strDetail.c_str() ;
             }
             ossSnprintf( flow, OMA_BUFF_SIZE, "Failed to install "
                          "catalog[%s:%s], going to rollback",
@@ -2676,6 +2682,7 @@ namespace engine
       INT32 rc                     = SDB_OK ;
       INT32 tmpRc                  = SDB_OK ;
       CHAR flow[OMA_BUFF_SIZE + 1] = { 0 } ;
+      string strDetail ;
       const CHAR *pDetail          = "" ;
       INT32 errNum                 = 0 ;
       vector<InstDBBusInfo>::iterator itr = _coord.begin() ;
@@ -2745,7 +2752,8 @@ namespace engine
                     pHostName, pSvcName, rc ) ;
             ss << "Failed to get errno from js after installing coord[" <<
                pHostName << ":" << pSvcName << "]" ;
-            pDetail = ss.str().c_str() ;
+            strDetail = ss.str() ;
+            pDetail = strDetail.c_str() ;
             ossSnprintf( flow, OMA_BUFF_SIZE, "Failed to install "
                          "coord[%s:%s], going to rollback",
                          pHostName, pSvcName ) ;
@@ -2764,7 +2772,8 @@ namespace engine
                        pHostName, pSvcName, tmpRc ) ;
                ss << "Failed to get error detail from js after "
                      "installing coord[" << pHostName << ":" << pSvcName << "]" ;
-               pDetail = ss.str().c_str() ;
+               strDetail = ss.str() ;
+               pDetail = strDetail.c_str() ;
             }
             ossSnprintf( flow, OMA_BUFF_SIZE, "Failed to install "
                          "coord[%s:%s], going to rollback",

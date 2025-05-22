@@ -321,7 +321,6 @@ namespace import
 
    Options::Options()
    {
-      _parsed = FALSE;
       _hostname = IMP_DEFAULT_HOSTNAME;
       _svcname = IMP_DEFAULT_SVCNAME;
       _hostsString = IMP_DEFAULT_HOST;
@@ -370,7 +369,6 @@ namespace import
 
    Options::~Options()
    {
-      _parsed = FALSE;
    }
 
    INT32 Options::parse(INT32 argc, CHAR* argv[])
@@ -408,8 +406,6 @@ namespace import
       {
          goto error;
       }
-
-      _parsed = TRUE;
 
       if (has(IMP_OPTION_HELP) ||
           has(IMP_OPTION_VERSION) ||

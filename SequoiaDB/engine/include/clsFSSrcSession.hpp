@@ -129,7 +129,7 @@ namespace engine
          void              _constructMeta( BSONObj &obj, const CHAR *cs,
                                            const CHAR *collection,
                                            utilCLUniqueID clUniqueID,
-                                           const BSONObj idIdxDef,
+                                           const BSONObj &idIdxDef,
                                            _dmsStorageUnit *su ) ;
          INT32             _getCSName( const BSONObj &obj, CHAR *cs, UINT32 len ) ;
          INT32             _getCollection( const BSONObj &obj, CHAR *collection,

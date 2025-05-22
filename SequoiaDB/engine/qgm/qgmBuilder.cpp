@@ -1869,9 +1869,9 @@ namespace engine
                    "invalid children size:%d",
                    root->children.size() ) ;
          SQL_CON_ITR itr = root->children.begin() ;
-         const CHAR *alias = QGM_VALUEPTR( itr + 1) ;
-         UINT32 len = QGM_VALUESIZE( itr + 1 ) ;
-         rc = _addSelector( itr, node, alias, len ) ;
+         const CHAR *tmpAlias = QGM_VALUEPTR( itr + 1) ;
+         UINT32 tmpLen = QGM_VALUESIZE( itr + 1 ) ;
+         rc = _addSelector( itr, node, tmpAlias, tmpLen ) ;
          if ( SDB_OK != rc )
          {
             goto error ;
@@ -1977,9 +1977,9 @@ namespace engine
                    root->children.size() ) ;
 
          SQL_CON_ITR itr = root->children.begin() ;
-         const CHAR *alias = QGM_VALUEPTR( itr + 1) ;
-         UINT32 len = QGM_VALUESIZE( itr + 1 ) ;
-         rc = _addFrom( itr, node, alias, len ) ;
+         const CHAR *tmpAlias = QGM_VALUEPTR( itr + 1) ;
+         UINT32 tmpLen = QGM_VALUESIZE( itr + 1 ) ;
+         rc = _addFrom( itr, node, tmpAlias, tmpLen ) ;
          if ( SDB_OK != rc )
          {
             goto error ;
@@ -2124,9 +2124,9 @@ namespace engine
                    "invalid children size:%d",
                    root->children.size() ) ;
          SQL_CON_ITR itr = root->children.begin() ;
-         const CHAR *alias = QGM_VALUEPTR( itr + 1) ;
-         UINT32 len = QGM_VALUESIZE( itr + 1 ) ;
-         rc = _buildJoin( itr, node, alias, len ) ;
+         const CHAR *tmpAlias = QGM_VALUEPTR( itr + 1) ;
+         UINT32 tmpLen = QGM_VALUESIZE( itr + 1 ) ;
+         rc = _buildJoin( itr, node, tmpAlias, tmpLen ) ;
          if ( SDB_OK != rc )
          {
             goto error ;

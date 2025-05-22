@@ -817,7 +817,6 @@ namespace engine
          {
             BSONObj groupObj ;
             string groupName ;
-            ossPoolString oldActLoc ;
             catCtxLockMgr lockMgr ;
             UINT32 groupID = *itr++ ;
 

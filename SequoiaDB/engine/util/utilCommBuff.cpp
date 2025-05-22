@@ -40,7 +40,7 @@
 namespace engine
 {
    _utilBuffMonitor::_utilBuffMonitor()
-   : _totalUsed( 0 )
+   : _limit( 0 ), _totalUsed( 0 )
    {
    }
 

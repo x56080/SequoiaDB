@@ -39,6 +39,9 @@ namespace engine
    #define SPT_BINDATA_TYPE_FIELD               "_type"
    #define SPT_BINDATA_SPECIALOBJ_BINARY_FIELD  "$binary"
    #define SPT_BINDATA_SPECIALOBJ_TYPE_FIELD    "$type"
+
+   #define TMP_ERROR_BUFFER                     ( 256 )
+
    JS_CONSTRUCT_FUNC_DEFINE( _sptDBBinData, construct )
    JS_DESTRUCT_FUNC_DEFINE( _sptDBBinData, destruct )
    JS_STATIC_FUNC_DEFINE( _sptDBBinData, help )
@@ -127,7 +130,10 @@ namespace engine
          catch ( std::exception & )
          {
             rc = SDB_INVALIDARG ;
-            detail = BSON( SPT_ERR << "Invalid BinData type value: " + typeNumber ) ;
+            CHAR tmpBuff[ TMP_ERROR_BUFFER + 1 ] = { 0 } ;
+            ossSnprintf( tmpBuff, sizeof( tmpBuff ) - 1, "Invalid BinData type value: %d",
+                         typeNumber ) ;
+            detail = BSON( SPT_ERR << tmpBuff) ;
             goto error ;
          }
       }

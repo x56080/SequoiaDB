@@ -17,12 +17,7 @@ namespace engine
 
       virtual INT32 execute( MsgHeader *pMsg, pmdEDUCB *cb, INT64 &contextID,
                              rtnContextBuf *buf ) ;
-   private:
-      const CHAR *_name ;
-      const CHAR *_type ;
-      const CHAR *_addresses ;
-      const CHAR *_user ;
-      const CHAR *_passwd ;
+
    } ;
 
    typedef _coordCMDCreateDataSource coordCMDCreateDataSource;

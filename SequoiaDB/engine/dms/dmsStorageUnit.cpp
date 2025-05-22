@@ -95,7 +95,7 @@ namespace engine
       _dmsEventHolder implement
     */
    _dmsEventHolder::_dmsEventHolder ( dmsStorageUnit *su )
-   : _handlers( NULL )
+   : _pCacheHolder( NULL ), _handlers( NULL )
    {
       SDB_ASSERT( su, "Storage Unit is no valid" ) ;
       _su = su ;

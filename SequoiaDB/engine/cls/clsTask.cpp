@@ -2259,7 +2259,7 @@ namespace engine
    {
       // set cs name by cl name
       INT32 i = 0 ;
-      while ( _clFullName[ i ] && i < DMS_COLLECTION_SPACE_NAME_SZ )
+      while ( i < DMS_COLLECTION_SPACE_NAME_SZ && _clFullName[ i ] )
       {
          if ( '.' == _clFullName[ i ] )
          {

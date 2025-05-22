@@ -47,7 +47,7 @@ namespace engine
    class _authRoleManager : public SDBObject
    {
    public:
-      _authRoleManager() {}
+      _authRoleManager() { _cb = NULL ; }
       ~_authRoleManager() {}
 
       INT32 init();

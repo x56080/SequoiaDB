@@ -465,6 +465,7 @@ namespace engine
    {
       _taskID        = OM_TASK_STRATEGY_TASK_ID_DFT ;
       _status        = OM_STRATEGY_STATUS_ENABLE ;
+      _createTime    = 0 ;
    }
 
    _omTaskInfo::~_omTaskInfo()

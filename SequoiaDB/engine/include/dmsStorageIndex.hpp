@@ -68,7 +68,7 @@ namespace engine
    class _dmsExtraRecord : public SDBObject
    {
    public:
-      _dmsExtraRecord( const CHAR *clName, BSONObj record, BOOLEAN isInsert )
+      _dmsExtraRecord( const CHAR *clName, const BSONObj &record, BOOLEAN isInsert )
       {
          _clName = clName ;
          _record = record ;

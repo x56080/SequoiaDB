@@ -53,6 +53,8 @@ namespace engine
 
    _sptDBTimestamp::_sptDBTimestamp()
    {
+      _t = 0 ;
+      _inc = 0 ;
    }
 
    _sptDBTimestamp::~_sptDBTimestamp()

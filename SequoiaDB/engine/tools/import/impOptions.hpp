@@ -150,7 +150,6 @@ namespace import
                                string &recordDelimiter);
 
    private:
-      BOOLEAN        _parsed;
 
       /* general */
       string         _hostname;

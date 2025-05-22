@@ -101,7 +101,7 @@ namespace engine
       _pCompressor   = NULL ;
 
       _pCompressBuff = NULL ;
-      _buffSize      = 0 ;
+      _comressBuffSize = 0 ;
    }
 
    _barBaseLogger::~_barBaseLogger ()
@@ -116,7 +116,7 @@ namespace engine
          SDB_OSS_FREE( _pCompressBuff ) ;
          _pCompressBuff = NULL ;
       }
-      _buffSize = 0 ;
+      _comressBuffSize = 0 ;
       _pDMSCB        = NULL ;
       _pDPSCB        = NULL ;
       _pTransCB      = NULL ;
@@ -661,7 +661,7 @@ namespace engine
    {
       CHAR *pBuff = NULL ;
 
-      if ( _buffSize >= buffSize )
+      if ( _comressBuffSize >= buffSize )
       {
          pBuff = _pCompressBuff ;
       }
@@ -671,13 +671,13 @@ namespace engine
          {
             SDB_OSS_FREE( _pCompressBuff ) ;
             _pCompressBuff = NULL ;
-            _buffSize = 0 ;
+            _comressBuffSize = 0 ;
          }
 
          _pCompressBuff = (CHAR*) SDB_OSS_MALLOC( buffSize ) ;
          if ( _pCompressBuff )
          {
-            _buffSize = buffSize ;
+            _comressBuffSize = buffSize ;
             pBuff = _pCompressBuff ;
             ossMemset( pBuff, 0, buffSize ) ;
          }
@@ -768,6 +768,7 @@ namespace engine
       {
          PD_LOG( PDWARNING, "Invalid backup op type: %d", opType ) ;
          rc = SDB_INVALIDARG ;
+         goto error ;
       }
 
       // 1. init meta header

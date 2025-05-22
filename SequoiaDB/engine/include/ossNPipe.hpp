@@ -99,6 +99,8 @@ public :
 #elif defined (_LINUX)
       _handle = -1 ;
 #endif
+      _state = 0 ;
+      _name[0] = '\0' ;
    }
 } ;
 typedef class _OSSNPIPE OSSNPIPE ;

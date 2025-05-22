@@ -339,6 +339,7 @@ namespace engine
       _sptProperty *add = SDB_OSS_NEW _sptProperty() ;
       if ( add )
       {
+         add->setConvertor( _convertor ) ;
          _array.push_back( add ) ;
       }
       return add ;
@@ -350,6 +351,7 @@ namespace engine
       _sptProperty *add = SDB_OSS_NEW _sptProperty() ;
       if ( add )
       {
+         add->setConvertor( _convertor ) ;
          add->setName( name ) ;
          add->setAttr( attr ) ;
          _subs.push_back( add ) ;

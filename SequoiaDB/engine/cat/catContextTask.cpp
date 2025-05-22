@@ -739,7 +739,7 @@ namespace engine
                       "Source collection [%s] must be partitioned-collection!",
                       mainCLName.c_str() ) ;
 
-         iterMainCL ++ ;
+         ++ iterMainCL ;
       }
 
    done :

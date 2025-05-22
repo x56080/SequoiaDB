@@ -3077,7 +3077,7 @@ namespace engine
                    collection, rc ) ;
 
       for( ossPoolVector<BSONObj>::iterator it = indexObjList.begin() ;
-           it != indexObjList.end() ; it++ )
+           it != indexObjList.end() ; ++it )
       {
          BSONObj indexDef, globalOpt ;
          const CHAR* indexCLName = NULL ;
@@ -4134,7 +4134,7 @@ namespace engine
 
          // if the task to be deleted is main task, remove their sub tasks
          for ( ossPoolSet<UINT64>::iterator it = mainTaskSet.begin() ;
-               it != mainTaskSet.end() ; it++ )
+               it != mainTaskSet.end() ; ++it )
          {
             BSONObj matcher1 = BSON( FIELD_NAME_MAIN_TASKID << (INT64)(*it) ) ;
             rc = catRemoveTask( matcher1, FALSE, cb, w ) ;
@@ -4145,7 +4145,7 @@ namespace engine
 
          // if the task to be deleted is sub task, update their main task's info
          for ( ossPoolMap<UINT64,UINT64>::iterator it = subTaskMap.begin() ;
-               it != subTaskMap.end() ; it++ )
+               it != subTaskMap.end() ; ++it )
          {
             rc = _updateMainTaskByRemoveTask( it->second, it->first, cb ) ;
             PD_RC_CHECK( rc, PDERROR,
@@ -4197,7 +4197,7 @@ namespace engine
 
          // if the task to be deleted is main task, remove their sub tasks
          for ( ossPoolSet<UINT64>::iterator it = mainTaskSet.begin() ;
-               it != mainTaskSet.end() ; it++ )
+               it != mainTaskSet.end() ; ++it )
          {
             {
                matcherBob.reset() ;
@@ -4234,7 +4234,7 @@ namespace engine
 
          // if the task to be deleted is sub task, update their main task's info
          for ( ossPoolMap<UINT64,UINT64>::iterator it = subTaskMap.begin() ;
-               it != subTaskMap.end() ; it++ )
+               it != subTaskMap.end() ; ++it )
          {
             rc = _updateMainTaskByRemoveTask( it->second, it->first, cb ) ;
             PD_RC_CHECK( rc, PDERROR,
@@ -4416,7 +4416,7 @@ namespace engine
 
          // loop every main-task, if it is copy-index task, change 'CopyTo' field
          for( ossPoolSet<UINT64>::iterator it = mainTaskSet.begin() ;
-              it != mainTaskSet.end() ; it++ )
+              it != mainTaskSet.end() ; ++it )
          {
             UINT64 taskID = *it ;
             BSONObj taskObj, copyToArray ;
@@ -5814,7 +5814,6 @@ namespace engine
          BSONObjIterator itr ;
          string          tmpNodeName ;
          string          tmpLocation ;
-         string          tmpHostName ;
          INT32           tmpMinKeepTime = 0 ;
          INT32           tmpMaxKeepTime = 0 ;
          clsGrpModeItem  tmpGrpModeItem ;
@@ -8906,12 +8905,12 @@ namespace engine
       BSONObjIterator itr( e.embeddedObject() ) ;
       while( itr.more() )
       {
-         BSONElement e = itr.next() ;
+         BSONElement subEle = itr.next() ;
 
-         if ( Object == e.type() )
+         if ( Object == subEle.type() )
          {
             clsCatalogItem tmpItem( TRUE, clInfo._isMainCL ) ;
-            rc = tmpItem.updateItem( e.embeddedObject(), clInfo._isSharding, clInfo._isHash ) ;
+            rc = tmpItem.updateItem( subEle.embeddedObject(), clInfo._isSharding, clInfo._isHash ) ;
             if ( SDB_OK == rc )
             {
                clInfo._vecCataInfo.push_back( tmpItem.toBson() ) ;

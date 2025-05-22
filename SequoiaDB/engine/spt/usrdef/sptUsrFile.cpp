@@ -680,7 +680,6 @@ JS_MAPPING_END()
    {
       INT32 rc = SDB_OK ;
       INT64 seekSize = 0 ;
-      string whenceStr ;
       BSONObj optionObj ;
       string err ;
 

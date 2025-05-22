@@ -316,7 +316,7 @@ namespace engine
       version = stream.str() ;
    }
 
-   void omAddHostTask::_getPackageVersion( const BSONObj resultInfo,
+   void omAddHostTask::_getPackageVersion( const BSONObj &resultInfo,
                                            const string &hostName,
                                            string &version )
    {
@@ -637,7 +637,6 @@ namespace engine
    {
       INT32 rc     = SDB_OK ;
       pmdEDUCB *cb = pmdGetThreadEDUCB() ;
-      string clusterName ;
       BSONObj taskInfoValue ;
       BSONObj hosts ;
       set<string> successHostSet ;

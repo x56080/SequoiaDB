@@ -164,11 +164,10 @@ namespace engine
       goto done ;
    }
 
-   INT32 _remoteOmaConfigs::_getNodeConfigFile( string svcname,
+   INT32 _remoteOmaConfigs::_getNodeConfigFile( const string &svcname,
                                                 string &filePath )
    {
       INT32 rc = SDB_OK ;
-      utilInstallInfo info ;
       CHAR confFile[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
       // ../conf/local/SVCNAME/sdb.conf
       string ewdConfPath = SDBCM_LOCAL_PATH OSS_FILE_SEP

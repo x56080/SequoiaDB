@@ -436,6 +436,7 @@ namespace engine
    public:
       omErrorTool() : _isSet( FALSE )
       {
+         _errorDetail[0] = 0 ;
       }
       void setError( BOOLEAN isCover, const CHAR *pFormat, ... ) ;
       const CHAR *getError() ;

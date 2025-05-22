@@ -2480,7 +2480,6 @@ namespace engine
       event._eventType = PMD_EDU_EVENT_MSG ;
       event._Data = pBuffer ;
       event._dataMemType = PMD_EDU_MEM_SELF ;
-      event._eventType = PMD_EDU_EVENT_MSG ;
       event._userData = ossPack32To64( 1, handle ) ;
 
       _delayEvent( event ) ;
@@ -2531,7 +2530,6 @@ namespace engine
       event._eventType = PMD_EDU_EVENT_MSG ;
       event._Data = pBuffer ;
       event._dataMemType = PMD_EDU_MEM_SELF ;
-      event._eventType = PMD_EDU_EVENT_MSG ;
       event._userData = ossPack32To64( 1, handle ) ;
 
       _delayEvent( event ) ;

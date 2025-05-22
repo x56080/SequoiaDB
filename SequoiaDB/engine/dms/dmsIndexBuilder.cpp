@@ -552,7 +552,7 @@ namespace engine
          goto error ;
       }
 
-      for ( it = keySet.begin() ; it != keySet.end() ; it++ )
+      for ( it = keySet.begin() ; it != keySet.end() ; ++it )
       {
          ixmKeyOwned ko( *it ) ;
          rc = _insertKey( ko, rid, ordering ) ;
