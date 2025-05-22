@@ -66,8 +66,8 @@ namespace engine
       }
    }
 
-   INT32 _sptUsrFileCommon::open( const string &filename, BSONObj optionObj,
-                                 string &err )
+   INT32 _sptUsrFileCommon::open( const string &filename, const BSONObj &optionObj,
+                                  string &err )
    {
       INT32 rc = SDB_OK ;
       UINT32 permission = OSS_RWXU ;
@@ -372,6 +372,7 @@ namespace engine
          {
             err = "Where must be string(b/c/e)" ;
             rc = SDB_INVALIDARG ;
+            goto error ;
          }
          whenceStr = optionObj.getStringField( SPT_FILE_COMMON_FIELD_WHERE ) ;
       }
@@ -724,7 +725,6 @@ namespace engine
       string findType    = "n" ;
       UINT32 exitCode    = 0 ;
       string             mode ;
-      string             rootDir ;
       _ossCmdRunner      runner ;
       string             value ;
       string             pathname ;
@@ -910,6 +910,7 @@ namespace engine
          {
             rc = SDB_INVALIDARG ;
             err = "Pathname must be string" ;
+            goto error ;
          }
          cmd << " " << optionObj.getStringField( SPT_FILE_COMMON_FIELD_PATHNAME ) ;
       }
@@ -964,7 +965,7 @@ namespace engine
    }
 
    INT32 _sptUsrFileCommon::chmod( string &pathname, INT32 mode,
-                                  BSONObj optionObj, string &err )
+                                   const BSONObj &optionObj, string &err )
    {
 #if defined (_LINUX)
       INT32 rc = SDB_OK ;
@@ -1024,8 +1025,8 @@ namespace engine
 #endif
    }
 
-   INT32 _sptUsrFileCommon::chown( string &pathname, BSONObj ownerObj,
-                                  BSONObj optionObj, string &err )
+   INT32 _sptUsrFileCommon::chown( string &pathname, const BSONObj &ownerObj,
+                                   const BSONObj &optionObj, string &err )
    {
 #if defined (_LINUX)
       INT32 rc = SDB_OK ;
@@ -1116,8 +1117,8 @@ namespace engine
 #endif
    }
 
-   INT32 _sptUsrFileCommon::chgrp( string &pathname, string groupname,
-                                  BSONObj optionObj, string &err )
+   INT32 _sptUsrFileCommon::chgrp( string &pathname, const string &groupname,
+                                   const BSONObj &optionObj, string &err )
    {
 #if defined (_LINUX)
       INT32 rc = SDB_OK ;
@@ -1691,7 +1692,7 @@ namespace engine
 
       SDB_ASSERT ( pBuf, "Invalid arguments" ) ;
 
-      rc = file.open ( filename.c_str() , OSS_READONLY | OSS_SHAREREAD,
+      rc = file.open ( filename, OSS_READONLY | OSS_SHAREREAD,
                        OSS_DEFAULTFILE ) ;
       if ( rc != SDB_OK )
       {

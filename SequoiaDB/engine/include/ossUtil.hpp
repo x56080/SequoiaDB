@@ -687,7 +687,7 @@ public :
    )
    {
       SINT32 rc = SDB_OK ;
-      UINT64 numTicksForInterval ;
+      UINT64 numTicksForInterval = 0 ;
    #if defined (_WINDOWS)
       UINT64 maxValue = OSS_UINT64_MAX / cFactor.factor ;
 
@@ -700,7 +700,7 @@ public :
          numTicksForInterval = timeValueInMicroseconds * cFactor.factor ;
       }
    #elif defined (_LINUX) || defined (_AIX)
-      UINT32 hi, lo ;
+      UINT32 hi = 0, lo = 0 ;
 
       hi = timeValueInMicroseconds / OSS_ONE_MILLION ;
       lo = timeValueInMicroseconds % OSS_ONE_MILLION ;

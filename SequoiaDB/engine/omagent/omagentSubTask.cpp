@@ -94,6 +94,7 @@ namespace engine
                                           OMA_TASK_STATUS_DESC_RUNNING,
                                           SDB_OK, "" } ;
          CHAR flow[OMA_BUFF_SIZE + 1] = { 0 } ;
+         string strDetail ;
          const CHAR *pDetail          = NULL ;
          const CHAR *pIP              = NULL ;
          const CHAR *pHostName        = NULL ;
@@ -177,7 +178,8 @@ namespace engine
                     "adding host[%s], rc = %d", pIP, rc ) ;
             ss << "Failed to get errno from js after adding host[" <<
                pIP << "]" ;
-            pDetail = ss.str().c_str() ;
+            strDetail = ss.str() ;
+            pDetail = strDetail.c_str() ;
             goto build_error_result ;
          }
 
@@ -195,7 +197,8 @@ namespace engine
                        "adding host[%s], rc = %d", pIP, rc ) ;
                ss << "Failed to get error detail from js after adding host[" <<
                   pIP << "]" ;
-               pDetail = ss.str().c_str() ;
+               strDetail = ss.str() ;
+               pDetail = strDetail.c_str() ;
                goto build_error_result ;
             }
             rc = errNum ;
@@ -233,7 +236,6 @@ namespace engine
                     "rc = %d", pIP, tmpRc ) ;
          }
          continue ;
-         
       }
 
    done:
@@ -284,6 +286,7 @@ namespace engine
       INT32 rc                     = SDB_OK ;
       INT32 tmpRc                  = SDB_OK ;
       CHAR flow[OMA_BUFF_SIZE + 1] = { 0 } ;
+      string strDetail ;
       const CHAR *pDetail          = NULL ;
       const CHAR *pHostName        = NULL ;
       const CHAR *pSvcName         = NULL ;
@@ -417,7 +420,8 @@ namespace engine
                        pHostName, pSvcName, rc ) ;
                ss << "Failed to get errno from js after installing data node[" <<
                   pHostName << ":" << pSvcName << "]" ;
-               pDetail = ss.str().c_str() ;
+               strDetail = ss.str() ;
+               pDetail = strDetail.c_str() ;
                goto build_error_result ;
             }
             // to see whether execute js successfully or not
@@ -432,7 +436,8 @@ namespace engine
                           pHostName, pSvcName, rc ) ;
                   ss << "Failed to get error detail from js after installing "
                         "data node[" << pHostName << ":" << pSvcName << "]" ;
-                  pDetail = ss.str().c_str() ;
+                  strDetail = ss.str() ;
+                  pDetail = strDetail.c_str() ;
                   goto build_error_result ;
                }
                rc = errNum ;
@@ -531,6 +536,7 @@ namespace engine
    {
       INT32 rc      = SDB_OK ;
       INT32 tmpRc   = SDB_OK ;
+      string strDetail ;
       const CHAR *pDetail          = NULL ;
 
       // set current sub task to be running
@@ -629,7 +635,8 @@ namespace engine
                     "installing znode[%s], rc = %d", pHostName, rc ) ;
             ss << "Failed to get errno from js after installing znode[" <<
                pHostName << "]" ;
-            pDetail = ss.str().c_str() ;
+            strDetail = ss.str() ;
+            pDetail = strDetail.c_str() ;
             goto build_error_result ;
          }
          // to see whether execute js successfully or not
@@ -643,7 +650,8 @@ namespace engine
                        "installing znode[%s], rc = %d", pHostName, rc ) ;
                ss << "Failed to get error detail from js after installing "
                      "znode[" << pHostName << "]" ;
-               pDetail = ss.str().c_str() ;
+               strDetail = ss.str() ;
+               pDetail = strDetail.c_str() ;
                goto build_error_result ;
             }
             rc = errNum ;

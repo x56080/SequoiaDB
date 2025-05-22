@@ -6340,12 +6340,12 @@ namespace engine
       BSONObjIterator itr( e.embeddedObject() ) ;
       while( itr.more() )
       {
-         BSONElement e = itr.next() ;
+         BSONElement subEle = itr.next() ;
 
-         if ( Object == e.type() )
+         if ( Object == subEle.type() )
          {
             clsCatalogItem tmpItem( TRUE, clInfo._isMainCL ) ;
-            rc = tmpItem.updateItem( e.embeddedObject(), clInfo._isSharding, clInfo._isHash ) ;
+            rc = tmpItem.updateItem( subEle.embeddedObject(), clInfo._isSharding, clInfo._isHash ) ;
             if ( SDB_OK == rc )
             {
                clInfo._vecCataInfo.push_back( tmpItem.toBson() ) ;

@@ -70,6 +70,7 @@ _utilDataParser::_utilDataParser() : _bufferSize(0),
                                      _column(1),
                                      _blockNum(0),
                                      _blockSize(0),
+                                     _linePriority( TRUE ),
                                      _accessModel(UTIL_GET_IO),
                                      _buffer(NULL),
                                      _pAccessData(NULL)

@@ -583,7 +583,7 @@ namespace engine
       }
 
       itr = nodes.begin() ;
-      for ( ; itr != nodes.end(); itr++ )
+      for ( ; itr != nodes.end(); ++itr )
       {
          if ( itr->first == _info.local.value )
          {
@@ -956,9 +956,9 @@ namespace engine
          case MSG_CLS_GINFO_UPDATED :
          {
             PD_LOG( PDEVENT, "Group info has been updated, download again" ) ;
-            MsgCatGroupReq msg ;
-            msg.id = _info.local ;
-            _cata.call( (MsgHeader *)(&msg) ) ;
+            MsgCatGroupReq reqmsg ;
+            reqmsg.id = _info.local ;
+            _cata.call( (MsgHeader *)(&reqmsg) ) ;
             break ;
          }
          case MSG_CLS_NODE_STATUS_NOTIFY :
@@ -1129,7 +1129,7 @@ namespace engine
          }
 
          map<UINT64, _clsSharingStatus>::iterator itr = _info.info.begin() ;
-         for ( ; itr != _info.info.end(); itr++ )
+         for ( ; itr != _info.info.end(); ++itr )
          {
             _clsSharingStatus &status = itr->second ;
 
@@ -1374,9 +1374,9 @@ namespace engine
       {
          rc = SDB_REPL_LOCAL_G_V_EXPIRED ;
          //download ;
-         _MsgCatGroupReq msg ;
-         msg.id = _info.local ;
-         _cata.call( (MsgHeader *)(&msg) ) ;
+         _MsgCatGroupReq reqmsg ;
+         reqmsg.id = _info.local ;
+         _cata.call( (MsgHeader *)(&reqmsg) ) ;
       }
       else if ( itr != _info.info.end() )
       {

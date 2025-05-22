@@ -383,7 +383,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       string hostname ;
       string svcname ;
-      string dbPath ;
       BSONObj configs ;
 
       if( arg.argc() == 1 )

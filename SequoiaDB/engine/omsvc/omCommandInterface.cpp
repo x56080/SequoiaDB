@@ -259,7 +259,7 @@ namespace engine
       goto done ;
    }
 
-   INT32 omRestCommandBase::_getHostInfo( string hostName, 
+   INT32 omRestCommandBase::_getHostInfo( const string &hostName, 
                                           BSONObj &hostInfo )
    {
       INT32 rc = SDB_OK ;

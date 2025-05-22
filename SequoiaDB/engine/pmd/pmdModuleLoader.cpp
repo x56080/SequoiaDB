@@ -43,7 +43,7 @@ namespace engine
    /*
       _pmdModuleLoader implement
    */
-   _pmdModuleLoader::_pmdModuleLoader() : _loadModule( NULL )
+   _pmdModuleLoader::_pmdModuleLoader() : _function( NULL ), _loadModule( NULL )
    {
    }
 

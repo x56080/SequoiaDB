@@ -82,7 +82,7 @@ namespace engine
                ss << ", params:[" ;
                for ( qgmOPFieldVec::const_iterator itr = param.begin() ;
                      itr != param.end();
-                     itr++ )
+                     ++itr )
                {
                   ss << itr->value.toString() << ",";
                }

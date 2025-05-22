@@ -1931,7 +1931,7 @@ INT32 ossExec ( const CHAR * program,
                         ossGetLastError (),
                         ossGetLastErrorMsg( ossGetLastError() ) ) ;
                result.termcode = OSS_EXIT_ERROR ;
-               result.termcode = SDB_SRC_SYS ;
+               result.exitcode = SDB_SRC_SYS ;
             }
             else
             {

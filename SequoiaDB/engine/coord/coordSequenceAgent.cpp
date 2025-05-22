@@ -312,7 +312,7 @@ namespace engine
 
       for ( COORD_SEQ_MAP::bucket_iterator bucketIt = _sequenceCache.begin() ;
             bucketIt != _sequenceCache.end() ;
-            bucketIt++ )
+            ++bucketIt )
       {
          COORD_SEQ_MAP::Bucket& bucket = *bucketIt ;
          BUCKET_XLOCK( bucket ) ;

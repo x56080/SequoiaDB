@@ -132,7 +132,7 @@ namespace engine
                                        BOOLEAN isCurrent,
                                        BOOLEAN isDetail,
                                        UINT32 addInfoMask,
-                                       const BSONObj obj = BSONObj() ) = 0 ;
+                                       const BSONObj &obj = BSONObj() ) = 0 ;
 
          virtual const CHAR*     getName() const = 0 ;
 

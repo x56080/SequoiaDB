@@ -303,11 +303,11 @@ namespace engine
       {
          return &_svcTaskMgr ;
       }
-      void setMonCB( monConfigCB & monCB )
+      void setMonCB( const monConfigCB & monCB )
       {
          _monCfgCB = monCB ;
       }
-      void setMonDBCB ( monDBCB & cb )
+      void setMonDBCB ( const monDBCB & cb )
       {
          _monDBCB = cb ;
       }

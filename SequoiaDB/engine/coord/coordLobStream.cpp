@@ -1302,7 +1302,7 @@ namespace engine
          }
 
          for ( RTN_LOB_TUPLES::const_iterator iter = tuples.begin() ;
-               iter != tuples.end() ; iter++ )
+               iter != tuples.end() ; ++iter )
          {
             const _rtnLobTuple& t = *iter ;
             if ( !piecesInfo->hasPiece( t.tuple.columns.sequence ) )

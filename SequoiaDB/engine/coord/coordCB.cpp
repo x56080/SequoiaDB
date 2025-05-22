@@ -68,6 +68,7 @@ namespace engine
     _shardServiceID ( MSG_ROUTE_SHARD_SERVCIE ),
     _regTimerID ( COORD_INVALID_TIMERID ),
     _clearEventTimerID( COORD_INVALID_TIMERID ),
+    _pCollectionName( NULL ),
     _pDmsCB( NULL ),
     _pDpsCB( NULL ),
     _pRtnCB( NULL ),

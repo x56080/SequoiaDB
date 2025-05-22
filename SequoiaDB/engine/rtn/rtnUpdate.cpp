@@ -254,7 +254,7 @@ retry:
             ossTick startTime, endTime, execStartTime, execEndTime ;
             ossTickDelta queryTime ;
 
-            if ( cb->getMonConfigCB()->timestampON )
+            if ( cb && cb->getMonConfigCB()->timestampON )
             {
                monCtxCB.recordStartTimestamp() ;
             }

@@ -221,7 +221,7 @@ namespace engine
       void              appendDeployPath( const string &packageName,
                                           string &deployPath ) ;
       string            getDeployPath( const string &packageName ) ;
-      const simpleDiskInfo*   getDisk( const string path ) ;
+      const simpleDiskInfo*   getDisk( const string &path ) ;
 
       // count all the nodes for which Predicate pred returns true
       template<class Predicate>
@@ -420,8 +420,8 @@ namespace engine
    class byDisk
    {
    public:
-      byDisk( string diskName ):
-         _diskName( diskName )
+      byDisk( const string &diskName )
+      :_diskName( diskName )
       {
       }
 

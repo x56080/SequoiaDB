@@ -54,7 +54,7 @@ namespace engine
       BSONObj        _obj ;
       BSONElement    _element ;
 
-      _qgmMatcherDataNode( BSONObj obj = BSONObj() )
+      _qgmMatcherDataNode( const BSONObj &obj = BSONObj() )
       {
          _obj = obj ;
          _element = _obj.firstElement() ;

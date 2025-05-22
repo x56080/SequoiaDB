@@ -252,7 +252,7 @@ namespace engine
                goto error ;
             }
 
-            for ( it = keySet.begin() ; it != keySet.end() ; it++ )
+            for ( it = keySet.begin() ; it != keySet.end() ; ++it )
             {
                ixmKeyOwned key( *(it) ) ;
                rc = _sorter->push( key, recordID ) ;

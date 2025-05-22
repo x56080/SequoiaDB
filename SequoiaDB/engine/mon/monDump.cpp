@@ -2962,7 +2962,7 @@ namespace engine
                                  BOOLEAN isCurrent,
                                  BOOLEAN isDetail,
                                  UINT32 addInfoMask,
-                                 const BSONObj obj )
+                                 const BSONObj &obj )
    {
       INT32 rc = SDB_OK ;
       _dumpCurrent = isCurrent ;
@@ -3211,7 +3211,7 @@ namespace engine
                                    BOOLEAN isCurrent,
                                    BOOLEAN isDetail,
                                    UINT32 addInfoMask,
-                                   const BSONObj obj )
+                                   const BSONObj &obj )
    {
       SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
       SDB_ASSERT( rtnCB, "RTNCB can't be NULL" ) ;
@@ -3454,7 +3454,7 @@ namespace engine
                                    BOOLEAN isCurrent,
                                    BOOLEAN isDetail,
                                    UINT32 addInfoMask,
-                                   const BSONObj obj )
+                                   const BSONObj &obj )
    {
       SDB_ASSERT( cb, "cb can't be NULL" ) ;
       INT32 rc = SDB_OK ;
@@ -3712,7 +3712,7 @@ namespace engine
                                     BOOLEAN isCurrent,
                                     BOOLEAN isDetail,
                                     UINT32 addInfoMask,
-                                    const BSONObj obj )
+                                    const BSONObj &obj )
    {
       SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
       SDB_ASSERT( dmsCB, "DMSCB can't be NULL" ) ;
@@ -3879,7 +3879,7 @@ namespace engine
                                          BOOLEAN isCurrent,
                                          BOOLEAN isDetail,
                                          UINT32 addInfoMask,
-                                         const BSONObj obj )
+                                         const BSONObj &obj )
    {
       SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
       SDB_ASSERT( dmsCB, "DMSCB can't be NULL" ) ;
@@ -4028,7 +4028,7 @@ namespace engine
             MON_CL_SIM_VEC::const_iterator it1 ;
             for ( it1 = full._collections.begin();
                   it1!= full._collections.end();
-                  it1++ )
+                  ++it1 )
             {
                sub.append ( BSON ( FIELD_NAME_NAME <<
                                    it1->_name <<
@@ -4156,7 +4156,7 @@ namespace engine
                                   BOOLEAN isCurrent,
                                   BOOLEAN isDetail,
                                   UINT32 addInfoMask,
-                                  const BSONObj obj )
+                                  const BSONObj &obj )
    {
       _addInfoMask = addInfoMask ;
       _hitEnd = FALSE ;
@@ -4289,7 +4289,7 @@ namespace engine
                                 BOOLEAN isCurrent,
                                 BOOLEAN isDetail,
                                 UINT32 addInfoMask,
-                                const BSONObj obj )
+                                const BSONObj &obj )
    {
       _addInfoMask = addInfoMask ;
       _hitEnd = FALSE ;
@@ -4386,7 +4386,7 @@ namespace engine
                                 BOOLEAN isCurrent,
                                 BOOLEAN isDetail,
                                 UINT32 addInfoMask,
-                                const BSONObj obj )
+                                const BSONObj &obj )
    {
       _addInfoMask = addInfoMask ;
       _hitEnd = FALSE ;
@@ -4491,7 +4491,7 @@ namespace engine
                                      BOOLEAN isCurrent,
                                      BOOLEAN isDetail,
                                      UINT32 addInfoMask,
-                                     const BSONObj obj )
+                                     const BSONObj &obj )
    {
       SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
       SDB_ASSERT( dmsCB, "DMSCB can't be NULL" ) ;
@@ -4619,7 +4619,7 @@ namespace engine
                                BOOLEAN isCurrent,
                                BOOLEAN isDetail,
                                UINT32 addInfoMask,
-                               const BSONObj obj )
+                               const BSONObj &obj )
    {
       INT32 rc = SDB_OK ;
       SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
@@ -4816,7 +4816,7 @@ namespace engine
                                  BOOLEAN isCurrent,
                                  BOOLEAN isDetail,
                                  UINT32 addInfoMask,
-                                 const BSONObj obj )
+                                 const BSONObj &obj )
    {
       INT32 rc = SDB_OK ;
       SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
@@ -4977,7 +4977,7 @@ namespace engine
                                 BOOLEAN isCurrent,
                                 BOOLEAN isDetail,
                                 UINT32 addInfoMask,
-                                const BSONObj obj )
+                                const BSONObj &obj )
    {
       INT32 rc = SDB_OK ;
       pmdKRCB *krcb = pmdGetKRCB() ;
@@ -5145,6 +5145,7 @@ namespace engine
    _monAccessPlansFetch::_monAccessPlansFetch ()
       : rtnFetchBase ( MON_DUMP_DFT_BUILDER_SZ, RTN_FETCH_ACCESSPLANS )
    {
+      _addInfoMask = 0 ;
       _pos = 0 ;
    }
 
@@ -5156,7 +5157,7 @@ namespace engine
                                       BOOLEAN isCurrent,
                                       BOOLEAN isDetail,
                                       UINT32 addInfoMask,
-                                      const BSONObj obj )
+                                      const BSONObj &obj )
    {
       INT32 rc = SDB_OK ;
 
@@ -5302,7 +5303,7 @@ namespace engine
                                  BOOLEAN isCurrent,
                                  BOOLEAN isDetail,
                                  UINT32 addInfoMask,
-                                 const BSONObj obj )
+                                 const BSONObj &obj )
    {
       INT32 rc = SDB_OK ;
 
@@ -5421,7 +5422,7 @@ namespace engine
                                         BOOLEAN isCurrent,
                                         BOOLEAN isDetail,
                                         UINT32 addInfoMask,
-                                        const BSONObj obj )
+                                        const BSONObj &obj )
    {
       ISession *pSession = cb->getSession() ;
 
@@ -5491,7 +5492,7 @@ namespace engine
                                   BOOLEAN isCurrent,
                                   BOOLEAN isDetail,
                                   UINT32 addInfoMask,
-                                  const BSONObj obj )
+                                  const BSONObj &obj )
    {
       schedTaskMgr *pMgr = pmdGetKRCB()->getSvcTaskMgr() ;
 
@@ -5573,7 +5574,7 @@ namespace engine
                                  BOOLEAN isCurrent,
                                  BOOLEAN isDetail,
                                  UINT32 addInfoMask,
-                                 const BSONObj obj )
+                                 const BSONObj &obj )
    {
       INT32 rc = SDB_OK ;
 
@@ -5837,7 +5838,7 @@ namespace engine
                                     BOOLEAN isCurrent,
                                     BOOLEAN isDetail,
                                     UINT32 addInfoMask,
-                                    const BSONObj obj )
+                                    const BSONObj &obj )
    {
       INT32 rc = SDB_OK ;
       monMonitorManager *monMgr = pmdGetKRCB()->getMonMgr() ;
@@ -5979,7 +5980,7 @@ namespace engine
                                    BOOLEAN isCurrent,
                                    BOOLEAN isDetail,
                                    UINT32 addInfoMask,
-                                   const BSONObj obj )
+                                   const BSONObj &obj )
    {
       INT32 rc = SDB_OK ;
 
@@ -6067,7 +6068,7 @@ namespace engine
          }
          builder.append( FIELD_NAME_NUM_OWNER, _itr->numOwner ) ;
 
-         _itr++ ;
+         ++_itr ;
          if ( _itr == _cachedMonClassList.end() )
          {
             _hitEnd = TRUE ;
@@ -6134,7 +6135,7 @@ namespace engine
                                     BOOLEAN isCurrent,
                                     BOOLEAN isDetail,
                                     UINT32 addInfoMask,
-                                    const BSONObj obj )
+                                    const BSONObj &obj )
    {
       int rc = SDB_OK ;
       const CHAR *pCollectionShortName = NULL ;
@@ -6442,7 +6443,7 @@ namespace engine
                                     BOOLEAN isCurrent,
                                     BOOLEAN isDetail,
                                     UINT32 addInfoMask,
-                                    const BSONObj obj )
+                                    const BSONObj &obj )
    {
       NodeID selfID = pmdGetNodeID() ;
       _nodeId.nodeID  = selfID.columns.nodeID ;

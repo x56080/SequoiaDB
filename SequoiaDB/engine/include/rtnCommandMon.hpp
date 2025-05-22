@@ -65,7 +65,15 @@ namespace engine
                _type( type ),
                _fetchType( fetchType ),
                _infoMask( infoMask )
-         {}
+         {
+            _numToReturn = -1 ;
+            _numToSkip = 0 ;
+            _matcherBuff = NULL ;
+            _selectBuff = NULL ;
+            _orderByBuff = NULL ;
+            _hintBuff = NULL ;
+            _flags = 0 ;
+         }
 
          virtual ~_rtnMonInnerBase () ;
 

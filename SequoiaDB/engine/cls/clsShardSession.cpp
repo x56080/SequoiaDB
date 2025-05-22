@@ -1216,7 +1216,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       CHAR csName[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] = { 0 } ;
       INT32 index = 0 ;
-      while ( clFullName[ index ] && index < DMS_COLLECTION_SPACE_NAME_SZ )
+      while ( index < DMS_COLLECTION_SPACE_NAME_SZ && clFullName[ index ] )
       {
          if ( '.' == clFullName[ index ] )
          {
@@ -6884,13 +6884,20 @@ namespace engine
          w = ( NULL == clientW || 0 == *clientW ) ?
                        *replSize : *clientW ;
       }
-      else if ( 0 == *clientW )
+      else if ( clientW )
       {
-         w = 1 ;
+         if ( 0 == *clientW )
+         {
+            w = 1 ;
+         }
+         else
+         {
+            w = *clientW ;
+         }
       }
       else
       {
-         w = *clientW ;
+         w = 1 ;
       }
 
       /// When first operation in transaction, should adjust the replsize

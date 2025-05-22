@@ -53,11 +53,15 @@ namespace engine
    */
    _rtnMonInnerBase::_rtnMonInnerBase()
    :_matcherBuff ( NULL ), _selectBuff ( NULL ), _orderByBuff ( NULL ),
-    _hintBuff( NULL )
+    _hintBuff( NULL ), _name( NULL )
    {
-      _flags = 0 ;
       _numToReturn = -1 ;
       _numToSkip = 0 ;
+
+      _flags = 0 ;
+      _type = CMD_UNKNOW ;
+      _fetchType = 0 ;
+      _infoMask = 0 ;
    }
 
    _rtnMonInnerBase::~_rtnMonInnerBase()

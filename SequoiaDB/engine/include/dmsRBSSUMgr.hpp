@@ -212,7 +212,7 @@ namespace engine
          return this->_GlobTransID ;
       }
 
-      void setPreOffset( dmsRBSOffset &offset )
+      void setPreOffset( const dmsRBSOffset &offset )
       {
          this->_preOffset = offset ;
       }
@@ -361,7 +361,7 @@ namespace engine
       {
          _latch.release() ;
       }
-      void   setOffset( dmsRBSOffset & o ) 
+      void   setOffset( const dmsRBSOffset & o ) 
       {
          _offset = o ;
       }

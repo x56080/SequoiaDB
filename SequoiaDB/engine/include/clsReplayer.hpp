@@ -157,7 +157,7 @@ namespace engine
                          _pmdEDUCB *eduCB ) ;
 
       INT32 replayInsert( const CHAR *collection,
-                          BSONObj &obj,
+                          const BSONObj &obj,
                           _pmdEDUCB *eduCB ) ;
 
       INT32 rollback( const dpsLogRecordHeader *recordHeader,

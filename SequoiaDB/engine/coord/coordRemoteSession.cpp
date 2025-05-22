@@ -1087,7 +1087,7 @@ namespace engine
       // iterate each instance to match nodes in current group
       for ( RTN_INSTANCE_LIST::const_iterator instIter = instanceList.begin() ;
             instIter != instanceList.end() ;
-            instIter ++ )
+            ++instIter )
       {
          PMD_PREFER_INSTANCE_TYPE instance = ( PMD_PREFER_INSTANCE_TYPE )( *instIter ) ;
          if ( instance > PMD_PREFER_INSTANCE_TYPE_MIN &&
@@ -1096,7 +1096,7 @@ namespace engine
             UINT8 pos = 0 ;
             for ( VEC_NODE_INFO::const_iterator nodeIter = groupNodes.begin() ;
                   nodeIter != groupNodes.end() ;
-                  nodeIter ++, pos ++ )
+                  ++nodeIter, pos ++ )
             {
                if ( nodeIter->_instanceID == (UINT8)instance )
                {
@@ -1343,7 +1343,7 @@ namespace engine
       // add all slave nodes into candidate positions
       for ( VEC_NODE_INFO::const_iterator nodeIter = groupNodes.begin() ;
             nodeIter != groupNodes.end() ;
-            nodeIter ++, pos ++ )
+            ++nodeIter, pos ++ )
       {
          if ( primaryPos != pos )
          {

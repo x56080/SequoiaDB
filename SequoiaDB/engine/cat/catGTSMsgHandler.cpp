@@ -391,7 +391,10 @@ namespace engine
                   break ;
                }
             }
-            rc = SDB_CLS_NOT_PRIMARY ;
+            else
+            {
+               rc = SDB_CLS_NOT_PRIMARY ;
+            }
          }
          else if ( SDB_CLS_NOT_PRIMARY != rc )
          {

@@ -472,7 +472,7 @@ namespace engine
          builder.appendBool( CLS_FS_NOMORE, FALSE ) ;
          BSONArrayBuilder array ;
          MON_IDX_LIST::const_iterator itr = _indexs.begin() ;
-         for ( ; itr != _indexs.end(); itr++ )
+         for ( ; itr != _indexs.end(); ++itr )
          {
             BSONObjBuilder index ;
             BSONObj filter = BSON( FIELD_NAME_EXT_DATA_NAME << "" ) ;
@@ -1933,11 +1933,10 @@ namespace engine
          rc = dpsCB->search( _lsn, &_mb );
          PD_RC_CHECK( rc, PDERROR, "Failed to search LSN[%lld,%d], rc: %d",
                       _lsn.offset, _lsn.version, rc ) ;
-         dpsLogRecordHeader *header =
-                     ( dpsLogRecordHeader * )_mb.readPtr();
+         dpsLogRecordHeader *logHeader = ( dpsLogRecordHeader * )_mb.readPtr();
          _mb.readPtr( _mb.length() );
-         _lsn.offset += header->_length ;
-         _lsn.version = header->_version ;
+         _lsn.offset += logHeader->_length ;
+         _lsn.version = logHeader->_version ;
 
          if ( CLS_SYNC_MAX_LEN <= _mb.length() ||
               ( time( NULL ) - bTime >= CLS_SYNC_MAX_TIME &&

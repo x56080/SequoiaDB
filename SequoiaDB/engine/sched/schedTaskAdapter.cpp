@@ -45,6 +45,7 @@ namespace engine
    _schedFIFOAdapter::_schedFIFOAdapter()
    {
       _type = SCHED_TYPE_FIFO ;
+      _pTaskQue = NULL ;
    }
 
    _schedFIFOAdapter::~_schedFIFOAdapter()

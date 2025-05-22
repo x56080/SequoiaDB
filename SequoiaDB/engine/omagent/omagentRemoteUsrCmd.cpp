@@ -249,6 +249,7 @@ namespace engine
 
     _remoteCmdRunJS::_remoteCmdRunJS()
    {
+      _jsScope = NULL ;
    }
 
    _remoteCmdRunJS::~_remoteCmdRunJS()
@@ -263,7 +264,6 @@ namespace engine
    INT32 _remoteCmdRunJS::init ( const CHAR *pInfomation )
    {
       INT32 rc = SDB_OK ;
-      string errmsg ;
       BSONObjBuilder bob ;
       BSONObj rval ;
       BSONObj detail ;

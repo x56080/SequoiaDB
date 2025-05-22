@@ -52,6 +52,7 @@ namespace engine
          pdLog(PDERROR, __FUNC__, __FILE__, __LINE__,
                "new _dpsMessageBlock failed!");
       }
+      _pageNumber = 0 ;
       _startPage = DPS_LSN_START_FROM_HEAD;
    }
 
@@ -66,6 +67,7 @@ namespace engine
                "new _dpsMessageBlock failed!");
       }
 
+      _pageNumber = 0 ;
       _startPage = DPS_LSN_START_FROM_HEAD;
    }
 

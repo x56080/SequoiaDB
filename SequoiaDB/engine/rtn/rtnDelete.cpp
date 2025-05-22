@@ -206,7 +206,7 @@ retry:
             monContextCB monCtxCB ;
             rtnReturnOptions returnOptions ;
 
-            if ( cb->getMonConfigCB()->timestampON )
+            if ( cb && cb->getMonConfigCB()->timestampON )
             {
                monCtxCB.recordStartTimestamp() ;
             }

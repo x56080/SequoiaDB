@@ -1032,6 +1032,7 @@ namespace engine
    {
       PD_TRACE_ENTRY( SDB__QGMUSEHINTTOFLAG ) ;
       INT32 rc = SDB_OK ;
+      ossPoolString stringFlag ;
       const CHAR *strFlag = NULL ;
       qgmField f ;
 
@@ -1053,7 +1054,8 @@ namespace engine
       }
 
       // treat it as number flag
-      strFlag = f.toString().c_str() ;
+      stringFlag = f.toString() ;
+      strFlag = stringFlag.c_str() ;
       rc = utilStr2Num( strFlag, flag );
       if ( rc )
       {

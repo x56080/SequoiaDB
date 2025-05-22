@@ -55,6 +55,9 @@ namespace engine
    {
       SDB_ASSERT( CLS_INVALID_VOTE_ID != _id,
                   "id should not be invalid" ) ;
+      _time = 0 ;
+      _acceptedNum = 0 ;
+      _criticalAcceptedNum = 0 ;
    }
 
    _clsVoteStatus::~_clsVoteStatus()

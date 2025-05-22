@@ -477,7 +477,7 @@ namespace engine
             UINT32 equalCount = 0 ;
             for ( RTN_SSKEY_LIST::iterator iterSSKey = _startStopKeys.begin() ;
                   iterSSKey != _startStopKeys.end() ;
-                  iterSSKey ++ )
+                  ++iterSSKey )
             {
                if ( iterSSKey->isEquality() )
                {

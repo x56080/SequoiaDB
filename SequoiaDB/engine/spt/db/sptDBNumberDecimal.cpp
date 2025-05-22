@@ -147,7 +147,7 @@ namespace engine
                }
                precisionStr = ss.str() ;
             }
-            catch( std::exception e )
+            catch( std::exception &e )
             {
                rc = SDB_INVALIDARG ;
                detail = BSON( SPT_ERR << "Failed to get precision element" ) ;

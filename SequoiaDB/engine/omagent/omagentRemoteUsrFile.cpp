@@ -315,7 +315,7 @@ namespace engine
    IMPLEMENT_OACMD_AUTO_REGISTER( _remoteFileWrite )
 
    _remoteFileWrite::_remoteFileWrite():
-      _FID( 0 ), _size( 0 ), _content( NULL )
+      _FID( 0 ), _size( 0 ), _pFileContent( NULL )
    {
    }
 
@@ -334,12 +334,12 @@ namespace engine
 
       if( String == ele.type() )
       {
-         _content = ele.valuestr() ;
-         _size = ossStrlen( _content ) ;
+         _pFileContent = ele.valuestr() ;
+         _size = ossStrlen( _pFileContent ) ;
       }
       else if( BinData == ele.type() )
       {
-         _content = ele.binData( _size ) ;
+         _pFileContent = ele.binData( _size ) ;
       }
       else
       {
@@ -395,7 +395,7 @@ namespace engine
       }
 
       // write content
-      rc = fileCommon->write( _content, _size, err ) ;
+      rc = fileCommon->write( _pFileContent, _size, err ) ;
       if( SDB_OK != rc )
       {
          PD_LOG_MSG( PDERROR, "%s", err.c_str() ) ;

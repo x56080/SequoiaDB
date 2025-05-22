@@ -504,7 +504,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       INT64 taskID = -1 ;
-      string businessType ;
       omDatabaseTool dbTool( _cb ) ;
 
       rc = dbTool.getRelationshipInfo( _name, _fromBuzName, _toBuzName ) ;

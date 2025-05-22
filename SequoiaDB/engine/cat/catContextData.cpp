@@ -1625,7 +1625,7 @@ namespace engine
          const CAT_GROUP_LIST & groups = catTask->getGroups() ;
          for ( CAT_GROUP_LIST::const_iterator iterGroup = groups.begin() ;
                iterGroup != groups.end() ;
-               iterGroup ++ )
+               ++iterGroup )
          {
             groupSet.insert( (*iterGroup ) ) ;
          }
@@ -3629,7 +3629,7 @@ namespace engine
       // Lock collections
       for ( set<string>::iterator iterCL = collectionSet.begin() ;
             iterCL != collectionSet.end() ;
-            iterCL ++ )
+            ++iterCL )
       {
          const string & collectionName = (*iterCL) ;
          PD_CHECK( lockMgr->tryLockCollection( (*iterCL), SHARED ),
@@ -3675,11 +3675,11 @@ namespace engine
 
       for( UINT32 i = 0 ; i < _execTasks.size() ; i++ )
       {
-         catCtxAlterCLTask * task =
+         catCtxAlterCLTask * pCLTask =
                            dynamic_cast<catCtxAlterCLTask *>( _execTasks[i] ) ;
-         if( task )
+         if( pCLTask )
          {
-            rc = task->startPostTasks( cb, _pDmsCB, _pDpsCB, w ) ;
+            rc = pCLTask->startPostTasks( cb, _pDmsCB, _pDpsCB, w ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to start post tasks, rc: %d", rc ) ;
          }
 
@@ -3695,8 +3695,8 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXALTERCL_CLEAR_ALTERTASK, "_catCtxAlterCL::_clearAlterTask" )
    INT32 _catCtxAlterCL::_clearAlterTask ( const rtnAlterTask * task,
-                                             _pmdEDUCB * cb,
-                                             INT16 w )
+                                           _pmdEDUCB * cb,
+                                           INT16 w )
    {
       INT32 rc = SDB_OK ;
 
@@ -3704,11 +3704,11 @@ namespace engine
 
       for( UINT32 i = 0 ; i < _execTasks.size() ; i++ )
       {
-         catCtxAlterCLTask * task =
+         catCtxAlterCLTask * pCLTask =
                            dynamic_cast<catCtxAlterCLTask *>( _execTasks[i] ) ;
-         if( task )
+         if( pCLTask )
          {
-            rc = task->clearPostTasks( cb, w ) ;
+            rc = pCLTask->clearPostTasks( cb, w ) ;
             PD_RC_CHECK( rc, PDWARNING,
                          "Failed to remove post tasks, rc: %d", rc ) ;
          }

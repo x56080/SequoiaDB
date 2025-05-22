@@ -166,6 +166,7 @@ namespace engine
       {
          ossMemset( reserved, 0, sizeof( reserved ) ) ;
          ossMemset( reserved2, 0, sizeof( reserved2 ) ) ;
+         ossMemset( hashCode, 0, sizeof(hashCode) ) ;
          weight = 0 ;
          beatVersion = CLS_BEAT_VERSION_1 ;
          nodeRunStat = (UINT8)CLS_NODE_RUNNING ;

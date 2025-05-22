@@ -465,7 +465,7 @@ namespace exprt
       // the fields should be format as <clFullName>:<field-list>
       // since compat for old version, one fields may be format as <field-list>
       // so completes the prefix '<clFullName>:' here
-      if ( 1 == rawCLFields.size() && 1 == rawCLFields.size() &&
+      if ( 1 == rawCLFields.size() &&
            string::npos == rawCLFields.back().find(EXPCL_FIELDS_SEP_STR) )
       {
          expCL cl ;

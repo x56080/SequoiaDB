@@ -626,6 +626,7 @@ namespace engine
       {
          rc = SDB_OOM ;
          detail = BSON( SPT_ERR << "Failed to new sptDBCS obj" ) ;
+         goto error ;
       }
       rc = rval.setUsrObjectVal< sptDBCS >( sptCS ) ;
       if( SDB_OK != rc )
@@ -680,6 +681,7 @@ namespace engine
       {
          rc = SDB_OOM ;
          detail = BSON( SPT_ERR << "Failed to new sptDBRG obj" ) ;
+         goto error ;
       }
       rc = rval.setUsrObjectVal< sptDBRG >( sptRG ) ;
       if( SDB_OK != rc )
@@ -1625,7 +1627,7 @@ namespace engine
                      tidVec.push_back( ( UINT32 )ele.numberInt() ) ;
                   }
                }
-               catch( std::exception e )
+               catch( std::exception &e )
                {
                   rc = SDB_INVALIDARG ;
                   detail = BSON( SPT_ERR <<
@@ -3069,6 +3071,7 @@ namespace engine
       {
          rc = SDB_OOM ;
          detail = BSON( SPT_ERR << "Failed to new sptDBSequence obj" ) ;
+         goto error ;
       }
       pSequence = NULL ;
 
@@ -3139,6 +3142,7 @@ namespace engine
       {
          rc = SDB_OOM ;
          detail = BSON( SPT_ERR << "Failed to new sptDBSequence obj" ) ;
+         goto error ;
       }
       pSequence = NULL ;
 
@@ -3357,6 +3361,7 @@ namespace engine
       {
          rc = SDB_OOM ;
          detail = BSON( SPT_ERR << "Failed to new sptDBDatasource obj" ) ;
+         goto error ;
       }
 
       rc = rval.setUsrObjectVal< sptDBDataSource >( sptDS ) ;

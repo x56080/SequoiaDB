@@ -92,7 +92,7 @@ namespace engine
             if ( su && su->LogicalCSID() == prefReq->_csLID )
             {
                const dmsExtent *pExtent = NULL ;
-               const CHAR *pData = NULL ;
+               const CHAR *pExtData = NULL ;
                UINT32 pageSizeSqureRoot = 0 ;
 
                if ( BPS_DMS_DATA == prefReq->_type )
@@ -112,18 +112,18 @@ namespace engine
                // if return 0, means invalid so that we can ignore
                if ( pExtent )
                {
-                  pData = ( const CHAR* )pExtent ;
+                  pExtData = ( const CHAR* )pExtent ;
                   UINT32 totalSize = 0 ;
 
-                  if ( pData[0] == DMS_EXTENT_EYECATCHER0 &&
-                       pData[1] == DMS_EXTENT_EYECATCHER1 )
+                  if ( pExtData[0] == DMS_EXTENT_EYECATCHER0 &&
+                       pExtData[1] == DMS_EXTENT_EYECATCHER1 )
                   {
                      // dms extent
                      totalSize = (UINT32)(pExtent->_blockSize <<
                                           pageSizeSqureRoot ) ;
                   }
-                  else if ( pData[0] == DMS_META_EXTENT_EYECATCHER0 &&
-                            pData[1] == DMS_META_EXTENT_EYECATCHER1 )
+                  else if ( pExtData[0] == DMS_META_EXTENT_EYECATCHER0 &&
+                            pExtData[1] == DMS_META_EXTENT_EYECATCHER1 )
                   {
                      totalSize = (UINT32)(pExtent->_blockSize <<
                                           pageSizeSqureRoot ) ;
@@ -137,15 +137,15 @@ namespace engine
                   totalSize = OSS_MIN ( totalSize,
                                         DMS_MAX_EXTENT_SZ(su->data()) ) ;
 
-                  pData = extRW.readPtr( 0, totalSize ) ;
-                  if ( pData )
+                  pExtData = extRW.readPtr( 0, totalSize ) ;
+                  if ( pExtData )
                   {
                      // loop for each page ( based on PMD_PRELOAD_UNIT ) in the
                      // extent
                      UINT32 index = 0 ;
                      while ( index < totalSize )
                      {
-                        doPreLoad( pData + index ) ;
+                        doPreLoad( pExtData + index ) ;
                         index += PMD_PRELOAD_UNIT ;
                      }
                   }

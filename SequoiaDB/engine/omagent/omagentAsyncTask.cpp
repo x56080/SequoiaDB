@@ -85,6 +85,7 @@ namespace engine
          : _omaTask( taskID ),
            _errno( SDB_OK ),
            _isSetErrInfo( FALSE ),
+           _planTaskIndex( 0 ),
            _planTaskNum( 0 )
    {
       SDB_ASSERT( command != NULL, "omagent command can't not be null" ) ;
@@ -745,6 +746,7 @@ namespace engine
 
    _omaAsyncSubTask::_omaAsyncSubTask( INT64 taskID ) : _omaTask( taskID )
    {
+      _task = NULL ;
       _taskID = taskID ;
       _taskName = OMA_CMD_ASYNC_SUB_TASK ;
    }

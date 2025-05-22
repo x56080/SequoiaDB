@@ -605,6 +605,10 @@ namespace engine
      _itemNumber( 0 ),
      _invalidMatcher( FALSE )
    {
+      for ( UINT32 i = 0 ; i < MTH_NORMALIZER_ITEM_NUM ; ++i )
+      {
+         _itemIndexes[ i ] = NULL ;
+      }
    }
 
    _mthMatchNormalizer::~_mthMatchNormalizer ()

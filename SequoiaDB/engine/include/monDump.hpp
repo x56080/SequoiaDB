@@ -152,7 +152,7 @@ namespace engine
                                     BOOLEAN isCurrent,
                                     BOOLEAN isDetail,
                                     UINT32 addInfoMask,
-                                    const BSONObj obj = BSONObj() ) ;
+                                    const BSONObj &obj = BSONObj() ) ;
 
          virtual const CHAR*  getName() const ;
 
@@ -189,7 +189,7 @@ namespace engine
                                     BOOLEAN isCurrent,
                                     BOOLEAN isDetail,
                                     UINT32 addInfoMask,
-                                    const BSONObj obj = BSONObj() ) ;
+                                    const BSONObj &obj = BSONObj() ) ;
 
          virtual const CHAR*  getName() const ;
 
@@ -225,7 +225,7 @@ namespace engine
                                     BOOLEAN isCurrent,
                                     BOOLEAN isDetail,
                                     UINT32 addInfoMask,
-                                    const BSONObj obj = BSONObj() ) ;
+                                    const BSONObj &obj = BSONObj() ) ;
 
          virtual const CHAR*  getName() const ;
 
@@ -263,7 +263,7 @@ namespace engine
                                     BOOLEAN isCurrent,
                                     BOOLEAN isDetail,
                                     UINT32 addInfoMask,
-                                    const BSONObj obj = BSONObj() ) ;
+                                    const BSONObj &obj = BSONObj() ) ;
 
          virtual const CHAR*  getName() const ;
 
@@ -301,7 +301,7 @@ namespace engine
                                     BOOLEAN isCurrent,
                                     BOOLEAN isDetail,
                                     UINT32 addInfoMask,
-                                    const BSONObj obj = BSONObj() ) ;
+                                    const BSONObj &obj = BSONObj() ) ;
 
          virtual const CHAR*  getName() const ;
 
@@ -337,7 +337,7 @@ namespace engine
                                     BOOLEAN isCurrent,
                                     BOOLEAN isDetail,
                                     UINT32 addInfoMask,
-                                    const BSONObj obj = BSONObj() ) ;
+                                    const BSONObj &obj = BSONObj() ) ;
 
          virtual const CHAR*  getName() const ;
 
@@ -365,7 +365,7 @@ namespace engine
                                     BOOLEAN isCurrent,
                                     BOOLEAN isDetail,
                                     UINT32 addInfoMask,
-                                    const BSONObj obj = BSONObj() ) ;
+                                    const BSONObj &obj = BSONObj() ) ;
 
          virtual const CHAR*  getName() const ;
 
@@ -393,7 +393,7 @@ namespace engine
                                     BOOLEAN isCurrent,
                                     BOOLEAN isDetail,
                                     UINT32 addInfoMask,
-                                    const BSONObj obj = BSONObj() ) ;
+                                    const BSONObj &obj = BSONObj() ) ;
 
          virtual const CHAR*  getName() const ;
 
@@ -424,7 +424,7 @@ namespace engine
                                     BOOLEAN isCurrent,
                                     BOOLEAN isDetail,
                                     UINT32 addInfoMask,
-                                    const BSONObj obj = BSONObj() ) ;
+                                    const BSONObj &obj = BSONObj() ) ;
 
          virtual const CHAR*  getName() const ;
 
@@ -457,7 +457,7 @@ namespace engine
                                     BOOLEAN isCurrent,
                                     BOOLEAN isDetail,
                                     UINT32 addInfoMask,
-                                    const BSONObj obj = BSONObj() ) ;
+                                    const BSONObj &obj = BSONObj() ) ;
 
          virtual const CHAR*  getName() const ;
 
@@ -490,7 +490,7 @@ namespace engine
                                     BOOLEAN isCurrent,
                                     BOOLEAN isDetail,
                                     UINT32 addInfoMask,
-                                    const BSONObj obj = BSONObj() ) ;
+                                    const BSONObj &obj = BSONObj() ) ;
 
          virtual const CHAR*  getName() const ;
 
@@ -523,7 +523,7 @@ namespace engine
                                     BOOLEAN isCurrent,
                                     BOOLEAN isDetail,
                                     UINT32 addInfoMask,
-                                    const BSONObj obj = BSONObj() ) ;
+                                    const BSONObj &obj = BSONObj() ) ;
 
          virtual const CHAR*  getName() const ;
 
@@ -556,7 +556,7 @@ namespace engine
                               BOOLEAN isCurrent,
                               BOOLEAN isDetail,
                               UINT32 addInfoMask,
-                              const BSONObj obj = BSONObj() ) ;
+                              const BSONObj &obj = BSONObj() ) ;
 
          virtual const CHAR* getName () const ;
 
@@ -590,7 +590,7 @@ namespace engine
                                     BOOLEAN isCurrent,
                                     BOOLEAN isDetail,
                                     UINT32 addInfoMask,
-                                    const BSONObj obj = BSONObj() ) ;
+                                    const BSONObj &obj = BSONObj() ) ;
 
          virtual const CHAR*  getName() const ;
 
@@ -620,7 +620,7 @@ namespace engine
                                     BOOLEAN isCurrent,
                                     BOOLEAN isDetail,
                                     UINT32 addInfoMask,
-                                    const BSONObj obj = BSONObj() ) ;
+                                    const BSONObj &obj = BSONObj() ) ;
 
          virtual const CHAR*  getName() const ;
 
@@ -647,7 +647,7 @@ namespace engine
                                     BOOLEAN isCurrent,
                                     BOOLEAN isDetail,
                                     UINT32 addInfoMask,
-                                    const BSONObj obj = BSONObj() ) ;
+                                    const BSONObj &obj = BSONObj() ) ;
 
          virtual const CHAR*  getName() const ;
 
@@ -677,7 +677,7 @@ namespace engine
                                     BOOLEAN isCurrent,
                                     BOOLEAN isDetail,
                                     UINT32 addInfoMask,
-                                    const BSONObj obj = BSONObj() ) ;
+                                    const BSONObj &obj = BSONObj() ) ;
 
          virtual const CHAR*  getName() const ;
 
@@ -708,7 +708,7 @@ namespace engine
                                     BOOLEAN isCurrent,
                                     BOOLEAN isDetail,
                                     UINT32 addInfoMask,
-                                    const BSONObj obj = BSONObj() ) ;
+                                    const BSONObj &obj = BSONObj() ) ;
 
          virtual const CHAR*  getName() const ;
 
@@ -741,7 +741,7 @@ namespace engine
                                     BOOLEAN isCurrent,
                                     BOOLEAN isDetail,
                                     UINT32 addInfoMask,
-                                    const BSONObj obj = BSONObj() ) ;
+                                    const BSONObj &obj = BSONObj() ) ;
 
          virtual const CHAR*  getName() const ;
 
@@ -774,7 +774,7 @@ namespace engine
                                     BOOLEAN isCurrent,
                                     BOOLEAN isDetail,
                                     UINT32 addInfoMask,
-                                    const BSONObj obj = BSONObj() ) ;
+                                    const BSONObj &obj = BSONObj() ) ;
 
          virtual const CHAR*  getName() const ;
 
@@ -817,7 +817,7 @@ namespace engine
                           BOOLEAN isCurrent,
                           BOOLEAN isDetail,
                           UINT32 addInfoMask,
-                          const BSONObj obj = BSONObj() )
+                          const BSONObj &obj = BSONObj() )
       {
          // do nothing
          return SDB_OK ;
@@ -857,7 +857,7 @@ namespace engine
                                     BOOLEAN isCurrent,
                                     BOOLEAN isDetail,
                                     UINT32 addInfoMask,
-                                    const BSONObj obj = BSONObj() ) ;
+                                    const BSONObj &obj = BSONObj() ) ;
 
          virtual const CHAR*  getName() const ;
 

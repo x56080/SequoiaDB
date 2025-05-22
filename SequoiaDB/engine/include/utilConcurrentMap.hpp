@@ -428,7 +428,7 @@ namespace engine
    #define FOR_EACH_CMAP_BUCKET_X( _MAP_TYPE, _map ) \
       for ( _MAP_TYPE::bucket_iterator bucketIt = (_map).begin() ; \
             bucketIt != (_map).end() ; \
-            bucketIt++ ) \
+            ++bucketIt ) \
       { \
          _MAP_TYPE::Bucket& bucket = *bucketIt ; \
          BUCKET_XLOCK( bucket ) ;
@@ -437,7 +437,7 @@ namespace engine
    #define FOR_EACH_CMAP_BUCKET( _MAP_TYPE, _map ) \
       for ( _MAP_TYPE::bucket_iterator bucketIt = (_map).begin() ; \
             bucketIt != (_map).end() ; \
-            bucketIt++ ) \
+            ++bucketIt ) \
       { \
          _MAP_TYPE::Bucket& bucket = *bucketIt ;
 
@@ -447,41 +447,41 @@ namespace engine
    #define FOR_EACH_CMAP_ELEMENT_S( _MAP_TYPE, _map ) \
       for ( _MAP_TYPE::bucket_iterator bucketIt = (_map).begin() ; \
             bucketIt != (_map).end() ; \
-            bucketIt++ ) \
+            ++bucketIt ) \
       { \
          _MAP_TYPE::Bucket& bucket = *bucketIt ; \
          BUCKET_SLOCK( bucket ) ; \
       \
          for ( _MAP_TYPE::map_const_iterator it = bucket.begin() ; \
                it != bucket.end() ; \
-               it++ ) \
+               ++it ) \
          {
 
    // exclusive lock
    #define FOR_EACH_CMAP_ELEMENT_X( _MAP_TYPE, _map ) \
       for ( _MAP_TYPE::bucket_iterator bucketIt = (_map).begin() ; \
             bucketIt != (_map).end() ; \
-            bucketIt++ ) \
+            ++bucketIt ) \
       { \
          _MAP_TYPE::Bucket& bucket = *bucketIt ; \
          BUCKET_XLOCK( bucket ) ; \
       \
          for ( _MAP_TYPE::map_const_iterator it = bucket.begin() ; \
                it != bucket.end() ; \
-               it++ ) \
+               ++it ) \
          {
 
    // not lock
    #define FOR_EACH_CMAP_ELEMENT( _MAP_TYPE, _map ) \
       for ( _MAP_TYPE::bucket_iterator bucketIt = (_map).begin() ; \
             bucketIt != (_map).end() ; \
-            bucketIt++ ) \
+            ++bucketIt ) \
       { \
          _MAP_TYPE::Bucket& bucket = *bucketIt ; \
       \
          for ( _MAP_TYPE::map_const_iterator it = bucket.begin() ; \
                it != bucket.end() ; \
-               it++ ) \
+               ++it ) \
          {
 
    #define FOR_EACH_CMAP_ELEMENT_END }}

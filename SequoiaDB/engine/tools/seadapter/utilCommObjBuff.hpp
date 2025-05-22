@@ -122,7 +122,6 @@ namespace seadapter
          PD_LOG( PDERROR, "Failed to create bson object: %s", e.what() ) ;
          rc = SDB_SYS ;
          goto error ;
-         return SDB_SYS ;
       }
    done:
       return rc ;

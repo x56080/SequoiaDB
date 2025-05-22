@@ -86,6 +86,7 @@ namespace engine
         originMode( DPS_TRANSLOCK_MAX ),
         status( DPS_LRB_STATUS_NONE )
       {
+         pad[0] = 0 ;
       }
 
       void reset()

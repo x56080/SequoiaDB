@@ -1627,7 +1627,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       SDB_ASSERT( NULL != recordHeader, "head should not be NULL" ) ;
       MAP_TRANS_PENDING_OBJ::iterator it ;
-      INT64 contextID = -1 ;
       BOOLEAN needReport = TRUE ;
 
       if ( !_dpsCB )
@@ -1664,11 +1663,6 @@ namespace engine
       }
 
    done:
-      if ( -1 != contextID )
-      {
-         sdbGetRTNCB()->contextDelete( contextID, eduCB ) ;
-      }
-
       return rc ;
    error:
       if ( needReport )
@@ -2230,7 +2224,7 @@ namespace engine
    }
 
    INT32 _clsReplayer::replayInsert( const CHAR *collection,
-                                     BSONObj &obj,
+                                     const BSONObj &obj,
                                      _pmdEDUCB *eduCB )
    {
       SDB_ASSERT( NULL != collection, "collection should not be NULL" ) ;

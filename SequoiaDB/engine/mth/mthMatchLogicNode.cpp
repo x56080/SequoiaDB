@@ -47,6 +47,7 @@ namespace engine
                                            const mthNodeConfig *config )
                       :_mthMatchNode( allocator, config )
    {
+      _weight = 0 ;
    }
 
    _mthMatchLogicNode::~_mthMatchLogicNode()
@@ -120,7 +121,7 @@ namespace engine
       while ( iter != _children.end() )
       {
          sub << ( *iter )->toBson() ;
-         iter++ ;
+         ++iter ;
       }
 
       sub.doneFast() ;
@@ -136,7 +137,7 @@ namespace engine
       while ( iter != _children.end() )
       {
          sub << ( *iter )->toParamBson( toParamBson ) ;
-         iter++ ;
+         ++iter ;
       }
 
       sub.doneFast() ;
@@ -251,7 +252,7 @@ namespace engine
          selectivity *= tmpSelectivity ;
          cpuCost += tmpCPUCost ;
 
-         iter++ ;
+         ++iter ;
       }
 
       selectivity = OPT_ROUND_SELECTIVITY( selectivity ) ;
@@ -417,7 +418,7 @@ namespace engine
          selectivity *= ( 1.0 - tmpSelectivity ) ;
          cpuCost += tmpCPUCost ;
 
-         iter++ ;
+         ++iter ;
       }
 
       selectivity = 1.0 - OPT_ROUND_SELECTIVITY( selectivity ) ;
@@ -512,7 +513,7 @@ namespace engine
          selectivity *= ( 1.0 - tmpSelectivity ) ;
          cpuCost += tmpCPUCost ;
 
-         iter++ ;
+         ++iter ;
       }
 
       selectivity = OPT_ROUND_SELECTIVITY( selectivity ) ;

@@ -678,7 +678,7 @@ namespace engine
       {
          BSONObj oneHost = BSON( OM_CONFIGURE_FIELD_HOSTNAME << *iter ) ;
          arrayBuilder.append( oneHost ) ;
-         iter++ ;
+         ++iter ;
       }
 
       tmp     = BSON( OM_BUSINESS_FIELD_LOCATION << arrayBuilder.arr() ) ;
@@ -780,8 +780,6 @@ namespace engine
       while ( TRUE )
       {
          string businessName ;
-         string businessType ;
-         string clusterName ;
          rtnContextBuf buffObj ;
          rc = rtnGetMore( contextID, 1, buffObj, cb, pRtnCB ) ;
          if ( rc )

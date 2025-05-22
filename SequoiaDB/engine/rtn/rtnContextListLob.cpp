@@ -165,7 +165,7 @@ namespace engine
       ossPoolSet<UINT32> hintGroups ;
       BOOLEAN isNullCond = FALSE ;
 
-      _selector = selector.getOwned() ;
+      _selectorObj = selector.getOwned() ;
       _hint = hint.getOwned() ;
       _skip = skip ;
       _returnNum = returnNum ;
@@ -189,11 +189,11 @@ namespace engine
       /// merge groupid
       _mergeGroupSet( hintGroups, queryGroups, isNullCond ) ;
 
-      if ( !_selector.isEmpty() )
+      if ( !_selectorObj.isEmpty() )
       {
-         rc = _selectorParser.loadPattern ( _selector ) ;
+         rc = _selector.loadPattern ( _selectorObj ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to load selector pattern[%s], rc: %d",
-                      _selector.toString().c_str(), rc ) ;
+                      _selectorObj.toString().c_str(), rc ) ;
       }
 
       rc = _matchTree.loadPattern( _query ) ;
@@ -310,9 +310,9 @@ namespace engine
                   --_returnNum ;
                }
 
-               if ( _selectorParser.isInitialized() )
+               if ( _selector.isInitialized() )
                {
-                  rc = _selectorParser.select( obj, selObj ) ;
+                  rc = _selector.select( obj, selObj ) ;
                   PD_RC_CHECK( rc, PDERROR, "Failed to select obj[%s], rc: %d",
                                obj.toString().c_str(), rc ) ;
                }
@@ -383,7 +383,7 @@ namespace engine
          goto error ;
       }
 
-      if ( isCountMode() && _matchTree.isMatchesAll() && _selector.isEmpty() )
+      if ( isCountMode() && _matchTree.isMatchesAll() && _selectorObj.isEmpty() )
       {
          obj = BSONObj() ;
          goto done ;
@@ -499,7 +499,7 @@ namespace engine
          goto error ;
       }
 
-      if ( isCountMode() && _matchTree.isMatchesAll() && _selector.isEmpty() )
+      if ( isCountMode() && _matchTree.isMatchesAll() && _selectorObj.isEmpty() )
       {
          obj = BSONObj() ;
          goto done ;

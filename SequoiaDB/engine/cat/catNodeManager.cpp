@@ -1443,7 +1443,7 @@ namespace engine
    }//end of parseLine()
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATNODEMGR_PARSEIDINFO, "catNodeManager::parseIDInfo" )
-   INT32 catNodeManager::parseIDInfo( BSONObj &obj )
+   INT32 catNodeManager::parseIDInfo( const BSONObj &obj )
    {
       INT32 rc = SDB_OK;
       PD_TRACE_ENTRY ( SDB_CATNODEMGR_PARSEIDINFO ) ;

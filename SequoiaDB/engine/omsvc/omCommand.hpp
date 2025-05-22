@@ -844,7 +844,7 @@ namespace engine
          virtual INT32  doCommand() ;
 
       private:
-         INT32          _getNodeList( string businessName,
+         INT32          _getNodeList( const string &businessName,
                                       list<simpleNodeInfo> &nodeList ) ;
          void           _sendNodeList2Web( list<simpleNodeInfo> &nodeList ) ;
    } ;
@@ -1372,6 +1372,8 @@ namespace engine
          REST_CONSTRUCTOR_PARA_INHERIT( omInterruptTaskCommand,
                                         omScanHostCommand )
          {
+            _taskID = 0 ;
+            _isFinished = FALSE ;
          }
 
          ~omInterruptTaskCommand()

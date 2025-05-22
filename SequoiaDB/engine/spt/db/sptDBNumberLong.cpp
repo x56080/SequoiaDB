@@ -52,6 +52,7 @@ namespace engine
 
    _sptDBNumberLong::_sptDBNumberLong()
    {
+      _value = 0 ;
    }
 
    _sptDBNumberLong::~_sptDBNumberLong()

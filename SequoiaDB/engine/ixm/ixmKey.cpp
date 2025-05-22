@@ -500,7 +500,7 @@ namespace engine
       }
    }
 
-   INT32 _ixmKey::toRecord( const BSONObj keyPattern,
+   INT32 _ixmKey::toRecord( const BSONObj &keyPattern,
                             BSONObjBuilder &resultBuilder ) const
    {
       INT32 rc = SDB_OK ;

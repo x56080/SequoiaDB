@@ -743,7 +743,7 @@ namespace engine
             goto error ;
          }
 
-         if ( hostList.size() == 0 )
+         if ( hostList.empty() )
          {
             rc = SDB_DMS_RECORD_NOTEXIST ;
             goto error ;
@@ -787,7 +787,7 @@ namespace engine
             goto error ;
          }
 
-         if ( businessList.size() == 0 )
+         if ( businessList.empty() )
          {
             rc = SDB_DMS_RECORD_NOTEXIST ;
             goto error ;
@@ -3826,7 +3826,7 @@ checking system firewall for blocked ports" ) ;
 
       // move the exist host to hostResult
       _filterExistHost( hostInfoList, hostResult ) ;
-      if ( hostInfoList.size() == 0 )
+      if ( hostInfoList.empty() )
       {
          _sendResult2Web( hostResult ) ;
          goto done ;
@@ -3933,7 +3933,6 @@ checking system firewall for blocked ports" ) ;
          BSONObjIterator i( element.embeddedObject() ) ;
          while ( i.more() )
          {
-            string hostName ;
             BSONObjBuilder builder ;
             BSONObj tmp ;
             BSONElement ele = i.next() ;
@@ -4082,7 +4081,6 @@ checking system firewall for blocked ports" ) ;
    INT32 omAddHostCommand::_checkHostExistence( list<BSONObj> &hostInfoList )
    {
       INT32 rc = SDB_OK ;
-      set<string> hostNameSet ;
       list<BSONObj>::iterator iter = hostInfoList.begin() ;
       while ( iter != hostInfoList.end() )
       {
@@ -4106,7 +4104,6 @@ checking system firewall for blocked ports" ) ;
    INT32 omAddHostCommand::_checkHostDisk( list<BSONObj> &hostInfoList )
    {
       INT32 rc = SDB_OK ;
-      set<string> hostNameSet ;
       list<BSONObj>::iterator iter ;
 
       for ( iter = hostInfoList.begin(); iter != hostInfoList.end(); ++iter )
@@ -5195,7 +5192,7 @@ checking system firewall for blocked ports" ) ;
          goto error ;
       }
 
-      if ( 0 == hostList.size() )
+      if ( hostList.empty() )
       {
          rc = SDB_DMS_RECORD_NOTEXIST ;
          _errorMsg.setError( TRUE, "failed to get host info: rc=%d", rc ) ;
@@ -6039,7 +6036,7 @@ checking system firewall for blocked ports" ) ;
    // *****************omListNodeCommand *****************************
    IMPLEMENT_OMREST_CMD_AUTO_REGISTER( omListNodeCommand ) ;
 
-   INT32 omListNodeCommand::_getNodeList( string businessName,
+   INT32 omListNodeCommand::_getNodeList( const string &businessName,
                                           list<simpleNodeInfo> &nodeList )
    {
       INT32 rc = SDB_OK ;
@@ -6609,7 +6606,6 @@ checking system firewall for blocked ports" ) ;
       while ( TRUE )
       {
          rtnContextBuf buffObj ;
-         string hostName ;
          BSONObjBuilder builder ;
          rc = rtnGetMore( contextID, 1, buffObj, _cb, _pRTNCB ) ;
          if ( rc )
@@ -7031,7 +7027,6 @@ checking system firewall for blocked ports" ) ;
    {
       INT32 rc = SDB_OK ;
       INT64 taskID = 0 ;
-      string packetPath ;
       BSONObj restHostInfo ;
       BSONObj clusterInfo ;
       BSONObj hostsInfo ;
@@ -7364,7 +7359,7 @@ checking system firewall for blocked ports" ) ;
          }
       }
 
-      if ( hostNameList.size() == 0 )
+      if ( hostNameList.empty() )
       {
          _errorDetail = "rest field:" + string( OM_REST_FIELD_HOST_INFO )
                         + " is invalid" ;
@@ -7491,7 +7486,7 @@ checking system firewall for blocked ports" ) ;
          hostInfoList.push_back( hostInfo ) ;
       }
 
-      if ( hostInfoList.size() == 0 )
+      if ( hostInfoList.empty() )
       {
          rc = SDB_INVALIDARG ;
          _errorDetail = "host is not found" ;
@@ -7977,7 +7972,6 @@ checking system firewall for blocked ports" ) ;
       BSONObjIterator iter( hostInfos ) ;
       while ( iter.more() )
       {
-         string hostName ;
          BSONElement oneEle  = iter.next() ;
          if ( oneEle.type() != Object )
          {
@@ -8068,15 +8062,6 @@ checking system firewall for blocked ports" ) ;
          rc = SDB_INVALIDARG ;
          PD_LOG_MSG( PDERROR, "bson miss template field:field=%s",
                      OM_TEMPLATE_REPLICA_NUM ) ;
-         _errorDetail = omGetMyEDUInfoSafe( EDU_INFO_ERROR ) ;
-         goto error ;
-      }
-
-      if ( !isRepSet )
-      {
-         rc = SDB_INVALIDARG ;
-         PD_LOG_MSG( PDERROR, "bson miss template field:field=%s",
-                     OM_TEMPLATE_DATAGROUP_NUM ) ;
          _errorDetail = omGetMyEDUInfoSafe( EDU_INFO_ERROR ) ;
          goto error ;
       }
@@ -8265,7 +8250,7 @@ checking system firewall for blocked ports" ) ;
          goto error ;
       }
 
-      if ( hostInfoList.size() == 0 )
+      if ( hostInfoList.empty() )
       {
          rc = SDB_INVALIDARG ;
          PD_LOG_MSG( PDERROR, "there is no host in the cluster:clusterName=%s",
@@ -8730,7 +8715,6 @@ checking system firewall for blocked ports" ) ;
       string hostName ;
       string svcname ;
       string user ;
-      string passwd ;
 
       hostName = buzInfo.getStringField( OM_BSON_FIELD_HOST_NAME ) ;
       if ( hostName.empty() )
@@ -8780,8 +8764,6 @@ checking system firewall for blocked ports" ) ;
       INT32 rc = SDB_OK ;
       string hostName ;
       string svcname ;
-      string user ;
-      string passwd ;
 
       hostName = buzInfo.getStringField( OM_BSON_FIELD_HOST_NAME ) ;
       if ( hostName.empty() )
@@ -8988,7 +8970,6 @@ checking system firewall for blocked ports" ) ;
       BSONObjBuilder builder ;
       BSONArrayBuilder arrayBuilder ;
       BSONObjBuilder addressBuilder ;
-      vector<simpleAddressInfo>::iterator iter ;
       omDatabaseTool dbTool( _cb ) ;
 
       builder.append( OM_BUSINESS_FIELD_CLUSTERNAME, _clusterName ) ;
@@ -9896,7 +9877,7 @@ checking system firewall for blocked ports" ) ;
                  OM_CS_DEPLOY_CL_TASKINFO, rc ) ;
          goto error ;
       }
-      else if ( records.size() == 0 )
+      else if ( records.empty() )
       {
          rc = SDB_OM_TASK_NOT_EXIST ;
          PD_LOG_MSG( PDERROR, "task does not exist:taskID="OSS_LL_PRINT_FORMAT,
@@ -10205,7 +10186,7 @@ checking system firewall for blocked ports" ) ;
                   goto error ;
                }
             }
-            else if ( rc )
+            else
             {
                _errorMsg.setError( TRUE, "failed to recv response body: rc=%d",
                                    rc ) ;
@@ -12121,7 +12102,7 @@ checking system firewall for blocked ports" ) ;
          }
       }
 
-      if ( 0 == hostList.size() )
+      if ( hostList.empty() )
       {
          rc = SDB_INVALIDARG ;
          _errorMsg.setError( TRUE, "%s no hosts", OM_BSON_FIELD_HOST_INFO ) ;

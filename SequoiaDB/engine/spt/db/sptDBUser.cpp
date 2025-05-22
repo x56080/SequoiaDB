@@ -73,7 +73,6 @@ namespace engine
    {
       INT32  rc = SDB_OK ;
       string username ;
-      string errMsg ;
 
       if( arg.argc() == 0 )
       {

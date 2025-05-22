@@ -502,6 +502,7 @@ namespace engine
       _pSite         = NULL ;
       _sessionChange = FALSE ;
       _userData      = 0 ;
+      _totalWaitTime = 0 ;
       setTimeout( -1 ) ;
    }
 

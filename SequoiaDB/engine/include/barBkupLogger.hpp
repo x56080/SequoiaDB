@@ -427,7 +427,7 @@ namespace engine
          /// compressor
          _utilCompressor               *_pCompressor ;
          CHAR                          *_pCompressBuff ;
-         UINT64                        _buffSize ;
+         UINT64                        _comressBuffSize ;
 
    } ;
    typedef _barBaseLogger barBaseLogger ;
@@ -543,7 +543,6 @@ namespace engine
          UINT32            _curDataType ;
          UINT64            _curOffset ;
          UINT32            _curSequence ;
-         INT32             _replStatus ;
          BOOLEAN           _blockSync ;
          BOOLEAN           _hasRegBackup ;
 

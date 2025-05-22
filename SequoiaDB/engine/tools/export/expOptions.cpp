@@ -339,6 +339,7 @@ namespace exprt
                               _errorStop     (FALSE),
                               _useSSL        (FALSE),
                               _fileLimit     (DEFAULT_FILELIMIT),
+                              _replace       (FALSE),
                               _skip          (0),
                               _limit         (-1),
                               _strict        (FALSE),

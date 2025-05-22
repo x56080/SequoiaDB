@@ -1025,7 +1025,7 @@ namespace engine
          if ( !noMore )
          {
             vector<BSONObj>::iterator itr = indexes.begin() ;
-            for ( ; itr != indexes.end(); itr++ )
+            for ( ; itr != indexes.end(); ++itr )
             {
                _replayer.replayIXCrt( _fullNames.at( _current ).c_str(),
                                       *itr, eduCB() ) ;
@@ -2769,24 +2769,24 @@ namespace engine
 
       while( pOffset < pEnd )
       {
-         dpsLogRecordHeader *header = ( dpsLogRecordHeader *)pOffset ;
-         if ( _expectLSN.compareOffset( header->_lsn ) <= 0 )
+         dpsLogRecordHeader *logheader = ( dpsLogRecordHeader *)pOffset ;
+         if ( _expectLSN.compareOffset( logheader->_lsn ) <= 0 )
          {
             _fsStep = CLS_FS_STEP_END ;
             _end() ;
             goto done ;
          }
 
-         if ( 0 != dpsCB->expectLsn().compareOffset( header->_lsn ))
+         if ( 0 != dpsCB->expectLsn().compareOffset( logheader->_lsn ))
          {
             SDB_ASSERT( CLS_FS_STEP_NONE == _fsStep,
                         "get unexpected log" ) ;
-            rc = dpsCB->move( header->_lsn, header->_version ) ;
+            rc = dpsCB->move( logheader->_lsn, logheader->_version ) ;
             if ( rc )
             {
                PD_LOG( PDERROR, "Session[%s]: Failed to move lsn to "
                        "[%u, %lld] for sync the log info, rc: %d",
-                       sessionName(), header->_version, header->_lsn,
+                       sessionName(), logheader->_version, logheader->_lsn,
                        rc ) ;
                goto error ;
             }
@@ -2794,16 +2794,16 @@ namespace engine
             {
                PD_LOG( PDEVENT, "Session[%s]: Move lsn to [%u, %lld] for "
                        "sync the log info succeed", sessionName(),
-                       header->_version, header->_lsn ) ;
+                       logheader->_version, logheader->_lsn ) ;
                _fsStep = CLS_FS_STEP_LOGBEGIN ;
             }
          }
 
-         rc = dpsCB->recordRow( pOffset, header->_length );
+         rc = dpsCB->recordRow( pOffset, logheader->_length );
          PD_RC_CHECK( rc, PDERROR, "Failed to write log record, "
                       "synchronise transaction-log, rc: %d", rc );
 
-         pOffset += ossRoundUpToMultipleX( header->_length,
+         pOffset += ossRoundUpToMultipleX( logheader->_length,
                                            sizeof(UINT32) ) ;
       }
       expectLsn = dpsCB->expectLsn() ;

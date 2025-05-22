@@ -102,7 +102,7 @@ namespace import
       hosts.clear();
 
       for (CustomTokenizer::iterator it = hostTok.begin();
-           it != hostTok.end(); it++)
+           it != hostTok.end(); ++it)
       {
          string host = *it;
          host = boost::algorithm::trim_copy_if(host, boost::is_space());
@@ -135,7 +135,7 @@ namespace import
             }
 
             // second is svcname
-            *nameIt++;
+            ++nameIt;
             if (nameIt == nameTok.end())
             {
                rc = SDB_INVALIDARG;
@@ -152,7 +152,7 @@ namespace import
             }
 
             // error if still have string
-            *nameIt++;
+            ++nameIt;
             if (nameIt != nameTok.end())
             {
                rc = SDB_INVALIDARG;

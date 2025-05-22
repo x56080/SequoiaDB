@@ -794,7 +794,8 @@ do                                                            \
    _sdbCollectionImpl::_sdbCollectionImpl () :
    _sdbBase( CLIENT_CLASS_CL ),
    _pAppendOIDBuffer ( NULL ),
-   _appendOIDBufferSize ( 0 )
+   _appendOIDBufferSize ( 0 ),
+   _version ( CATALOG_DEFAULT_VERSION )
    {
       ossMemset ( _collectionSpaceName, 0, sizeof ( _collectionSpaceName ) ) ;
       ossMemset ( _collectionName, 0, sizeof ( _collectionName ) ) ;
@@ -4066,7 +4067,6 @@ do                                                            \
       }
 
       obj = BSON( FIELD_NAME_COLLECTION << _collectionFullName ) ;
-
       rc = _connection->_runCommand( CMD_ADMIN_PREFIX CMD_NAME_TRUNCATE,
                                      &obj ) ;
       /// ignore update result
@@ -4430,6 +4430,7 @@ do                                                            \
       ossMemset ( _hostName, 0, sizeof(_hostName) ) ;
       ossMemset ( _serviceName, 0, sizeof(_serviceName) ) ;
       ossMemset ( _nodeName, 0, sizeof(_nodeName) ) ;
+      _replicaGroupID = 0 ;
       _nodeID = SDB_NODE_INVALID_NODEID ;
    }
 
@@ -5026,7 +5027,7 @@ do                                                            \
          goto error ;
       }
 
-      for ( it = positions.begin(); it != positions.end(); it++ )
+      for ( it = positions.begin(); it != positions.end(); ++it )
       {
          vector<INT32>::iterator it_inner = validPositions.begin() ;
          BOOLEAN hasContained = FALSE ;
@@ -5035,7 +5036,7 @@ do                                                            \
             rc = SDB_INVALIDARG ;
             goto error ;
          }
-         for ( ; it_inner != validPositions.end(); it_inner++ )
+         for ( ; it_inner != validPositions.end(); ++it_inner )
          {
             if ( *it == *it_inner )
             {
@@ -5186,7 +5187,7 @@ do                                                            \
          vector<INT32> includePrimaryPositions ;
          vector<INT32> excludePrimaryPositions ;
          vector<INT32>::iterator it = validPositions.begin() ;
-         for ( ; it != validPositions.end() ; it++ )
+         for ( ; it != validPositions.end() ; ++it )
          {
             INT32 pos = *it ;
             if ( pos <= nodeCount )

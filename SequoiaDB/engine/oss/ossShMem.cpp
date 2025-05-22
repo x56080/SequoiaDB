@@ -72,7 +72,7 @@ CHAR *ossSHMAlloc( ossSHMKey shmKey, UINT32 bufSize, INT32 shmFlag, ossSHMMid &s
    shmMid = OpenFileMapping( FILE_MAP_ALL_ACCESS, FALSE, pKey );
    if ( NULL == shmMid )
    {
-      if ( shmFlag | OSS_SHM_CREATE )
+      if ( shmFlag & OSS_SHM_CREATE )
       {
          shmMid = CreateFileMapping( INVALID_HANDLE_VALUE,
                                     NULL,
@@ -84,8 +84,8 @@ CHAR *ossSHMAlloc( ossSHMKey shmKey, UINT32 bufSize, INT32 shmFlag, ossSHMMid &s
    }
    else
    {
-      if ( ( shmFlag | OSS_SHM_CREATE )
-            && ( shmFlag | OSS_SHM_EXCL ) )
+      if ( ( shmFlag & OSS_SHM_CREATE )
+            && ( shmFlag & OSS_SHM_EXCL ) )
       {
          CloseHandle( shmMid );
          goto error;

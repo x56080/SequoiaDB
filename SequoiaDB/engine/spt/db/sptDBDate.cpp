@@ -223,7 +223,6 @@ namespace engine
                                 string &errMsg )
    {
       INT32 rc = SDB_OK ;
-      string fieldName ;
       string dateStr ;
       rc = value.getStringField( SPT_DATE_DATE_FIELD, dateStr ) ;
       if( SDB_OK != rc )

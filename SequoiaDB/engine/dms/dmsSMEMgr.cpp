@@ -472,6 +472,7 @@ namespace engine
    _dmsSMEMgr::_dmsSMEMgr ()
    :_totalFree( 0 ), _freePos( 0 )
    {
+      _pageSize      = 0 ;
       _pStorageBase  = NULL ;
       _pSME          = NULL ;
    }

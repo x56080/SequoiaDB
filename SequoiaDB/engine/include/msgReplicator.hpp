@@ -95,6 +95,7 @@ const UINT32 MSG_SERVICE_MAX = 64 ;
          header.routeID.value = MSG_INVALID_ROUTEID ;
          header.TID= 0 ;
          identity.value = MSG_INVALID_ROUTEID ;
+         round = CLS_ELECTION_ROUND_STAGE_ONE ;
       }
    } ;
    typedef class _MsgClsElectionBallot MsgClsElectionBallot ;
@@ -112,6 +113,7 @@ const UINT32 MSG_SERVICE_MAX = 64 ;
          header.header.routeID.value = MSG_INVALID_ROUTEID ;
          header.header.TID= 0 ;
          identity.value = MSG_INVALID_ROUTEID ;
+         round = CLS_ELECTION_ROUND_STAGE_ONE ;
       }
    } ;
    typedef class _MsgClsElectionRes MsgClsElectionRes ;
@@ -165,6 +167,7 @@ const UINT32 MSG_SERVICE_MAX = 64 ;
          header.header.routeID.value = MSG_INVALID_ROUTEID ;
          header.header.TID= 0 ;
          identity.value = MSG_INVALID_ROUTEID ;
+         oldestTransLsn = DPS_INVALID_LSN_OFFSET ;
       }
    } ;
    typedef class _MsgReplSyncRes MsgReplSyncRes ;
@@ -437,6 +440,7 @@ const UINT32 MSG_SERVICE_MAX = 64 ;
          header.TID= 0 ;
          header.requestID = 0 ;
          packet = 0 ;
+         type = CLS_FS_NOTIFY_TYPE_DOC ;
       }
    } ;
    typedef class _MsgClsFSNotify MsgClsFSNotify ;
@@ -466,6 +470,7 @@ const UINT32 MSG_SERVICE_MAX = 64 ;
          header.header.requestID = 0 ;
          header.res = 0 ;
          packet = 0 ;
+         type = CLS_FS_NOTIFY_TYPE_DOC ;
          eof = CLS_FS_NOT_EOF ;
       }
    } ;

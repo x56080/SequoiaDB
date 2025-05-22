@@ -594,7 +594,7 @@ namespace engine
                                                  UINT32 attribute,
                                                  BOOLEAN ensureShardingIndex,
                                                  UTIL_COMPRESSOR_TYPE compType,
-                                                 const BSONObj extOptions )
+                                                 const BSONObj &extOptions )
    {
       _clUniqueID = clUniqueID ;
       _attributes = attribute ;

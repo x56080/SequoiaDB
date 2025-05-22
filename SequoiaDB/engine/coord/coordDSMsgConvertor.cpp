@@ -312,7 +312,6 @@ namespace engine
       else if ( coordIsLobMsg( msg->opCode ) )
       {
          const MsgHeader *pOrgMsg = NULL ;
-         pmdEDUCB *cb = pSub->parent()->getEDUCB() ;
          ISession *pSession = NULL ;
          IClient *pClient = NULL ;
 
@@ -764,7 +763,7 @@ namespace engine
          const CHAR *subCLName = NULL ;
          UINT32 offset = 0 ;
          netIOVec::iterator itr = dataVec->begin() ; // Point to fixed item.
-         itr++ ; // Now point to collection information object.
+         ++itr ; // Now point to collection information object.
          netIOV clInfo = *itr ;
 
          try
@@ -813,11 +812,11 @@ namespace engine
                // that item.
                if ( !ossIsAligned4( itr->iovLen ) )
                {
-                  itr++ ;  // Now point to the filling item.
+                  ++itr ;  // Now point to the filling item.
                   SDB_ASSERT( itr->iovLen < 4,
                               "Item length should be less than 4" ) ;
                }
-               itr++ ;  // Now point to the first record.
+               ++itr ;  // Now point to the first record.
 
                offset = ossRoundUpToMultipleX( offsetof(MsgOpInsert, name)
                                                + insertMsg->nameLength + 1,

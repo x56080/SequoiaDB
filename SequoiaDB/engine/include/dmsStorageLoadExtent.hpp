@@ -69,7 +69,8 @@ namespace engine
                             _buffSize( 0 ),
                             _currentExtentSize(0),
                             _currentExtent(NULL),
-                            _su(NULL)
+                            _su(NULL),
+                            _pageSize( 0 )
       {
       }
 

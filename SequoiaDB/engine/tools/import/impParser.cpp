@@ -116,7 +116,6 @@ namespace import
       SDB_ASSERT( NULL != dataQueue, "dataQueue can't be NULL" ) ;
       SDB_ASSERT( NULL != packer, "packer can't be NULL" ) ;
 
-      string inputString ;
       RecordData recordData ;
       bson obj ;
 
