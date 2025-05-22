@@ -73,6 +73,51 @@ namespace engine
       goto done ;
    }
 
+   INT32 checkAndCreatePIDFile( const CHAR *pOutputPath, BOOLEAN *pHasCreate )
+   {
+      INT32 rc = SDB_OK ;
+      BOOLEAN needCreate = TRUE ;
+
+      /// check file exist or not
+      rc = ossAccess( pOutputPath ) ;
+      if ( SDB_OK == rc )
+      {
+         ossFile file ;
+         rc = file.open( pOutputPath, OSS_READONLY, OSS_DEFAULTFILE ) ;
+         if ( SDB_OK == rc )
+         {
+            CHAR pidStr[UTIL_PID_BUFFER_SIZE + 1] = { 0 } ;
+            INT64 readSize = 0 ;
+
+            rc = file.readN( pidStr, UTIL_PID_BUFFER_SIZE, readSize ) ;
+            if ( readSize > 0 )
+            {
+               OSSPID pidInFile = ossAtoi( pidStr ) ;
+
+               /// check pid wetcher is the same
+               if ( pidInFile == ossGetCurrentProcessID() )
+               {
+                  /// no need create pid file
+                  needCreate = FALSE ;
+               }
+            }
+         }
+         file.close() ;
+      }
+
+      if ( needCreate )
+      {
+         rc = createPIDFile( pOutputPath ) ;
+      }
+
+      if ( pHasCreate && SDB_OK == rc && needCreate )
+      {
+         *pHasCreate = TRUE ;
+      }
+
+      return rc ;
+   }
+
    INT32 removePIDFile( const CHAR *pFilePath )
    {
       return ossFile::deleteFileIfExists( pFilePath ) ;
