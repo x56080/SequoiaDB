@@ -132,6 +132,7 @@ namespace engine
       INT32 delSig[] = { 17, 0 } ; // del SIGCHLD
       CHAR verText[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
       po::variables_map vm ;
+      UINT32 pidFileCheckTimer = 0 ;
 
       rc = initArgs( argc, argv, vm ) ;
       if ( rc )
@@ -274,6 +275,19 @@ namespace engine
       {
          ossSleepsecs ( 1 ) ;
          krcb->onTimer( OSS_ONE_SEC ) ;
+         pidFileCheckTimer += OSS_ONE_SEC ;
+
+         if ( pidFileCheckTimer >= 5 * OSS_ONE_SEC )
+         {
+            BOOLEAN hasCreated = FALSE ;
+            checkAndCreatePIDFile( pidFile, &hasCreated ) ;
+            pidFileCheckTimer = 0 ;
+
+            if ( hasCreated )
+            {
+               PD_LOG( PDEVENT, "Re-created pid file(%s) succeed", pidFile ) ;
+            }
+         }
       }
       rc = krcb->getShutdownCode() ;
 

@@ -44,6 +44,8 @@ namespace engine
 
    INT32 createPIDFile( const CHAR *pOutputPath ) ;
 
+   INT32 checkAndCreatePIDFile( const CHAR *pOutputPath, BOOLEAN *pHasCreate = NULL ) ;
+
    INT32 removePIDFile( const CHAR *pFilePath ) ;
 
 }
