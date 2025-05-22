@@ -69,7 +69,6 @@ namespace engine
       sptProperty *add = SDB_OSS_NEW sptProperty() ;
       if ( add )
       {
-         add->setConvertor( _convertor ) ;
          add->setName( name ) ;
          add->setAttr( attr ) ;
          _valProperties.push_back( add ) ;
@@ -83,7 +82,6 @@ namespace engine
       sptProperty *add = SDB_OSS_NEW sptProperty() ;
       if ( add )
       {
-         add->setConvertor( _convertor ) ;
          add->setName( name ) ;
          add->setAttr( attr ) ;
          _selfProperties.push_back( add ) ;
