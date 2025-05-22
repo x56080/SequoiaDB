@@ -57,7 +57,6 @@ namespace engine
                   "id should not be invalid" ) ;
       _time = 0 ;
       _acceptedNum = 0 ;
-      _criticalAcceptedNum = 0 ;
    }
 
    _clsVoteStatus::~_clsVoteStatus()
