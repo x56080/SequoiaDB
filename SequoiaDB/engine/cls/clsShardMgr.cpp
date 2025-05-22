@@ -3321,11 +3321,13 @@ namespace engine
 
       MsgOpReply * replyMessage = NULL ;
       INT32 replySize = 0 ;
+      INT32 returnNum = 0 ;
 
       replySize = sizeof( MsgOpReply ) ;
       if ( !replyObject.isEmpty() )
       {
          replySize += replyObject.objsize() ;
+         returnNum = 1 ;
       }
       replyMessage = (MsgOpReply *)SDB_THREAD_ALLOC( replySize ) ;
       PD_CHECK( NULL != replyMessage, SDB_OOM, error, PDERROR,
@@ -3339,8 +3341,8 @@ namespace engine
       replyMessage->header.requestID = request->requestID ;
       replyMessage->flags = SDB_OK ;
       replyMessage->startFrom = 0 ;
-      replyMessage->numReturned = rc ? -1 : 1 ;
-      if ( SDB_OK == rc )
+      replyMessage->numReturned = returnNum ;
+      if ( returnNum > 0 )
       {
          ossMemcpy( (CHAR *)replyMessage + sizeof( MsgOpReply ),
                     replyObject.objdata(), replyObject.objsize() ) ;
@@ -3365,7 +3367,6 @@ namespace engine
       }
       PD_TRACE_EXITRC( SDB__CLSSHDMGR_REPLYTOREMOTEENDPOINT, rc ) ;
       return rc ;
-
    error :
       goto done ;
    }

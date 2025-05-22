@@ -82,6 +82,7 @@ namespace engine
          {
             PD_LOG( PDERROR, "%s: Failed to handle message, rc: %d",
                     name(), rc ) ;
+            goto error ;
          }
 
          replyObject = replyBuilder.done() ;
