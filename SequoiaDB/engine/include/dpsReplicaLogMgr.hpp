@@ -162,7 +162,17 @@ namespace engine
       OSS_INLINE void incVersion()
       {
          _mtx.get() ;
-         _incVersion = TRUE ;
+         if ( DPS_INVALID_LSN_VERSION == _lsn.version )
+         {
+            /// inc at now
+            ++_lsn.version ;
+            _incVersion = FALSE ;
+         }
+         else
+         {
+            /// delay inc
+            _incVersion = TRUE ;
+         }
          _mtx.release() ;
       }
 
