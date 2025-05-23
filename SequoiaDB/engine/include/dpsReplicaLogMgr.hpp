@@ -166,7 +166,17 @@ namespace engine
       OSS_INLINE void incVersion( UINT8 incVerVal = DPS_INC_VER_DFT )
       {
          _mtx.get() ;
-         _incVerVal = incVerVal ;
+         if ( DPS_INVALID_LSN_VERSION == _lsn.version )
+         {
+            /// inc at now
+            _lsn.version = DPS_INVALID_LSN_VERSION + incVerVal ;
+            _incVerVal = DPS_INC_VER_ZERO ;
+         }
+         else
+         {
+            /// delay inc
+            _incVerVal = incVerVal ;
+         }
          _mtx.release() ;
       }
 
