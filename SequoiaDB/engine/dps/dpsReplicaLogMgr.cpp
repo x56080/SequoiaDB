@@ -77,7 +77,7 @@ namespace engine
       _begin = 0 ;
       _rollFlag = FALSE ;
       _lsn.offset = 0 ;
-      _lsn.version = 0 ;
+      _lsn.version = DPS_INVALID_LSN_VERSION + 1 ;
       _restoreFlag = FALSE ;
 
       _transCB = NULL ;
