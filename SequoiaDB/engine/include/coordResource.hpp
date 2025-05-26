@@ -170,6 +170,7 @@ namespace engine
          INT32       syncAddress2Options( BOOLEAN flush = TRUE,
                                           BOOLEAN force = FALSE ) ;
 
+         void        resetCataGroupInfo() ;
          void        clearCataNodeAddrList() ;
          BOOLEAN     addCataNodeAddrWhenEmpty( const CHAR *pHostName,
                                                const CHAR *pSvcName ) ;

@@ -430,6 +430,16 @@ namespace engine
       vecAddr.push_back( nodeInfo ) ;
    }
 
+   void _coordResource::resetCataGroupInfo()
+   {
+      ossScopedLock lock( &_nodeMutex, EXCLUSIVE ) ;
+
+      _cataGroupInfo = _emptyGroupPtr ;
+      /// remote group info
+      _mapGroupInfo.erase( CATALOG_GROUPID ) ;
+      _clearGroupName( CATALOG_GROUPID ) ;
+   }
+
    void _coordResource::clearCataNodeAddrList()
    {
       ossScopedLock lock( &_nodeMutex, EXCLUSIVE ) ;

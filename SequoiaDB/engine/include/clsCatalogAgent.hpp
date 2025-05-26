@@ -595,8 +595,6 @@ namespace engine
          INT32  updateLocationPrimary( const MsgRouteID& primaryID,
                                        const UINT32 locationID ) ;
 
-         void   resetGroup() ;
-
       protected:
          void   _clear () ;
 

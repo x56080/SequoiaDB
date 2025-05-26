@@ -1747,8 +1747,8 @@ namespace engine
          }
       }
 
-      // Clear cata nodes vector, so that it will reload from optCB
-      sdbGetResourceContainer()->getResource()->getCataGroupInfo()->resetGroup() ;
+      // reset catalog group info, so that it will reload from optCB
+      sdbGetResourceContainer()->getResource()->resetCataGroupInfo() ;
 
    done:
       // signal all threads that's wait for catalog update
