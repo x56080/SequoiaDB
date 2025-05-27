@@ -30,7 +30,7 @@ public class Snapshot22489 extends SdbTestBase {
     private String groupName;
     private String lobSb;
     private int times = 0;
-    private int totalTimes = 100;
+    private int totalTimes = 50;
     private static boolean isSuccess = false;
 
     @BeforeClass
@@ -58,7 +58,7 @@ public class Snapshot22489 extends SdbTestBase {
 
         DBCursor cursor = null;
         do{
-            Thread.sleep( 5 );
+            Thread.sleep( 1 );
             cursor = sdb.getSnapshot( Sequoiadb.SDB_SNAP_SESSIONS, "{ 'NodeSelect': 'master', 'IsBlocked': true, "
                     + "'Doing': 'Waiting for freezing window(Name:story_java_test.cl_22489)' }", null, null );
             if( cursor.hasNext() )
