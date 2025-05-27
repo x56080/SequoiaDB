@@ -2217,38 +2217,38 @@ function generateCreateIdxJsCodeWithoutSpentTime( clFullName, indexName, idxDef 
 {
    try
    {
-      var code = "" ;
+      var code = "var collection = db.getCS( '" +
+                 clFullName.split('.')[0] + "' ).getCL( '" +
+                 clFullName.split('.')[1] + "' ) ;\n" ;
 
       if ( indexName == "$id" )
       {
          if ( supportOnlyUpgradeMeta )
          {
-            code = "db." + clFullName +".createIdIndex( { 'OnlyUpgradeMeta': true } )\n" ;
+            code += "collection.createIdIndex( { 'OnlyUpgradeMeta': true } ) ;\n" ;
          }
          else
          {
-            code = "db." + clFullName +".createIdIndex()\n" ;
+            code += "collection.createIdIndex() ;\n" ;
          }
       }
       else if ( indexName == "$shard" )
       {
-         code = "db." + clFullName + ".enableSharding( { 'ShardingKey': " + JSON.stringify( idxDef.key ) + " } )\n" ;
+         code += "collection.enableSharding( { 'ShardingKey': " + JSON.stringify( idxDef.key ) + " } ) ;\n" ;
       }
       else
       {
          if ( supportOnlyUpgradeMeta )
          {
-            code = "db."+ clFullName +
-                   ".createIndex( '" + indexName +
-                   "', " + JSON.stringify( idxDef.key ) + ", " +
-                   JSON.stringify( getIdxAttr( idxDef ) ) + ", { 'OnlyUpgradeMeta': true } )\n" ;
+            code += "collection.createIndex( '" + indexName +
+                    "', " + JSON.stringify( idxDef.key ) + ", " +
+                    JSON.stringify( getIdxAttr( idxDef ) ) + ", { 'OnlyUpgradeMeta': true } ) ;\n" ;
          }
          else
          {
-            code = "db."+ clFullName +
-                   ".createIndex( '" + indexName +
-                   "', " + JSON.stringify( idxDef.key ) + ", " +
-                   JSON.stringify( getIdxAttr( idxDef ) ) + " )\n" ;
+            code += "collection.createIndex( '" + indexName +
+                    "', " + JSON.stringify( idxDef.key ) + ", " +
+                    JSON.stringify( getIdxAttr( idxDef ) ) + " ) ;\n" ;
          }
       }
       code += ( "println('Create index successfully[ ClFullName: " +
@@ -2274,21 +2274,23 @@ function generateCreateIdxJsCodeWithSpentTime( clFullName, indexName, idxDef )
       var code = "var beginTime = Date.now() ;\n" ;
       code += ( "println('Begin to create index [ ClFullName: " +
                 clFullName + ", IndexName: " + indexName + " ]' ) ;\n" ) ;
+      code += ( "var collection = db.getCS( '" +
+              clFullName.split('.')[0] + "' ).getCL( '" +
+              clFullName.split('.')[1] + "' ) ;\n" ) ;
 
       if ( indexName == "$id" )
       {
-         code += "db." + clFullName +".createIdIndex()\n" ;
+         code += "collection.createIdIndex() ;\n" ;
       }
       else if ( indexName == "$shard" )
       {
-         code += "db." + clFullName + ".enableSharding( { 'ShardingKey': " + JSON.stringify( idxDef.key ) + " } )\n" ;
+         code += "collection.enableSharding( { 'ShardingKey': " + JSON.stringify( idxDef.key ) + " } ) ;\n" ;
       }
       else
       {
-         code += "db."+ clFullName +
-                 ".createIndex( '" + indexName +
+         code += "collection.createIndex( '" + indexName +
                  "', " + JSON.stringify( idxDef.key ) + ", " +
-                 JSON.stringify( getIdxAttr( idxDef ) ) + " )\n" ;
+                 JSON.stringify( getIdxAttr( idxDef ) ) + " ) ;\n" ;
       }
 
       code += ( "println('Create index successfully, spent time: ' + ( (Date.now()) - beginTime )/1000 + 's' ) ;\n" ) ;
@@ -2313,10 +2315,13 @@ function generateDropIdxJsCode( clFullName, indexName )
       var code = "var beginTime = Date.now() ;\n" ;
       code += ( "println('Begin to drop index [ ClFullName: " +
                 clFullName + ", IndexName: " + indexName + " ]' ) ;\n" ) ;
+      code += ( "var collection = db.getCS( '" +
+              clFullName.split('.')[0] + "' ).getCL( '" +
+              clFullName.split('.')[1] + "' ) ;\n" ) ;
 
       if ( indexName == "$id" )
       {
-         code += "db."+ clFullName +".dropIdIndex()\n" ;
+         code += "collection.dropIdIndex() ;\n" ;
       }
       else if ( indexName == "$shard" )
       {
@@ -2324,7 +2329,7 @@ function generateDropIdxJsCode( clFullName, indexName )
       }
       else
       {
-         code += "db."+ clFullName + ".dropIndex( '" + indexName + "' )\n" ;
+         code += "collection.dropIndex( '" + indexName + "' ) ;\n" ;
       }
 
       code += ( "println('Drop index successfully, spent time: ' + ( (Date.now()) - beginTime )/1000 + 's' ) ;\n" ) ;
@@ -2863,7 +2868,7 @@ function generateMissIdxJsCode( indexInfoObj )
 
                jsCode += generateSdbConnStr( hostname, svcname, USERNAME, PASSWD, CIPHER_FILE, TOKEN ) ;
                jsCode += generateDropIdxJsCode( indexInfoObj.ClFullName, indexInfoObj.IndexName ) ;
-               jsCode += "db.close()\n\n" ;
+               jsCode += "db.close() ;\n\n" ;
             }
          }
          jsCode += "*/\n" ;
@@ -2873,7 +2878,7 @@ function generateMissIdxJsCode( indexInfoObj )
          // recreate idx
          jsCode += generateSdbConnStr( HOSTNAME, SVCNAME, USERNAME, PASSWD, CIPHER_FILE, TOKEN ) ;
          jsCode += generateCreateIdxJsCodeWithSpentTime( indexInfoObj.ClFullName, indexInfoObj.IndexName, indexInfoObj.IndexDef ) ;
-         jsCode += "db.close()\n" ;
+         jsCode += "db.close() ;\n" ;
       }
       else
       {
@@ -2923,7 +2928,7 @@ function generateConflictIdxJsCode( indexInfoObj )
 
             jsCode += generateSdbConnStr( hostname, svcname, USERNAME, PASSWD, CIPHER_FILE, TOKEN ) ;
             jsCode += generateDropIdxJsCode( indexInfoObj.ClFullName, idxName ) ;
-            jsCode += "db.close()\n\n" ;
+            jsCode += "db.close() ;\n\n" ;
          }
       }
 
@@ -2932,7 +2937,7 @@ function generateConflictIdxJsCode( indexInfoObj )
          // recreate idx
          jsCode += generateSdbConnStr( HOSTNAME, SVCNAME, USERNAME, PASSWD, CIPHER_FILE, TOKEN ) ;
          jsCode += generateCreateIdxJsCodeWithSpentTime( indexInfoObj.ClFullName, idxName, idxDef ) ;
-         jsCode += "db.close()\n\n" ;
+         jsCode += "db.close() ;\n\n" ;
       }
       else
       {
@@ -2961,7 +2966,7 @@ function generateInvalidIdIdxJsCode( indexInfoObj )
       jsCode += "/*\n" ;
       jsCode += generateSdbConnStr( HOSTNAME, SVCNAME, USERNAME, PASSWD, CIPHER_FILE, TOKEN ) ;
       jsCode += generateDropIdxJsCode( indexInfoObj.ClFullName, indexInfoObj.IndexName ) ;
-      jsCode += "db.close()\n\n" ;
+      jsCode += "db.close() ;\n\n" ;
       jsCode += "*/\n" ;
       return jsCode ;
    }
@@ -3609,7 +3614,7 @@ function generateCanUpgradeIdxJsScript()
            "Left time: ' + leftTime + 's' ) ;\n" ) ;
          writeUpgradeJsCode( UPGRADE_INDEX_JS_FILE, progressCode, false ) ;
       }
-      writeUpgradeJsCode( UPGRADE_INDEX_JS_FILE, "db.close()\n", true ) ;
+      writeUpgradeJsCode( UPGRADE_INDEX_JS_FILE, "db.close() ;\n", true ) ;
 
       for ( var i = 0 ; i < printProgressCount ; i++ )
       {
