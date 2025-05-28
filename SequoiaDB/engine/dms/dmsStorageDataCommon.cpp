@@ -3603,7 +3603,7 @@ namespace engine
          // both for data record and replication log.
          // Get the final recordsize that we have to allocate:
          // reserved space, alignment, etc.
-         _finalRecordSize( dmsRecordSize, recordData ) ;
+         _finalRecordSize( dmsRecordSize, recordData, markInsert ) ;
 
          // calc log reserve
          if ( dpscb )
@@ -3711,7 +3711,7 @@ namespace engine
                rc = SDB_SYS ;
                goto error ;
             }
-            rc = _doMarkInsert( context, cb, extRW, foundRID, recordData ) ;
+            rc = _doMarkInsert( context, cb, extRW, foundRID, dmsRecordSize, recordData ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to do mark insert, rc: %d", rc ) ;
          }
          else

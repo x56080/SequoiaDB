@@ -256,6 +256,7 @@ namespace engine
                                          pmdEDUCB *cb,
                                          dmsExtRW &extRW,
                                          dmsRecordID &foundRID,
+                                         UINT32 dmsRecordSize,
                                          dmsRecordData &recordData )
    {
       INT32 rc = SDB_OK ;
@@ -269,13 +270,11 @@ namespace engine
       dmsRecordRW newRecordRW ;
       const dmsExtent *pNewExtent = NULL ;
       dmsRecord *pNewRecord = NULL ;
-      UINT32 dmsRecordSize = 0;
 
       recordRW = record2RW( foundRID, context->mbID() ) ;
       pRecord = recordRW.writePtr< dmsRecord >() ;
       pRecord->unsetDeleting() ;
       eraseFromDeletingList( context, pRecord ) ;
-      dmsRecordSize = DMS_RECORD_METADATA_SZ + recordData.len() ;
       if ( dmsRecordSize <= pRecord->getSize() )
       {
          pRecord->setData( recordData ) ;
@@ -1341,11 +1340,15 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATA__FINALRECORDSIZE, "_dmsStorageData::_finalRecordSize" )
    void _dmsStorageData::_finalRecordSize( UINT32 &size,
-                                           const dmsRecordData &recordData )
+                                           const dmsRecordData &recordData,
+                                           BOOLEAN markInsert )
    {
       PD_TRACE_ENTRY( SDB__DMSSTORAGEDATA__FINALRECORDSIZE ) ;
 
-      _overflowSize( size ) ;
+      if ( !markInsert )
+      {
+         _overflowSize( size ) ;
+      }
 
       size += DMS_RECORD_METADATA_SZ ;
       // record is ALWAYS 4 bytes aligned
