@@ -55,6 +55,7 @@ const CHAR* serviceID2String( UINT32 serviceID )
       case MSG_ROUTE_LOCAL_SERVICE :
          return "LOCAL" ;
       case MSG_ROUTE_REPL_SERVICE :
+      case MSG_ROUTE_REPL_SERVICE_CTRL :
          return "REPL" ;
       case MSG_ROUTE_SHARD_SERVCIE :
          return "SHARD" ;

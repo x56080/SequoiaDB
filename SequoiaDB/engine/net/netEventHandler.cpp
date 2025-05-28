@@ -709,7 +709,10 @@ namespace engine
             /// add to route table
             if ( MSG_INVALID_ROUTEID == _id.value )
             {
-               if ( MSG_INVALID_ROUTEID != _header.routeID.value )
+               const MsgRouteID &localID = _evSuitPtr->getFrame()->getLocal() ;
+               if ( MSG_INVALID_ROUTEID != _header.routeID.value &&
+                    ( _header.routeID.columns.nodeID != localID.columns.nodeID ||
+                      _header.routeID.columns.groupID != localID.columns.groupID ) )
                {
                   // check service ID
                   if ( _header.routeID.columns.serviceID >=
@@ -724,8 +727,7 @@ namespace engine
                      goto error_close ;
                   }
                   _id = _header.routeID ;
-                  if ( SDB_OK !=
-                        _evSuitPtr->getFrame()->_addRoute( _getSharedBase() ) )
+                  if ( SDB_OK != _evSuitPtr->getFrame()->_addRoute( _getSharedBase() ) )
                   {
                      goto error_close ;
                   }

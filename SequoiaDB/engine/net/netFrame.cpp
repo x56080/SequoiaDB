@@ -774,6 +774,12 @@ namespace engine
               ( ( lastBeatPassed >= _beatPassiveInterval ) &&
                 ( mon.isInMonitorPassive( eh->id().columns.serviceID ) ) ) )
          {
+            beat.routeID.value = _local.value ;
+            if ( MSG_ROUTE_REPL_SERVICE_CTRL == eh->id().columns.serviceID )
+            {
+               beat.routeID.columns.serviceID = eh->id().columns.serviceID ;
+            }
+
             ossScopedLock lock( &( eh->mtx() ) ) ;
             beat.requestID = eh->getAndIncMsgID() ;
             convertor = eh->getOutMsgConvertor() ;
