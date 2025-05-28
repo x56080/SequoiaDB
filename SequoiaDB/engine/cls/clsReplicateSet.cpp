@@ -410,6 +410,11 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to register net monitor on "
                    "REPL service, rc: %d", rc ) ;
 
+      rc = sdbGetPMDController()->registerNet( pNetFrame,
+                                               MSG_ROUTE_REPL_SERVICE_CTRL ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to register net monitor on "
+                   "REPL_CTRL service, rc: %d", rc ) ;
+
       _totalLogSize = pmdGetOptionCB()->getTotalLogSpace() ;
       // init sync control param
       {
@@ -546,6 +551,11 @@ namespace engine
 
    void _clsReplicateSet::onConfigChange ()
    {
+      if ( _agent )
+      {
+         _agent->getFrame()->setBeatInfo( pmdGetOptionCB()->getOprTimeout() ) ;
+      }
+
       if ( pmdGetOptionCB()->maxReplSync() != getBucket()->maxReplSync() )
       {
          _sync.disableSync() ;

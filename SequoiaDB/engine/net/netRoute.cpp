@@ -66,7 +66,14 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__NETRT_ROUTE );
       _MsgRouteID tmp = id ;
+      UINT16 serviceID = id.columns.serviceID ;
       tmp.columns.serviceID = 0 ;
+
+      if ( MSG_ROUTE_REPL_SERVICE_CTRL == serviceID )
+      {
+         serviceID = MSG_ROUTE_REPL_SERVICE ;
+      }
+
       ossScopedLock lock( &_mtx, SHARED ) ;
       NET_ROUTE_MAP::const_iterator itr = _route.find( tmp.value ) ;
       if ( _route.end() == itr )
@@ -74,7 +81,7 @@ namespace engine
          rc = SDB_NET_ROUTE_NOT_FOUND ;
          goto error ;
       }
-      else if ( ((itr->second._service)[id.columns.serviceID]).empty() )
+      else if ( ((itr->second._service)[serviceID]).empty() )
       {
          rc = SDB_NET_ROUTE_NOT_FOUND ;
          goto error ;
@@ -94,7 +101,7 @@ namespace engine
          }
          ossMemset( service, 0, svcLen ) ;
          ossStrncpy( service,
-                     ((itr->second._service)[id.columns.serviceID]).c_str(),
+                     ((itr->second._service)[serviceID]).c_str(),
                      svcLen - 1 ) ;
       }
    done:
@@ -135,6 +142,12 @@ namespace engine
                            MSG_ROUTE_SERVICE_TYPE type, _MsgRouteID &id )
    {
       INT32 rc = SDB_NET_ROUTE_NOT_FOUND ;
+
+      if ( MSG_ROUTE_REPL_SERVICE_CTRL == type )
+      {
+         type = MSG_ROUTE_REPL_SERVICE ;
+      }
+
       ossScopedLock lock( &_mtx, SHARED ) ;
       NET_ROUTE_MAP::const_iterator itr = _route.begin() ;
       while( itr != _route.end() )
@@ -164,6 +177,11 @@ namespace engine
       UINT16 serviceID = routeID.columns.serviceID ;
       MsgRouteID tmpID = routeID ;
       tmpID.columns.serviceID = 0 ;
+
+      if ( MSG_ROUTE_REPL_SERVICE_CTRL == serviceID )
+      {
+         serviceID = MSG_ROUTE_REPL_SERVICE ;
+      }
 
       ossScopedLock scopedLock( &_mtx, SHARED ) ;
 

@@ -513,7 +513,8 @@ namespace engine
          else if ( offset == _notifyList[i].offset )
          {
             msg.header.routeID = _notifyList[i].id ;
-            _agent->syncSend( _notifyList[i].id, (MsgHeader *)&msg ) ;
+            msg.header.routeID.columns.serviceID = MSG_ROUTE_REPL_SERVICE_CTRL ;
+            _agent->syncSend( msg.header.routeID, (MsgHeader *)&msg ) ;
          }
          else
          {
@@ -536,6 +537,7 @@ namespace engine
       for ( UINT32 i = 0 ; i < nodes.getLength() ; ++i )
       {
          msg.header.routeID.value = nodes.getNode( i ) ;
+         msg.header.routeID.columns.serviceID = MSG_ROUTE_REPL_SERVICE_CTRL ;
          _agent->syncSend( msg.header.routeID, (MsgHeader *)&msg ) ;
       }
 
