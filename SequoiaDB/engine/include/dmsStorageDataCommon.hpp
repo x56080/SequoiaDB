@@ -1458,6 +1458,7 @@ namespace engine
                                       pmdEDUCB *cb,
                                       dmsExtRW &extRW,
                                       dmsRecordID &foundRID,
+                                      UINT32 dmsRecordSize,
                                       dmsRecordData &recordData ) = 0 ;
 
          virtual INT32 _allocRecordSpace( dmsMBContext *context,
@@ -1510,7 +1511,8 @@ namespace engine
          // type may have different strategy, such as reservation for update,
          // space for meta data, etc.
          virtual void _finalRecordSize( UINT32 &size,
-                                        const dmsRecordData &recordData ) = 0 ;
+                                        const dmsRecordData &recordData,
+                                        BOOLEAN markInsert ) = 0 ;
 
          virtual INT32 _onInsertFail( dmsMBContext *context,
                                       BOOLEAN hasInsert,

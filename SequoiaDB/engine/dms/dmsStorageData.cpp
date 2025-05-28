@@ -258,6 +258,7 @@ namespace engine
                                          pmdEDUCB *cb,
                                          dmsExtRW &extRW,
                                          dmsRecordID &foundRID,
+                                         UINT32 dmsRecordSize,
                                          dmsRecordData &recordData )
    {
       INT32 rc = SDB_OK ;
@@ -276,14 +277,14 @@ namespace engine
       pRecord = recordRW.writePtr< dmsRecord >() ;
       pRecord->unsetDeleting() ;
       eraseFromDeletingList( context, pRecord ) ;
-      if ( (DMS_RECORD_METADATA_SZ + recordData.len()) <= pRecord->getSize() )
+      if ( dmsRecordSize <= pRecord->getSize() )
       {
          pRecord->setData( recordData ) ;
       }
       else
       {
          // find a free spot from delete list
-         rc = _reserveFromDeleteList ( context, recordData.len(),
+         rc = _reserveFromDeleteList ( context, dmsRecordSize,
                                        foundDeletedID, cb ) ;
          if ( rc )
          {
@@ -305,7 +306,7 @@ namespace engine
          // pass FALSE to addIntoList so that we don't add the record into
          // target extent's list
          rc = _extentInsertRecord ( context, newExtRW, newRecordRW,
-                                    recordData, recordData.len(),
+                                    recordData, dmsRecordSize,
                                     cb, FALSE ) ;
          if ( rc )
          {
@@ -314,7 +315,7 @@ namespace engine
          }
 
          _postInsertRecord( context, newExtRW, newRecordRW, recordData,
-                            recordData.len(), cb ) ;
+                            dmsRecordSize, cb ) ;
 
          // set remote record as overflowed to
          pNewRecord->setOvt() ;
@@ -1336,11 +1337,15 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATA__FINALRECORDSIZE, "_dmsStorageData::_finalRecordSize" )
    void _dmsStorageData::_finalRecordSize( UINT32 &size,
-                                           const dmsRecordData &recordData )
+                                           const dmsRecordData &recordData,
+                                           BOOLEAN markInsert )
    {
       PD_TRACE_ENTRY( SDB__DMSSTORAGEDATA__FINALRECORDSIZE ) ;
 
-      _overflowSize( size ) ;
+      if ( !markInsert )
+      {
+         _overflowSize( size ) ;
+      }
 
       size += DMS_RECORD_METADATA_SZ ;
       // record is ALWAYS 4 bytes aligned

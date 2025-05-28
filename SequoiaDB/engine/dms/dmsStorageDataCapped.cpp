@@ -491,6 +491,7 @@ namespace engine
                                                pmdEDUCB *cb,
                                                dmsExtRW &extRW,
                                                dmsRecordID &foundRID,
+                                               UINT32 dmsRecordSize,
                                                dmsRecordData &recordData )
    {
       INT32 rc = SDB_OK ;
@@ -503,7 +504,8 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATACAPPED__FINALRECORDSIZE, "_dmsStorageDataCapped::_finalRecordSize" )
    void _dmsStorageDataCapped::_finalRecordSize( UINT32 &size,
-                                                 const dmsRecordData &recordData )
+                                                 const dmsRecordData &recordData,
+                                                 BOOLEAN markInsert )
    {
       PD_TRACE_ENTRY( SDB__DMSSTORAGEDATACAPPED__FINALRECORDSIZE ) ;
       // Append the logic id size. Only do that when the data is not compressed.

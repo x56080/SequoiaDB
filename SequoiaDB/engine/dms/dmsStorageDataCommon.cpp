@@ -4259,7 +4259,7 @@ namespace engine
          // both for data record and replication log.
          // Get the final recordsize that we have to allocate:
          // reserved space, alignment, etc.
-         _finalRecordSize( dmsRecordSize, recordData ) ;
+         _finalRecordSize( dmsRecordSize, recordData, markInsert ) ;
 
          _clFullName( context->mbStat()->_collectionName, fullName, sizeof(fullName) ) ;
 
@@ -4367,7 +4367,7 @@ namespace engine
                rc = SDB_SYS ;
                goto error ;
             }
-            rc = _doMarkInsert( context, cb, extRW, foundRID, recordData ) ;
+            rc = _doMarkInsert( context, cb, extRW, foundRID, dmsRecordSize, recordData ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to do mark insert, rc: %d", rc ) ;
          }
          else
@@ -4595,6 +4595,7 @@ namespace engine
       dpsUnqIdxHashArray unqIdxHashArray ;
       dpsUnqIdxHashArray *pUnqIdxHashArray = NULL ;
       INT64 delPosition = -1 ;
+      BOOLEAN isMarkDeleteingDone = FALSE ;
 
       if ( !context->isMBLock( EXCLUSIVE ) )
       {
@@ -4887,6 +4888,7 @@ namespace engine
          else
          {
             pRecord->setDeleting() ;
+            isMarkDeleteingDone = TRUE ;
             // need to dec count
             --( pExtent->_recCount ) ;
             _decreaseMBStat( context->mbStat()->_clUniqueID, context->mbStat(), cb ) ;
@@ -4951,7 +4953,7 @@ namespace engine
       {
          pTransCB->releaseLogSpace( logRecSize, cb ) ;
       }
-      if ( markDeleting )
+      if ( isMarkDeleteingDone )
       {
          /// push to this list so that background job would delete it
          if ( ovfRID.isValid() )
