@@ -3935,6 +3935,7 @@ namespace engine
       dpsUnqIdxHashArray unqIdxHashArray ;
       dpsUnqIdxHashArray *pUnqIdxHashArray = NULL ;
       INT64 delPosition = -1 ;
+      BOOLEAN isMarkDeleteingDone = FALSE ;
 
       if ( !context->isMBLock( EXCLUSIVE ) )
       {
@@ -4218,6 +4219,7 @@ namespace engine
          else
          {
             pRecord->setDeleting() ;
+            isMarkDeleteingDone = TRUE ;
             // need to dec count
             --( pExtent->_recCount ) ;
             _decreaseMBStat( context->mbStat()->_clUniqueID, context->mbStat(), cb ) ;
@@ -4280,7 +4282,7 @@ namespace engine
       {
          pTransCB->releaseLogSpace( logRecSize, cb ) ;
       }
-      if ( markDeleting )
+      if ( isMarkDeleteingDone )
       {
          /// push to this list so that background job would delete it
          if ( ovfRID.isValid() )

@@ -269,19 +269,21 @@ namespace engine
       dmsRecordRW newRecordRW ;
       const dmsExtent *pNewExtent = NULL ;
       dmsRecord *pNewRecord = NULL ;
+      UINT32 dmsRecordSize = 0;
 
       recordRW = record2RW( foundRID, context->mbID() ) ;
       pRecord = recordRW.writePtr< dmsRecord >() ;
       pRecord->unsetDeleting() ;
       eraseFromDeletingList( context, pRecord ) ;
-      if ( (DMS_RECORD_METADATA_SZ + recordData.len()) <= pRecord->getSize() )
+      dmsRecordSize = DMS_RECORD_METADATA_SZ + recordData.len() ;
+      if ( dmsRecordSize <= pRecord->getSize() )
       {
          pRecord->setData( recordData ) ;
       }
       else
       {
          // find a free spot from delete list
-         rc = _reserveFromDeleteList ( context, recordData.len(),
+         rc = _reserveFromDeleteList ( context, dmsRecordSize,
                                        foundDeletedID, cb ) ;
          if ( rc )
          {
@@ -303,7 +305,7 @@ namespace engine
          // pass FALSE to addIntoList so that we don't add the record into
          // target extent's list
          rc = _extentInsertRecord ( context, newExtRW, newRecordRW,
-                                    recordData, recordData.len(),
+                                    recordData, dmsRecordSize,
                                     cb, FALSE ) ;
          if ( rc )
          {
@@ -312,7 +314,7 @@ namespace engine
          }
 
          _postInsertRecord( context, newExtRW, newRecordRW, recordData,
-                            recordData.len(), cb ) ;
+                            dmsRecordSize, cb ) ;
 
          // set remote record as overflowed to
          pNewRecord->setOvt() ;
