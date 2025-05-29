@@ -541,10 +541,14 @@ namespace engine
          }
          OSS_INLINE vector< _pmdAddrPair > catAddrs() const
          {
+            ossSLatch *pLatch = (ossSLatch*)&_paramLatch ;
+            ossScopedLock lock( pLatch, SHARED ) ;
             return _vecCat ;
          }
          OSS_INLINE vector< _pmdAddrPair > omAddrs() const
          {
+            ossSLatch *pLatch = (ossSLatch*)&_paramLatch ;
+            ossScopedLock lock( pLatch, SHARED ) ;
             return _vecOm ;
          }
          OSS_INLINE const CHAR *getTmpPath() const
@@ -885,6 +889,8 @@ namespace engine
          UINT32      _invalidConfNum ;
          vector< pmdAddrPair >   _vecOm ;
          vector< pmdAddrPair >   _vecCat ;
+
+         ossSpinSLatch           _paramLatch ;
    } ;
 
    typedef _pmdOptionsMgr pmdOptionsCB ;
