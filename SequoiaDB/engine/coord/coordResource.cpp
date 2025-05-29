@@ -434,6 +434,13 @@ namespace engine
    {
       ossScopedLock lock( &_nodeMutex, EXCLUSIVE ) ;
 
+      _cataNodeAddrList.clear() ;
+
+      /// re-init from config file
+      _initAddressFromPair( _pOptionsCB->catAddrs(),
+                            MSG_ROUTE_CAT_SERVICE,
+                            _cataNodeAddrList ) ;
+
       _cataGroupInfo = _emptyGroupPtr ;
       /// remote group info
       _mapGroupInfo.erase( CATALOG_GROUPID ) ;
