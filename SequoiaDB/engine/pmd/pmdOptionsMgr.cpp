@@ -3213,12 +3213,15 @@ done:
          _invalidConfNum++ ;
       }
 
-      if ( 0 == _vecCat.size() )
       {
-         rc = parseAddressLine( _catAddrLine, _vecCat ) ;
-         if ( rc )
+         ossScopedLock lock( &_paramLatch, EXCLUSIVE ) ;
+         if ( 0 == _vecCat.size() )
          {
-            goto error ;
+            rc = parseAddressLine( _catAddrLine, _vecCat ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
          }
       }
 
@@ -3252,12 +3255,15 @@ done:
          _enableMixCmp = FALSE ;
       }
 
-      if ( 0 == _vecOm.size() )
       {
-         rc = parseAddressLine( _omAddrLine, _vecOm ) ;
-         if ( rc )
+         ossScopedLock lock( &_paramLatch, EXCLUSIVE ) ;
+         if ( 0 == _vecOm.size() )
          {
-            goto error ;
+            rc = parseAddressLine( _omAddrLine, _vecOm ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
          }
       }
 
@@ -3302,17 +3308,23 @@ done:
 
    string _pmdOptionsMgr::getCatAddr() const
    {
+      ossSLatch *pLatch = (ossSLatch*)&_paramLatch ;
+      ossScopedLock lock( pLatch, SHARED ) ;
       return makeAddressLine( _vecCat ) ;
    }
 
    string _pmdOptionsMgr::getOmAddr() const
    {
+      ossSLatch *pLatch = (ossSLatch*)&_paramLatch ;
+      ossScopedLock lock( pLatch, SHARED ) ;
       return makeAddressLine( _vecOm ) ;
    }
 
    INT32 _pmdOptionsMgr::preSaving ()
    {
       MAP_K2V::iterator it ;
+
+      ossScopedLock lock( &_paramLatch, SHARED ) ;
 
       string addr = makeAddressLine( _vecCat ) ;
       ossStrncpy( _catAddrLine, addr.c_str(), OSS_MAX_PATHSIZE ) ;
@@ -3749,12 +3761,16 @@ done:
 
    void _pmdOptionsMgr::clearCatAddr()
    {
+      ossScopedLock lock( &_paramLatch, EXCLUSIVE ) ;
+
       _vecCat.clear() ;
    }
 
    void _pmdOptionsMgr::rmCatAddrItem( const CHAR *host,
                                        const CHAR *service )
    {
+      ossScopedLock lock( &_paramLatch, EXCLUSIVE ) ;
+
       vector< pmdAddrPair >::iterator it = _vecCat.begin() ;
       while( it != _vecCat.end() )
       {
@@ -3773,6 +3789,8 @@ done:
                                     const CHAR *service )
    {
       BOOLEAN hasSet = FALSE ;
+
+      ossScopedLock lock( &_paramLatch, EXCLUSIVE ) ;
 
       for ( UINT32 i = 0 ; i < _vecCat.size() ; ++i )
       {
