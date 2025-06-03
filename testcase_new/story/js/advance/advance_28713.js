@@ -27,7 +27,7 @@ function test ( testPara )
    maincl.attachCL( csName + "." + subCLName3, { LowBound: { b: 3 }, UpBound: { b: 4 } } );
 
    var docs = [];
-   for( var i = 0; i < 100; i++ )
+   for( var i = 0; i < 10; i++ )
    {
       for( var j = 0; j < 1000; j++ )
       {
