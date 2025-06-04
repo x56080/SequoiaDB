@@ -563,7 +563,7 @@ namespace engine
          _taskStatusPtr->setStatus( DMS_TASK_STATUS_RUN ) ;
       }
 
-      while ( !cb->isForced() )
+      while ( !PMD_IS_DB_DOWN() && !cb->isForced() )
       {
          if ( RTN_JOB_CREATE_INDEX == _type )
          {
