@@ -173,6 +173,15 @@ namespace engine
       {
          _remoteMessenger->deactive() ;
       }
+
+      if ( SDB_ROLE_DATA == pmdGetDBRole() ||
+           SDB_ROLE_CATALOG == pmdGetDBRole() ||
+           SDB_ROLE_STANDALONE == pmdGetDBRole() ||
+           SDB_ROLE_OM == pmdGetDBRole() )
+      {
+         pmdGetKRCB()->getDMSCB()->unregHandler( &_accessPlanManager ) ;
+      }
+
       return SDB_OK ;
    }
 
