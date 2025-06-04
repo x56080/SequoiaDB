@@ -162,6 +162,7 @@ namespace engine
       INT32 remove() ;
 
       INT32 extend( INT64 len ) ;
+      INT32 postExtend( UINT32 totalDataPages, INT32 result ) ;
 
       INT32 flush() ;
 
@@ -217,6 +218,8 @@ namespace engine
          }
          return pageID ;
       }
+
+      INT32 _checkAndFixFileSize( UINT32 totalDataPages ) ;
 
       INT32 _extend( INT64 len ) ;
 

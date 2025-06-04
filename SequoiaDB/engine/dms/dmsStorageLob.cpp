@@ -2065,6 +2065,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGELOB__EXTENDSEGMENTS ) ;
+      BOOLEAN needDoPost = FALSE ;
 
       if ( _data.isOpened() )
       {
@@ -2072,7 +2073,7 @@ namespace engine
          rc = _data.extend( extentLen * numSeg ) ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "Failed to extend lobd file:%d", rc ) ;
+            PD_LOG( PDERROR, "Failed to extend lobd file, rc: %d", rc ) ;
             goto error ;
          }
       }
@@ -2083,13 +2084,24 @@ namespace engine
          goto error ;
       }
 
+      needDoPost = TRUE ;
+
       rc = this->_dmsStorageBase::_extendSegments( numSeg ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "failed to extend lobm file:%d", rc ) ;
+         PD_LOG( PDERROR, "Failed to extend lobm file, rc: %d", rc ) ;
          goto error ;
       }
    done:
+      if ( needDoPost )
+      {
+         INT32 rcTmp = _data.postExtend( pageNum(), rc ) ;
+         if ( rcTmp )
+         {
+            PD_LOG( PDWARNING, "Do lob data post extend failed, rc: %d", rcTmp ) ;
+            rc = rc ? rc : rcTmp ;
+         }
+      }
       PD_TRACE_EXITRC( SDB__DMSSTORAGELOB__EXTENDSEGMENTS, rc ) ;
       return rc ;
    error:

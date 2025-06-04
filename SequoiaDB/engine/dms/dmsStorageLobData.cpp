@@ -270,8 +270,6 @@ namespace engine
       UINT32 mode = OSS_READWRITE | OSS_SHAREREAD ;
       SDB_ASSERT( path, "path can't be NULL" ) ;
       INT64 fileSize = 0 ;
-      INT64 rightSize = 0 ;
-      BOOLEAN reGetSize = FALSE ;
 
       if ( 0 == lobdSegmentSize || 0 == info._lobdPageSize )
       {
@@ -381,87 +379,10 @@ namespace engine
          goto error ;
       }
 
-      /// make sure the file size is multiple of segments
-      if ( 0 != ( _fileSz - sizeof( dmsStorageUnitHeader ) ) % getSegmentSize() )
+      rc = _checkAndFixFileSize( totalDataPages ) ;
+      if ( rc )
       {
-         PD_LOG ( PDWARNING, "Unexpected length[%llu] of file: %s", _fileSz,
-                  _fileName ) ;
-
-         /// need to truncate the file
-         rightSize = ( ( _fileSz - sizeof( dmsStorageUnitHeader ) ) /
-                       getSegmentSize() ) * getSegmentSize() +
-                       sizeof( dmsStorageUnitHeader ) ;
-         rc = ossTruncateFile( &_file, (INT64)rightSize ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Truncate file[%s] to size[%llu] failed, rc: %d",
-                    _fileName, rightSize, rc ) ;
-            goto error ;
-         }
-         PD_LOG( PDEVENT, "Truncate file[%s] to size[%llu] succeed",
-                 _fileName, rightSize ) ;
-         // then we get the size again to make sure it's what we need
-         rc = ossGetFileSize( &_file, &_fileSz ) ;
-         if ( rc )
-         {
-            PD_LOG ( PDERROR, "Failed to get file size: %s, rc: %d",
-                     _fileName, rc ) ;
-            goto error ;
-         }
-      }
-
-      rightSize = (INT64)totalDataPages * _pageSz +
-                  sizeof( dmsStorageUnitHeader ) ;
-      /// make sure the file is correct with meta data
-      if ( _fileSz > rightSize )
-      {
-         PD_LOG( PDWARNING, "File[%s] size[%llu] is grater than storage "
-                 "data size[%llu]", _fileName, _fileSz,
-                 rightSize ) ;
-
-         rc = ossTruncateFile( &_file, rightSize ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Truncate file[%s] to size[%lld] failed, rc: %d",
-                    _fileName, rightSize, rc ) ;
-            goto error ;
-         }
-         PD_LOG( PDEVENT, "Truncate file[%s] to size[%lld] succeed",
-                 _fileName, rightSize ) ;
-         reGetSize = TRUE ;
-      }
-      else if ( _fileSz < rightSize )
-      {
-         PD_LOG( PDWARNING, "File[%s] size[%llu] is less than storage "
-                 "data size[%llu]", _fileName, _fileSz,
-                 rightSize ) ;
-
-         INT64 extentSize = rightSize - _fileSz ;
-         INT64 tmpFileSz = _fileSz ;
-         rc = extend( extentSize ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Extend file[%s] to size[%lld] from size[%lld] "
-                    "failed, rc: %d", _fileName, rightSize,
-                    tmpFileSz, rc ) ;
-            goto error ;
-         }
-         PD_LOG( PDEVENT, "Extend file[%s] to size[%lld] from size[%lld] "
-                 "succeed", _fileName, rightSize, tmpFileSz ) ;
-         reGetSize = TRUE ;
-      }
-
-      if ( reGetSize )
-      {
-         // then we get the size again to make sure it's what we need
-         rc = ossGetFileSize( &_file, &_fileSz ) ;
-         if ( rc )
-         {
-            PD_LOG ( PDERROR, "Failed to get file size: %s, rc: %d",
-                     _fileName, rc ) ;
-            goto error ;
-         }
-         reGetSize = FALSE ;
+         goto error ;
       }
 
    done:
@@ -837,6 +758,28 @@ namespace engine
 
    done:
       PD_TRACE_EXITRC( SDB_DMSSTORAGELOBDATA_EXTEND, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSSTORAGELOBDATA_POSTEXTEND, "_dmsStorageLobData::postExtend" )
+   INT32 _dmsStorageLobData::postExtend( UINT32 totalDataPages, INT32 result )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_DMSSTORAGELOBDATA_POSTEXTEND ) ;
+
+      if ( SDB_OK != result )
+      {
+         rc = _checkAndFixFileSize( totalDataPages ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_DMSSTORAGELOBDATA_POSTEXTEND, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -1254,6 +1197,112 @@ namespace engine
 
    done:
       PD_TRACE_EXITRC( SDB_DMSLOBDATA_WRFILEHEADER, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSLOBDATA__CHECKANDFIXFILESIZE, "_dmsStorageLobData::_checkAndFixFileSize" )
+   INT32 _dmsStorageLobData::_checkAndFixFileSize( UINT32 totalDataPages )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_DMSLOBDATA__CHECKANDFIXFILESIZE ) ;
+
+      INT64 rightSize = 0 ;
+      BOOLEAN reGetSize = FALSE ;
+
+      if ( !isOpened() )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Lob data file(%s) is not opened, rc: %d", _fileName, rc ) ;
+         goto error ;
+      }
+
+      /// make sure the file size is multiple of segments
+      if ( 0 != ( _fileSz - sizeof( dmsStorageUnitHeader ) ) % getSegmentSize() )
+      {
+         PD_LOG ( PDWARNING, "Unexpected length[%llu] of file: %s", _fileSz,
+                  _fileName ) ;
+
+         /// need to truncate the file
+         rightSize = ( ( _fileSz - sizeof( dmsStorageUnitHeader ) ) /
+                       getSegmentSize() ) * getSegmentSize() +
+                       sizeof( dmsStorageUnitHeader ) ;
+         rc = ossTruncateFile( &_file, (INT64)rightSize ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Truncate file[%s] to size[%llu] failed, rc: %d",
+                    _fileName, rightSize, rc ) ;
+            goto error ;
+         }
+         PD_LOG( PDEVENT, "Truncate file[%s] to size[%llu] succeed",
+                 _fileName, rightSize ) ;
+         // then we get the size again to make sure it's what we need
+         rc = ossGetFileSize( &_file, &_fileSz ) ;
+         if ( rc )
+         {
+            PD_LOG ( PDERROR, "Failed to get file size: %s, rc: %d",
+                     _fileName, rc ) ;
+            goto error ;
+         }
+      }
+
+      rightSize = (INT64)totalDataPages * _pageSz +
+                  sizeof( dmsStorageUnitHeader ) ;
+      /// make sure the file is correct with meta data
+      if ( _fileSz > rightSize )
+      {
+         PD_LOG( PDWARNING, "File[%s] size[%llu] is grater than storage "
+                 "data size[%llu]", _fileName, _fileSz,
+                 rightSize ) ;
+
+         rc = ossTruncateFile( &_file, rightSize ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Truncate file[%s] to size[%lld] failed, rc: %d",
+                    _fileName, rightSize, rc ) ;
+            goto error ;
+         }
+         PD_LOG( PDEVENT, "Truncate file[%s] to size[%lld] succeed",
+                 _fileName, rightSize ) ;
+         reGetSize = TRUE ;
+      }
+      else if ( _fileSz < rightSize )
+      {
+         PD_LOG( PDWARNING, "File[%s] size[%llu] is less than storage "
+                 "data size[%llu]", _fileName, _fileSz,
+                 rightSize ) ;
+
+         INT64 extentSize = rightSize - _fileSz ;
+         INT64 tmpFileSz = _fileSz ;
+         rc = extend( extentSize ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Extend file[%s] to size[%lld] from size[%lld] "
+                    "failed, rc: %d", _fileName, rightSize,
+                    tmpFileSz, rc ) ;
+            goto error ;
+         }
+         PD_LOG( PDEVENT, "Extend file[%s] to size[%lld] from size[%lld] "
+                 "succeed", _fileName, rightSize, tmpFileSz ) ;
+         reGetSize = TRUE ;
+      }
+
+      if ( reGetSize )
+      {
+         // then we get the size again to make sure it's what we need
+         rc = ossGetFileSize( &_file, &_fileSz ) ;
+         if ( rc )
+         {
+            PD_LOG ( PDERROR, "Failed to get file size: %s, rc: %d",
+                     _fileName, rc ) ;
+            goto error ;
+         }
+         reGetSize = FALSE ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_DMSLOBDATA__CHECKANDFIXFILESIZE, rc ) ;
       return rc ;
    error:
       goto done ;
