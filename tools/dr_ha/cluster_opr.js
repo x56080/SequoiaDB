@@ -1200,7 +1200,7 @@ function restartAllHostNode( hostnameArr ) {
          try {
             var cmd = remoteObj.getCmd() ;
             var cmdStr = remoteSeqPath + "/sdbstop -t all && " + remoteSeqPath  + "/sdbstart -t all" ;
-            var retStr = cmd.start( cmdStr, "", 1, 0 ).toString() ;
+            var retStr = cmd.start( cmdStr, "" ).toString() ;
             var pid = retStr.split( "\n" )[ 0 ] ;
             restartJob[ j ] = { "pid" : "" + pid } ;
          } catch ( e ) {
@@ -1219,7 +1219,7 @@ function restartAllHostNode( hostnameArr ) {
          try
          {
             var retStr = ssh.exec( SDBSHELL + ' -s \'var cmd = new Cmd(); cmd.start( "'
-                                   + SDBSTOP + ' -t all && ' + SDBSTART + ' -t all", "", 1, 0  ) ; \' ' ) ;
+                                   + SDBSTOP + ' -t all && ' + SDBSTART + ' -t all", "" ) ; \' ' ) ;
             var pid = retStr.split( "\n" )[ 0 ] ;
             restartJob[ j ] = { "pid" : "" + pid } ;
             ssh.close() ;
