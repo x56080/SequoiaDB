@@ -554,7 +554,7 @@ namespace engine
          /*
             Make these function internal
          */
-         OSS_INLINE ossValuePtr extentAddr( INT32 extentID ) const ;
+         OSS_INLINE ossValuePtr extentAddr( INT32 extentID, UINT32 *pLength = NULL ) const ;
          OSS_INLINE dmsExtentID extentID( ossValuePtr extendAddr ) const ;
 
       public:
@@ -865,21 +865,38 @@ namespace engine
       // the same with: ( segID - _dataSegID ) * _segmentPages + segOffset
       return (( segID - _dataSegID ) << _segmentPagesSquare ) + segOffset ;
    }
-   OSS_INLINE ossValuePtr _dmsStorageBase::extentAddr( INT32 extentID ) const
+   OSS_INLINE ossValuePtr _dmsStorageBase::extentAddr( INT32 extentID, UINT32 *pLength ) const
    {
       if ( DMS_INVALID_EXTENT == extentID )
       {
          return 0 ;
       }
-      UINT32 segOffset = 0 ;
-      UINT32 segID = extent2Segment( extentID, &segOffset ) ;
+      UINT32 segOffsetPage = 0 ;
+      UINT32 segID = extent2Segment( extentID, &segOffsetPage ) ;
       if ( segID > (UINT32)_maxSegID )
       {
          return 0 ;
       }
-      return getSegmentInfo( segID ) +
-             (ossValuePtr)( segOffset << _pageSizeSquare ) ;
+
+      UINT32 segmentLength = 0 ;
+      ossValuePtr retPtr = 0 ;
+      UINT32 segOffset = segOffsetPage << _pageSizeSquare ;
+
+      retPtr = getSegmentInfo( segID, &segmentLength ) + (ossValuePtr)( segOffset ) ;
       // the same with: segOffset * _segmentPages
+      if ( pLength )
+      {
+         if ( segmentLength > segOffset )
+         {
+            *pLength = segmentLength - segOffset ;
+         }
+         else
+         {
+            *pLength = 0 ;
+         }
+      }
+
+      return retPtr ;
    }
    OSS_INLINE dmsExtentID _dmsStorageBase::extentID( ossValuePtr extendAddr ) const
    {
@@ -917,8 +934,7 @@ namespace engine
       rw._pBase = const_cast<_dmsStorageBase*>( this ) ;
       rw._extentID = extentID ;
       rw._collectionID = collectionID ;
-      rw._ptr = extentAddr( extentID ) ;
-      rw._totalSize = _getSegmentSize() ;
+      rw._ptr = extentAddr( extentID, &(rw._totalSize) ) ;
       return rw ;
    }
    OSS_INLINE dmsExtentID _dmsStorageBase::rw2extentID( const dmsExtRW &rw )
