@@ -410,6 +410,7 @@ namespace engine
          UINT32               _attr ;
          BOOLEAN              _hasIncWriteCount ;
          ossValuePtr          _ptr ;
+         UINT32               _totalSize ;
          _dmsStorageBase      *_pBase ;
    } ;
    typedef _dmsExtRW dmsExtRW ;
@@ -917,6 +918,7 @@ namespace engine
       rw._extentID = extentID ;
       rw._collectionID = collectionID ;
       rw._ptr = extentAddr( extentID ) ;
+      rw._totalSize = _getSegmentSize() ;
       return rw ;
    }
    OSS_INLINE dmsExtentID _dmsStorageBase::rw2extentID( const dmsExtRW &rw )

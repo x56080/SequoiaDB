@@ -362,7 +362,8 @@ dmsFiles = [
       "dms/dmsSUCache.cpp",
       "dms/dmsLightJob.cpp",
       "dms/dmsIndexChangeWatcher.cpp",
-      "dms/dmsMetaFile.cpp"
+      "dms/dmsMetaFile.cpp",
+      "dms/dmsRecycleRecordJob.cpp"
       ]
 
 ixmFiles = [
@@ -501,8 +502,7 @@ clsFiles = [
       "cls/clsRecycleBinJob.cpp",
       "cls/clsRecycleBinManager.cpp",
       "cls/clsOprHandler.cpp",
-      "cls/clsGroupModeJob.cpp",
-      "cls/clsRecycleRecordJob.cpp"
+      "cls/clsGroupModeJob.cpp"
       ]
 
 dpsFiles = [

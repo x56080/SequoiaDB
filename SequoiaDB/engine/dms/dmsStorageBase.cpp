@@ -293,6 +293,7 @@ namespace engine
       _hasIncWriteCount = FALSE ;
       _pBase = NULL ;
       _ptr   = ( ossValuePtr ) 0 ;
+      _totalSize = 0 ;
    }
 
    _dmsExtRW::_dmsExtRW( const _dmsExtRW &extRW )
@@ -301,6 +302,7 @@ namespace engine
      _attr( extRW._attr ),
      _hasIncWriteCount( FALSE ),
      _ptr( extRW._ptr ),
+     _totalSize( extRW._totalSize ),
      _pBase( extRW._pBase )
    {
       /*
@@ -339,6 +341,7 @@ namespace engine
       _attr = right._attr ;
       _hasIncWriteCount = FALSE ;
       _ptr = right._ptr ;
+      _totalSize = right._totalSize ;
       _pBase = right._pBase ;
 
       if ( right._hasIncWriteCount )
@@ -407,6 +410,22 @@ namespace engine
          }
          throw pdGeneralException( SDB_SYS, text ) ;
       }
+      else if ( (UINT64)offset + len > (UINT64)_totalSize )
+      {
+         std::stringstream ss ;
+         ss << "RID(" << offset << ", " << len << ") is out-of-range("
+            << _totalSize << "): " << toString() ;
+         std::string text = ss.str() ;
+
+         if ( isNothrow() )
+         {
+            PD_LOG( PDERROR, "Exception: %s", text.c_str() ) ;
+            pdSetLastError( SDB_SYS ) ;
+            return NULL ;
+         }
+         throw pdGeneralException( SDB_SYS, text ) ;
+      }
+
       return ( const CHAR* )_ptr + offset ;
    }
 
@@ -425,6 +444,22 @@ namespace engine
          }
          throw pdGeneralException( SDB_SYS, text ) ;
       }
+      else if ( (UINT64)offset + len > (UINT64)_totalSize )
+      {
+         std::stringstream ss ;
+         ss << "RID(" << offset << ", " << len << ") is out-of-range("
+            << _totalSize << "): " << toString() ;
+         std::string text = ss.str() ;
+
+         if ( isNothrow() )
+         {
+            PD_LOG( PDERROR, "Exception: %s", text.c_str() ) ;
+            pdSetLastError( SDB_SYS ) ;
+            return NULL ;
+         }
+         throw pdGeneralException( SDB_SYS, text ) ;
+      }
+
       _markDirty() ;
       _pBase->markDirty( _collectionID, _extentID, DMS_CHG_BEFORE ) ;
       if ( !_hasIncWriteCount )

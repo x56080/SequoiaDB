@@ -55,6 +55,7 @@
 #include "rtnExtDataHandler.hpp"
 #include "rtnRecover.hpp"
 #include "dmsLightJob.hpp"
+#include "dmsRecycleRecordJob.hpp"
 
 #include <list>
 
@@ -239,10 +240,18 @@ namespace engine
          goto error ;
       }
 
-      rc = dmsStartSaveMetaJob() ;
-      if ( rc )
+      if ( !pmdGetKRCB()->isRestore() )
       {
-         goto error ;
+         rc = dmsStartRecycleRecordJob( NULL ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Start recycle record job thread failed, rc: %d",
+                      rc ) ;
+
+         rc = dmsStartSaveMetaJob() ;
+         if ( rc )
+         {
+            goto error ;
+         }
       }
 
    done:

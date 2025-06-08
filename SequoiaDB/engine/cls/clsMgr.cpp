@@ -57,7 +57,6 @@
 #include "pmdController.hpp"
 #include "clsResourceContainer.hpp"
 #include "clsIndexJob.hpp"
-#include "clsRecycleRecordJob.hpp"
 
 using namespace bson ;
 
@@ -1011,11 +1010,6 @@ namespace engine
       if ( SDB_ROLE_DATA == pmdGetKRCB()->getDBRole() ||
            SDB_ROLE_CATALOG == pmdGetKRCB()->getDBRole() )
       {
-         rc = startRecycleRecordJob( NULL ) ;
-         PD_RC_CHECK( rc, PDERROR,
-                      "Start recycle record job thread failed, rc: %d",
-                      rc ) ;
-
          rc = clsStartSyncNotifyJob( NULL ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Start repl sync notify job thread failed, rc: %d",

@@ -15,7 +15,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   Source File Name = clsRecycleRecordJob.cpp
+   Source File Name = dmsRecycleRecordJob.cpp
 
    Descriptive Name = Recycle Record Job Header
 
@@ -38,21 +38,21 @@
 #include "pmd.hpp"
 #include "pd.hpp"
 #include "pdTrace.hpp"
-#include "clsTrace.hpp"
-#include "clsRecycleRecordJob.hpp"
+#include "dmsTrace.hpp"
+#include "dmsRecycleRecordJob.hpp"
 
 namespace engine
 {
-   class _clsRecycleCLFilter : public _dmsCLFilter
+   class _dmsRecycleCLFilter : public _dmsCLFilter
    {
    public:
-      _clsRecycleCLFilter( UINT64 delayTimeMs, UINT32 recordRecycleRatio )
+      _dmsRecycleCLFilter( UINT64 delayTimeMs, UINT32 recordRecycleRatio )
       {
          _delayTimeMs = delayTimeMs ;
          _recordRecycleRatio = recordRecycleRatio ;
       }
 
-      virtual ~_clsRecycleCLFilter() {}
+      virtual ~_dmsRecycleCLFilter() {}
 
       virtual BOOLEAN filter( const dmsMBStatInfo &stat )
       {
@@ -85,17 +85,17 @@ namespace engine
    } ;
 
    /*
-    *  _clsRecycleRecordJob implement
+    *  _dmsRecycleRecordJob implement
     */
-   _clsRecycleRecordJob::_clsRecycleRecordJob ()
+   _dmsRecycleRecordJob::_dmsRecycleRecordJob ()
    {
    }
 
-   _clsRecycleRecordJob::~_clsRecycleRecordJob ()
+   _dmsRecycleRecordJob::~_dmsRecycleRecordJob ()
    {
    }
 
-   INT32 _clsRecycleRecordJob::doit ()
+   INT32 _dmsRecycleRecordJob::doit ()
    {
       static const UINT64 DO_JOB_INTERVAL = 10 * OSS_ONE_SEC ;
 
@@ -145,13 +145,13 @@ namespace engine
             MON_CL_SIM_LIST clList ;
             MON_CL_SIM_LIST::iterator it ;
             UINT32 ratio = pOptionCB->getRecordRecycleRatio() ;
-            _clsRecycleCLFilter filter( delayTimeMs, ratio ) ;
+            _dmsRecycleCLFilter filter( delayTimeMs, ratio ) ;
 
             pDmsCB->dumpInfo( clList, TRUE, FALSE, &filter ) ;
 
             for ( it = clList.begin() ; it != clList.end() ; ++it )
             {
-               _addJob2Set( jobSet, _clsRecycleJobInfo( *it ) ) ;
+               _addJob2Set( jobSet, _dmsRecycleJobInfo( *it ) ) ;
             }
             lastDumpTick = pmdGetDBTick() ;
          }
@@ -169,8 +169,8 @@ namespace engine
       return SDB_OK ;
    }
 
-   void _clsRecycleRecordJob::_addJob2Set( CLS_JOB_SET &set,
-                                           const _clsRecycleJobInfo &jobInfo )
+   void _dmsRecycleRecordJob::_addJob2Set( CLS_JOB_SET &set,
+                                           const _dmsRecycleJobInfo &jobInfo )
    {
       try
       {
@@ -184,13 +184,13 @@ namespace engine
       }
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSRECYCLERECJOB__DORECYCLERECJOBS, "_clsRecycleRecordJob::_doRecycleRecordJobs" )
-   void _clsRecycleRecordJob::_doRecycleRecordJobs( pmdEDUCB *pEduCB,
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSRECYCLERECJOB__DORECYCLERECJOBS, "_dmsRecycleRecordJob::_doRecycleRecordJobs" )
+   void _dmsRecycleRecordJob::_doRecycleRecordJobs( pmdEDUCB *pEduCB,
                                                     SDB_DMSCB *pDmsCB,
                                                     dpsTransCB *pTransCB,
                                                     CLS_JOB_SET &jobSet )
    {
-      PD_TRACE_ENTRY( SDB__CLSRECYCLERECJOB__DORECYCLERECJOBS ) ;
+      PD_TRACE_ENTRY( SDB__DMSRECYCLERECJOB__DORECYCLERECJOBS ) ;
 
       INT32 rc = SDB_OK ;
       CLS_JOB_SET retrySet ;
@@ -204,7 +204,7 @@ namespace engine
                                    hasUserWrite, lastWriteCount ) ;
          if ( SDB_LOCK_FAILED == rc || hasUserWrite )
          {
-            _clsRecycleJobInfo job( it->_cl ) ;
+            _dmsRecycleJobInfo job( it->_cl ) ;
             if ( hasUserWrite )
             {
                job._lastWriteCount = lastWriteCount ;
@@ -218,21 +218,21 @@ namespace engine
          _addJob2Set( jobSet, *it ) ;
       }
 
-      PD_TRACE_EXIT( SDB__CLSRECYCLERECJOB__DORECYCLERECJOBS ) ;
+      PD_TRACE_EXIT( SDB__DMSRECYCLERECJOB__DORECYCLERECJOBS ) ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSRECYCLERECJOB__DORECYCLERECJOB, "_clsRecycleRecordJob::_doRecycleRecordJob" )
-   INT32 _clsRecycleRecordJob::_doRecycleRecordJob( pmdEDUCB *pEduCB,
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSRECYCLERECJOB__DORECYCLERECJOB, "_dmsRecycleRecordJob::_doRecycleRecordJob" )
+   INT32 _dmsRecycleRecordJob::_doRecycleRecordJob( pmdEDUCB *pEduCB,
                                                     SDB_DMSCB *pDmsCB,
                                                     dpsTransCB *pTransCB,
-                                                    const _clsRecycleJobInfo &jobInfo,
+                                                    const _dmsRecycleJobInfo &jobInfo,
                                                     BOOLEAN &hasUserWrite,
                                                     UINT64 &lastWriteCount )
    {
       static const UINT64 CHECK_WRITE_INTERVAL = 1000 ; // ms
 
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__CLSRECYCLERECJOB__DORECYCLERECJOB ) ;
+      PD_TRACE_ENTRY( SDB__DMSRECYCLERECJOB__DORECYCLERECJOB ) ;
 
       const monCLSimple &clInfo = jobInfo._cl ;
       dmsStorageUnit *pSu = NULL ;
@@ -355,17 +355,17 @@ namespace engine
       {
          pDmsCB->suUnlock( pSu->CSID(), SHARED ) ;
       }
-      PD_TRACE_EXITRC( SDB__CLSRECYCLERECJOB__DORECYCLERECJOB, rc ) ;
+      PD_TRACE_EXITRC( SDB__DMSRECYCLERECJOB__DORECYCLERECJOB, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
-   INT32 _clsRecycleRecordJob::_deleteFirstDeletingRecord( pmdEDUCB *pEduCB,
+   INT32 _dmsRecycleRecordJob::_deleteFirstDeletingRecord( pmdEDUCB *pEduCB,
                                                            dpsTransCB *pTransCB,
                                                            dmsStorageUnit *pSu,
                                                            dmsMBContext *pContext,
-                                                           const _clsRecycleJobInfo &jobInfo )
+                                                           const _dmsRecycleJobInfo &jobInfo )
    {
       /// Test Lock
       INT32 rc = SDB_OK ;
@@ -442,12 +442,12 @@ namespace engine
       goto done ;
    }
 
-   INT32 startRecycleRecordJob ( EDUID *pEDUID )
+   INT32 dmsStartRecycleRecordJob ( EDUID *pEDUID )
    {
       INT32 rc = SDB_OK ;
-      clsRecycleRecordJob *pJob = NULL ;
+      dmsRecycleRecordJob *pJob = NULL ;
 
-      pJob = SDB_OSS_NEW clsRecycleRecordJob() ;
+      pJob = SDB_OSS_NEW dmsRecycleRecordJob() ;
       if ( !pJob )
       {
          rc = SDB_OOM ;

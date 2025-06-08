@@ -40,33 +40,33 @@
 namespace engine
 {
    /*
-    *  _clsRecycleRecordJob define
+    *  _dmsRecycleJobInfo define
     */
-   struct _clsRecycleJobInfo : public SDBObject
+   struct _dmsRecycleJobInfo : public SDBObject
    {
       monCLSimple _cl ;
       UINT64 _lastWriteCount ;
 
-      _clsRecycleJobInfo( const monCLSimple &cl ) :
+      _dmsRecycleJobInfo( const monCLSimple &cl ) :
             _cl( cl ),
             _lastWriteCount( OSS_UINT64_MAX ) {}
 
-      BOOLEAN operator < ( const _clsRecycleJobInfo &r ) const
+      BOOLEAN operator < ( const _dmsRecycleJobInfo &r ) const
       {
          return _cl < r._cl ;
       }
    } ;
 
    /*
-    *  _clsRecycleRecordJob define
+    *  _dmsRecycleRecordJob define
     */
-   class _clsRecycleRecordJob : public _rtnBaseJob
+   class _dmsRecycleRecordJob : public _rtnBaseJob
    {
-      typedef ossPoolSet< _clsRecycleJobInfo > CLS_JOB_SET ;
+      typedef ossPoolSet< _dmsRecycleJobInfo > CLS_JOB_SET ;
 
    public:
-      _clsRecycleRecordJob () ;
-      virtual ~_clsRecycleRecordJob () ;
+      _dmsRecycleRecordJob () ;
+      virtual ~_dmsRecycleRecordJob () ;
 
    public:
       virtual RTN_JOB_TYPE type () const { return RTN_JOB_DMS_RECYCLE_RECORD ; }
@@ -78,7 +78,7 @@ namespace engine
       virtual INT32 doit () ;
 
    private:
-      void _addJob2Set( CLS_JOB_SET &set, const _clsRecycleJobInfo &jobInfo ) ;
+      void _addJob2Set( CLS_JOB_SET &set, const _dmsRecycleJobInfo &jobInfo ) ;
 
       void _doRecycleRecordJobs( pmdEDUCB *eduCB,
                                  SDB_DMSCB *pDmsCB,
@@ -88,7 +88,7 @@ namespace engine
       INT32 _doRecycleRecordJob( pmdEDUCB *eduCB,
                                  SDB_DMSCB *pDmsCB,
                                  dpsTransCB *pTransCB,
-                                 const _clsRecycleJobInfo &jobInfo,
+                                 const _dmsRecycleJobInfo &jobInfo,
                                  BOOLEAN &hasUserWrite,
                                  UINT64 &lastWriteCount ) ;
 
@@ -96,12 +96,12 @@ namespace engine
                                         dpsTransCB *pTransCB,
                                         dmsStorageUnit *su,
                                         dmsMBContext *pContext,
-                                        const _clsRecycleJobInfo &jobInfo ) ;
+                                        const _dmsRecycleJobInfo &jobInfo ) ;
    } ;
 
-   typedef _clsRecycleRecordJob clsRecycleRecordJob ;
+   typedef _dmsRecycleRecordJob dmsRecycleRecordJob ;
 
-   INT32 startRecycleRecordJob ( EDUID *pEDUID ) ;
+   INT32 dmsStartRecycleRecordJob ( EDUID *pEDUID ) ;
 }
 
 #endif //DMS_RECYCLE_RECORD_JOB_HPP__

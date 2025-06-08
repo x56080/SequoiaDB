@@ -1408,10 +1408,10 @@ namespace engine
          virtual INT32 setExtOptions ( dmsMBContext * context,
                                        const BSONObj & extOptions ) = 0 ;
 
-         void          pushToDeletingList( dmsMBContext *pContext,
+         BOOLEAN       pushToDeletingList( dmsMBContext *pContext,
                                            dmsRecordRW &recordRW ) ;
 
-         void          eraseFromDeletingList( dmsMBContext *pContext,
+         INT32         eraseFromDeletingList( dmsMBContext *pContext,
                                               dmsRecord *pRecord ) ;
 
       protected:

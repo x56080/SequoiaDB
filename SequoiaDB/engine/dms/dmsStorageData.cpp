@@ -276,7 +276,14 @@ namespace engine
       recordRW = record2RW( foundRID, context->mbID() ) ;
       pRecord = recordRW.writePtr< dmsRecord >() ;
       pRecord->unsetDeleting() ;
-      eraseFromDeletingList( context, pRecord ) ;
+      rc = eraseFromDeletingList( context, pRecord ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Erase from deleting list for RID(%d,%d) failed, rc: %d",
+                 foundRID._extent, foundRID._offset, rc ) ;
+         goto error ;
+      }
+
       if ( dmsRecordSize <= pRecord->getSize() )
       {
          pRecord->setData( recordData ) ;
