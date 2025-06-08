@@ -4202,7 +4202,9 @@ namespace engine
          {
             if ( isDeleting )
             {
-               eraseFromDeletingList( context, pRecord ) ;
+               rc = eraseFromDeletingList( context, pRecord ) ;
+               PD_RC_CHECK( rc, PDERROR, "Erase from deleting list for RID(%d,%d) failed, rc: %d",
+                            recordID._extent, recordID._offset, rc ) ;
             }
             rc = _extentRemoveRecord( context, extRW, recordRW, cb,
                                       !isDeleting ) ;
@@ -5189,29 +5191,59 @@ namespace engine
       goto done ;
    }
 
-   void _dmsStorageDataCommon::pushToDeletingList( dmsMBContext *pContext,
-                                                   dmsRecordRW &recordRW )
+   BOOLEAN _dmsStorageDataCommon::pushToDeletingList( dmsMBContext *pContext,
+                                                      dmsRecordRW &recordRW )
    {
+      BOOLEAN result = FALSE ;
       dmsMB &mb = *pContext->mb() ;
       dmsMBStatInfo &mbStat = *pContext->mbStat() ;
       dmsRecordID rid = recordRW.getRecordID() ;
-      dmsRecord *pRecord = recordRW.writePtr() ;
+      dmsRecord *pRecord = NULL ;
+      dmsRecordRW lastRW ;
+      dmsRecord *pLastRecord = NULL ;
 
-      if ( pRecord->isInDeletingList() )
+      try
       {
-         return ;
+         pRecord = recordRW.writePtr() ;
+         if ( NULL == pRecord )
+         {
+            goto done ;
+         }
+
+         if ( pRecord->isOvf() )
+         {
+            /// ovf record can't be push to deleting list
+            goto done ;
+         }
+
+         if ( pRecord->isInDeletingList() )
+         {
+            /// already in deleting list
+            result = TRUE ;
+            goto done ;
+         }
+
+         if ( !mb._lastDeletingRID.isNull() )
+         {
+            lastRW = record2RW( mb._lastDeletingRID, pContext->mbID() ) ;
+            pLastRecord = lastRW.writePtr() ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDWARNING, "Occur exception: %s(%d)", e.what(), ossException2RC( &e ) ) ;
+         goto done ;
       }
 
-      if ( !mb._lastDeletingRID.isNull() )
+      if ( pLastRecord )
       {
-         dmsRecordRW lastRW = record2RW( mb._lastDeletingRID, pContext->mbID() ) ;
-         dmsRecord *pLastRecord = lastRW.writePtr() ;
          if ( pRecord->setPrevDeletingRID( mb._lastDeletingRID ) &&
               pRecord->setNextDeletingRID( dmsRecordID() ) &&
               pLastRecord->setNextDeletingRID( rid ) )
          {
             mb._lastDeletingRID = rid ;
             ++ mbStat._totalDeletingRecords ;
+            result = TRUE ;
          }
       }
       else
@@ -5222,31 +5254,59 @@ namespace engine
             mb._firstDeletingRID = rid ;
             mb._lastDeletingRID = rid ;
             ++ mbStat._totalDeletingRecords ;
+            result = TRUE ;
          }
       }
+
+   done:
+      return result ;
    }
 
-   void _dmsStorageDataCommon::eraseFromDeletingList( dmsMBContext *pContext,
-                                                      dmsRecord *pRecord )
+   INT32 _dmsStorageDataCommon::eraseFromDeletingList( dmsMBContext *pContext,
+                                                       dmsRecord *pRecord )
    {
+      INT32 rc = SDB_OK ;
+
       if ( pRecord->isInDeletingList() )
       {
          dmsRecordID prev = pRecord->getPrevDeletingRID() ;
          dmsRecordID next = pRecord->getNextDeletingRID() ;
-         if ( prev.isValid() )
+         dmsRecordRW prevRW ;
+         dmsRecordRW nextRW ;
+         dmsRecord *pPrevRecord = NULL ;
+         dmsRecord *pNextRecord = NULL ;
+
+         try
          {
-            dmsRecordRW prevRW = record2RW( prev, pContext->mbID() ) ;
-            dmsRecord *pPrevRecord = prevRW.writePtr() ;
+            if ( prev.isValid() )
+            {
+               prevRW = record2RW( prev, pContext->mbID() ) ;
+               pPrevRecord = prevRW.writePtr() ;
+            }
+            if ( next.isValid() )
+            {
+               nextRW = record2RW( next, pContext->mbID() ) ;
+               pNextRecord = nextRW.writePtr() ;
+            }
+         }
+         catch( std::exception &e )
+         {
+            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+            rc = ossException2RC( &e ) ;
+            goto error ;
+         }
+
+         if ( pPrevRecord )
+         {
             pPrevRecord->setNextDeletingRID( next ) ;
          }
          else
          {
             pContext->mb()->_firstDeletingRID = next ;
          }
-         if ( next.isValid() )
+
+         if ( pNextRecord )
          {
-            dmsRecordRW nextRW = record2RW( next, pContext->mbID() ) ;
-            dmsRecord *pNextRecord = nextRW.writePtr() ;
             pNextRecord->setPrevDeletingRID( prev ) ;
          }
          else
@@ -5255,6 +5315,11 @@ namespace engine
          }
          -- pContext->mbStat()->_totalDeletingRecords ;
       }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 
    /*

@@ -537,9 +537,9 @@ namespace engine
       BOOLEAN success = FALSE ;
       const UINT32 requiredLength = sizeof( UINT32 ) + sizeof( dmsRecordID ) * 2 ;
       UINT32 dataLength = getDataLength() ;
-      if ( dataLength >= requiredLength || 0 == dataLength )
+      if ( getSize() >= requiredLength + getHeaderSize() || 0 == dataLength )
       {
-         CHAR *pLength = (CHAR*)this + DMS_RECORD_VERSIONED_METADATA_SZ ;
+         CHAR *pLength = (CHAR*)this + getHeaderSize() ;
          CHAR *pPrev = pLength + sizeof(UINT32) ;
          CHAR *pNext = pPrev + sizeof(dmsRecordID) ;
          *((dmsRecordID*) pPrev) = rid ;
@@ -557,9 +557,7 @@ namespace engine
    {
       if ( isInDeletingList() )
       {
-         return *( const dmsRecordID* )( (const CHAR*)this +
-                                    DMS_RECORD_VERSIONED_METADATA_SZ +
-                                    sizeof( UINT32 ) ) ;
+         return *( const dmsRecordID* )( (const CHAR*)this + getHeaderSize() + sizeof( UINT32 ) ) ;
       }
       return dmsRecordID() ;
    }
@@ -569,9 +567,9 @@ namespace engine
       BOOLEAN success = FALSE ;
       const UINT32 requiredLength = sizeof( UINT32 ) + sizeof( dmsRecordID ) * 2 ;
       UINT32 dataLength = getDataLength() ;
-      if ( dataLength >= requiredLength || 0 == dataLength )
+      if ( getSize() >= requiredLength + getHeaderSize() || 0 == dataLength )
       {
-         CHAR *pLength = (CHAR*)this + DMS_RECORD_VERSIONED_METADATA_SZ ;
+         CHAR *pLength = (CHAR*)this + getHeaderSize() ;
          CHAR *pPrev = pLength + sizeof(UINT32) ;
          CHAR *pNext = pPrev + sizeof(dmsRecordID) ;
          *((dmsRecordID*) pNext) = rid ;
@@ -589,9 +587,8 @@ namespace engine
    {
       if ( isInDeletingList() )
       {
-         return *( const dmsRecordID* )( (const CHAR*)this +
-                                    DMS_RECORD_VERSIONED_METADATA_SZ +
-                                    sizeof( UINT32 ) + sizeof( dmsRecordID ) ) ;
+         return *( const dmsRecordID* )( ( const CHAR*)this + getHeaderSize() +
+                                         sizeof( UINT32 ) + sizeof( dmsRecordID ) ) ;
       }
       return dmsRecordID() ;
    }
