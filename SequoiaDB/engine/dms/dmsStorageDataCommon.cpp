@@ -3709,6 +3709,8 @@ namespace engine
             if ( !pExtent->validate( context->mbID() ) )
             {
                rc = SDB_SYS ;
+               PD_LOG( PDERROR, "Validate extent failed for RID(%d,%d), rc: %d",
+                       foundRID._extent, foundRID._offset, rc ) ;
                goto error ;
             }
             rc = _doMarkInsert( context, cb, extRW, foundRID, dmsRecordSize, recordData ) ;
@@ -3735,6 +3737,8 @@ namespace engine
             if ( !pExtent->validate( context->mbID() ) )
             {
                rc = SDB_SYS ;
+               PD_LOG( PDERROR, "Validate extent failed for RID(%d,%d), rc: %d",
+                       foundRID._extent, foundRID._offset, rc ) ;
                goto error ;
             }
             recordRW = record2RW( foundRID, context->mbID() ) ;

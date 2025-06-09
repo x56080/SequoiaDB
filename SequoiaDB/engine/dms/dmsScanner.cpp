@@ -756,17 +756,14 @@ namespace engine
             if ( _recordLock == DPS_TRANSLOCK_X &&
                  _context->isMBLock( EXCLUSIVE ) )
             {
-               if ( !_pSu->pushToDeletingList( _context, _recordRW ) )
+               /// direct delete
+               INT32 rc1 = _pSu->deleteRecord( _context, _curRID,
+                                               0, cb, NULL, NULL,
+                                               _callback.getTransRecordInfo() ) ;
+               if ( rc1 )
                {
-                  /// direct delete
-                  INT32 rc1 = _pSu->deleteRecord( _context, _curRID,
-                                                  0, cb, NULL, NULL,
-                                                  _callback.getTransRecordInfo() ) ;
-                  if ( rc1 )
-                  {
-                     PD_LOG( PDWARNING, "Failed to delete the deleting record, "
-                             "rc: %d", rc ) ;
-                  }
+                  PD_LOG( PDWARNING, "Failed to delete the deleting record(%d,%d), "
+                          "rc: %d", _curRID._extent, _curRID._offset, rc1 ) ;
                }
             }
 
@@ -2442,16 +2439,13 @@ namespace engine
             if ( _recordLock == DPS_TRANSLOCK_X &&
                  _context->isMBLock( EXCLUSIVE ) )
             {
-               if ( !_pSu->pushToDeletingList( _context, _recordRW ) )
+               INT32 rc1 = _pSu->deleteRecord( _context, _curRID, 0,
+                                               cb, NULL, NULL,
+                                               _callback.getTransRecordInfo() ) ;
+               if ( SDB_OK != rc1 )
                {
-                  rc = _pSu->deleteRecord( _context, _curRID, 0,
-                                           cb, NULL, NULL,
-                                           _callback.getTransRecordInfo() ) ;
-                  if ( SDB_OK != rc )
-                  {
-                     PD_LOG( PDWARNING, "Failed to delete the deleting record, "
-                             "rc: %d", rc ) ;
-                  }
+                  PD_LOG( PDWARNING, "Failed to delete the deleting record(%d,%d), "
+                          "rc: %d", _curRID._extent, _curRID._offset, rc1 ) ;
                }
             }
 
