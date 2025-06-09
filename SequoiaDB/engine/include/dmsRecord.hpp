@@ -271,6 +271,8 @@ namespace engine
 #endif // SDB_BIG_ENDIAN
       }
 
+      OSS_INLINE UINT32 getHeaderSize() const ;
+
       OSS_INLINE UINT8 getCompressType () const ;
 
       OSS_INLINE UINT32 getDataLength() const ;
@@ -465,6 +467,11 @@ namespace engine
                                       DMS_RECORD_VERSIONED_METADATA_SZ ) ;
       }
       return dmsRecordID() ;
+   }
+
+   OSS_INLINE UINT32 _dmsRecord_v0::getHeaderSize() const
+   {
+      return DMS_RECORD_VERSIONED_METADATA_SZ ;
    }
 
    OSS_INLINE UINT8 _dmsRecord_v0::getCompressType () const
