@@ -4031,6 +4031,12 @@ namespace engine
             }
             else if ( markDeleting )
             {
+               /// when the record isn't in deleting list, it be mark deleting in old ver
+               /// so, need to add to deleting list
+               if ( !pRecord->isInDeletingList() )
+               {
+                  isMarkDeleteingDone = TRUE ;
+               }
                goto done ;
             }
          }

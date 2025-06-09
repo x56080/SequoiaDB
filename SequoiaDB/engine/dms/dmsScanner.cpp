@@ -752,7 +752,7 @@ namespace engine
          if ( _curRecordPtr->isDeleting() )
          {
             // Old version record may be not in list,
-            // just append them
+            // direct delete
             if ( _recordLock == DPS_TRANSLOCK_X &&
                  _context->isMBLock( EXCLUSIVE ) )
             {
@@ -2435,7 +2435,7 @@ namespace engine
          if ( _curRecordPtr->isDeleting() )
          {
             // Old version record may be not in list,
-            // just append them
+            // direct delete
             if ( _recordLock == DPS_TRANSLOCK_X &&
                  _context->isMBLock( EXCLUSIVE ) )
             {
