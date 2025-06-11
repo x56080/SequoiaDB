@@ -148,10 +148,10 @@ namespace engine
          _pOldVer->releaseRecord() ;
       }
 
-      // If maxDeletingRecord != 0, the clsRecycleRecordJob would
+      // If recordRecycledDelay > 0, the dmsRecycleRecordJob would
       // handle this deleting record
       if ( !_isDiskDeleting || !pmdGetOptionCB()->recycleRecord() ||
-           pmdGetOptionCB()->getRecordRecycleDelay() != 0 )
+           pmdGetOptionCB()->getRecordRecycleDelay() > 0 )
       {
          result = UTIL_LJOB_DO_FINISH ;
          goto done ;
@@ -387,10 +387,10 @@ namespace engine
          PD_LOG( PDDEBUG, "Delete old record for rid[%s] from memory",
                  lockId.toString().c_str() ) ;
 
-         // If maxDeletingRecord != 0, the clsRecycleRecordJob would
+         // If recordRecycledDelay > 0, the dmsRecycleRecordJob would
          // handle this deleting record
          if ( !isDiskDeleting || !pmdGetOptionCB()->recycleRecord() ||
-              pmdGetOptionCB()->getRecordRecycleDelay() != 0 )
+              pmdGetOptionCB()->getRecordRecycleDelay() > 0 )
          {
             goto done ;
          }

@@ -82,6 +82,8 @@ v3.2.5 及以上版本、v3.4.1 及以上版本
       "AvgLobSize": 150,
       "TotalDataFreeSpace": 0,
       "TotalIndexFreeSpace": 65515,
+      "TotalOverflowRecords": 0,
+      "TotalDeletingRecords": 0,
       "CurrentCompressionRatio": 1,
       "DataCommitLSN": 80,
       "IndexCommitLSN": 80,

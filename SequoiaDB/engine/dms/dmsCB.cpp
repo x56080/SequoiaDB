@@ -315,6 +315,7 @@ namespace engine
 
             pInfo->_overflowRatio = optCB->getOverFlowRatio() ;
             pInfo->_extentThreshold = optCB->getExtendThreshold() << 20 ;
+            pInfo->_useDeletingList = ( -1 != optCB->getRecordRecycleDelay() ) ? TRUE : FALSE ;
             pInfo->_enableSparse = optCB->sparseFile() ;
             pInfo->_cacheMergeSize = optCB->getCacheMergeSize() ;
             pInfo->_pageAllocTimeout = optCB->getPageAllocTimeout() ;

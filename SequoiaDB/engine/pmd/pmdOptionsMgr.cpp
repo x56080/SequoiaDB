@@ -2647,8 +2647,8 @@ done:
       rdvMinMax( pEX, _replSize, SDB_MIN_REPLSIZE, SDB_MAX_REPLSIZE ) ;
 
       // --recordrecycledelay
-      rdxUInt( pEX, PMD_OPTION_RECORD_RECYCLE_DELAY, _recordRecycleDelay, FALSE,
-               PMD_CFG_CHANGE_RUN, PMD_DFT_RECORD_RECYCLE_DELAY, FALSE ) ;
+      rdxInt( pEX, PMD_OPTION_RECORD_RECYCLE_DELAY, _recordRecycleDelay, FALSE,
+              PMD_CFG_CHANGE_RUN, PMD_DFT_RECORD_RECYCLE_DELAY, FALSE ) ;
 
       // --forcerecyclethreshold
       rdxUInt( pEX, PMD_OPTION_RECORD_RECYCLE_RATIO, _recordRecycleRatio, FALSE,

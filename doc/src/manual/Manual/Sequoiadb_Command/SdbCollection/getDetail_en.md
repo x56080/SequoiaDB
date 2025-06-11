@@ -79,6 +79,8 @@ Get the detail of collection `sample.employee`.
       "AvgLobSize": 150,
       "TotalDataFreeSpace": 0,
       "TotalIndexFreeSpace": 65515,
+      "TotalOverflowRecords": 0,
+      "TotalDeletingRecords": 0,
       "CurrentCompressionRatio": 1,
       "DataCommitLSN": 80,
       "IndexCommitLSN": 80,

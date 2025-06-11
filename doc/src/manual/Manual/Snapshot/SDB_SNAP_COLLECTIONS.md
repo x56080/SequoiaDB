@@ -41,6 +41,8 @@ SDB_SNAP_COLLECTIONS
 | Details.AvgLobSize     | int64      | 集合大对象文件平均大小，单位为字节（仅在 v3.4.8 及以上版本生效） |
 | Details.TotalDataFreeSpace      | int64         | 集合的数据空闲空间，单位为字节                          |
 | Details.TotalIndexFreeSpace     | int64         | 集合的索引空闲空间，单位为字节                          |
+| Details.TotalOverflowRecords    | int64         | 集合中 Overflow 的记录数                                |
+| Details.TotalDeletingRecords    | int64         | 集合中标记为 Deleting 的记录数                          |
 | Details.CurrentCompressionRatio | double        | 集合的的压缩率                                          |
 | Details.DataCommitLSN           | int64         | 集合数据文件已刷盘记录对应的 LSN（内部使用）        |
 | Details.IndexCommitLSN          | int64         | 集合索引文件已刷盘记录对应的 LSN（内部使用）        |
@@ -173,6 +175,8 @@ SDB_SNAP_COLLECTIONS
           "AvgLobSize": 150,
           "TotalDataFreeSpace": 0,
           "TotalIndexFreeSpace": 65515,
+          "TotalOverflowRecords": 0,
+          "TotalDeletingRecords": 0,
           "CurrentCompressionRatio": 1,
           "DataCommitLSN": 80,
           "IndexCommitLSN": 80,
@@ -210,6 +214,7 @@ SDB_SNAP_COLLECTIONS
     }
     ...
     ```
+
 
 - 通过协调节点查看快照
 

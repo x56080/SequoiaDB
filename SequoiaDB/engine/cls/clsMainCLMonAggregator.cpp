@@ -152,6 +152,8 @@ namespace engine
          _detail._totalValidLobSize += sub._totalValidLobSize ;
          _detail._totalDataFreeSpace += sub._totalDataFreeSpace ;
          _detail._totalIndexFreeSpace += sub._totalIndexFreeSpace ;
+         _detail._totalOverflowRecords += sub._totalOverflowRecords ;
+         _detail._totalDeletingRecords += sub._totalDeletingRecords ;
 
          /// CRUD statistics
          _detail._crudCB._totalDataRead += sub._crudCB._totalDataRead ;

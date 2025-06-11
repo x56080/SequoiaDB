@@ -468,7 +468,8 @@ namespace engine
                              " Total idx free sp : %llu" OSS_NEWLINE
                              " Total lob pages   : %u" OSS_NEWLINE
                              " Total org data len: %llu" OSS_NEWLINE
-                             " total data len    : %llu" OSS_NEWLINE,
+                             " Total data len    : %llu" OSS_NEWLINE
+                             " Total ovf-records : %llu" OSS_NEWLINE,
                              mb->_totalRecords,
                              mb->_totalLobs,
                              mb->_totalDataPages,
@@ -477,7 +478,8 @@ namespace engine
                              mb->_totalIndexFreeSpace,
                              mb->_totalLobPages,
                              mb->_totalOrgDataLen,
-                             mb->_totalDataLen ) ;
+                             mb->_totalDataLen,
+                             mb->_totalOverflowRecords ) ;
 
          /// compress
          len += ossSnprintf( outBuf + len, outSize - len,
@@ -622,7 +624,7 @@ namespace engine
          if ( force || !mb->_lastDeletingRID.isNull() )
          {
             len += ossSnprintf( outBuf + len, outSize - len,
-                                " Last deleting record: "
+                                "  Last deleting record: "
                                 "%08x %08x (%d, %d)" OSS_NEWLINE,
                                 mb->_lastDeletingRID._extent,
                                 mb->_lastDeletingRID._offset,

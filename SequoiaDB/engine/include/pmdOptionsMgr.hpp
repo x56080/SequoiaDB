@@ -707,7 +707,8 @@ namespace engine
          OSS_INLINE UINT64 getFsCacheExpiredMs() const { return _fsCacheExpiredMs ; }
 
          OSS_INLINE const INT32 getReplSize() const { return _replSize ; }
-         OSS_INLINE UINT32 getRecordRecycleDelay() const { return _recordRecycleDelay ; }
+
+         OSS_INLINE INT32  getRecordRecycleDelay() const { return _recordRecycleDelay ; }
          OSS_INLINE UINT32 getRecordRecycleRatio() const { return _recordRecycleRatio ; }
 
 #ifdef SDB_ENTERPRISE
@@ -870,7 +871,8 @@ namespace engine
          UINT64      _fsCacheExpiredMs ;
 
          INT32       _replSize ;
-         UINT32      _recordRecycleDelay ;
+
+         INT32       _recordRecycleDelay ;      /// only -1 for testability, no add to deleting list
          UINT32      _recordRecycleRatio ;
 
 #ifdef SDB_ENTERPRISE
