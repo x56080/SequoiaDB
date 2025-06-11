@@ -121,7 +121,14 @@ namespace engine
          pEduMgr->waitEDU( cb ) ;
          cb->resetDisconnect() ;
 
-         delayTimeMs = pOptionCB->getRecordRecycleDelay() * 60 * OSS_ONE_SEC ;
+         if ( pOptionCB->getRecordRecycleDelay() > 0 )
+         {
+            delayTimeMs = (UINT64)(pOptionCB->getRecordRecycleDelay()) * 60 * OSS_ONE_SEC ;
+         }
+         else
+         {
+            delayTimeMs = 0 ;
+         }
          cb->waitEvent( event, OSS_ONE_SEC ) ;
 
          // Check stop signal first

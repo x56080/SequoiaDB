@@ -149,6 +149,8 @@ namespace engine
       UINT64 _avgLobSize ;
       UINT64 _totalDataFreeSpace ;
       UINT64 _totalIndexFreeSpace ;
+      UINT64 _totalOverflowRecords ;
+      UINT64 _totalDeletingRecords ;
       UINT32 _currCompressRatio ;
       // end
 
@@ -196,6 +198,8 @@ namespace engine
          _avgLobSize          = 0 ;
          _totalDataFreeSpace  = 0 ;
          _totalIndexFreeSpace = 0 ;
+         _totalOverflowRecords= 0 ;
+         _totalDeletingRecords= 0 ;
          _currCompressRatio   = 0 ;
 
          /// sync info

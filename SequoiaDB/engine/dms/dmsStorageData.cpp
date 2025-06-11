@@ -264,6 +264,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGEDATA__DOMARKINST ) ;
 
+      monAppCB * pMonAppCB = cb ? cb->getMonAppCB() : NULL ;
       dmsExtent *pExtent = extRW.writePtr<dmsExtent>() ;
       dmsRecordRW recordRW ;
       dmsRecord *pRecord = NULL ;
@@ -273,9 +274,25 @@ namespace engine
       const dmsExtent *pNewExtent = NULL ;
       dmsRecord *pNewRecord = NULL ;
 
+      dmsRecordID ovfRID ;
+      dmsExtRW ovfExtRW ;
+      dmsRecordRW ovfRW ;
+      dmsRecord *pOvfRecord = NULL ;
+
       recordRW = record2RW( foundRID, context->mbID() ) ;
       pRecord = recordRW.writePtr< dmsRecord >() ;
-      pRecord->unsetDeleting() ;
+
+      if ( pRecord->isOvf() )
+      {
+         ovfRID = pRecord->getOvfRID() ;
+         DMS_MON_OP_COUNT_INC( pMonAppCB, MON_DATA_READ, 1 ) ;
+         ovfExtRW = extent2RW( ovfRID._extent, context->mbID() ) ;
+         ovfRW = record2RW( ovfRID, context->mbID() ) ;
+         pOvfRecord = ovfRW.writePtr( 0 ) ;
+         SDB_ASSERT( pOvfRecord->isOvt(), "Record must be ovt" ) ;
+      }
+
+      /// when not in deleting list, will do nothing in eraseFromDeletingList and return SDB_OK
       rc = eraseFromDeletingList( context, pRecord ) ;
       if ( rc )
       {
@@ -287,6 +304,22 @@ namespace engine
       if ( dmsRecordSize <= pRecord->getSize() )
       {
          pRecord->setData( recordData ) ;
+         // increase data write counter for deleting marking
+         DMS_MON_OP_COUNT_INC( pMonAppCB, MON_DATA_WRITE, 1 ) ;
+
+         if ( ovfRID.isValid() )
+         {
+            _extentRemoveRecord( context, ovfExtRW, ovfRW, cb, FALSE ) ;
+            pRecord->setNormal() ;
+            /// when deleting record not be tracked in overflow record, so don't --overflow records
+         }
+      }
+      else if ( pOvfRecord && dmsRecordSize <= pOvfRecord->getSize() )
+      {
+         pOvfRecord->setData( recordData ) ;
+         DMS_MON_OP_COUNT_INC( pMonAppCB, MON_DATA_WRITE, 1 ) ;
+         /// when deleting record not be tracked in overflow record, so need add it
+         ++( context->mbStat()->_totalOverflowRecords ) ;
       }
       else
       {
@@ -305,8 +338,8 @@ namespace engine
 
          if ( !pNewExtent->validate( context->mbID() ) )
          {
-            PD_LOG ( PDERROR, "Invalid extent[%d] is detected",
-                     foundDeletedID._extent ) ;
+            PD_LOG ( PDERROR, "Invalid extent is detected for RID(%d,%d), rc: %d",
+                     foundDeletedID._extent, foundDeletedID._offset, rc ) ;
             rc = SDB_SYS ;
             goto error ;
          }
@@ -328,8 +361,16 @@ namespace engine
          pNewRecord->setOvt() ;
          pRecord->setOvf() ;
          pRecord->setOvfRID( foundDeletedID ) ;
+         /// when deleting record not be tracked in overflow record, so need add it
+         ++( context->mbStat()->_totalOverflowRecords ) ;
+
+         if ( ovfRID.isValid() )
+         {
+            _extentRemoveRecord( context, ovfExtRW, ovfRW, cb, FALSE ) ;
+         }
       }
 
+      pRecord->unsetDeleting() ; /// unset deleting
       ++( pExtent->_recCount ) ;
       _increaseMBStat( context->mbStat()->_clUniqueID, context->mbStat(), cb ) ;
       context->mbStat()->_totalDataLen += recordData.len() ;
@@ -340,8 +381,7 @@ namespace engine
                "in collection [%s.%s] to rollback transaction [%s]",
                foundRID._extent, foundRID._offset,
                getSuName(), context->mbStat()->_collectionName,
-               dpsTransIDToString(
-                     DPS_TRANS_GET_ID( cb->getTransID() ) ).c_str() ) ;
+               dpsTransIDToString( DPS_TRANS_GET_ID( cb->getTransID() ) ).c_str() ) ;
 #endif
    done:
       PD_TRACE_EXITRC( SDB__DMSSTORAGEDATA__DOMARKINST, rc ) ;
@@ -584,6 +624,7 @@ namespace engine
             ovfExtRW = extent2RW( ovfRID._extent, context->mbID() ) ;
             ovfRW = record2RW( ovfRID, context->mbID() ) ;
             pOvfRecord = ovfRW.writePtr( 0 ) ;
+            SDB_ASSERT( pOvfRecord->isOvt(), "Record must be ovt" ) ;
          }
 
          // if the current space is big enough for the whole record,
@@ -597,6 +638,12 @@ namespace engine
             {
                _extentRemoveRecord( context, ovfExtRW, ovfRW, cb, FALSE ) ;
                pRecord->setNormal() ;
+               /// for old version, the ovf-record not be tracked, so it needs to be protected
+               /// to prevent its value from being less than 0
+               if ( context->mbStat()->_totalOverflowRecords > 0 )
+               {
+                  --( context->mbStat()->_totalOverflowRecords ) ;
+               }
             }
             /// sub the remove data info
             //if the record has compresssed,the orgLen mean the record size
@@ -658,9 +705,9 @@ namespace engine
 
             if ( !pNewExtent->validate( context->mbID() ) )
             {
-               PD_LOG ( PDERROR, "Invalid extent[%d] is detected",
-                        foundDeletedID._extent ) ;
                rc = SDB_SYS ;
+               PD_LOG ( PDERROR, "Invalid extent is detected for RID(%d,%d), rc: %d",
+                        foundDeletedID._extent, foundDeletedID._offset, rc ) ;
                goto error ;
             }
             // pass FALSE to addIntoList so that we don't add the record into
@@ -686,6 +733,10 @@ namespace engine
                // overflowed record removal is done here, and it will mark the
                // segment dirty in the function
                _extentRemoveRecord( context, ovfExtRW, ovfRW, cb, FALSE ) ;
+            }
+            else
+            {
+               ++( context->mbStat()->_totalOverflowRecords ) ;
             }
 
             /// sub the remove data info

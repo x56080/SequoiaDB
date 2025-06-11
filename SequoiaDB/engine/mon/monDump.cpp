@@ -85,7 +85,9 @@ namespace engine
    #define MON_CL_DETAIL_VERSION_NULL ( 0 )
    #define MON_CL_DETAIL_VERSION_V1 ( 1 )
    #define MON_CL_DETAIL_VERSION_V2 ( 2 )
-   #define MON_CL_DETAIL_CURRENT_V  MON_CL_DETAIL_VERSION_V2
+   #define MON_CL_DETAIL_VERSION_V3 ( 3 )
+
+   #define MON_CL_DETAIL_CURRENT_V  MON_CL_DETAIL_VERSION_V3
 
    #define MON_CL_STAT_VERSION_NULL ( 0 )
    #define MON_CL_STAT_VERSION_V1 ( 1 )
@@ -1686,9 +1688,11 @@ namespace engine
       return rc ;
    }
 
-   INT32 _monDetailObj2InfoV2( const BSONObj &obj, detailedInfo &info )
+   INT32 _monDetailObj2InfoV2V3( const BSONObj &obj, detailedInfo &info )
    {
       INT32 rc = SDB_OK ;
+      INT32 internalVer = MON_CL_DETAIL_VERSION_NULL ;
+
       try
       {
          BSONObjIterator iter( obj ) ;
@@ -1707,7 +1711,8 @@ namespace engine
          ele = iter.next() ;
          SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_INTERNAL_VERSION ),
                      "Unexcepted field here" ) ;
-         SDB_ASSERT( MON_CL_DETAIL_CURRENT_V == ele.numberInt(), "Wrong protocal version" ) ;
+         internalVer = ele.numberInt() ;
+         SDB_ASSERT( internalVer >= MON_CL_DETAIL_VERSION_V2, "Wrong protocal version" ) ;
 
          // ID
          ele = iter.next() ;
@@ -1805,6 +1810,26 @@ namespace engine
          SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTAL_USED_LOB_SPACE ),
                      "Unexcepted field here" ) ;
          info._totalUsedLobSpace = ele.Long() ;
+
+         if ( internalVer >= MON_CL_DETAIL_VERSION_V3 )
+         {
+            // TotalOverflowRecords
+            ele = iter.next() ;
+            SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTAL_OVERFLOW_RECORDS ),
+                        "Unexcepted field here" ) ;
+            info._totalOverflowRecords = ele.Long() ;
+
+            // TotalDeletingRecords
+            ele = iter.next() ;
+            SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTAL_DELETING_RECORDS ),
+                        "Unexcepted field here" ) ;
+            info._totalDeletingRecords = ele.Long() ;
+         }
+         else
+         {
+            info._totalOverflowRecords = 0 ;
+            info._totalDeletingRecords = 0 ;
+         }
 
          // UsedLobSpaceRatio
          ele = iter.next() ;
@@ -2063,67 +2088,67 @@ namespace engine
             if (0 == ossStrcmp( ele.fieldName(),
                                 FIELD_NAME_PAGE_SIZE ))
             {
-               info._pageSize = ele.Int() ;
+               info._pageSize = ele.numberInt() ;
             }
             else if (0 == ossStrcmp( ele.fieldName(),
                                      FIELD_NAME_LOB_PAGE_SIZE ))
             {
-               info._lobPageSize = ele.Int() ;
+               info._lobPageSize = ele.numberInt() ;
             }
             else if (0 == ossStrcmp( ele.fieldName(),
                                      FIELD_NAME_TOTAL_RECORDS ))
             {
-               info._totalRecords = ele.Long() ;
+               info._totalRecords = ele.numberLong() ;
             }
             else if (0 == ossStrcmp( ele.fieldName(),
                                      FIELD_NAME_TOTAL_LOBS ))
             {
-               info._totalLobs = ele.Long() ;
+               info._totalLobs = ele.numberLong() ;
             }
             else if (0 == ossStrcmp( ele.fieldName(),
                                      FIELD_NAME_TOTAL_DATA_PAGES ))
             {
-               info._totalDataPages = ele.Int() ;
+               info._totalDataPages = ele.numberInt() ;
             }
             else if (0 == ossStrcmp( ele.fieldName(),
                                      FIELD_NAME_TOTAL_INDEX_PAGES ))
             {
-               info._totalIndexPages = ele.Int() ;
+               info._totalIndexPages = ele.numberInt() ;
             }
             else if (0 == ossStrcmp( ele.fieldName(),
                                      FIELD_NAME_TOTAL_LOB_PAGES ))
             {
-               info._totalLobPages = ele.Int() ;
+               info._totalLobPages = ele.numberInt() ;
             }
             else if (0 == ossStrcmp( ele.fieldName(),
                                      FIELD_NAME_TOTAL_USED_LOB_SPACE ))
             {
-               info._totalUsedLobSpace = ele.Long() ;
+               info._totalUsedLobSpace = ele.numberLong() ;
             }
             else if (0 == ossStrcmp( ele.fieldName(),
                                      FIELD_NAME_USED_LOB_SPACE_RATIO ))
             {
-               info._usedLobSpaceRatio = ele.Double() ;
+               info._usedLobSpaceRatio = ele.numberDouble() ;
             }
             else if (0 == ossStrcmp( ele.fieldName(),
                                      FIELD_NAME_TOTAL_LOB_SIZE ))
             {
-               info._totalLobSize = ele.Long() ;
+               info._totalLobSize = ele.numberLong() ;
             }
             else if (0 == ossStrcmp( ele.fieldName(),
                                      FIELD_NAME_TOTAL_VALID_LOB_SIZE ))
             {
-               info._totalValidLobSize = ele.Long() ;
+               info._totalValidLobSize = ele.numberLong() ;
             }
             else if (0 == ossStrcmp( ele.fieldName(),
                                      FIELD_NAME_LOB_USAGE_RATE ))
             {
-               info._lobUsageRate = ele.Double() ;
+               info._lobUsageRate = ele.numberDouble() ;
             }
             else if (0 == ossStrcmp( ele.fieldName(),
                                      FIELD_NAME_AVG_LOB_SIZE ))
             {
-               info._avgLobSize = ele.Long() ;
+               info._avgLobSize = ele.numberLong() ;
             }
             else if (0 == ossStrcmp( ele.fieldName(),
                                      FIELD_NAME_TOTAL_DATA_FREESPACE ))
@@ -2133,123 +2158,122 @@ namespace engine
             else if (0 == ossStrcmp( ele.fieldName(),
                                      FIELD_NAME_TOTAL_INDEX_FREESPACE ))
             {
-               info._totalIndexFreeSpace = ele.Long() ;
+               info._totalIndexFreeSpace = ele.numberLong() ;
             }
             else if (0 == ossStrcmp( ele.fieldName(),
                                      FIELD_NAME_TOTALDATAREAD ))
             {
-               info._crudCB._totalDataRead = ele.Long() ;
+               info._crudCB._totalDataRead = ele.numberLong() ;
             }
             else if (0 == ossStrcmp( ele.fieldName(),
                                      FIELD_NAME_TOTALINDEXREAD ))
             {
-               info._crudCB._totalIndexRead = ele.Long() ;
+               info._crudCB._totalIndexRead = ele.numberLong() ;
             }
             else if (0 == ossStrcmp( ele.fieldName(),
                                      FIELD_NAME_TOTALDATAWRITE ))
             {
-               info._crudCB._totalDataWrite = ele.Long() ;
+               info._crudCB._totalDataWrite = ele.numberLong() ;
             }
             else if (0 == ossStrcmp( ele.fieldName(),
                                      FIELD_NAME_TOTALINDEXWRITE ))
             {
-               info._crudCB._totalIndexWrite = ele.Long() ;
+               info._crudCB._totalIndexWrite = ele.numberLong() ;
             }
             else if (0 == ossStrcmp( ele.fieldName(),
                                      FIELD_NAME_TOTALUPDATE ))
             {
-               info._crudCB._totalUpdate = ele.Long() ;
+               info._crudCB._totalUpdate = ele.numberLong() ;
             }
             else if (0 == ossStrcmp( ele.fieldName(),
                                      FIELD_NAME_TOTALDELETE ))
             {
-               info._crudCB._totalDelete = ele.Long() ;
+               info._crudCB._totalDelete = ele.numberLong() ;
             }
             else if (0 == ossStrcmp( ele.fieldName(),
                                      FIELD_NAME_TOTALINSERT ))
             {
-               info._crudCB._totalInsert = ele.Long() ;
+               info._crudCB._totalInsert = ele.numberLong() ;
             }
             else if (0 == ossStrcmp( ele.fieldName(),
                                      FIELD_NAME_TOTALSELECT ))
             {
-               info._crudCB._totalSelect = ele.Long() ;
+               info._crudCB._totalSelect = ele.numberLong() ;
             }
             else if (0 == ossStrcmp( ele.fieldName(),
                                      FIELD_NAME_TOTALREAD ))
             {
-               info._crudCB._totalRead = ele.Long() ;
+               info._crudCB._totalRead = ele.numberLong() ;
             }
             else if (0 == ossStrcmp( ele.fieldName(),
                                      FIELD_NAME_TOTALWRITE ))
             {
-               info._crudCB._totalWrite = ele.Long() ;
+               info._crudCB._totalWrite = ele.numberLong() ;
             }
             else if (0 == ossStrcmp( ele.fieldName(),
                                      FIELD_NAME_TOTALTBSCAN ))
             {
-               info._crudCB._totalTbScan = ele.Long() ;
+               info._crudCB._totalTbScan = ele.numberLong() ;
             }
             else if (0 == ossStrcmp( ele.fieldName(),
                                      FIELD_NAME_TOTALIXSCAN ))
             {
-               info._crudCB._totalIxScan = ele.Long() ;
+               info._crudCB._totalIxScan = ele.numberLong() ;
             }
             else if (0 == ossStrcmp( ele.fieldName(),
                                      FIELD_NAME_TOTALLOBGET ))
             {
-               info._crudCB._totalLobGet = ele.Long() ;
+               info._crudCB._totalLobGet = ele.numberLong() ;
             }
             else if (0 == ossStrcmp( ele.fieldName(),
                                      FIELD_NAME_TOTALLOBPUT ))
             {
-               info._crudCB._totalLobPut = ele.Long() ;
+               info._crudCB._totalLobPut = ele.numberLong() ;
             }
             else if (0 == ossStrcmp( ele.fieldName(),
                                      FIELD_NAME_TOTALLOBDELETE ))
             {
-               info._crudCB._totalLobDelete = ele.Long() ;
+               info._crudCB._totalLobDelete = ele.numberLong() ;
             }
             else if (0 == ossStrcmp( ele.fieldName(),
                                      FIELD_NAME_TOTALLOBLIST ))
             {
-               info._crudCB._totalLobList = ele.Long() ;
+               info._crudCB._totalLobList = ele.numberLong() ;
             }
             else if (0 == ossStrcmp( ele.fieldName(),
                                      FIELD_NAME_TOTALLOBREADSIZE ))
             {
-               info._crudCB._totalLobReadSize = ele.Long() ;
+               info._crudCB._totalLobReadSize = ele.numberLong() ;
             }
             else if (0 == ossStrcmp( ele.fieldName(),
                                      FIELD_NAME_TOTALLOBWRITESIZE ))
             {
-               info._crudCB._totalLobWriteSize = ele.Long() ;
+               info._crudCB._totalLobWriteSize = ele.numberLong() ;
             }
-
             else if (0 == ossStrcmp( ele.fieldName(),
                                      FIELD_NAME_TOTALLOBREAD ))
             {
-               info._crudCB._totalLobRead = ele.Long() ;
+               info._crudCB._totalLobRead = ele.numberLong() ;
             }
             else if (0 == ossStrcmp( ele.fieldName(),
                                      FIELD_NAME_TOTALLOBWRITE ))
             {
-               info._crudCB._totalLobWrite = ele.Long() ;
+               info._crudCB._totalLobWrite = ele.numberLong() ;
             }
             else if (0 == ossStrcmp( ele.fieldName(),
                                      FIELD_NAME_TOTALLOBTRUNCATE ))
             {
-               info._crudCB._totalLobTruncate = ele.Long() ;
+               info._crudCB._totalLobTruncate = ele.numberLong() ;
             }
             else if (0 == ossStrcmp( ele.fieldName(),
                                      FIELD_NAME_TOTALLOBADDRESSING ))
             {
-               info._crudCB._totalLobAddressing = ele.Long() ;
+               info._crudCB._totalLobAddressing = ele.numberLong() ;
             }
             else if (0 == ossStrcmp( ele.fieldName(),
                                      FIELD_NAME_INDEXES ))
             {
-               info._numIndexes = ele.Int() ;
+               info._numIndexes = ele.numberInt() ;
             }
             else if (0 == ossStrcmp( ele.fieldName(),
                                      FIELD_NAME_DATA_COMMITTED ))
@@ -2279,27 +2303,27 @@ namespace engine
             else if (0 == ossStrcmp( ele.fieldName(),
                                      FIELD_NAME_ID ))
             {
-               info._blockID = (UINT16) ele.Int() ;
+               info._blockID = (UINT16) ele.numberInt() ;
             }
             else if (0 == ossStrcmp( ele.fieldName(),
                                      FIELD_NAME_LOGICAL_ID ))
             {
-               info._logicID = ele.Int() ;
+               info._logicID = ele.numberInt() ;
             }
             else if (0 == ossStrcmp( ele.fieldName(),
                                      FIELD_NAME_DATA_COMMIT_LSN ))
             {
-               info._dataCommitLSN = ele.Long() ;
+               info._dataCommitLSN = ele.numberLong() ;
             }
             else if (0 == ossStrcmp( ele.fieldName(),
                                      FIELD_NAME_IDX_COMMIT_LSN ))
             {
-               info._idxCommitLSN = ele.Long() ;
+               info._idxCommitLSN = ele.numberLong() ;
             }
             else if (0 == ossStrcmp( ele.fieldName(),
                                      FIELD_NAME_LOB_COMMIT_LSN ))
             {
-               info._lobCommitLSN = ele.Long() ;
+               info._lobCommitLSN = ele.numberLong() ;
             }
             else if ( 0 == ossStrcmp( ele.fieldName(),
                                       FIELD_NAME_CREATE_TIME ) )
@@ -2310,6 +2334,14 @@ namespace engine
                                       FIELD_NAME_UPDATE_TIME ) )
             {
                info._updateTime = ossStringToMilliseconds( ele.valuestrsafe() ) ;
+            }
+            else if ( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTAL_OVERFLOW_RECORDS ) )
+            {
+               info._totalOverflowRecords = ele.numberLong() ;
+            }
+            else if ( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTAL_DELETING_RECORDS ) )
+            {
+               info._totalDeletingRecords = ele.numberLong() ;
             }
             // ignore _flag _attribute _dictVersion _compressType _maxGlobTransID
          }
@@ -2348,9 +2380,10 @@ namespace engine
          internal_version = MON_CL_DETAIL_VERSION_NULL ;
       }
 
-      if ( MON_CL_DETAIL_VERSION_V2 == internal_version )
+      if ( MON_CL_DETAIL_VERSION_V2 == internal_version ||
+           MON_CL_DETAIL_VERSION_V3 == internal_version )
       {
-         rc = _monDetailObj2InfoV2( obj, info ) ;
+         rc = _monDetailObj2InfoV2V3( obj, info ) ;
       }
       else
       {
@@ -2410,10 +2443,10 @@ namespace engine
          ob.append ( FIELD_NAME_TOTAL_VALID_LOB_SIZE, (INT64)(info._totalValidLobSize) ) ;
          ob.append ( FIELD_NAME_LOB_USAGE_RATE, info._lobUsageRate ) ;
          ob.append ( FIELD_NAME_AVG_LOB_SIZE, (INT64)info._avgLobSize ) ;
-         ob.append ( FIELD_NAME_TOTAL_DATA_FREESPACE,
-                     (long long)(info._totalDataFreeSpace) ) ;
-         ob.append ( FIELD_NAME_TOTAL_INDEX_FREESPACE,
-                    (long long)(info._totalIndexFreeSpace) ) ;
+         ob.append ( FIELD_NAME_TOTAL_DATA_FREESPACE, (INT64)(info._totalDataFreeSpace) ) ;
+         ob.append ( FIELD_NAME_TOTAL_INDEX_FREESPACE, (INT64)(info._totalIndexFreeSpace) ) ;
+         ob.append ( FIELD_NAME_TOTAL_OVERFLOW_RECORDS, (INT64)info._totalOverflowRecords ) ;
+         ob.append ( FIELD_NAME_TOTAL_DELETING_RECORDS, (INT64)info._totalDeletingRecords ) ;
          ob.append ( FIELD_NAME_CURR_COMPRESS_RATIO,
                      (FLOAT64)info._currCompressRatio / 100.0 ) ;
 

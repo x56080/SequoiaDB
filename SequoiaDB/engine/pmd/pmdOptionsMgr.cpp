@@ -2756,8 +2756,8 @@ done:
                  (INT32)SDB_CONSISTENCY_PRY_LOC_MAJOR ) ;
 
       // --recordrecycledelay
-      rdxUInt( pEX, PMD_OPTION_RECORD_RECYCLE_DELAY, _recordRecycleDelay, FALSE,
-               PMD_CFG_CHANGE_RUN, PMD_DFT_RECORD_RECYCLE_DELAY, FALSE ) ;
+      rdxInt( pEX, PMD_OPTION_RECORD_RECYCLE_DELAY, _recordRecycleDelay, FALSE,
+              PMD_CFG_CHANGE_RUN, PMD_DFT_RECORD_RECYCLE_DELAY, FALSE ) ;
 
       // --forcerecyclethreshold
       rdxUInt( pEX, PMD_OPTION_RECORD_RECYCLE_RATIO, _recordRecycleRatio, FALSE,

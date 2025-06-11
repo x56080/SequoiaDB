@@ -86,6 +86,8 @@ Get the detail of collection \f[C]sample.employee\f[].
       "AvgLobSize": 150,
       "TotalDataFreeSpace": 0,
       "TotalIndexFreeSpace": 65515,
+      "TotalOverflowRecords": 0,
+      "TotalDeletingRecords": 0,
       "CurrentCompressionRatio": 1,
       "DataCommitLSN": 80,
       "IndexCommitLSN": 80,

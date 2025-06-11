@@ -85,6 +85,8 @@ namespace engine
       UINT32      _overflowRatio ;
       UINT32      _extentThreshold ;
 
+      BOOLEAN     _useDeletingList ;
+
       BOOLEAN     _enableSparse ;
       BOOLEAN     _directIO ;
       UINT32      _cacheMergeSize ;
@@ -115,6 +117,7 @@ namespace engine
 
          _overflowRatio = 0 ;
          _extentThreshold = 0 ;
+         _useDeletingList = TRUE ;
          _enableSparse = FALSE ;
          _directIO = FALSE ;
          _cacheMergeSize = 0 ;

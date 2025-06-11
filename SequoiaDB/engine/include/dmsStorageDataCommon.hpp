@@ -198,8 +198,9 @@ namespace engine
       dmsRecordID    _firstDeletingRID ;
       dmsRecordID    _lastDeletingRID ;
       UINT64         _totalDeletingRecords ;
+      UINT64         _totalOverflowRecords ;
 
-      CHAR           _pad [ 220 ] ;
+      CHAR           _pad [ 212 ] ;
 
       void reset ( const CHAR *clName = NULL,
                    utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL,
@@ -290,6 +291,7 @@ namespace engine
          _firstDeletingRID       = dmsRecordID() ;
          _lastDeletingRID        = dmsRecordID() ;
          _totalDeletingRecords   = 0 ;
+         _totalOverflowRecords   = 0 ;
 
          // pad
          ossMemset( _pad2, 0, sizeof( _pad2 ) ) ;
@@ -495,6 +497,7 @@ namespace engine
       utilCLUniqueID _clUniqueID ;
 
       UINT64         _totalDeletingRecords ;
+      UINT64         _totalOverflowRecords ;
 
       void reset()
       {
@@ -561,6 +564,7 @@ namespace engine
 
          _clUniqueID = UTIL_UNIQUEID_NULL ;
          _totalDeletingRecords = 0 ;
+         _totalOverflowRecords = 0 ;
       }
 
       void setByMB( const dmsMB *mb )
@@ -598,6 +602,7 @@ namespace engine
 
          _clUniqueID = mb->_clUniqueID ;
          _totalDeletingRecords = mb->_totalDeletingRecords ;
+         _totalOverflowRecords = mb->_totalOverflowRecords ;
       }
 
       void updateCommitCache( const dmsMB *mb )

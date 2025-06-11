@@ -790,6 +790,11 @@ namespace engine
                pMB->_totalDeletingRecords = pMBStat->_totalDeletingRecords ;
                hasWritten = TRUE ;
             }
+            if ( pMB->_totalOverflowRecords != pMBStat->_totalOverflowRecords )
+            {
+               pMB->_totalOverflowRecords = pMBStat->_totalOverflowRecords ;
+               hasWritten = TRUE ;
+            }
          }
 
          i = _nextUsedMBSlot( i + 1 ) ;
@@ -1193,8 +1198,8 @@ namespace engine
 
          // check deleting list version
          if ( 0 == pMBStat->_totalDeletingRecords &&
-            minRID == pMB->_firstDeletingRID &&
-            minRID == pMB->_lastDeletingRID )
+              minRID == pMB->_firstDeletingRID &&
+              minRID == pMB->_lastDeletingRID )
          {
             /// upgrade from the old version which has no
             /// _firstDeletingRID/_lastDeletingRID in mb block,
@@ -1829,6 +1834,7 @@ namespace engine
       context->mb()->_firstDeletingRID.reset() ;
       context->mb()->_lastDeletingRID.reset() ;
       context->mbStat()->_totalDeletingRecords = 0 ;
+      context->mbStat()->_totalOverflowRecords = 0 ;
 
       // We should set _totalDataFreeSpace before _freeExtent() which free
       // pages in SME. If not, FreeDataSize calculated by snapshot cs will be
@@ -4894,6 +4900,12 @@ namespace engine
             {
                dmsRecordRW ovfRW = record2RW( ovfRID, context->mbID() ) ;
                _extentRemoveRecord( context, extRW, ovfRW, cb, FALSE ) ;
+               /// for old version, the ovf-record not be tracked, so it needs to be protected
+               /// to prevent its value from being less than 0
+               if ( !isDeleting && context->mbStat()->_totalOverflowRecords > 0 )
+               {
+                  --( context->mbStat()->_totalOverflowRecords ) ;
+               }
             }
          }
          // set deleting attr
@@ -4906,6 +4918,16 @@ namespace engine
             _decreaseMBStat( context->mbStat()->_clUniqueID, context->mbStat(), cb ) ;
             // increase data write counter for deleting marking
             DMS_MON_OP_COUNT_INC( pMonAppCB, MON_DATA_WRITE, 1 ) ;
+
+            if ( ovfRID.isValid() )
+            {
+               /// for old version, the ovf-record not be tracked, so it needs to be protected
+               /// to prevent its value from being less than 0
+               if ( context->mbStat()->_totalOverflowRecords > 0 )
+               {
+                  --( context->mbStat()->_totalOverflowRecords ) ;
+               }
+            }
          }
 
          if ( !isDeleting )
@@ -4965,7 +4987,9 @@ namespace engine
       {
          pTransCB->releaseLogSpace( logRecSize, cb ) ;
       }
-      if ( isMarkDeleteingDone )
+      /// when not use deleting list keeping the old behavior.
+      /// ( for testability as old version upgrad to cur version )
+      if ( isMarkDeleteingDone && _pStorageInfo->_useDeletingList )
       {
          /// push to this list so that background job would delete it
          if ( ovfRID.isValid() )

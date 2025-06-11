@@ -326,6 +326,8 @@
 #define FIELD_NAME_TOTAL_LOB_PAGES           "TotalLobPages"
 #define FIELD_NAME_TOTAL_DATA_FREESPACE      "TotalDataFreeSpace"
 #define FIELD_NAME_TOTAL_INDEX_FREESPACE     "TotalIndexFreeSpace"
+#define FIELD_NAME_TOTAL_OVERFLOW_RECORDS    "TotalOverflowRecords"
+#define FIELD_NAME_TOTAL_DELETING_RECORDS    "TotalDeletingRecords"
 #define FIELD_NAME_CURR_COMPRESS_RATIO       "CurrentCompressionRatio"
 #define FIELD_NAME_EDUNAME                   "Name"
 #define FIELD_NAME_DOING                     "Doing"

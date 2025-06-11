@@ -1649,6 +1649,7 @@ namespace engine
       _storageInfo._sequence = sequence ;
       _storageInfo._overflowRatio = options->getOverFlowRatio() ;
       _storageInfo._extentThreshold = options->getExtendThreshold() << 20 ;
+      _storageInfo._useDeletingList = ( -1 != options->getRecordRecycleDelay() ) ? TRUE : FALSE ;
       _storageInfo._enableSparse = options->sparseFile() ;
       _storageInfo._directIO = options->useDirectIOInLob() ;
       _storageInfo._cacheMergeSize = options->getCacheMergeSize() ;
@@ -4366,6 +4367,8 @@ namespace engine
          info._totalUsedLobSpace = (INT64)mbStat->_totalLobPages * getLobPageSize() ;
          info._usedLobSpaceRatio = utilPercentage( info._totalUsedLobSpace, lobCapacity ) ;
          info._totalLobSize = mbStat->_totalLobSize ;
+         info._totalOverflowRecords = mbStat->_totalOverflowRecords ;
+         info._totalDeletingRecords = mbStat->_totalDeletingRecords ;
          info._totalValidLobSize = mbStat->_totalValidLobSize ;
          /// Because lob page 0 is unevenly distributed on data nodes, the
          /// _totalValidLobSize may be larger than the _totalUsedLobSpace,
