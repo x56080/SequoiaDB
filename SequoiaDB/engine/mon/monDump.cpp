@@ -1811,26 +1811,6 @@ namespace engine
                      "Unexcepted field here" ) ;
          info._totalUsedLobSpace = ele.Long() ;
 
-         if ( internalVer >= MON_CL_DETAIL_VERSION_V3 )
-         {
-            // TotalOverflowRecords
-            ele = iter.next() ;
-            SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTAL_OVERFLOW_RECORDS ),
-                        "Unexcepted field here" ) ;
-            info._totalOverflowRecords = ele.Long() ;
-
-            // TotalDeletingRecords
-            ele = iter.next() ;
-            SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTAL_DELETING_RECORDS ),
-                        "Unexcepted field here" ) ;
-            info._totalDeletingRecords = ele.Long() ;
-         }
-         else
-         {
-            info._totalOverflowRecords = 0 ;
-            info._totalDeletingRecords = 0 ;
-         }
-
          // UsedLobSpaceRatio
          ele = iter.next() ;
          SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_USED_LOB_SPACE_RATIO ),
@@ -1872,6 +1852,26 @@ namespace engine
          SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTAL_INDEX_FREESPACE ),
                      "Unexpected field here" ) ;
          info._totalIndexFreeSpace = ele.Long() ;
+
+         if ( internalVer >= MON_CL_DETAIL_VERSION_V3 )
+         {
+            // TotalOverflowRecords
+            ele = iter.next() ;
+            SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTAL_OVERFLOW_RECORDS ),
+                        "Unexcepted field here" ) ;
+            info._totalOverflowRecords = ele.Long() ;
+
+            // TotalDeletingRecords
+            ele = iter.next() ;
+            SDB_ASSERT( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_TOTAL_DELETING_RECORDS ),
+                        "Unexcepted field here" ) ;
+            info._totalDeletingRecords = ele.Long() ;
+         }
+         else
+         {
+            info._totalOverflowRecords = 0 ;
+            info._totalDeletingRecords = 0 ;
+         }
 
          // CurrentCompressionRatio
          ele = iter.next() ;
