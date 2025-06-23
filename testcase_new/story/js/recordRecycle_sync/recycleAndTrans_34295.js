@@ -19,7 +19,7 @@ function test ()
    commDropCS( db, csName );
 
    var cs = commCreateCS( db, csName );
-   var cl = commCreateCL( db, csName, clName, { Group: groupName } );
+   var cl = commCreateCL( db, csName, clName, { Group: groupName, Compressed: false } );
 
    var array = [];
    for (var i = 0; i < totalRecords; i++)
@@ -40,6 +40,38 @@ function test ()
    db.transRollback();
 
    commDropCL( db, csName, clName );
+
+
+
+   const clName2 = "cl_34295_2";
+   var cl2 = commCreateCL( db, csName, clName2,
+        { Group: groupName, ReplSize: -1, Compressed: false } );
+   array = [];
+   for (var i = 0; i < totalRecords; i++)
+   {
+      array.push( { a: i, b: "abcde", c: i * 5 } );
+      if ( array.length >= bulkSize )
+      {
+         cl2.insert( array );
+         array = [];
+      }
+   }
+
+   db.transBegin();
+   println( cl2.count({ _id: { $exists: true } }) );
+   db.transCommit();
+
+   db.transBegin();
+   cl2.update(
+        { $set: { d: "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk" } },
+        { a: { $gte: 20000 } });
+   db.transCommit();
+
+   db.transBegin();
+   cl2.remove({ a: { $gte: 2000, $lte: 65000 } });
+   db.transRollback();
+
+   cl2.count({ a: { $isnull: 0 }})
 
    commDropCS( db, csName );
 }

@@ -10,26 +10,29 @@ function test ()
 {
    var groupsArray = commGetGroups( db, false, "", true, true, true );
    var groupName = groupName = groupsArray[0][0].GroupName;
-   db.updateConf( { recordrecycledelay: 1, syncinterval: 1 }, { GroupName: groupName } );
+   db.updateConf( { recordrecycledelay: 1 }, { GroupName: groupName } );
 
    try
    {
       const csName = "cs_34286";
       const clName = "cl_34286";
-      const totalRecords = 1000;
+      const totalRecords = 10000;
 
       commDropCS( db, csName );
 
       var cs = commCreateCS( db, csName );
-      commCreateCL( db, csName, clName, { Group: groupName } );
+      commCreateCL( db, csName, clName, { Group: groupName, Compressed: false } );
       var cl = db.getCS( csName ).getCL( clName );
+
       var recArray = [];
       for (var i = 0; i < totalRecords; i++) {
          recArray.push( { a: i, b: i, c: i } );
       }
       cl.insert( recArray );
+      cl.update({ $set: { d: "a long long long long long long string to make record overflow" } }, { a: { $lt: totalRecords / 2 } });
 
       var checker = new RecycleChecker( db, csName, clName, groupName );
+      checker.checkTotalOverflowRecords( totalRecords / 2 );
 
       cl.insert({ a: 10086 });
       cl.remove({ a: 10086 }); // not in transaction
@@ -59,14 +62,16 @@ function test ()
       // var groupName = groupName = groupsArray[0][0].GroupName;
 
       var cs3 = commCreateCS( db, csName3 );
-      commCreateCL( db, csName3, clName3, { Group: groupName } );
+      commCreateCL( db, csName3, clName3, { Group: groupName, Compressed: false } );
       var cl3 = db.getCS( csName3 ).getCL( clName3 );
+
       var recArray3 = [];
       for (var i = 0; i < totalRecords3; i++) {
          recArray3.push( { a: i, b: i, c: i } );
       }
       cl3.insert( recArray3 );
       cl3.update({ $set: { a: "this_is_a_long_long_string_to_construct_overflow" } });
+      cl3.update({ $set: { d: "a long long long long long long string to make record overflow" } }, { a: { $gte: totalRecords3 / 2 } });
 
       var checker3 = new RecycleChecker( db, csName3, clName3, groupName );
 
@@ -96,6 +101,6 @@ function test ()
    }
    finally
    {
-      db.deleteConf( { recordrecycledelay: '', syncinterval: '' }, { GroupName: groupName } );
+      db.deleteConf( { recordrecycledelay: '' }, { GroupName: groupName } );
    }
 }
