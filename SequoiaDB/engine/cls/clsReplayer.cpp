@@ -2371,7 +2371,6 @@ namespace engine
       INT32 rc = SDB_OK ;
 
       rc = rtnTestCollectionCommand( collection, _dmsCB, &clUniqueID ) ;
-
       if ( SDB_DMS_REMAIN == rc )
       {
          rc = rtnDropCollectionCommand( collection, eduCB, _dmsCB, _dpsCB ) ;

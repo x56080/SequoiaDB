@@ -529,6 +529,7 @@ namespace engine
             {
                _suLogicalID = _pFetcher->getSu()->LogicalCSID() ;
             }
+            _isOpened = TRUE ;
          }
       }
       else

@@ -2657,12 +2657,17 @@ namespace engine
             {
                _onMarkHeaderValid( lastLSN, sync, lastTime, setHeadCommFlgValid ) ;
 
-               tmpCommitFlag = _isCrash ? 0 : _commitFlag ;
+               tmpCommitFlag = ( !setHeadCommFlgValid || _isCrash ) ? 0 : _commitFlag ;
+               if ( !tmpCommitFlag )
+               {
+                  _commitFlag = 0 ;
+               }
+
                if ( hasFlushedData ||
                     tmpCommitFlag != _dmsHeader->_commitFlag ||
                     ( (UINT64)~0 != lastLSN && lastLSN != _dmsHeader->_commitLsn ) )
                {
-                  if ( setHeadCommFlgValid )
+                  if ( setHeadCommFlgValid && tmpCommitFlag )
                   {
                      _dmsHeader->_commitFlag = tmpCommitFlag ;
                   }

@@ -375,7 +375,9 @@ namespace engine
 
       if ( needFlushMME )
       {
-         _pDataSu->flushMME( isSyncDeep() ) ;
+         /// need skip mem sync, because the lob maybe not opened(lob info in mem is incorrect),
+         /// so, will sync the incorrect lob info to MB block info
+         _pDataSu->flushMME( isSyncDeep(), TRUE ) ;
       }
 
       _idxKeySizeMax = OSS_MIN( _pageSize / ( IXM_KEY_NODE_NUM_MIN + 1 ),
@@ -494,6 +496,12 @@ namespace engine
          if ( !pMBStat->_idxCommitFlag.compare( 0 ) )
          {
             tmpCommitFlag = pMBStat->_idxIsCrash ? 0 : pMBStat->_idxCommitFlag.fetch() ;
+
+            if ( !tmpCommitFlag )
+            {
+               setHeadCommFlgValid = FALSE ;
+               pMBStat->_idxCommitFlag.swap( 0 ) ;
+            }
 
             if ( tmpLSN != _pDataSu->_dmsMME->_mbList[i]._idxCommitLSN ||
                  tmpCommitFlag != _pDataSu->_dmsMME->_mbList[i]._idxCommitFlag )

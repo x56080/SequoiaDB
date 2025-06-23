@@ -823,9 +823,12 @@ namespace engine
       return TRUE ;
    }
 
-   INT32 _dmsStorageDataCommon::flushMME( BOOLEAN sync )
+   INT32 _dmsStorageDataCommon::flushMME( BOOLEAN sync, BOOLEAN skipMemSync )
    {
-      syncMemToMmap() ;
+      if ( !skipMemSync )
+      {
+         syncMemToMmap() ;
+      }
       return flushSegment( _mmeSegID, sync ) ;
    }
 
@@ -1233,7 +1236,9 @@ namespace engine
 
       if ( needFlush )
       {
-         flushMME( isSyncDeep() ) ;
+         /// need skip mem sync, because the index/lob maybe not opened(index/lob info
+         /// in mem is incorrect), so, will sync the incorrect info to MB block info
+         flushMME( isSyncDeep(), TRUE ) ;
       }
 
    done:
@@ -1336,6 +1341,12 @@ namespace engine
          if ( !pMBStat->_commitFlag.compare( 0 ) )
          {
             tmpCommitFlag = pMBStat->_isCrash ? 0 : pMBStat->_commitFlag.fetch() ;
+
+            if ( !tmpCommitFlag )
+            {
+               setHeadCommFlgValid = FALSE ;
+               pMBStat->_commitFlag.swap( 0 ) ;
+            }
 
             if ( tmpLSN != pMB->_commitLSN ||
                  tmpCommitFlag != pMB->_commitFlag )
@@ -2689,8 +2700,15 @@ namespace engine
       if ( cb && cb->getLsnCount() > 0 )
       {
          context->mbStat()->updateLastLSNWithComp( cb->getEndLsn(),
-                                                   DMS_FILE_DATA,
+                                                   _getAllFileType(),
                                                    cb->isDoRollback() ) ;
+         /// make dirty
+         markDirty( context->mbID(), 0, DMS_CHG_AFTER ) ;
+         _pIdxSU->markDirty( context->mbID(), 0, DMS_CHG_AFTER ) ;
+         if ( _pLobSU->isOpened() )
+         {
+            _pLobSU->markDirty( context->mbID(), 0, DMS_CHG_AFTER ) ;
+         }
       }
 
       if ( _pEventHolder )
@@ -3994,16 +4012,17 @@ namespace engine
       // clear truncate flag
       mbContext->mbStat()->_hasTruncate = 0 ;
 
+      /// don't update mbStat lsn, use DMS_FILE_EMPTY instead of _getAllFileType()
       if ( dpsCB )
       {
          rc = _logDPS( dpsCB, info, cb, mbContext, DMS_INVALID_EXTENT,
-                       FALSE, _getAllFileType(), NULL ) ;
+                       FALSE, DMS_FILE_EMPTY, NULL ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to write recycle record to log, "
                       "rc: %d", rc ) ;
       }
       else if ( cb->getLsnCount() > 0 )
       {
-         mbContext->mbStat()->updateLastLSN( cb->getEndLsn(), _getAllFileType() ) ;
+         // mbContext->mbStat()->updateLastLSN( cb->getEndLsn(), _getAllFileType() ) ;
          _clFullName( originName, fullName, sizeof(fullName) ) ;
          cb->setDataExInfo( fullName, logicalID(), mbContext->clLID(),
                             DMS_INVALID_EXTENT ) ;

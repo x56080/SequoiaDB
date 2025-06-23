@@ -2175,7 +2175,7 @@ namespace engine
          /*
             Check the collection is valid
          */
-         if ( !isCrashed() )
+         if ( !_needDelayOpen && !isCrashed() )
          {
             if ( 0 == _dmsData->_dmsMME->_mbList[i]._lobCommitFlag )
             {
@@ -2197,7 +2197,11 @@ namespace engine
          {
             pMBStat->_lobCommitFlag.init( _dmsData->_dmsMME->_mbList[i]._lobCommitFlag ) ;
          }
-         pMBStat->_lobIsCrash = ( 0 == pMBStat->_lobCommitFlag.peek() ) ? TRUE : FALSE ;
+         if ( !_needDelayOpen )
+         {
+            /// not set crash, keep init value when delay open
+            pMBStat->_lobIsCrash = ( 0 == pMBStat->_lobCommitFlag.peek() ) ? TRUE : FALSE ;
+         }
          pMBStat->_lobLastLSN.init( _dmsData->_dmsMME->_mbList[i]._lobCommitLSN ) ;
 
          i = _dmsData->_nextUsedMBSlot( i + 1 ) ;
@@ -2205,7 +2209,8 @@ namespace engine
 
       if ( needFlushMME )
       {
-         _dmsData->flushMME( isSyncDeep() ) ;
+         /// need skip mem sync
+         _dmsData->flushMME( isSyncDeep(), TRUE ) ;
       }
 
       return SDB_OK ;
@@ -2311,6 +2316,12 @@ namespace engine
          if ( !pMBStat->_lobCommitFlag.compare( 0 ) )
          {
             tmpCommitFlag = pMBStat->_lobIsCrash ? 0 : pMBStat->_lobCommitFlag.fetch() ;
+
+            if ( !tmpCommitFlag )
+            {
+               setHeadCommFlgValid = FALSE ;
+               pMBStat->_lobCommitFlag.swap( 0 ) ;
+            }
 
             if ( tmpLSN != _dmsData->_dmsMME->_mbList[i]._lobCommitLSN ||
                  tmpCommitFlag != _dmsData->_dmsMME->_mbList[i]._lobCommitFlag )

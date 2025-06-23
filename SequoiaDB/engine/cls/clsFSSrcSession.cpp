@@ -49,7 +49,6 @@
 #include "dpsLogRecordDef.hpp"
 #include "rtnLob.hpp"
 #include "pmdStartup.hpp"
-#include "rtnContextLob.hpp"
 #include "msgMessageFormat.hpp"
 #include "rtnExtDataHandler.hpp"
 #include <set>
@@ -87,6 +86,7 @@ namespace engine
       _contextID = -1 ;
       _lobContextID = -1 ;
       _findEnd = FALSE ;
+      _lobFetchEnd = FALSE ;
       _query = NULL ;
       _queryLen = 0 ;
       _packetID = -1 ;
@@ -100,6 +100,7 @@ namespace engine
       _init = FALSE ;
       _timeCounter = 0 ;
       _curExtID = DMS_INVALID_EXTENT ;
+      _tobeLobPageID = 0 ;
       _curCollection = ~0 ;
       _curCSLID = DMS_INVALID_LOGICCSID ;
       _curMBID = DMS_INVALID_MBID ;
@@ -211,11 +212,15 @@ namespace engine
          rtnKillContexts( 1, &_lobContextID, eduCB(),
                           pmdGetKRCB()->getRTNCB() ) ;
          _lobContextID = -1 ;
+         _contextLob.release() ;
       }
       _findEnd = FALSE ;
+      _lobFetchEnd = FALSE ;
       _needData = 1 ;
       _hasMeta = FALSE ;
+      _curCollectionInfo.reset() ;
       _curExtID = DMS_INVALID_EXTENT ;
+      _tobeLobPageID = 0 ;
       _curScanKeyObj = BSONObj() ;
       _curCollection = ~0 ;
       _lastSyncDetail[0] = 0 ;
@@ -374,7 +379,6 @@ namespace engine
       BSONObj hint = builder.obj() ;
       CHAR fullName[DMS_COLLECTION_FULL_NAME_SZ + 1] = {0} ;
       SDB_RTNCB *pRtnCB = pmdGetKRCB()->getRTNCB() ;
-      rtnContextLobFetcher::sharePtr pContextLob ;
 
       ossSnprintf( fullName, sizeof( fullName ), "%s.%s",
                    cs, collection ) ;
@@ -390,6 +394,7 @@ namespace engine
       {
          rtnKillContexts( 1, &_lobContextID , eduCB(), pRtnCB ) ;
          _lobContextID = -1 ;
+         _contextLob.release() ;
       }
 
       // not need data, don't open context
@@ -431,7 +436,7 @@ namespace engine
       }
       else if ( rc )
       {
-         PD_LOG ( PDERROR, "Session[%s]: Failed to run query, rc = %d",
+         PD_LOG ( PDERROR, "Session[%s]: Failed to run query, rc: %d",
                   sessionName(), rc ) ;
          goto error ;
       }
@@ -450,20 +455,22 @@ namespace engine
 
       /// create lob context
       rc = pRtnCB->contextNew( RTN_CONTEXT_LOB_FETCHER,
-                               pContextLob,
+                               _contextLob,
                                _lobContextID, eduCB() ) ;
       if ( rc )
       {
-         PD_LOG( PDERROR, "Create lob context failed, rc: %d", rc ) ;
+         PD_LOG( PDERROR, "Session[%s]: Create lob fetcher context failed, rc: %d",
+                 sessionName(), rc ) ;
          goto error ;
       }
       /// open lob context
-      rc = pContextLob->open( &_lobFetcher,
+      rc = _contextLob->open( &_lobFetcher,
                               _curCollecitonName.c_str(),
                               FALSE ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "Failed to init lob fetcher, rc: %d", rc ) ;
+         PD_LOG( PDERROR, "Session[%s]: Failed to init lob fetcher context, rc: %d",
+                 sessionName(), rc ) ;
          goto error ;
       }
 
@@ -714,6 +721,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CLSDSBS__SYNCLOB ) ;
+      SDB_RTNCB *pRtnCB = pmdGetKRCB()->getRTNCB() ;
       _dataType = CLS_FS_NOTIFY_TYPE_LOB ;
       MsgClsFSNotifyRes msg ;
       msg.header.header.TID = TID ;
@@ -729,52 +737,93 @@ namespace engine
       const UINT32 bmSize = sizeof( MsgLobTuple ) + sizeof( bson::OID ) ;
       time_t bTime = time( NULL ) ;
 
+      if ( _lobFetchEnd )
+      {
+         rc = SDB_DMS_EOC ;
+      }
+      /// check interrupt
+      else if ( eduCB()->isInterrupted() )
+      {
+         rc = SDB_APP_INTERRUPT ;
+      }
+
       /// | oid | MsgLobTuple | data | ... | oid | MsgLobTuple | data |
-      while ( _lobContextID >= 0 )
+      while ( _lobContextID >= 0 && SDB_OK == rc )
       {
          need2Send = FALSE ;
          UINT32 finalSize = 0 ;
          UINT32 oldSize = _mb.length() ;
          UINT32 alignedLen = ossRoundUpToMultipleX( oldSize, 4 ) ;
          INT32 extendSize = bmSize + alignedLen - oldSize - _mb.idleSize() ;
+
+         /// check context whether is open(may closed by dropCS)
+         if ( !_contextLob->isOpened() )
+         {
+            rc = SDB_DMS_CONTEXT_IS_CLOSE ;
+            break ;
+         }
+
          if ( 0 < extendSize )
          {
             rc = _mb.extend( (UINT32)extendSize ) ;
             if ( SDB_OK != rc )
             {
-               PD_LOG( PDERROR, "failed to extend mb block:%d", rc ) ;
-               goto error ;
+               PD_LOG( PDERROR, "Failed to extend mb block, rc: %d", rc ) ;
+               break ;
             }
          }
 
+         /// lock
+         rc = _lobFetcher.getMBContext()->mbLock( SHARED ) ;
+         if ( rc )
+         {
+            break ;
+         }
+
          _mb.writePtr( alignedLen + bmSize ) ;
+
          rc = _lobFetcher.fetch( eduCB(), page, &_mb ) ;
          if ( rc )
          {
             _mb.writePtr( oldSize ) ;
-            if ( SDB_DMS_EOC == rc ||
-                 SDB_DMS_NOTEXIST == rc ||
-                 SDB_DMS_TRUNCATED == rc )
+
+            if ( SDB_DMS_EOC == rc )
             {
-               // Ignore errors:
-               // 1. end of collection
-               // 2. collection dropped or collection truncated
-               rc = SDB_OK ;
-               break ;
+               dmsMBStatInfo *pStat = _lobFetcher.getMBContext()->mbStat() ;
+               // we should make sure the DPS logs for this batch of lobs
+               // will be send right after them
+               _updateNtyLSN( (DPS_LSN_OFFSET)( pStat->_lobLastLSN.fetch() ) ) ;
+
+               /// update collection info
+               _curCollectionInfo._lobCommitFlag = 1 ;
+               _curCollectionInfo._lobCommitLSN = pStat->_lobLastLSN.fetch() ;
+
+               {
+                  ossScopedLock _lock( &_LSNlatch ) ;
+                  _lobFetchEnd = TRUE ;
+               }
             }
-            else
-            {
-               PD_LOG( PDERROR, "Failed to fetch lob:%d", rc ) ;
-               goto error ;
-            }
+
+            break ;
          }
+
+         // we should make sure the DPS logs for this batch of lobs
+         // will be send right after them
+         _updateNtyLSN( (DPS_LSN_OFFSET)( _lobFetcher.getMBContext()->mbStat()->_lobLastLSN.fetch() ) ) ;
+
+         {
+            ossScopedLock _lock( &_LSNlatch ) ;
+            _tobeLobPageID = _lobFetcher.toBeFetched() ;
+         }
+         /// unlock
+         _lobFetcher.getMBContext()->mbUnlock() ;
 
          finalSize = _mb.length() ;
          rc = _onLobFilter( page._oid, page._sequence, need2Send ) ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "failed to filter lob data:%d", rc ) ;
-            goto error ;
+            PD_LOG( PDERROR, "Failed to filter lob data, rc: %d", rc ) ;
+            break ;
          }
 
          if ( !need2Send )
@@ -806,6 +855,39 @@ namespace engine
          {
             break ;
          }
+      }
+
+      if ( _lobFetcher.getMBContext() )
+      {
+         _lobFetcher.getMBContext()->mbUnlock() ;
+      }
+
+      // release lob context when fetch error or fetch end
+      if ( ( SDB_OK != rc || _lobFetchEnd ) && -1 != _lobContextID )
+      {
+         pRtnCB->contextDelete( _lobContextID, eduCB() ) ;
+         _lobContextID = -1 ;
+         _contextLob.release() ;
+      }
+
+      if ( SDB_DMS_EOC == rc ||
+           SDB_DMS_NOTEXIST == rc ||
+           SDB_DMS_TRUNCATED == rc )
+      {
+         if ( !_lobFetchEnd )
+         {
+            ossScopedLock _lock( &_LSNlatch ) ;
+            _lobFetchEnd = TRUE ;
+         }
+         // Ignore errors:
+         // 1. end of collection
+         // 2. collection dropped or collection truncated
+         rc = SDB_OK ;
+      }
+      else if ( rc )
+      {
+         PD_LOG( PDERROR, "Session[%s]: Failed to fetch lob, rc: %d", sessionName(), rc ) ;
+         goto error ;
       }
 
       if ( 0 != _mb.length() )
@@ -1039,14 +1121,13 @@ namespace engine
 
             if ( _context->eof() )
             {
+               ossScopedLock _lock( &_LSNlatch ) ;
                _findEnd = TRUE ;
             }
 
             // we should make sure the DPS logs for this batch of records
             // will be send right after them
-            _updateNtyLSN(
-                  (DPS_LSN_OFFSET)(
-                        _context->getMBContext()->mbStat()->_lastLSN.fetch() ) ) ;
+            _updateNtyLSN( (DPS_LSN_OFFSET)( _context->getMBContext()->mbStat()->_lastLSN.fetch() ) ) ;
 
             _context->getMBContext()->mbUnlock() ;
 
@@ -1085,7 +1166,25 @@ namespace engine
          }
          else if ( SDB_DMS_EOC == rc )
          {
-            _findEnd = TRUE ;
+            dmsMBStatInfo *pStat = _context->getMBContext()->mbStat() ;
+
+            // we should make sure the DPS logs for this batch of records
+            // will be send right after them
+            _updateNtyLSN( (DPS_LSN_OFFSET)( pStat->_lastLSN.fetch() ) ) ;
+
+            /// update collection info
+            _curCollectionInfo._dataCommitFlag = 1 ;
+            _curCollectionInfo._idxCommitFlag = 1 ;
+            _curCollectionInfo._lobCommitFlag = 1 ;
+            _curCollectionInfo._dataCommitLSN = pStat->_lastLSN.fetch() ;
+            _curCollectionInfo._idxCommitLSN = pStat->_idxLastLSN.fetch() ;
+            _curCollectionInfo._lobCommitLSN = 0 ;
+
+            if ( !_findEnd )
+            {
+               ossScopedLock _lock( &_LSNlatch ) ;
+               _findEnd = TRUE ;
+            }
          }
       }
 
@@ -1117,7 +1216,12 @@ namespace engine
          // 1. hit end of collection
          // 2. contextID is already closed
          // 3. collection dropped or collection truncated
-         _findEnd = TRUE ;
+
+         if ( !_findEnd )
+         {
+            ossScopedLock _lock( &_LSNlatch ) ;
+            _findEnd = TRUE ;
+         }
 
          if ( 0 == _queryLen )
          {
@@ -1635,53 +1739,28 @@ namespace engine
                                                      BSONObj &obj )
    {
       INT32 rc = SDB_OK ;
-      SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
-      dmsStorageUnit *su = NULL ;
-      const CHAR *pCLShortName = NULL ;
-      dmsStorageUnitID suID = DMS_INVALID_SUID ;
-      dmsMBContext *pContext = NULL ;
-      BSONObjBuilder builder ;
 
-      rc = rtnResolveCollectionNameAndLock( fullName.c_str(), dmsCB, &su,
-                                            &pCLShortName, suID ) ;
-      if ( rc )
+      try
       {
-         PD_LOG( PDWARNING, "Session[%s]: Get collectionspace lock failed "
-                 "for collection[%s], rc: %d", sessionName(),
-                 fullName.c_str(), rc ) ;
-         goto error ;
+         BSONObjBuilder builder ;
+         builder.append( CLS_FS_FULLNAME, fullName ) ;
+         builder.append( CLS_FS_COMMITFLAG,
+                         BSON_ARRAY( (INT32)_curCollectionInfo._dataCommitFlag <<
+                                     (INT32)_curCollectionInfo._idxCommitFlag <<
+                                     (INT32)_curCollectionInfo._lobCommitFlag ) ) ;
+         builder.append( CLS_FS_COMMITLSN,
+                         BSON_ARRAY( (INT64)_curCollectionInfo._dataCommitLSN <<
+                                     (INT64)_curCollectionInfo._idxCommitLSN <<
+                                     (INT64)_curCollectionInfo._lobCommitLSN ) ) ;
+         obj = builder.obj() ;
       }
-      rc = su->data()->getMBContext( &pContext, pCLShortName, SHARED ) ;
-      if ( rc )
+      catch( std::exception &e )
       {
-         PD_LOG( PDWARNING, "Session[%s]: Get collection[%s]'s mblock "
-                 "failed, rc: %d", sessionName(), fullName.c_str(), rc ) ;
-         goto error ;
+         PD_LOG( PDWARNING, "Occur exception: %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
       }
 
-      builder.append( CLS_FS_FULLNAME, fullName ) ;
-      builder.append( CLS_FS_COMMITFLAG,
-                      BSON_ARRAY( (INT32)pContext->mb()->_commitFlag <<
-                                  (INT32)pContext->mb()->_idxCommitFlag <<
-                                  (INT32)pContext->mb()->_lobCommitFlag ) ) ;
-      builder.append( CLS_FS_COMMITLSN,
-                      BSON_ARRAY( (INT64)pContext->mb()->_commitLSN <<
-                                  (INT64)pContext->mb()->_idxCommitLSN <<
-                                  (INT64)pContext->mb()->_lobCommitLSN ) ) ;
-      obj = builder.obj() ;
-
-   done:
-      if ( pContext )
-      {
-         su->data()->releaseMBContext( pContext ) ;
-      }
-      if ( DMS_INVALID_SUID != suID )
-      {
-         dmsCB->suUnlock( suID ) ;
-      }
       return rc ;
-   error:
-      goto done ;
    }
 
    /*
@@ -2127,11 +2206,11 @@ namespace engine
             {
                goto done ;
             }
-            else if ( _lobFetcher.hitEnd() )
+            else if ( _lobFetchEnd )
             {
                _deqLSN.push_back ( offset ) ;
             }
-            else if ( extLID < _lobFetcher.toBeFetched() )
+            else if ( extLID < _tobeLobPageID )
             {
                _deqLSN.push_back ( offset ) ;
             }
@@ -2857,8 +2936,8 @@ namespace engine
       else if ( _hashShard && CLS_IS_LOB_LOG( record.head()._type ) )
       {
          if ( inEndMap ||
-              _lobFetcher.hitEnd() ||
-              extLID < _lobFetcher.toBeFetched() )
+              _lobFetchEnd ||
+              extLID < _tobeLobPageID )
          {
             BOOLEAN need2Notify = FALSE ;
             const bson::OID *oid = NULL ;

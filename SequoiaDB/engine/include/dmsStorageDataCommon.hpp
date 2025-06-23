@@ -587,6 +587,11 @@ namespace engine
          _updateTime = mb->_updateTime ;
          _maxGlobTransID.init( mb->_maxGlobTransID ) ;
 
+         /// should init lsn
+         _lastLSN.init( mb->_commitLSN ) ;
+         _idxLastLSN.init( mb->_idxCommitLSN ) ;
+         _lobLastLSN.init( mb->_lobCommitLSN ) ;
+
          /// cache info
          ossStrncpy( _collectionName, mb->_collectionName, DMS_COLLECTION_NAME_SZ ) ;
          _blockID = mb->_blockID ;
@@ -1257,7 +1262,7 @@ namespace engine
          }
 
          /// flush mme
-         INT32          flushMME( BOOLEAN sync = FALSE ) ;
+         INT32          flushMME( BOOLEAN sync = FALSE, BOOLEAN skipMemSync = FALSE ) ;
 
          BOOLEAN        isTransSupport( dmsMBContext *context ) const ;
 
