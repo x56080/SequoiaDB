@@ -66,6 +66,11 @@ namespace engine
 
       _rtnRUInfo()
       {
+         reset() ;
+      }
+
+      void reset()
+      {
          _dataCommitFlag = 0 ;
          _idxCommitFlag = 0 ;
          _lobCommitFlag = 0 ;

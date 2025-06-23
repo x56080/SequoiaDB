@@ -201,7 +201,7 @@ namespace engine
       PD_TRACE_EXIT ( SDB__CLSDATADBS_ONRECV );
    }
 
-   INT32 _clsDataDstBaseSession::_onMetaDone( const _clMetaData &meta )
+   INT32 _clsDataDstBaseSession::_onMetaDone( const CHAR *fullName, const _clMetaData &meta )
    {
       return SDB_OK ;
    }
@@ -529,6 +529,117 @@ namespace engine
       PD_TRACE1 ( SDB__CLSDATADBS__RMCL,  PD_PACK_UINT(nDelNum) );
       PD_TRACE_EXIT ( SDB__CLSDATADBS__RMCL );
       return nDelNum ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSDATADBS__RENAMECL, "_clsDataDstBaseSession::_renameCollection" )
+   INT32 _clsDataDstBaseSession::_renameCollection( const CHAR *oldFullName,
+                                                    const CHAR *newFullName,
+                                                    INT32 replayRC )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSDATADBS__RENAMECL ) ;
+
+      if ( SDB_OK != replayRC )
+      {
+         // collection is not exist, check if we will synchronize later
+         // if so, do not report error, and synchronize this collection
+         // later
+         // NOTE: if the collection list is getting after rename done
+         //       but before the dps log is notified to LSN queue,
+         //       the new name may be in the list, so we need to check
+         //       either
+         if ( !_findCollection( oldFullName ) &&
+              !_findCollection( newFullName ) )
+         {
+            PD_LOG ( PDWARNING, "Session[%s] failed to find collection [%s] "
+                     "and [%s] from waiting list, need restart full "
+                     "synchronize", sessionName(), oldFullName, newFullName ) ;
+            rc = replayRC ;
+            goto error ;
+         }
+      }
+
+      if ( _current < _fullNames.size() &&
+           0 == ossStrcmp( oldFullName, _fullNames[ _current ].c_str() ) )
+      {
+         /// the current collection
+         _fullNames[ _current ] = newFullName ;
+      }
+
+      if ( _removeCollection( oldFullName ) > 0 )
+      {
+         _addCollection( newFullName ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__CLSDATADBS__RENAMECL, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSDATADBS__RENAMECS, "_clsDataDstBaseSession::_renameCollectionSpace" )
+   INT32 _clsDataDstBaseSession::_renameCollectionSpace( const CHAR *oldCSName,
+                                                         const CHAR *newCSName,
+                                                         INT32 replayRC )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CLSDATADBS__RENAMECS ) ;
+
+      std::vector<std::string> oldCLList ;
+      UINT32 csNameLen = ossStrlen( oldCSName ) ;
+
+      if ( SDB_OK != replayRC )
+      {
+         // collection space is not exist, check if we will synchronize
+         // later if so, do not report error, and synchronize this
+         // collection space later
+         // NOTE: if the collection list is getting after rename done
+         //       but before the dps log is notified to LSN queue,
+         //       the new name may be in the list, so we need to check
+         //       either
+         if ( !_findCollectionSpace( oldCSName ) &&
+              !_findCollectionSpace( newCSName ) )
+         {
+            PD_LOG ( PDWARNING, "Session[%s] failed to find collection space "
+                     "[%s] and [%s] from waiting list, need restart full "
+                     "synchronize", sessionName(), oldCSName, newCSName ) ;
+            rc = replayRC ;
+            goto error ;
+         }
+      }
+
+      if ( _current < _fullNames.size() &&
+           _fullNames[ _current ].length() > csNameLen &&
+           '.' == _fullNames[ _current ].at( csNameLen ) &&
+           0 == ossStrncmp( _fullNames[ _current ].c_str(), oldCSName, csNameLen ) )
+      {
+         /// is the current collection
+         string newCLName = newCSName + _fullNames[ _current ].substr( csNameLen ) ;
+         _fullNames[ _current ] = newCLName ;
+      }
+
+      oldCLList = _removeCS( oldCSName ) ;
+      for( std::vector<std::string>::iterator it = oldCLList.begin() ;
+           it != oldCLList.end() ;
+           ++ it )
+      {
+         string shortName = dmsGetCLShortNameFromFullName( *it ) ;
+         string newCLName = newCSName ;
+         newCLName += "." ;
+         newCLName += shortName ;
+         _addCollection ( newCLName.c_str() ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__CLSDATADBS__RENAMECS, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
    }
 
    INT32 _clsDataDstBaseSession::_removeValidCLs( const vector< string > &validCLs,
@@ -963,7 +1074,14 @@ namespace engine
             goto done ;
          }
 
-         _onMetaDone( meta ) ;
+         rc = _onMetaDone( fullName, meta ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Session[%s]: Post process collection(%s) meta info failed, rc: %d",
+                    sessionName(), fullName, rc ) ;
+            _disconnect() ;
+            goto done ;
+         }
       }
       catch ( std::exception &e )
       {
@@ -1321,6 +1439,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB__CLSDATADBS__REPLAYLOG ) ;
       SDB_DPSCB *dpsCB = pmdGetKRCB()->getDPSCB() ;
       const CHAR *itr = NULL ;
+
       while ( _more( msg, itr, FALSE ) )
       {
          INT32 replayRC = SDB_OK ;
@@ -1371,15 +1490,26 @@ namespace engine
             continue ;
          }
 
+         /// pre-process reply
+         rc = _onReplyLogBegin( header ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+
          // should not ignore duplicated keys on user indexes
          replayRC = _replayer.replay( header, eduCB(), TRUE, FALSE ) ;
+
+         /// post reply
+         _onReplyLogEnd( header, replayRC ) ;
+
          if ( SDB_OK != replayRC )
          {
             if ( SDB_DMS_NOTEXIST != replayRC &&
                  SDB_DMS_CS_NOTEXIST != replayRC )
             {
-               PD_LOG ( PDWARNING, "Session[%s] replay dps log record failed"
-                       "[rc:%d]", sessionName(), replayRC ) ;
+               PD_LOG ( PDWARNING, "Session[%s]: Replay dps log record failed, rc: %d",
+                        sessionName(), replayRC ) ;
                rc = replayRC ;
                goto error ;
             }
@@ -1389,6 +1519,7 @@ namespace engine
          {
             dpsLogRecord record ;
             dpsLogRecord::iterator itrName ;
+
             rc = record.load( itr ) ;
             if ( SDB_OK != rc )
             {
@@ -1403,6 +1534,7 @@ namespace engine
                rc = SDB_SYS ;
                goto error ;
             }
+
             if ( SDB_OK != replayRC )
             {
                // collection is not exist, check if we will synchronize later
@@ -1410,11 +1542,12 @@ namespace engine
                // later
                if ( !_findCollection( itrName.value() ) )
                {
-                  PD_LOG ( PDWARNING, "Session[%s] replay dps log record failed"
-                           "[rc:%d]", sessionName(), replayRC ) ;
+                  PD_LOG ( PDWARNING, "Session[%s]: Replay dps log record failed, rc: %d",
+                           sessionName(), replayRC ) ;
                   rc = replayRC ;
                   goto error ;
                }
+
                replayRC = SDB_OK ;
             }
             else
@@ -1440,6 +1573,7 @@ namespace engine
                rc = SDB_SYS ;
                goto error ;
             }
+
             _removeCollection ( itrName.value() ) ;
             replayRC = SDB_OK ;
          }
@@ -1461,6 +1595,7 @@ namespace engine
                rc = SDB_SYS ;
                goto error ;
             }
+
             _removeCS ( itrName.value() ) ;
             replayRC = SDB_OK ;
          }
@@ -1468,8 +1603,9 @@ namespace engine
          {
             dpsLogRecord record ;
             dpsLogRecord::iterator cs, oldname, newname ;
-            std::string newFullName ;
-            std::string oldFullName ;
+            CHAR newFullName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
+            CHAR oldFullName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
+
             rc = record.load( itr ) ;
             if ( SDB_OK != rc )
             {
@@ -1504,39 +1640,19 @@ namespace engine
             }
 
             // get old name
-            oldFullName = cs.value() ;
-            oldFullName += "." ;
-            oldFullName += oldname.value() ;
+            ossSnprintf( oldFullName, DMS_COLLECTION_FULL_NAME_SZ, "%s.%s",
+                         cs.value(), oldname.value() ) ;
 
             // get new name
-            newFullName = cs.value() ;
-            newFullName += "." ;
-            newFullName += newname.value() ;
+            ossSnprintf( newFullName, DMS_COLLECTION_FULL_NAME_SZ, "%s.%s",
+                         cs.value(), newname.value() ) ;
 
-            if ( SDB_OK != replayRC )
-            {
-               // collection is not exist, check if we will synchronize later
-               // if so, do not report error, and synchronize this collection
-               // later
-               // NOTE: if the collection list is getting after rename done
-               //       but before the dps log is notified to LSN queue,
-               //       the new name may be in the list, so we need to check
-               //       either
-               if ( !_findCollection( oldFullName.c_str() ) &&
-                    !_findCollection( newFullName.c_str() ) )
-               {
-                  PD_LOG ( PDWARNING, "Session[%s] replay dps log record failed"
-                           "[rc:%d]", sessionName(), replayRC ) ;
-                  rc = replayRC ;
-                  goto error ;
-               }
-               replayRC = SDB_OK ;
-            }
+            rc = _renameCollection( oldFullName, newFullName, replayRC ) ;
+            PD_RC_CHECK( rc, PDERROR, "Session[%s]: Failed to replay rename "
+                         "collection DPS log record, rc: %d", sessionName(),
+                         rc ) ;
 
-            if ( _removeCollection( oldFullName.c_str() ) > 0 )
-            {
-               _addCollection( newFullName.c_str() ) ;
-            }
+            replayRC = SDB_OK ;
          }
          else if ( LOG_TYPE_CS_RENAME == header->_type )
          {
@@ -1544,8 +1660,6 @@ namespace engine
             dpsLogRecord::iterator csIt, newcsIt ;
             const CHAR *oldCSName = NULL ;
             const CHAR *newCSName = NULL ;
-            std::vector<std::string> oldCLList ;
-            std::vector<std::string>::iterator it ;
 
             rc = record.load( itr ) ;
             if ( SDB_OK != rc )
@@ -1574,35 +1688,12 @@ namespace engine
             oldCSName = csIt.value() ;
             newCSName = newcsIt.value() ;
 
-            if ( SDB_OK != replayRC )
-            {
-               // collection space is not exist, check if we will synchronize
-               // later if so, do not report error, and synchronize this
-               // collection space later
-               // NOTE: if the collection list is getting after rename done
-               //       but before the dps log is notified to LSN queue,
-               //       the new name may be in the list, so we need to check
-               //       either
-               if ( !_findCollectionSpace( oldCSName ) &&
-                    !_findCollectionSpace( newCSName ) )
-               {
-                  PD_LOG ( PDWARNING, "Session[%s] replay dps log record "
-                           "failed [rc:%d]", sessionName(), replayRC ) ;
-                  rc = replayRC ;
-                  goto error ;
-               }
-               replayRC = SDB_OK ;
-            }
+            rc = _renameCollectionSpace( oldCSName, newCSName, replayRC ) ;
+            PD_RC_CHECK( rc, PDERROR, "Session[%s]: Failed to replay rename "
+                         "collection space DPS log record, rc: %d",
+                         sessionName(), rc ) ;
 
-            oldCLList = _removeCS( oldCSName ) ;
-            for( it = oldCLList.begin(); it != oldCLList.end(); it++ )
-            {
-               string shortName = dmsGetCLShortNameFromFullName( *it ) ;
-               string newCLName = newCSName ;
-               newCLName += "." ;
-               newCLName += shortName ;
-               _addCollection ( newCLName.c_str() ) ;
-            }
+            replayRC = SDB_OK ;
          }
 
          // process replay error code, check if we will synchronize the same
@@ -1664,8 +1755,8 @@ namespace engine
                   // synchronize this collection space later
                   if ( !_findCollectionSpace( alterObjectName ) )
                   {
-                     PD_LOG( PDWARNING, "Session[%s] replay dps log record "
-                             "failed [rc:%d]", sessionName(), replayRC ) ;
+                     PD_LOG( PDWARNING, "Session[%s]: Replay dps log record failed, rc: %d",
+                             sessionName(), replayRC ) ;
                      rc = replayRC ;
                      goto error ;
                   }
@@ -1699,8 +1790,8 @@ namespace engine
                // later
                if ( !_findCollection( itrName.value() ) )
                {
-                  PD_LOG ( PDWARNING, "Session[%s] replay dps log record failed"
-                           "[rc:%d]", sessionName(), replayRC ) ;
+                  PD_LOG ( PDWARNING, "Session[%s]: Replay dps log record failed, rc: %d",
+                           sessionName(), replayRC ) ;
                   rc = replayRC ;
                   goto error ;
                }
@@ -2243,19 +2334,62 @@ namespace engine
       PD_TRACE_EXIT ( SDB__CLSFSDS__ONDETACH );
    }
 
-   INT32 _clsFSDstSession::_onMetaDone( const _clMetaData &meta )
+   INT32 _clsFSDstSession::_onMetaDone( const CHAR *fullName, const _clMetaData &meta )
    {
       INT32 rc = SDB_OK ;
+      SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
+      dmsStorageUnit *su = NULL ;
+      const CHAR *pCLShortName = NULL ;
+      dmsStorageUnitID suID = DMS_INVALID_SUID ;
+      dmsMBContext *pContext = NULL ;
+
+      rc = rtnResolveCollectionNameAndLock( fullName, dmsCB, &su,
+                                            &pCLShortName, suID ) ;
+      if ( rc )
+      {
+         PD_LOG( PDWARNING, "Session[%s]: Get collectionspace lock failed "
+                 "for collection[%s], rc: %d", sessionName(),
+                 fullName, rc ) ;
+         goto error ;
+      }
+      rc = su->data()->getMBContext( &pContext, pCLShortName, EXCLUSIVE ) ;
+      if ( rc )
+      {
+         PD_LOG( PDWARNING, "Session[%s]: Get collection[%s]'s mblock "
+                 "failed, rc: %d", sessionName(), fullName, rc ) ;
+         goto error ;
+      }
+
+      /// set mbStat to crash
+      pContext->mbStat()->_isCrash = TRUE ;
+      pContext->mbStat()->_idxIsCrash = TRUE ;
+      pContext->mbStat()->_lobIsCrash = TRUE ;
+
+      /// release
+      su->data()->releaseMBContext( pContext ) ;
+
+      if ( DMS_INVALID_SUID != suID )
+      {
+         dmsCB->suUnlock( suID ) ;
+         suID = DMS_INVALID_SUID ;
+      }
 
       if ( meta.dictionary && meta.dictSize > 0 )
       {
-         rc = rtnLoadCollectionDict( (meta.csName + "." + meta.clName).c_str(),
-                                     meta.dictionary, meta.dictSize ) ;
+         rc = rtnLoadCollectionDict( fullName, meta.dictionary, meta.dictSize ) ;
          PD_RC_CHECK( rc, PDERROR, "Load dictionary for collection[%s] "
-                      "failed: %d", meta.clName.c_str(), rc ) ;
+                      "failed: %d", fullName, rc ) ;
       }
 
    done:
+      if ( pContext )
+      {
+         su->data()->releaseMBContext( pContext ) ;
+      }
+      if ( DMS_INVALID_SUID != suID )
+      {
+         dmsCB->suUnlock( suID ) ;
+      }
       return rc ;
    error:
       goto done ;
@@ -2310,6 +2444,10 @@ namespace engine
                                                                info._idxCommitLSN ) ;
                pContext->mbStat()->_lobLastLSN.compareAndSwap( DPS_INVALID_LSN_OFFSET,
                                                                info._lobCommitLSN ) ;
+
+               pContext->mbStat()->_isCrash = FALSE ;
+               pContext->mbStat()->_idxIsCrash = FALSE ;
+               pContext->mbStat()->_lobIsCrash = FALSE ;
                /// release context
                su->data()->releaseMBContext( pContext ) ;
             }
@@ -2320,6 +2458,11 @@ namespace engine
 
    done:
       return TRUE ;
+   }
+
+   INT32 _clsFSDstSession::_onReplyLogBegin( const dpsLogRecordHeader *pLog )
+   {
+      return SDB_OK ;
    }
 
    void _clsFSDstSession::_pullTransLog( DPS_LSN &begin )
@@ -3046,6 +3189,108 @@ namespace engine
          return FALSE ;
       }
       return TRUE ;
+   }
+
+   INT32 _clsSplitDstSession::_onReplyLogBegin( const dpsLogRecordHeader *pLog )
+   {
+      INT32 rc = SDB_OK ;
+      clsTaskMgr *pTaskMgr = NULL ;
+      BOOLEAN hasLock = FALSE ;
+
+      if ( LOG_TYPE_CL_TRUNC == pLog->_type )
+      {
+         dpsLogRecord record ;
+         dpsLogRecord::iterator itrName ;
+
+         rc = record.load( (const CHAR*)pLog ) ;
+         if ( SDB_OK != rc )
+         {
+            goto error ;
+         }
+
+         itrName = record.find( DPS_LOG_PUBLIC_FULLNAME ) ;
+         if ( !itrName.valid() )
+         {
+            PD_LOG( PDERROR, "Session[%s]: Failed to find tag "
+                    "fullname", sessionName() ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+
+         try
+         {
+            pTaskMgr = pmdGetKRCB()->getClsCB()->getTaskMgr() ;
+            pTaskMgr->lockReg( SHARED ) ;
+            hasLock = TRUE ;
+
+            /// check catalog when in this group
+            catAgent *pCatAgent = _pShardMgr->getCataAgent() ;
+            _clsCatalogSet* catSet = NULL ;
+            BOOLEAN selfInCata = FALSE ;
+
+            rc = _pShardMgr->syncUpdateCatalog( itrName.value() ) ;
+            if ( rc )
+            {
+               PD_LOG( PDWARNING, "Session[%s]: Update collection(%s)'s catalog info failed, "
+                       "rc: %d", sessionName(), itrName.value(), rc ) ;
+               goto error ;
+            }
+
+            pCatAgent->lock_r () ;
+            catSet = pCatAgent->collectionSet( itrName.value() ) ;
+            if ( catSet )
+            {
+               NodeID selfNode = _pShardMgr->nodeID() ;
+               if ( catSet->isInGroup( selfNode.columns.groupID ) )
+               {
+                  selfInCata = TRUE ;
+               }
+            }
+            pCatAgent->release_r() ;
+
+            if ( selfInCata )
+            {
+               PD_LOG( PDWARNING, "Session[%s]: Collection(%s) located on self node, "
+                       "can't do truncate operation", sessionName(), itrName.value() ) ;
+               rc = SDB_OPTION_NOT_SUPPORT ;
+               goto error ;
+            }
+
+            if ( pTaskMgr->getRegCount( itrName.value(), hasLock ) > 1 )
+            {
+               /// when the collection has more than one split task, can't do truncate operation
+               PD_LOG( PDWARNING, "Session[%s]: Collection(%s) has more than one split task, "
+                       "can't do truncate operation", sessionName(), itrName.value() ) ;
+               rc = SDB_OPTION_NOT_SUPPORT ;
+               goto error ;
+            }
+         }
+         catch( std::exception &e )
+         {
+            rc = ossException2RC( &e ) ;
+            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+            goto error ;
+         }
+      }
+
+   done:
+      return rc ;
+   error:
+      if ( hasLock )
+      {
+         pTaskMgr->releaseReg( SHARED ) ;
+      }
+      goto done ;
+   }
+
+   void  _clsSplitDstSession::_onReplyLogEnd( const dpsLogRecordHeader *pLog,
+                                              INT32 result )
+   {
+      if ( LOG_TYPE_CL_TRUNC == pLog->_type )
+      {
+         clsTaskMgr *pTaskMgr = pmdGetKRCB()->getClsCB()->getTaskMgr() ;
+         pTaskMgr->releaseReg( SHARED ) ;
+      }
    }
 
    // this function prepare a split begin request and send to source

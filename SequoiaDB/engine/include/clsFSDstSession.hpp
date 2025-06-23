@@ -132,7 +132,7 @@ namespace engine
                                      MsgHeader * msg ) ;
 
       protected:
-         virtual INT32 _onMetaDone( const _clMetaData &meta ) ;
+         virtual INT32 _onMetaDone( const CHAR *fullName, const _clMetaData &meta ) ;
 
       protected:
          virtual void   _begin () = 0 ;
@@ -148,6 +148,15 @@ namespace engine
             return TRUE, will run after code
          */
          virtual BOOLEAN _onNotify ( MsgClsFSNotifyRes *pMsg ) = 0 ;
+
+         virtual INT32   _onReplyLogBegin( const dpsLogRecordHeader *pLog )
+         {
+            return SDB_OK ;
+         }
+         virtual void    _onReplyLogEnd( const dpsLogRecordHeader *pLog,
+                                         INT32 result )
+         {
+         }
 
       //message function
       protected:
@@ -186,6 +195,12 @@ namespace engine
          BOOLEAN        _findCollectionSpace( const CHAR *collectionSpace ) ;
          UINT32         _addCollection ( const CHAR *pCollectionName ) ;
          UINT32         _removeCollection ( const CHAR *pCollectionName ) ;
+         INT32          _renameCollection( const CHAR *oldFullName,
+                                           const CHAR *newFullName,
+                                           INT32 replayRC ) ;
+         INT32          _renameCollectionSpace( const CHAR *oldCSName,
+                                                const CHAR *newCSName,
+                                                INT32 replayRC ) ;
          vector<string> _removeCS ( const CHAR *pCSName ) ;
          INT32          _removeValidCLs( const vector<string> &validCLs,
                                          UINT32 *pHasRemoved = NULL ) ;
@@ -260,7 +275,7 @@ namespace engine
    protected:
       virtual void      _onAttach () ;
       virtual void      _onDetach () ;
-      virtual INT32     _onMetaDone( const _clMetaData &meta ) ;
+      virtual INT32     _onMetaDone( const CHAR *fullName, const _clMetaData &meta ) ;
 
    protected:
       void              _pullTransLog ( DPS_LSN &begin ) ;
@@ -279,6 +294,8 @@ namespace engine
       virtual CLS_FS_TYPE _dataSessionType () const ;
       virtual BOOLEAN   _isReady () ;
       virtual BOOLEAN   _onNotify ( MsgClsFSNotifyRes *pMsg ) ;
+
+      virtual INT32     _onReplyLogBegin( const dpsLogRecordHeader *pLog ) ;
 
    private:
       CLS_FULLSYNC_STEP    _fsStep ;
@@ -346,6 +363,11 @@ namespace engine
          virtual CLS_FS_TYPE _dataSessionType () const ;
          virtual BOOLEAN   _isReady () ;
          virtual BOOLEAN   _onNotify ( MsgClsFSNotifyRes *pMsg ) ;
+
+         virtual INT32     _onReplyLogBegin( const dpsLogRecordHeader *pLog ) ;
+         virtual void      _onReplyLogEnd( const dpsLogRecordHeader *pLog,
+                                           INT32 result ) ;
+
 
       private:
          void              _taskNotify ( INT32 msgType ) ;

@@ -510,12 +510,22 @@ namespace engine
                                       const CHAR *fullName,
                                       BOOLEAN onlyMetaPage )
    {
+      INT32 rc = SDB_OK ;
       _pFetcher = pFetcher ;
+
       if ( _pFetcher )
       {
-         return _pFetcher->init( fullName, onlyMetaPage ) ;
+         rc = _pFetcher->init( fullName, onlyMetaPage ) ;
+         if ( SDB_OK == rc )
+         {
+            _isOpened = TRUE ;
+         }
       }
-      return SDB_SYS ;
+      else
+      {
+         rc = SDB_SYS ;
+      }
+      return rc ;
    }
 
    INT32 _rtnContextLobFetcher::getMore( INT32 maxNumToReturn,

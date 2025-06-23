@@ -115,6 +115,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB__RTNLOBFETCHER_FETCH ) ;
       UINT32 readCnt = 0 ;
       const UINT32 _readStepCnt = 1000 ;
+      BOOLEAN doLock = FALSE ;
 
       if ( SDB_OK != _lastErr )
       {
@@ -129,11 +130,15 @@ namespace engine
          goto error ;
       }
 
-      rc = _mbContext->mbLock( SHARED ) ;
-      if ( SDB_OK != rc )
+      if ( !_mbContext->isMBLock() )
       {
-         PD_LOG( PDERROR, "Failed to get mblock, rc: %d", rc ) ;
-         goto error ;
+         rc = _mbContext->mbLock( SHARED ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Failed to get mblock, rc: %d", rc ) ;
+            goto error ;
+         }
+         doLock = TRUE ;
       }
 
       if ( !_su->lob()->isOpened() )
@@ -168,7 +173,11 @@ namespace engine
          if ( readCnt > _readStepCnt )
          {
             readCnt = 0 ;
-            _mbContext->pause() ;
+
+            if ( doLock )
+            {
+               _mbContext->pause() ;
+            }
 
             if ( cb->isInterrupted() )
             {
@@ -176,11 +185,14 @@ namespace engine
                goto error ;
             }
 
-            rc = _mbContext->resume() ;
-            if ( rc )
+            if ( doLock )
             {
-               PD_LOG( PDERROR, "Resume mblock failed, rc: %d", rc ) ;
-               goto error ;
+               rc = _mbContext->resume() ;
+               if ( rc )
+               {
+                  PD_LOG( PDERROR, "Resume mblock failed, rc: %d", rc ) ;
+                  goto error ;
+               }
             }
          }
       }
@@ -221,16 +233,16 @@ namespace engine
          mb->writePtr( mb->length() + read ) ;
       }
    done:
-      if ( NULL != _mbContext && _mbContext->isMBLock() )
+      if ( doLock )
       {
          _mbContext->mbUnlock() ;
+         doLock = FALSE ;
       }
       PD_TRACE_EXITRC( SDB__RTNLOBFETCHER_FETCH, rc ) ;
       return rc ;
    error:
       /// last error valuate must in collection latch
       _lastErr = rc ;
-      _fini() ;
       goto done ;
    }
 

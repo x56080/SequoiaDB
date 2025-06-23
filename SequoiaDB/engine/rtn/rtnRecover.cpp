@@ -2008,9 +2008,11 @@ namespace engine
          dmsMBStatInfo *mbStat = const_cast<dmsMBStatInfo*>( pData->getMBStatInfo( vecMBSlot[ i ] ) ) ;
          if ( DMS_IS_MB_INUSE ( mbStat->_flag ) )
          {
-            info._dataCommitFlag = mbStat->_commitFlagSync ;
+            BOOLEAN isInReorg = DMS_IS_MB_OFFLINE_REORG( mbStat->_flag ) ||
+                                DMS_IS_MB_ONLINE_REORG( mbStat->_flag ) ;
+            info._dataCommitFlag = ( mbStat->_isCrash || isInReorg ) ? 0 : 1 ;
             info._dataCommitLSN = mbStat->_lastLSN.fetch() ;
-            info._idxCommitFlag = mbStat->_idxCommitFlagSync ;
+            info._idxCommitFlag = ( mbStat->_idxIsCrash || isInReorg ) ? 0 : 1 ;
             info._idxCommitLSN = mbStat->_idxLastLSN.fetch() ;
             if ( !pLob->isOpened() )
             {
@@ -2019,7 +2021,7 @@ namespace engine
             }
             else
             {
-               info._lobCommitFlag = mbStat->_lobCommitFlagSync ;
+               info._lobCommitFlag = ( mbStat->_lobIsCrash || isInReorg ) ? 0 : 1 ;
                info._lobCommitLSN = mbStat->_lobLastLSN.fetch() ;
             }
             ossStrncpy( info._clName, mbStat->_collectionName,

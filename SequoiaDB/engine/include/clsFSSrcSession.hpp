@@ -162,6 +162,7 @@ namespace engine
          _rtnContextData                  *_context ;
          INT64                            _lobContextID ;
          BOOLEAN                          _findEnd ;
+         BOOLEAN                          _lobFetchEnd ;
          const CHAR                       *_query ;
          SINT32                           _queryLen ;
          _dpsMessageBlock                 _mb ;
@@ -175,6 +176,8 @@ namespace engine
          BOOLEAN                          _init ;
          std::string                      _curCollecitonName ;
 
+         rtnRUInfo                        _curCollectionInfo ;
+
          _clsReplicateSet                 *_pRepl ;
          MsgHeader                        _disconnectMsg ;
          UINT32                           _timeCounter ;
@@ -184,6 +187,7 @@ namespace engine
          UINT32                           _curCSLID ;
          UINT16                           _curMBID ;
          dmsExtentID                      _curExtID ;
+         DMS_LOB_PAGEID                   _tobeLobPageID ;
          BSONObj                          _curScanKeyObj ;
          deque<DPS_LSN_OFFSET>            _deqLSN ;
          ossSpinXLatch                    _LSNlatch ;
