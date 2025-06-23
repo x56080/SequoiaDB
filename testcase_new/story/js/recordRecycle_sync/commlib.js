@@ -13,38 +13,27 @@ function RecycleChecker( db, csName, clName, groupName )
    this.csName = csName;
    this.clName = clName;
    this.groupName = groupName;
-   // init cmd object
-   var node = db.getRG( groupName ).getMaster();
-   var remote = new Remote( node.getHostName() );
-   this.cmd = remote.getCmd();
-   // init dump command
-   var dumpCommand = '';
-   var installDir = cmd.run("grep 'INSTALL_DIR' /etc/default/sequoiadb | " +
-                            "awk -F '=' '{ print $2 }'");
-   installDir = installDir.slice(0, -1)
-   dumpCommand += installDir + "/bin/sdbdmsdump ";
-   var nodeDir = node.getDetailObj().toObj().dbpath;
-   dumpCommand += "-d " + nodeDir + " ";
-   this.outputFile = "/tmp/" + csName + "." + clName + ".dump";
-   dumpCommand += "-o " + this.outputFile + " ";
-   dumpCommand += "-c " + csName + " ";
-   dumpCommand += "-l " + clName + " ";
-   dumpCommand += "-t true -p true -a dump";
-   this.dumpCommand = dumpCommand;
-
-   println( dumpCommand );
+   this.db = db;
 
    this.checkTotalDeletingRecords = function( expectRecords, timeoutSec )
    {
       var success = false;
       var costSec = 0;
+      var result = -1;
       do
       {
-         this.cmd.run( this.dumpCommand );
-         var parseCommand = "grep -i 'Total deleting record' " +
-                            this.outputFile + ".0 | awk '{print $4}'";
-         var result = this.cmd.run( parseCommand );
-         result = result.slice(0, -1);
+         var cl = this.db.getCS( this.csName ).getCL( this.clName );
+         var cursor = cl.getDetail();
+         while (cursor.next())
+         {
+            var detail = cursor.current().toObj().Details[0];
+            if (detail.GroupName == groupName)
+            {
+               result = detail.TotalDeletingRecords;
+               break;
+            }
+         }
+         cursor.close();
 
          if (result == expectRecords)
          {
@@ -65,8 +54,26 @@ function RecycleChecker( db, csName, clName, groupName )
       }
    }
 
+   this.checkTotalOverflowRecords = function( expectRecords )
+   {
+      var result = -1;
+      var cl = this.db.getCS( this.csName ).getCL( this.clName );
+      var cursor = cl.getDetail();
+      while (cursor.next())
+      {
+         var detail = cursor.current().toObj().Details[0];
+         if (detail.GroupName == groupName)
+         {
+            result = detail.TotalOverflowRecords;
+            break;
+         }
+      }
+      cursor.close();
+
+      assert.equal( result, expectRecords );
+   }
+
    this.cleanUp = function()
    {
-      this.cmd.run( "rm " + this.outputFile + ".0" );
    }
 }

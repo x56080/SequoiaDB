@@ -11,25 +11,27 @@ function test ()
 {
    var groupsArray = commGetGroups( db, false, "", true, true, true );
    var groupName = groupName = groupsArray[0][0].GroupName;
-   db.updateConf( { recordrecycledelay: 0, syncinterval: 1 }, { GroupName: groupName } );
+   db.updateConf( { recordrecycledelay: 0 }, { GroupName: groupName } );
+   db.setSessionAttr({ TransMaxLockNum: -1 });
 
    try
    {
       var db1 = new Sdb( COORDHOSTNAME, COORDSVCNAME );
       const csName = "cs_34287";
       const clName = "cl_34287";
-      const totalRecords = 1000;
+      const totalRecords = 10000;
 
       commDropCS( db1, csName );
 
       var cs = commCreateCS( db1, csName );
-      commCreateCL( db1, csName, clName, { Group: groupName } );
+      commCreateCL( db1, csName, clName, { Group: groupName, Compressed: false } );
       var cl = db1.getCS( csName ).getCL( clName );
       var recArray = [];
       for (var i = 0; i < totalRecords; i++) {
          recArray.push( { a: i, b: i, c: i } );
       }
       cl.insert( recArray );
+      cl.update({ $set: { d: "a long long long long long long string to make record overflow" } }, { a: { $lte: totalRecords / 2 } });
 
       var checker = new RecycleChecker( db1, csName, clName, groupName );
 
@@ -42,18 +44,19 @@ function test ()
 
       const csName2 = "cs_34288_1";
       const clName2 = "cl_34288_1";
-      const totalRecords2 = 1000;
+      const totalRecords2 = 10000;
 
       commDropCS( db, csName2 );
 
       var cs2 = commCreateCS( db, csName2 );
-      commCreateCL( db, csName2, clName2, { Group: groupName } );
+      commCreateCL( db, csName2, clName2, { Group: groupName, Compressed: false } );
       var cl2 = db.getCS( csName2 ).getCL( clName2 );
       var recArray2 = [];
       for (var i = 0; i < totalRecords2; i++) {
          recArray2.push( { a: i, b: i, c: i } );
       }
       cl2.insert( recArray2 );
+      cl2.update({ $set: { d: "a long long long long long long string to make record overflow" } }, { a: { $lte: totalRecords2 / 2 } });
 
       db.transBegin();
       cl2.remove();
@@ -63,18 +66,19 @@ function test ()
 
       const csName3 = "cs_34288_2";
       const clName3 = "cl_34288_2";
-      const totalRecords3 = 1000;
+      const totalRecords3 = 10000;
 
       commDropCS( db, csName3 );
 
       var cs3 = commCreateCS( db, csName3 );
-      commCreateCL( db, csName3, clName3, { Group: groupName } );
+      commCreateCL( db, csName3, clName3, { Group: groupName, Compressed: false } );
       var cl3 = db.getCS( csName3 ).getCL( clName3 );
       var recArray3 = [];
       for (var i = 0; i < totalRecords3; i++) {
          recArray3.push( { a: i, b: i, c: i } );
       }
       cl3.insert( recArray3 );
+      cl3.update({ $set: { d: "a long long long long long long string to make record overflow" } }, { a: { $lte: totalRecords2 / 2 } });
 
       db.transBegin();
       cl3.remove();
@@ -84,18 +88,19 @@ function test ()
 
       const csName4 = "cs_34288_3";
       const clName4 = "cl_34288_3";
-      const totalRecords4 = 1000;
+      const totalRecords4 = 10000;
 
       commDropCS( db, csName4 );
 
       var cs4 = commCreateCS( db, csName4 );
-      commCreateCL( db, csName4, clName4, { Group: groupName } );
+      commCreateCL( db, csName4, clName4, { Group: groupName, Compressed: false } );
       var cl4 = db.getCS( csName4 ).getCL( clName4 );
       var recArray4 = [];
       for (var i = 0; i < totalRecords4; i++) {
          recArray4.push( { a: i, b: i, c: i } );
       }
       cl4.insert( recArray4 );
+      cl4.update({ $set: { d: "a long long long long long long string to make record overflow" } }, { a: { $lte: totalRecords4 / 2 } });
 
       db.transBegin();
       cl4.remove();
@@ -104,10 +109,10 @@ function test ()
 
 
       dataNode = db.getRG( groupName ).getMaster().connect();
-      var option = new SdbTraceOption().breakPoints( "_clsRecycleRecordJob::_doRecycleRecordJobs" );
+      var option = new SdbTraceOption().breakPoints( "_dmsRecycleRecordJob::_doRecycleRecordJobs" );
       dataNode.traceOn( 1024, option );
 
-      db.updateConf( { recordrecycledelay: 1, syncinterval: 1 }, { GroupName: groupName } );
+      db.updateConf( { recordrecycledelay: 1 }, { GroupName: groupName } );
 
       sleep( 60 * 1000 ); // wait to ensure break points hit
 
@@ -131,7 +136,8 @@ function test ()
    }
    finally
    {
-      db.deleteConf( { recordrecycledelay: '', syncinterval: '' }, { GroupName: groupName } );
+      db.setSessionAttr({ TransMaxLockNum: 10000 });
+      db.deleteConf( { recordrecycledelay: '' }, { GroupName: groupName } );
       if (dataNode)
       {
          dataNode.traceOff("");

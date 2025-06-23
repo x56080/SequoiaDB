@@ -10,26 +10,30 @@ function test ()
 {
    var groupsArray = commGetGroups( db, false, "", true, true, true );
    var groupName = groupName = groupsArray[0][0].GroupName;
-   db.updateConf( { recordrecycledelay: 1, syncinterval: 1 }, { GroupName: groupName } );
+   db.updateConf( { recordrecycledelay: 1 }, { GroupName: groupName } );
 
    try
    {
       const csName = "cs_34286";
       const clName = "cl_34286";
-      const totalRecords = 1000;
+      const totalRecords = 10000;
 
       commDropCS( db, csName );
 
       var cs = commCreateCS( db, csName );
-      commCreateCL( db, csName, clName, { Group: groupName } );
+      commCreateCL( db, csName, clName, { Group: groupName, Compressed: false } );
       var cl = db.getCS( csName ).getCL( clName );
+      db.setSessionAttr({ TransMaxLockNum: -1 });
+
       var recArray = [];
       for (var i = 0; i < totalRecords; i++) {
          recArray.push( { a: i, b: i, c: i } );
       }
       cl.insert( recArray );
+      cl.update({ $set: { d: "a long long long long long long string to make record overflow" } }, { a: { $lt: totalRecords / 2 } });
 
       var checker = new RecycleChecker( db, csName, clName, groupName );
+      checker.checkTotalOverflowRecords( totalRecords / 2 );
 
       cl.insert({ a: 10086 });
       cl.remove({ a: 10086 }); // not in transaction
@@ -45,6 +49,7 @@ function test ()
       cl.remove();
       checker.checkTotalDeletingRecords( totalRecords, 15 );
       db.transCommit();
+      db.setSessionAttr({ TransMaxLockNum: 10000 });
       // check recycle at last
 
 
@@ -59,13 +64,14 @@ function test ()
       // var groupName = groupName = groupsArray[0][0].GroupName;
 
       var cs2 = commCreateCS( db, csName2 );
-      commCreateCL( db, csName2, clName2, { Group: groupName } );
+      commCreateCL( db, csName2, clName2, { Group: groupName, Compressed: false } );
       var cl2 = db.getCS( csName2 ).getCL( clName2 );
       var recArray2 = [];
       for (var i = 0; i < totalRecords2; i++) {
          recArray2.push( { a: i, b: i, c: i } );
       }
       cl2.insert( recArray2 );
+      cl2.update({ $set: { d: "a long long long long long long string to make record overflow" } }, { a: { $gte: totalRecords2 / 2 } });
 
       const maxLockNum = 2000;
       db.setSessionAttr({ TransMaxLockNum: maxLockNum });
@@ -98,14 +104,17 @@ function test ()
       // var groupName = groupName = groupsArray[0][0].GroupName;
 
       var cs3 = commCreateCS( db, csName3 );
-      commCreateCL( db, csName3, clName3, { Group: groupName } );
+      commCreateCL( db, csName3, clName3, { Group: groupName, Compressed: false } );
       var cl3 = db.getCS( csName3 ).getCL( clName3 );
+      db.setSessionAttr({ TransMaxLockNum: -1 });
+
       var recArray3 = [];
       for (var i = 0; i < totalRecords3; i++) {
          recArray3.push( { a: i, b: i, c: i } );
       }
       cl3.insert( recArray3 );
       cl3.update({ $set: { a: "this_is_a_long_long_string_to_construct_overflow" } });
+      cl3.update({ $set: { d: "a long long long long long long string to make record overflow" } }, { a: { $gte: totalRecords3 / 2 } });
 
       var checker3 = new RecycleChecker( db, csName3, clName3, groupName );
 
@@ -121,6 +130,7 @@ function test ()
       cursor.close();
       checker3.checkTotalDeletingRecords( totalRecords3, 15 );
       db.transCommit();
+      db.setSessionAttr({ TransMaxLockNum: 10000 });
       // check recycle at last
 
 
@@ -139,6 +149,7 @@ function test ()
    }
    finally
    {
-      db.deleteConf( { recordrecycledelay: '', syncinterval: '' }, { GroupName: groupName } );
+      db.setSessionAttr({ TransMaxLockNum: 10000 });
+      db.deleteConf( { recordrecycledelay: '' }, { GroupName: groupName } );
    }
 }

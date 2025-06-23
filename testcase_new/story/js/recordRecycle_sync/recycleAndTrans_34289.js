@@ -13,7 +13,6 @@ function test ()
 
    const csName = "cs_34289";
    const clName = "cl_34289";
-   const totalRecords = 1000;
 
    commDropCS( db, csName );
 
