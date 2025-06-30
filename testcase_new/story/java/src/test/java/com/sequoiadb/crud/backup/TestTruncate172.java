@@ -45,6 +45,14 @@ public class TestTruncate172 extends SdbTestBase {
         } catch ( BaseException e ) {
             Assert.fail( e.getMessage() );
         }
+        try
+        {
+            sdb.removeBackup( options );
+        } catch ( BaseException e ) {
+            if ( e.getErrorCode() != SDBError.SDB_BAR_BACKUP_NOTEXIST.getErrorCode() ){
+                throw e;
+            }
+        }
     }
 
     @AfterClass
