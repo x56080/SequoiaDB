@@ -15,6 +15,7 @@ import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.testcommon.SdbTestBase;
 import com.sequoiadb.testcommon.SdbThreadBase;
+import com.sequoiadb.exception.SDBError;
 
 /**
  * @FileName:seqDB-172:离线备份与truncate的并发 插入数据，一条线程执行离线备份，另一条线程执行truncate
