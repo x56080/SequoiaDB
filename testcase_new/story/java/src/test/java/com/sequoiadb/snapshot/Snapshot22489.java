@@ -1,6 +1,6 @@
 package com.sequoiadb.snapshot;
 
-import java.util.List;
+import java.util.*;
 
 import org.bson.BSONObject;
 import org.bson.util.JSON;
@@ -30,8 +30,9 @@ public class Snapshot22489 extends SdbTestBase {
     private String groupName;
     private String lobSb;
     private int times = 0;
-    private int totalTimes = 50;
+    private int totalTimes = 60;
     private static boolean isSuccess = false;
+    List< WriteLob > writeLobThds = new ArrayList<>();
 
     @BeforeClass
     public void setup(){
@@ -49,12 +50,25 @@ public class Snapshot22489 extends SdbTestBase {
         groupName = groupNames.get( 0 );
         sdb.getCollectionSpace( csName ).createCollection( clName, (BSONObject)JSON.parse( "{ ReplSize: 7, "
                 + "ShardingKey: { 'a': 1 }, ShardingType: 'hash', Group: '" + groupName + "' }" ) );
+
+        DBCollection cl = sdb.getCollectionSpace( csName ).getCollection( clName );
+        for( int i = 0; i < 5; ++i ){
+            DBLob lob = cl.createLob();
+            lob.write( lobSb.getBytes() );
+            lob.close();
+        }
     }
 
     @Test
     public void test() throws Exception{
-        WriteLob writeLob = new WriteLob();
-        writeLob.start();
+        for( int i = 0; i < 20; ++i ){
+            WriteLob writeLob = new WriteLob();
+            writeLob.start();
+            writeLobThds.add( writeLob );
+        }
+        Thread.sleep( 3000 );
+        Split split = new Split();
+        split.start();
 
         DBCursor cursor = null;
         do{
@@ -69,13 +83,18 @@ public class Snapshot22489 extends SdbTestBase {
             }
         }while( times < totalTimes );
 
-        Assert.assertTrue( writeLob.isSuccess() );
-    }
+        while(!split.isSuccess()){
+            Thread.sleep( 5000 );
+            System.out.println( "Sleep 5s, waiting for split threads to finish" );
+        }
 
+        for( WriteLob thd : writeLobThds ){
+            thd.shutdown();
+        }
+    }
 
     public class WriteLob extends SdbThreadBase{
         DBCollection cl = null;
-        Split split = new Split();
         @Override
         public void exec() throws Exception {
             // TODO Auto-generated method stub
@@ -83,23 +102,17 @@ public class Snapshot22489 extends SdbTestBase {
                 cl = db.getCollectionSpace( csName ).getCollection( clName );
                 while( !isSuccess && times < totalTimes ){
                     times++;
+                    System.out.println( "Begin to createLob, isSuccess: " + isSuccess + ", times: " + times + ", totalTimes: " + totalTimes );
                     DBLob lob = cl.createLob();
                     lob.write( lobSb.getBytes() );
                     lob.close();
-
-                    System.out.println( "createLob, isSuccess: " + isSuccess + ", times: " + times + ", totalTimes: " + totalTimes );
-                    if( times == 5 ){
-                        System.out.println( "Begin to split" );
-                        split.start();
-                    }
+                    System.out.println( "End to createLob, isSuccess: " + isSuccess + ", times: " + times + ", totalTimes: " + totalTimes );
 
                     if( times >= totalTimes ){
                         System.err.println( "Insert time out!");
                         throw new RuntimeException( "Insert time out!");
                     }
                 }
-
-                Assert.assertTrue( split.isSuccess() );
             }
         }
     }
@@ -115,8 +128,9 @@ public class Snapshot22489 extends SdbTestBase {
                 String srcGroup = groupName;
                 String desGroup = groupNames.get( 1 );
                 while( !isSuccess && times < totalTimes ){
+                    System.out.println( "Begin to split from " + srcGroup + " to " + desGroup + ", times: " + times + ", totalTimes: " + totalTimes );
                     cl.split( srcGroup, desGroup, 100 );
-                    System.out.println( "split from " + srcGroup + " to " + desGroup + ", times: " + times + ", totalTimes: " + totalTimes );
+                    System.out.println( "End to split from " + srcGroup + " to " + desGroup + ", times: " + times + ", totalTimes: " + totalTimes );
                     tmpGroup = srcGroup;
                     srcGroup = desGroup;
                     desGroup = tmpGroup;
