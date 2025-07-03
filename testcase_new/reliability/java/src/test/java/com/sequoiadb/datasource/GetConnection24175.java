@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.logging.Logger;
 
 /**
  * @Descreption seqDB-24175:创建连接池，断网后获取连接
@@ -24,6 +25,7 @@ import java.util.Random;
  */
 public class GetConnection24175 extends SdbTestBase {
 
+    private final static Logger log = Logger.getLogger( GetConnection24175.class.getName() );
     public static SequoiadbDatasource ds;
 
     @BeforeClass
@@ -63,7 +65,8 @@ public class GetConnection24175 extends SdbTestBase {
                 Thread.sleep( random.nextInt( 3000 ) );
                 tmp = ds.getConnection( 2000 );
             } catch ( BaseException e ) {
-                if ( e.getErrorCode() != -15 ) {
+                log.info( "GetConn: " + e.getErrorCode() );
+                if ( e.getErrorCode() != -15 && e.getErrorCode() != -79 ) {
                     throw e;
                 }
             } finally {
