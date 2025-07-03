@@ -40,7 +40,6 @@
 #include "ossUtil.h"
 #include "ossTypes.h"
 #include "omagentDef.hpp"
-#include "network.h"
 #include "common.h"
 #include "sptCommon.hpp"
 
@@ -190,13 +189,12 @@ do                                                                          \
                                     connection->_endianConvert ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to build query msg, rc = %d", rc ) ;
 
-
       // send and recv msg
-      rc = _sendAndRecv( handle,
-                         ( const MsgHeader* )connection->_pSendBuffer,
-                         ( MsgHeader** )&( connection->_pReceiveBuffer ),
-                         &( connection->_receiveBufferSize ),
-                         needRecv, connection->_endianConvert ) ;
+      rc = sendAndRecv( handle, connection->_sock,
+                        ( const MsgHeader* )connection->_pSendBuffer,
+                        ( MsgHeader** )&( connection->_pReceiveBuffer ),
+                        &( connection->_receiveBufferSize),
+                        needRecv, connection->_endianConvert ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to build send and recv msg, rc = %d", rc ) ;
 
@@ -233,220 +231,6 @@ do                                                                          \
          // try to get retObj
          rc = _getRetBuffer( connection->_pReceiveBuffer, ppRetBuffer ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get retObjArray, rc = %d", rc ) ;
-      }
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 _sptRemote::_sendAndRecv( ossValuePtr handle,
-                                   const MsgHeader *sendMsg,
-                                   MsgHeader **recvMsg, INT32 *size,
-                                   BOOLEAN needRecv,
-                                   BOOLEAN endianConvert )
-   {
-      SDB_ASSERT( handle, "handle can't be null" ) ;
-      SDB_ASSERT( sendMsg, "sendMsg can't be null" ) ;
-      SDB_ASSERT( recvMsg, "recvMsg can't be null" ) ;
-      SDB_ASSERT( size , "size can't be null" ) ;
-
-      INT32 rc          = SDB_OK ;
-      BOOLEAN hasLock   = FALSE ;
-      sdbConnectionStruct *connection = (sdbConnectionStruct*)handle ;
-
-      // check arguments
-      if( NULL == connection->_sock )
-      {
-         rc = SDB_NOT_CONNECTED ;
-         goto error ;
-      }
-      if( NULL == sendMsg )
-      {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-
-      ossMutexLock( &connection->_sockMutex ) ;
-      hasLock = TRUE ;
-
-      // send
-      rc = _sendMsg ( handle, sendMsg, endianConvert ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to send msg, rc: %d", rc ) ;
-
-      // recv
-      if ( TRUE == needRecv )
-      {
-         rc = _recvMsg ( handle, recvMsg, size, endianConvert ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to recv msg, rc: %d", rc ) ;
-      }
-
-   done:
-      if ( TRUE == hasLock )
-      {
-         ossMutexUnlock( &connection->_sockMutex ) ;
-      }
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 _sptRemote::_sendMsg( ossValuePtr handle,
-                               const MsgHeader *msg,
-                               BOOLEAN endianConvert )
-   {
-      SDB_ASSERT( handle, "handle can't be null" ) ;
-      SDB_ASSERT( msg, "msg can't be null" ) ;
-
-      INT32 rc          = SDB_OK ;
-      INT32 msgLength   = 0 ;
-      ossEndianConvertIf4 ( msg->messageLength, msgLength, endianConvert ) ;
-
-      rc = _send ( handle, (const CHAR*)msg, msgLength ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to send msg, rc: %d", rc) ;
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 _sptRemote::_recvMsg( ossValuePtr handle,
-                               MsgHeader **msg,
-                               INT32 *msgLength,
-                               BOOLEAN endianConvert )
-   {
-      SDB_ASSERT( handle, "handle can't be null" ) ;
-      SDB_ASSERT( msg, "msg can't be null" ) ;
-
-      INT32 rc         = SDB_OK ;
-      INT32 recvLength = 0 ;
-      INT32 realLength = 0 ;
-      INT32 receivedLen = 0 ;
-      INT32 totalReceivedLen = 0 ;
-      CHAR **ppBuffer  = (CHAR**)msg ;
-      sdbConnectionStruct *connection = (sdbConnectionStruct*)handle ;
-
-      if ( NULL == connection->_sock )
-      {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-
-      while ( TRUE )
-      {
-         // get length first
-         rc = clientRecv ( connection->_sock, 
-                           ((CHAR*)&recvLength) + totalReceivedLen,
-                           sizeof( recvLength ) - totalReceivedLen,
-                           &receivedLen,
-                           SDB_CLIENT_DFT_NETWORK_TIMEOUT ) ;
-         totalReceivedLen += receivedLen ;
-         if ( SDB_TIMEOUT == rc )
-         {
-            continue ;
-         }
-         PD_RC_CHECK( rc, PDERROR, "Failed to get length, rc: %d", rc) ;
-
-#if defined( _LINUX ) || defined (_AIX)
-      #if defined (_AIX)
-         #define TCP_QUICKACK TCP_NODELAYACK
-      #endif
-      // quick ack
-      {
-         INT32 i = 1 ;
-         setsockopt( clientGetRawSocket ( connection->_sock ),
-                     IPPROTO_TCP, TCP_QUICKACK, (void*)&i, sizeof(i) ) ;
-      }
-#endif
-         break ;
-      }
-      ossEndianConvertIf4 ( recvLength, realLength, endianConvert ) ;
-      rc = _reallocBuffer ( ppBuffer, msgLength , realLength+1 ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to realloc buffer, rc: %d", rc) ;
-
-      // use the original recvLength before convert
-      *(SINT32*)(*ppBuffer) = recvLength ;
-      totalReceivedLen = 0 ;
-      receivedLen = 0 ;
-      while ( TRUE )
-      {
-         // get residual message
-         rc = clientRecv ( connection->_sock,
-                           &( *ppBuffer )[sizeof( realLength ) + totalReceivedLen],
-                           realLength - sizeof( realLength ) - totalReceivedLen,
-                           &receivedLen,
-                           SDB_CLIENT_DFT_NETWORK_TIMEOUT ) ;
-         totalReceivedLen += receivedLen ;
-         if ( SDB_TIMEOUT == rc ) 
-         {
-            continue ;
-         }
-         PD_RC_CHECK( rc, PDERROR,
-                      "Failed to get residual message, rc: %d", rc) ;
-         break ;
-      }
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 _sptRemote::_send( ossValuePtr handle,
-                            const CHAR *pMsg,
-                            INT32 msgLength )
-   {
-      SDB_ASSERT( handle, "handle can't be null" ) ;
-      SDB_ASSERT( pMsg, "pMsg can't be null" ) ;
-      INT32 rc = SDB_OK ;
-      INT32 sentSize = 0 ;
-      INT32 totalSentSize = 0 ;
-      sdbConnectionStruct *connection = (sdbConnectionStruct*)handle ;
-
-      if ( NULL == connection->_sock )
-      {
-         rc = SDB_INVALIDARG ;
-         PD_LOG( PDERROR, "Failed to get valid sock, rc: %d", rc ) ;
-         goto error ;
-      }
-
-      while ( msgLength > totalSentSize )
-      {
-         rc = clientSend ( connection->_sock, pMsg + totalSentSize, 
-                           msgLength - totalSentSize, &sentSize,
-                           SDB_CLIENT_DFT_NETWORK_TIMEOUT ) ;
-         totalSentSize += sentSize ;
-         if ( SDB_TIMEOUT == rc )
-         {
-            continue ;
-         }
-         PD_RC_CHECK( rc, PDERROR, "Failed to send, rc: %d", rc) ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 _sptRemote::_reallocBuffer( CHAR **ppBuffer, INT32 *bufferSize,
-                                     INT32 newSize)
-   {
-      INT32 rc              = SDB_OK ;
-      CHAR *pOriginalBuffer = NULL ;
-
-      if ( *bufferSize < newSize )
-      {
-         pOriginalBuffer = *ppBuffer ;
-         *ppBuffer = (CHAR*)SDB_OSS_REALLOC( *ppBuffer,
-                                             sizeof(CHAR) *newSize ) ;
-         if( !*ppBuffer )
-         {
-            *ppBuffer = pOriginalBuffer ;
-            rc = SDB_OOM ;
-         }
-         PD_RC_CHECK( rc, PDERROR, "Failed to realloc ppBuffer, rc: %d", rc) ;
-         *bufferSize = newSize ;
       }
    done:
       return rc ;

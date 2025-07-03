@@ -69,27 +69,6 @@ namespace engine
                                  BOOLEAN needRecv = TRUE ) ;
 
       private:
-         INT32       _sendAndRecv( ossValuePtr handle,
-                                   const MsgHeader *sendMsg,
-                                   MsgHeader **recvMsg,
-                                   INT32 *size,
-                                   BOOLEAN needRecv,
-                                   BOOLEAN endianConvert ) ;
-
-         INT32       _sendMsg( ossValuePtr handle, const MsgHeader *msg,
-                               BOOLEAN endianConvert ) ;
-
-         INT32       _recvMsg( ossValuePtr handle,
-                               MsgHeader **msg,
-                               INT32 *msgLength,
-                               BOOLEAN endianConvert ) ;
-
-         INT32       _send( ossValuePtr handle,
-                            const CHAR *pMsg,
-                            INT32 msgLength ) ;
-
-         INT32       _reallocBuffer( CHAR **ppBuffer, INT32 *bufferSize,
-                                     INT32 newSize ) ;
 
          INT32       _extract( MsgHeader *msg, INT32 msgSize,
                                SINT64 *contextID,
