@@ -173,6 +173,19 @@ typedef sdbNodeHandle             sdbReplicaNodeHandle ;
 /** The flag represent whether update return detail result */
 // #define FLG_DELETE_RETURNNUM              0x00000004
 
+#if defined( SDB_ENGINE ) || defined( SDB_TOOL ) || defined ( SDB_FMP ) || defined ( SDB_SHELL )
+
+#include "network.h"
+#include "msg.h"
+
+INT32 sendAndRecv ( sdbConnectionHandle cHandle, Socket* sock,
+                    const MsgHeader *sendMsg,
+                    MsgHeader **recvMsg, INT32 *size,
+                    BOOLEAN needRecv,
+                    BOOLEAN endianConvert ) ;
+
+#endif
+
 /** \fn INT32 initClient ( sdbClientConf* config ) ;
     \brief set client global configuration such as cache strategy to improve performance
     \param [in] config The configuration struct, see detail of sdbClientConf

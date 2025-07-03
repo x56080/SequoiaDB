@@ -926,6 +926,17 @@ error:
 
    goto done ;
 }
+
+INT32 sendAndRecv ( sdbConnectionHandle cHandle, Socket* sock,
+                    const MsgHeader *sendMsg,
+                    MsgHeader **recvMsg, INT32 *size,
+                    BOOLEAN needRecv,
+                    BOOLEAN endianConvert )
+{
+   return _sendAndRecv( cHandle, sock, sendMsg, recvMsg, size,
+                        needRecv, endianConvert ) ;
+}
+
 static INT32 _getLastResultObj( sdbConnectionHandle cHandle, bson *result)
 {
    INT32 rc                         = SDB_OK ;
