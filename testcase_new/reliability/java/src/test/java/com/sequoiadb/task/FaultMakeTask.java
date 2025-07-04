@@ -12,6 +12,7 @@ import java.util.Random;
 import com.sequoiadb.exception.ReliabilityException;
 import com.sequoiadb.fault.Fault;
 import com.sequoiadb.fault.FaultWrapper;
+import com.sequoiadb.commlib.CommLib;
 
 public class FaultMakeTask extends Task {
     @SuppressWarnings("unused")
@@ -49,9 +50,12 @@ public class FaultMakeTask extends Task {
         } catch ( Exception e ) {
         }
         try {
+            System.out.print("begin " + faultInstance.getName() + " make " + CommLib.printlnCurrentTime());
             faultInstance.make();
             isMakeSuccess = true;
+            System.out.print("end " + faultInstance.getName() + " make " + CommLib.printlnCurrentTime());
         } catch ( ReliabilityException e ) {
+            e.printStackTrace();
             setException( e );
         }
         try {
@@ -59,8 +63,11 @@ public class FaultMakeTask extends Task {
         } catch ( Exception e ) {
         }
         try {
+            System.out.print("begin " + faultInstance.getName() + " restore " + CommLib.printlnCurrentTime());
             faultInstance.restore();
+            System.out.print("end " + faultInstance.getName() + " restore " + CommLib.printlnCurrentTime());
         } catch ( ReliabilityException e ) {
+            e.printStackTrace();
             setException( e );
         }
 
