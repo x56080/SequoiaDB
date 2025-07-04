@@ -1,5 +1,6 @@
 package com.sequoiadb.commlib;
 
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 import com.sequoiadb.base.*;
@@ -15,6 +16,13 @@ import com.sequoiadb.exception.ReliabilityException;
 public class CommLib {
 
     private static long fillupMethodBase = 0;
+
+    public static String printlnCurrentTime(){
+        SimpleDateFormat sdf = new SimpleDateFormat();
+        sdf.applyPattern("yyyy-MM-dd HH:mm:ss.SSSSSS");
+        Date date = new Date();
+        return sdf.format(date);
+    }
 
     /**
      * Judge the mode

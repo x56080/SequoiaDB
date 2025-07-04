@@ -25,7 +25,7 @@ public class NodeRestart extends Fault {
 
     @Override
     public void make() throws FaultException {
-        System.out.println( "target node:" + this.node.hostName() + " : "
+        System.out.println( "target node make:" + this.node.hostName() + " : "
                 + this.node.svcName() );
         try {
             this.node.stop();
@@ -59,6 +59,8 @@ public class NodeRestart extends Fault {
 
     @Override
     public void restore() throws FaultException {
+        System.out.println( "target node restore:" + this.node.hostName() + " : "
+                + this.node.svcName() );
         try {
             this.node.start();
         } catch ( ReliabilityException e ) {
