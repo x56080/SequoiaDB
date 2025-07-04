@@ -45,12 +45,26 @@ public class LobSubCL19082 extends SdbTestBase {
     private List< ObjectId > lobIds1;
     private List< ObjectId > lobIds2;
 
+    public void clearEnv(){
+        try {
+            if ( sdb.isCollectionSpaceExist( mainCSName ) ) {
+                sdb.dropCollectionSpace( mainCSName );
+            }
+            if ( sdb.isCollectionSpaceExist( subCSName ) ) {
+                sdb.dropCollectionSpace( subCSName );
+            }
+        } catch ( BaseException e ) {
+            throw e;
+        }
+    }
+
     @BeforeClass
     public void setUp() {
         sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         if ( CommLib.isStandAlone( sdb ) ) {
             throw new SkipException( "is standalone skip testcase" );
         }
+        clearEnv();
         CollectionSpace cs = sdb.createCollectionSpace( mainCSName );
         CollectionSpace subCS = sdb.createCollectionSpace( subCSName );
         BSONObject options = new BasicBSONObject();
