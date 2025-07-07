@@ -131,10 +131,11 @@ var infoCount = 0 ;
 var jsCodes = "" ;
 var codeCount = 0 ;
 var supportOnlyUpgradeMeta = false ;
+var oldVersion = false ;
 
 function clearTmpCollectionSpace()
 {
-   var oldVersion = false ;
+   oldVersion = false ;
 
    try
    {
@@ -174,6 +175,26 @@ function clearTmpCollectionSpace()
    println( "(" + step + "/" + STEP_NUM + ")End to clear tmp collection space, spent time: " +
             ( (Date.now()) - beginTime )/1000 + "s" ) ;
    step++ ;
+}
+
+function truncateCL( collection )
+{
+   try
+   {
+      if ( oldVersion )
+      {
+         collection.truncate() ;
+      }
+      else
+      {
+         collection.truncate( { "SkipRecycleBin": true } ) ;
+      }
+   }
+   catch( e )
+   {
+      println( "Failed to truncate cl, rc: " + e ) ;
+      throw e ;
+   }
 }
 
 function clearResultFiles( onlyJsFile )
@@ -1493,7 +1514,7 @@ function checkConflictIndex()
 
       var sqlStr2 = "insert into " + TMP_CL_FULL_CACHE_INFO + " select T1.GroupName as GroupName,T1.IndexDef as IndexDef,T1.ClFullName as ClFullName,T1.MainClName as MainClName,T1.DataClFullName as DataClFullName,T1.IndexDataType as IndexDataType,T1.IndexNames as IndexName,T1.Groups as Groups,T1.NodeCount as NodeCount,T1.GroupCount as GroupCount,T1.UniqueIDs as UniqueIDs,T1.UniqueIDCount as UniqueIDCount from ( " + t1SqlStr2 + " ) as T1 split by T1.IndexNames" ;
 
-      cacheInfoCl.truncate() ;
+      truncateCL( cacheInfoCl ) ;
       cacheInfoCl.createAutoIncrement( { Field: "AutoIncrementFiled" } )
       db.execUpdate( sqlStr2 ) ;
 
@@ -1545,7 +1566,7 @@ function checkMissIndex()
 
       var sqlStr1 = "insert into " + TMP_CL_FULL_CACHE_INFO + " select T1.ClFullName as CataClFullName,T1.MainClName,T1.EnsureShardingIndex,T1.ShardingKey,T1.Attribute,T1.Groups as CataGroups,T1.GroupCount,T1.NodeCount,T2.ClFullName,T2.DataClFullName,T2.GroupName,T2.Groups as DataGroups,T2.IndexDef,T2.IndexName as IndexName,T2.UniqueIDCount,T2.UniqueIDs,T2.IndexDataType,T2.AutoIncrementFiled from ( " + t1SqlStr1 + " ) as T1 inner join ( " + t2SqlStr1 + " ) as T2 on T1.JoinMatch=T2.JoinMatch /*+use_hash()*/" ;
 
-      cacheInfoCl.truncate() ;
+      truncateCL( cacheInfoCl ) ;
       db.execUpdate( sqlStr1 ) ;
       println( "(" + step + "/" + STEP_NUM + ")End to collect consistent indexes, spent time: " +
                ( (Date.now()) - beginTime )/1000 + "s" ) ;
@@ -1687,7 +1708,7 @@ function checkCataIndexMetaData()
       db.execUpdate( sqlStr1 ) ;
 
       var sqlStr2 = "insert into " + TMP_CL_FULL_CACHE_INFO + " select ClFullName,MainClName,max(IndexDef) as IndexDef,IndexName,max(IndexDataType) as IndexDataType,max(GroupName) as GroupName,max(EnsureShardingIndex) as EnsureShardingIndex,max(ShardingKey) as ShardingKey,max(Attribute) as Attribute,max(DataGroups) as Groups,max(NodeCount) as NodeCount,max(GroupCount) as GroupCount,max(UniqueIDCount) as UniqueIDCount,max(UniqueIDs) as UniqueIDs from " + TMP_CL_FULL_DATA_INDEX_CHECK_INFO + " group by ClFullName,IndexName" ;
-      cacheInfoCl.truncate() ;
+      truncateCL( cacheInfoCl ) ;
       db.execUpdate( sqlStr2 ) ;
 
       swapTmpClName( TMP_CL_CACHE_INFO, TMP_CL_DATA_INDEX_CHECK_INFO ) ;
@@ -1797,7 +1818,7 @@ function checkMainClIndexInfo()
 
       println( "(" + step + "/" + STEP_NUM + ")Begin to check main collection index infos" ) ;
 
-      cacheInfoCl.truncate() ;
+      truncateCL( cacheInfoCl ) ;
 
       if ( 0 == mainClInfoCl.count() )
       {
