@@ -553,6 +553,7 @@ INT32 msgAppendInsertMsg ( CHAR **ppBuffer, INT32 *bufferSize,
       goto error ;
    }
    // now the buffer is large enough
+   pInsert = (MsgOpInsert*)(*ppBuffer) ;
    pInsert->header.messageLength = packetLength ;
    ossMemcpy ( &((*ppBuffer)[offset]), insertor->objdata(), insertor->objsize());
    offset += ossAlign4( insertor->objsize() ) ;
