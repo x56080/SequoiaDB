@@ -6,6 +6,7 @@
 ******************************************************************************/
 try
 {
+   File.mkdir( WORKDIR );
    var filePath = WORKDIR + "/" + "file20261";
    var isStandalone = commIsStandalone( db );
    main( test );
