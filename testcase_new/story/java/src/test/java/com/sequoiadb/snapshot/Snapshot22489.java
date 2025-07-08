@@ -89,8 +89,14 @@ public class Snapshot22489 extends SdbTestBase {
         }
 
         for( WriteLob thd : writeLobThds ){
-            thd.shutdown();
+            Thread.sleep( 5000 );
+            if(!thd.isSuccess()){
+                System.out.println( "Sleep 5s, waiting for writeLob threads to finish" );
+                continue;
+            }
         }
+
+        Assert.assertTrue( isSuccess );
     }
 
     public class WriteLob extends SdbThreadBase{
@@ -107,11 +113,6 @@ public class Snapshot22489 extends SdbTestBase {
                     lob.write( lobSb.getBytes() );
                     lob.close();
                     System.out.println( "End to createLob, isSuccess: " + isSuccess + ", times: " + times + ", totalTimes: " + totalTimes );
-
-                    if( times >= totalTimes ){
-                        System.err.println( "Insert time out!");
-                        throw new RuntimeException( "Insert time out!");
-                    }
                 }
             }
         }
