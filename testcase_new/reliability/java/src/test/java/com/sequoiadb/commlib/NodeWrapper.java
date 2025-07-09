@@ -100,21 +100,28 @@ public class NodeWrapper {
     }
 
     public boolean stop() throws ReliabilityException {
-        try {
-            node.stop();
-            status = NodeStatus.STOP_SUCCESS;
+        while(true){
+            try {
+                node.stop();
+                status = NodeStatus.STOP_SUCCESS;
 
-        } catch ( BaseException e ) {
-            // -140 停止节点超时，但节点最终仍然停止成功，捕获此错误码规避该错误。
-            if ( e.getErrorCode() != -140 ) {
-                System.out.println( "stop " + node.getNodeName() + " failed "
-                        + e.getErrorCode() );
-                status = NodeStatus.STOP_FAILURE;
-                e.printStackTrace();
-                throw new ReliabilityException( e );
+            } catch ( BaseException e ) {
+                // -140 停止节点超时，但节点最终仍然停止成功，捕获此错误码规避该错误。
+                // -140 时，我们需要继续停节点，直到节点停成功才返回成功
+                if ( e.getErrorCode() != -140 ) {
+                    System.out.println( "stop " + node.getNodeName() + " failed "
+                            + e.getErrorCode() );
+                    status = NodeStatus.STOP_FAILURE;
+                    e.printStackTrace();
+                    throw new ReliabilityException( e );
+                }
+                else {
+                    System.out.println("Stop node timeout, stop again");
+                    continue;
+                }
             }
+            return true;
         }
-        return true;
     }
 
     public boolean checkStop() {
