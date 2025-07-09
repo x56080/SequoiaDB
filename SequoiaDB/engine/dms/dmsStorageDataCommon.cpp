@@ -5693,7 +5693,7 @@ namespace engine
    error:
       if ( DMS_INVALID_EXTENT != dictExtID )
       {
-         _freeExtent( dictExtID, context->mbID() ) ;
+         _releaseSpace( dictExtID, pageNum ) ;
       }
       goto done ;
    }
