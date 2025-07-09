@@ -49,6 +49,8 @@
 
 #define OSS_MMAP_INIT_CAPACITY         ( 128 )
 
+#define OSS_ALIGN_PAGESIZE             ( 64 * 1024 )
+
 // PD_TRACE_DECLARE_FUNCTION ( SDB__OSSMMF_OPEN, "_ossMmapFile::open" )
 INT32 _ossMmapFile::open ( const CHAR *pFilename,
                            UINT32 iMode,
@@ -362,7 +364,20 @@ INT32 _ossMmapFile::flushBlock( UINT32 segmentID, UINT32 offset,
       rc = SDB_INVALIDARG ;
       goto error ;
    }
-   else if ( length == 0 || offset == pSegment->_length )
+
+   /// keep the offset and length align to 64KB
+   if ( 0 != offset % OSS_ALIGN_PAGESIZE )
+   {
+      offset = ( offset / OSS_ALIGN_PAGESIZE ) * OSS_ALIGN_PAGESIZE ;
+      length += ( offset % OSS_ALIGN_PAGESIZE ) ;
+   }
+
+   if ( 0 != length % OSS_ALIGN_PAGESIZE )
+   {
+      length = ( length / OSS_ALIGN_PAGESIZE ) * OSS_ALIGN_PAGESIZE + OSS_ALIGN_PAGESIZE ;
+   }
+
+   if ( length == 0 || offset >= pSegment->_length )
    {
       goto done ;
    }
