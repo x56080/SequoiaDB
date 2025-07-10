@@ -504,7 +504,7 @@ namespace engine
 
    // record a row
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSLGWRAPP_RECDROW, "_dpsLogWrapper::recordRow" )
-   INT32 _dpsLogWrapper::recordRow( const CHAR *row, UINT32 len )
+   INT32 _dpsLogWrapper::recordRow( const CHAR *row, UINT32 len, BOOLEAN needNotify )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__DPSLGWRAPP_RECDROW );
@@ -544,6 +544,17 @@ namespace engine
          }
 
          rc = _buf.merge( block ) ;
+
+         /// notify
+         if ( SDB_OK == rc && needNotify && _vecEventHandler.size() > 0 )
+         {
+            DPS_LSN_OFFSET offset = DPS_INVALID_LSN_OFFSET ;
+            offset = block.record().head()._lsn ;
+            for( UINT32 i = 0 ; i < _vecEventHandler.size() ; ++i )
+            {
+               _vecEventHandler[i]->onWriteLog( offset ) ;
+            }
+         }
 
          /// end tick
          if ( monQuery )

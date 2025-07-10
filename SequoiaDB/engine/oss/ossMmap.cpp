@@ -368,8 +368,9 @@ INT32 _ossMmapFile::flushBlock( UINT32 segmentID, UINT32 offset,
    /// keep the offset and length align to 64KB
    if ( 0 != offset % OSS_ALIGN_PAGESIZE )
    {
-      offset = ( offset / OSS_ALIGN_PAGESIZE ) * OSS_ALIGN_PAGESIZE ;
-      length += ( offset % OSS_ALIGN_PAGESIZE ) ;
+      UINT32 tmpOffset = offset ;
+      offset = ( tmpOffset / OSS_ALIGN_PAGESIZE ) * OSS_ALIGN_PAGESIZE ;
+      length += ( tmpOffset % OSS_ALIGN_PAGESIZE ) ;
    }
 
    if ( 0 != length % OSS_ALIGN_PAGESIZE )

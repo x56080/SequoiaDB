@@ -1269,7 +1269,7 @@ namespace engine
             goto error ;
          }
 
-         rc = _logger->recordRow( log, recordHeader->_length ) ;
+         rc = _logger->recordRow( log, recordHeader->_length, TRUE ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "Session[%s]: Row record failed[rc:%d]",

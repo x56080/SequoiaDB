@@ -431,6 +431,9 @@ namespace engine
          msg.from = id ;
          msg.header.TID = TID ;
          _agent->syncSend( primary, (MsgHeader *)&msg ) ;
+
+         /// without plan
+         _complete( id, lsn.offset, TRUE ) ;
       }
       else
       {
@@ -897,7 +900,8 @@ namespace engine
    // The function is called by repl session, so need to use lock
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSYNCMAG__COMPLETE, "_clsSyncManager::_complete" )
    void _clsSyncManager::_complete( const MsgRouteID &id,
-                                    const DPS_LSN_OFFSET &offset )
+                                    const DPS_LSN_OFFSET &offset,
+                                    BOOLEAN noPlan )
    {
       PD_TRACE_ENTRY ( SDB__CLSSYNCMAG__COMPLETE ) ;
       DPS_LSN lsn ;
@@ -918,6 +922,7 @@ namespace engine
          }
       }
 
+      if ( !noPlan )
       {
          /// wake up agent thread which is waiting
          CLS_WAKE_PLAN plan ;
@@ -1031,6 +1036,7 @@ namespace engine
          {
             wakePlan.offset = _notifyList[i].offset ;
          }
+         wakePlan.syncIndex = i ;
 
          if ( MSG_INVALID_LOCATIONID != selfLocation &&
               MSG_INVALID_LOCATIONID != _notifyList[i].locationID )
@@ -1041,7 +1047,7 @@ namespace engine
                wakePlan.affinitiveNodes = 1 ;
                isMarked.setBit( _notifyList[i].locationIndex ) ;
             }
-            else if ( !isMarked.testBit( _notifyList[i].locationIndex ) )
+            else
             {
                wakePlan.locations = 1 ;
                if ( _notifyList[i].affinitive )
@@ -1049,11 +1055,6 @@ namespace engine
                   wakePlan.affinitiveLocations = 1 ;
                   wakePlan.affinitiveNodes = 1 ;
                }
-               isMarked.setBit( _notifyList[i].locationIndex ) ;
-            }
-            else if ( _notifyList[i].affinitive )
-            {
-               wakePlan.affinitiveNodes = 1 ;
             }
          }
          plan.insert( CLS_WAKE_PLAN::value_type( wakePlan.offset, wakePlan ) ) ;
@@ -1074,9 +1075,14 @@ namespace engine
          {
             utilReplSizePlan &tmpPlan = ritr->second ;
 
-            wakePlan.affinitiveLocations += tmpPlan.affinitiveLocations ;
+            if ( !isMarked.testBit( _notifyList[tmpPlan.syncIndex].locationIndex ) )
+            {
+               wakePlan.locations += tmpPlan.locations ;
+               wakePlan.affinitiveLocations += tmpPlan.affinitiveLocations ;
+               isMarked.setBit( _notifyList[tmpPlan.syncIndex].locationIndex ) ;
+            }
+
             wakePlan.primaryLocationNodes += tmpPlan.primaryLocationNodes ;
-            wakePlan.locations += tmpPlan.locations ;
             wakePlan.affinitiveNodes += tmpPlan.affinitiveNodes ;
 
             tmpPlan.affinitiveLocations = wakePlan.affinitiveLocations ;

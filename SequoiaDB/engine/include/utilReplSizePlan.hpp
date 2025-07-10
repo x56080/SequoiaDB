@@ -56,6 +56,8 @@ namespace engine
       mutable UINT8  primaryLocationNodes ;
       mutable UINT8  locations ;
       mutable UINT8  affinitiveNodes ;
+      /// assist
+      UINT8          syncIndex ;
 
       _utilReplSizePlan()
       {
@@ -86,6 +88,7 @@ namespace engine
          primaryLocationNodes = 0 ;
          locations = 0 ;
          affinitiveNodes = 0 ;
+         syncIndex = 0 ;
       }
 
       void setNodeReplSizePlan( const UINT8 w,

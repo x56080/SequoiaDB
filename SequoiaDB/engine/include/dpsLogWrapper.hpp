@@ -104,7 +104,7 @@ namespace engine
          virtual INT32     move( const DPS_LSN_OFFSET &offset,
                                  const DPS_LSN_VER &version ) = 0 ;
 
-         virtual INT32     recordRow( const CHAR *row, UINT32 len ) = 0 ;
+         virtual INT32     recordRow( const CHAR *row, UINT32 len, BOOLEAN needNotify = FALSE ) = 0 ;
 
    } ;
    typedef _dpsLogAccessor ILogAccessor ;
@@ -175,7 +175,7 @@ namespace engine
       virtual INT32     move( const DPS_LSN_OFFSET &offset,
                               const DPS_LSN_VER &version ) ;
 
-      virtual INT32     recordRow( const CHAR *row, UINT32 len ) ;
+      virtual INT32     recordRow( const CHAR *row, UINT32 len, BOOLEAN needNotify = FALSE ) ;
 
    public:
          virtual BOOLEAN      isClosed() const ;

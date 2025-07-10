@@ -188,8 +188,8 @@ namespace engine
       void _wake( CLS_WAKE_PLAN &plan ) ;
 
       void _complete( const MsgRouteID &id,
-                      const DPS_LSN_OFFSET &offset ) ;
-
+                      const DPS_LSN_OFFSET &offset,
+                      BOOLEAN noPlan = FALSE ) ;
 
       void _clearSyncList( UINT32 removed, UINT32 removedAlives,
                            UINT32 preAlives, UINT32 preSyncNum,
