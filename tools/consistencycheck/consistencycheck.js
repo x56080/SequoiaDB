@@ -2252,28 +2252,19 @@ function generateCreateIdxJsCodeWithoutSpentTime( clFullName, indexName, idxDef 
          {
             code += "collection.createIdIndex() ;\n" ;
          }
+         code += ( "println('Create index successfully[ ClFullName: " +
+                 clFullName + ", IndexName: " + indexName + " ]' ) ;\n" ) ;
       }
       else if ( indexName == "$shard" )
       {
-         code += "collection.enableSharding( { 'ShardingKey': " + JSON.stringify( idxDef.key ) + " } ) ;\n" ;
+         code += "enableSharding( '" + clFullName + "', '" + indexName + "', collection, { 'ShardingKey': " + JSON.stringify( idxDef.key ) + " } ) ;\n" ;
       }
       else
       {
-         if ( supportOnlyUpgradeMeta )
-         {
-            code += "collection.createIndex( '" + indexName +
-                    "', " + JSON.stringify( idxDef.key ) + ", " +
-                    JSON.stringify( getIdxAttr( idxDef ) ) + ", { 'OnlyUpgradeMeta': true } ) ;\n" ;
-         }
-         else
-         {
-            code += "collection.createIndex( '" + indexName +
-                    "', " + JSON.stringify( idxDef.key ) + ", " +
-                    JSON.stringify( getIdxAttr( idxDef ) ) + " ) ;\n" ;
-         }
+         code += "createIndex( '" + clFullName + "', collection, '" + indexName +
+                  "', " + JSON.stringify( idxDef.key ) + ", " +
+                  JSON.stringify( getIdxAttr( idxDef ) ) + ", " + supportOnlyUpgradeMeta + " ) ;\n" ;
       }
-      code += ( "println('Create index successfully[ ClFullName: " +
-                clFullName + ", IndexName: " + indexName + " ]' ) ;\n" ) ;
 
       return code ;
    }
@@ -3508,6 +3499,49 @@ function generateJsScripts()
    generateCannotUpgradeIdxJsScripts() ;
 }
 
+function defineNewCreateIndexFunc()
+{
+   var code = "" ;
+   code += "function createIndex( clFullName, collection, indexName, indexKey, indexDef, supportOnlyUpgradeMeta ) {\n" ;
+   code += "   try {\n" ;
+   code += "      if ( supportOnlyUpgradeMeta ) {\n" ;
+   code += "         collection.createIndex( indexName, indexKey, indexDef, { 'OnlyUpgradeMeta': true } ) ;\n" ;
+   code += "      }\n"
+   code += "      else {\n" ;
+   code += "         collection.createIndex( indexName, indexKey, indexDef ) ;\n" ;
+   code += "      }\n" ;
+   code += "      println( 'Create index successfully[cl: ' + clFullName + ', indexName: ' + indexName + ']' ) ;\n" ;
+   code += "   }\n" ;
+   code += "   catch( e ) {\n" ;
+   code += "      if ( e != -177 ) {\n" ;
+   code += "         println( 'Failed to create index[cl: ' + clFullName + ', indexName: ' + indexName + '], rc: ' + e ) ;\n" ;
+   code += "         throw e ;\n" ;
+   code += "      }\n" ;
+   code += "      println( 'Can not create index[cl: ' + clFullName + ', indexName: ' + indexName + '], rc: ' + e ) ;\n" ;
+   code += "   }\n" ;
+   code += "}\n" ;
+   return code ;
+}
+
+function defineNewEnableShardingFunc()
+{
+   var code = "" ;
+   code += "function enableSharding( clFullName, indexName, collection, indexKey ) {\n" ;
+   code += "   try {\n" ;
+   code += "      collection.enableSharding( indexKey ) ;\n" ;
+   code += "      println( 'Create index successfully[cl: ' + clFullName + ', indexName: ' + indexName + ']' ) ;\n" ;
+   code += "   }\n" ;
+   code += "   catch( e ) {\n" ;
+   code += "      if ( e != -177 ) {\n" ;
+   code += "         println( 'Failed to create index[cl: ' + clFullName + ', indexName: ' + indexName + '], rc: ' + e ) ;\n" ;
+   code += "         throw e ;\n" ;
+   code += "      }\n" ;
+   code += "      println( 'Can not create index[cl: ' + clFullName + ', indexName: ' + indexName + '], rc: ' + e ) ;\n" ;
+   code += "   }\n" ;
+   code += "}\n" ;
+   return code ;
+}
+
 function generateCanUpgradeIdxJsScript()
 {
    try
@@ -3556,6 +3590,12 @@ function generateCanUpgradeIdxJsScript()
                           "var leftTimeTmp = 0 ;", false ) ;
       writeUpgradeJsCode( UPGRADE_INDEX_JS_FILE,
                           generateSdbConnStr( HOSTNAME, SVCNAME, USERNAME, PASSWD, CIPHER_FILE, TOKEN ),
+                          false ) ;
+      writeUpgradeJsCode( UPGRADE_INDEX_JS_FILE,
+                          defineNewCreateIndexFunc(),
+                          false ) ;
+      writeUpgradeJsCode( UPGRADE_INDEX_JS_FILE,
+                          defineNewEnableShardingFunc(),
                           false ) ;
 
       rc = dataIdxCheckInfoCl.find( { "UpgradeIndexType": { "$isnull": 1 } } ).sort( { "ClFullName": 1 } ) ;
