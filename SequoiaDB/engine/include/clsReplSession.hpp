@@ -119,6 +119,7 @@ namespace engine
          UINT32                        _timeout ;
          UINT64                        _requestID ;
          UINT32                        _syncFailedNum ;
+         UINT32                        _syncNoneNum ;
 
          DPS_LSN                       _completeLSN ;
          DPS_LSN                       _consultLsn ;

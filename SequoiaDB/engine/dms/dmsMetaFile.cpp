@@ -59,6 +59,7 @@ namespace engine
    {
       _invalidateStatus = FALSE ;
       _errorRC = SDB_OK ;
+      _enabled = TRUE ;
       ossMemset( _szFileName, 0, sizeof( _szFileName ) ) ;
       _pTotalCacheMem = pTotalCacheMem ;
    }
@@ -270,6 +271,17 @@ namespace engine
          /// clear the path
          _path = "" ;
       }
+   }
+
+   void _dmsMetaFile::enable()
+   {
+      _enabled = TRUE ;
+   }
+
+   void _dmsMetaFile::disable()
+   {
+      invalidate( TRUE ) ;
+      _enabled = FALSE ;
    }
 
    BOOLEAN _dmsMetaFile::isValid() const
@@ -813,6 +825,11 @@ namespace engine
       CHAR *pBuff = NULL ;
       UINT32 buffSize = 0 ;
       INT64 written = 0 ;
+
+      if ( !_enabled )
+      {
+         goto done ;
+      }
 
       if ( SDB_OK != _errorRC )
       {
