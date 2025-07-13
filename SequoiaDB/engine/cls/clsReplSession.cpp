@@ -80,6 +80,7 @@ namespace engine
 
       _requestID = 1 ;
       _syncFailedNum = 0 ;
+      _syncNoneNum = 0 ;
       _isFirstToSync = TRUE ;
 
       _syncSrc.value = MSG_INVALID_ROUTEID ;
@@ -391,6 +392,7 @@ namespace engine
          if ( 0 != num )
          {
             _syncFailedNum = 0 ;
+            _syncNoneNum = 0 ;
             rc = SDB_OK ;
 
             _sendSyncReq() ;
@@ -398,6 +400,8 @@ namespace engine
          }
          else if ( SDB_OK == rc )
          {
+            BOOLEAN hasSendSync = FALSE ;
+            ++_syncNoneNum ;
             if ( _repl->getPrimary().value != _syncSrc.value )
             {
                _syncFailedNum = 0 ;
@@ -414,10 +418,18 @@ namespace engine
 
                // can't call _sendSyncReq, because the primary maybe
                // sharing-break, so this will run loop for other nodes fastly
-               _timeout = CLS_SYNC_INTERVAL ;
+               if ( _syncNoneNum <= 1 )
+               {
+                  _sendSyncReq() ;
+                  hasSendSync = TRUE ;
+               }
+               else
+               {
+                  _timeout = CLS_SYNC_INTERVAL ;
+               }
             }
 
-            if ( _pReplBucket->maxReplSync() > 0 )
+            if ( !hasSendSync && _pReplBucket->maxReplSync() > 0 )
             {
                // if has complete some log replay,need to notify primary
                DPS_LSN completeLSN = _pReplBucket->completeLSN( TRUE ) ;
@@ -425,18 +437,14 @@ namespace engine
                     _completeLSN.offset != completeLSN.offset )
                {
                   _sendSyncReq( &completeLSN ) ;
+                  hasSendSync = TRUE ;
                }
                else if ( !completeLSN.invalid() &&
                          completeLSN.offset != _logger->expectLsn().offset )
                {
-                  if ( SDB_OK == _pReplBucket->waitSubmit( OSS_ONE_SEC ) )
-                  {
-                     _sendSyncReq () ;
-                  }
-                  else
-                  {
-                     _timeout += OSS_ONE_SEC ;
-                  }
+                  _pReplBucket->waitSubmit( OSS_ONE_SEC ) ;
+                  _sendSyncReq() ;
+                  hasSendSync = TRUE ;
                }
             }
          }

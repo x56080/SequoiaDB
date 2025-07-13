@@ -150,6 +150,8 @@ namespace engine
             SDB_ASSERT ( _maxNode != _totalSize, "Internal logic error" ) ;
             rc = SDB_OK ;
 
+            _pSMEMgr->_totalFree.sub( numPages ) ;
+
             // Set SME bit to DMS_SME_ALLOCATED
             {
                UINT32 bitStart = (UINT32)foundPage ;
@@ -158,9 +160,27 @@ namespace engine
                {
                   SDB_ASSERT( DMS_SME_FREE == _pSMEMgr->_pSME->getBitMask( bitStart ),
                               "SME corrupted, bit must be free" ) ;
+
+                  if ( DMS_SME_FREE != _pSMEMgr->_pSME->getBitMask( bitStart ) )
+                  {
+                     PD_LOG( PDSEVERE, "Page[%d] is not free but allocated", bitStart ) ;
+                     rc = SDB_SYS ;
+
+                     /// restore page
+                     for ( UINT32 idx = foundPage ; idx < bitStart ; ++idx )
+                     {
+                        _pSMEMgr->_pSME->freeBitMask( idx ) ;
+                     }
+
+                     if ( _pSMEMgr->isInitWithMeta() )
+                     {
+                        _releasePages( foundPage, numPages, FALSE ) ;
+                     }
+                     goto error ;
+                  }
+
                   _pSMEMgr->_pSME->setBitMask( bitStart ) ;
                }
-               _pSMEMgr->_totalFree.sub( numPages ) ;
             }
             goto done ;
          } // if ( oldsize >= numPages )
@@ -475,6 +495,7 @@ namespace engine
       _pageSize      = 0 ;
       _pStorageBase  = NULL ;
       _pSME          = NULL ;
+      _initWithMeta  = FALSE ;
    }
 
    _dmsSMEMgr::~_dmsSMEMgr ()
@@ -513,6 +534,7 @@ namespace engine
          rc = _initByMetaFile( pMetaFile ) ;
          if ( SDB_OK == rc )
          {
+            _initWithMeta = TRUE ;
             goto done ;
          }
          else if ( SDB_SYS != rc && SDB_CORRUPTED_RECORD != rc )

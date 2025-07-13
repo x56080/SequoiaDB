@@ -219,6 +219,9 @@ namespace engine
       void  invalidate( BOOLEAN force = FALSE, BOOLEAN needLock = TRUE ) ;
       void  remove() ;
 
+      void  enable() ;
+      void  disable() ;
+
       BOOLEAN isValid() const ;
 
       UINT16 beginMBID() const ;
@@ -277,6 +280,7 @@ namespace engine
       dmsMetaFileHeader  _header ;
       BOOLEAN            _invalidateStatus ;
       INT32              _errorRC ;
+      BOOLEAN            _enabled ;
 
       ossPoolSet<dmsMBItem> _setMBID ;
       SET_UINT64         _setDataSME ;

@@ -2266,6 +2266,11 @@ namespace engine
          rc = _smeMgr.reservePages( numPages, foundPage ) ;
          if ( rc )
          {
+            if ( SDB_SYS == rc && _smeMgr.isInitWithMeta() )
+            {
+               /// remove meta file and disable it, then the node exist don't generate meta file
+               _pStorageInfo->_pMetaFile->disable() ;
+            }
             goto error ;
          }
 

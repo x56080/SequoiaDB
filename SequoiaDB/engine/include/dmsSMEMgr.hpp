@@ -123,6 +123,8 @@ namespace engine
       ossAtomic32                _totalFree ;
       ossAtomic32                _freePos ;
 
+      BOOLEAN                    _initWithMeta ;
+
    public :
       _dmsSMEMgr() ;
       ~_dmsSMEMgr() ;
@@ -154,6 +156,8 @@ namespace engine
 
       UINT32 segmentNum () ;
       UINT32 totalFree () const ;
+
+      BOOLEAN isInitWithMeta() const { return _initWithMeta ; }
 
    private:
       INT32    _initByMetaFile( dmsMetaFile *pMetaFile ) ;

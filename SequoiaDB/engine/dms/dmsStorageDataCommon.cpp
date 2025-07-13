@@ -5894,6 +5894,8 @@ namespace engine
                  mbID, rc ) ;
          goto error ;
       }
+      /// need set latchID
+      _mblock[ mbID ].latchID = MON_LATCH_MBLOCK ;
 
       rc = _compressorEntry.allocSlot( mbID ) ;
       if ( rc )
