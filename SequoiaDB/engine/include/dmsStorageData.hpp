@@ -169,9 +169,6 @@ namespace engine
       void  _mapExtent2DelList ( dmsMBContext *context, dmsExtent *extAddr,
                                  SINT32 extentID ) ;
 
-      INT32 _freeExtent ( dmsExtentID extentID,
-                          INT32 collectionID ) ;
-
       INT32 _reserveFromDeleteList ( dmsMBContext *context,
                                      UINT32 requiredSize,
                                      dmsRecordID &resultID,
