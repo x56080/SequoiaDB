@@ -9,11 +9,13 @@ function testExplain ( conds, dbcl, indexName, scanType )
    }
 }
 
-function checkExplain ( dbcl, cond, expIndexName, expScanType, sortCond, hintCond )
+function checkExplain ( dbcl, cond, expIndexName, expScanType, sortCond, hintCond, limitNum, skipNum )
 {
    if( sortCond == undefined ) { sortCond = {}; }
    if( hintCond == undefined ) { hintCond = {}; }
-   var explainObj = dbcl.find( cond ).sort( sortCond ).hint( hintCond ).explain().next().toObj();
+   if( limitNum == undefined ) { limitNum = -1; }
+   if( skipNum == undefined ) { skipNum = 0; }
+   var explainObj = dbcl.find( cond ).sort( sortCond ).hint( hintCond ).limit( limitNum ).skip( skipNum ).explain().next().toObj();
    var IndexName = explainObj.IndexName;
    var ScanType = explainObj.ScanType;
    if( expIndexName !== IndexName || expScanType !== ScanType )
