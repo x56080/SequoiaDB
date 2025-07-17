@@ -137,8 +137,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CLSOPRHANDLER_ONUPDATERECORD ) ;
 
-      BSONObj shardingKey ;
-
       if ( !_checkShardingKey )
       {
          goto done ;
