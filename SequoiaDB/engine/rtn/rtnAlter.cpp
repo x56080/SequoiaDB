@@ -29,7 +29,10 @@
 
 *******************************************************************************/
 #include "rtnAlter.hpp"
+#include "clsResourceContainer.hpp"
+#include "coordResource.hpp"
 #include "pd.hpp"
+#include "pmdController.hpp"
 #include "rtn.hpp"
 #include "rtnTrace.hpp"
 #include "dmsCB.hpp"
@@ -267,6 +270,8 @@ namespace engine
       MON_IDX_LIST indexes ;
 
       BSONObj shardingKey = argument.getShardingKey() ;
+      BSONObj originShardingKey ;
+      BOOLEAN hasRegisterEdu = FALSE ;
 
       PD_CHECK( DMS_STORAGE_NORMAL == su->type(),
                 SDB_OPTION_NOT_SUPPORT, error, PDERROR,
@@ -278,6 +283,28 @@ namespace engine
                 SDB_OPTION_NOT_SUPPORT, error, PDERROR,
                 "Failed to check collection for sharding: "
                 "should be hash sharding for LOB data" ) ;
+
+      if ( sdbGetResourceContainer()->getResource() && sdbGetPMDController()->getRSManager() )
+      {
+         CoordCataInfoPtr cataPtr ;
+         sdbGetPMDController()->getRSManager()->registerEDU( cb ) ;
+         hasRegisterEdu = TRUE ;
+
+         rc = sdbGetResourceContainer()->getResource()->getOrUpdateCataInfo( collection, cataPtr, cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get cata info, rc: %d", rc ) ;
+
+         if ( NULL != cataPtr )
+         {
+            cataPtr->getShardingKey( originShardingKey ) ;
+            if ( 0 == originShardingKey.woCompare( shardingKey ) )
+            {
+               PD_LOG( PDWARNING, "We don't need to check the shardingKey, old shardingKey[%s] == "
+                       "new shardingKey[%s]", originShardingKey.toString().c_str(),
+                       shardingKey.toString().c_str() ) ;
+               goto done ;
+            }
+         }
+      }
 
       rc = su->getIndexes( mbContext, indexes ) ;
       PD_RC_CHECK( rc, PDERROR,
@@ -329,9 +356,12 @@ namespace engine
       }
 
    done :
+      if ( hasRegisterEdu )
+      {
+         sdbGetPMDController()->getRSManager()->unregEUD( cb ) ;
+      }
       PD_TRACE_EXITRC( SDB__RTNCHKSHARD, rc ) ;
       return rc ;
-
    error :
       goto done ;
    }
