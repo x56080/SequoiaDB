@@ -133,6 +133,8 @@ namespace engine
                    _dmsSpaceManagementExtent *pSME,
                    dmsMetaFile *pMetaFile ) ;
 
+      void  fini() ;
+
       // attempt to reserve numPages pages from smp, if no more pages can be
       // found in existing pages, foundPage is set to DMS_INVALID_EXTENT
       INT32 reservePages ( UINT16 numPages, dmsExtentID &foundPage,

@@ -1077,10 +1077,6 @@ namespace engine
          upgradeDictInfo = TRUE ;
       }
 
-   retry:
-      // first clear collectionmap
-      _collectionMapCleanup() ;
-
       // load collection names in the SU
       i = _pStorageInfo->_pMetaFile->beginMBID() ;
       while( DMS_INVALID_MBID != i && i < DMS_MME_SLOTS )
@@ -1245,6 +1241,11 @@ namespace engine
       PD_TRACE_EXITRC ( SDB__DMSSTORAGEDATACOMMON__ONMAPMETA, rc ) ;
       return rc ;
    error:
+      goto done ;
+   retry:
+      _collectionMapCleanup() ;
+      /// only use the rc code for retry
+      rc = SDB_INVALID_FILE_TYPE ;
       goto done ;
    }
 

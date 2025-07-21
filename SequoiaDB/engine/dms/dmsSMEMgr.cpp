@@ -500,10 +500,15 @@ namespace engine
 
    _dmsSMEMgr::~_dmsSMEMgr ()
    {
-      _clear() ;
+      fini() ;
 
       _pStorageBase = NULL ;
       _pSME = NULL ;
+   }
+
+   void _dmsSMEMgr::fini()
+   {
+      _clear() ;
    }
 
    void _dmsSMEMgr::_clear()

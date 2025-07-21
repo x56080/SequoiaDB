@@ -1646,6 +1646,7 @@ namespace engine
          rc = rtnGetMore( contextID, 1, contextBuf, cb, rtnCB ) ;
          if ( SDB_DMS_EOC == rc )
          {
+            contextID = -1 ;
             rc = SDB_OK ;
             break ;
          }
@@ -1770,6 +1771,7 @@ namespace engine
          rc = rtnGetMore( contextID, 1, contextBuf, cb, rtnCB ) ;
          if ( SDB_DMS_EOC == rc )
          {
+            contextID = -1 ;
             rc = SDB_OK ;
             break ;
          }

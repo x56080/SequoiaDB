@@ -47,6 +47,7 @@
 #include "ossVer.h"
 #include "pmdOptionsMgr.hpp"
 #include "utilLZWDictionary.hpp"
+#include "ossMmap.hpp"
 
 #include <boost/program_options.hpp>
 #include <boost/program_options/parsers.hpp>
@@ -84,6 +85,8 @@ namespace fs = boost::filesystem ;
 #define OPTION_ONLY_META    "meta"
 #define OPTION_JUDGE_BALANCE "balance"
 #define OPTION_REPAIRE      "repaire"
+#define OPTION_RECOVER      "recover"
+#define OPTION_RECOVER_MBID "recover-with-mbid"
 #define OPTION_FORCE        "force"
 #define OPTION_HELPFULL     "helpfull"
 
@@ -97,7 +100,9 @@ namespace fs = boost::filesystem ;
    "  IndexNum(u)        CompressType(u)   Lobs(u)\n"\
    "  CommitFlag(u)      CommitLSN(u64)\n"\
    "  IdxCommitFlag(u)   IdxCommitLSN(u64)\n"\
-   "  LobCommitFlag(u)   LobCommitLSN(u64)"
+   "  LobCommitFlag(u)   LobCommitLSN(u64)\n"\
+   "  FirstExtentID(u)   LastExtentID(u)\n"\
+   "  MBExtExtentID(u)   DictExtentID(u)   OptExtentID(u)"
 
 #define ADD_PARAM_OPTIONS_BEGIN( desc )\
         desc.add_options()
@@ -132,7 +137,10 @@ namespace fs = boost::filesystem ;
 #define HIDDEN_OPTIONS \
        ( OPTION_HELPFULL,"help all configs") \
        ( OPTION_JUDGE_BALANCE, boost::program_options::value<string>(), "deprecated" ) \
-       ( COMMANDS_STRING(OPTION_REPAIRE, ",r"), boost::program_options::value<string>(), OPTION_REPAIRE_DESP )
+       ( COMMANDS_STRING(OPTION_REPAIRE, ",r"), boost::program_options::value<string>(), OPTION_REPAIRE_DESP ) \
+       ( OPTION_RECOVER, "recover the dropped collection" ) \
+       ( OPTION_RECOVER_MBID, boost::program_options::value<SINT32>(), "recover the dropped collection with specified MBID" )
+       
 
 #define HELP_EXAMPLE_INSPECT \
    "    bin/sdbdmsdump -d <dbpath> -o <output_file> -a inspect -t true -i true -b true"
@@ -145,6 +153,7 @@ namespace fs = boost::filesystem ;
 #define ACTION_DUMP              0x02
 #define ACTION_STAT              0x04
 #define ACTION_REPAIRE           0x08
+#define ACTION_RECOVER           0x10
 
 #define ACTION_INSPECT_STRING    "inspect"
 #define ACTION_STAT_STRING       "stat"
@@ -184,6 +193,11 @@ namespace fs = boost::filesystem ;
 #define PMD_REPAIRE_MB_MASK_LOB_COMMITFLAG   0x00010000
 #define PMD_REPAIRE_MB_MASK_LOB_COMMITLSN    0x00020000
 #define PMD_REPAIRE_MB_MASK_LOBPAGES         0x00040000
+#define PMD_REPAIRE_MB_MASK_FIRSTEXTENTID    0x00080000
+#define PMD_REPAIRE_MB_MASK_LASTEXTENTID     0x00100000
+#define PMD_REPAIRE_MB_MASK_MBEXTEXTENTID    0x00200000
+#define PMD_REPAIRE_MB_MASK_DICTEXTENTID     0x00400000
+#define PMD_REPAIRE_MB_MASK_OPTEXTENTID      0x00800000
 
 
 #define RETRY_COUNT 2
@@ -511,11 +525,18 @@ namespace
     BOOLEAN gOnlyMeta                                    = FALSE ;
     BOOLEAN gForce                                       = FALSE ;
     BOOLEAN gReachEnd                                    = FALSE ;
+    BOOLEAN gHitError                                    = FALSE ;
     BOOLEAN gHitCS                                       = FALSE ;
     SDB_INSPT_TYPE gCurInsptType                         = SDB_INSPT_DATA ;
     dmsMBStatInfo gMBStat ;
     dmsMB         gRepaireMB ;
     UINT32        gRepaireMask                           = 0 ;
+
+    dmsStorageUnitHeader gHeader ;
+
+    BOOLEAN gRecover                                     = FALSE ;
+    INT32   gRecoverMBID                                 = DMS_INVALID_MBID ;
+    INT32   gDoRecoverMBID                               = DMS_INVALID_MBID ;
 
     inspectSMEInfo gInspectSMEInfo ;
 
@@ -976,6 +997,31 @@ INT32 parseRepaireString( const std::string &str )
          gRepaireMask |= PMD_REPAIRE_MB_MASK_LOB_COMMITLSN ;
          gRepaireMB._lobCommitLSN = value ;
       }
+      else if ( 0 == ossStrcasecmp( aItem._host, "FirstExtentID" ) )
+      {
+         gRepaireMask |= PMD_REPAIRE_MB_MASK_FIRSTEXTENTID ;
+         gRepaireMB._firstExtentID = value ;
+      }
+      else if ( 0 == ossStrcasecmp( aItem._host, "LastExtentID" ) )
+      {
+         gRepaireMask |= PMD_REPAIRE_MB_MASK_LASTEXTENTID ;
+         gRepaireMB._lastExtentID = value ;
+      }
+      else if ( 0 == ossStrcasecmp( aItem._host, "MBExtExtentID" ) )
+      {
+         gRepaireMask |= PMD_REPAIRE_MB_MASK_MBEXTEXTENTID ;
+         gRepaireMB._mbExExtentID = value ;
+      }
+      else if ( 0 == ossStrcasecmp( aItem._host, "DictExtentID" ) )
+      {
+         gRepaireMask |= PMD_REPAIRE_MB_MASK_DICTEXTENTID ;
+         gRepaireMB._dictExtentID = value ;
+      }
+      else if ( 0 == ossStrcasecmp( aItem._host, "OptExtentID" ) )
+      {
+         gRepaireMask |= PMD_REPAIRE_MB_MASK_OPTEXTENTID ;
+         gRepaireMB._mbOptExtentID = value ;
+      }
       else
       {
          ossPrintf( "Unknow mb key: %s" OSS_NEWLINE, aItem._host ) ;
@@ -1308,9 +1354,10 @@ INT32 resolveArgument ( po::options_description &desc, INT32 argc, CHAR **argv )
          goto done ;
       }
    }
-   else if ( !vm.count( OPTION_REPAIRE ) )
+   else if ( !vm.count( OPTION_REPAIRE ) && !vm.count( OPTION_RECOVER ) &&
+             !vm.count( OPTION_RECOVER_MBID ) )
    {
-      ossPrintf ( "Action or repaire must be specified" OSS_NEWLINE ) ;
+      ossPrintf ( "Action or repaire or recover must be specified" OSS_NEWLINE ) ;
       // if no action specified, let's display help
       displayArg ( desc ) ;
       rc = SDB_PMD_HELP_ONLY ;
@@ -1360,6 +1407,45 @@ INT32 resolveArgument ( po::options_description &desc, INT32 argc, CHAR **argv )
          goto done ;
       }
       gAction = ACTION_REPAIRE ;
+   }
+
+   /// recover
+   if ( vm.count( OPTION_RECOVER ) )
+   {
+      gRecover = TRUE ;
+   }
+
+   if ( vm.count( OPTION_RECOVER_MBID ) )
+   {
+      gRecover = TRUE ;
+      gRecoverMBID = vm[OPTION_RECOVER_MBID].as<SINT32>() ;
+
+      if ( gRecoverMBID < 0 && gRecoverMBID >= DMS_MME_SLOTS )
+      {
+         ossPrintf( "Invalid param(%s)" OSS_NEWLINE, OPTION_RECOVER_MBID ) ;
+         rc = SDB_INVALIDARG ;
+         goto done ;
+      }
+   }
+
+   if ( gRecover )
+   {
+      if ( gAction != 0 )
+      {
+         ossPrintf( "Recover can't use with other action" OSS_NEWLINE ) ;
+         rc = SDB_INVALIDARG ;
+         goto done ;
+      }
+      if ( 0 == ossStrlen( gCLName ) || 0 == ossStrlen( gCSName ) )
+      {
+         ossPrintf( "Recover must specify the collection space and "
+                    "collection" OSS_NEWLINE ) ;
+         rc = SDB_INVALIDARG ;
+         goto done ;
+      }
+      gAction = ACTION_RECOVER ;
+      /// auto set
+      gDumpData = TRUE ;
    }
 
    if ( !gDumpData && !gDumpIndex && !gDumpLob )
@@ -1422,6 +1508,13 @@ INT32 resolveArgument ( po::options_description &desc, INT32 argc, CHAR **argv )
                        actionString ) ;
    dumpAndShowPrintf ( "Repaire       : %s" OSS_NEWLINE,
                        gRepairStr.c_str() ) ;
+   if ( gRecover )
+   {
+      dumpAndShowPrintf ( "Recover       : %s" OSS_NEWLINE,
+                          gRecover ? "True" : "False" ) ;
+      dumpAndShowPrintf ( "Recover MBID  : %d" OSS_NEWLINE,
+                          gRecoverMBID ) ;
+   }
    dumpAndShowPrintf ( "Dump/Inspect Options  :" OSS_NEWLINE ) ;
    dumpAndShowPrintf ( "   Dump Data  : %s" OSS_NEWLINE,
                        gDumpData ? "True" : "False" ) ;
@@ -1701,7 +1794,7 @@ void inspectHeader ( OSSFILE &file, UINT32 &pageSize, SINT32 &err )
    INT32 rc       = SDB_OK ;
    INT32 localErr = 0 ;
    UINT32 len     = 0 ;
-   CHAR headerBuffer [ DMS_HEADER_SZ ] = {0};
+   CHAR *headerBuffer = (CHAR*)&gHeader ;
    UINT64 secretValue = 0 ;
    UINT32 segmentSize = 0 ;
 
@@ -1766,7 +1859,7 @@ void dumpHeader ( OSSFILE &file, UINT32 &pageSize, UINT32 &pageNum )
 {
    INT32 rc                            = SDB_OK ;
    UINT32 len                          = 0 ;
-   CHAR headerBuffer [ DMS_HEADER_SZ ] = {0};
+   CHAR *headerBuffer = ( CHAR* )&gHeader ;
 
    rc = readData( &file, DMS_HEADER_OFFSET, DMS_HEADER_SZ, headerBuffer,
                   FALSE, "header" ) ;
@@ -1988,7 +2081,7 @@ retry :
       }
       // make sure the block size is greater than 0, and doesn't exceed max
       if ( extentHead._blockSize <= 0 ||
-           extentHead._blockSize * pageSize > gSegmentSize )
+           (UINT64)extentHead._blockSize * pageSize > gSegmentSize )
       {
          dumpPrintf ( "*** Error: Invalid block size: %u, pageSize: %d" OSS_NEWLINE,
                       extentHead._blockSize, pageSize ) ;
@@ -2065,7 +2158,7 @@ retry :
       }
       // make sure the block size is greater than 0, and doesn't exceed max
       if ( metaExt->_blockSize <= 0 ||
-           metaExt->_blockSize * pageSize > gSegmentSize )
+           (UINT64)metaExt->_blockSize * pageSize > gSegmentSize )
       {
          dumpPrintf ( "*** Error: Invalid block size: %d, pageSize: %d" OSS_NEWLINE,
                       metaExt->_blockSize, pageSize ) ;
@@ -2098,7 +2191,7 @@ retry :
          result = FALSE ;
       }
       if ( dictExt->_blockSize <= 0 ||
-           dictExt->_blockSize * pageSize > gSegmentSize )
+           (UINT64)dictExt->_blockSize * pageSize > gSegmentSize )
       {
          dumpPrintf( "*** Error: Invalid block size: %d, pageSize: %d" OSS_NEWLINE,
                      dictExt->_blockSize, pageSize ) ;
@@ -2129,7 +2222,7 @@ retry :
          result = FALSE ;
       }
       if ( extent->_blockSize <= 0 ||
-           extent->_blockSize * pageSize > gSegmentSize )
+           (UINT64)extent->_blockSize * pageSize > gSegmentSize )
       {
          dumpPrintf( "*** Error: Invalid block size: %d, pageSize: %d" OSS_NEWLINE,
                      extent->_blockSize, pageSize ) ;
@@ -3525,6 +3618,1232 @@ void inspectCollection ( OSSFILE &file, UINT32 pageSize, UINT16 id,
    }
 }
 
+static void _checkCommonExtent( UINT32 pageSize, const dmsMB *pMB,
+                                const dmsExtent *pExtent,
+                                const dmsSpaceManagementExtent *pSMEBitmap,
+                                dmsExtentID &extID,
+                                MAP_PAGES &mapPages )
+{
+   if ( pExtent->_blockSize <= 0 ||
+        (UINT64)pExtent->_blockSize * pageSize > gSegmentSize ||
+        DMS_EXTENT_FLAG_FREED == pExtent->_flag )
+   {
+      extID += 1 ;
+   }
+   else if ( pExtent->_mbID != pMB->_blockID )
+   {
+      /// when the page is valid
+      if ( DMS_SME_ALLOCATED == pSMEBitmap->getBitMask( extID ) )
+      {
+         extID += pExtent->_blockSize ;
+      }
+      else
+      {
+         extID += 1 ;
+      }
+   }
+   else
+   {
+      /// extent is in used
+      if ( DMS_SME_ALLOCATED == pSMEBitmap->getBitMask( extID ) )
+      {
+         mapPages[ extID ] = extID + pExtent->_blockSize - 1 ;
+         extID += pExtent->_blockSize ;
+      }
+      else
+      {
+         INT32 idx = 1 ;
+         while( idx < pExtent->_blockSize )
+         {
+            /// some page has be allocated
+            if ( DMS_SME_ALLOCATED == pSMEBitmap->getBitMask( extID + idx ) )
+            {
+               break ;
+            }
+            ++idx ;
+         }
+   
+         /// extent invalid
+         if ( idx < pExtent->_blockSize )
+         {
+            extID += 1 ;
+         }
+         else
+         {
+            mapPages[ extID ] = extID + pExtent->_blockSize - 1 ;
+            extID += pExtent->_blockSize ;
+         }
+      }
+   }
+}
+
+static std::string _formatPages( MAP_PAGES &mapPages )
+{
+   std::stringstream ss ;
+
+   if ( mapPages.empty() )
+   {
+      ss << "-" ;
+   }
+   else if ( 1 == mapPages.size() )
+   {
+      ss << mapPages.begin()->first ;
+   }
+   else
+   {
+      MAP_PAGES::iterator it = mapPages.begin() ;
+      UINT32 idx = 0 ;
+      ss << "[" ;
+      while( it != mapPages.end() )
+      {
+         if ( idx > 0 )
+         {
+            ss << ", " ;
+         }
+         ss << it->first ;
+
+         ++it ;
+         ++idx ;
+      }
+      ss << "] *** Warning" ;
+   }
+
+   return ss.str() ;
+}
+
+static UINT32 _setBitmapByPages( dmsSpaceManagementExtent *pSMEBitmap, MAP_PAGES &mapPages  )
+{
+   UINT32 hasSetPages = 0 ;
+   MAP_PAGES::iterator it = mapPages.begin() ;
+   while( it != mapPages.end() )
+   {
+      for ( INT32 startPages = it->first ; startPages <= it->second ; ++startPages )
+      {
+         if ( DMS_SME_FREE == pSMEBitmap->getBitMask( startPages ) )
+         {
+            pSMEBitmap->setBitMask( startPages ) ;
+            ++hasSetPages ;
+         }
+      }
+      ++it ;
+   }
+   return hasSetPages ;
+}
+
+INT32 getBME( OSSFILE &lobmFile, CHAR *pBME )
+{
+   return readData( &lobmFile, DMS_BME_OFFSET, DMS_BME_SZ, pBME, FALSE, "bme" ) ;
+}
+
+void recoverCollectionData( OSSFILE &file, UINT32 pageSize, UINT16 id,
+                            dmsMB *pMB, SINT32 &err )
+{
+   INT32 rc        = SDB_OK ;
+   INT32 tmpErr    = err ;
+   dmsExtent *pExtent = NULL ;
+   CHAR collectionName[ DMS_COLLECTION_NAME_SZ + 1 ] = { 0 } ;
+
+   dmsSpaceManagementExtent *pSMEBitmap = ( dmsSpaceManagementExtent* )gSMEBuff ;
+   dmsExtentID startExtent = 0 ;
+   dmsExtentID firstExtent = DMS_INVALID_EXTENT ;
+   dmsExtentID lastExtent  = DMS_INVALID_EXTENT ;
+   UINT16 tmpFlag = 0 ;
+
+   MAP_PAGE_RELATION pageRele ;
+   MAP_PAGES         mapFreePages ;
+   MAP_PAGES         mapUsedPages ;
+   MAP_PAGES         mapMetaPages ;
+   MAP_PAGES         mapDictPages ;
+   MAP_PAGES         mapOptPages ;
+
+   std::set<dmsExtentID>   exceptionPages ;
+
+   UINT32            freePagesNum = 0 ;
+   UINT32            usedPagesNum = 0 ;
+   UINT32            freeExtentNum= 0 ;
+   UINT32            usedExtentNum= 0 ;
+   UINT32            hasSetPage   = 0 ;
+
+   BOOLEAN           needForce = FALSE ;
+   BOOLEAN           doRecover = FALSE ;
+   SINT64            hasWritten = 0 ;
+
+   UINT64 beginTime = 0 ;
+   UINT64 endTime = 0 ;
+   FLOAT64 timeSpan = 0.0 ;
+
+   beginTime = ossGetCurrentMilliseconds() ;
+   ossStrncpy( collectionName, pMB->_collectionName, DMS_COLLECTION_NAME_SZ ) ;
+
+   dumpPrintf ( "  Recover Data for collection [%d : %s]" OSS_NEWLINE,
+                id, collectionName ) ;
+
+   /// scan the extent
+   while( startExtent < (INT32)gPageNum )
+   {
+      rc = getExtent ( file, startExtent, pageSize, 1, FALSE ) ;
+      if ( rc )
+      {
+         dumpPrintf ( "*** Error: Failed to get extent %d, rc: %d" OSS_NEWLINE,
+                      startExtent, rc ) ;
+         ++err ;
+         goto error ;
+      }
+
+      pExtent = (dmsExtent*)gExtentBuffer ;
+
+      /// check the extent
+      if ( pExtent->_eyeCatcher[0] == DMS_EXTENT_EYECATCHER0 &&
+           pExtent->_eyeCatcher[1] == DMS_EXTENT_EYECATCHER1 )
+      {
+         if ( pExtent->_blockSize <= 0 ||
+              (UINT64)pExtent->_blockSize * pageSize > gSegmentSize ||
+              DMS_EXTENT_FLAG_FREED == pExtent->_flag )
+         {
+            /// invalid page
+            startExtent += 1 ;
+         }
+         else if ( pExtent->_mbID != pMB->_blockID )
+         {
+            /// when the page is valid
+            if ( DMS_SME_ALLOCATED == pSMEBitmap->getBitMask( startExtent ) )
+            {
+               startExtent += pExtent->_blockSize ;
+            }
+            else
+            {
+               startExtent += 1 ;
+            }
+         }
+         else
+         {
+            dmsExtentID prevExtent = DMS_INVALID_EXTENT ;
+            dmsExtentID nextExtent = DMS_INVALID_EXTENT ;
+
+            /// extent is in used
+            if ( DMS_SME_ALLOCATED == pSMEBitmap->getBitMask( startExtent ) )
+            {
+               if ( gForce || mapUsedPages.empty() )
+               {
+                  mapUsedPages[ startExtent ] = startExtent + pExtent->_blockSize - 1 ;
+               }
+               else
+               {
+                  MAP_PAGES::reverse_iterator rit = mapUsedPages.rbegin() ;
+                  if ( rit != mapUsedPages.rend() && rit->second + 1 == startExtent )
+                  {
+                     /// update
+                     rit->second += pExtent->_blockSize ;
+                  }
+                  else
+                  {
+                     mapUsedPages[ startExtent ] = startExtent + pExtent->_blockSize - 1 ;
+                  }
+               }
+               usedPagesNum += pExtent->_blockSize ;
+               ++usedExtentNum ;
+            }
+            else
+            {
+               INT32 idx = 1 ;
+               while( idx < pExtent->_blockSize )
+               {
+                  /// some page has be allocated
+                  if ( DMS_SME_ALLOCATED == pSMEBitmap->getBitMask( startExtent + idx ) )
+                  {
+                     break ;
+                  }
+                  ++idx ;
+               }
+
+               /// extent invalid
+               if ( idx < pExtent->_blockSize )
+               {
+                  startExtent += 1 ;
+                  continue ;
+               }
+
+               if ( gForce || mapFreePages.empty() )
+               {
+                  mapFreePages[ startExtent ] = startExtent + pExtent->_blockSize - 1 ;
+               }
+               else
+               {
+                  MAP_PAGES::reverse_iterator rit = mapFreePages.rbegin() ;
+                  if ( rit != mapFreePages.rend() && rit->second + 1 == startExtent )
+                  {
+                     /// update
+                     rit->second += pExtent->_blockSize ;
+                  }
+                  else
+                  {
+                     mapFreePages[ startExtent ] = startExtent + pExtent->_blockSize - 1 ;
+                  }
+               }
+
+               freePagesNum += pExtent->_blockSize ;
+               ++freeExtentNum ;
+            }
+
+            /// calc stat info
+            gMBStat._totalDataPages += pExtent->_blockSize ;
+            gMBStat._totalRecords += pExtent->_recCount ;
+
+            /// process the relation
+            prevExtent = pExtent->_prevExtent ;
+            nextExtent = pExtent->_nextExtent ;
+
+            if ( DMS_INVALID_EXTENT == prevExtent && DMS_INVALID_EXTENT == nextExtent )
+            {
+               if ( DMS_INVALID_EXTENT == firstExtent )
+               {
+                  firstExtent = startExtent ;
+               }
+               else
+               {
+                  dumpPrintf ( "*** Error: Conflict first extent(%d) with %d" OSS_NEWLINE,
+                               firstExtent, startExtent ) ;
+                  ++err ;
+                  exceptionPages.insert( startExtent ) ;
+               }
+
+               if ( DMS_INVALID_EXTENT == lastExtent )
+               {
+                  lastExtent = startExtent ;
+               }
+               else
+               {
+                  dumpPrintf ( "*** Error: Conflict last extent(%d) with %d" OSS_NEWLINE,
+                               lastExtent, startExtent ) ;
+                  ++err ;
+                  exceptionPages.insert( startExtent ) ;
+               }
+            }
+            else
+            {
+               if ( DMS_INVALID_EXTENT != prevExtent )
+               {
+                  /// push to relation
+                  if ( prevExtent > startExtent )
+                  {
+                     pageRele[ MAKE_PAGE_REL_KEY( startExtent, SDB_PAGE_PREV ) ] = prevExtent ;
+                  }
+                  /// release from relation
+                  else
+                  {
+                     MAP_PAGE_RELATION::iterator it ;
+                     it = pageRele.find( MAKE_PAGE_REL_KEY( prevExtent, SDB_PAGE_NEXT ) ) ;
+                     if ( it == pageRele.end() )
+                     {
+                        dumpPrintf( "*** Error: Extent(%d)'s prev(%d) occur incorrect" OSS_NEWLINE,
+                                    startExtent, prevExtent ) ;
+                        ++err ;
+                        exceptionPages.insert( startExtent ) ;
+                     }
+                     else if ( it->second != startExtent )
+                     {
+                        dumpPrintf( "*** Error: Extent(%d)'s prev(%d) is not its next(%d)" OSS_NEWLINE,
+                                    startExtent, prevExtent, it->second ) ;
+                        ++err ;
+                        exceptionPages.insert( startExtent ) ;
+                     }
+                     else
+                     {
+                        /// correct, remove
+                        pageRele.erase( it ) ;
+                     }
+                  }
+               }
+               else
+               {
+                  if ( DMS_INVALID_EXTENT == firstExtent )
+                  {
+                     firstExtent = startExtent ;
+                  }
+                  else
+                  {
+                     dumpPrintf ( "*** Error: Conflict first extent(%d) with %d" OSS_NEWLINE,
+                                  firstExtent, startExtent ) ;
+                     ++err ;
+                     exceptionPages.insert( startExtent ) ;
+                  }
+               }
+
+               if ( DMS_INVALID_EXTENT != nextExtent )
+               {
+                  /// push to relation
+                  if ( nextExtent > startExtent )
+                  {
+                     pageRele[ MAKE_PAGE_REL_KEY( startExtent, SDB_PAGE_NEXT ) ] = nextExtent ;
+                  }
+                  /// release from relation
+                  else
+                  {
+                     MAP_PAGE_RELATION::iterator it ;
+                     it = pageRele.find( MAKE_PAGE_REL_KEY( nextExtent, SDB_PAGE_PREV ) ) ;
+                     if ( it == pageRele.end() )
+                     {
+                        dumpPrintf( "*** Error: Extent(%d)'s next(%d) occur incorrect" OSS_NEWLINE,
+                                    startExtent, nextExtent ) ;
+                        ++err ;
+                        exceptionPages.insert( startExtent ) ;
+                     }
+                     else if ( it->second != startExtent )
+                     {
+                        dumpPrintf( "*** Error: Extent(%d)'s next(%d) is not its prev(%d)" OSS_NEWLINE,
+                                    startExtent, nextExtent, it->second ) ;
+                        ++err ;
+                        exceptionPages.insert( startExtent ) ;
+                     }
+                     else
+                     {
+                        /// correct, remove
+                        pageRele.erase( it ) ;
+                     }
+                  }
+               }
+               else
+               {
+                  if ( DMS_INVALID_EXTENT == lastExtent )
+                  {
+                     lastExtent = startExtent ;
+                  }
+                  else
+                  {
+                     dumpPrintf ( "*** Error: Conflict last extent(%d) with %d" OSS_NEWLINE,
+                                  lastExtent, startExtent ) ;
+                     ++err ;
+                     exceptionPages.insert( startExtent ) ;
+                  }
+               }
+            }
+         }
+
+         startExtent += pExtent->_blockSize ;
+      }
+      else if ( pExtent->_eyeCatcher[0] == DMS_META_EXTENT_EYECATCHER0 &&
+                pExtent->_eyeCatcher[1] == DMS_META_EXTENT_EYECATCHER1 )
+      {
+         _checkCommonExtent( pageSize, pMB, pExtent, pSMEBitmap, startExtent, mapMetaPages ) ;
+      }
+      else if ( pExtent->_eyeCatcher[0] == DMS_DICT_EXTENT_EYECATCHER0 &&
+                pExtent->_eyeCatcher[1] == DMS_DICT_EXTENT_EYECATCHER1 )
+      {
+         _checkCommonExtent( pageSize, pMB, pExtent, pSMEBitmap, startExtent, mapDictPages ) ;
+      }
+      else if ( pExtent->_eyeCatcher[0] == DMS_OPT_EXTENT_EYECATCHER0 &&
+                pExtent->_eyeCatcher[1] == DMS_OPT_EXTENT_EYECATCHER1 )
+      {
+         _checkCommonExtent( pageSize, pMB, pExtent, pSMEBitmap, startExtent, mapOptPages ) ;
+      }
+      else
+      {
+         startExtent += 1 ;
+      }
+   }
+
+   /// check page rele
+   {
+      MAP_PAGE_RELATION::iterator itRele = pageRele.begin() ;
+      while( itRele != pageRele.end() )
+      {
+         dumpPrintf( "*** Error: Extent(%d)'s %s(%d) occur incorrect link" OSS_NEWLINE,
+                     GET_PAGEID_FROM_KEY( itRele->first ),
+                     SDB_PAGE_PREV == GET_LISTTYPE_FROM_KEY( itRele->first ) ? "prev" : "next",
+                     itRele->second ) ;
+         ++err ;
+         exceptionPages.insert( itRele->first ) ;
+         ++itRele ;
+      }
+      pageRele.clear() ;
+   }
+
+   /// dump recover analysis info
+   dumpPrintf( "  ++++ The collection data recovery analysis info ++++" OSS_NEWLINE
+               "    Found Allocated Pages     : %u" OSS_NEWLINE
+               "    Found Allocated Extents   : %u" OSS_NEWLINE
+               "    Found Freed Pages         : %u" OSS_NEWLINE
+               "    Found Freed Extents       : %u" OSS_NEWLINE
+               "    Found Dict ExtentID       : %s" OSS_NEWLINE
+               "    Found Meta ExtentID       : %s" OSS_NEWLINE
+               "    Found Option ExtentID     : %s" OSS_NEWLINE
+               "    Found First ExtentID      : %d" OSS_NEWLINE
+               "    Found Last ExtentID       : %d" OSS_NEWLINE
+               "    Found Total Records       : %llu (%ssame with %llu) " OSS_NEWLINE
+               "    Found Total Pages         : %u (%ssame with %u)" OSS_NEWLINE
+               "    Conflict Extent Count     : %u" OSS_NEWLINE OSS_NEWLINE,
+               usedPagesNum, usedExtentNum,
+               freePagesNum, freeExtentNum,
+               _formatPages( mapDictPages ).c_str(),
+               _formatPages( mapMetaPages ).c_str(),
+               _formatPages( mapOptPages ).c_str(),
+               firstExtent, lastExtent,
+               gMBStat._totalRecords,
+               gMBStat._totalRecords == pMB->_totalRecords ? "" : "*** not the ",
+               pMB->_totalRecords,
+               gMBStat._totalDataPages,
+               gMBStat._totalDataPages == pMB->_totalDataPages ? "" : "*** not the ",
+               pMB->_totalDataPages,
+               exceptionPages.size() ) ;
+
+   if ( !exceptionPages.empty() || mapDictPages.size() > 1 )
+   {
+      needForce = TRUE ;
+   }
+   else if ( mapMetaPages.size() > 1 || mapOptPages.size() > 1 )
+   {
+      needForce = TRUE ;
+   }
+   else if ( gMBStat._totalDataPages > 0 && ( DMS_INVALID_EXTENT == firstExtent ||
+                                              DMS_INVALID_EXTENT == lastExtent ) )
+   {
+      needForce = TRUE ;
+   }
+
+   if ( needForce )
+   {
+      if ( !gForce )
+      {
+         dumpPrintf ( "*** Waring: Unexpected items exist. You need use '--%s' option to force "
+                      "recovery. After recovery, you can use '--%s' to fix "
+                      "non-compliant items" OSS_NEWLINE,
+                      OPTION_FORCE, OPTION_REPAIRE ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      dumpPrintf ( "### Note: Unexpected items exist. After recovery, you can use '--%s' to fix "
+                   "non-compliant items" OSS_NEWLINE,
+                   OPTION_REPAIRE ) ;
+   }
+
+   /// begin to recover
+   /// 1. set bitmap
+   hasSetPage += _setBitmapByPages( pSMEBitmap, mapDictPages ) ;
+   hasSetPage += _setBitmapByPages( pSMEBitmap, mapMetaPages ) ;
+   hasSetPage += _setBitmapByPages( pSMEBitmap, mapOptPages ) ;
+   hasSetPage += _setBitmapByPages( pSMEBitmap, mapFreePages ) ;
+
+   dumpPrintf ( "   Set %u pages SME Bitmap from [%d] => [%d]" OSS_NEWLINE,
+                hasSetPage, DMS_SME_FREE, DMS_SME_ALLOCATED ) ;
+
+   /// 2. set meta pages
+   if ( DMS_INVALID_EXTENT == pMB->_dictExtentID && !mapDictPages.empty() )
+   {
+      dumpPrintf ( "   Set Dict ExtentID from [%d] => [%d]" OSS_NEWLINE,
+                   pMB->_dictExtentID, mapDictPages.begin()->first ) ;
+      pMB->_dictExtentID = mapDictPages.begin()->first ;
+   }
+
+   if ( DMS_INVALID_EXTENT == pMB->_mbExExtentID && !mapMetaPages.empty() )
+   {
+      dumpPrintf ( "   Set MetaEx ExtentID from [%d] => [%d]" OSS_NEWLINE,
+                   pMB->_mbExExtentID, mapMetaPages.begin()->first ) ;
+      pMB->_mbExExtentID = mapMetaPages.begin()->first ;
+   }
+
+   if ( DMS_INVALID_EXTENT == pMB->_mbOptExtentID && !mapOptPages.empty() )
+   {
+      dumpPrintf ( "   Set Opt ExtentID from [%d] => [%d]" OSS_NEWLINE,
+                   pMB->_mbOptExtentID, mapOptPages.begin()->first ) ;
+      pMB->_mbOptExtentID = mapOptPages.begin()->first ;
+   }
+
+   /// 3. set data extent link
+   if ( 0 == gMBStat._totalDataPages ||
+        ( exceptionPages.empty() &&
+          DMS_INVALID_EXTENT != firstExtent &&
+          DMS_INVALID_EXTENT != lastExtent ) )
+   {
+      dumpPrintf ( "   Set First ExtentID from [%d] => [%d]" OSS_NEWLINE,
+                   pMB->_firstExtentID, firstExtent ) ;
+      pMB->_firstExtentID = firstExtent ;
+
+      dumpPrintf ( "   Set Last ExtentID from [%d] => [%d]" OSS_NEWLINE,
+                   pMB->_lastExtentID, lastExtent ) ;
+      pMB->_lastExtentID = lastExtent ;
+   }
+   else
+   {
+      dmsExtentID prevExtent = DMS_INVALID_EXTENT ;
+      dmsExtentID nextExtent = DMS_INVALID_EXTENT ;
+      startExtent = DMS_INVALID_EXTENT ;
+
+      /// rebuild extent link
+      MAP_PAGES::iterator it = mapUsedPages.begin() ;
+      while( it != mapUsedPages.begin() )
+      {
+         mapFreePages[ it->first ] = it->second ;
+         ++it ;
+      }
+
+      it = mapFreePages.begin() ;
+      while( it != mapFreePages.end() )
+      {
+         prevExtent = startExtent ;
+         startExtent = it->first ;
+         ++it ;
+
+         if ( it != mapFreePages.end() )
+         {
+            nextExtent = it->first ;
+         }
+         else
+         {
+            nextExtent = DMS_INVALID_EXTENT ;
+         }
+
+         rc = getExtent ( file, startExtent, pageSize, 1, FALSE ) ;
+         if ( rc )
+         {
+            dumpPrintf ( "*** Error: Failed to get extent %d, rc: %d" OSS_NEWLINE,
+                         startExtent, rc ) ;
+            ++err ;
+            goto error ;
+         }
+
+         pExtent = (dmsExtent*)gExtentBuffer ;
+
+         if ( pExtent->_prevExtent != prevExtent )
+         {
+            dumpPrintf ( "   Set Extent(%d)'s PrevExtent from [%d] => [%d]" OSS_NEWLINE,
+                         startExtent, pExtent->_prevExtent, prevExtent ) ;
+            pExtent->_prevExtent = prevExtent ;
+         }
+
+         if ( pExtent->_nextExtent != nextExtent )
+         {
+            dumpPrintf ( "   Set Extent(%d)'s NextExtent from [%d] => [%d]" OSS_NEWLINE,
+                         startExtent, pExtent->_nextExtent, nextExtent ) ;
+            pExtent->_nextExtent = nextExtent ;
+         }
+
+         if ( DMS_INVALID_EXTENT == prevExtent )
+         {
+            firstExtent = startExtent ;
+         }
+         if ( DMS_INVALID_EXTENT == nextExtent )
+         {
+            lastExtent = startExtent ;
+         }
+
+         /// write data
+         rc = ossSeekAndWriteN( &file, gDataOffset + pageSize * startExtent,
+                                gExtentBuffer, DMS_EXTENT_METADATA_SZ, hasWritten ) ;
+         if ( rc )
+         {
+            dumpPrintf ( "*** Error: Failed to write extent %d, rc: %d" OSS_NEWLINE,
+                         startExtent, rc ) ;
+            ++err ;
+            goto error ;
+         }
+      }
+
+      dumpPrintf ( "   Rebuild Extent Link Complete, FirstExtent: %d, LastExtent: %d" OSS_NEWLINE,
+                   firstExtent, lastExtent ) ;
+
+      dumpPrintf ( "   Set First ExtentID from [%d] => [%d]" OSS_NEWLINE,
+                   pMB->_firstExtentID, firstExtent ) ;
+      pMB->_firstExtentID = firstExtent ;
+
+      dumpPrintf ( "   Set Last ExtentID from [%d] => [%d]" OSS_NEWLINE,
+                   pMB->_lastExtentID, lastExtent ) ;
+      pMB->_lastExtentID = lastExtent ;
+   }
+
+   /// 4. set flag, and inc _logicalID
+   tmpFlag = pMB->_flag ;
+   DMS_SET_MB_INUSE( tmpFlag ) ;
+   dumpPrintf ( "   Set Flag from [%d] => [%d]" OSS_NEWLINE,
+                pMB->_flag, tmpFlag ) ;
+   pMB->_flag = tmpFlag ;
+
+   dumpPrintf ( "   Set LogicalID from [%d] => [%d]" OSS_NEWLINE,
+                pMB->_logicalID, pMB->_logicalID + 1 ) ;
+   ++( pMB->_logicalID ) ;
+
+   /// 5. save mb
+   rc = ossSeekAndWriteN( &file, DMS_MME_OFFSET + id * sizeof( dmsMB ),
+                          (const CHAR*)pMB, sizeof( dmsMB ), hasWritten ) ;
+   if ( rc )
+   {
+      dumpPrintf ( "*** Error: Failed to write metablock %u, rc: %d" OSS_NEWLINE,
+                   id, rc ) ;
+      ++err ;
+      goto error ;
+   }
+
+   /// 6. save sme
+   if ( hasSetPage > 0 )
+   {
+      rc = ossSeekAndWriteN( &file, DMS_SME_OFFSET,
+                             (const CHAR*)gSMEBuff, DMS_SME_SZ, hasWritten ) ;
+      if ( rc )
+      {
+         dumpPrintf ( "*** Error: Failed to write SME, rc: %d" OSS_NEWLINE, rc ) ;
+         ++err ;
+         goto error ;
+      }
+   }
+
+   /// 7. update header
+   ++gHeader._numMB ;
+   rc = ossSeekAndWriteN( &file, DMS_HEADER_OFFSET,
+                          (const CHAR*)&gHeader, DMS_HEADER_SZ, hasWritten ) ;
+   if ( rc )
+   {
+      dumpPrintf ( "*** Error: Failed to write Header, rc: %d" OSS_NEWLINE, rc ) ;
+      ++err ;
+      goto error ;
+   }
+
+   // 8. remove the meta file
+   {
+      string csFileName = rtnMakeSUFileName( gCSName, 1, DMS_METAFILE_NAME_POSIX ) ;
+      string csFullName = rtnFullPathName( gDatabasePath, csFileName ) ;
+      if ( SDB_OK == ossAccess( csFullName.c_str(), F_OK ) )
+      {
+         dumpPrintf ( "   Delete meta file[%s]" OSS_NEWLINE, csFullName.c_str() ) ;
+         ossDelete( csFullName.c_str() ) ;
+      }
+   }
+
+   doRecover = TRUE ;
+   gDoRecoverMBID = id ;
+
+done :
+   endTime = ossGetCurrentMilliseconds() ;
+   if ( endTime > beginTime )
+   {
+      timeSpan = ( (FLOAT64)endTime - beginTime ) / OSS_ONE_SEC ;
+   }
+
+   if ( doRecover )
+   {
+      if ( tmpErr == err )
+      {
+         dumpPrintf ( "  Recover Data for collection Done Succeed   [%.2f s]" OSS_NEWLINE,
+                      timeSpan ) ;
+      }
+      else
+      {
+         dumpPrintf ( "  Recover Data for collection Done Succeed with Warings: %d   [%.2f s]" OSS_NEWLINE,
+                      err - tmpErr, timeSpan ) ;
+      }
+   }
+   else
+   {
+      if ( tmpErr == err )
+      {
+         dumpPrintf ( "  Recover Data for collection Not Complete   [%.2f s]" OSS_NEWLINE,
+                      timeSpan ) ;
+      }
+      else
+      {
+         dumpPrintf ( "  Recover Data for collection Not Complete with Errors: %d   [%.2f s]" OSS_NEWLINE,
+                      err - tmpErr, timeSpan ) ;
+      }
+   }
+
+   dumpPrintf( OSS_NEWLINE ) ;
+   return ;
+error :
+   goto done ;
+}
+
+#define LOB_SEGMENT_SIZE         ( 64 * 1024 * 1024 )
+
+#define DMS_LOB_GET_HASH_FROM_BLK( blk, hash )\
+        do\
+        {\
+           const BYTE *d1 = (blk)->_oid ;\
+           const BYTE *d2 = ( const BYTE * )( &( (blk)->_sequence ) ) ;\
+           (hash) = ossHash( d1, sizeof( (blk)->_oid ),\
+                             d2, sizeof( (blk)->_sequence ) ) ;\
+        } while( FALSE )
+
+static dmsLobDataMapBlk* _getLobBlk( ossMmapFile &lobmMapFile, UINT32 pageID )
+{
+   UINT32 segID = pageID / LOB_SEGMENT_SIZE ;
+   ossValuePtr ptr = lobmMapFile.getSegmentInfo( segID ) ;
+   if ( 0 == ptr )
+   {
+      return NULL ;
+   }
+   return (dmsLobDataMapBlk*)ptr + ( pageID % LOB_SEGMENT_SIZE ) ;
+}
+
+static UINT32 _getLobBucketByHash( UINT32 hash )
+{
+   return hash & DMS_BUCKETS_MODULO ;
+}
+
+static INT32 _push2Bucket( UINT32 bucket,
+                           DMS_LOB_PAGEID pageId,
+                           _dmsLobDataMapBlk &blk,
+                           const dmsLobRecord *pRecord,
+                           dmsBucketsManagementExtent *pBMEMgr,
+                           ossMmapFile &lobmMapFile,
+                           BOOLEAN &hasUpdateBME )
+{
+   INT32 rc = SDB_OK ;
+
+   DMS_LOB_PAGEID &pageInBucket = pBMEMgr->_buckets[bucket] ;
+   /// empty bucket
+   if ( DMS_LOB_INVALID_PAGEID == pageInBucket )
+   {
+      pageInBucket = pageId ;
+      blk._prevPageInBucket = DMS_LOB_INVALID_PAGEID ;
+      blk._nextPageInBucket = DMS_LOB_INVALID_PAGEID ;
+      hasUpdateBME = TRUE ;
+   }
+   /// neet to find the last one
+   else
+   {
+      DMS_LOB_PAGEID tmpPage = pageInBucket ;
+      _dmsLobDataMapBlk *lastBlk = NULL ;
+      do
+      {
+         lastBlk = _getLobBlk( lobmMapFile, tmpPage ) ;
+         if ( !lastBlk )
+         {
+            dumpPrintf ( "*** Error: Read page(%d) failed" OSS_NEWLINE, tmpPage ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+
+         /// check exist
+         if ( pRecord &&
+              blk._clLogicalID == lastBlk->_clLogicalID &&
+              lastBlk->equals( pRecord->_oid->getData(),
+                               pRecord->_sequence ) )
+         {
+            rc = SDB_LOB_SEQUENCE_EXISTS ;
+            goto error ;
+         }
+
+         if ( DMS_LOB_INVALID_PAGEID == lastBlk->_nextPageInBucket )
+         {
+            lastBlk->_nextPageInBucket = pageId ;
+            blk._prevPageInBucket = tmpPage ;
+            blk._nextPageInBucket = DMS_LOB_INVALID_PAGEID ;
+            break ;
+         }
+         else
+         {
+            tmpPage = lastBlk->_nextPageInBucket ;
+            continue ;
+         }
+      } while ( TRUE ) ;
+   }
+   /// set page to normal
+   blk.setNormal() ;
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
+void recoverCollectionLob( OSSFILE &lobmFile, UINT32 pageSize,
+                           UINT16 clId, dmsMB *pMB, SINT32 &err )
+{
+   INT32 rc             = SDB_OK ;
+   INT32 tmpErr         = err ;
+
+   dmsLobDataMapBlk blk ;
+   ossMmapFile lobmMapFile ;
+
+   CHAR *pBME = NULL ;
+   dmsBucketsManagementExtent *pBMEMgr = NULL ;
+   dmsSpaceManagementExtent *pSMEBitmap = ( dmsSpaceManagementExtent* )gSMEBuff ;
+
+   INT32  pageID = 0 ;
+   UINT64 offset = 0 ;
+   UINT32 length = 0 ;
+
+   MAP_PAGES         mapFreePages ;
+   MAP_PAGES         mapUsedPages ;
+   UINT32            freePagesNum = 0 ;
+   UINT32            usedPagesNum = 0 ;
+   UINT32            hasSetPage = 0 ;
+   UINT32            totalPushed = 0 ;
+
+   BOOLEAN           needForce = FALSE ;
+   BOOLEAN           hasUpdateBME = FALSE ;
+   BOOLEAN           doRecover = FALSE ;
+   SINT64            hasWritten = 0 ;
+
+   UINT64 beginTime = 0 ;
+   UINT64 endTime = 0 ;
+   FLOAT64 timeSpan = 0.0 ; /// sec
+
+   beginTime = ossGetCurrentMilliseconds() ;
+
+   dumpPrintf ( "  Recover Lob for collection [%d : %s]" OSS_NEWLINE,
+                clId, pMB->_collectionName ) ;
+
+   if ( !gBMEBuff )
+   {
+      gBMEBuff = (CHAR *)SDB_OSS_MALLOC( DMS_BME_SZ ) ;
+      if ( !gBMEBuff )
+      {
+         dumpPrintf( "*** Error: Allocate bucket memory(%d) failed" OSS_NEWLINE,
+                     DMS_BME_SZ ) ;
+         ++err ;
+         rc = SDB_OOM ;
+         goto error ;
+      }
+   }
+
+   //load bme
+   pBME = gBMEBuff ;
+
+   rc = getBME( lobmFile, pBME ) ;
+   if ( rc )
+   {
+      dumpPrintf( "*** Error: Read BME failed, rc: %d" OSS_NEWLINE, rc ) ;
+      ++err ;
+      goto error ;
+   }
+   pBMEMgr = ( dmsBucketsManagementExtent* )pBME ;
+
+   /// analyze pages
+   pageID = 0 ;
+   while ( pageID <= (INT32)gPageNum )
+   {
+      offset = gDataOffset + pageID * sizeof(dmsLobDataMapBlk) ;
+      rc = readData( &lobmFile, offset, sizeof(dmsLobDataMapBlk), (CHAR *)&blk,
+                     TRUE, "lobm page" ) ;
+      if ( rc )
+      {
+         ++err ;
+         goto error ;
+      }
+
+      /// invalid page
+      if ( blk._mbID != clId || blk._clLogicalID != pMB->_logicalID || blk.isUndefined() )
+      {
+         ++pageID ;
+         continue ;
+      }
+
+      if ( DMS_SME_ALLOCATED != pSMEBitmap->getBitMask( pageID ) )
+      {
+         if ( mapFreePages.empty() )
+         {
+            mapFreePages[ pageID ] = pageID ;
+         }
+         else
+         {
+            MAP_PAGES::reverse_iterator rit = mapFreePages.rbegin() ;
+            if ( rit != mapFreePages.rend() && rit->second + 1 == pageID )
+            {
+               /// update
+               rit->second = pageID ;
+            }
+            else
+            {
+               mapFreePages[ pageID ] = pageID ;
+            }
+         }
+         ++freePagesNum ;
+      }
+      else
+      {
+         if ( mapUsedPages.empty() )
+         {
+            mapUsedPages[ pageID ] = pageID ;
+         }
+         else
+         {
+            MAP_PAGES::reverse_iterator rit = mapUsedPages.rbegin() ;
+            if ( rit != mapUsedPages.rend() && rit->second + 1 == pageID )
+            {
+               /// update
+               rit->second = pageID ;
+            }
+            else
+            {
+               mapUsedPages[ pageID ] = pageID ;
+            }
+         }
+         ++usedPagesNum ;
+      }
+
+      if ( DMS_LOB_META_SEQUENCE == blk._sequence )
+      {
+         ++gMBStat._totalLobs ;
+      }
+      ++gMBStat._totalLobPages ;
+
+      ++pageID ;
+   }
+
+   /// dump recover analysis info
+   dumpPrintf( "  ++++ The collection lob recovery analysis info ++++" OSS_NEWLINE
+               "    Found Allocated Pages     : %u" OSS_NEWLINE
+               "    Found Freed Pages         : %u" OSS_NEWLINE
+               "    Found Total Lobs          : %llu (%ssame with %llu) " OSS_NEWLINE
+               "    Found Total Pages         : %u (%ssame with %u)" OSS_NEWLINE OSS_NEWLINE,
+               usedPagesNum,
+               freePagesNum,
+               gMBStat._totalLobs,
+               gMBStat._totalLobs == pMB->_totalLobs ? "" : "*** not the ",
+               pMB->_totalLobs,
+               gMBStat._totalLobPages,
+               gMBStat._totalLobPages == pMB->_totalLobPages ? "" : "*** not the ",
+               pMB->_totalLobPages ) ;
+
+   if ( gMBStat._totalLobs != pMB->_totalLobs ||
+        gMBStat._totalLobPages != pMB->_totalLobPages )
+   {
+      needForce = TRUE ;
+   }
+
+   if ( needForce )
+   {
+      if ( !gForce )
+      {
+         dumpPrintf ( "*** Waring: Unexpected items exist. You need use '--%s' option to force "
+                      "recovery. After recovery, you can use '--%s' to fix "
+                      "non-compliant items" OSS_NEWLINE,
+                      OPTION_FORCE, OPTION_REPAIRE ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      dumpPrintf ( "### Note: Unexpected items exist. After recovery, you can use '--%s' to fix "
+                   "non-compliant items" OSS_NEWLINE,
+                   OPTION_REPAIRE ) ;
+   }
+
+   // 2. open mmap file
+   {
+      string csFileName = rtnMakeSUFileName( gCSName, 1, DMS_LOB_META_SU_EXT_NAME ) ;
+      string csFullName = rtnFullPathName( gLobmPath, csFileName ) ;
+      rc = lobmMapFile.open( csFullName.c_str(), OSS_READWRITE|OSS_EXCLUSIVE,
+                             OSS_RU|OSS_WU|OSS_RG ) ;
+      if ( rc )
+      {
+         dumpPrintf( "*** Error: Open lob meta file failed, rc: %d" OSS_NEWLINE, rc ) ;
+         ++err ;
+         goto error ;
+      }
+   }
+
+   // 3. mmap data
+   pageID = 0 ;
+   offset = gDataOffset ;
+   while( pageID < (INT32)gPageNum )
+   {
+      length = ( gPageNum - pageID ) * sizeof( dmsLobDataMapBlk ) ;
+      if ( length > (INT64)LOB_SEGMENT_SIZE )
+      {
+         length = LOB_SEGMENT_SIZE ;
+      }
+      else
+      {
+         length = ossRoundUpToMultipleX( length, 64 * 1024 ) ;
+         if ( offset + length > gInspectFileStat._fileSize )
+         {
+            length = gInspectFileStat._fileSize - offset ;
+         }
+      }
+
+      rc = lobmMapFile.map( offset, length, NULL ) ;
+      if ( rc )
+      {
+         dumpPrintf( "*** Error: Map lob meta file(Offste:%llu, Length:%u) failed, rc: %d"
+                     OSS_NEWLINE, offset, length, rc ) ;
+         ++err ;
+         goto error ;
+      }
+
+      offset += length ;
+      pageID += ( length / sizeof( dmsLobDataMapBlk ) ) ;
+   }
+
+   /// 4. set bitmap
+   hasSetPage += _setBitmapByPages( pSMEBitmap, mapFreePages ) ;
+   dumpPrintf ( "   Set %u pages SME Bitmap from [%d] => [%d]" OSS_NEWLINE,
+                freePagesNum, DMS_SME_FREE, DMS_SME_ALLOCATED ) ;
+
+   /// 5. save sme
+   if ( hasSetPage > 0 )
+   {
+      rc = ossSeekAndWriteN( &lobmFile, DMS_SME_OFFSET,
+                             (const CHAR*)gSMEBuff, DMS_SME_SZ, hasWritten ) ;
+      if ( rc )
+      {
+         dumpPrintf ( "*** Error: Failed to write SME, rc: %d" OSS_NEWLINE, rc ) ;
+         ++err ;
+         goto error ;
+      }
+   }
+
+   /// 6. push page to bucket
+   {
+      INT32 beginPageID = DMS_LOB_INVALID_PAGEID ;
+      INT32 endPageID = DMS_LOB_INVALID_PAGEID ;
+      dmsLobDataMapBlk *pBlk = NULL ;
+      UINT32 __hash = 0 ;
+      UINT32 testBucketNo = 0 ;
+
+      MAP_PAGES::iterator it = mapUsedPages.begin() ;
+      while( it != mapUsedPages.begin() )
+      {
+         mapFreePages[ it->first ] = it->second ;
+         ++it ;
+      }
+
+      it = mapFreePages.begin() ;
+      while( it != mapFreePages.end() )
+      {
+         beginPageID = it->first ;
+         endPageID = it->second ;
+
+         while( beginPageID <= endPageID )
+         {
+            pBlk = _getLobBlk( lobmMapFile, beginPageID ) ;
+            if ( NULL == pBlk )
+            {
+               dumpPrintf ( "*** Error: Read page(%d) failed" OSS_NEWLINE, beginPageID ) ;
+               ++err ;
+               goto error ;
+            }
+            else
+            {
+               dmsLobRecord record ;
+               record.set( ( const bson::OID* )pBlk->_oid, pBlk->_sequence, 0,
+                           pBlk->_dataLen, NULL ) ;
+               /// add page to bucket
+               DMS_LOB_GET_HASH_FROM_BLK( pBlk, __hash ) ;
+               testBucketNo = _getLobBucketByHash( __hash ) ;
+               rc = _push2Bucket( testBucketNo, beginPageID, *pBlk, &record, pBMEMgr,
+                                  lobmMapFile, hasUpdateBME ) ;
+               /// ignore page exist
+               if ( rc && SDB_LOB_SEQUENCE_EXISTS != rc )
+               {
+                  dumpPrintf ( "*** Error: Push page(%d) to bucket failed, rc: %d" OSS_NEWLINE,
+                               beginPageID, rc ) ;
+                  ++err ;
+                  goto error ;
+               }
+               else if ( SDB_OK == rc )
+               {
+                  ++totalPushed ;
+               }
+            }
+
+            ++beginPageID ;
+         }
+
+         ++it ;
+      }
+   }
+
+   /// 7. save BME
+   if ( hasUpdateBME )
+   {
+      rc = ossSeekAndWriteN( &lobmFile, DMS_BME_OFFSET,
+                             (const CHAR*)gBMEBuff, DMS_BME_SZ, hasWritten ) ;
+      if ( rc )
+      {
+         dumpPrintf ( "*** Error: Failed to write BME, rc: %d" OSS_NEWLINE, rc ) ;
+         ++err ;
+         goto error ;
+      }
+   }
+
+   /// 8. save pages
+   lobmMapFile.flushAll() ;
+
+   doRecover = TRUE ;
+
+done:
+   if ( totalPushed > 0 )
+   {
+      dumpPrintf ( "   Pushed %u pages to lob bucket" OSS_NEWLINE, totalPushed ) ;
+   }
+
+   lobmMapFile.close() ;
+
+   endTime = ossGetCurrentMilliseconds() ;
+   if ( endTime > beginTime )
+   {
+      timeSpan = ( (FLOAT64)endTime - beginTime ) / OSS_ONE_SEC ;
+   }
+
+   if ( doRecover )
+   {
+      if ( tmpErr == err )
+      {
+         dumpPrintf ( "  Recover lob for collection Done Succeed   [%.2f s]" OSS_NEWLINE,
+                      timeSpan ) ;
+      }
+      else
+      {
+         dumpPrintf ( "  Recover lob for collection Done Succeed with Warings: %d   [%.2f s]" OSS_NEWLINE,
+                      err - tmpErr, timeSpan ) ;
+      }
+   }
+   else
+   {
+      if ( tmpErr == err )
+      {
+         dumpPrintf ( "  Recover lob for collection Not Complete   [%.2f s]" OSS_NEWLINE,
+                      timeSpan ) ;
+      }
+      else
+      {
+         dumpPrintf ( "  Recover lob for collection Not Complete with Errors: %d   [%.2f s]" OSS_NEWLINE,
+                      err - tmpErr, timeSpan ) ;
+      }
+   }
+
+   dumpPrintf( OSS_NEWLINE ) ;
+   return ;
+error:
+   goto done ;
+}
+
+void recoverCollection ( OSSFILE &file, UINT32 pageSize, UINT16 id,
+                         dmsMB *pMB, SINT32 &err )
+{
+   gMBStat.reset() ;
+
+   // check sequoiadb is not running
+   INT32 rc = pmdGetStartup().init( gDatabasePath ) ;
+   if ( rc )
+   {
+      dumpPrintf( "*** Error: The data node is running, can't do recover" OSS_NEWLINE ) ;
+      gHitError = TRUE ;
+      ++err ;
+      goto done ;
+   }
+
+   if ( SDB_INSPT_DATA == gCurInsptType )
+   {
+      recoverCollectionData( file, pageSize, id, pMB, err ) ;
+   }
+   else if ( SDB_INSPT_INDEX == gCurInsptType )
+   {
+      /// can't recover index file
+      dumpPrintf( "*** Warning: Index does not support recovery" OSS_NEWLINE ) ;
+   }
+   else if ( SDB_INSPT_LOB == gCurInsptType )
+   {
+      /// can't recover lob file, because the lob page will be reset
+      dumpPrintf( "*** Warning: Lob does not support recovery" OSS_NEWLINE ) ;
+      // recoverCollectionLob( file, pageSize, id, pMB, err ) ;
+   }
+
+done:
+   pmdGetStartup().final() ;
+   return ;
+}
+
 void dumpCollectionData( OSSFILE &file, UINT32 pageSize, UINT16 id )
 {
    INT32 rc = SDB_OK ;
@@ -3840,11 +5159,6 @@ done :
    return ;
 error :
    goto done ;
-}
-
-INT32 getBME( OSSFILE &lobmFile, CHAR *pBME )
-{
-   return readData( &lobmFile, DMS_BME_OFFSET, DMS_BME_SZ, pBME, FALSE, "bme" ) ;
 }
 
 INT32 dumpLobmMeta( OSSFILE &file, UINT32 pageId, CHAR *pageBuf, UINT32 pageSize, UINT32 &sequence )
@@ -4214,6 +5528,104 @@ error :
    goto done ;
 }
 
+void recoverCollections ( OSSFILE &file, UINT32 pageSize, SINT32 &err )
+{
+   dmsMB *pMB = NULL ;
+   CHAR collectionName[ DMS_COLLECTION_NAME_SZ + 1 ] = { 0 } ;
+
+   if ( FALSE == gInitMME )
+   {
+      SDB_ASSERT( FALSE, "MME should be init before" ) ;
+      ++err ;
+
+      dumpPrintf( "*** Error: MME is not init" OSS_NEWLINE ) ;
+      goto error ;
+   }
+
+   if ( DMS_INVALID_MBID != gRecoverMBID )
+   {
+      pMB = ( dmsMB* )( gMMEBuff + gRecoverMBID * sizeof( dmsMB ) ) ;
+      ossStrncpy( collectionName, pMB->_collectionName, DMS_COLLECTION_NAME_SZ ) ;
+
+      /// check the name
+       if ( 0 != ossStrcmp( gCLName, collectionName ) )
+      {
+         dumpPrintf( "*** Error: The %s 's name(%s) is not the same with %s" OSS_NEWLINE,
+                     OPTION_RECOVER_MBID, collectionName, gCLName ) ;
+         ++err ;
+         goto error ;
+      }
+      /// check flag
+      else if ( DMS_MB_FLAG_FREE != pMB->_flag &&
+                !OSS_BIT_TEST ( pMB->_flag, DMS_MB_FLAG_DROPED ) &&
+                DMS_INVALID_MBID == gDoRecoverMBID )
+      {
+         dumpPrintf( "*** Warning: The collection is not dropped, no need to recover" OSS_NEWLINE ) ;
+         goto done ;
+      }
+   }
+   else
+   {
+      vector<UINT16> collections ;
+
+      /// find the recover-mbid by slot
+      for ( UINT32 i = 0 ; i < DMS_MME_SLOTS ; ++i )
+      {
+         pMB = ( dmsMB* )( gMMEBuff + i * sizeof( dmsMB ) ) ;
+         ossStrncpy( collectionName, pMB->_collectionName, DMS_COLLECTION_NAME_SZ ) ;
+
+         if ( 0 == ossStrcmp( gCLName, collectionName ) )
+         {
+            if ( SDB_INSPT_DATA == gCurInsptType &&
+                 DMS_MB_FLAG_FREE != pMB->_flag &&
+                 !OSS_BIT_TEST ( pMB->_flag, DMS_MB_FLAG_DROPED ) )
+            {
+               dumpPrintf( "*** Warning: The collection is not dropped, no need to recover" OSS_NEWLINE ) ;
+               goto done ;
+            }
+            collections.push_back( i ) ;
+         }
+      }
+
+      /// not found collection
+      if ( collections.empty() )
+      {
+         dumpPrintf( "*** Warning: The collection is not found" OSS_NEWLINE ) ;
+         goto done ;
+      }
+      /// more than one collection with the same name
+      else if ( collections.size() > 1 )
+      {
+         dumpPrintf( "*** Warning: Found %u collections[", collections.size() ) ;
+         for ( UINT32 i = 0 ; i < collections.size() ; ++i )
+         {
+            if ( 0 ==i )
+            {
+               dumpPrintf( "%u", collections[i] ) ;
+            }
+            else
+            {
+               dumpPrintf( ", %u", collections[i] ) ;
+            }
+         }
+         dumpPrintf( "] with the same name, you should use param '--%s' to specify "
+                     "the MBID" OSS_NEWLINE, OPTION_RECOVER_MBID ) ;
+         goto error ;
+      }
+
+      gRecoverMBID = collections[ 0 ] ;
+      pMB = ( dmsMB* )( gMMEBuff + gRecoverMBID * sizeof( dmsMB ) ) ;
+   }
+
+   /// recover the collection
+   recoverCollection( file, pageSize, gRecoverMBID, pMB, err ) ;
+
+done :
+   return ;
+error :
+   goto done ;
+}
+
 INT32 parseLobmBMEAndPages( OSSFILE &lobmFile, UINT32 pageSize, UINT32 maxPages,
                             CHAR *pSME, CHAR *pBME, MAP_CL_PAGES &mapCLPages,
                             lobBMEStat &bmeStat, SINT32 *pErr )
@@ -4280,13 +5692,11 @@ INT32 parseLobmBMEAndPages( OSSFILE &lobmFile, UINT32 pageSize, UINT32 maxPages,
          }
          else
          {
-            MAP_PAGES::iterator it ;
-            it = mapPages.lower_bound( pageID ) ;
-            if ( it != mapPages.end() && it != mapPages.begin() &&
-                 (--it)->second + 1 == pageID )
+            MAP_PAGES::reverse_iterator rit = mapPages.rbegin() ;
+            if ( rit != mapPages.rend() && rit->second + 1 == pageID )
             {
                /// update
-               it->second = pageID ;
+               rit->second = pageID ;
             }
             else
             {
@@ -4890,11 +6300,35 @@ void repaireCollection( OSSFILE &file, dmsMB *pMB, UINT32 id )
                   pMB->_lobCommitFlag, gRepaireMB._lobCommitFlag ) ;
       pMB->_lobCommitFlag = gRepaireMB._lobCommitFlag ;
    }
-   if ( gRepaireMask & PMD_REPAIRE_MB_MASK_LOB_COMMITLSN )
+   if ( gRepaireMask & PMD_REPAIRE_MB_MASK_FIRSTEXTENTID )
    {
-      dumpPrintf( "   LobCommitLSN[%llu] ==> [%llu]" OSS_NEWLINE,
-                  pMB->_lobCommitLSN, gRepaireMB._lobCommitLSN ) ;
-      pMB->_lobCommitLSN = gRepaireMB._lobCommitLSN ;
+      dumpPrintf( "   FirstExtentID[%d] ==> [%d]" OSS_NEWLINE,
+                  pMB->_firstExtentID, gRepaireMB._firstExtentID ) ;
+      pMB->_firstExtentID = gRepaireMB._firstExtentID ;
+   }
+   if ( gRepaireMask & PMD_REPAIRE_MB_MASK_LASTEXTENTID )
+   {
+      dumpPrintf( "   LastExtentID[%d] ==> [%d]" OSS_NEWLINE,
+                  pMB->_lastExtentID, gRepaireMB._lastExtentID ) ;
+      pMB->_lastExtentID = gRepaireMB._lastExtentID ;
+   }
+   if ( gRepaireMask & PMD_REPAIRE_MB_MASK_MBEXTEXTENTID )
+   {
+      dumpPrintf( "   MBExtExtentID[%d] ==> [%d]" OSS_NEWLINE,
+                  pMB->_mbExExtentID, gRepaireMB._mbExExtentID ) ;
+      pMB->_mbExExtentID = gRepaireMB._mbExExtentID ;
+   }
+   if ( gRepaireMask & PMD_REPAIRE_MB_MASK_DICTEXTENTID )
+   {
+      dumpPrintf( "   DictExtentID[%d] ==> [%d]" OSS_NEWLINE,
+                  pMB->_dictExtentID, gRepaireMB._dictExtentID ) ;
+      pMB->_dictExtentID = gRepaireMB._dictExtentID ;
+   }
+   if ( gRepaireMask & PMD_REPAIRE_MB_MASK_OPTEXTENTID )
+   {
+      dumpPrintf( "   OptExtentID[%d] ==> [%d]" OSS_NEWLINE,
+                  pMB->_mbOptExtentID, gRepaireMB._mbOptExtentID ) ;
+      pMB->_mbOptExtentID = gRepaireMB._mbOptExtentID ;
    }
 
    INT64 written = 0 ;
@@ -5041,7 +6475,8 @@ enum SDB_INSPT_ACTION
 {
    SDB_INSPT_ACTION_DUMP = 0,
    SDB_INSPT_ACTION_INSPECT,
-   SDB_INSPT_ACTION_REPARE
+   SDB_INSPT_ACTION_REPARE,
+   SDB_INSPT_ACTION_RECOVER
 } ;
 
 void inspectLob( OSSFILE &file, const CHAR *pFileName )
@@ -5572,6 +7007,214 @@ error:
    goto done ;
 }
 
+void recoverLob( OSSFILE &file, const CHAR *pFileName )
+{
+   INT32 totalErr                   = 0 ;
+   SINT32 hwm                       = -1 ;
+   INT64 fileSize                   = 0 ;
+   UINT32 rc                        = SDB_OK ;
+
+   /*
+   UINT64 beginTime = 0 ;
+   UINT64 endTime = 0 ;
+   FLOAT64 timeSpan = 0.0 ;
+   */
+
+   gInspectFileStat.reset() ;
+
+   // beginTime = ossGetCurrentMilliseconds() ;
+
+   dumpPrintf ( "Recover collection space %s" OSS_NEWLINE, pFileName ) ;
+
+   /// 1. get file size
+   rc = ossGetFileSizeByName( pFileName, &fileSize ) ;
+   if ( rc )
+   {
+      dumpPrintf( "*** Error: Get file size failed, file: %s, rc: %d" OSS_NEWLINE,
+                  pFileName, rc ) ;
+      ++totalErr ;
+      goto error ;
+   }
+   gInspectFileStat._fileSize = fileSize ;
+
+   /// 2. inspect lobm header, re-init gPageNum, gLobmPageSize
+   rc = inspectLobmHeader ( file, fileSize, totalErr ) ;
+   if ( rc )
+   {
+      ++totalErr ;
+      goto error ;
+   }
+   gInspectFileStat._pageNum = gPageNum ;
+
+   /// check page size
+   if ( gLobmPageSize != DMS_PAGE_SIZE64B &&
+        gLobmPageSize != DMS_PAGE_SIZE256B ) /// old version lob
+   {
+      dumpPrintf ( "*** Error: %s page size is not valid: %d" OSS_NEWLINE,
+                    pFileName, gLobmPageSize ) ;
+      ++totalErr ;
+      rc = SDB_DMS_INVALID_PAGESIZE ;
+      goto error ;
+   }
+
+   /// 3. inspect sme
+   inspectSME( file, NULL, hwm, totalErr ) ;
+   gInspectFileStat._hwmPageID = hwm ;
+   gInspectFileStat._usedPages = gPageUsedNum ;
+
+   /// 5. inspect collections
+   recoverCollections( file, gLobmPageSize, totalErr ) ;
+
+done:
+   gStat._totalErr += totalErr ;
+   gStat._totalLobFileNum += 1 ;
+   gStat._totalLobFileSize += gInspectFileStat._fileSize ;
+   gStat._totalFreePageSize += gInspectFileStat._freePageSize ;
+   gStat._totalFreeTailSize += gInspectFileStat._freeTailSize ;
+   gStat._totalFreeSize += gInspectFileStat._totalFreeSize ;
+
+   /*
+   endTime = ossGetCurrentMilliseconds() ;
+   if ( endTime > beginTime )
+   {
+      timeSpan = ( (FLOAT64)endTime - beginTime ) / OSS_ONE_SEC ;
+   }
+
+   if ( 0 == totalErr )
+   {
+      dumpPrintf ( "Inspect collection space is Done Succeed   [%.2f s]" OSS_NEWLINE,
+                   timeSpan ) ;
+   }
+   else
+   {
+      dumpPrintf ( "Inspect collection space is Done with Errors: %d   [%.2f s]" OSS_NEWLINE,
+                    totalErr, timeSpan ) ;
+   }
+
+   if ( SDB_OK == rc )
+   {
+      dumpPrintf( "++++ The collection space info ++++" OSS_NEWLINE
+                  "  File Size       : %.2f (MB) (lobm and lobd)" OSS_NEWLINE
+                  "  Pages Num       : %u" OSS_NEWLINE,
+                  (FLOAT64)gInspectFileStat._fileSize / MB_SIZE,
+                  gInspectFileStat._pageNum ) ;
+   }
+   */
+
+   return ;
+error :
+   goto done;
+}
+
+void recoverData( OSSFILE &file, const CHAR *pFileName )
+{
+   INT32 totalErr          = 0 ;
+   SINT32 hwm              = -1 ;
+   UINT32 csPageSize       = 0 ;
+   INT64 fileSize          = 0 ;
+   INT32 rc                = SDB_OK ;
+
+   /*
+   UINT64 beginTime        = 0 ;
+   UINT64 endTime          = 0 ;
+   FLOAT64 timeSpan        = 0.0 ;
+   */
+
+   gInspectFileStat.reset() ;
+
+   // beginTime = ossGetCurrentMilliseconds() ;
+
+   dumpPrintf ( "Recover collection space %s" OSS_NEWLINE, pFileName ) ;
+
+   /// 1. get file size
+   rc = ossGetFileSizeByName( pFileName, &fileSize ) ;
+   if ( rc )
+   {
+      dumpPrintf( "*** Error: Get file size failed, file: %s, rc: %d" OSS_NEWLINE,
+                  pFileName, rc ) ;
+      ++totalErr ;
+      goto error ;
+   }
+   gInspectFileStat._fileSize = fileSize ;
+
+   /// 2. inspect header
+   inspectHeader ( file, csPageSize, totalErr ) ;
+   if ( csPageSize != DMS_PAGE_SIZE4K &&
+        csPageSize != DMS_PAGE_SIZE8K &&
+        csPageSize != DMS_PAGE_SIZE16K &&
+        csPageSize != DMS_PAGE_SIZE32K &&
+        csPageSize != DMS_PAGE_SIZE64K )
+   {
+      dumpPrintf ( "*** Error: %s page size is not valid: %d" OSS_NEWLINE,
+                   pFileName, csPageSize ) ;
+      rc = SDB_DMS_INVALID_PAGESIZE ;
+      ++totalErr ;
+      goto error ;
+   }
+   gInspectFileStat._pageNum = gPageNum ;
+
+   /// 3. inspect sme
+   inspectSME ( file, NULL, hwm, totalErr ) ;
+   gInspectFileStat._hwmPageID = hwm ;
+   gInspectFileStat._usedPages = gPageUsedNum ;
+
+   recoverCollections( file, csPageSize, totalErr ) ;
+
+done:
+   gStat._totalErr += totalErr ;
+   if ( SDB_INSPT_DATA == gCurInsptType )
+   {
+      gStat._totalDataFileNum += 1 ;
+      gStat._totalDataFileSize += gInspectFileStat._fileSize ;
+   }
+   else if ( SDB_INSPT_INDEX == gCurInsptType )
+   {
+      gStat._totalIndexFileNum += 1 ;
+      gStat._totalIndexFileSize += gInspectFileStat._fileSize ;
+   }
+   else
+   {
+      gStat._totalLobFileNum += 1 ;
+      gStat._totalLobFileSize += gInspectFileStat._fileSize ;
+   }
+
+   gStat._totalFreePageSize += gInspectFileStat._freePageSize ;
+   gStat._totalFreeTailSize += gInspectFileStat._freeTailSize ;
+   gStat._totalFreeSize += gInspectFileStat._totalFreeSize ;
+
+   /*
+   endTime = ossGetCurrentMilliseconds() ;
+   if ( endTime > beginTime )
+   {
+      timeSpan = ( (FLOAT64)endTime - beginTime ) / OSS_ONE_SEC ;
+   }
+
+   if ( 0 == totalErr )
+   {
+      dumpPrintf ( "Recover collection space is Done Succeed   [%.2f s]" OSS_NEWLINE,
+                   timeSpan ) ;
+   }
+   else
+   {
+      dumpPrintf ( "Recover collection space is Done with Errors: %d   [%.2f s]" OSS_NEWLINE,
+                    totalErr, timeSpan ) ;
+   }
+
+   if ( SDB_OK == rc )
+   {
+      dumpPrintf( "++++ The collection space info ++++" OSS_NEWLINE
+                  "  File Size       : %.2f (MB)" OSS_NEWLINE
+                  "  Pages Num       : %u" OSS_NEWLINE,
+                  (FLOAT64)gInspectFileStat._fileSize / MB_SIZE,
+                  gInspectFileStat._pageNum ) ;
+   }
+   */
+
+   return ;
+error:
+   goto done ;
+}
+
 void dumpPage( OSSFILE &file, const CHAR *pFileName, SINT32 beginPageID, SINT32 pageNum )
 {
    UINT32 csPageSize       = 0 ;
@@ -5699,7 +7342,7 @@ void actionCSAttempt ( const CHAR *pFileName, vector<const CHAR *> &expectEyeVec
    UINT32   iMode = OSS_DEFAULT | OSS_EXCLUSIVE ;
    BOOLEAN  csValid = FALSE ;
 
-   if ( SDB_INSPT_ACTION_REPARE == action )
+   if ( SDB_INSPT_ACTION_REPARE == action || SDB_INSPT_ACTION_RECOVER == action )
    {
       iMode |= OSS_READWRITE ;
    }
@@ -5793,6 +7436,16 @@ void actionCSAttempt ( const CHAR *pFileName, vector<const CHAR *> &expectEyeVec
          else
          {
             inspectData( gFile, pFileName ) ;
+         }
+         break ;
+      case SDB_INSPT_ACTION_RECOVER :
+         if ( SDB_INSPT_LOB == gCurInsptType )
+         {
+            recoverLob( gFile, pFileName ) ;
+         }
+         else
+         {
+            recoverData( gFile, pFileName ) ;
          }
          break ;
       default :
@@ -5897,6 +7550,7 @@ void actionCSAttemptEntry( const CHAR *csName, UINT32 sequence,
    }
 
    gReachEnd = FALSE ;
+   gHitError = FALSE ;
 
    string csFileName ;
    string csFullName ;
@@ -5907,6 +7561,7 @@ void actionCSAttemptEntry( const CHAR *csName, UINT32 sequence,
    gSegmentSize   = 0 ;
    gSecretValue   = 0 ;
    gInitMME       = FALSE ;
+   gDoRecoverMBID = DMS_INVALID_MBID ;
    ossMemset( gMMEBuff, 0, DMS_MME_SZ ) ;
 
    gMapLobCLPages.clear() ;
@@ -5919,7 +7574,8 @@ void actionCSAttemptEntry( const CHAR *csName, UINT32 sequence,
    }
 
    if ( gDumpData ||
-        SDB_INSPT_ACTION_REPARE == action )
+        SDB_INSPT_ACTION_REPARE == action ||
+        SDB_INSPT_ACTION_RECOVER == action )
    {
       csFileName = rtnMakeSUFileName( csName, sequence,
                                       DMS_DATA_SU_EXT_NAME ) ;
@@ -5935,7 +7591,7 @@ void actionCSAttemptEntry( const CHAR *csName, UINT32 sequence,
       actionCSAttempt( csFullName.c_str(), eyeCatcherVec, specific, action ) ;
    }
 
-   if ( gDumpIndex )
+   if ( gDumpIndex && !gHitError )
    {
       csFileName = rtnMakeSUFileName( csName, sequence,
                                       DMS_INDEX_SU_EXT_NAME ) ;
@@ -5950,7 +7606,7 @@ void actionCSAttemptEntry( const CHAR *csName, UINT32 sequence,
       actionCSAttempt( csFullName.c_str(), eyeCatcherVec, specific, action ) ;
    }
 
-   if ( gDumpLob && gExistLobs )
+   if ( gDumpLob && gExistLobs && !gHitError )
    {
       INT32 rc = SDB_OK ;
       csFileName =  rtnMakeSUFileName( csName, sequence, DMS_LOB_DATA_SU_EXT_NAME ) ;
@@ -6197,6 +7853,12 @@ INT32 main ( INT32 argc, CHAR **argv )
    {
       /// repaire db
       inspectDB( SDB_INSPT_ACTION_REPARE ) ;
+   }
+
+   if ( OSS_BIT_TEST( gAction, ACTION_RECOVER ) )
+   {
+      /// recover db
+      inspectDB( SDB_INSPT_ACTION_RECOVER ) ;
    }
 
    // we doing database dump
