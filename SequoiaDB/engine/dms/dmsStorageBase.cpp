@@ -1182,6 +1182,7 @@ namespace engine
          goto error ;
       }
 
+   retry:
       // initialize SME Manager, which is used to do fast-lookup and release
       // for extents. Note _pageSize is initialized in _validateHeader, so
       // we are safe to use page size here
@@ -1193,6 +1194,11 @@ namespace engine
       }
 
       rc = _onMapMeta( (UINT64)( DMS_SME_OFFSET + DMS_SME_SZ ), createNew ) ;
+      if ( SDB_INVALID_FILE_TYPE == rc )
+      {
+         _smeMgr.fini() ;
+         goto retry ;
+      }
       PD_RC_CHECK( rc, PDERROR, "map file[%s] meta failed, rc: %d",
                    _suFileName, rc ) ;
       /// set _numMB
