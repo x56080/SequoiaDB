@@ -1,39 +1,21 @@
-/******************************************************************************
- *
- * Name: index.c
- * Description: This program demostrates how to connect to create index.
- * Parameters:
- *              HostName: The hostname for database server
- *              ServiceName: The service name or port number for the database
- *                           service
- *              Username: The user name for database server
- *              Password: The password  for user
- * Auto Compile:
- *    Linux: ./buildApp.sh index
- *    Win: buildApp.bat index
- * Manual Compile:
- *    Dynamic Linking:
- *    Linux: cc index.c common.c -o index -I../../include -L../../lib -lsdbc
- *    Win:
- *       cl /Foindex.obj /c index.c /I..\..\include /wd4047
- *       cl /Focommon.obj /c common.c /I..\..\include /wd4047
- *       link /OUT:index.exe /LIBPATH:..\..\lib\c\debug\dll sdbcd.lib index.obj common.obj
- *       copy ..\..\lib\c\debug\dll\sdbcd.dll .
- *    Static Linking:
- *    Linux: cc index.c common.c -o index.static -I../../include -O0
- *              -ggdb ../../lib/libstaticsdbc.a -lm -ldl -lpthread
- *    Win:
- *       cl /Foindexstatic.obj /c index.c /I..\..\include /wd4047 /DSDB_STATIC_BUILD
- *       cl /Focommonstatic.obj /c common.c /I..\..\include /wd4047 /DSDB_STATIC_BUILD
- *       link /OUT:indexstatic.exe /LIBPATH:..\..\lib\c\debug\dll staticsdbcd.lib indexstatic.obj commonstatic.obj
- * Run:
- *    Linux: LD_LIBRARY_PATH=<path for libsdbc.so> ./index <hostname> <servicename> \
- *           <Username> <Username>
- *    Win: index.exe <hostname> <servicename> <Username> <Username>
- * Note: While the appended data invalid, C BSON API will return error code,
- *       we need to handle this kind of error. Please see bson.h for more
- *       detail.
- ******************************************************************************/
+/*******************************************************************************
+
+   Copyright (C) 2011-Present SequoiaDB Ltd.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+   
+*******************************************************************************/
 #include <stdio.h>
 #include "common.h"
 
