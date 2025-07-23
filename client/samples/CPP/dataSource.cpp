@@ -1,30 +1,21 @@
-/****************************************************************************
- *
- * Name: dataSource.cpp
- * Description: This program demostrates how to connect to SequoiaDB database
- *              with sdbDataSource.
- *
- * Auto Compile:
- * Linux: NA
- * Win: NA
- *
- * Manual Compile:
- *    Dynamic Linking:
- *    Linux:
- *       g++ common.cpp worker.cpp dataSource.cpp -o dataSource -I../../include -O0 -ggdb -Wno-deprecated -L../../lib -lsdbcpp -lm -ldl -lpthread
- *    Win:
- *       cl /Focommon.obj /c common.cpp /I..\..\include /wd4047 /Od /MDd /RTC1 /Z7 /TP
- *       cl /Foworker.obj /c worker.cpp /I..\..\include /wd4047 /Od /MDd /RTC1 /Z7 /TP
- *       cl /FodataSource.obj /c dataSource.cpp /I..\..\include /wd4047 /Od /MDd /RTC1 /Z7 /TP
- *       link /OUT:dataSource.exe /LIBPATH:..\..\lib\cpp\debug\dll sdbcppd.lib dataSource.obj common.obj worker.obj  /debug
- *       copy ..\..\lib\cpp\debug\dll\sdbcppd.dll .
- *    Static Linking:
- *    Linux: g++ dataSource.cpp  worker.cpp common.cpp -o dataSource.static -I../../include -O0 -ggdb -Wno-deprecated ../../lib/libstaticsdbcpp.a -lm -ldl -lpthread
- * Run:
- *    Linux: LD_LIBRARY_PATH=<path for libsdbcpp.so> ./dataSource 192.168.20.165:11810 192.168.20.166:11810
- *    Win: dataSource.exe 192.168.20.165:11810 192.168.20.166:11810
- *
- ******************************************************************************/
+/*******************************************************************************
+
+   Copyright (C) 2011-Present SequoiaDB Ltd.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+   
+*******************************************************************************/
 #include <vector>
 #include <new>
 #include "common.hpp"
