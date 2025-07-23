@@ -1,39 +1,21 @@
-/******************************************************************************
- *
- * Name: update_use_id.c
- * Description: This program demostrates how to use the "_id" to update record.
- * Parameters:
- *              HostName: The hostname for database server
- *              ServiceName: The service name or port number for the database
- *                           service
- *              Username: The user name for database server
- *              Password: The password  for user
- * Auto Compile:
- *    Linux: ./buildApp.sh update_use_id
- *    Win: buildApp.bat update_use_id
- * Manual Compile:
- *    Dynamic Linking:
- *    Linux: cc update_use_id.c common.c -o update_use_id -I../../include -L../../lib -lsdbc
- *    Win:
- *       cl /Foupdate_use_id.obj /c update_use_id.c /I..\..\include /wd4047
- *       cl /Focommon.obj /c common.c /I..\..\include /wd4047
- *       link /OUT:update_use_id.exe /LIBPATH:..\..\lib\c\debug\dll sdbcd.lib update_use_id.obj common.obj
- *       copy ..\..\lib\c\debug\dll\sdbcd.dll .
- *    Static Linking:
- *    Linux: cc update_use_id.c common.c -o update_use_id.static -I../../include -O0
- *           -ggdb ../../lib/libstaticsdbc.a -lm -ldl -lpthread
- *    Win:
- *       cl /Foupdate_use_idstatic.obj /c update_use_id.c /I..\..\include /wd4047 /DSDB_STATIC_BUILD
- *       cl /Focommonstatic.obj /c common.c /I..\..\include /wd4047 /DSDB_STATIC_BUILD
- *       link /OUT:update_use_idstaic.exe /LIBPATH:..\..\lib\c\debug\static staticsdbcd.lib update_use_idstatic.obj commonstatic.obj
- * Run:
- *    Linux: LD_LIBRARY_PATH=<path for libsdbc.so> ./update_use_id <hostname> <servicename> \
- *           <Username> <Username>
- *    Win: update_use_id.exe <hostname> <servicename> <Username> <Username>
- * Note: While the appended data invalid, C BSON API will return error code,
- *       we need to handle this kind of error. Please see bson.h for more
- *       detail.
- ******************************************************************************/
+/*******************************************************************************
+
+   Copyright (C) 2011-Present SequoiaDB Ltd.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+   
+*******************************************************************************/
 #include <stdio.h>
 #include "common.h"
 
