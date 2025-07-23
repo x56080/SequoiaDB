@@ -22,3 +22,13 @@ SequoiaDB/engine/ssh2
 SequoiaDB/engine/pcre
 build.py
 *Trace.h
+SequoiaDB/engine/util/linenoise.cpp
+SequoiaDB/engine/util/linenoise.h
+SequoiaDB/engine/include/http_parser.hpp
+SequoiaDB/engine/rest/http_parser.cpp
+driver/python/bson/time64.c
+client/admin/admintpl/dist/css/bootstrap.min.css
+client/admin/admintpl/dist/css/bootstrap.css
+client/admin/admintpl/js/flotr2.js
+client/admin/admintpl/js/flotr2.min.js
+client/admin/admintpl/dist/js/bootstrap.js
