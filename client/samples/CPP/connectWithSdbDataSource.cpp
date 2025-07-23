@@ -1,35 +1,21 @@
-/******************************************************************************
-*
-* Name: connectWithSdbDataSource.cpp
-* Description: This program demostrates how to connect to SequoiaDB database \
-* with sdbDataSource
-*
-* 
-* Auto Compile:
-* Linux: ./buildApp.sh connectWithSdbDataSource
-* Win: buildApp.bat connectWithSdbDataSource
-* Manual Compile:
-*    Dynamic Linking:
-*    Linux:
-*       g++ connectWithSdbDataSource.cpp common.cpp -o connectWithSdbDataSource \
-*       -I../../include -O0 -ggdb -Wno-deprecated -L../../lib -lsdbcpp -lm -ldl
-*    Win:
-*       cl /FoconnectWithSdbDataSource.obj /c connectWithSdbDataSource.cpp \
-*       /I..\..\include /wd4047 /Od /MDd /RTC1 /Z7 /TP
-*       cl /Focommon.obj /c common.cpp /I..\..\include /wd4047 /Od /MDd /RTC1 /Z7 /TP
-*       link /OUT:connectWithSdbDataSource.exe /LIBPATH:..\..\lib\cpp\debug\dll sdbcppd.lib \
-*            connectWithSdbDataSource.obj common.obj /debug
-*       copy ..\..\lib\cpp\debug\dll\sdbcppd.dll .
-*    Static Linking:
-*    Linux: g++ connectWithSdbDataSource.cpp common.cpp -o \
-*    connectWithSdbDataSource.static -I../../include -O0 -ggdb -Wno-deprecated \
-*    ../../lib/libstaticsdbcpp.a -lm -ldl -lpthread
-* Run:
-*    Linux: LD_LIBRARY_PATH=<path for libsdbcpp.so> ./connectWithSdbDataSource 
-*    Win: connectWithSdbDataSource.exe
-*
-******************************************************************************/
+/*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+   
+*******************************************************************************/
 #include "common.hpp"
 #include "sdbDataSourceComm.hpp"
 #include "sdbDataSource.hpp"

@@ -1,35 +1,21 @@
-/*
-** 2001-09-15
-**
-** The author disclaims copyright to this source code.  In place of
-** a legal notice, here is a blessing:
-**
-**    May you do good and not evil.
-**    May you find forgiveness for yourself and forgive others.
-**    May you share freely, never taking more than you give.
-**
-*************************************************************************
-** This header file defines the interface that the SQLite library
-** presents to client programs.  If a C-function, structure, datatype,
-** or constant definition does not appear in this file, then it is
-** not a published API of SQLite, is subject to change without
-** notice, and should not be referenced by programs that use SQLite.
-**
-** Some of the definitions that are in this file are marked as
-** "experimental".  Experimental interfaces are normally new
-** features recently added to SQLite.  We do not anticipate changes
-** to experimental interfaces but reserve the right to make minor changes
-** if experience from use "in the wild" suggest such changes are prudent.
-**
-** The official C-language API documentation for SQLite is derived
-** from comments in this file.  This file is the authoritative source
-** on how SQLite interfaces are supposed to operate.
-**
-** The name of this file under configuration management is "sqlite.h.in".
-** The makefile makes some minor changes to this file (such as inserting
-** the version number) and changes its name to "sqlite3.h" as
-** part of the build process.
-*/
+/*******************************************************************************
+
+   Copyright (C) 2011-Present SequoiaDB Ltd.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+   
+*******************************************************************************/
 #ifndef SQLITE3_H
 #define SQLITE3_H
 #include <stdarg.h>     /* Needed for the definition of va_list */

@@ -1,22 +1,21 @@
-/******************************************************************************
-** This file is an amalgamation of many separate C source files from SQLite
-** version 3.33.0.  By combining all the individual C code files into this
-** single large file, the entire code can be compiled as a single translation
-** unit.  This allows many compilers to do optimizations that would not be
-** possible if the files were compiled separately.  Performance improvements
-** of 5% or more are commonly seen when SQLite is compiled as a single
-** translation unit.
-**
-** This file is all you need to compile SQLite.  To use SQLite in other
-** programs, you need this file and the "sqlite3.h" header file that defines
-** the programming interface to the SQLite library.  (If you do not have
-** the "sqlite3.h" header file at hand, you will find a copy embedded within
-** the text of this file.  Search for "Begin file sqlite3.h" to find the start
-** of the embedded sqlite3.h header file.) Additional code files may be needed
-** if you want a wrapper to interface SQLite with your choice of programming
-** language. The code for the "sqlite3" command-line shell is also in a
-** separate file. This file contains only code for the core SQLite library.
-*/
+/*******************************************************************************
+
+   Copyright (C) 2011-Present SequoiaDB Ltd.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+   
+*******************************************************************************/
 #define SQLITE_CORE 1
 #define SQLITE_AMALGAMATION 1
 #ifndef SQLITE_PRIVATE
