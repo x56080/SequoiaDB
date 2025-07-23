@@ -1,50 +1,21 @@
-/******************************************************************************
- *
- * Name: sql.cpp
- * Description: This program demostrates how to use the sql interface
- *              sdb::exec() and sdb::execUpdate() to work.
- * Parameters:
- *              HostName: The hostname for database server
- *              ServiceName: The service name or port number for the database
- *                           service
- *              Username: The user name for database server
- *              Password: The password  for user
- * Auto Compile:
- *    Linux: ./buildApp.sh sdb
- *    Win: buildApp.bat sdb
- * Manual Compile:
- *    Dynamic Linking:
- *    Linux: 
- *       if GCC version >= 5.1
- *          g++ -c -std=c99 -o sql.o -I../../include sql.cpp
- *          g++ -c -std=c++0x -o common.o -I../../include common.cpp
- *          g++ sql.cpp common.cpp -o sql -I../../include \
- *          -L../../lib -lsdbcpp -D_GLIBCXX_USE_CXX11_ABI=0
- *       if GCC version < 5.1
- *          g++ -c -std=c99 -o sql.o -I../../include sql.cpp
- *          g++ -c -std=c++0x -o common.o -I../../include common.cpp
- *          g++ sql.cpp common.cpp -o sql -I../../include \
- *          -L../../lib -lsdbcpp
- *    Win:
- *       cl /Fosql.obj /c sql.cpp /I..\..\include /wd4047
- *       cl /Focommon.obj /c common.cpp /I..\..\include /wd4047
- *       link /OUT:sql.exe /LIBPATH:..\..\lib\cpp\debug\dll sdbcppd.lib sql.obj common.obj
- *       copy ..\..\lib\cpp\debug\dll\sdbcppd.dll .
- *    Static Linking:
- *    Linux: 
- *       if GCC version >= 5.1
- *          g++ sql.cpp common.cpp -o sql.static -I../../include -O0 \
- *          -ggdb -Wno-deprecated ../../lib/libstaticsdbcpp.a -lm -ldl -lpthread -D_GLIBCXX_USE_CXX11_ABI=0
- *       if GCC version < 5.1
- *          g++ sql.cpp common.cpp -o sql.static -I../../include -O0 \
- *          -ggdb -Wno-deprecated ../../lib/libstaticsdbcpp.a -lm -ldl -lpthread
- * Run:
- *    Linux: LD_LIBRARY_PATH=<path for libsdbcpp.so> ./insert <hostname> \
- *           <servicename> <username> <password>
- *    Win: insert.exe <hostname> <servicename> <username> <password>
- *
- ******************************************************************************/
+/*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+   
+*******************************************************************************/
 #include <iostream>
 #include "common.hpp"
 
