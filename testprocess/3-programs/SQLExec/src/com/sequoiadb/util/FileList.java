@@ -1,3 +1,35 @@
+/*******************************************************************************
+
+   Copyright (C) 2011-Present SequoiaDB Ltd.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+   Source File Name = FileList.java
+
+   Descriptive Name = N/A
+
+   Dependencies: N/A
+
+   Restrictions: N/A
+
+   Change Activity:
+   defect Date        Who         Description
+   ====== =========== =========== =============================================
+          23/07/2025  fangjiabin  Initial Draft
+
+   Last Changed =
+
+*******************************************************************************/
 package com.sequoiadb.util;
 
 import java.io.IOException;
@@ -43,20 +75,20 @@ public class FileList {
 		SwitchDirFlag = false;
 	}
 	
-// 取得一个目录的处理
-// 参数
-//	initFilelistFlag：boolean  为true表示将现有filelist清空
+// 取一目录拇
+// 
+//	initFilelistFlagboolean  为true示filelist
 	public boolean getNextDir(boolean initFilelistFlag){
 		File tmp	=	null;
 		File file[];
 		int i;
 		
-		// 如果需要初始化Filelist，那么将Filelist清空
+		// 要始Filelist么Filelist
 		if(initFilelistFlag)
 			Filelist.clear();
 		
 		do{
-		// 如果Dirlist为空，那么直接返回
+		// Dirlist为眨么直臃
 			if(Dirlist.isEmpty())
 				return false;
 			tmp = (File) Dirlist.remove(caseRandom ? random.nextInt(Dirlist.size()) : 0);
@@ -86,7 +118,7 @@ public class FileList {
 		return true;
 	}
 	
-//	 取得一个文件。若没有文件，则返回null
+//	 取一募没募蚍祷null
 	public File getNextFile(){
 		File tmp	=	null;
 		
@@ -99,7 +131,7 @@ public class FileList {
 		return tmp;
 	}
 	
-//	 打印所有文件列表
+//	 印募斜
 	public void showfiles(){
 		File tmp	= null;
 		
@@ -112,12 +144,12 @@ public class FileList {
 		}while(true);
 	}
 	
-//	返回文件列表是否为空
+//	募斜欠为
 	public boolean FilelistIsEmp() {
 		return Filelist.isEmpty();
 	}
 
-//  返回目录列表是否为空
+//  目录斜欠为
 	public boolean DirlistIsEmp() {
 		return Dirlist.isEmpty();
 	}
