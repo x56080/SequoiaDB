@@ -1,33 +1,21 @@
-/******************************************************************************
- *
- * Name: subArrayLen.c
- * Description: This program demostrates how to get the length of the sub array
- *              int a bson.
- * Auto Compile:
- *    Linux: ./buildApp.sh subArrayLen
- *    Win: buildApp.bat subArrayLen
- * Manual Compile:
- *    Dynamic Linking:
- *    Linux: cc subArrayLen.c common.c -o subArrayLen -I../../include -L../../lib -lsdbc
- *    Win:
- *       cl /FosubArrayLen.obj /c subArrayLen.c /I..\..\include /wd4047
- *       cl /Focommon.obj /c common.c /I..\..\include /wd4047
- *       link /OUT:subArrayLen.exe /LIBPATH:..\..\lib\c\debug\dll sdbcd.lib subArrayLen.obj common.obj
- *       copy ..\..\lib\c\debug\dll\sdbcd.dll .
- *    Static Linking:
- *    Linux: cc subArrayLen.c common.c -o subArrayLen.static -I../../include -O0
- *           -ggdb ../../lib/libstaticsdbc.a -lm -ldl -lpthread
- *    Win:
- *       cl /FosubArrayLenstatic.obj /c subArrayLen.c /I..\..\include /wd4047 /DSDB_STATIC_BUILD
- *       cl /Focommonstatic.obj /c common.c /I..\..\include /wd4047 /DSDB_STATIC_BUILD
- *       link /OUT:subArrayLenstaic.exe /LIBPATH:..\..\lib\c\debug\dll staticsdbcd.lib subArrayLenstatic.obj commonstatic.obj
- * Run:
- *    Linux: LD_LIBRARY_PATH=<path for libsdbc.so> ./subArrayLen
- *    Win: subArrayLen.exe
- * Note: While the appended data invalid, C BSON API will return error code,
- *       we need to handle this kind of error. Please see bson.h for more
- *       detail.
- ******************************************************************************/
+/*******************************************************************************
+
+   Copyright (C) 2011-Present SequoiaDB Ltd.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+   
+*******************************************************************************/
 #include <stdio.h>
 #include "common.h"
 
