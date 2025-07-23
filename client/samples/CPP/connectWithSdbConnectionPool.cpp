@@ -1,45 +1,21 @@
-/******************************************************************************
-*
-* Name: connectWithSdbConnectionPool.cpp
-* Description: This program demostrates how to connect to SequoiaDB database \
-* with sdbConnectionPool
-*
-* 
-* Auto Compile:
-* Linux: ./buildApp.sh connectWithSdbConnectionPool
-* Win: buildApp.bat connectWithSdbConnectionPool
-* Manual Compile:
-*    Dynamic Linking:
-*    Linux:
-*       if GCC version >= 5.1
-*          g++ connectWithSdbConnectionPool.cpp common.cpp -o connectWithSdbConnectionPool \
-*          -I../../include -O0 -ggdb -Wno-deprecated -L../../lib -lsdbcpp -lm -ldl -D_GLIBCXX_USE_CXX11_ABI=0
-*       if GCC version < 5.1
-*          g++ connectWithSdbConnectionPool.cpp common.cpp -o connectWithSdbConnectionPool \
-*          -I../../include -O0 -ggdb -Wno-deprecated -L../../lib -lsdbcpp -lm -ldl
-*    Win:
-*       cl /FoconnectWithSdbConnectionPool.obj /c connectWithSdbConnectionPool.cpp \
-*       /I..\..\include /wd4047 /Od /MDd /RTC1 /Z7 /TP
-*       cl /Focommon.obj /c common.cpp /I..\..\include /wd4047 /Od /MDd /RTC1 /Z7 /TP
-*       link /OUT:connectWithSdbConnectionPool.exe /LIBPATH:..\..\lib\cpp\debug\dll sdbcppd.lib \
-*            connectWithSdbConnectionPool.obj common.obj /debug
-*       copy ..\..\lib\cpp\debug\dll\sdbcppd.dll .
-*    Static Linking:
-*    Linux: 
-*       if GCC version >= 5.1
-*          g++ connectWithSdbConnectionPool.cpp common.cpp -o \
-*          connectWithSdbConnectionPool.static -I../../include -O0 -ggdb -Wno-deprecated \
-*          ../../lib/libstaticsdbcpp.a -lm -ldl -lpthread -D_GLIBCXX_USE_CXX11_ABI=0
-*       if GCC version < 5.1
-*          g++ connectWithSdbConnectionPool.cpp common.cpp -o \
-*          connectWithSdbConnectionPool.static -I../../include -O0 -ggdb -Wno-deprecated \
-*          ../../lib/libstaticsdbcpp.a -lm -ldl -lpthread
-* Run:
-*    Linux: LD_LIBRARY_PATH=<path for libsdbcpp.so> ./connectWithSdbConnectionPool 
-*    Win: connectWithSdbConnectionPool.exe
-*
-******************************************************************************/
+/*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+   
+*******************************************************************************/
 #include "common.hpp"
 #include "sdbConnectionPoolComm.hpp"
 #include "sdbConnectionPool.hpp"
