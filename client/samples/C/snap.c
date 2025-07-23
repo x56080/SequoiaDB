@@ -1,38 +1,21 @@
-/******************************************************************************
- *
- * Name: snap.c
- * Description: This program demostrates how to connect to SequoiaDB database,
- *              and get database snapshot ( for other types of snapshots/lists,
- *              the steps are very similar )
- * Parameters:
- *              HostName: The hostname for database server
- *              ServiceName: The service name or port number for the database
- *                           service
- * Auto Compile:
- *    Linux: ./buildApp.sh snap
- *    Win: buildApp.bat snap
- * Manual Compile:
- *    Dynamic Linking:
- *    Linux: cc snap.c common.c -o snap -I../../include -L../../lib -lsdbc
- *    Win:
- *       cl /Fosnap.obj /c snap.c /I..\..\include /wd4047
- *       cl /Focommon.obj /c common.c /I..\..\include /wd4047
- *       link /OUT:snap.exe /LIBPATH:..\..\lib\c\debug\dll sdbcd.lib snap.obj common.obj
- *       copy ..\..\lib\c\debug\dll\sdbcd.dll .
- *    Static Linking:
- *    Linux: cc snap.c common.c -o snap.static -I../../include -O0
- *           -ggdb ../../lib/libstaticsdbc.a -lm -ldl -lpthread
- *    Win:
- *       cl /Fosnapstatic.obj /c snap.c /I..\..\include /wd4047 /DSDB_STATIC_BUILD
- *       cl /Focommonstatic.obj /c common.c /I..\..\include /wd4047 /DSDB_STATIC_BUILD
- *       link /OUT:snapstaic.exe /LIBPATH:..\..\lib\c\debug\static staticsdbcd.lib snapstatic.obj commonstatic.obj
- * Run:
- *    Linux: LD_LIBRARY_PATH=<path for libsdbc.so> ./snap <hostname> <servicename> \
- *           <Username> <Username>
- *    Win: snap.exe <hostname> <servicename> <Username> <Username>
- * Note: While the appended data invalid, C BSON API will return error code,
- *       we need to handle this kind of error. Please see bson.h for more detail.
- ******************************************************************************/
+/*******************************************************************************
+
+   Copyright (C) 2011-Present SequoiaDB Ltd.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+   
+*******************************************************************************/
 #include <stdio.h>
 #include "common.h"
 
