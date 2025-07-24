@@ -1,37 +1,21 @@
-/******************************************************************************
- *
- * Name: connect.c
- * Description: This program demostrates how to connect to SequoiaDB database.
- * Parameters:
- *              HostName: The hostname for database server
- *              ServiceName: The service name or port number for the database
- *                           service
- *              Username: The user name for database server
- *              Password: The password  for user
- * Auto Compile:
- *    Linux: ./buildApp.sh connect
- *    Win: buildApp.bat connect
- * Manual Compile:
- *    Dynamic Linking:
- *    Linux: cc connect.c common.c -o connect -I../../include -L../../lib -lsdbc
- *    Win:
- *       cl /Foconnect.obj /c connect.c /I..\..\include /wd4047
- *       cl /Focommon.obj /c common.c /I..\..\include /wd4047
- *       link /OUT:connect.exe /LIBPATH:..\..\lib\c\debug\dll sdbcd.lib connect.obj common.obj
- *       copy ..\..\lib\c\debug\dll\sdbcd.dll .
- *    Static Linking:
- *    Linux: cc connect.c common.c -o connect.static -I../../include -O0
- *           -ggdb ../../lib/libstaticsdbc.a -lm -ldl -lpthread
- *    Win:
- *       cl /Foconnectstatic.obj /c connect.c /I..\..\include /wd4047 /DSDB_STATIC_BUILD
- *       cl /Focommonstatic.obj /c common.c /I..\..\include /wd4047 /DSDB_STATIC_BUILD
- *       link /OUT:connectstaic.exe /LIBPATH:..\..\lib\c\debug\static staticsdbcd.lib connectstatic.obj commonstatic.obj
- * Run:
- *    Linux: LD_LIBRARY_PATH=<path for libsdbc.so> ./connect <hostname> <servicename> \
- *           <Username> <Username>
- *    Win: connect.exe <hostname> <servicename> <Username> <Username>
- *
- ******************************************************************************/
+/*******************************************************************************
+
+   Copyright (C) 2011-Present SequoiaDB Ltd.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+   
+*******************************************************************************/
 #include <stdio.h>
 #include "common.h"
 
