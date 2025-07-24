@@ -1,3 +1,35 @@
+/*******************************************************************************
+
+   Copyright (C) 2011-Present SequoiaDB Ltd.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+   Source File Name = MultiThreadQuery.java
+
+   Descriptive Name = N/A
+
+   Dependencies: N/A
+
+   Restrictions: N/A
+
+   Change Activity:
+   defect Date        Who         Description
+   ====== =========== =========== =============================================
+          23/07/2025  fangjiabin  Initial Draft
+
+   Last Changed =
+
+*******************************************************************************/
 package com.sequoiadb.test;
 
 import org.bson.BSONObject;
@@ -34,7 +66,7 @@ public class MultiThreadQuery implements Runnable {
 	
 	@Override
 	public void run() {
-		System.out.println("Query线程==="+Thread.currentThread().getId()+"执行开始");
+		System.out.println("Query叱==="+Thread.currentThread().getId()+"执锌始");
 			for(int j = 0 ;j<10;j++){
 				BSONObject obj = new BasicBSONObject();
 				obj.put("ThreadID", Thread.currentThread().getId()-1);
@@ -47,6 +79,6 @@ public class MultiThreadQuery implements Runnable {
 				}
 				System.out.println("size="+size);
 		}
-		System.out.println("Query线程==="+Thread.currentThread().getId()+"执行结束");	
+		System.out.println("Query叱==="+Thread.currentThread().getId()+"执薪");	
 	}
 }

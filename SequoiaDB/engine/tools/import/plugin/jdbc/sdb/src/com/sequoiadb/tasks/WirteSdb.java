@@ -1,3 +1,35 @@
+/*******************************************************************************
+
+   Copyright (C) 2011-Present SequoiaDB Ltd.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+   Source File Name = WirteSdb.java
+
+   Descriptive Name = N/A
+
+   Dependencies: N/A
+
+   Restrictions: N/A
+
+   Change Activity:
+   defect Date        Who         Description
+   ====== =========== =========== =============================================
+          23/07/2025  fangjiabin  Initial Draft
+
+   Last Changed =
+
+*******************************************************************************/
 package com.sequoiadb.tasks;
 
 import java.sql.Connection;
@@ -21,7 +53,7 @@ public class WirteSdb {
 		
 		conn = cdb.getConnection();
 		
-		String sql = "insert into sedb8 (column1,column2,column3,column4,column5,column6,column7,column8,column9,column10) values (?,?,?,?,?,?,?,?,?,?)";//∂®“Âsql”Ôæ‰
+		String sql = "insert into sedb8 (column1,column2,column3,column4,column5,column6,column7,column8,column9,column10) values (?,?,?,?,?,?,?,?,?,?)";//sql
 		String sql1 = "insert into sedb10(column1,column2,column3,column4,column5,column6,column7,column8,column9,column10) values (?,?,?,?,?,?,?,?,?,?)";
 		try {
 			   pstmt = conn.prepareStatement(sql1);
