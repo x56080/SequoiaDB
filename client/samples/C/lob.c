@@ -1,38 +1,21 @@
-/******************************************************************************
- *
- * Name: lob.c
- * Description: This program demostrates how to large object in database.
- * Parameters:
- *              HostName: The hostname for database server
- *              ServiceName: The service name or port number for the database
- *                           service
- *              Username: The user name for database server
- *              Password: The password  for user
- * Auto Compile:
- *    Linux: ./buildApp.sh lob
- *    Win: buildApp.bat lob
- * Manual Compile:
- *    Linux: cc lob.c common.c -o lob -I../../include -L../../lib -lsdbc
- *    Win:
- *       cl /Foquery.obj /c lob.c /I..\..\include /wd4047
- *       cl /Focommon.obj /c common.c /I..\..\include /wd4047
- *       link /OUT:lob.exe /LIBPATH:..\..\lib\c\debug\dll sdbcd.lib lob.obj common.obj
- *       copy ..\..\lib\c\debug\dll\sdbcd.dll .
- *    Static Linking:
- *    Linux: cc lob.c common.c -o lob.static -I../../include -O0
- *           -ggdb ../../lib/libstaticsdbc.a -lm -ldl -lpthread
- *    Win:
- *       cl /Foquerystatic.obj /c lob.c /I..\..\include /wd4047 /DSDB_STATIC_BUILD
- *       cl /Focommonstatic.obj /c common.c /I..\..\include /wd4047 /DSDB_STATIC_BUILD
- *       link /OUT:lobstaic.exe /LIBPATH:..\..\lib\c\debug\static staticsdbcd.lib lobstatic.obj commonstatic.obj
- * Run:
- *    Linux: LD_LIBRARY_PATH=<path for libsdbc.so> ./lob <hostname> <servicename> \
- *           <Username> <Username>
- *    Win: lob.exe <hostname> <servicename> <Username> <Username>
- * Note: While the appended data invalid, C BSON API will return error code,
- *       we need to handle this kind of error. Please see bson.h for more
- *       detail.
- ******************************************************************************/
+/*******************************************************************************
+
+   Copyright (C) 2011-Present SequoiaDB Ltd.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+   
+*******************************************************************************/
 #include <stdio.h>
 #include "common.h"
 
