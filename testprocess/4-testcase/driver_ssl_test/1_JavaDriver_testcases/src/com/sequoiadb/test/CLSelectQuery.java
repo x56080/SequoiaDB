@@ -1,3 +1,35 @@
+/*******************************************************************************
+
+   Copyright (C) 2011-Present SequoiaDB Ltd.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+   Source File Name = CLSelectQuery.java
+
+   Descriptive Name = N/A
+
+   Dependencies: N/A
+
+   Restrictions: N/A
+
+   Change Activity:
+   defect Date        Who         Description
+   ====== =========== =========== =============================================
+          23/07/2025  fangjiabin  Initial Draft
+
+   Last Changed =
+
+*******************************************************************************/
 package com.sequoiadb.test;
 
 import static org.junit.Assert.assertEquals;
@@ -61,54 +93,54 @@ public class CLSelectQuery {
       cl = cs.createCollection(Constants.TEST_CL_NAME_1, conf);
       // insert
       BSONObject obj = new BasicBSONObject();
-      obj.put( "ÉÌÆ·±àºÅ", 1000001 );
+      obj.put( "Æ·", 1000001 );
       BSONObject arr = new BasicBSONList();
       BSONObject subObj1 = new BasicBSONObject();
       BSONObject subObj2 = new BasicBSONObject();
-      subObj1.put( "ÖÐÎÄÃû", "µç×Ó±Ê" );
-      subObj1.put( "Ó¢ÎÄÃû", "Mobile Digital Pen" );
+      subObj1.put( "", "Ó±" );
+      subObj1.put( "Ó¢", "Mobile Digital Pen" );
       arr.put( "0", subObj1 );
       arr.put( "1", subObj2 );
-      obj.put( "ÉÌÆ·Ãû", arr );
-      obj.put( "Æ·ÅÆÃû³Æ", "Mvpen" );
+      obj.put( "Æ·", arr );
+      obj.put( "Æ·", "Mvpen" );
       BSONObject arr1 = new BasicBSONList();
-      arr1.put( "0", "ºì");
-      arr1.put( "1", "³È");
-      arr1.put( "2", "Çà");
-      arr1.put( "3", "À¶");
-      arr1.put( "4", "×Ï");
-      arr1.put( "5", "ºÚ");
-      arr1.put( "6", "°×");
-      obj.put( "ÑÕÉ«", arr1 );
+      arr1.put( "0", "");
+      arr1.put( "1", "");
+      arr1.put( "2", "");
+      arr1.put( "3", "");
+      arr1.put( "4", "");
+      arr1.put( "5", "");
+      arr1.put( "6", "");
+      obj.put( "É«", arr1 );
       BSONObject subObj3 = new BasicBSONObject();
-      subObj3.put( "¿í¶È", 86.59 );
+      subObj3.put( "", 86.59 );
       BSONObject subObj4 = new BasicBSONObject();
-      subObj4.put( "¸ß¶È", 11.21 );
+      subObj4.put( "ß¶", 11.21 );
       BSONObject subObj5 = new BasicBSONObject();
-      subObj5.put( "Éî¶È", 23.29 );
+      subObj5.put( "", 23.29 );
       BSONObject arr2 = new BasicBSONList();
       arr2.put( "0", subObj3 );
       arr2.put( "1", subObj4 );
       arr2.put( "2", subObj5 );
-      obj.put( "¹æ¸ñ²ÎÊý", arr2 );
+      obj.put( "", arr2 );
       BSONObject subObj6 = new BasicBSONObject();
-      subObj6.put( "¹ú¼Ò", "ÖÐ¹ú" );
-      subObj6.put( "Ê¡·Ý", "¹ã¶«" );
-      subObj6.put( "³ÇÊÐ", "ÉîÛÚ" );
+      subObj6.put( "", "Ð¹" );
+      subObj6.put( "Ê¡", "ã¶«" );
+      subObj6.put( "", "" );
       BSONObject subObj7 = new BasicBSONObject();
-      subObj7.put( "¹ú¼Ò", "ÖÐ¹ú" );
-      subObj7.put( "Ê¡·Ý", "Õã½­" );
-      subObj7.put( "³ÇÊÐ", "ÎÂÖÝ" );
+      subObj7.put( "", "Ð¹" );
+      subObj7.put( "Ê¡", "ã½­" );
+      subObj7.put( "", "" );
       BSONObject subObj8 = new BasicBSONObject();
-      subObj8.put( "¹ú¼Ò", "ÖÐ¹ú" );
-      subObj8.put( "Ê¡·Ý", "¹ã¶«" );
-      subObj8.put( "³ÇÊÐ", "Öéº£" );
+      subObj8.put( "", "Ð¹" );
+      subObj8.put( "Ê¡", "ã¶«" );
+      subObj8.put( "", "éº£" );
       BSONObject arr3 = new BasicBSONList();
       arr3.put( "0", subObj6 );
       arr3.put( "1", subObj7 );
       arr3.put( "2", subObj8 );
-      obj.put( "²úµØ", arr3 );
-      obj.put( "°ü×°ÀàÐÍ", "ºÐ×°");
+      obj.put( "", arr3 );
+      obj.put( "×°", "×°");
       cl.insert( obj );
    }
 
@@ -139,11 +171,11 @@ public class CLSelectQuery {
 	  BSONObject orderObj = null;
 	  BSONObject hintObj = null;
 	  BSONObject selectSubObj1 = new BasicBSONObject();
-	  selectSubObj1.put("Ê¡·Ý", "¹ã¶«");
+	  selectSubObj1.put("Ê¡", "ã¶«");
 	  BSONObject selectSubObj2 = new BasicBSONObject();
 	  selectSubObj2.put("$elemMatch", selectSubObj1 );
 	  BSONObject selectObj = new BasicBSONObject();
-	  selectObj.put("²úµØ", selectSubObj2);
+	  selectObj.put("", selectSubObj2);
 	  System.out.println(selectObj.toString());
       DBCursor cursor = cl.query(matchObj, selectObj, orderObj, hintObj);
       int i = 0;
@@ -164,11 +196,11 @@ public class CLSelectQuery {
 	  BSONObject orderObj = null;
 	  BSONObject hintObj = null;
 	  BSONObject selectSubObj1 = new BasicBSONObject();
-	  selectSubObj1.put("Ê¡·Ý", "¹ã¶«");
+	  selectSubObj1.put("Ê¡", "ã¶«");
 	  BSONObject selectSubObj2 = new BasicBSONObject();
 	  selectSubObj2.put("$elemMatchOne", selectSubObj1 );
 	  BSONObject selectObj = new BasicBSONObject();
-	  selectObj.put("²úµØ", selectSubObj2);
+	  selectObj.put("", selectSubObj2);
 	  System.out.println(selectObj.toString());
       DBCursor cursor = cl.query(matchObj, selectObj, orderObj, hintObj);
       int i = 0;
@@ -194,7 +226,7 @@ public class CLSelectQuery {
 	  BSONObject selectSubObj1 = new BasicBSONObject();
 	  selectSubObj1.put("$slice", selectSubArr1);
 	  BSONObject selectObj = new BasicBSONObject();
-	  selectObj.put("ÑÕÉ«", selectSubObj1);
+	  selectObj.put("É«", selectSubObj1);
 	  System.out.println(selectObj.toString());
       DBCursor cursor = cl.query(matchObj, selectObj, orderObj, hintObj);
       int i = 0;
@@ -203,7 +235,7 @@ public class CLSelectQuery {
          byte[] bytes = cursor.getNextRaw();
          obj = SDBTestHelper.byteArrayToBSONObject(bytes);
          System.out.println(obj.toString());
-         System.out.println(obj.get("ÑÕÉ«").toString());
+         System.out.println(obj.get("É«").toString());
          i++;
       }
       assertEquals(1,i);
@@ -217,7 +249,7 @@ public class CLSelectQuery {
 	  BSONObject selectSubObj1 = new BasicBSONObject();
 	  selectSubObj1.put("$default", "defaultValue");
 	  BSONObject selectObj = new BasicBSONObject();
-	  selectObj.put("¹æ¸ñ²ÎÊý.¸ß¶È", selectSubObj1);
+	  selectObj.put(".ß¶", selectSubObj1);
 	  System.out.println(selectObj.toString());
       DBCursor cursor = cl.query(matchObj, selectObj, orderObj, hintObj);
       int i = 0;
@@ -226,7 +258,7 @@ public class CLSelectQuery {
          byte[] bytes = cursor.getNextRaw();
          obj = SDBTestHelper.byteArrayToBSONObject(bytes);
          System.out.println(obj.toString());
-         //System.out.println(obj.get("ÑÕÉ«").toString());
+         //System.out.println(obj.get("É«").toString());
          i++;
       }
       assertEquals(1,i);
@@ -240,7 +272,7 @@ public class CLSelectQuery {
 	  BSONObject selectSubObj1 = new BasicBSONObject();
 	  selectSubObj1.put("$include", 0);
 	  BSONObject selectObj = new BasicBSONObject();
-	  selectObj.put("²úµØ", selectSubObj1);
+	  selectObj.put("", selectSubObj1);
 	  System.out.println(selectObj.toString());
       DBCursor cursor = cl.query(matchObj, selectObj, orderObj, hintObj);
       int i = 0;
@@ -249,7 +281,7 @@ public class CLSelectQuery {
          byte[] bytes = cursor.getNextRaw();
          obj = SDBTestHelper.byteArrayToBSONObject(bytes);
          System.out.println(obj.toString());
-         //System.out.println(obj.get("ÑÕÉ«").toString());
+         //System.out.println(obj.get("É«").toString());
          i++;
       }
       assertEquals(1,i);

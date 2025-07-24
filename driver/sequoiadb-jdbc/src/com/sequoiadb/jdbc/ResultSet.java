@@ -1,3 +1,35 @@
+/*******************************************************************************
+
+   Copyright (C) 2011-Present SequoiaDB Ltd.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+   Source File Name = ResultSet.java
+
+   Descriptive Name = N/A
+
+   Dependencies: N/A
+
+   Restrictions: N/A
+
+   Change Activity:
+   defect Date        Who         Description
+   ====== =========== =========== =============================================
+          23/07/2025  fangjiabin  Initial Draft
+
+   Last Changed =
+
+*******************************************************************************/
 package com.sequoiadb.jdbc;
 
 import java.io.InputStream;
@@ -324,7 +356,7 @@ public class ResultSet implements java.sql.ResultSet{
 	public int findColumn(String columnLabel) throws SQLException {
 		if(record.get(columnLabel) == null)
 			throw new SQLException("Column "+"'"+columnLabel+"'"+" not found.");
-		//TODO ·µ»ØÁĞÃûËùÔÚµÄÁĞÊı
+		//TODO Úµ
 		return 0;
 	}
 
@@ -349,7 +381,7 @@ public class ResultSet implements java.sql.ResultSet{
 	}
 
 	public boolean isBeforeFirst() throws SQLException {
-		// TODO ¹â±êÔÚµÚÒ»ĞĞÖ®Ç°´òÓ¡true
+		// TODO ÚµÒ»Ö®Ç°Ó¡true
 		
 		return false;
 	}
@@ -360,22 +392,22 @@ public class ResultSet implements java.sql.ResultSet{
 	}
 
 	public boolean isFirst() throws SQLException {
-		// TODO ÅĞ¶ÏÊÇ·ñÔÚresultset¶ÔÏóµÄµÚÒ»ĞĞ
+		// TODO Ğ¶Ç·resultsetÄµÒ»
 		return false;
 	}
 
 	public boolean isLast() throws SQLException {
-		// TODO ÅĞ¶ÏÊÇ·ñÔÚresultset¶ÔÏóµÄµÚ×îºóÒ»ĞĞ
+		// TODO Ğ¶Ç·resultsetÄµÒ»
 		return false;
 	}
 
 	public void beforeFirst() throws SQLException {
-		// TODO ¹â±êÉÏÒÆ
+		// TODO 
 		
 	}
 
 	public void afterLast() throws SQLException {
-		// TODO ¹â±êÒÆµ½×îºóÒ»ĞĞ
+		// TODO ÆµÒ»
 		
 	}
 
@@ -390,52 +422,52 @@ public class ResultSet implements java.sql.ResultSet{
 	}
 
 	public int getRow() throws SQLException {
-		// TODO ·µ»ØĞĞºÅ
+		// TODO Ğº
 		return 0;
 	}
 
 	public boolean absolute(int row) throws SQLException {
-		// TODO ½«Ö¸ÕëÒÆµ½¸ø¶¨±àºÅ£¬Èç¹ûÖ¸ÕëÎ»ÓÚ½á¹û¼¯ÉÏ,Îªtrue,·ñÔòÎªfalse.
+		// TODO Ö¸ÆµÅ£Ö¸Î»Ú½,Îªtrue,Îªfalse.
 		return false;
 	}
 
 	public boolean relative(int rows) throws SQLException {
-		// TODO Ïà¶ÔÒÆ¶¯rowsĞĞ£¬
+		// TODO Æ¶rowsĞ£
 		return false;
 	}
 
 	public boolean previous() throws SQLException {
-		// TODO ÏòÇ°ÒÆ¶¯
+		// TODO Ç°Æ¶
 		return false;
 	}
 
 	public void setFetchDirection(int direction) throws SQLException {
-		// TODO ÉèÖÃresultset¶ÔÏóÖĞĞĞµÄ´¦Àí·½Ïò
+		// TODO resultsetĞµÄ´í·½
 		
 	}
 
 	public int getFetchDirection() throws SQLException {
-		// TODO »ñÈ¡resultset¶ÔÏóÖĞĞĞµÄ´¦Àí·½Ïò
+		// TODO È¡resultsetĞµÄ´í·½
 		return 0;
 	}
 
 	public void setFetchSize(int rows) throws SQLException {
-		// TODO ÎªJDBCÇı¶¯³ÌĞòÉèÖÃ´Ëresultset¶ÔÏóĞèÒª¸ü¶àĞĞÊ±Ó¦¸Ã´ÓÊı¾İ¿â»ñÈ¡µÄĞĞÊı¡£
+		// TODO ÎªJDBCÃ´resultsetÒªÊ±Ó¦Ã´İ¿È¡
 		
 	}
 
 	public int getFetchSize() throws SQLException {
-		// TODO »ñÈ¡´Ëresultset¶ÔÏóµÄ»ñÈ¡´óĞ¡
+		// TODO È¡resultsetÄ»È¡Ğ¡
 		return 0;
 	}
 
 	public int getType() throws SQLException {
-		// TODO »ñÈ¡´ËresultsetµÄ¶ÔÏóÀàĞÍ
+		// TODO È¡resultsetÄ¶
 		return 0;
 	}
 
 	public int getConcurrency() throws SQLException {
-		// TODO »ñÈ¡´Ëresultset¶ÔÏóµÄ²¢·¢Ä£Ê½
+		// TODO È¡resultsetÄ²Ä£Ê½
 		return 0;
 	}
 
@@ -452,17 +484,17 @@ public class ResultSet implements java.sql.ResultSet{
 	}
 
 	public void updateNull(int columnIndex) throws SQLException {
-		// TODO nullÖµ¸üĞÂÖ¸¶¨ÁĞ
+		// TODO nullÖµÖ¸
 		
 	}
 
 	public void updateBoolean(int columnIndex, boolean x) throws SQLException {
-		// TODO ÓÃboolean ¸üĞÂÖ¸¶¨ÁĞ
+		// TODO boolean Ö¸
 		
 	}
 
 	public void updateByte(int columnIndex, byte x) throws SQLException {
-		// TODO ÓÃbyte¸üĞÂÖ¸¶¨ÁĞ
+		// TODO byteÖ¸
 		
 	}
 
