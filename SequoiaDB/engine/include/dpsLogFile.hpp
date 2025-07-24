@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = dpsLogFile.hpp
 
@@ -36,7 +34,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #ifndef DPSLOGFILE_H_
 #define DPSLOGFILE_H_
 
@@ -66,6 +63,9 @@ namespace engine
                    ( lID < rID ? -1 : 1 )  ) ) )
 
 #define DPS_LOG_FILE_VERSION1       (1)
+#define DPS_LOG_FILE_PADDING_SIZE   ( DPS_LOG_HEAD_LEN - \
+                                      48 - \
+                                      sizeof( dpsLogSummary ) )
 
    /*
       _dpsLogHeader define
@@ -79,7 +79,8 @@ namespace engine
       UINT32   _version ;
       UINT64   _fileSize ;
       UINT32   _fileNum ;
-      CHAR     _padding [ DPS_LOG_HEAD_LEN - 48 ] ;
+      dpsLogSummary _summary ;
+      CHAR     _padding [ DPS_LOG_FILE_PADDING_SIZE ] ;
 
       _dpsLogHeader ()
       {
@@ -109,6 +110,7 @@ namespace engine
       UINT32         _fileNum ;
       UINT32         _idleSize ;
       dpsLogHeader   _logHeader ;
+      dpsLogSummary  _cachedSummary ;
       ossAutoEvent   _writeEvent ;
       BOOLEAN        _inRestore ;
       BOOLEAN        _dirty ;
@@ -161,7 +163,8 @@ namespace engine
       UINT32 getValidLength() const ;
       // reset metadata
       INT32 reset ( UINT32 logID, const DPS_LSN_OFFSET &offset,
-                    const DPS_LSN_VER &version ) ;
+                    const DPS_LSN_VER &version,
+                    BOOLEAN saveSummary ) ;
       // get first lsn
       DPS_LSN getFirstLSN ( BOOLEAN mustExist = TRUE ) ;
 
@@ -184,6 +187,34 @@ namespace engine
       }
 
       INT32 sync() ;
+
+      // get log summary in file
+      const dpsLogSummary &getFileLogSummary() const
+      {
+         return _logHeader._summary ;
+      }
+
+      // get log summary in cache
+      const dpsLogSummary &getCachedLogSummary() const
+      {
+         return _cachedSummary ;
+      }
+
+      // update log summary in cache
+      // NOTE: the write processing of log file header is in asynchronous, so
+      // we need to update the cache first, and then the write processing will
+      // flush the cache summary to the file summary
+      void updateCachedLogSummary( const dpsLogSummary &summary )
+      {
+         _cachedSummary = summary ;
+      }
+
+      void updateLogSummary( const dpsLogSummary &summary )
+      {
+         _logHeader._summary = summary ;
+         _cachedSummary = summary ;
+      }
+
    private:
       void _initHead( UINT32 logID )
       {
@@ -193,6 +224,8 @@ namespace engine
          _logHeader._fileNum = _fileNum ;
          _logHeader._fileSize = _fileSize ;
          _logHeader._version  = DPS_LOG_FILE_VERSION1 ;
+         _logHeader._summary.reset() ;
+         _cachedSummary.reset() ;
       }
       // flush log file header
       INT32 _flushHeader() ;

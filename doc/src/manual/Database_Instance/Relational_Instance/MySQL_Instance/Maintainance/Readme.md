@@ -10,7 +10,10 @@ MySQL 实例的运维主要涉及实例的配置与管理、MySQL 实例组件�
 - [元数据映射][metadata_mapping_management]
 - [审计日志][audit_log]
 - [升级][upgrade]
+<<<<<<< HEAD
 - [SequoiaDB权限管理][sdb_permission_conf]
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 
 [^_^]:
@@ -19,5 +22,9 @@ MySQL 实例的运维主要涉及实例的配置与管理、MySQL 实例组件�
 [sdb_mysql_ctl]:manual/Database_Instance/Relational_Instance/MySQL_Instance/Maintainance/sdb_mysql_ctl.md
 [metadata_mapping_management]:manual/Database_Instance/Relational_Instance/MySQL_Instance/Maintainance/metadata_mapping_management.md
 [audit_log]:manual/Database_Instance/Relational_Instance/MySQL_Instance/Maintainance/audit_log.md
+<<<<<<< HEAD
 [upgrade]:manual/Database_Instance/Relational_Instance/MySQL_Instance/Maintainance/upgrade.md
 [sdb_permission_conf]:manual/Database_Instance/Relational_Instance/MySQL_Instance/Maintainance/sdb_permission_conf.md
+=======
+[upgrade]:manual/Database_Instance/Relational_Instance/MySQL_Instance/Maintainance/upgrade.md
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2

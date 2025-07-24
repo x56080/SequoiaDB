@@ -51,7 +51,7 @@ SequoiaDB 巨杉数据库包括三类节点，集群可以通过在服务器内�
 通过 SDB Shell 查看协调节点组的详细信息
  
 ```lang-javascript
-> db.getCoordRG().getDetail()
+> db.getCoordRG().getDetailObj()
 ```
 
 新增编目节点
@@ -84,7 +84,7 @@ SequoiaDB 巨杉数据库包括三类节点，集群可以通过在服务器内�
 通过 SDB Shell 查看编目复制组的详细信息
 
 ```lang-javascript
-> db.getCataRG().getDetail()
+> db.getCataRG().getDetailObj()
 ```
 
 新增数据节点
@@ -151,7 +151,7 @@ SequoiaDB 巨杉数据库包括三类节点，集群可以通过在服务器内�
 通过 SDB Shell 可以查看某个的数据复制组的详细信息，其中参数 groupname 为数据复制组组名
 
 ```lang-javascript
-> db.getRG( <groupname> ).getDetail()
+> db.getRG( <groupname> ).getDetailObj()
 ```
 
 数据负载均衡

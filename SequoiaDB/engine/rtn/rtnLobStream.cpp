@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = rtnLobStream.cpp
 
@@ -31,7 +30,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #include "rtnLobStream.hpp"
 #include "pmdEDU.hpp"
 #include "msgDef.h"
@@ -40,7 +38,10 @@
 #include "rtnContext.hpp"
 #include "rtnContextLob.hpp"
 #include "rtnLobMetricsSubmitor.hpp"
+<<<<<<< HEAD
 #include "auth.hpp"
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 using namespace bson ;
 
@@ -100,6 +101,7 @@ namespace engine
       }
    }
 
+<<<<<<< HEAD
    INT32 convertModeToActions( INT32 mode, authActionSet &actions )
    {
       INT32 rc = SDB_OK;
@@ -135,6 +137,8 @@ namespace engine
       return rc;
    }
 
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    _rtnLobStream::_rtnLobStream( IMonSubmitEvent *pMonSubmitEvent )
    :_uniqueId( -1 ),
     _dpsCB( NULL ),
@@ -580,9 +584,12 @@ namespace engine
          goto error ;
       }
 
+<<<<<<< HEAD
       rc = _checkPrivileges( cb );
       PD_RC_CHECK( rc, PDERROR, "Failed to check privileges of actions, rc: %d", rc );
 
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       // monitor lob bytes write by client
       RTN_MON_LOB_BYTES_COUNT_INC( pMonAppCB, MON_LOB_WRITE_BYTES, len ) ;
 
@@ -1590,6 +1597,61 @@ namespace engine
    error:
       goto done ;
    }
+<<<<<<< HEAD
+=======
+
+   void _rtnLobStream::onSubmit( const monAppCB &delta )
+   {
+      _totalDeltaMonApp += delta ;
+      if ( _pMonSubmitEvent )
+      {
+         _pMonSubmitEvent->onSubmit( delta ) ;
+      }
+   }
+
+   void _rtnLobStream::_increaseLobOpCount( _pmdEDUCB *cb )
+   {
+      monAppCB *pMonAppCB = cb ? cb->getMonAppCB() : NULL ;
+
+      if ( _opType )
+      {
+         if ( _opType & MON_LOB_OP_GET )
+         {
+            RTN_MON_LOB_OP_COUNT_INC( pMonAppCB, MON_LOB_GET, 1 ) ;
+         }
+         if ( _opType & MON_LOB_OP_PUT )
+         {
+            RTN_MON_LOB_OP_COUNT_INC( pMonAppCB, MON_LOB_PUT, 1 ) ;
+         }
+         if ( _opType & MON_LOB_OP_DELETE )
+         {
+            RTN_MON_LOB_OP_COUNT_INC( pMonAppCB, MON_LOB_DELETE, 1 ) ;
+         }
+      }
+   }
+
+   void _rtnLobStream::_increaseMetrics( _pmdEDUCB *cb )
+   {
+      if ( cb )
+      {
+         monAppCB *pMonAppCB = cb->getMonAppCB() ;
+         // submit from session snapshot to database and svcTask snapshot
+         if ( pMonAppCB && pMonAppCB->getSvcTaskInfo() )
+         {
+            pMonAppCB->getSvcTaskInfo()->incMetrics( _totalDeltaMonApp ) ;
+         }
+         if ( pMonAppCB && pMonAppCB->mondbcb )
+         {
+            pMonAppCB->mondbcb->incMetrics( _totalDeltaMonApp ) ;
+         }
+         // submit from session snapshot to other snapshot
+         _onIncreaseMetrics( _totalDeltaMonApp ) ;
+         _totalDeltaMonApp.reset() ;
+      }
+   }
+
+}
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    void _rtnLobStream::onSubmit( const monAppCB &delta )
    {

@@ -2,7 +2,11 @@
  * @Description   :seqDB-26842:创建AutoIndexId为false的表，truncate后获取索引信息
  * @Author        : HuangHaimei
  * @CreateTime    : 2022.08.24
+<<<<<<< HEAD
  * @LastEditTime  : 2022.08.25
+=======
+ * @LastEditTime  : 2022.09.05
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
  * @LastEditors   : HuangHaimei
  ******************************************************************************/
 testConf.skipStandAlone = true;

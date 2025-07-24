@@ -271,6 +271,13 @@ public class IndexUtils {
                             expIndexDef = indexDef;
                             sucNodes++;
                         } else {
+<<<<<<< HEAD
+=======
+                            indexDef.removeField( "CreateTime" );
+                            indexDef.removeField( "RebuildTime" );
+                            expIndexDef.removeField( "CreateTime" );
+                            expIndexDef.removeField( "RebuildTime" );
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                             Assert.assertEquals( indexDef, expIndexDef );
                             sucNodes++;
                         }
@@ -500,17 +507,27 @@ public class IndexUtils {
         matcher.put( "ResultCode", resultCode );
         DBCursor cursor = db.listTasks( matcher, null, null, null );
 
+<<<<<<< HEAD
         ArrayList< BSONObject > taskInfos = new ArrayList< BSONObject >();
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         BSONObject taskInfo = null;
         int taskNum = 0;
         while ( cursor.hasNext() ) {
             taskInfo = cursor.getNext();
+<<<<<<< HEAD
             taskInfos.add( taskInfo );
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             taskNum++;
         }
         cursor.close();
         Assert.assertEquals( taskNum, 1,
+<<<<<<< HEAD
                 "index task num should be 1!" + taskInfos );
+=======
+                "index task num should be 1!" + taskInfo );
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
         int status = 9;
         int actStatus = ( int ) taskInfo.get( "Status" );
@@ -564,17 +581,27 @@ public class IndexUtils {
         matcher.put( "ResultCode", resultCode );
         DBCursor cursor = db.listTasks( matcher, null, null, null );
 
+<<<<<<< HEAD
         ArrayList< BSONObject > taskInfos = new ArrayList< BSONObject >();
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         BSONObject taskInfo = null;
         int taskNum = 0;
         while ( cursor.hasNext() ) {
             taskInfo = cursor.getNext();
+<<<<<<< HEAD
             taskInfos.add( taskInfo );
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             taskNum++;
         }
         cursor.close();
         Assert.assertEquals( taskNum, 1,
+<<<<<<< HEAD
                 "index task num should be 1!" + taskInfos );
+=======
+                "index task num should be 1!" + taskInfo );
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
         int status = 9;
         int actStatus = ( int ) taskInfo.get( "Status" );

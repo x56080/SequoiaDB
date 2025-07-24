@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = coordTransOperator.hpp
 
@@ -33,7 +32,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #ifndef COORD_TRANS_OPERATOR_HPP__
 #define COORD_TRANS_OPERATOR_HPP__
 
@@ -112,6 +110,8 @@ namespace engine
          INT32         beginTrans( pmdEDUCB *cb,
                                    BOOLEAN isAutoCommit = FALSE ) ;
 
+         INT32         addAllGroups( pmdEDUCB *cb, BOOLEAN isWrite = FALSE) ;
+
          virtual INT32 execute( MsgHeader *pMsg,
                                 pmdEDUCB *cb,
                                 INT64 &contextID,
@@ -162,7 +162,8 @@ namespace engine
          virtual INT32 buildPhase2Msg( const CHAR *pReceiveBuffer,
                                        CHAR **pMsg,
                                        INT32 *pMsgSize,
-                                       pmdEDUCB *cb ) = 0 ;
+                                       pmdEDUCB *cb,
+                                       BOOLEAN inCompact ) = 0 ;
 
          virtual void  releasePhase1Msg( CHAR *pMsg,
                                          INT32 msgSize,
@@ -175,7 +176,8 @@ namespace engine
          virtual INT32 executeOnDataGroup ( MsgHeader *pMsg,
                                             pmdEDUCB *cb,
                                             INT64 &contextID,
-                                            rtnContextBuf *buf ) = 0 ;
+                                            rtnContextBuf *buf,
+                                            SET_NODEID *retryNodes ) = 0 ;
 
          virtual BOOLEAN canCompactCommit() = 0 ;
 
@@ -187,6 +189,10 @@ namespace engine
          virtual void    releaseCompactMsg( CHAR *pMsg,
                                             INT32 msgSize,
                                             pmdEDUCB *cb ) = 0 ;
+
+      protected:
+         UINT64 _preCommitTimeUS ;
+         UINT64 _commitTimeUS ;
    } ;
    typedef _coord2PhaseCommit coord2PhaseCommit ;
 
@@ -217,7 +223,8 @@ namespace engine
          virtual INT32 buildPhase2Msg( const CHAR *pReceiveBuffer,
                                        CHAR **pMsg,
                                        INT32 *pMsgSize,
-                                       pmdEDUCB *cb ) ;
+                                       pmdEDUCB *cb,
+                                       BOOLEAN inCompact ) ;
 
          virtual void  releasePhase1Msg( CHAR *pMsg,
                                          INT32 msgSize,
@@ -230,7 +237,8 @@ namespace engine
          virtual INT32 executeOnDataGroup ( MsgHeader *pMsg,
                                             pmdEDUCB *cb,
                                             INT64 &contextID,
-                                            rtnContextBuf *buf ) ;
+                                            rtnContextBuf *buf,
+                                            SET_NODEID *retryNodes ) ;
 
          virtual BOOLEAN canCompactCommit() ;
 
@@ -243,9 +251,11 @@ namespace engine
                                             INT32 msgSize,
                                             pmdEDUCB *cb ) ;
 
+      protected:
+         INT32 _onReply( pmdEDUCB *cb,
+                         MsgOpReply *reply ) ;
       private:
-         MsgOpTransCommit                 _phase2Msg ;
-         
+         MsgOpTransCommitInt _phase2Msg ;
    } ;
    typedef _coordTransCommit coordTransCommit ;
 
@@ -274,6 +284,37 @@ namespace engine
 
    } ;
    typedef _coordTransRollback coordTransRollback ;
+
+   /*
+      A transaction guard class.
+      The constructor begins a global transaction.
+      The destructor calls rollback.
+      If commit is called, it disables the rollback.
+      Caller should check the rc via getRc() after contruction.
+
+      Example usage:
+         coordTransHandler trans();           // begins the transaction
+         if ((rc = trans.getRc())) return rc; // error case
+         ...                                  // do work, if early return trans
+         ...                                  // is rolled back
+         rc = trans.commit();                 // commits the transaction
+   */
+   class coordTransHandler : public SDBObject
+   {
+    public:
+      // If allGroups = TRUE, adds the primary of each group the trans map
+      coordTransHandler(pmdEDUCB *cb, coordResource *pResource,
+                        BOOLEAN allGroups = TRUE);
+      ~coordTransHandler();
+      INT32 commit();
+      INT32 getRc() { return _rc; };
+
+    private:
+      pmdEDUCB *_cb;
+      coordResource *_pResource;
+      INT32 _rc;
+      BOOLEAN _committed;
+   };
 
 }
 

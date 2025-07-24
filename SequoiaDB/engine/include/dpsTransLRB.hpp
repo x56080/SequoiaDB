@@ -1,20 +1,18 @@
-/******************************************************************************
+/*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = dpsTransLRB.hpp
 
@@ -36,7 +34,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #ifndef DPSTRANSLRB_HPP_
 #define DPSTRANSLRB_HPP_
 
@@ -50,6 +47,8 @@ namespace engine
 {
    class _dpsTransExecutor ;
    class dpsTransLRBHeader ;
+   class dpsTransCB ;
+   class _pmdEDUCB ;
 
    #define DPS_LRB_STATUS_NONE  ( (UINT8) 0x00 )
    #define DPS_LRB_STATUS_AWAKE ( (UINT8) 0x01 )
@@ -111,9 +110,10 @@ namespace engine
    typedef void    (*DPS_EXTDATA_ON_LOCKRELEASE)( const dpsTransLockId &lockId,
                                                   DPS_TRANSLOCK_TYPE lockMode,
                                                   UINT32 refCounter,
-                                                  dpsLRBExtData *pExtData,
-                                                  INT32 idxLID,
-                                                  BOOLEAN hasLock ) ;
+                                                  BOOLEAN  nonTransNeedCleanup,
+                                                  dpsTransCB *transCB,
+                                                  _pmdEDUCB *eduCB,
+                                                  dpsLRBExtData *pExtData ) ;
 
    class dpsLRBExtData : public utilPooledObject
    {
@@ -264,7 +264,10 @@ namespace engine
       }
    } ; // 56 bytes in total
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    /*
     * trans executor info for deadlock detection
     */
@@ -330,4 +333,3 @@ namespace engine
 }
 
 #endif // DPSTRANSLRB_HPP_
-

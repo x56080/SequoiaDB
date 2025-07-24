@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = rtnPredicate.cpp
 
@@ -36,7 +34,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #include "rtnPredicate.hpp"
 #include "ixm.hpp"
 #include "pdTrace.hpp"
@@ -3045,6 +3042,30 @@ namespace engine
       return TRUE ;
    }
 
+<<<<<<< HEAD
+=======
+   BOOLEAN _rtnPredicateList::isAllEqual() const
+   {
+      for ( RTN_PREDICATE_LIST::const_iterator iter = _predicates.begin() ;
+            iter != _predicates.end() ;
+            ++ iter )
+      {
+         if ( !iter->isAllEqual() )
+         {
+            return FALSE;
+         }
+      }
+      return TRUE;
+   }
+
+   BOOLEAN _rtnPredicateList::isPointGet() const
+   {
+      return 1 == _predicates.size() &&
+             1 == _predicates.begin()->_startStopKeys.size() &&
+             _predicates.begin()->isAllEqual();
+   }
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    // whether an element matches the i'th column
    // even result means the element is contained within a valid range
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNPREDLIST_MATLOWELE, "_rtnPredicateList::matchingLowElement" )
@@ -3191,15 +3212,14 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__RTNPREDLISTITE_ADVTOLOBOU ) ;
       _cmp[i] = &_predList._predicates[i]._startStopKeys[_currentKey[i]
                                                         ]._startKey._bound ;
-      _inc[i] = _predList._predicates[i]._startStopKeys[_currentKey[i]
-                                                       ]._startKey._inclusive ;
+      _inc.set(i, _predList._predicates[i]._startStopKeys[_currentKey[i]
+                                                       ]._startKey._inclusive );
       // reset all other following fields
       for ( INT32 j = i+1; j < (INT32)_currentKey.size(); ++j )
       {
          _cmp[j] =
             &_predList._predicates[j]._startStopKeys.front()._startKey._bound ;
-         _inc[j] =
-          _predList._predicates[j]._startStopKeys.front()._startKey._inclusive ;
+         _inc.set(j, _predList._predicates[j]._startStopKeys.front()._startKey._inclusive);
          _currentKey[j] = 0 ;
       }
       _after = FALSE ;
@@ -3272,8 +3292,8 @@ namespace engine
       {
          _cmp[i] =
             &_predList._predicates[i]._startStopKeys.front()._startKey._bound ;
-         _inc[i] =
-           _predList._predicates[i]._startStopKeys.front()._startKey._inclusive;
+         _inc.set(i,
+           _predList._predicates[i]._startStopKeys.front()._startKey._inclusive);
          _currentKey[i] = 0 ;
       }
       PD_TRACE_EXIT ( SDB__RTNPREDLISTITE_RESET ) ;
@@ -3299,10 +3319,7 @@ namespace engine
          _cmp[i] = source->_cmp[i] ;
       }
 
-      for ( i = 0; i < (INT32)_inc.size(); ++i )
-      {
-         _inc[i] = source->_inc[i] ;
-      }
+      _inc = source->_inc;
 
       for ( i = 0; i < (INT32)_currentKey.size(); ++i )
       {

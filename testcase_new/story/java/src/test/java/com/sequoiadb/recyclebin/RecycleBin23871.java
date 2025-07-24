@@ -89,6 +89,7 @@ public class RecycleBin23871 extends SdbTestBase {
                 .getCollection( clName );
         if ( returnTruncate.getRetCode() == 0
                 && returnDrop.getRetCode() == 0 ) {
+<<<<<<< HEAD
             if ( dbcl.getCount() == 1000 ) {
                 RecycleBinUtils.checkRecycleItem( sdb, recycleName1 );
                 RecycleBinUtils.checkRecycleItem( sdb, recycleName2 );
@@ -96,6 +97,11 @@ public class RecycleBin23871 extends SdbTestBase {
             } else {
                 Assert.assertEquals( dbcl.getCount(), 0 );
             }
+=======
+            RecycleBinUtils.checkRecycleItem( sdb, recycleName1 );
+            RecycleBinUtils.checkRecycleItem( sdb, recycleName2 );
+            RecycleBinUtils.checkRecords( dbcl, insertRecords, "{ a:1 }" );
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         } else if ( returnTruncate.getRetCode() == 0 ) {
             Assert.assertEquals( returnDrop.getRetCode(),
                     SDBError.SDB_LOCK_FAILED.getErrorCode() );

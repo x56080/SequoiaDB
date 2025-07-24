@@ -45,7 +45,11 @@ SdbRecycleBin
 
 ##版本##
 
+<<<<<<< HEAD
 v3.6 及以上版本
+=======
+v5.0.3 及以上版本
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 ##示例##
 
@@ -60,7 +64,13 @@ v3.6 及以上版本
       "OriginID": 21474836481,
       "Type": "Collection",
       "OpType": "Drop",
+<<<<<<< HEAD
       "RecycleTime": "2022-01-24-12.04.12.000000"
+=======
+      "RecycleTime": {
+        "$timestamp": "2022-01-24-12.04.12.000000"
+      }
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     }
     ```
 

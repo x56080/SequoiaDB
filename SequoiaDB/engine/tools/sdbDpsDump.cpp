@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = dpsDump.cpp
 
@@ -48,6 +46,10 @@
 #include "ossPath.hpp"
 #include "utilCommon.hpp"
 #include "dpsUtil.hpp"
+<<<<<<< HEAD
+=======
+#include "dpsOp2Record.hpp"
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 #include <sstream>
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/operations.hpp>
@@ -454,7 +456,11 @@ BOOLEAN _dpsTransFilter::match( dpsDumper *dumper, CHAR *pRecord )
 {
    BOOLEAN rc = FALSE ;
 
+<<<<<<< HEAD
    if( 0 == dumper->_transID )
+=======
+   if( dumper->_transID.isInvalid() )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
       rc = dpsDumpFilter::match( dumper, pRecord ) ;
       goto done ;
@@ -463,6 +469,7 @@ BOOLEAN _dpsTransFilter::match( dpsDumper *dumper, CHAR *pRecord )
    {
       dpsLogRecord record ;
       record.load( pRecord ) ;
+<<<<<<< HEAD
 
       DPS_TRANS_ID transID = DPS_INVALID_TRANS_ID ;
       rc = dpsGetTransIDFromRecord( record, FALSE, transID ) ;
@@ -472,6 +479,19 @@ BOOLEAN _dpsTransFilter::match( dpsDumper *dumper, CHAR *pRecord )
          {
             rc = dpsDumpFilter::match( dumper, pRecord ) ;
             goto done ;
+=======
+      dpsLogRecord::iterator itr = record.find( DPS_LOG_PUBLIC_TRANSID ) ;
+      if( itr.valid() )
+      {
+         DPS_TRANS_ID transID ;
+         if ( SDB_OK == dpsGetTransIDFromRecord( pRecord, transID ) )
+         {
+            if( transID.getOrigTransID() == dumper->_transID)
+            {
+               rc = dpsDumpFilter::match( dumper, pRecord ) ;
+               goto done ;
+            }
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          }
       }
    }
@@ -690,6 +710,11 @@ INT32 _dpsDumper::process( const po::options_description &desc,
                    << std::endl ;
          goto error ;
       }
+<<<<<<< HEAD
+=======
+
+      _transID = _transID.getOrigTransID() ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    }
 
    ///< we should deal with lsn filter first

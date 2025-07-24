@@ -16,7 +16,10 @@
 
 package com.sequoiadb.flink.source.reader;
 
+<<<<<<< HEAD
 import com.sequoiadb.flink.common.util.SDBInfoUtil;
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 import com.sequoiadb.flink.serde.SDBDataConverter;
 import com.sequoiadb.flink.config.SDBSourceOptions;
 import com.sequoiadb.flink.source.split.SDBSplit;
@@ -40,6 +43,7 @@ public class SDBReader extends SingleThreadMultiplexSourceReaderBase<byte[], Row
                      BSONObject selector,
                      long limit) {
         super(
+<<<<<<< HEAD
                 // supply a SDBSplitReader (for reading split)
                 () -> {
                     sourceOptions.setSourceInfo(
@@ -48,6 +52,10 @@ public class SDBReader extends SingleThreadMultiplexSourceReaderBase<byte[], Row
                 },
                 // supply a SDBEmitter (for emitting data to next Operator)
                 new SDBEmitter(dataConverter),
+=======
+                () -> new SDBSplitReader(sourceOptions, matcher, selector, limit), //supply a SDBSplitReader (for reading)
+                new SDBEmitter(dataConverter),                            // supply a SDBEmitter (for emitting)
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                 context.getConfiguration(),
                 context
                 );

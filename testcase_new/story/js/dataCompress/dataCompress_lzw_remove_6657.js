@@ -29,11 +29,17 @@ function test ( testPara )
    var recsCnt = cl.count();
    assert.equal( recsCnt, 0 );
    checkLzwAttributeByDataNode( rgName, csName, clName, false );
+<<<<<<< HEAD
 
    // insert again
    insertRecs2( cl, insertRecsNum2 );
 
    waitDictionary( db, csName, clName );
+=======
+
+   // insert again
+   insertRecs2( cl, insertRecsNum2 );
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    // 检查结果，检查组内每个节点数据正确性
    checkLzwAttributeByDataNode( rgName, csName, clName, true );

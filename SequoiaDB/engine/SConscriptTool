@@ -247,8 +247,12 @@ utilFiles = [
       "util/utilUniqueID.cpp",
       "util/base64.cpp",
       "util/utilSecure.cpp",
+<<<<<<< HEAD
       "util/utilTool.cpp",
       "util/utilLocation.cpp"
+=======
+      "util/utilTool.cpp"
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       ]
 
 dpsFiles = [
@@ -282,7 +286,16 @@ omagentFiles = [
       "omagent/omagentRemoteUsrSystem.cpp",
       "omagent/omagentRemoteUsrFile.cpp",
       "omagent/omagentRemoteUsrCmd.cpp",
-      "omagent/omagentRemoteUsrOma.cpp"
+      "omagent/omagentRemoteUsrOma.cpp",
+      "omagent/omagentStpCmd.cpp"
+      ]
+
+stpCommonFiles = [
+      "tools/stp/stpNode.cpp",
+      "tools/stp/stpSyncStats.cpp",
+      "tools/stp/stpMetaData.cpp",
+      "tools/stp/stpOptions.cpp",
+      "tools/stp/stpToolUtil.cpp"
       ]
 
 sptFiles = [
@@ -326,6 +339,8 @@ sptFiles = [
       "spt/usrdef/sptUsrCmdCommon.cpp",
       "spt/usrdef/sptUsrOmaCommon.cpp",
       "spt/usrdef/sptUsrIniFile.cpp",
+      "spt/usrdef/sptUsrStpAssit.cpp",
+      "spt/usrdef/sptUsrStp.cpp",
       "spt/db/sptDBSdb.cpp",
       "spt/db/sptDBSecureSdb.cpp",
       "spt/db/sptDBRG.cpp",
@@ -776,6 +791,10 @@ if linux:
 toolEnv.StaticLibrary('spt', sptFiles)
 toolEnv.StaticLibrary('ssh2', ssh2Files)
 toolEnv.StaticLibrary('mon', monFiles)
+<<<<<<< HEAD
+=======
+toolEnv.StaticLibrary('stpCommon', stpCommonFiles)
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 #fs
 if linux64:
    toolEnv.StaticLibrary('fs', sequoiaFSComFiles)
@@ -810,7 +829,7 @@ sdblist = toolEnv.Program("sdblist", sdbListMain,
          _LIBDEPS='$_LIBDEPS_OBJS' )
 
 sdbcm = toolEnv.Program("sdbcm", sdbcmMain,
-         LIBDEPS=["pd","oss","msg","bson","util","net","pmd", "clientcpp","pmdMT","omagent","client", "spt","ssh2","rtnJob","mon"],
+         LIBDEPS=["pd","oss","msg","bson","util","net","pmd", "clientcpp","pmdMT","omagent","client", "spt","ssh2","rtnJob","mon","stpCommon"],
          _LIBDEPS='$_LIBDEPS_OBJS' )
 
 sdbcmd = toolEnv.Program("sdbcmd", sdbcmDMNMain,
@@ -836,10 +855,13 @@ sdbpasswd = toolEnv.Program("sdbpasswd", sdbPasswdFiles,
 sdbsecuretool = toolEnv.Program("sdbsecuretool", sdbSecureFiles,
          LIBDEPS=["pd", "oss", "bson", "util"],
          _LIBDEPS='$_LIBDEPS_OBJS' )
+<<<<<<< HEAD
 
 sdbrevert = toolEnv.Program("sdbrevert", sdbRevertFiles,
           LIBDEPS=["bson","oss","pd","util","clientcpp","dps","pmd","pcre"],
           _LIBDEPS='$_LIBDEPS_OBJS' )
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          
 if linux:
    sdbtop = toolEnv.Program("sdbtop", sdbtopMain,

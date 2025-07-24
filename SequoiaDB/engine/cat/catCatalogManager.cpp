@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = catCatalogManager.cpp
 
@@ -34,7 +33,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #include "core.hpp"
 #include "pmdCB.hpp"
 #include "pd.hpp"
@@ -48,6 +46,10 @@
 #include "catCommon.hpp"
 #include "clsCatalogAgent.hpp"
 #include "rtnAlterJob.hpp"
+<<<<<<< HEAD
+=======
+#include "utilDataSource.hpp"
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 #include "catTask.hpp"
 #include "catCommand.hpp"
 #include "authDef.hpp"
@@ -286,7 +288,31 @@ namespace engine
       {
          rc = ossException2RC( &e ) ;
          PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+<<<<<<< HEAD
+=======
       }
+
+      rc = rtnGetIntElement( boQuery, CAT_CS_UNIQUEID,
+                             (INT32&)csUniqueID ) ;
+      if ( SDB_FIELD_NOT_EXIST == rc )
+      {
+         rc = rtnGetStringElement( boQuery, CAT_COLLECTION_SPACE_NAME,
+                                   &csName ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
+      }
+      PD_RC_CHECK( rc, PDERROR, "Failed to get field[%s] or field[%s], "
+                   "rc: %d", CAT_COLLECTION_SPACE_NAME,
+                    CAT_CS_UNIQUEID, rc ) ;
+
+      rc = rtnGetBooleanElement( boQuery, CAT_INCLUDE_SUBCL,
+                                 includeSubCLGroup ) ;
+      if ( SDB_FIELD_NOT_EXIST == rc )
+      {
+         includeSubCLGroup = TRUE ; // default is true
+         rc = SDB_OK ;
+      }
+      PD_RC_CHECK( rc, PDERROR, "Failed to get field[%s], rc: %d",
+                   CAT_INCLUDE_SUBCL, rc ) ;
 
       rc = rtnGetIntElement( boQuery, CAT_CS_UNIQUEID,
                              (INT32&)csUniqueID ) ;
@@ -350,11 +376,19 @@ namespace engine
          rc = catGetCSSubCLGroups( csName, _pEduCB, groupSet ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get groups for sub-collections "
                       "in collection space [%s], rc: %d", csName, rc ) ;
+<<<<<<< HEAD
 
          rc = catSaveToGroupIDList( groupSet, groups ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to save group list, rc: %d", rc ) ;
       }
 
+=======
+
+         rc = catSaveToGroupIDList( groupSet, groups ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to save group list, rc: %d", rc ) ;
+      }
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       try
       {
          BSONObjBuilder builder ;
@@ -1518,7 +1552,11 @@ namespace engine
             rc = processCmdDropDomain ( pQuery ) ;
             break ;
          case MSG_CAT_ALTER_DOMAIN_REQ :
+<<<<<<< HEAD
             rc = processCmdAlterDomain ( pQuery, ctxBuff ) ;
+=======
+            rc = processCmdAlterDomain ( pQuery ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             break ;
          default :
             rc = SDB_INVALIDARG ;
@@ -1894,6 +1932,7 @@ namespace engine
                          "domain [%s], rc: %d", task->getActionName(), domain,
                          rc ) ;
 
+<<<<<<< HEAD
             try
             {
                // Build return error group obj
@@ -1919,6 +1958,8 @@ namespace engine
          }
       }
 
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    done :
       PD_TRACE_EXITRC( SDB_CATALOGMGR_ALTERDOMAIN, rc ) ;
       return rc ;

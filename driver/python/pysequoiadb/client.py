@@ -209,7 +209,11 @@ class client(object):
             if host_list is None:
                 self.__host = self.HOST
             elif isinstance(host_list, list):
+<<<<<<< HEAD
                 if len(host_list) == 0:
+=======
+                if len(host_list) is 0 :
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                     self.__host = self.HOST
                 else:
                     _host_list = host_list

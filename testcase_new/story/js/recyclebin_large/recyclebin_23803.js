@@ -2,7 +2,11 @@
  * @Description   : seqDB-23803:CL开启lzw压缩，字典已构建，数据已压缩，dropCL后恢复CL
  * @Author        : liuli
  * @CreateTime    : 2021.04.20
+<<<<<<< HEAD
  * @LastEditTime  : 2023.08.14
+=======
+ * @LastEditTime  : 2022.08.18
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -34,7 +38,10 @@ function test ()
    db.getRecycleBin().returnItem( recycleName );
 
    // 检查结果，检查组内每个节点数据正确性
+<<<<<<< HEAD
    commCheckLSN( db );
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    var dbcl = db.getCS( csName ).getCL( clName );
    checkLzwAttributeByDataNode( rgName, csName, clName );
    checkRecsByDataNode( dbcl, number1, insertRecsNum, checkRecsNum );

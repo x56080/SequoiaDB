@@ -1,20 +1,18 @@
-/******************************************************************************
+/*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = pd.hpp
 
@@ -35,7 +33,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #ifndef NETMSGHANDLER_HPP_
 #define NETMSGHANDLER_HPP_
 
@@ -54,22 +51,83 @@ namespace engine
         _netMsgHandler(){}
         virtual ~_netMsgHandler(){}
       public:
+        // callback to handle message
+        // - handle: net handle
+        // - header: header of message
+        // - msg: content of message
+        // - msgUserData: user data with the receive message
         virtual INT32   handleMsg( const NET_HANDLE &handle,
                                    const _MsgHeader *header,
-                                   const CHAR *msg ) = 0 ;
+                                   const CHAR *msg,
+                                   UINT64 msgUserData ) = 0 ;
 
+        // callback to handle connection close
+        // - handle: net handle
+        // - id: route ID to peer node
         virtual void    handleClose( const NET_HANDLE &handle,
                                      _MsgRouteID id )
         {
         }
 
+<<<<<<< HEAD
         virtual INT32 handleConnect( const NET_HANDLE &handle,
                                      _MsgRouteID id,
                                      BOOLEAN isPositive )
+=======
+        // callback to handle connection establish
+        // - handle: net handle
+        // - id: route ID to peer node
+        // - isPositive: TRUE means connection is launched from this node
+        //               FALSE means connection is launched from peer node
+        // - userDataHolder: holder of user data, pass user data to handle
+        //                   session, may create user data of type specified
+        //                   by handle session
+        virtual INT32 handleConnect( const NET_HANDLE &handle,
+                                     _MsgRouteID id,
+                                     BOOLEAN isPositive,
+                                     netUserDataHolder *userDataHolder )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         {
            return SDB_OK ;
         }
 
+<<<<<<< HEAD
+        // callback on IO service stop
+        virtual void    onPrepareStop() {}
+        virtual void    onStop() {}
+   } ;
+=======
+        // callback on before sending message
+        // - handle: net handle
+        // - id: route ID to peer node
+        // - header: message header to send
+        virtual INT32   onSendMsg( const NET_HANDLE &handle,
+                                   const MsgRouteID &id,
+                                   MsgHeader *header )
+        {
+           return SDB_OK ;
+        }
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
+
+        // callback on after receiving message
+        // - handle: net handle
+        // - id: route ID to peer node
+        // - header: message header received
+        // - availableSize: size of available messages in socket ( including
+        //                  current message and blocking messages )
+        // - userDataHolder: holder of user data, pass user data to handle
+        //                   session
+        virtual INT32   onReceiveMsg( const NET_HANDLE &handle,
+                                      const MsgRouteID &id,
+                                      MsgHeader *header,
+                                      UINT32 availableSize,
+                                      netUserDataHolder *userDataHolder )
+        {
+           return SDB_OK ;
+        }
+
+<<<<<<< HEAD
+=======
         // callback on IO service stop
         virtual void    onPrepareStop() {}
         virtual void    onStop() {}
@@ -77,6 +135,7 @@ namespace engine
 
    typedef _netMsgHandler INetMsgHandler ;
 
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 }
 
 #endif // NETMSGHANDLER_HPP_

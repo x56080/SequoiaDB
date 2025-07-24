@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = rtnQueryOptions.hpp
 
@@ -35,7 +34,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #ifndef RTN_QUERYOPTIONS_HPP_
 #define RTN_QUERYOPTIONS_HPP_
 
@@ -46,6 +44,7 @@
 #include "../bson/bson.hpp"
 #include "msg.hpp"
 #include "ossMemPool.hpp"
+#include "utilUniqueID.hpp"
 #include <string>
 
 using namespace bson ;
@@ -422,12 +421,45 @@ namespace engine
 
          void setMainCLQuery ( const CHAR *mainCLName, const CHAR *subCLName ) ;
 
+         // Collection unique id
+         OSS_INLINE void setCLUniqueID ( utilCLUniqueID clUID)
+         {
+            _clUID = clUID ;
+         }
+
+         OSS_INLINE utilCLUniqueID getCLUniqueID () const
+         {
+            return _clUID ;
+         }
+
+         OSS_INLINE BOOLEAN isUniqueIDFilled() const
+         {
+            return _clUID != UTIL_UNIQUEID_NULL ; 
+         }
+
          OSS_INLINE BOOLEAN canPrepareMore () const
          {
             return testFlag( FLG_QUERY_PREPARE_MORE )&&
                    !testFlag( FLG_QUERY_MODIFY ) ;
          }
 
+<<<<<<< HEAD
+=======
+         OSS_INLINE BOOLEAN isWriteOp() const
+         {
+            // set to write operator ( remove, update, etc )
+            // or query and modify, or select for update
+            return _writeOp ||
+                   testFlag( FLG_QUERY_MODIFY ) ||
+                   testFlag( FLG_QUERY_FOR_UPDATE ) ;
+         }
+
+         OSS_INLINE void setWriteOp( BOOLEAN writeOp )
+         {
+            _writeOp = writeOp ;
+         }
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          // WARNING: only used in explain
          BOOLEAN isQueryAndModify() const ;
 
@@ -439,6 +471,8 @@ namespace engine
          ossPoolString  _fullNameBuf ;
          const CHAR *   _mainCLName ;
          ossPoolString  _mainCLNameBuf ;
+         BOOLEAN        _writeOp ;
+         utilCLUniqueID _clUID ;
    } ;
 
    typedef class _rtnQueryOptions rtnQueryOptions ;

@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = coordCommandNode.cpp
 
@@ -34,7 +33,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #include "coordCommandNode.hpp"
 #include "rtn.hpp"
 #include "msgCatalog.hpp"
@@ -2479,6 +2477,33 @@ namespace engine
       return SDB_OK ;
    }
 
+<<<<<<< HEAD
+=======
+   void _coordCMDRemoveNode::_notify2GroupNodes( pmdEDUCB *cb,
+                                                 coordCMDArguments *pArgs )
+   {
+      CoordGroupInfoPtr groupPtr ;
+      _netRouteAgent *pAgent = _pResource->getRouteAgent() ;
+
+      if ( SDB_OK == _pResource->updateGroupInfo( pArgs->_targetName.c_str(),
+                                                  groupPtr,
+                                                  cb ) )
+      {
+         _MsgClsGInfoUpdated updated ;
+         updated.groupID = groupPtr->groupID() ;
+
+         MsgRouteID routeID ;
+         UINT32 index = 0 ;
+
+         while ( SDB_OK == groupPtr->getNodeID( index++, routeID,
+                                                MSG_ROUTE_SHARD_SERVCIE ) )
+         {
+            pAgent->syncSend( routeID, (MsgHeader *)&updated ) ;
+         }
+      }
+   }
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    AUDIT_OBJ_TYPE _coordCMDRemoveNode::_getAuditObjectType() const
    {
       return AUDIT_OBJ_NODE ;
@@ -2799,6 +2824,15 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( COORD_REELECT_EXE ) ;
+<<<<<<< HEAD
+=======
+      const CHAR *pQuery = NULL ;
+      const CHAR *gpName = NULL ;
+      CoordGroupInfoPtr gpInfo ;
+      CoordGroupList gpLst ;
+      CHAR *pBuffer = NULL ;
+      INT32 buffSize = 0 ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       const CHAR *cmdName = NULL ;
       const CHAR *pQuery = NULL ;
@@ -2814,7 +2848,11 @@ namespace engine
 
       contextID = -1 ;
 
+<<<<<<< HEAD
       rc = msgExtractQuery( (const CHAR*)pMsg, NULL, &cmdName,
+=======
+      rc = msgExtractQuery( (const CHAR*)pMsg, NULL, NULL,
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                             NULL, NULL, &pQuery,
                             NULL, NULL, NULL ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to parse the message, rc: %d", rc ) ;

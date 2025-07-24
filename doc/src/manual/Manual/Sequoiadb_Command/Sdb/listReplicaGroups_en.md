@@ -36,6 +36,7 @@ v2.0 and above
 
 * Return all replication group information
 
+<<<<<<< HEAD
     ```lang-javascript
     > db.listReplicaGroups()
     {
@@ -110,6 +111,73 @@ v2.0 and above
     ```
 
     This replication group has two nodes: 11800 and 11850, of which 11850 is the master node. For replication Group details,refer to [Copy List][LIST_GROUPS].
+=======
+	```lang-javascript
+	> db.listReplicaGroups()
+	{
+	"Group": 
+	[
+	  {
+		"dbpath": "/opt/sequoiadb/data/11800",
+		"HostName": "vmsvr2-suse-x64",
+		"Service": [
+		  {
+			"Type": 0,
+			"Name": "11800"
+		  },
+		  {
+			"Type": 1,
+			"Name": "11801"
+		  },
+		  {
+			"Type": 2,
+			"Name": "11802"
+		  },
+		  {
+			"Type": 3,
+			"Name": "11803"
+		  }
+		],
+		"NodeID": 1000
+	  },
+	  {
+		"dbpath": "/opt/sequoiadb/data/11850",
+		"HostName": "vmsvr2-suse-x64",
+		"Service": [
+		  {
+			"Type": 0,
+			"Name": "11850"
+		  },
+		  {
+			"Type": 1,
+			"Name": "11851"
+		  },
+		  {
+			"Type": 2,
+			"Name": "11852"
+		  },
+		  {
+			"Type": 3,
+			"Name": "11853"
+		  }
+		],
+		"NodeID": 1001
+	  }
+	],
+	"GroupID": 1001,
+	"GroupName": "group",
+	"PrimaryNode": 1001,
+	"Role": 0,
+	"Status": 1,
+	"Version": 5,
+	"_id": {
+	  "$oid": "517b2fc33d7e6f820fc0eb57"
+	  }
+	}
+	```
+
+	This replication group has two nodes: 11800 and 11850, of which 11850 is the master node. For replication Group details,refer to [Copy List][LIST_GROUPS].
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 
 [^_^]:

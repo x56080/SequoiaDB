@@ -20,7 +20,10 @@ import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.flink.common.client.SDBClientProvider;
 import com.sequoiadb.flink.common.client.SDBCollectionProvider;
+<<<<<<< HEAD
 import com.sequoiadb.flink.common.util.SDBInfoUtil;
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 import com.sequoiadb.flink.config.SDBSourceOptions;
 import com.sequoiadb.flink.serde.SDBDataConverter;
 import org.apache.flink.table.annotation.FunctionHint;
@@ -81,6 +84,10 @@ public class SDBLookupTableFunction extends TableFunction<RowData> {
                 .withCollectionSpace(sourceOptions.getCollectionSpace())
                 .withCollection(sourceOptions.getCollection())
                 .build();
+<<<<<<< HEAD
+=======
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     }
 
 
@@ -93,8 +100,11 @@ public class SDBLookupTableFunction extends TableFunction<RowData> {
      */
     @Override
     public void open(FunctionContext context) throws Exception {
+<<<<<<< HEAD
         sdbCollectionProvider.setupSourceInfo(
                 SDBInfoUtil.generateSourceInfo(context.getMetricGroup()));
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
         cl = sdbCollectionProvider.getCollection();
         // get sdb client to obtain indexes
@@ -114,6 +124,11 @@ public class SDBLookupTableFunction extends TableFunction<RowData> {
         }
 
         if (noIndexColumns.size() > 0) {
+<<<<<<< HEAD
+=======
+            System.out.println("Column (" + String.join(",", noIndexColumns) + ") used by join are not part of any indexes in Sequoiadb!" +
+                    " You may consider creating indexes using the join fields.");
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             LOG.warn("Column (" + String.join(",", noIndexColumns) + ") used by join are not part of any indexes in Sequoiadb!" +
                     " You may consider creating indexes using the join fields.");
         }

@@ -1,0 +1,62 @@
+/*******************************************************************************
+
+   Copyright (C) 2011-Present SequoiaDB Ltd.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+   Source File Name = IRecordFilter.h
+
+   Descriptive Name =
+
+   Dependencies: N/A
+
+   Restrictions: N/A
+
+   Change Activity:
+   defect Date        Who Description
+   ====== =========== === ==============================================
+          09/08/2020  WY  Initial Draft
+
+   Last Changed =
+
+*******************************************************************************/
+#ifndef SDB_I_RECORD_FILTER_H_
+#define SDB_I_RECORD_FILTER_H_
+
+#include "core.hpp"
+#include "oss.hpp"
+#include "../../bson/bson.hpp"
+
+namespace engine
+{
+   class IRecordFilter : public SDBObject
+   {
+      public:
+         IRecordFilter(){}
+         virtual ~IRecordFilter(){}
+         IRecordFilter(const IRecordFilter &) = delete;
+         IRecordFilter &operator=(const IRecordFilter &) = delete;
+
+      public:
+         virtual INT32 filter(UINT32 size,
+                              const CHAR *data,
+                              BOOLEAN &filtered)const = 0;
+
+         virtual INT32 filter(const bson::BSONObj &record,
+                              BOOLEAN &filtered)const = 0;
+
+   };//class IRecordFilter
+} // namespace engine
+
+
+#endif//SDB_I_RECORD_FILTER_H_

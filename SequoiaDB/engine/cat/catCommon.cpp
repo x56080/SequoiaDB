@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = catCommon.cpp
 
@@ -30,7 +28,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #include "pmd.hpp"
 #include "pmdCB.hpp"
 #include "catCommon.hpp"
@@ -47,8 +44,11 @@
 #include "../bson/lib/md5.hpp"
 #include "catCMDBase.hpp"
 #include "pdSecure.hpp"
+<<<<<<< HEAD
 #include "mthModifier.hpp"
 #include "catLocation.hpp"
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 using namespace bson ;
 
@@ -1204,6 +1204,7 @@ namespace engine
                 SDB_INVALIDARG, error, PDERROR,
                 "Failed to add collection [%s] into collection space [%s], "
                 "no unique ID is given", clName, csName ) ;
+<<<<<<< HEAD
 
       try
       {
@@ -1240,6 +1241,44 @@ namespace engine
             curCLUniqueID = (utilCLUniqueID)( element.numberLong() ) ;
          }
 
+=======
+
+      try
+      {
+         matcher = BSON( CAT_COLLECTION_SPACE_NAME << csName ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build matcher, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+      // fetch latest object of collection space
+      rc = catGetOneObj( CAT_COLLECTION_SPACE_COLLECTION, dummy, matcher,
+                         dummy, cb, boSpace ) ;
+      if ( SDB_DMS_EOC == rc )
+      {
+         // not found, modify the return code
+         rc = SDB_DMS_CS_NOTEXIST ;
+      }
+      PD_RC_CHECK( rc, PDERROR, "Failed to get collection space [%s] from "
+                   "collection [%s], rc: %d", csName,
+                   CAT_COLLECTION_SPACE_COLLECTION, rc ) ;
+
+      try
+      {
+         // if unique ID is given, we need to move forward the high water
+         // mark of collection unique ID
+         utilCLUniqueID curCLUniqueID = UTIL_UNIQUEID_NULL ;
+         BSONElement element = boSpace.getField( CAT_CS_CLUNIQUEHWM ) ;
+         if ( element.isNumber() )
+         {
+            curCLUniqueID = (utilCLUniqueID)( element.numberLong() ) ;
+         }
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          // update array of collections
          BSONObjBuilder sub( updateBuilder.subobjStart( "$addtoset" ) ) ;
          BSONArrayBuilder sub1( sub.subarrayStart( CAT_COLLECTION ) ) ;
@@ -1263,6 +1302,7 @@ namespace engine
          setBuilder.append( FIELD_NAME_UPDATE_TIME, timestamp ) ;
 
          setBuilder.doneFast() ;
+<<<<<<< HEAD
 
          updator = updateBuilder.obj() ;
       }
@@ -1274,6 +1314,19 @@ namespace engine
          goto error ;
       }
 
+=======
+
+         updator = updateBuilder.obj() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build updator, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       rc = rtnUpdate( CAT_COLLECTION_SPACE_COLLECTION, matcher, updator,
                       dummy, 0, cb, dmsCB, dpsCB, w ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to update collection: %s, match: %s, "
@@ -1963,8 +2016,62 @@ namespace engine
       BSONObj hint, updator, match ;
 
       try
+<<<<<<< HEAD
       {
          BSONObjBuilder updateBuilder( CAT_BUILDER_INIT_SIZE ) ;
+=======
+      {
+         BSONObjBuilder updateBuilder( CAT_BUILDER_INIT_SIZE ) ;
+
+         BOOLEAN hasUpdateTime =
+                  ( setInfo.hasField( FIELD_NAME_UPDATE_TIME ) ) ||
+                  ( unsetInfo.hasField( FIELD_NAME_UPDATE_TIME ) ) ;
+
+         if ( incVersion )
+         {
+            updateBuilder.append( "$inc", BSON( CAT_VERSION_NAME << 1 ) ) ;
+         }
+
+         if ( hasUpdateTime )
+         {
+            if ( !setInfo.isEmpty() )
+            {
+               updateBuilder.append( "$set", setInfo ) ;
+            }
+         }
+         else
+         {
+            BSONObjBuilder tmpBuilder( updateBuilder.subobjStart( "$set" ) ) ;
+            if ( !setInfo.isEmpty() )
+            {
+               tmpBuilder.appendElements( setInfo ) ;
+            }
+
+            UINT64 currentTime = ossGetCurrentMilliseconds() ;
+            CHAR timestamp[ OSS_TIMESTAMP_STRING_LEN + 1 ] = { 0 } ;
+            ossMillisecondsToString( currentTime, timestamp ) ;
+            tmpBuilder.append( FIELD_NAME_UPDATE_TIME, timestamp ) ;
+
+            tmpBuilder.doneFast() ;
+         }
+
+         if ( !unsetInfo.isEmpty() )
+         {
+            updateBuilder.append( "$unset", unsetInfo ) ;
+         }
+
+         updator = updateBuilder.obj() ;
+
+         match = BSON( CAT_CATALOGNAME_NAME << clFullName ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build updator and matcher, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
          BOOLEAN hasUpdateTime =
                   ( setInfo.hasField( FIELD_NAME_UPDATE_TIME ) ) ||
@@ -2092,6 +2199,7 @@ namespace engine
 
       CHAR lowBound[ DMS_COLLECTION_SPACE_NAME_SZ + 1 + 1 ] = { 0 } ;
       CHAR upBound[  DMS_COLLECTION_SPACE_NAME_SZ + 1 + 1 ] = { 0 } ;
+<<<<<<< HEAD
 
       // eg: csName is "test", { Name: { $regex: "^test\\." } } is equal to
       // { Name: { $gt: "test.", $lt: "test/" } }. So if csName has
@@ -2123,6 +2231,79 @@ namespace engine
       goto done ;
    }
 
+   static INT32 _catBuildCLMatcher( const CHAR *fieldName,
+                                    const CHAR *csName,
+                                    BSONObj &matcher )
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         BSONObjBuilder builder ;
+
+         rc = _catBuildCLMatcher( fieldName, csName, builder ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build matcher, rc: %d", rc ) ;
+
+         matcher = builder.obj() ;
+=======
+
+      // eg: csName is "test", { Name: { $regex: "^test\\." } } is equal to
+      // { Name: { $gt: "test.", $lt: "test/" } }. So if csName has
+      // metacharacter(eg: "^"), we do not need to escape it.
+      ossStrncpy( lowBound, csName, DMS_COLLECTION_SPACE_NAME_SZ ) ;
+      ossStrncat( lowBound, ".", 1 ) ;
+      ossStrncpy( upBound, csName, DMS_COLLECTION_SPACE_NAME_SZ ) ;
+      ossStrncat( upBound, "/", 1 ) ;
+
+      try
+      {
+         BSONObjBuilder subBuilder( builder.subobjStart( fieldName ) ) ;
+         subBuilder.append( "$gt", lowBound ) ;
+         subBuilder.append( "$lt", upBound ) ;
+         subBuilder.doneFast() ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build matcher for collection space, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+<<<<<<< HEAD
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETCSSUBCLGRPS, "catGetCSSubCLGroups" )
+   INT32 catGetCSSubCLGroups ( const CHAR * csName,
+                               pmdEDUCB * cb,
+                               ossPoolSet< UINT32 > & groups )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATGETCSSUBCLGRPS ) ;
+
+      SDB_DMSCB * dmsCB = pmdGetKRCB()->getDMSCB() ;
+      SDB_RTNCB * rtnCB = pmdGetKRCB()->getRTNCB() ;
+
+      INT64 contextID = -1 ;
+      rtnQueryOptions queryOptions ;
+
+      queryOptions.setCLFullName( CAT_COLLECTION_INFO_COLLECTION ) ;
+      BSONObj matcherMaincl ;
+
+      rc = _catBuildCLMatcher( CAT_MAINCL_NAME, csName, matcherMaincl ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build [%s] matcher for "
+                   "collection space [%s], rc: %d", CAT_MAINCL_NAME,
+                   csName, rc ) ;
+      queryOptions.setQuery( matcherMaincl ) ;
+
+=======
    static INT32 _catBuildCLMatcher( const CHAR *fieldName,
                                     const CHAR *csName,
                                     BSONObj &matcher )
@@ -2177,6 +2358,7 @@ namespace engine
                    csName, rc ) ;
       queryOptions.setQuery( matcherMaincl ) ;
 
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       // query
       rc = rtnQuery( queryOptions, cb, dmsCB, rtnCB, contextID ) ;
       PD_RC_CHECK( rc, PDERROR, "Query collection[%s] failed, "
@@ -2482,6 +2664,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB_CATGETINCIDXUID ) ;
 
       SDB_ASSERT( collection, "collection shouldn't be null" ) ;
+<<<<<<< HEAD
 
       pmdKRCB *krcb = pmdGetKRCB() ;
       SDB_DMSCB *dmsCB = krcb->getDMSCB() ;
@@ -2636,8 +2819,163 @@ namespace engine
       if ( pIndexObj )
       {
          *pIndexObj = obj.getOwned() ;
+=======
+
+      pmdKRCB *krcb = pmdGetKRCB() ;
+      SDB_DMSCB *dmsCB = krcb->getDMSCB() ;
+      SDB_DPSCB *dpsCB = krcb->getDPSCB() ;
+
+      try
+      {
+         BSONObj dummy, result, matcher, updator ;
+         UINT64 idxUniqHWM = 0 ;
+         CHAR csName[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] = { 0 } ;
+
+         // get cs name
+         rc = rtnResolveCollectionSpaceName( collection,
+                                             ossStrlen( collection ),
+                                             csName,
+                                             DMS_COLLECTION_SPACE_NAME_SZ ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to get cs name from cl name[%s],rc: %d",
+                      collection, rc ) ;
+
+         // get index uniqueID hwm
+         matcher = BSON( FIELD_NAME_NAME << csName ) ;
+
+         rc = catGetOneObj( CAT_COLLECTION_SPACE_COLLECTION, dummy, matcher,
+                            dummy, cb, result ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to match obj[%s] from collection[%s], rc: %d",
+                      matcher.toString().c_str(),
+                      CAT_COLLECTION_SPACE_COLLECTION, rc ) ;
+
+         rc = rtnGetNumberLongElement( result, FIELD_NAME_IDXUNIQUEHWM,
+                                       (INT64&)idxUniqHWM ) ;
+         if ( SDB_FIELD_NOT_EXIST == rc )
+         {
+            rc = SDB_OK ;
+            UINT32 csUniqID = 0 ;
+            rc = rtnGetIntElement( result, FIELD_NAME_UNIQUEID,
+                                   (INT32&)csUniqID ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to get field[%s] from obj[%s]",
+                         FIELD_NAME_UNIQUEID, result.toString().c_str(), rc ) ;
+            idxUniqHWM = utilBuildIdxUniqueID( csUniqID, 0 ) ;
+         }
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to get field[%s] from obj[%s]",
+                      FIELD_NAME_IDXUNIQUEHWM, result.toString().c_str(), rc ) ;
+
+         // check index unique id
+         if ( utilGetIdxInnerID( idxUniqHWM ) > UTIL_IDXINNERID_MAX )
+         {
+            rc = SDB_IDX_UNIQUEID_EXCEEDED ;
+            PD_LOG( PDERROR, "Index "
+                    "inner id can't exceed %u, idx unique id: %llu, rc: %d",
+                    UTIL_IDXINNERID_MAX, idxUniqID, rc ) ;
+            goto error ;
+         }
+         idxUniqID = idxUniqHWM ;
+
+         // set index unique hwm
+         updator = BSON( "$set" << BSON( FIELD_NAME_IDXUNIQUEHWM <<
+                                         (INT64)(++idxUniqHWM) ) );
+
+         rc = rtnUpdate( CAT_COLLECTION_SPACE_COLLECTION, matcher, updator,
+                         dummy, 0, cb, dmsCB, dpsCB, w ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Fail to update obj[%s] in collection[%s], rc: %d",
+                      updator.toString().c_str(),
+                      CAT_COLLECTION_SPACE_COLLECTION, rc ) ;
+
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
       }
 
+   done :
+      PD_TRACE_EXITRC( SDB_CATGETINCIDXUID, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATADDIDX, "catAddIndex" )
+   INT32 catAddIndex( const CHAR *collectionName, const BSONObj &indexDef,
+                      pmdEDUCB *cb, INT16 w,
+                      BOOLEAN *pAddNewIdx, BSONObj *pIndexObj )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_CATADDIDX ) ;
+
+      SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
+      SDB_DPSCB *dpsCB = pmdGetKRCB()->getDPSCB() ;
+      BSONObj obj, boCollection ;
+      utilCLUniqueID clUniqID = UTIL_UNIQUEID_NULL ;
+
+      if ( pAddNewIdx )
+      {
+         *pAddNewIdx = FALSE ;
+      }
+
+      // get collection unique id
+      rc = catGetCollection( collectionName, boCollection, cb ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to get collection[%s], rc: %d",
+                   collectionName, rc ) ;
+
+      rc = rtnGetNumberLongElement( boCollection, FIELD_NAME_UNIQUEID,
+                                    (INT64&)clUniqID ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to get collection[%s]'s unique id, rc: %d",
+                   collectionName, rc ) ;
+
+      // format index info
+      rc = catFormatIndexInfo( collectionName, clUniqID, indexDef, cb, obj ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to convert[%s] to index obj, rc: %d",
+                   indexDef.toString().c_str(), rc ) ;
+
+      rc = rtnInsert( CAT_INDEX_INFO_COLLECTION, obj, 1, 0, cb, dmsCB,
+                      dpsCB, w ) ;
+      if ( SDB_OK == rc )
+      {
+         if ( pAddNewIdx )
+         {
+            *pAddNewIdx = TRUE ;
+         }
+      }
+      else if ( SDB_IXM_DUP_KEY == rc )
+      {
+         BOOLEAN isExist = FALSE ;
+         BOOLEAN isSameDef = FALSE ;
+         INT32 rcTmp = catCheckIndexExist( collectionName, indexDef, cb,
+                                           isExist, isSameDef ) ;
+         if ( SDB_OK == rcTmp && isSameDef )
+         {
+            rc = SDB_OK ;
+         }
+         else
+         {
+            rc = SDB_IXM_EXIST ;
+         }
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
+      }
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed insert obj[%s] to collection[%s]",
+                   obj.toString().c_str(), CAT_INDEX_INFO_COLLECTION ) ;
+
+<<<<<<< HEAD
+=======
+      if ( pIndexObj )
+      {
+         *pIndexObj = obj.getOwned() ;
+      }
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    done:
       PD_TRACE_EXITRC ( SDB_CATADDIDX, rc ) ;
       return rc ;
@@ -3002,6 +3340,60 @@ namespace engine
       BSONObj obj, indexDef, globalOpt ;
 
       try
+<<<<<<< HEAD
+      {
+
+      rc = catGetIndex( collection, indexName, cb, obj ) ;
+      PD_RC_CHECK( rc, PDWARNING,
+                   "Failed to get index[%s] of collection[%s], rc: %d",
+                   indexName, collection, rc ) ;
+
+      rc = rtnGetObjElement( obj, IXM_FIELD_NAME_INDEX_DEF, indexDef ) ;
+      PD_RC_CHECK( rc, PDWARNING,
+                   "Failed to get field[%s] from obj[%s], rc: %d",
+                   IXM_FIELD_NAME_INDEX_DEF, obj.toString().c_str(), rc ) ;
+
+      rc = rtnGetObjElement( indexDef, IXM_FIELD_NAME_GLOBAL_OPTION,
+                             globalOpt ) ;
+      if ( SDB_OK == rc )
+      {
+         isGlobalIndex = TRUE ;
+      }
+      else if ( SDB_FIELD_NOT_EXIST == rc )
+      {
+         isGlobalIndex = FALSE ;
+         rc = SDB_OK ;
+      }
+      PD_RC_CHECK( rc, PDWARNING,
+                   "Failed to get field[%s] from obj[%s], rc: %d",
+                   IXM_FIELD_NAME_GLOBAL_OPTION,
+                   indexDef.toString().c_str(), rc ) ;
+
+      if ( !isGlobalIndex )
+      {
+         goto done ;
+      }
+
+      rc = rtnGetSTDStringElement( globalOpt, CAT_COLLECTION, indexCLName ) ;
+      PD_RC_CHECK( rc, PDWARNING,
+                   "Failed to get field[%s] from obj[%s], rc: %d",
+                   CAT_COLLECTION, globalOpt.toString().c_str(), rc ) ;
+
+      rc = rtnGetNumberLongElement( globalOpt, CAT_GIDX_CL_UNIQUEID,
+                                    (INT64&)indexCLUID ) ;
+      PD_RC_CHECK( rc, PDWARNING,
+                   "Failed to get field[%s] from obj[%s], rc: %d",
+                   CAT_GIDX_CL_UNIQUEID, globalOpt.toString().c_str(), rc ) ;
+
+      }
+      catch( std::exception &e )
+      {
+         PD_RC_CHECK( SDB_SYS, PDERROR, "Exception occurred: %s", e.what() ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC ( SDB_CATGETGIDXINFO, rc ) ;
+=======
       {
 
       rc = catGetIndex( collection, indexName, cb, obj ) ;
@@ -3179,11 +3571,101 @@ namespace engine
 
    done:
       PD_TRACE_EXITRC ( SDB_CATADDTASK, rc ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       return rc ;
    error:
       goto done ;
    }
 
+<<<<<<< HEAD
+   INT32 catGetCLGlobalIndexesInfo( const CHAR *collection, pmdEDUCB *cb,
+                                    CAT_PAIR_CLNAME_ID_LIST& indexCLList )
+   {
+      INT32 rc = SDB_OK ;
+      ossPoolVector<BSONObj> indexObjList ;
+
+      try
+      {
+
+      rc = catGetCLIndexes( collection, TRUE, cb, indexObjList ) ;
+      PD_RC_CHECK( rc, PDWARNING,
+                   "Failed to get collection[%s]'s indexes, rc: %d",
+                   collection, rc ) ;
+
+      for( ossPoolVector<BSONObj>::iterator it = indexObjList.begin() ;
+           it != indexObjList.end() ; it++ )
+      {
+         BSONObj indexDef, globalOpt ;
+         const CHAR* indexCLName = NULL ;
+         utilCLUniqueID indexCLUID = UTIL_UNIQUEID_NULL ;
+         PAIR_CLNAME_ID indexCLPair ;
+
+         rc = rtnGetObjElement( *it, IXM_FIELD_NAME_INDEX_DEF, indexDef ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to get field[%s] from obj[%s], rc: %d",
+                      IXM_FIELD_NAME_INDEX_DEF, it->toString().c_str(), rc ) ;
+
+         rc = rtnGetObjElement( indexDef, IXM_FIELD_NAME_GLOBAL_OPTION,
+                                globalOpt ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to get field[%s] from obj[%s], rc: %d",
+                      IXM_FIELD_NAME_GLOBAL_OPTION,
+                      indexDef.toString().c_str(), rc ) ;
+
+         rc = rtnGetStringElement( globalOpt, CAT_COLLECTION, &indexCLName ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to get field[%s] from obj[%s], rc: %d",
+                      CAT_COLLECTION, globalOpt.toString().c_str(), rc ) ;
+
+         rc = rtnGetNumberLongElement( globalOpt, CAT_GIDX_CL_UNIQUEID,
+                                       (INT64&)indexCLUID ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to get field[%s] from obj[%s], rc: %d",
+                      CAT_GIDX_CL_UNIQUEID, globalOpt.toString().c_str(), rc ) ;
+
+         indexCLPair = std::make_pair( indexCLName, indexCLUID ) ;
+         indexCLList.push_back( indexCLPair ) ;
+      }
+
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATRENAMECLIDX, "catRenameCLInIndexes" )
+   INT32 catRenameCLInIndexes( const CHAR *clFullName,
+                               const CHAR *newCLFullName,
+                               pmdEDUCB *cb, INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_CATRENAMECLIDX ) ;
+
+      pmdKRCB *krcb = pmdGetKRCB() ;
+      SDB_DMSCB *dmsCB = krcb->getDMSCB() ;
+      SDB_DPSCB *dpsCB = krcb->getDPSCB() ;
+      BSONObj dummy ;
+      BSONObj match = BSON( FIELD_NAME_COLLECTION << clFullName ) ;
+      BSONObj updator = BSON( "$set" <<
+                              BSON( FIELD_NAME_COLLECTION << newCLFullName ) ) ;
+
+      rc = rtnUpdate( CAT_INDEX_INFO_COLLECTION,
+                      match, updator, dummy,
+                      0, cb, dmsCB, dpsCB, w ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to update index of collection[%s], updator[%s], "
+                   "rc: %d", clFullName, updator.toString().c_str(), rc ) ;
+
+   done:
+      PD_TRACE_EXITRC ( SDB_CATRENAMECLIDX, rc ) ;
+=======
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETTASK, "catGetTask" )
    INT32 catGetTask( UINT64 taskID, BSONObj & obj, pmdEDUCB * cb )
    {
@@ -3252,6 +3734,258 @@ namespace engine
 
    done :
       PD_TRACE_EXITRC( SDB_CATGETCSTASKCNTBYTYPE, rc ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
+      return rc ;
+
+   error :
+      goto done ;
+   }
+
+<<<<<<< HEAD
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATADDTASK, "catAddTask" )
+   INT32 catAddTask( const BSONObj & taskObj, pmdEDUCB * cb, INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+      pmdKRCB *krcb = pmdGetKRCB() ;
+      SDB_DMSCB *dmsCB = krcb->getDMSCB() ;
+      SDB_DPSCB *dpsCB = krcb->getDPSCB() ;
+
+      PD_TRACE_ENTRY ( SDB_CATADDTASK ) ;
+      rc = rtnInsert( CAT_TASK_INFO_COLLECTION, taskObj, 1, 0, cb, dmsCB,
+                      dpsCB, w ) ;
+
+      if ( rc )
+      {
+         if ( SDB_IXM_DUP_KEY == rc )
+         {
+            rc = SDB_TASK_EXIST ;
+         }
+         else
+         {
+            PD_LOG( PDERROR, "Failed insert obj[%s] to collection[%s]",
+                    taskObj.toString().c_str(), CAT_TASK_INFO_COLLECTION ) ;
+         }
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC ( SDB_CATADDTASK, rc ) ;
+=======
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETTASKCOUNTBYTYPE, "catGetCLTaskCountByType" )
+   INT32 catGetCLTaskCountByType( const CHAR *collection, CLS_TASK_TYPE type,
+                                  pmdEDUCB *cb, INT64 &count )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATGETTASKCOUNTBYTYPE ) ;
+      SDB_ASSERT( NULL != collection, "Collection is invalid" ) ;
+      SDB_ASSERT( CLS_TASK_UNKNOWN != type, "Task type is invalid" ) ;
+
+      BSONObj dummy ;
+      BSONObj matcher = BSON( CAT_COLLECTION_NAME <<
+                              collection <<
+                              CAT_TASKTYPE_NAME <<
+                              type <<
+                              CAT_STATUS_NAME <<
+                              BSON( "$ne" << CLS_TASK_STATUS_FINISH ) ) ;
+
+      rc = catGetObjectCount( CAT_TASK_INFO_COLLECTION, dummy, matcher, dummy,
+                              cb, count ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get task count for collection [%s]",
+                   "rc: %d", collection, rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATGETTASKCOUNTBYTYPE, rc ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
+      return rc ;
+   error:
+      goto done ;
+   }
+
+<<<<<<< HEAD
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETTASK, "catGetTask" )
+   INT32 catGetTask( UINT64 taskID, BSONObj & obj, pmdEDUCB * cb )
+   {
+      INT32 rc           = SDB_OK;
+
+      PD_TRACE_ENTRY ( SDB_CATGETTASK ) ;
+      BSONObj dummyObj ;
+      BSONObj boMatcher = BSON( CAT_TASKID_NAME << (INT64)taskID ) ;
+
+      rc = catGetOneObj( CAT_TASK_INFO_COLLECTION, dummyObj, boMatcher,
+                         dummyObj, cb, obj ) ;
+      if ( SDB_DMS_EOC == rc )
+      {
+         rc = SDB_CAT_TASK_NOTFOUND ;
+         goto error ;
+      }
+      else if ( rc )
+      {
+         PD_LOG( PDERROR, "Failed to get obj(%s) from %s, rc: %d",
+                 boMatcher.toString().c_str(), CAT_TASK_INFO_COLLECTION, rc ) ;
+         goto error ;
+      }
+   done :
+      PD_TRACE_EXITRC ( SDB_CATGETTASK, rc ) ;
+      return rc;
+=======
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETCSSPLITTARGETGRPS, "catGetCSSplitTargetGroups" )
+   INT32 catGetCSSplitTargetGroups( utilCSUniqueID csUniqueID,
+                                    pmdEDUCB * cb,
+                                    ossPoolSet< UINT32 > & groups )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATGETCSSPLITTARGETGRPS ) ;
+
+      SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
+      SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
+      INT64 contextID = -1 ;
+      BSONObj matcher ;
+      rtnQueryOptions queryOptions ;
+
+      try
+      {
+         BSONObjBuilder builder ;
+
+         // status
+         BSONObjBuilder statusBuilder(
+                                 builder.subobjStart( CAT_STATUS_NAME ) ) ;
+         statusBuilder.append( "$ne", (INT32)CLS_TASK_STATUS_FINISH ) ;
+         statusBuilder.doneFast() ;
+
+         // cs unique ID bound
+         rc = utilGetCSBounds( CAT_CL_UNIQUEID, csUniqueID, builder ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build [%s] matcher for "
+                      "collection space [%u], rc: %d", CAT_CS_UNIQUEID,
+                      csUniqueID, rc ) ;
+
+         // split task
+         builder.append( CAT_TASKTYPE_NAME, (INT32)CLS_TASK_SPLIT ) ;
+
+         matcher = builder.obj() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build matcher, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+      queryOptions.setCLFullName( CAT_TASK_INFO_COLLECTION ) ;
+      queryOptions.setQuery( matcher ) ;
+
+      rc = rtnQuery( queryOptions, cb, dmsCB, rtnCB, contextID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Query collection[%s] failed, "
+                   "rc: %d", CAT_TASK_INFO_COLLECTION, rc ) ;
+
+      // get more
+      while ( TRUE )
+      {
+         BSONObj obj ;
+         rtnContextBuf contextBuf ;
+         rc = rtnGetMore( contextID, 1, contextBuf, cb, rtnCB ) ;
+         if ( SDB_DMS_EOC == rc )
+         {
+            contextID = -1 ;
+            rc = SDB_OK ;
+            break ;
+         }
+         PD_RC_CHECK( rc, PDERROR, "Get more failed, rc: %d", rc ) ;
+
+         try
+         {
+            obj = BSONObj( contextBuf.data() ) ;
+            BSONElement ele = obj.getField( CAT_TARGETID_NAME ) ;
+            groups.insert( ele.numberInt() ) ;
+         }
+         catch( std::exception &e )
+         {
+            PD_LOG( PDERROR, "Get group id from obj[%s] occur exception: %s",
+                    obj.toString().c_str(), e.what() ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+      }
+
+   done :
+      if ( -1 != contextID )
+      {
+         rtnCB->contextDelete ( contextID, cb ) ;
+      }
+      PD_TRACE_EXITRC( SDB_CATGETCSSPLITTARGETGRPS, rc ) ;
+      return rc ;
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
+   error :
+      goto done ;
+   }
+
+<<<<<<< HEAD
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETCSTASKCNTBYTYPE, "catGetCSTaskCountByType" )
+   INT32 catGetCSTaskCountByType( const CHAR *csName, CLS_TASK_TYPE type,
+                                  pmdEDUCB *cb, INT64 &count )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_CATGETCSTASKCNTBYTYPE ) ;
+
+      SDB_ASSERT( NULL != csName, "cs is invalid" ) ;
+
+      BSONObj dummyObj, matcher ;
+=======
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CATGETTASKS, "_catGetTasks" )
+   static INT32 _catGetTasks( const BSONObj &matcher,
+                              pmdEDUCB *cb,
+                              ossPoolSet< UINT64 > &tasks )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__CATGETTASKS ) ;
+
+      SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
+      SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
+      INT64 contextID = -1 ;
+      rtnQueryOptions queryOptions ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
+
+      queryOptions.setCLFullName( CAT_TASK_INFO_COLLECTION ) ;
+      queryOptions.setQuery( matcher ) ;
+
+      rc = rtnQuery( queryOptions, cb, dmsCB, rtnCB, contextID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Query collection[%s] failed, "
+                   "rc: %d", CAT_TASK_INFO_COLLECTION, rc ) ;
+
+      // get more
+      while ( TRUE )
+      {
+<<<<<<< HEAD
+         BSONObjBuilder builder ;
+
+         rc = _catBuildCLMatcher( CAT_COLLECTION_NAME, csName, builder ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build matcher, rc: %d", rc ) ;
+
+         builder.append( CAT_TASKTYPE_NAME, type ) ;
+         builder.append( CAT_STATUS_NAME,
+                         BSON( "$ne" << CLS_TASK_STATUS_FINISH ) ) ;
+
+         matcher = builder.obj() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build matcher, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+      rc = catGetObjectCount( CAT_TASK_INFO_COLLECTION, dummyObj, matcher,
+                              dummyObj, cb, count ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get task count of cs[%s], "
+                   "rc: %d", csName, rc ) ;
+
+   done :
+      PD_TRACE_EXITRC( SDB_CATGETCSTASKCNTBYTYPE, rc ) ;
       return rc ;
 
    error :
@@ -3284,10 +4018,90 @@ namespace engine
    done:
       PD_TRACE_EXITRC( SDB_CATGETTASKCOUNTBYTYPE, rc ) ;
       return rc ;
+=======
+         BSONObj obj ;
+         rtnContextBuf contextBuf ;
+         rc = rtnGetMore( contextID, 1, contextBuf, cb, rtnCB ) ;
+         if ( SDB_DMS_EOC == rc )
+         {
+            contextID = -1 ;
+            rc = SDB_OK ;
+            break ;
+         }
+         PD_RC_CHECK( rc, PDERROR, "Get more failed, rc: %d", rc ) ;
+
+         try
+         {
+            obj = BSONObj( contextBuf.data() ) ;
+            BSONElement ele = obj.getField( CAT_TASKID_NAME ) ;
+            tasks.insert( ele.numberInt() ) ;
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "Get task ID, occur exception: %s", e.what() ) ;
+            rc = ossException2RC( &e ) ;
+            goto error ;
+         }
+      }
+
+   done:
+      if ( -1 != contextID )
+      {
+         rtnKillContexts( 1, &contextID, cb, rtnCB ) ;
+         contextID = -1 ;
+      }
+      PD_TRACE_EXITRC( SDB__CATGETTASKS, rc ) ;
+      return rc ;
+
    error:
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETCLTASKSBYTYPE, "catGetCLTaskByType" )
+   INT32 catGetCLTaskByType( const CHAR *clName,
+                             CLS_TASK_TYPE type,
+                             pmdEDUCB *cb,
+                             ossPoolSet< UINT64 > &tasks )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATGETCLTASKSBYTYPE ) ;
+
+      BSONObj matcher ;
+
+      try
+      {
+         BSONObjBuilder builder ;
+
+         builder.append( CAT_COLLECTION_NAME, clName ) ;
+         builder.append( CAT_TASKTYPE_NAME, type ) ;
+         builder.append( CAT_STATUS_NAME,
+                         BSON( "$ne" << CLS_TASK_STATUS_FINISH ) ) ;
+
+         matcher = builder.obj() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build matcher, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+      rc = _catGetTasks( matcher, cb, tasks ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get tasks for collection "
+                   "[%s], rc: %d", clName, rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATGETCLTASKSBYTYPE, rc ) ;
+      return rc ;
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
+   error:
+      goto done ;
+   }
+
+<<<<<<< HEAD
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETCSSPLITTARGETGRPS, "catGetCSSplitTargetGroups" )
    INT32 catGetCSSplitTargetGroups( utilCSUniqueID csUniqueID,
                                     pmdEDUCB * cb,
@@ -3425,8 +4239,119 @@ namespace engine
          {
             PD_LOG( PDERROR, "Get task ID, occur exception: %s", e.what() ) ;
             rc = ossException2RC( &e ) ;
+=======
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETCSTASKSBYTYPE, "catGetCSTaskByType" )
+   INT32 catGetCSTaskByType( const CHAR *csName,
+                             CLS_TASK_TYPE type,
+                             pmdEDUCB *cb,
+                             ossPoolSet< UINT64 > &tasks )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATGETCSTASKSBYTYPE ) ;
+
+      BSONObj matcher ;
+
+      try
+      {
+         BSONObjBuilder builder ;
+
+         rc = _catBuildCLMatcher( CAT_COLLECTION_NAME, csName, builder ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build [%s] matcher for "
+                      "collection space [%s], rc: %d", CAT_CS_UNIQUEID,
+                      csName, rc ) ;
+
+         builder.append( CAT_TASKTYPE_NAME, type ) ;
+         builder.append( CAT_STATUS_NAME,
+                         BSON( "$ne" << CLS_TASK_STATUS_FINISH ) ) ;
+
+         matcher = builder.obj() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build matcher, occur exception %s",
+                 e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+      rc = _catGetTasks( matcher, cb, tasks ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get tasks for collection space "
+                   "[%s], rc: %d", csName, rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATGETCSTASKSBYTYPE, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETTASKSTATUS, "catGetTaskStatus" )
+   INT32 catGetTaskStatus( UINT64 taskID, INT32 & status, pmdEDUCB * cb )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj taskObj ;
+      PD_TRACE_ENTRY ( SDB_CATGETTASKSTATUS ) ;
+      rc = catGetTask( taskID, taskObj, cb ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Get task[%lld] failed, rc: %d", taskID, rc ) ;
+
+      rc = rtnGetIntElement( taskObj, CAT_STATUS_NAME, status ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Failed to get field[%s], rc: %d",
+                   CAT_STATUS_NAME, rc ) ;
+   done:
+      PD_TRACE_EXITRC ( SDB_CATGETTASKSTATUS, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETMAXTASKID, "catGetCurrentMaxTaskID" )
+   UINT64 catGetCurrentMaxTaskID( pmdEDUCB * cb )
+   {
+      UINT64 taskID           = CLS_INVALID_TASKID ;
+      INT32 rc                = SDB_OK ;
+      SINT64 contextID        = -1 ;
+      pmdKRCB *pKRCB          = pmdGetKRCB() ;
+      SDB_DMSCB *dmsCB        = pKRCB->getDMSCB() ;
+      SDB_RTNCB *rtnCB        = pKRCB->getRTNCB() ;
+
+      PD_TRACE_ENTRY ( SDB_CATGETMAXTASKID ) ;
+      BSONObj dummyObj ;
+      BSONObj orderby = BSON( CAT_TASKID_NAME << -1 ) ;
+
+      rtnContextBuf buffObj ;
+
+      // query
+      rc = rtnQuery( CAT_TASK_INFO_COLLECTION, dummyObj, dummyObj, orderby,
+                     dummyObj, 0, cb, 0, 1, dmsCB, rtnCB, contextID ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Failed to query from %s, rc: %d",
+                   CAT_TASK_INFO_COLLECTION, rc ) ;
+
+      // get more
+      rc = rtnGetMore( contextID, 1, buffObj, cb, rtnCB ) ;
+      if ( rc )
+      {
+         if ( SDB_DMS_EOC == rc )
+         {
+            contextID = -1 ;
+         }
+         goto error ;
+      }
+
+      // copy obj
+      try
+      {
+         BSONObj resultObj( buffObj.data() ) ;
+         BSONElement ele = resultObj.getField( CAT_TASKID_NAME ) ;
+         if ( !ele.isNumber() )
+         {
+            PD_LOG( PDWARNING, "Failed to get field[%s], type: %d",
+                    CAT_TASKID_NAME, ele.type() ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             goto error ;
          }
+         taskID = (UINT64)ele.numberLong() ;
       }
 
    done:
@@ -3435,21 +4360,41 @@ namespace engine
          rtnKillContexts( 1, &contextID, cb, rtnCB ) ;
          contextID = -1 ;
       }
+<<<<<<< HEAD
       PD_TRACE_EXITRC( SDB__CATGETTASKS, rc ) ;
       return rc ;
 
+=======
+
+   done:
+      if ( -1 != contextID )
+      {
+         buffObj.release() ;
+         rtnCB->contextDelete( contextID, cb ) ;
+      }
+      PD_TRACE_EXITRC ( SDB_CATGETMAXTASKID, rc ) ;
+      return taskID ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    error:
       goto done ;
    }
 
+<<<<<<< HEAD
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETCLTASKSBYTYPE, "catGetCLTaskByType" )
    INT32 catGetCLTaskByType( const CHAR *clName,
                              CLS_TASK_TYPE type,
                              pmdEDUCB *cb,
                              ossPoolSet< UINT64 > &tasks )
+=======
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATUPDATETASK, "catUpdateTask" )
+   INT32 catUpdateTask( UINT64 taskID, const BSONObj *pSetInfo,
+                        const BSONObj *pUnsetInfo, pmdEDUCB *cb, INT16 w )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_CATUPDATETASK ) ;
 
+<<<<<<< HEAD
       PD_TRACE_ENTRY( SDB_CATGETCLTASKSBYTYPE ) ;
 
       BSONObj matcher ;
@@ -3518,6 +4463,50 @@ namespace engine
                  e.what() ) ;
          rc = ossException2RC( &e ) ;
          goto error ;
+=======
+      BSONObj match = BSON( CAT_TASKID_NAME << (INT64)taskID ) ;
+      BSONObjBuilder builder ;
+      if ( pSetInfo )
+      {
+         builder.append( "$set", *pSetInfo ) ;
+      }
+      if ( pUnsetInfo )
+      {
+         builder.append( "$unset", *pUnsetInfo ) ;
+      }
+
+      rc = catUpdateTask( match, builder.done(), cb, w ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to update task[%llu], rc: %d",
+                   taskID, rc ) ;
+   done:
+      PD_TRACE_EXITRC ( SDB_CATUPDATETASK, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATUPDATETASK1, "catUpdateTask" )
+   INT32 catUpdateTask( const BSONObj &matcher, const BSONObj &updator,
+                        pmdEDUCB *cb, INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_CATUPDATETASK1 ) ;
+
+      if ( !updator.isEmpty() )
+      {
+         pmdKRCB *krcb = pmdGetKRCB() ;
+         SDB_DMSCB *dmsCB = krcb->getDMSCB() ;
+         SDB_DPSCB *dpsCB = krcb->getDPSCB() ;
+         BSONObj dummy;
+
+         rc = rtnUpdate( CAT_TASK_INFO_COLLECTION, matcher, updator, dummy, 0,
+                         cb, dmsCB, dpsCB, w ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to update task, matcher: %s, updator: %s, rc: %d",
+                      matcher.toString().c_str(), updator.toString().c_str(),
+                      rc ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       }
 
       rc = _catGetTasks( matcher, cb, tasks ) ;
@@ -3525,13 +4514,18 @@ namespace engine
                    "[%s], rc: %d", csName, rc ) ;
 
    done:
+<<<<<<< HEAD
       PD_TRACE_EXITRC( SDB_CATGETCSTASKSBYTYPE, rc ) ;
+=======
+      PD_TRACE_EXITRC ( SDB_CATUPDATETASK1, rc ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       return rc ;
 
    error:
       goto done ;
    }
 
+<<<<<<< HEAD
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETCLTASKS, "catGetCLTasks" )
    INT32 catGetCLTasks( const CHAR *clName,
                         pmdEDUCB *cb,
@@ -3579,9 +4573,25 @@ namespace engine
    INT32 catGetCSTasks( const CHAR *csName,
                         pmdEDUCB *cb,
                         ossPoolSet< UINT64 > &tasks )
+=======
+   INT32 catUpdateTaskStatus( UINT64 taskID, CLS_TASK_STATUS status,
+                              pmdEDUCB * cb, INT16 w )
+   {
+      BSONObj setInfo = BSON( FIELD_NAME_STATUS << status <<
+                              FIELD_NAME_STATUSDESC <<
+                              clsTaskStatusStr( status ) ) ;
+      return catUpdateTask( taskID, &setInfo, NULL, cb, w ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATUPTASKFNS, "catUpdateTask2Finish" )
+   INT32 catUpdateTask2Finish( UINT64 taskID, INT32 resultCode,
+                               pmdEDUCB *cb, INT16 w )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_CATUPTASKFNS ) ;
 
+<<<<<<< HEAD
       PD_TRACE_ENTRY( SDB_CATGETCSTASKS ) ;
 
       // get all running tasks of given collection space
@@ -3618,12 +4628,49 @@ namespace engine
       PD_TRACE_EXITRC( SDB_CATGETCSTASKS, rc ) ;
       return rc ;
 
+=======
+      pmdKRCB *krcb = pmdGetKRCB() ;
+      SDB_DMSCB *dmsCB = krcb->getDMSCB() ;
+      SDB_DPSCB *dpsCB = krcb->getDPSCB() ;
+
+      ossTimestamp ts ;
+      ossGetCurrentTime( ts ) ;
+      CHAR timeStr[ OSS_TIMESTAMP_STRING_LEN + 1 ] = { 0 } ;
+      ossTimestampToString( ts, timeStr ) ;
+
+      BSONObj match = BSON( FIELD_NAME_TASKID << (INT64)taskID ) ;
+
+      BSONObjBuilder builder ;
+      builder.append( FIELD_NAME_STATUS, CLS_TASK_STATUS_FINISH ) ;
+      builder.append( FIELD_NAME_STATUSDESC, VALUE_NAME_FINISH ) ;
+      builder.append( FIELD_NAME_RESULTCODE, resultCode ) ;
+      builder.append( FIELD_NAME_RESULTCODEDESC, getErrDesp( resultCode ) ) ;
+      builder.append( FIELD_NAME_ENDTIMESTAMP, timeStr ) ;
+      BSONObj updator = BSON( "$set" << builder.done() ) ;
+
+      rc = rtnUpdate( CAT_TASK_INFO_COLLECTION, match, updator, BSONObj(), 0,
+                      cb, dmsCB, dpsCB, w ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to update task[%llu], match[%s] updator[%s], rc: %d",
+                   taskID, match.toString().c_str(),
+                   updator.toString().c_str(), rc ) ;
+
+   done:
+      PD_TRACE_EXITRC ( SDB_CATUPTASKFNS, rc ) ;
+      return rc ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    error:
       goto done ;
    }
 
+<<<<<<< HEAD
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETTASKSTATUS, "catGetTaskStatus" )
    INT32 catGetTaskStatus( UINT64 taskID, INT32 & status, pmdEDUCB * cb )
+=======
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATREMOVETASK, "catRemoveTask" )
+   INT32 catRemoveTask( BSONObj & match, BOOLEAN checkExist, pmdEDUCB * cb,
+                        INT16 w )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
       INT32 rc = SDB_OK ;
       BSONObj taskObj ;
@@ -3631,6 +4678,7 @@ namespace engine
       rc = catGetTask( taskID, taskObj, cb ) ;
       PD_RC_CHECK( rc, PDWARNING, "Get task[%lld] failed, rc: %d", taskID, rc ) ;
 
+<<<<<<< HEAD
       rc = rtnGetIntElement( taskObj, CAT_STATUS_NAME, status ) ;
       PD_RC_CHECK( rc, PDWARNING, "Failed to get field[%s], rc: %d",
                    CAT_STATUS_NAME, rc ) ;
@@ -3683,10 +4731,35 @@ namespace engine
          {
             PD_LOG( PDWARNING, "Failed to get field[%s], type: %d",
                     CAT_TASKID_NAME, ele.type() ) ;
+=======
+      PD_TRACE_ENTRY ( SDB_CATREMOVETASK ) ;
+
+      pmdKRCB *krcb = pmdGetKRCB() ;
+      SDB_DMSCB *dmsCB = krcb->getDMSCB() ;
+      SDB_DPSCB *dpsCB = krcb->getDPSCB() ;
+      BSONObj taskObj ;
+      BSONObj dummyObj ;
+      utilDeleteResult delResult ;
+
+      if ( checkExist )
+      {
+         rc = catGetOneObj( CAT_TASK_INFO_COLLECTION, dummyObj, match,
+                            dummyObj, cb, taskObj ) ;
+         if ( SDB_DMS_EOC == rc )
+         {
+            rc = SDB_CAT_TASK_NOTFOUND ;
+            goto error ;
+         }
+         else if ( rc )
+         {
+            PD_LOG( PDERROR, "Failed to get obj(%s) from %s, rc: %d",
+                    match.toString().c_str(), CAT_TASK_INFO_COLLECTION, rc ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             goto error ;
          }
          taskID = (UINT64)ele.numberLong() ;
       }
+<<<<<<< HEAD
       catch ( std::exception &e )
       {
          rc = SDB_SYS ;
@@ -3807,17 +4880,157 @@ namespace engine
 
    done:
       PD_TRACE_EXITRC ( SDB_CATUPTASKFNS, rc ) ;
+=======
+
+      rc = rtnDelete( CAT_TASK_INFO_COLLECTION, match, dummyObj, 0, cb,
+                      dmsCB, dpsCB, w, &delResult ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to remove task from collection[%s], "
+                   "rc: %d, del cond: %s", CAT_TASK_INFO_COLLECTION, rc,
+                   match.toString().c_str() ) ;
+      PD_LOG( PDINFO, "Removed %llu tasks for [%s]", delResult.deletedNum(),
+              match.toString().c_str() ) ;
+   done:
+      PD_TRACE_EXITRC ( SDB_CATREMOVETASK, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
+   INT32 catRemoveTask( UINT64 taskID, BOOLEAN checkExist, pmdEDUCB *cb,
+                        INT16 w )
+   {
+      BSONObj matcher = BSON( CAT_TASKID_NAME << (INT64)taskID ) ;
+      return catRemoveTask( matcher, checkExist, cb, w ) ;
+   }
+
+   static INT32 _queryTask( const BSONObj &matcher, pmdEDUCB *cb,
+                            BOOLEAN &hasTask,
+                            ossPoolSet<UINT64> &mainTaskSet,
+                            ossPoolMap<UINT64,UINT64> &subTaskMap )
+   {
+      INT32 rc = SDB_OK ;
+      SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
+      SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
+      INT64 contextID = -1 ;
+      BSONObj dummyObj ;
+
+      hasTask = FALSE ;
+      mainTaskSet.clear() ;
+      subTaskMap.clear() ;
+
+      try
+      {
+         rc = rtnQuery( CAT_TASK_INFO_COLLECTION, dummyObj, matcher, dummyObj,
+                        dummyObj, 0, cb, 0, -1, dmsCB, rtnCB, contextID ) ;
+         PD_RC_CHECK ( rc, PDERROR,
+                       "Failed to perform query, rc: %d",
+                       rc ) ;
+
+         while ( TRUE )
+         {
+            rtnContextBuf contextBuf ;
+            BOOLEAN isMainTask = FALSE ;
+            BOOLEAN isSubTask = FALSE ;
+            UINT64 taskID = CLS_INVALID_TASKID ;
+            UINT64 mainTaskID = CLS_INVALID_TASKID ;
+
+            rc = rtnGetMore( contextID, 1, contextBuf, cb, rtnCB ) ;
+            if ( SDB_DMS_EOC == rc )
+            {
+               contextID = -1 ;
+               rc = SDB_OK ;
+               break ;
+            }
+            PD_RC_CHECK( rc, PDERROR, "Failed to get more, rc: %d", rc ) ;
+
+            BSONObj obj( contextBuf.data() ) ;
+            hasTask = TRUE ;
+
+            rc = rtnGetBooleanElement( obj, FIELD_NAME_IS_MAINTASK,
+                                       isMainTask ) ;
+
+            if ( SDB_FIELD_NOT_EXIST == rc )
+            {
+               rc = SDB_OK ;
+            }
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to get field[%s] from obj[%s], rc: %d",
+                         FIELD_NAME_IS_MAINTASK, obj.toString().c_str(), rc ) ;
+
+            if ( !isMainTask )
+            {
+               rc = rtnGetNumberLongElement( obj, FIELD_NAME_MAIN_TASKID,
+                                             (INT64&)mainTaskID ) ;
+               if ( SDB_FIELD_NOT_EXIST == rc )
+               {
+                  rc = SDB_OK ;
+               }
+               PD_RC_CHECK( rc, PDERROR,
+                            "Failed to get field[%s] from obj[%s], rc: %d",
+                            FIELD_NAME_MAIN_TASKID, obj.toString().c_str(), rc ) ;
+               if ( mainTaskID != CLS_INVALID_TASKID )
+               {
+                  isSubTask = TRUE ;
+               }
+            }
+
+            if ( !isMainTask && !isSubTask )
+            {
+               continue ;
+            }
+
+            rc = rtnGetNumberLongElement( obj, FIELD_NAME_TASKID,
+                                          (INT64&)taskID ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to get field[%s] from obj[%s], rc: %d",
+                         FIELD_NAME_TASKID, obj.toString().c_str(), rc ) ;
+
+            if ( isMainTask )
+            {
+               mainTaskSet.insert( taskID ) ;
+            }
+            if ( isSubTask )
+            {
+               subTaskMap[ taskID ] = mainTaskID ;
+            }
+         }
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
+   done:
+      if ( contextID != -1 )
+      {
+         rtnCB->contextDelete( contextID, cb ) ;
+      }
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
+      return rc ;
+   error:
+      goto done ;
+   }
+
+<<<<<<< HEAD
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATREMOVETASK, "catRemoveTask" )
    INT32 catRemoveTask( BSONObj & match, BOOLEAN checkExist, pmdEDUCB * cb,
                         INT16 w )
+=======
+   static INT32 _updateMainTaskByRemoveTask( UINT64 mainTaskID,
+                                             UINT64 subTaskID, pmdEDUCB *cb )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
       INT32 rc = SDB_OK ;
+      BSONObj taskObj, matcher1, matcher2, updator, selector, dummyObj ;
+      clsTask *pMainTask = NULL ;
+      SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
+      SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
+      INT64 contextID = -1 ;
+      ossPoolVector<BSONObj> subTaskVec ;
+      catCMDBase *pCommand = NULL ;
 
+<<<<<<< HEAD
       PD_TRACE_ENTRY ( SDB_CATREMOVETASK ) ;
 
       pmdKRCB *krcb = pmdGetKRCB() ;
@@ -3934,8 +5147,66 @@ namespace engine
                {
                   isSubTask = TRUE ;
                }
-            }
+=======
+      try
+      {
+         /// 1. get main-task object from SYSTASKS
+         rc = catGetTask( mainTaskID, taskObj, cb ) ;
+         if ( SDB_CAT_TASK_NOTFOUND == rc )
+         {
+            // main-collection and sub-collection belongs to the same cs, so
+            // main task has been deleted
+            rc = SDB_OK ;
+            goto done ;
+         }
+         PD_RC_CHECK ( rc, PDERROR,
+                       "Failed to get task[%llu], rc: %d",
+                       mainTaskID, rc ) ;
 
+         /// 2. new and init main-task
+         rc = clsNewTask( taskObj, pMainTask ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to new task, rc: %d",
+                      rc ) ;
+
+         /// 3. update main-task progress
+         if ( CLS_TASK_STATUS_FINISH == pMainTask->status() )
+         {
+            PD_LOG( PDDEBUG, "Task[%llu] is already finished", mainTaskID ) ;
+            goto done ;
+         }
+
+         rc = pMainTask->buildQuerySubTasks( BSONObj(), matcher1, selector ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to get subtask's matcher and selector, rc: %d",
+                      rc ) ;
+
+         // query sub-task info
+         if ( !matcher1.isEmpty() )
+         {
+            rc = rtnQuery( CAT_TASK_INFO_COLLECTION, selector, matcher1,
+                           dummyObj, dummyObj, 0, cb, 0, -1, dmsCB, rtnCB,
+                           contextID ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Query collection[%s] failed: matcher=%s, rc=%d",
+                         CAT_TASK_INFO_COLLECTION, matcher1.toString().c_str(),
+                         rc ) ;
+         }
+
+         // get more
+         while ( TRUE )
+         {
+            rtnContextBuf contextBuf ;
+            rc = rtnGetMore( contextID, 1, contextBuf, cb, rtnCB ) ;
+            if ( SDB_DMS_EOC == rc )
+            {
+               rc = SDB_OK ;
+               break ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
+            }
+            PD_RC_CHECK( rc, PDERROR, "Get more failed, rc: %d", rc ) ;
+
+<<<<<<< HEAD
             if ( !isMainTask && !isSubTask )
             {
                continue ;
@@ -4078,6 +5349,43 @@ namespace engine
                             "Failed to post doit for command[%s], rc: %d",
                             commandName, rc ) ;
             }
+=======
+            subTaskVec.push_back( BSONObj( contextBuf.data() ).getOwned() ) ;
+         }
+
+         rc = pMainTask->buildRemoveTaskBy( subTaskID, subTaskVec,
+                                            updator, matcher2 ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to remove sub task[%llu], rc: %d",
+                      subTaskID, rc ) ;
+
+         if ( updator.isEmpty() )
+         {
+            // nothing changed, just goto done
+            goto done ;
+         }
+
+         rc = catUpdateTask( matcher2, updator, cb, 1 ) ;
+         PD_RC_CHECK ( rc, PDERROR,
+                       "Failed to update task, rc: %d",
+                       rc ) ;
+
+         /// 4. if task finish, then we may update metadata
+         if ( CLS_TASK_STATUS_FINISH == pMainTask->status() )
+         {
+            const CHAR* commandName = pMainTask->commandName() ;
+            if ( commandName )
+            {
+               rc = getCatCmdBuilder()->create( commandName, pCommand ) ;
+               PD_RC_CHECK ( rc, PDERROR,
+                             "Failed to create command[%s], rc: %d",
+                             commandName, rc ) ;
+
+               rc = pCommand->postDoit( pMainTask, cb ) ;
+               PD_RC_CHECK( rc, PDERROR,
+                            "Failed to post doit for command[%s], rc: %d",
+                            commandName, rc ) ;
+            }
          }
       }
       catch( std::exception &e )
@@ -4148,6 +5456,89 @@ namespace engine
             PD_RC_CHECK( rc, PDERROR,
                          "Failed to update main task[%llu], rc: %d",
                          it->second, rc ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
+         }
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
+   done:
+<<<<<<< HEAD
+      if ( contextID != -1 )
+      {
+         rtnCB->contextDelete( contextID, cb ) ;
+      }
+      if ( pCommand )
+      {
+         getCatCmdBuilder()->release( pCommand ) ;
+      }
+      if ( pMainTask )
+      {
+         clsReleaseTask( pMainTask ) ;
+      }
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
+      return rc ;
+   error:
+      goto done ;
+   }
+
+<<<<<<< HEAD
+   INT32 catRemoveCLTasks( const CHAR *clName, pmdEDUCB *cb, INT16 w )
+=======
+   INT32 catRemoveCSTasks( const CHAR *csName, pmdEDUCB *cb, INT16 w )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj dummyObj, matcher ;
+      BOOLEAN hasTask = FALSE ;
+      ossPoolSet<UINT64> mainTaskSet ;
+      ossPoolMap<UINT64,UINT64> subTaskMap ; // <taskID, mainTaskID>
+
+      try
+      {
+<<<<<<< HEAD
+         matcher = BSON( CAT_COLLECTION_NAME << clName ) ;
+=======
+         rc = _catBuildCLMatcher( CAT_COLLECTION_NAME, csName, matcher ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build matcher, rc: %d", rc ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
+
+         rc = _queryTask( matcher, cb, hasTask, mainTaskSet, subTaskMap ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to query task by matcher, rc: %d",
+                      rc ) ;
+
+         if ( hasTask )
+         {
+            rc = catRemoveTask( matcher, FALSE, cb, w ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to remove task by matcher[%s], rc: %d",
+                         matcher.toString().c_str(), rc ) ;
+         }
+
+         // if the task to be deleted is main task, remove their sub tasks
+         for ( ossPoolSet<UINT64>::iterator it = mainTaskSet.begin() ;
+               it != mainTaskSet.end() ; it++ )
+         {
+            BSONObj matcher1 = BSON( FIELD_NAME_MAIN_TASKID << (INT64)(*it) ) ;
+            rc = catRemoveTask( matcher1, FALSE, cb, w ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to remove task by matcher[%s], rc: %d",
+                         matcher1.toString().c_str(), rc ) ;
+         }
+
+         // if the task to be deleted is sub task, update their main task's info
+         for ( ossPoolMap<UINT64,UINT64>::iterator it = subTaskMap.begin() ;
+               it != subTaskMap.end() ; it++ )
+         {
+            rc = _updateMainTaskByRemoveTask( it->second, it->first, cb ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to update main task[%llu], rc: %d",
+                         it->second, rc ) ;
          }
       }
       catch( std::exception &e )
@@ -4162,6 +5553,7 @@ namespace engine
       goto done ;
    }
 
+<<<<<<< HEAD
    INT32 catRemoveCSTasks( const CHAR *csName, pmdEDUCB *cb, INT16 w )
    {
       INT32 rc = SDB_OK ;
@@ -4246,11 +5638,7 @@ namespace engine
       }
 
    done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
+=======
    INT32 catRemoveSequenceTasks ( const CHAR * sequenceName, pmdEDUCB * cb,
                                   INT16 w )
    {
@@ -4358,11 +5746,107 @@ namespace engine
          rtnCB->contextDelete ( contextID, cb ) ;
       }
       PD_TRACE_EXITRC ( SDB_CATRMEXPTASK, rc ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       return rc ;
    error:
       goto done ;
    }
 
+<<<<<<< HEAD
+   INT32 catRemoveSequenceTasks ( const CHAR * sequenceName, pmdEDUCB * cb,
+                                  INT16 w )
+   {
+      SDB_ASSERT( NULL != sequenceName, "sequence name is invalid" ) ;
+      BSONObj matcher = BSON( FIELD_NAME_AUTOINC_SEQ << sequenceName ) ;
+      return catRemoveTask( matcher, FALSE, cb, w ) ;
+   }
+
+   INT32 catRemoveTasksByType ( CLS_TASK_TYPE type, pmdEDUCB * cb, INT16 w )
+   {
+      SDB_ASSERT( CLS_TASK_UNKNOWN != type, "Task type is invalid" ) ;
+      BSONObj matcher = BSON( CAT_TASKTYPE_NAME << type ) ;
+      return catRemoveTask( matcher, FALSE, cb, w ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATRMEXPTASK, "catRemoveExpiredTasks" )
+   INT32 catRemoveExpiredTasks ( pmdEDUCB* cb, INT16 w, INT32 expirationTimeS )
+   {
+      PD_TRACE_ENTRY ( SDB_CATRMEXPTASK ) ;
+      INT32 rc = SDB_OK ;
+      SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
+      SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
+      INT64 contextID = -1 ;
+
+      try
+      {
+
+      // query tasks
+      BSONObj dummyObj ;
+      BSONObj matcher = BSON( CAT_STATUS_NAME << CLS_TASK_STATUS_FINISH ) ;
+      rc = rtnQuery( CAT_TASK_INFO_COLLECTION,
+                     dummyObj, matcher, dummyObj, dummyObj,
+                     0, cb, 0, -1, dmsCB, rtnCB, contextID ) ;
+      PD_RC_CHECK ( rc, PDERROR, "Failed to perform query, rc: %d", rc ) ;
+
+      // loop every task
+      while ( TRUE )
+      {
+         rtnContextBuf contextBuf ;
+         const CHAR* timeStr = NULL ;
+         UINT64 taskID = CLS_INVALID_TASKID ;
+
+         rc = rtnGetMore( contextID, 1, contextBuf, cb, rtnCB ) ;
+         if ( SDB_DMS_EOC == rc )
+         {
+            contextID = -1 ;
+            rc = SDB_OK ;
+            break ;
+         }
+         PD_RC_CHECK( rc, PDERROR, "Failed to retreive record, rc: %d", rc ) ;
+
+         BSONObj obj( contextBuf.data() ) ;
+         rc = rtnGetStringElement( obj, FIELD_NAME_ENDTIMESTAMP, &timeStr ) ;
+         if ( rc )
+         {
+            // Before 3.4.1 version (include), split task hasn't EndTimestamp
+            if ( rc != SDB_FIELD_NOT_EXIST )
+            {
+               PD_LOG( PDWARNING,
+                       "Failed to get field[%s] from obj[%s], rc: %d",
+                       FIELD_NAME_ENDTIMESTAMP, obj.toString().c_str(), rc ) ;
+            }
+            continue ;
+         }
+         if ( 0 == timeStr[0] )
+         {
+            continue ;
+         }
+
+         rc = rtnGetNumberLongElement( obj, CAT_TASKID_NAME, (INT64&)taskID ) ;
+         if ( rc )
+         {
+            PD_LOG( PDWARNING,
+                    "Failed to get field[%s] from obj[%s], rc: %d",
+                     CAT_TASKID_NAME, obj.toString().c_str() , rc ) ;
+            continue ;
+         }
+
+         ossTimestamp endTS, curTS ;
+         ossStringToTimestamp( timeStr, endTS ) ;
+         ossGetCurrentTime( curTS ) ;
+         if ( curTS.time - endTS.time > expirationTimeS )
+         {
+            rc = catRemoveTask( taskID, FALSE, cb, w ) ;
+            if ( rc )
+            {
+               PD_LOG( PDWARNING,
+                       "Failed to remove expired task[%llu], rc: %d",
+                       taskID, rc ) ;
+               continue ;
+            }
+            PD_LOG( PDINFO, "Remove expired task[%llu]", taskID ) ;
+         }
+=======
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATRENAMECLTASK, "catRenameCLInTasks" )
    INT32 catRenameCLInTasks( const CHAR *clFullName, const CHAR *newCLFullName,
                              pmdEDUCB *cb, INT16 w )
@@ -4488,9 +5972,23 @@ namespace engine
                       match.toString().c_str(),
                       updator.toString().c_str(), rc ) ;
 
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
+      }
+
       }
       catch( std::exception &e )
       {
+<<<<<<< HEAD
+         PD_RC_CHECK( SDB_SYS, PDERROR, "Exception occurred: %s", e.what() );
+      }
+
+   done:
+      if ( -1 != contextID )
+      {
+         rtnCB->contextDelete ( contextID, cb ) ;
+      }
+      PD_TRACE_EXITRC ( SDB_CATRMEXPTASK, rc ) ;
+=======
          rc = ossException2RC( &e ) ;
          PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
       }
@@ -4501,11 +5999,245 @@ namespace engine
          rtnKillContexts( 1 , &contextID, cb, rtnCB ) ;
       }
       PD_TRACE_EXITRC ( SDB_CATRENAMECLTASK, rc ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       return rc ;
    error:
       goto done ;
    }
 
+<<<<<<< HEAD
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATRENAMECLTASK, "catRenameCLInTasks" )
+   INT32 catRenameCLInTasks( const CHAR *clFullName, const CHAR *newCLFullName,
+                             pmdEDUCB *cb, INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_CATRENAMECLTASK ) ;
+
+      pmdKRCB *krcb = pmdGetKRCB() ;
+      SDB_DMSCB *dmsCB = krcb->getDMSCB() ;
+      SDB_RTNCB *rtnCB = krcb->getRTNCB() ;
+      SDB_DPSCB *dpsCB = krcb->getDPSCB() ;
+      INT64 contextID = -1 ;
+      ossPoolSet<UINT64> mainTaskSet ;
+      BSONObj dummyObj, match, updator ;
+
+      try
+      {
+         // find all related sub-task
+         match = BSON( FIELD_NAME_NAME << clFullName <<
+                       FIELD_NAME_MAIN_TASKID << BSON( "$exists" << 1 ) ) ;
+
+         rc = rtnQuery( CAT_TASK_INFO_COLLECTION,
+                        dummyObj, match, dummyObj, dummyObj,
+                        0, cb, 0, -1, dmsCB, rtnCB, contextID ) ;
+         PD_RC_CHECK ( rc, PDERROR, "Failed to perform query, rc: %d", rc ) ;
+
+         // get all sub-task's main-task
+         while ( TRUE )
+         {
+            UINT64 mainTaskID = 0 ;
+            rtnContextBuf contextBuf ;
+            rc = rtnGetMore( contextID, 1, contextBuf, cb, rtnCB ) ;
+            if ( SDB_DMS_EOC == rc )
+            {
+               rc = SDB_OK ;
+               break ;
+            }
+            PD_RC_CHECK( rc, PDERROR, "Get more failed, rc: %d", rc ) ;
+
+            BSONObj obj( contextBuf.data() ) ;
+            rc = rtnGetNumberLongElement( obj, FIELD_NAME_MAIN_TASKID,
+                                          (INT64&)mainTaskID ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to get field[%s] from obj[%s]",
+                         FIELD_NAME_MAIN_TASKID, obj.toString().c_str() ) ;
+            mainTaskSet.insert( mainTaskID ) ;
+         }
+
+         // loop every main-task, if it is copy-index task, change 'CopyTo' field
+         for( ossPoolSet<UINT64>::iterator it = mainTaskSet.begin() ;
+              it != mainTaskSet.end() ; it++ )
+         {
+            UINT64 taskID = *it ;
+            BSONObj taskObj, copyToArray ;
+            ossPoolVector<const CHAR*> copyToList ;
+
+            // get 'CopyTo' array
+            match = BSON( FIELD_NAME_TASKID << (INT64)taskID <<
+                          FIELD_NAME_TASKTYPE << CLS_TASK_COPY_IDX ) ;
+            rc = catGetOneObj( CAT_TASK_INFO_COLLECTION,
+                               dummyObj, match, dummyObj, cb, taskObj ) ;
+            if ( SDB_DMS_EOC == rc )
+            {
+               rc = SDB_OK ;
+               continue ;
+            }
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to get task[%llu]", taskID ) ;
+
+            rc = rtnGetArrayElement( taskObj, FIELD_NAME_COPYTO, copyToArray ) ;
+            if ( SDB_FIELD_NOT_EXIST == rc )
+            {
+               continue ;
+            }
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to get field[%s] from obj[%s]",
+                         FIELD_NAME_MAIN_TASKID, taskObj.toString().c_str() ) ;
+
+            BSONObjIterator iter( copyToArray ) ;
+            while ( iter.more() )
+            {
+               BSONElement ele = iter.next() ;
+               const CHAR* copyToName = ele.valuestrsafe() ;
+               if ( 0 == ossStrcmp( copyToName, clFullName ) )
+               {
+                  copyToList.push_back( newCLFullName ) ;
+               }
+               else
+               {
+                  copyToList.push_back( copyToName ) ;
+               }
+            }
+
+            // set 'CopyTo' array
+            BSONObjBuilder builder ;
+            BSONArrayBuilder ab( builder.subarrayStart( FIELD_NAME_COPYTO ) ) ;
+            for ( ossPoolVector<const CHAR*>::iterator it = copyToList.begin() ;
+                  it != copyToList.end() ; ++it )
+            {
+               ab.append( *it ) ;
+            }
+            ab.done() ;
+
+            updator = BSON( "$set" << builder.done() ) ;
+            rc = rtnUpdate( CAT_TASK_INFO_COLLECTION,
+                            match, updator, dummyObj,
+                            0, cb, dmsCB, dpsCB, w ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to update task, matcher[%s] updator[%s], "
+                         "rc: %d", match.toString().c_str(),
+                         updator.toString().c_str(), rc ) ;
+
+=======
+   INT32 catGetBucketVersion( const CHAR *pCLName, pmdEDUCB *cb )
+   {
+      INT32 version = CAT_VERSION_BEGIN ;
+      UINT32 bucketID = catCalcBucketID( pCLName, ossStrlen( pCLName ) ) ;
+      BSONObj dummy ;
+      BSONObj mather = BSON( FIELD_NAME_BUCKETID << bucketID ) ;
+      BSONObj result ;
+
+      INT32 rc = catGetOneObj( CAT_HISTORY_COLLECTION, dummy, mather,
+                               dummy, cb, result ) ;
+      if ( SDB_OK == rc )
+      {
+         version = (INT32)result.getField( FIELD_NAME_VERSION ).numberInt() ;
+         ++version ;
+      }
+      return version ;
+   }
+
+   INT32 catSaveBucketVersion( const CHAR *pCLName, INT32 version,
+                               pmdEDUCB *cb, INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+      const INT32 reverseVer = 0x00FFFFFF ;
+      UINT32 bucketID = catCalcBucketID( pCLName, ossStrlen( pCLName ) ) ;
+      BSONObj dummy ;
+      BSONObj mather = BSON( FIELD_NAME_BUCKETID << bucketID ) ;
+      BSONObj result ;
+
+      pmdKRCB *krcb = pmdGetKRCB() ;
+      SDB_DMSCB *dmsCB = krcb->getDMSCB() ;
+      SDB_DPSCB *dpsCB = krcb->getDPSCB() ;
+
+      rc = catGetOneObj( CAT_HISTORY_COLLECTION, dummy, mather,
+                         dummy, cb, result ) ;
+      // not exist
+      if ( SDB_DMS_EOC == rc )
+      {
+#if defined ( _DEBUG )
+         BSONObj obj = BSON( FIELD_NAME_BUCKETID << bucketID <<
+                             FIELD_NAME_NAME << pCLName <<
+                             FIELD_NAME_VERSION << version ) ;
+#else
+         BSONObj obj = BSON( FIELD_NAME_BUCKETID << bucketID <<
+                             FIELD_NAME_VERSION << version ) ;
+#endif // _DEBUG
+
+         rc = rtnInsert( CAT_HISTORY_COLLECTION, obj, 1, 0, cb, dmsCB,
+                         dpsCB, w ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to insert record[%s] to "
+                      "collection[%s], rc: %d", obj.toString().c_str(),
+                      CAT_HISTORY_COLLECTION, rc ) ;
+      }
+      else if ( SDB_OK == rc )
+      {
+         INT32 verTmp = (INT32)result.getField( FIELD_NAME_VERSION
+                                               ).numberInt() ;
+         if ( version < verTmp && verTmp - version < reverseVer )
+         {
+            goto done ;
+         }
+         // update
+         else
+         {
+#if defined ( _DEBUG )
+            BSONObj updator = BSON( "$set" << BSON( FIELD_NAME_VERSION <<
+                                                    version <<
+                                                    FIELD_NAME_NAME <<
+                                                    pCLName ) ) ;
+#else
+            BSONObj updator = BSON( "$set" << BSON( FIELD_NAME_VERSION <<
+                                                    version ) ) ;
+#endif // _DEBUG
+            rc = rtnUpdate( CAT_HISTORY_COLLECTION, mather, updator,
+                            BSONObj(), 0, cb, dmsCB, dpsCB, w, NULL ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to update record[%s] to "
+                         "collection[%s], rc: %d", updator.toString().c_str(),
+                         CAT_HISTORY_COLLECTION, rc ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
+         }
+
+         // rename collection name
+         match = BSON( FIELD_NAME_NAME << clFullName ) ;
+         updator = BSON( "$set" << BSON( FIELD_NAME_NAME << newCLFullName ) ) ;
+         rc = rtnUpdate( CAT_TASK_INFO_COLLECTION,
+                         match, updator, dummyObj,
+                         0, cb, dmsCB, dpsCB, w ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to update task, matcher[%s] updator[%s], rc: %d",
+                      match.toString().c_str(),
+                      updator.toString().c_str(), rc ) ;
+
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+      else
+      {
+         PD_LOG( PDERROR, "Failed to get record from collection[%s], rc: %d",
+                 CAT_HISTORY_COLLECTION, rc ) ;
+         goto error ;
+      }
+
+   done:
+<<<<<<< HEAD
+      if ( contextID != -1 )
+      {
+         rtnKillContexts( 1 , &contextID, cb, rtnCB ) ;
+      }
+      PD_TRACE_EXITRC ( SDB_CATRENAMECLTASK, rc ) ;
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
+      return rc ;
+   error:
+      goto done ;
+   }
+
+<<<<<<< HEAD
    INT32 catGetBucketVersion( const CHAR *pCLName, pmdEDUCB *cb )
    {
       INT32 version = CAT_VERSION_BEGIN ;
@@ -4584,6 +6316,33 @@ namespace engine
                          "collection[%s], rc: %d", updator.toString().c_str(),
                          CAT_HISTORY_COLLECTION, rc ) ;
          }
+=======
+   INT32 catCheckBaseInfoExist( const char *pTypeStr, BOOLEAN &isExist,
+                                BSONObj &obj, pmdEDUCB *cb )
+   {
+      INT32 rc           = SDB_OK ;
+      isExist            = FALSE ;
+
+      BSONObj matcher = BSON( FIELD_NAME_TYPE << pTypeStr ) ;
+      BSONObj dummyObj ;
+
+      rc = catGetOneObj( CAT_SYSDCBASE_COLLECTION_NAME, dummyObj, matcher,
+                         dummyObj, cb, obj ) ;
+      if ( SDB_DMS_EOC == rc )
+      {
+         isExist = FALSE ;
+         return SDB_OK ;
+      }
+      else if ( SDB_OK == rc )
+      {
+         isExist = TRUE ;
+      }
+      else
+      {
+         PD_LOG( PDERROR, "Failed to get obj(%s) from %s, rc: %d",
+                 matcher.toString().c_str(), CAT_SYSDCBASE_COLLECTION_NAME,
+                 rc ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       }
       else
       {
@@ -4592,6 +6351,7 @@ namespace engine
          goto error ;
       }
 
+<<<<<<< HEAD
    done:
       return rc ;
    error:
@@ -4627,11 +6387,47 @@ namespace engine
       }
 
    done :
+=======
       return rc ;
-   error :
+   }
+
+   INT32 catUpdateBaseInfoAddr( const CHAR *pAddr, BOOLEAN self,
+                                pmdEDUCB *cb, INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj matcher = BSON( FIELD_NAME_TYPE << CAT_BASE_TYPE_GLOBAL_STR ) ;
+      BSONObj updator ;
+      pmdKRCB *krcb = pmdGetKRCB() ;
+      SDB_DMSCB *dmsCB = krcb->getDMSCB() ;
+      SDB_DPSCB *dpsCB = krcb->getDPSCB() ;
+
+      if ( self )
+      {
+         updator = BSON( "$set" << BSON( FIELD_NAME_DATACENTER"."
+                                         FIELD_NAME_ADDRESS << pAddr )
+                       ) ;
+      }
+      else
+      {
+         updator = BSON( "$set" << BSON( FIELD_NAME_IMAGE"."
+                                         FIELD_NAME_ADDRESS << pAddr )
+                        ) ;
+      }
+
+      rc = rtnUpdate( CAT_SYSDCBASE_COLLECTION_NAME, matcher, updator,
+                      BSONObj(), 0, cb, dmsCB, dpsCB, w, NULL ) ;
+      PD_RC_CHECK( rc, PDERROR, "Update collection[%s] obj[%s] failed, rc: %d",
+                   CAT_SYSDCBASE_COLLECTION_NAME, updator.toString().c_str(),
+                   rc ) ;
+
+   done:
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
+      return rc ;
+   error:
       goto done ;
    }
 
+<<<<<<< HEAD
    INT32 catUpdateBaseInfoAddr( const CHAR *pAddr, BOOLEAN self,
                                 pmdEDUCB *cb, INT16 w )
    {
@@ -4671,6 +6467,12 @@ namespace engine
                          _SDB_DMSCB *dmsCB, _dpsLogWrapper *dpsCB )
    {
       INT32 rc = SDB_OK ;
+=======
+   INT32 catEnableImage( BOOLEAN enable, pmdEDUCB *cb, INT16 w,
+                         _SDB_DMSCB *dmsCB, _dpsLogWrapper *dpsCB )
+   {
+      INT32 rc = SDB_OK ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       BSONObj updator ;
       BSONObj matcher = BSON( FIELD_NAME_TYPE <<
                               CAT_BASE_TYPE_GLOBAL_STR ) ;
@@ -4882,6 +6684,7 @@ namespace engine
 
       try
       {
+<<<<<<< HEAD
 
       BSONObj dummy, result ;
       BSONObj matcher = BSON( FIELD_NAME_TYPE << CAT_BASE_TYPE_GLOBAL_STR ) ;
@@ -4913,6 +6716,39 @@ namespace engine
                    rc ) ;
 
       }
+=======
+
+      BSONObj dummy, result ;
+      BSONObj matcher = BSON( FIELD_NAME_TYPE << CAT_BASE_TYPE_GLOBAL_STR ) ;
+      BSONObj updator ;
+
+      rc = catGetOneObj( CAT_SYSDCBASE_COLLECTION_NAME, dummy, matcher,
+                         dummy, cb, result ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to match obj[%s] from collection[%s], "
+                   "rc: %d", matcher.toString().c_str(),
+                   CAT_SYSDCBASE_COLLECTION_NAME, rc ) ;
+
+      BSONElement ele = result.getField( FIELD_NAME_TASKHWM ) ;
+      PD_CHECK( ele.isNumber(), SDB_INVALIDARG, error, PDERROR,
+                "Failed to get field[%s], type: %d",
+                FIELD_NAME_TASKHWM, ele.type() );
+      taskID = ( UINT64 )ele.numberLong() + 1 ;
+
+      if ( taskID > CAT_TASKID_MAX )
+      {
+         taskID = 1 ;
+         PD_LOG( PDINFO,
+                 "TaskID reached maximun[%llu], start from %llu",
+                 CAT_TASKID_MAX, taskID ) ;
+      }
+
+      rc = catSetTaskHWM( cb, w, taskID ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to set task hwm, rc: %d",
+                   rc ) ;
+
+      }
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       catch ( std::exception &e )
       {
          PD_RC_CHECK( SDB_SYS, PDERROR, "Exception occurred: %s", e.what() ) ;
@@ -5125,12 +6961,19 @@ namespace engine
       goto done ;
    }
 
+<<<<<<< HEAD
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGET_GRPMODE_OBJ, "catGetGrpModeObj" )
    INT32 catGetGrpModeObj( const UINT32 &groupID, BSONObj &obj, pmdEDUCB *cb )
+=======
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATPRASEFUNC, "catPraseFunc" )
+   INT32 catPraseFunc( const BSONObj &func, BSONObj &parsed )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_CATGET_GRPMODE_OBJ ) ;
 
+<<<<<<< HEAD
       try
       {
          BSONObj dummyObj ;
@@ -5202,9 +7045,44 @@ namespace engine
          else if ( 0 == ossStrcmp( CAT_MAINTENANCE_MODE_NAME, ele.valuestrsafe() ) )
          {
             grpMode.mode = CLS_GROUP_MODE_MAINTENANCE ;
-         }
-         else
+=======
+      PD_TRACE_ENTRY ( SDB_CATPRASEFUNC ) ;
+      BSONElement fValue = func.getField( FMP_FUNC_VALUE ) ;
+      BSONElement fType = func.getField( FMP_FUNC_TYPE ) ;
+      if ( fValue.eoo() || fType.eoo() )
+      {
+         PD_LOG( PDERROR, "failed to find specific element from func:%s",
+                 func.toString().c_str() ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      else if ( Code != fValue.type() || NumberInt != fType.type())
+      {
+         PD_LOG( PDERROR, "invalid type of func element:%d, %d",
+                 fValue.type(), fType.type() ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      else
+      {
+         BSONObjBuilder builder ;
+         const CHAR *nameBegin = NULL ;
+         BOOLEAN appendBegun = FALSE ;
+         std::string name ;
+         const CHAR *fStr = ossStrstr(fValue.valuestr(),
+                                      FMP_FUNCTION_DEF) ;
+         if ( NULL == fStr )
          {
+            PD_LOG( PDERROR, "can not find \"function\" in funcelement" ) ;
+            rc = SDB_SYS ;
+            goto error ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
+         }
+
+         nameBegin = fStr + ossStrlen( FMP_FUNCTION_DEF ) ;
+         while ( '\0' != *nameBegin )
+         {
+<<<<<<< HEAD
             grpMode.mode = CLS_GROUP_MODE_NONE ;
          }
 
@@ -5391,10 +7269,47 @@ namespace engine
       PD_TRACE_EXITRC( SDB_CAT_DELGRP_FROM_GRPMODE, rc ) ;
       return rc ;
 
+=======
+            if ( '(' == *nameBegin )
+            {
+               break ;
+            }
+            else if ( ' ' == *nameBegin && appendBegun )
+            {
+               break ;
+            }
+            else if ( ' ' != *nameBegin )
+            {
+               name.append( 1, *nameBegin ) ;
+               appendBegun = TRUE ;
+               ++nameBegin ;
+            }
+            else
+            {
+               ++nameBegin ;
+            }
+         }
+
+         if ( name.empty() )
+         {
+            PD_LOG( PDERROR, "can not find func name" ) ;
+            rc = SDB_INVALIDARG ;
+         }
+
+         builder.append( FMP_FUNC_NAME, name ) ;
+         builder.append( fValue ) ;
+         builder.append( fType ) ;
+         parsed = builder.obj() ;
+      }
+   done:
+      PD_TRACE_EXITRC ( SDB_CATPRASEFUNC, rc ) ;
+      return rc ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    error:
       goto done ;
    }
 
+<<<<<<< HEAD
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CAT_INSERT_GRPMODE, "catInsertGrpMode" )
    INT32 catInsertGrpMode( const clsGroupMode &grpMode,
                            const string &groupName,
@@ -5758,9 +7673,248 @@ namespace engine
          setBuilder.doneFast() ;
          unsetBuilder.doneFast() ;
          updatorBuilder.append( "$unset", unsetBuilder.done() ) ;
+=======
+   UINT32 catCalcBucketID( const CHAR *pData, UINT32 length,
+                           UINT32 bucketSize )
+   {
+      md5::md5digest digest ;
+      md5::md5( pData, length, digest ) ;
+      UINT32 hashValue = 0 ;
+      UINT32 i = 0 ;
+      while ( i++ < 4 )
+      {
+         hashValue |= ( (UINT32)digest[i-1] << ( 32 - 8 * i ) ) ;
+      }
+      return ( hashValue % bucketSize ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCREATECONTEXT, "catCreateContext" )
+   INT32 catCreateContext ( MSG_TYPE cmdType,
+                            catContextPtr &context,
+                            SINT64 &contextID,
+                            _pmdEDUCB *pEDUCB )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY ( SDB_CATCREATECONTEXT ) ;
+
+      pmdKRCB *krcb = pmdGetKRCB();
+      _SDB_RTNCB *pRtnCB = krcb->getRTNCB();
+
+      RTN_CONTEXT_TYPE contextType ;
+      /// Map command to context
+      switch ( cmdType )
+      {
+      case MSG_CAT_CREATE_COLLECTION_REQ :
+         contextType = RTN_CONTEXT_CAT_CREATE_CL ;
+         break ;
+      case MSG_CAT_DROP_COLLECTION_REQ :
+         contextType = RTN_CONTEXT_CAT_DROP_CL ;
+         break ;
+      case MSG_CAT_DROP_SPACE_REQ :
+         contextType = RTN_CONTEXT_CAT_DROP_CS ;
+         break ;
+      case MSG_CAT_ALTER_CS_REQ :
+         contextType = RTN_CONTEXT_CAT_ALTER_CS ;
+         break ;
+      case MSG_CAT_RENAME_CS_REQ :
+         contextType = RTN_CONTEXT_CAT_RENAME_CS ;
+         break ;
+      case MSG_CAT_RENAME_CL_REQ :
+         contextType = RTN_CONTEXT_CAT_RENAME_CL ;
+         break ;
+      case MSG_CAT_ALTER_COLLECTION_REQ :
+         contextType = RTN_CONTEXT_CAT_ALTER_CL ;
+         break ;
+      case MSG_CAT_LINK_CL_REQ :
+         contextType = RTN_CONTEXT_CAT_LINK_CL ;
+         break ;
+      case MSG_CAT_UNLINK_CL_REQ :
+         contextType = RTN_CONTEXT_CAT_UNLINK_CL ;
+         break ;
+      case MSG_CAT_CREATE_IDX_REQ :
+         contextType = RTN_CONTEXT_CAT_CREATE_IDX ;
+         break ;
+      case MSG_CAT_DROP_IDX_REQ :
+         contextType = RTN_CONTEXT_CAT_DROP_IDX ;
+         break ;
+      case MSG_CAT_TRUNCATE_REQ :
+         contextType = RTN_CONTEXT_CAT_TRUNCATE_CL ;
+         break ;
+      case MSG_CAT_CREATE_NODE_REQ :
+         contextType = RTN_CONTEXT_CAT_CREATE_NODE ;
+         break ;
+      case MSG_CAT_DEL_NODE_REQ :
+         contextType = RTN_CONTEXT_CAT_REMOVE_NODE ;
+         break ;
+      case MSG_CAT_RM_GROUP_REQ :
+         contextType = RTN_CONTEXT_CAT_REMOVE_GROUP ;
+         break ;
+      case MSG_CAT_ACTIVE_GROUP_REQ :
+         contextType = RTN_CONTEXT_CAT_ACTIVE_GROUP ;
+         break ;
+      case MSG_CAT_SHUTDOWN_GROUP_REQ :
+         contextType = RTN_CONTEXT_CAT_SHUTDOWN_GROUP ;
+         break ;
+      default :
+         rc = SDB_INVALIDARG ;
+         break ;
+      }
+      if ( SDB_OK == rc )
+      {
+         rc = pRtnCB->contextNew( contextType,
+                                  context,
+                                  contextID,
+                                  pEDUCB ) ;
+      }
+      if ( SDB_OK == rc &&
+           pEDUCB->getMonConfigCB()->timestampON )
+      {
+         context->getMonCB()->recordStartTimestamp() ;
+      }
+
+      PD_TRACE_EXITRC ( SDB_CATCREATECONTEXT, rc ) ;
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATDELETECONTEXT, "catDeleteContext" )
+   INT32 catDeleteContext ( SINT64 contextID,
+                            _pmdEDUCB *pEDUCB )
+   {
+      PD_TRACE_ENTRY ( SDB_CATDELETECONTEXT ) ;
+
+      pmdKRCB *krcb = pmdGetKRCB() ;
+      _SDB_RTNCB *pRtnCB = krcb->getRTNCB() ;
+      if ( -1 != contextID  )
+      {
+         pRtnCB->contextDelete( contextID, pEDUCB ) ;
+      }
+
+      PD_TRACE_EXIT ( SDB_CATDELETECONTEXT ) ;
+
+      return SDB_OK ;
+   }
+
+   INT32 catGetCollectionNameByUID( utilCLUniqueID clUID,
+                                    string &clName,
+                                    BSONObj &clInfo,
+                                    _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj matcher = BSON( CAT_CL_UNIQUEID << (INT64) clUID ) ;
+      BSONObj dummyObj ;
+
+      PD_CHECK( UTIL_IS_VALID_CLUNIQUEID(clUID), SDB_INVALIDARG, error,
+                PDERROR, "Invalid cl uid(%llu)", clUID ) ;
+
+      rc = catGetOneObj( CAT_COLLECTION_INFO_COLLECTION, dummyObj, matcher,
+                         dummyObj, cb, clInfo ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get obj(%s) from %s, rc: %d",
+                   matcher.toString().c_str(), CAT_COLLECTION_INFO_COLLECTION,
+                   rc ) ;
+
+      rc = rtnGetSTDStringElement( clInfo, CAT_CATALOGNAME_NAME, clName ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get field(%s):cl=%s,rc=%d",
+                   CAT_CATALOGNAME_NAME, clInfo.toString().c_str(), rc ) ;
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETCOLLETION, "catGetCollection" )
+   INT32 catGetCollection ( const string &clName, BSONObj &boCollection,
+                            _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY ( SDB_CATGETCOLLETION ) ;
+
+      BOOLEAN isExist = FALSE ;
+
+      rc = catCheckCollectionExist( clName.c_str(), isExist, boCollection, cb );
+      PD_RC_CHECK( rc, PDWARNING,
+                   "Failed to get info of collection [%s], rc: %d",
+                   clName.c_str(), rc ) ;
+      PD_CHECK( isExist,
+                SDB_DMS_NOTEXIST, error, PDDEBUG,
+                "Collection [%s] does not exist!",
+                clName.c_str() ) ;
+   done :
+      PD_TRACE_EXITRC ( SDB_CATGETCOLLETION, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETCHKCL, "catGetAndCheckCollection" )
+   INT32 catGetAndCheckCollection ( const string &clName, BSONObj &boCollection,
+                                    _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_CATGETCHKCL ) ;
+
+      BOOLEAN isExist = FALSE ;
+
+      try
+      {
+         rc = catCheckCollectionExist( clName.c_str(), isExist, boCollection, cb );
+         PD_RC_CHECK( rc, PDWARNING,
+                      "Failed to get info of collection [%s], rc: %d",
+                      clName.c_str(), rc ) ;
+
+         if ( !isExist )
+         {
+            rc = catCheckCSExist( clName.c_str(), cb, isExist ) ;
+            if ( isExist )
+            {
+               // If the cs exists, and the collection is not found, check if
+               // the cs is using data source.
+               BOOLEAN inMappingCS = FALSE ;
+               BSONObj csMetaRecord ;
+               rc = catCheckCLInPureMappingCS( clName.c_str(), cb,
+                                               inMappingCS, &csMetaRecord ) ;
+               PD_RC_CHECK( rc, PDERROR, "Checking if using mapping cs for "
+                            "collection[%s] failed[%d]", clName.c_str(), rc ) ;
+               if ( !inMappingCS )
+               {
+                  rc = SDB_DMS_NOTEXIST ;
+                  PD_LOG( PDWARNING, "Collection[%s] does not exist, rc: %d",
+                          clName.c_str(), rc ) ;
+                  pdSetLastError( rc ) ;
+                  goto error ;
+               }
+               // It's a pure mapping cs, let's build a catalog record for the
+               // collection.
+               rc = catBuildCatalogByPureMappingCS( clName.c_str(),
+                                                    csMetaRecord,
+                                                    boCollection, cb ) ;
+               PD_RC_CHECK( rc, PDERROR, "Build catalog information for "
+                            "collection[%s] failed[%d]", clName.c_str(), rc ) ;
+            }
+            else if ( SDB_OK == rc )
+            {
+               rc = SDB_DMS_CS_NOTEXIST ;
+               PD_LOG( PDWARNING,
+                       "Collection[%s]'s space does not exist, rc: %d",
+                       clName.c_str(), rc ) ;
+               pdSetLastError( rc ) ;
+               goto error ;
+            }
+            else
+            {
+               rc = SDB_DMS_NOTEXIST ;
+               PD_LOG( PDWARNING, "Collection[%s] does not exist, rc: %d",
+                       clName.c_str(), rc ) ;
+               pdSetLastError( rc ) ;
+               goto error ;
+            }
+         }
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       }
       catch ( exception &e )
       {
+<<<<<<< HEAD
          rc = ossException2RC( &e ) ;
          PD_LOG( PDERROR, "Unexpected exception happened: %s, rc: %d", e.what(), rc ) ;
          goto error ;
@@ -5768,12 +7922,21 @@ namespace engine
 
    done:
       PD_TRACE_EXITRC( SDB_CAT_SET_GRPMODE_PROPERTY, rc ) ;
+=======
+         PD_LOG( PDWARNING, "Occur exception: %s", e.what() ) ;
+         rc = ossException2RC( &e );
+         goto error ;
+      }
+   done :
+      PD_TRACE_EXITRC ( SDB_CATGETCHKCL, rc ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       return rc ;
 
    error:
       goto done ;
    }
 
+<<<<<<< HEAD
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CAT_PUSH_GRPMODE_PROPERTY, "catPushGrpModePropty" )
    INT32 catPushGrpModePropty( const VEC_GRPMODE_ITEM_PTR &pushItemVec,
                                BSONObjBuilder &updatorBuilder,
@@ -5850,10 +8013,45 @@ namespace engine
                                 const BOOLEAN &parseTime,
                                 clsGroupMode &groupMode,
                                 ossPoolString *pHostName )
+=======
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCHECKMAINCOLLECTION, "catCheckMainCollection" )
+   INT32 catCheckMainCollection ( const BSONObj &boCollection,
+                                  BOOLEAN expectMain )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY ( SDB_CATCHECKMAINCOLLECTION ) ;
+
+      // sub-collection could not be a main-collection
+      BSONElement beIsMainCL = boCollection.getField( CAT_IS_MAINCL ) ;
+      if ( expectMain && !beIsMainCL.booleanSafe() )
+      {
+         rc = SDB_INVALID_MAIN_CL ;
+         goto error ;
+      }
+      else if ( !expectMain && beIsMainCL.booleanSafe() )
+      {
+         rc = SDB_INVALID_SUB_CL ;
+         goto error ;
+      }
+
+   done :
+      PD_TRACE_EXITRC ( SDB_CATCHECKMAINCOLLECTION, rc ) ;
+
+      return rc ;
+
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCHECKRELINKCOLLECTION, "catCheckRelinkCollection" )
+   INT32 catCheckRelinkCollection ( const BSONObj &boCollection, string &mainCLName )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_CAT_PARSE_GRPMODE_INFO ) ;
 
+<<<<<<< HEAD
       try
       {
          BSONElement     optionEle ;
@@ -5956,11 +8154,137 @@ namespace engine
             }
             // Get unknown input
             else
+=======
+      PD_TRACE_ENTRY ( SDB_CATCHECKRELINKCOLLECTION ) ;
+
+      BSONElement beMainCLName = boCollection.getField( CAT_MAINCL_NAME );
+      if ( beMainCLName.type() == String )
+      {
+         mainCLName = beMainCLName.str();
+         // TODO: May need to check mainCLName
+         if ( !mainCLName.empty() ) {
+            rc = SDB_RELINK_SUB_CL ;
+            goto error ;
+         }
+      }
+
+   done :
+      PD_TRACE_EXITRC ( SDB_CATCHECKRELINKCOLLECTION, rc ) ;
+
+      return rc ;
+
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCHECKLINKMULTIDSCOLLECTION, "catCheckLinkMultiDSCollection" )
+   INT32 catCheckLinkMultiDSCollection( const BSONObj &boMainCL,
+                                        const BSONObj &boSubCL,
+                                        pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_CATCHECKLINKMULTIDSCOLLECTION ) ;
+
+      try
+      {
+         BSONObj subObj ;
+         BSONObj subCLObj ;
+         BSONElement cataEle ;
+         BSONElement myIDEle = boSubCL.getField( FIELD_NAME_DATASOURCE_ID ) ;
+         if ( myIDEle.eoo() )
+         {
+            // If no data source id field in the metadata, it's a local
+            // collection.
+            goto done ;
+         }
+
+         cataEle = boMainCL.getField( FIELD_NAME_CATALOGINFO ) ;
+         {
+            const CHAR *subCLName = NULL ;
+            BSONElement idEle ;
+            BSONObjIterator itr( cataEle.embeddedObject() ) ;
+            // Check the field 'DataSourceID' in each sub cl metadata record.
+            // If it exists and its value is the same with the current cl,
+            // return error.
+            while ( itr.more() )
+            {
+               subObj = itr.next().Obj() ;
+               subCLName = subObj.getStringField( FIELD_NAME_SUBCLNAME ) ;
+               rc = catGetCollection( subCLName, subCLObj, cb ) ;
+               PD_RC_CHECK( rc, PDERROR, "Get collection[%s] metadata "
+                            "failed[%d]", subCLName, rc ) ;
+               idEle = subCLObj.getField( FIELD_NAME_DATASOURCE_ID ) ;
+               if ( !idEle.eoo() && idEle.valuesEqual( myIDEle ) )
+               {
+                  rc = SDB_OPTION_NOT_SUPPORT ;
+                  PD_LOG_MSG( PDERROR, "Main collection can not attach more "
+                              "then one sub collection mapping to the same "
+                              "data source[%d]", rc ) ;
+                  goto error ;
+               }
+            }
+         }
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCHECKLINKMULTIDSCOLLECTION, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETCOLLECTIONGROUPS, "catGetCollectionGroups" )
+   INT32 catGetCollectionGroups ( const BSONObj &boCollection,
+                                  vector<UINT32> &groupIDList,
+                                  vector<string> &groupNameList )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY ( SDB_CATGETCOLLECTIONGROUPS ) ;
+
+      BSONElement beCataInfo = boCollection.getField( CAT_CATALOGINFO_NAME ) ;
+      if ( Array != beCataInfo.type() )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      {
+         BSONObj boCataInfo = beCataInfo.embeddedObject() ;
+         BSONObjIterator iterArr( boCataInfo ) ;
+         while ( iterArr.more() )
+         {
+            BSONElement beTmp = iterArr.next();
+            if ( Object != beTmp.type() )
+            {
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
+
+            BSONObj boTmp = beTmp.embeddedObject();
+
+            BSONElement beGroupId = boTmp.getField( CAT_GROUPID_NAME ) ;
+            if ( !beGroupId.isNumber() )
+            {
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
+
+            BSONElement beGroupName = boTmp.getField( CAT_GROUPNAME_NAME ) ;
+            if ( String != beGroupName.type() )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             {
                rc = SDB_INVALIDARG ;
                PD_LOG_MSG( PDERROR, "Parameter [%s] is unknown", optionEle.fieldName() ) ;
                goto error ;
             }
+<<<<<<< HEAD
          }
 
          // Check if any required parameters are missing
@@ -6030,6 +8354,2155 @@ namespace engine
                rc = SDB_INVALIDARG ;
                PD_LOG_MSG( PDERROR, "Size of location name is greater than 256B" ) ;
                goto error ;
+=======
+
+            groupIDList.push_back( beGroupId.numberInt() ) ;
+            groupNameList.push_back( beGroupName.valuestr() ) ;
+         }
+      }
+
+   done :
+      PD_TRACE_EXITRC ( SDB_CATGETCOLLECTIONGROUPS, rc ) ;
+
+      return rc ;
+
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETANDLOCKDOMAIN, "catGetAndLockDomain" )
+   INT32 catGetAndLockDomain ( const std::string &domainName, BSONObj &boDomain,
+                               _pmdEDUCB *cb,
+                               catCtxLockMgr *pLockMgr, OSS_LATCH_MODE mode )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY ( SDB_CATGETANDLOCKDOMAIN ) ;
+
+      try
+      {
+         BOOLEAN isExist = FALSE ;
+         rc = catCheckDomainExist( domainName.c_str(), isExist, boDomain, cb ) ;
+         PD_RC_CHECK( rc, PDWARNING,
+                      "Failed to get info of domain [%s], rc: %d",
+                      domainName.c_str(), rc ) ;
+         PD_CHECK( isExist, SDB_CAT_DOMAIN_NOT_EXIST, error, PDWARNING,
+                   "Domain [%s] does not exist!",
+                   domainName.c_str() ) ;
+
+         // Lock domain
+         if ( pLockMgr &&
+              !pLockMgr->tryLockDomain( domainName, mode ) )
+         {
+            rc = SDB_LOCK_FAILED ;
+            goto error ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDWARNING, "Occur exception: %s", e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+   done :
+      PD_TRACE_EXITRC ( SDB_CATGETANDLOCKDOMAIN, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETANDLOCKCOLLECTIONSPACE, "catGetAndLockCollectionSpace" )
+   INT32 catGetAndLockCollectionSpace ( const string &csName, BSONObj &boSpace,
+                                        _pmdEDUCB *cb,
+                                        catCtxLockMgr *pLockMgr,
+                                        OSS_LATCH_MODE mode )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY ( SDB_CATGETANDLOCKCOLLECTIONSPACE ) ;
+
+      try
+      {
+         BOOLEAN isExist = FALSE ;
+         rc = catCheckSpaceExist( csName.c_str(), isExist, boSpace, cb ) ;
+         PD_RC_CHECK( rc, PDWARNING,
+                      "Failed to get info of collection space [%s], rc: %d",
+                      csName.c_str(), rc ) ;
+         PD_CHECK( isExist, SDB_DMS_CS_NOTEXIST, error, PDWARNING,
+                   "Collection space [%s] does not exist!",
+                   csName.c_str() ) ;
+
+         // Lock collection space
+         if ( pLockMgr &&
+              !pLockMgr->tryLockCollectionSpace( csName, mode ) )
+         {
+            rc = SDB_LOCK_FAILED ;
+            goto error ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDWARNING, "Occur exception: %s", e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+   done :
+      PD_TRACE_EXITRC ( SDB_CATGETANDLOCKCOLLECTIONSPACE, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETANDLOCKCOLLECTIONSPACE_UID, "catGetAndLockCollectionSpace" )
+   INT32 catGetAndLockCollectionSpace( utilCSUniqueID csUniqueID,
+                                       BSONObj &boSpace,
+                                       const CHAR *&csName,
+                                       pmdEDUCB *cb,
+                                       catCtxLockMgr *pLockMgr,
+                                       OSS_LATCH_MODE mode )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATGETANDLOCKCOLLECTIONSPACE_UID ) ;
+
+      try
+      {
+         BOOLEAN isExist = FALSE ;
+         BSONElement ele ;
+
+         rc = catCheckSpaceExist( NULL, csUniqueID, isExist, boSpace, cb ) ;
+         PD_RC_CHECK( rc, PDWARNING, "Failed to get info of collection "
+                      "space [%u], rc: %d", csUniqueID, rc ) ;
+         PD_CHECK( isExist, SDB_DMS_CS_NOTEXIST, error, PDWARNING,
+                   "Collection space [%u] does not exist!", csUniqueID ) ;
+
+         ele = boSpace.getField( CAT_COLLECTION_SPACE_NAME ) ;
+         PD_CHECK( String == ele.type(), SDB_CAT_CORRUPTION, error, PDWARNING,
+                   "Failed to get field [%s], it is not string",
+                   CAT_COLLECTION_SPACE_NAME ) ;
+         csName = ele.valuestr() ;
+
+         // Lock collection space
+         if ( pLockMgr &&
+              !pLockMgr->tryLockCollectionSpace( csName, mode ) )
+         {
+            rc = SDB_LOCK_FAILED ;
+            goto error ;
+         }
+      }
+      catch( exception &e )
+      {
+         PD_LOG( PDWARNING, "Failed to check collection space, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATGETANDLOCKCOLLECTIONSPACE_UID, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETANDLOCKCOLLECTION, "catGetAndLockCollection" )
+   INT32 catGetAndLockCollection ( const string &clName, BSONObj &boCollection,
+                                   _pmdEDUCB *cb,
+                                   catCtxLockMgr *pLockMgr,
+                                   OSS_LATCH_MODE mode )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_CATGETANDLOCKCOLLECTION ) ;
+
+      rc = catGetAndCheckCollection( clName, boCollection, cb ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to get collection[%s], rc: %d",
+                   clName.c_str(), rc ) ;
+
+      // Lock sub-collection
+      if ( pLockMgr &&
+           !pLockMgr->tryLockCollection( clName, mode ) )
+      {
+         rc = SDB_LOCK_FAILED ;
+         goto error ;
+      }
+
+   done :
+      PD_TRACE_EXITRC ( SDB_CATGETANDLOCKCOLLECTION, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETANDLOCKCLGRP, "catGetAndLockCollectionGroups" )
+   INT32 catGetAndLockCollectionGroups ( const BSONObj &boCollection,
+                                         vector<UINT32> &groupIDList,
+                                         catCtxLockMgr &lockMgr,
+                                         OSS_LATCH_MODE mode )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY ( SDB_CATGETANDLOCKCLGRP ) ;
+
+      if ( boCollection.isEmpty() )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      try
+      {
+         vector<string> groupNameList ;
+         rc = catGetCollectionGroups ( boCollection, groupIDList, groupNameList ) ;
+         PD_RC_CHECK( rc, PDWARNING,
+                      "Failed to get group info from collection record [%s], "
+                      "rc: %d",
+                      boCollection.toString().c_str(), rc ) ;
+         // Lock groups
+         for ( UINT32 idx = 0 ; idx < groupNameList.size() ; ++idx )
+         {
+            if ( !lockMgr.tryLockGroup( groupNameList[idx], mode ) )
+            {
+               rc = SDB_LOCK_FAILED ;
+               goto error ;
+            }
+         }
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDWARNING, "Occur exception: %s", e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+   done :
+      PD_TRACE_EXITRC ( SDB_CATGETANDLOCKCLGRP, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETCLGRPSET, "catGetCollectionGroupSet" )
+   INT32 catGetCollectionGroupSet ( const BSONObj &boCollection,
+                                    vector<UINT32> &groupIDList )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY ( SDB_CATGETCLGRPSET ) ;
+
+      std::set< UINT32 > groupIDSet ;
+      std::set< UINT32 >::iterator iterGroupID ;
+
+      if ( boCollection.isEmpty() )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      try
+      {
+         vector<string> groupNameList ;
+         rc = catGetCollectionGroups ( boCollection, groupIDList, groupNameList ) ;
+         PD_RC_CHECK( rc, PDWARNING,
+                      "Failed to get group info from collection record [%s], "
+                      "rc: %d",
+                      boCollection.toString().c_str(), rc ) ;
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDWARNING, "Occur exception: %s", e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+      /// Remove duplicate groups
+      for ( UINT32 i = 0 ; i < groupIDList.size() ; ++i )
+      {
+         groupIDSet.insert( groupIDList[i] ) ;
+      }
+      groupIDList.clear() ;
+      iterGroupID = groupIDSet.begin() ;
+      while ( iterGroupID != groupIDSet.end() )
+      {
+         groupIDList.push_back( *iterGroupID ) ;
+         ++iterGroupID ;
+      }
+
+   done :
+      PD_TRACE_EXITRC ( SDB_CATGETCLGRPSET, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETCLGRPSET_SET, "catGetCollectionGroupSet" )
+   INT32 catGetCollectionGroupSet ( const BSONObj &boCollection,
+                                    SET_UINT32 &groupIDSet )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_CATGETCLGRPSET_SET ) ;
+
+      try
+      {
+         BSONElement beCataInfo ;
+
+         if ( boCollection.isEmpty() )
+         {
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+
+         beCataInfo = boCollection.getField( CAT_CATALOGINFO_NAME ) ;
+         if ( Array != beCataInfo.type() )
+         {
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+
+         {
+            BSONObj boCataInfo = beCataInfo.embeddedObject() ;
+            BSONObjIterator iterArr( boCataInfo ) ;
+            while ( iterArr.more() )
+            {
+               BSONElement beTmp = iterArr.next() ;
+               if ( Object != beTmp.type() )
+               {
+                  rc = SDB_INVALIDARG ;
+                  goto error ;
+               }
+               else
+               {
+                  BSONObj boTmp = beTmp.embeddedObject();
+                  BSONElement beGroupId = boTmp.getField( CAT_GROUPID_NAME ) ;
+                  if ( !beGroupId.isNumber() )
+                  {
+                     rc = SDB_INVALIDARG ;
+                     goto error ;
+                  }
+                  groupIDSet.insert( beGroupId.numberInt() ) ;
+               }
+            }
+         }
+      }
+      catch( exception &e )
+      {
+         PD_LOG( PDWARNING, "Failed to get group ID set from collection, "
+                 "occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATGETCLGRPSET_SET, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATLOCKGROUPS, "catLockGroups" )
+   INT32 catLockGroups ( vector<UINT32> &groupIDList,
+                         _pmdEDUCB *cb,
+                         catCtxLockMgr &lockMgr,
+                         OSS_LATCH_MODE mode )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY ( SDB_CATLOCKGROUPS ) ;
+
+      // Lock groups
+      for ( UINT32 idx = 0 ; idx < groupIDList.size() ; ++idx )
+      {
+         string groupName ;
+         UINT32 groupID = groupIDList[idx] ;
+
+         if ( SDB_IS_DSID( groupID ) )
+         {
+            // Do nothing for data source groups.
+            continue ;
+         }
+
+         rc = catGroupID2Name( groupID, groupName, cb ) ;
+         PD_RC_CHECK( rc, PDWARNING,
+                      "Failed to convert group id [%d] to group name, rc: %d",
+                      groupID, rc ) ;
+
+         PD_CHECK( lockMgr.tryLockGroup( groupName, mode ),
+                   SDB_LOCK_FAILED, error, PDWARNING,
+                   "Failed to lock group [%s]",
+                   groupName.c_str() ) ;
+      }
+
+   done :
+      PD_TRACE_EXITRC ( SDB_CATLOCKGROUPS, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATLOCKGROUPS_SET, "catLockGroups" )
+   INT32 catLockGroups ( const CAT_GROUP_SET &groupIDSet,
+                         _pmdEDUCB *cb,
+                         catCtxLockMgr &lockMgr,
+                         OSS_LATCH_MODE mode,
+                         BOOLEAN ignoreNonExist )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY ( SDB_CATLOCKGROUPS_SET ) ;
+
+      // Lock groups
+      for ( CAT_GROUP_SET_IT iter = groupIDSet.begin() ;
+            iter != groupIDSet.end() ;
+            ++ iter )
+      {
+         string groupName ;
+         UINT32 groupID = *iter ;
+
+         if ( SDB_IS_DSID( groupID ) )
+         {
+            // Do nothing for data source groups.
+            continue ;
+         }
+
+         rc = catGroupID2Name( groupID, groupName, cb ) ;
+         if ( SDB_CLS_GRP_NOT_EXIST == rc && ignoreNonExist )
+         {
+            rc = SDB_OK ;
+            continue ;
+         }
+         PD_RC_CHECK( rc, PDWARNING,
+                      "Failed to convert group id [%d] to group name, rc: %d",
+                      groupID, rc ) ;
+
+         PD_CHECK( lockMgr.tryLockGroup( groupName, mode ),
+                   SDB_LOCK_FAILED, error, PDWARNING,
+                   "Failed to lock group [%s]",
+                   groupName.c_str() ) ;
+      }
+
+   done :
+      PD_TRACE_EXITRC ( SDB_CATLOCKGROUPS_SET, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCHECKGROUPS_ID, "catCheckGroupsByID" )
+   INT32 catCheckGroupsByID ( std::vector<UINT32> &groupIDList )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY ( SDB_CATCHECKGROUPS_ID ) ;
+
+      pmdKRCB *krcb = pmdGetKRCB() ;
+      sdbCatalogueCB *pCatCB = krcb->getCATLOGUECB() ;
+
+      if ( 0 == groupIDList.size() )
+      {
+         rc = SDB_CAT_NO_NODEGROUP_INFO ;
+         goto error ;
+      }
+
+      for ( std::vector<UINT32>::iterator iterGrp = groupIDList.begin();
+            iterGrp != groupIDList.end();
+            ++iterGrp )
+     {
+         UINT32 grpID = (*iterGrp) ;
+         BOOLEAN isExist = FALSE ;
+         if ( !pCatCB->checkGroupActived( pCatCB->groupID2Name( grpID ),
+                                          isExist ) )
+         {
+            rc = SDB_REPL_GROUP_NOT_ACTIVE ;
+            if ( !isExist )
+            {
+               rc = SDB_CLS_GRP_NOT_EXIST ;
+            }
+            PD_RC_CHECK( rc, PDWARNING,
+                         "The group [%s] is not active, rc: %d",
+                         pCatCB->groupID2Name( grpID ), rc ) ;
+         }
+         if ( pCatCB->isImageEnabled() &&
+              !pCatCB->getCatDCMgr()->groupInImage( grpID ) )
+         {
+            // the group that has no image can't be as the collection location
+            PD_LOG( PDWARNING,
+                    "The group [%s] that has no image can't "
+                    "be as the collection's location when image is enabled",
+                    pCatCB->groupID2Name( grpID ) ) ;
+            rc = SDB_CAT_GROUP_HASNOT_IMAGE ;
+            goto error ;
+         }
+      }
+
+   done :
+      PD_TRACE_EXITRC ( SDB_CATCHECKGROUPS_ID, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCHECKGROUPS_NAME, "catCheckGroupsByName" )
+   INT32 catCheckGroupsByName ( std::vector<std::string> &groupNameList )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY ( SDB_CATCHECKGROUPS_NAME ) ;
+
+      pmdKRCB *krcb = pmdGetKRCB() ;
+      sdbCatalogueCB *pCatCB = krcb->getCATLOGUECB() ;
+
+      if ( 0 == groupNameList.size() )
+      {
+         rc = SDB_CAT_NO_NODEGROUP_INFO ;
+         goto error ;
+      }
+
+      for ( std::vector<std::string>::iterator iterGrp = groupNameList.begin();
+            iterGrp != groupNameList.end();
+            ++iterGrp )
+     {
+         std::string groupName = (*iterGrp) ;
+         BOOLEAN isExist = FALSE ;
+         if ( !pCatCB->checkGroupActived( groupName.c_str(), isExist ) )
+         {
+            rc = SDB_REPL_GROUP_NOT_ACTIVE ;
+            if ( !isExist )
+            {
+               rc = SDB_CLS_GRP_NOT_EXIST ;
+            }
+            PD_RC_CHECK( rc, PDWARNING,
+                         "The group [%s] is not active, rc: %d",
+                         groupName.c_str(), rc ) ;
+         }
+         if ( pCatCB->isImageEnabled() &&
+              !pCatCB->getCatDCMgr()->groupInImage( groupName ) )
+         {
+            // the group that has no image can't be as the collection location
+            PD_LOG( PDWARNING,
+                    "The group [%s] that has no image can't "
+                    "be as the collection's location when image is enabled",
+                    groupName.c_str() ) ;
+            rc = SDB_CAT_GROUP_HASNOT_IMAGE ;
+            goto error ;
+         }
+      }
+
+   done :
+      PD_TRACE_EXITRC ( SDB_CATCHECKGROUPS_NAME, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATMIANCLRENAME, "catMainCLRename" )
+   INT32 catMainCLRename( const string &mainCLName, const string &newMainCLName,
+                          clsCatalogSet &mainclCata,
+                          _pmdEDUCB *cb, INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_CATMIANCLRENAME ) ;
+
+      CLS_SUBCL_LIST subCLLst ;
+      CLS_SUBCL_LIST_IT iterSubCL ;
+
+      rc = mainclCata.getSubCLList( subCLLst );
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to get subcl list of collection[%s], rc: %d",
+                   mainCLName.c_str(), rc ) ;
+
+      iterSubCL = subCLLst.begin() ;
+      while( iterSubCL != subCLLst.end() )
+      {
+         const std::string& subCLName = (*iterSubCL) ;
+
+         BSONObj setObj = BSON( CAT_MAINCL_NAME << newMainCLName ) ;
+         rc = catUpdateCatalog( subCLName.c_str(), setObj, BSONObj(), cb, w ) ;
+         PD_RC_CHECK( rc, PDWARNING,
+                      "Failed to update collection space[%s], rc: %d",
+                      subCLName.c_str(), rc ) ;
+
+         iterSubCL++ ;
+      }
+
+   done :
+      PD_TRACE_EXITRC ( SDB_CATMIANCLRENAME, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATSUBCLRENAME, "catSubCLRename" )
+   INT32 catSubCLRename( const string &subCLName, const string &newSubCLName,
+                         clsCatalogSet &subclCata,
+                         _pmdEDUCB *cb, INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_CATSUBCLRENAME ) ;
+
+      std::string mainCLName = subclCata.getMainCLName() ;
+      SDB_ASSERT( !mainCLName.empty(), "main-collection must be not empty!" ) ;
+
+      clsCatalogSet mainclCata( mainCLName.c_str() );
+
+      BSONObj mainclInfo ;
+      rc = catGetCollection( mainCLName, mainclInfo, cb ) ;
+      PD_RC_CHECK( rc, PDWARNING,
+                   "Failed to get catalog-info of collection[%s], rc: %d",
+                   mainCLName.c_str(), rc ) ;
+
+      rc = mainclCata.updateCatSet( mainclInfo ) ;
+      PD_RC_CHECK( rc, PDWARNING,
+                   "Failed to parse catalog info[%s], rc: %d",
+                   mainCLName.c_str(), rc ) ;
+
+      rc = mainclCata.renameSubCL( subCLName.c_str(), newSubCLName.c_str() ) ;
+      PD_RC_CHECK( rc, PDWARNING,
+                   "Failed to rename the subcl[%s] from maincl [%s], rc: %d",
+                   subCLName.c_str(), mainCLName.c_str(), rc ) ;
+
+      {
+         // Update the catalog
+         BSONObj subListObj = mainclCata.toCataInfoBson() ;
+         rc = catUpdateCatalog( mainCLName.c_str(), subListObj,
+                                BSONObj(), cb, w ) ;
+         PD_RC_CHECK( rc, PDWARNING,
+                      "Failed to update the catalog of maincl [%s], rc: %d",
+                      mainCLName.c_str(), rc ) ;
+      }
+
+   done :
+      PD_TRACE_EXITRC ( SDB_CATSUBCLRENAME, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATDROPCSSTEP, "catDropCSStep" )
+   INT32 catDropCSStep ( const string &csName,
+                         _pmdEDUCB *cb, SDB_DMSCB *pDmsCB, SDB_DPSCB *pDpsCB,
+                         INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY ( SDB_CATDROPCSSTEP ) ;
+
+      BSONObj boMatcher, dummyObj ;
+
+      // 1) Remove tasks with the collection space
+      rc = catRemoveCSTasks( csName.c_str(), cb, w ) ;
+      PD_RC_CHECK( rc, PDWARNING,
+                   "Failed to remove tasks with the collection [%s], rc: %d",
+                   csName.c_str(), rc ) ;
+
+      // 2) Remove indexes with the collection space
+      rc = catRemoveCSIndexes( csName.c_str(), cb, w ) ;
+      PD_RC_CHECK( rc, PDWARNING,
+                   "Failed to remove indexes with the collection [%s], rc: %d",
+                   csName.c_str(), rc ) ;
+
+      // 3) Remove collections with the collection space
+      try
+      {
+         boMatcher = BSON( CAT_COLLECTION_SPACE_NAME << csName ) ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
+      rc = rtnDelete( CAT_COLLECTION_SPACE_COLLECTION, boMatcher, dummyObj,
+                      0, cb, pDmsCB, pDpsCB, w ) ;
+      PD_RC_CHECK( rc, PDWARNING,
+                   "Failed to delete record from collection [%s] with match [%s], "
+                   "rc: %d",
+                   CAT_COLLECTION_SPACE_COLLECTION,
+                   boMatcher.toString().c_str(), rc ) ;
+
+   done :
+      PD_TRACE_EXITRC ( SDB_CATDROPCSSTEP, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATRENAMECSSTEP, "catRenameCSStep" )
+   INT32 catRenameCSStep ( const string &oldCSName, const string &newCSName,
+                           _pmdEDUCB *cb, SDB_DMSCB *pDmsCB, SDB_DPSCB *pDpsCB,
+                           INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_CATRENAMECSSTEP ) ;
+
+      BSONObj setObj = BSON( CAT_COLLECTION_SPACE_NAME << newCSName ) ;
+
+      rc = catUpdateCS( oldCSName.c_str(), setObj, BSONObj(), cb,
+                        pDmsCB, pDpsCB, w ) ;
+      PD_RC_CHECK( rc, PDWARNING,
+                   "Failed to update collection space[%s], rc: %d",
+                   oldCSName.c_str(), rc ) ;
+
+   done :
+      PD_TRACE_EXITRC ( SDB_CATRENAMECSSTEP, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATRENAMECLSTEP, "catRenameCLStep" )
+   INT32 catRenameCLStep ( const string &oldCLName, const string &newCLName,
+                           _pmdEDUCB *cb, SDB_DMSCB *pDmsCB, SDB_DPSCB *pDpsCB,
+                           INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_CATRENAMECLSTEP ) ;
+
+      clsCatalogSet cataSet( oldCLName.c_str() );
+      BSONObj setObj, boCollection ;
+      INT32 curVersion = 0 ;
+      INT32 newCLVersion = 0 ;
+      string csName, newCSName, clShortName, newCLShortName ;
+
+      /// get cl info
+      rc = catGetCollection( oldCLName, boCollection, cb ) ;
+      PD_RC_CHECK( rc, PDWARNING,
+                   "Failed to get catalog-info of collection[%s], rc: %d",
+                   oldCLName.c_str(), rc ) ;
+
+      rc = rtnGetIntElement( boCollection, CAT_VERSION_NAME, curVersion ) ;
+      PD_RC_CHECK( rc, PDWARNING,
+                   "Failed to get version of collection[%s], rc: %d",
+                   oldCLName.c_str(), rc ) ;
+
+      rc = cataSet.updateCatSet( boCollection ) ;
+      PD_RC_CHECK( rc, PDWARNING,
+                   "Failed to parse catalog info[%s], rc: %d",
+                   oldCLName.c_str(), rc ) ;
+
+      /// process this cl name
+      newCLVersion = catGetBucketVersion( newCLName.c_str(), cb ) ;
+      if ( ( curVersion + 1 ) > newCLVersion )
+      {
+         newCLVersion = curVersion + 1 ;
+      }
+      setObj = BSON( CAT_COLLECTION_NAME << newCLName <<
+                     CAT_VERSION_NAME << newCLVersion ) ;
+      rc = catUpdateCatalog( oldCLName.c_str(), setObj, BSONObj(),
+                             cb, w, FALSE ) ;
+      PD_RC_CHECK( rc, PDWARNING,
+                   "Failed to update collection space[%s], rc: %d",
+                   oldCLName.c_str(), rc ) ;
+
+      rc = catSaveBucketVersion( oldCLName.c_str(), curVersion, cb, w ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDWARNING,
+                 "Failed to save history version of collection [%s], rc: %d",
+                 oldCLName.c_str(), rc ) ;
+      }
+
+      /// process cs
+      csName         = dmsGetCSNameFromFullName( oldCLName ) ;
+      newCSName      = dmsGetCSNameFromFullName( newCLName ) ;
+      clShortName    = dmsGetCLShortNameFromFullName( oldCLName ) ;
+      newCLShortName = dmsGetCLShortNameFromFullName( newCLName ) ;
+      if ( csName == newCSName && clShortName != newCLShortName )
+      {
+         rc = catRenameCLFromCS( csName, clShortName, newCLShortName,
+                                 cb, pDmsCB, pDpsCB, w ) ;
+         PD_RC_CHECK( rc, PDWARNING,
+                      "Failed to rename collection[%s] from cs[%s], rc: %d",
+                      clShortName.c_str(), csName.c_str(), rc ) ;
+      }
+
+      /// process its subcl or maincl
+      if ( cataSet.isMainCL() )
+      {
+         rc = catMainCLRename( oldCLName, newCLName, cataSet, cb, w ) ;
+         PD_RC_CHECK( rc, PDWARNING,
+                      "Failed to rename maincl[%s], rc: %d",
+                      oldCLName.c_str(), rc ) ;
+      }
+      else
+      {
+         const std::string& mainCLName = cataSet.getMainCLName() ;
+         if ( !mainCLName.empty() )
+         {
+            rc = catSubCLRename( oldCLName, newCLName, cataSet, cb, w ) ;
+            PD_RC_CHECK( rc, PDWARNING,
+                         "Failed to rename subcl[%s], rc: %d",
+                         oldCLName.c_str(), rc ) ;
+         }
+      }
+
+      rc = catRenameCLInTasks( oldCLName.c_str(), newCLName.c_str(), cb, w ) ;
+      PD_RC_CHECK( rc, PDWARNING,
+                   "Failed to rename cl[%s] in tasks, rc: %d",
+                   oldCLName.c_str(), rc ) ;
+
+      rc = catRenameCLInIndexes( oldCLName.c_str(), newCLName.c_str(),
+                                 cb, w ) ;
+      PD_RC_CHECK( rc, PDWARNING,
+                   "Failed to rename cl[%s] in indexes, rc: %d",
+                   oldCLName.c_str(), rc ) ;
+
+   done :
+      PD_TRACE_EXITRC ( SDB_CATRENAMECLSTEP, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCREATECLSTEP, "catCreateCLStep" )
+   INT32 catCreateCLStep ( const string &clName, utilCLUniqueID clUniqueID,
+                           BSONObj &boCollection, _pmdEDUCB *cb,
+                           SDB_DMSCB *pDmsCB, SDB_DPSCB *pDpsCB, INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY ( SDB_CATCREATECLSTEP ) ;
+
+      CHAR szSpace[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] = {0} ;
+      CHAR szCollection[ DMS_COLLECTION_NAME_SZ + 1 ] = {0} ;
+
+      // split collection full name to csname and clname
+      rc = rtnResolveCollectionName( clName.c_str(),
+                                     clName.size(),
+                                     szSpace, DMS_COLLECTION_SPACE_NAME_SZ,
+                                     szCollection, DMS_COLLECTION_NAME_SZ ) ;
+      PD_RC_CHECK ( rc, PDWARNING,
+                    "Failed to resolve collection name: %s",
+                    clName.c_str() ) ;
+
+      // insert to system collection of meta data.
+      rc = rtnInsert( CAT_COLLECTION_INFO_COLLECTION, boCollection,
+                      1, 0, cb, pDmsCB, pDpsCB, w ) ;
+      PD_RC_CHECK( rc, PDWARNING,
+                   "Failed insert record [%s] to collection [%s], rc: %d",
+                   boCollection.toString().c_str(),
+                   CAT_COLLECTION_INFO_COLLECTION, rc ) ;
+
+      // update collection space info
+      rc = catAddCL2CS( szSpace, szCollection, clUniqueID,
+                        cb, pDmsCB, pDpsCB, w ) ;
+      if ( SDB_OK != rc )
+      {
+         /// Rollback immediately instead of waiting for a kill context signal
+         PD_LOG( PDWARNING,
+                 "Failed to add collection [%s] into space [%s], rc: %d",
+                 clName.c_str(), szSpace, rc ) ;
+         goto rollback ;
+      }
+
+   done :
+      PD_TRACE_EXITRC ( SDB_CATCREATECLSTEP, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+   rollback :
+      INT32 tmpRC = catRemoveCL( clName.c_str(), cb, pDmsCB, pDpsCB, w ) ;
+      if ( SDB_OK != tmpRC )
+      {
+         PD_LOG( PDWARNING,
+                 "Failed to rollback insert collection [%s], rc: %d",
+                 clName.c_str(), tmpRC ) ;
+      }
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATDROPCLSTEP, "catDropCLStep" )
+   INT32 catDropCLStep ( const string &clName, INT32 version, BOOLEAN delFromCS,
+                         _pmdEDUCB *cb, SDB_DMSCB *pDmsCB, SDB_DPSCB *pDpsCB,
+                         INT16 w, BOOLEAN rmTaskAndIdx )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY ( SDB_CATDROPCLSTEP ) ;
+
+      BSONObj boCollection ;
+
+      if ( rmTaskAndIdx )
+      {
+         // 1) Remove tasks with the collection
+         rc = catRemoveCLTasks( clName.c_str(), cb, w ) ;
+         PD_RC_CHECK( rc, PDWARNING,
+                      "Failed to remove tasks with the collection [%s], rc: %d",
+                      clName.c_str(), rc ) ;
+         // 2) Remove indexes with the collection
+         rc = catRemoveCLIndexes( clName.c_str(), cb, w ) ;
+         PD_RC_CHECK( rc, PDWARNING,
+                      "Failed to remove indexes with the collection [%s], rc: %d",
+                      clName.c_str(), rc ) ;
+      }
+
+      rc = catGetCollection( clName, boCollection, cb ) ;
+      if ( SDB_OK == rc )
+      {
+         // get current version for later process
+         INT32 curVersion = -1 ;
+         rc = rtnGetIntElement( boCollection, CAT_VERSION_NAME, curVersion ) ;
+         if ( SDB_OK == rc )
+         {
+            version = curVersion ;
+         }
+
+         // 3) remove sequences
+         rc = catDropAutoIncSequences( boCollection, cb, w ) ;
+         PD_RC_CHECK( rc, PDWARNING, "Failed to remove system sequences of "
+                      "collection [%s], rc: %d", clName.c_str(), rc ) ;
+      }
+      else
+      {
+         PD_LOG( PDWARNING,
+                 "Failed to get catalog of collection [%s], rc: %d",
+                 clName.c_str(), rc ) ;
+      }
+
+      // 4) Remove the collection info
+      rc = catRemoveCL( clName.c_str(), cb, pDmsCB, pDpsCB, w ) ;
+      PD_RC_CHECK( rc, PDWARNING,
+                   "Failed to remove collection [%s], rc: %d",
+                   clName.c_str(), rc ) ;
+
+      // update the latest version
+      rc = catSaveBucketVersion( clName.c_str(), version, cb, w ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDWARNING,
+                 "Failed to save history version of collection [%s], rc: %d",
+                 clName.c_str(), rc ) ;
+      }
+
+      if ( delFromCS )
+      {
+         // 5) Pull collection from collection space info
+         rc = catDelCLFromCS( clName, cb, pDmsCB, pDpsCB, w ) ;
+         PD_RC_CHECK( rc, PDWARNING,
+                      "Failed to remove collection [%s] from space, rc: %d",
+                      clName.c_str(), rc ) ;
+      }
+
+   done :
+      PD_TRACE_EXITRC ( SDB_CATDROPCLSTEP, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATALTERCLSTEP, "catAlterCLStep" )
+   INT32 catAlterCLStep ( const std::string &clName, const BSONObj &boNewData,
+                          const BSONObj & boUnsetData, _pmdEDUCB *cb,
+                          SDB_DMSCB *pDmsCB, SDB_DPSCB *pDpsCB, INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY ( SDB_CATALTERCLSTEP ) ;
+
+      rc = catUpdateCatalog( clName.c_str(), boNewData, boUnsetData, cb, w ) ;
+      PD_RC_CHECK ( rc, PDWARNING,
+                    "Failed to alter collection [%s] with new info [%s], rc: %d",
+                    clName.c_str(), boNewData.toString().c_str(), rc ) ;
+
+   done :
+      PD_TRACE_EXITRC ( SDB_CATALTERCLSTEP, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATLINKMAINCLSTEP, "catLinkMainCLStep" )
+   INT32 catLinkMainCLStep ( const string &mainCLName, const string &subCLName,
+                             const BSONObj &lowBound, const BSONObj &upBound,
+                             _pmdEDUCB *cb, SDB_DMSCB *pDmsCB, SDB_DPSCB *pDpsCB,
+                             INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY ( SDB_CATLINKMAINCLSTEP ) ;
+
+      BSONObj mainCLObj ;
+      clsCatalogSet mainCLSet( mainCLName.c_str() ) ;
+      clsCatalogItem *pItem = NULL ;
+
+      rc = catGetCollection( mainCLName, mainCLObj, cb ) ;
+      PD_RC_CHECK( rc, PDWARNING,
+                   "Failed to get catalog-info of main-collection [%s], rc: %d",
+                   mainCLName.c_str(), rc ) ;
+
+      rc = mainCLSet.updateCatSet( mainCLObj ) ;
+      PD_RC_CHECK( rc, PDWARNING,
+                   "Failed to parse catalog-info of main-collection [%s], rc: %d",
+                   mainCLName.c_str(), rc ) ;
+      SDB_ASSERT( mainCLSet.isRangeSharding(),
+                  "main-collection must be range-sharding!" ) ;
+
+      if ( SDB_TIME_INVALID != mainCLSet.getLobShardingKeyFormat() )
+      {
+         BSONObj subCLObj ;
+         clsCatalogSet subCLSet( subCLName.c_str() ) ;
+         rc = catGetCollection( subCLName, subCLObj, cb ) ;
+         PD_RC_CHECK( rc, PDWARNING, "Failed to get catalog-info of "
+                      "sub-collection [%s], rc: %d", subCLName.c_str(), rc ) ;
+
+         rc = subCLSet.updateCatSet( subCLObj ) ;
+         PD_RC_CHECK( rc, PDWARNING, "Failed to parse catalog-info of "
+                      "sub-collection [%s], rc: %d", subCLName.c_str(), rc ) ;
+
+         if ( subCLSet.isRangeSharding() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "SubCL[%s] can't be range sharding in lob's "
+                    "MainCL[%s]", subCLName.c_str(), mainCLName.c_str() ) ;
+            goto error ;
+         }
+      }
+
+      rc = mainCLSet.addSubCL( subCLName.c_str(), lowBound, upBound, &pItem ) ;
+      PD_RC_CHECK( rc, PDWARNING,
+                   "Failed to add sub-collection [%s] into main-collection [%s], "
+                   "lowBound: [%s], upBound: [%s], rc: %d",
+                   subCLName.c_str(), mainCLName.c_str(),
+                   lowBound.toString().c_str(), upBound.toString().c_str(), rc ) ;
+
+      if ( pItem )
+      {
+         BSONObj newSubCLObj = pItem->toBson() ;
+         rc = catUpdateCatalogByPush( mainCLName.c_str(), CAT_CATALOGINFO_NAME,
+                                      newSubCLObj, cb, w ) ;
+      }
+      else
+      {
+         BSONObj subListObj = mainCLSet.toCataInfoBson() ;
+         rc = catUpdateCatalog( mainCLName.c_str(), subListObj, BSONObj(), cb, w ) ;
+      }
+      PD_RC_CHECK( rc, PDWARNING,
+                   "Failed to update the catalog of main-collection [%s], rc: %d",
+                   mainCLName.c_str(), rc ) ;
+
+   done :
+      PD_TRACE_EXITRC ( SDB_CATLINKMAINCLSTEP, rc ) ;
+      return rc ;
+
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATLINKSUBCLSTEP, "catLinkSubCLStep" )
+   INT32 catLinkSubCLStep ( const string &mainCLName, const string &subCLName,
+                            _pmdEDUCB *cb, SDB_DMSCB *pDmsCB, SDB_DPSCB *pDpsCB,
+                            INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY ( SDB_CATLINKSUBCLSTEP ) ;
+
+      BSONObj subCLObj ;
+      BSONObjBuilder subClBuilder;
+
+      rc = catGetCollection( subCLName, subCLObj, cb ) ;
+      PD_RC_CHECK( rc, PDWARNING,
+                   "Failed to get catalog-info of sub-collection [%s], rc: %d",
+                   subCLName.c_str(), rc ) ;
+
+      subClBuilder.appendElements( subCLObj ) ;
+      subClBuilder.append( CAT_MAINCL_NAME, mainCLName ) ;
+
+      {
+         BSONObj newSubCLObj = subClBuilder.done() ;
+         rc = catUpdateCatalog( subCLName.c_str(), newSubCLObj, BSONObj(), cb, w ) ;
+         PD_RC_CHECK( rc, PDWARNING,
+                      "Failed to update the catalog of sub-collection [%s], rc: %d",
+                      subCLName.c_str(), rc ) ;
+      }
+
+   done :
+      PD_TRACE_EXITRC ( SDB_CATLINKSUBCLSTEP, rc ) ;
+      return rc ;
+
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATUNLINKMAINCLSTEP, "catUnlinkMainCLStep" )
+   INT32 catUnlinkMainCLStep ( const string &mainCLName,
+                               const string &subCLName,
+                               BOOLEAN needBounds,
+                               BSONObj &lowBound, BSONObj &upBound,
+                               _pmdEDUCB *cb,
+                               SDB_DMSCB *pDmsCB, SDB_DPSCB *pDpsCB,
+                               INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY ( SDB_CATUNLINKMAINCLSTEP ) ;
+
+      BSONObj mainCLObj ;
+      clsCatalogSet mainCLSet( mainCLName.c_str() ) ;
+
+      // Update the object first
+      rc = catGetCollection( mainCLName, mainCLObj, cb ) ;
+      PD_RC_CHECK( rc, PDWARNING,
+                   "failed to get catalog-info of main-collection(%s)",
+                   mainCLName.c_str() ) ;
+
+      // Parse the object to get the sub-collection list
+      rc = mainCLSet.updateCatSet( mainCLObj ) ;
+      PD_RC_CHECK( rc, PDWARNING,
+                   "Failed to parse catalog-info of main-collection(%s)",
+                   mainCLName.c_str() ) ;
+      PD_CHECK( mainCLSet.isRangeSharding() && mainCLSet.isMainCL(),
+                SDB_INVALID_MAIN_CL, error, PDWARNING,
+                "main-collection must be range-sharding!" ) ;
+
+      if ( needBounds )
+      {
+         INT32 tmprc = SDB_OK ;
+         BSONObj tmpLowBound, tmpUpBound ;
+
+         // Copy bounds for rollback
+         tmprc = mainCLSet.getSubCLBounds( subCLName, tmpLowBound, tmpUpBound) ;
+         // No need to delete, post a warning
+         if ( SDB_OK != tmprc )
+         {
+            PD_LOG( PDWARNING,
+                    "Failed to get sub-collection [%s] info from "
+                    "main-collection [%s], rc: %d",
+                    subCLName.c_str(), mainCLName.c_str(), tmprc ) ;
+         }
+         else
+         {
+            // Make sure the objects are owned for later process
+            lowBound = tmpLowBound.getOwned() ;
+            upBound = tmpUpBound.getOwned() ;
+         }
+      }
+
+      // Delete the sub-collection from list
+      rc = mainCLSet.delSubCL( subCLName.c_str() ) ;
+      PD_RC_CHECK( rc, PDWARNING,
+                   "Failed to delete the sub-collection [%s] from "
+                   "main-collection [%s], rc: %d",
+                   subCLName.c_str(), mainCLName.c_str(), rc ) ;
+
+      {
+         // Update the catalog
+         BSONObj subListObj = mainCLSet.toCataInfoBson() ;
+         rc = catUpdateCatalog( mainCLName.c_str(), subListObj, BSONObj(), cb, w ) ;
+         PD_RC_CHECK( rc, PDWARNING,
+                      "Failed to update the catalog of "
+                      "main-collection [%s], rc: %d",
+                      mainCLName.c_str(), rc ) ;
+      }
+
+   done :
+      PD_TRACE_EXITRC ( SDB_CATUNLINKMAINCLSTEP, rc ) ;
+      return rc ;
+
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATUNLINKCSSTEP, "catUnlinkCSStep" )
+   INT32 catUnlinkCSStep ( const string &mainCLName, const string &csName,
+                           _pmdEDUCB *cb, SDB_DMSCB *pDmsCB, SDB_DPSCB *pDpsCB,
+                           INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY ( SDB_CATUNLINKMAINCLSTEP ) ;
+
+      BSONObj mainCLObj ;
+      clsCatalogSet mainCLSet( mainCLName.c_str() ) ;
+      CLS_SUBCL_LIST subCLLst ;
+      CHAR szCSName[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] = {0} ;
+      CHAR szCLName[ DMS_COLLECTION_NAME_SZ + 1 ] = {0} ;
+
+      // Update the object first
+      rc = catGetCollection( mainCLName, mainCLObj, cb ) ;
+      PD_RC_CHECK( rc, PDWARNING,
+                   "failed to get catalog-info of main-collection(%s)",
+                   mainCLName.c_str() ) ;
+
+      // Parse the object to get the sub-collection list
+      rc = mainCLSet.updateCatSet( mainCLObj ) ;
+      PD_RC_CHECK( rc, PDWARNING,
+                   "Failed to parse catalog-info of main-collection(%s)",
+                   mainCLName.c_str() ) ;
+      PD_CHECK( mainCLSet.isRangeSharding() && mainCLSet.isMainCL(),
+                SDB_INVALID_MAIN_CL, error, PDWARNING,
+                "main-collection must be range-sharding!" ) ;
+
+      rc = mainCLSet.getSubCLList( subCLLst ) ;
+      PD_RC_CHECK( rc, PDWARNING,
+                   "Failed to get sub-collection list of main-collection(%s)",
+                   mainCLName.c_str() ) ;
+
+      for ( CLS_SUBCL_LIST_IT iter = subCLLst.begin() ;
+            iter != subCLLst.end() ;
+            ++ iter )
+      {
+         string &subCLName = (*iter) ;
+         rc = rtnResolveCollectionName( subCLName.c_str(), subCLName.size(),
+                                        szCSName, DMS_COLLECTION_SPACE_NAME_SZ,
+                                        szCLName, DMS_COLLECTION_NAME_SZ ) ;
+         PD_RC_CHECK( rc, PDWARNING,
+                      "Failed to resolve collection name [%s] failed, rc: %d",
+                      subCLName.c_str(), rc ) ;
+
+         if ( 0 == csName.compare( szCSName ) )
+         {
+            // Delete the sub-collection from list
+            rc = mainCLSet.delSubCL( subCLName.c_str() ) ;
+            PD_RC_CHECK( rc, PDWARNING,
+                         "Failed to delete the sub-collection [%s] from "
+                         "main-collection [%s], rc: %d",
+                         subCLName.c_str(), mainCLName.c_str(), rc ) ;
+         }
+      }
+
+      {
+         // Update the catalog
+         BSONObj subListObj = mainCLSet.toCataInfoBson() ;
+         rc = catUpdateCatalog( mainCLName.c_str(), subListObj, BSONObj(), cb, w ) ;
+         PD_RC_CHECK( rc, PDWARNING,
+                      "Failed to update the catalog of "
+                      "main-collection [%s], rc: %d",
+                      mainCLName.c_str(), rc ) ;
+      }
+
+   done :
+      PD_TRACE_EXITRC ( SDB_CATUNLINKMAINCLSTEP, rc ) ;
+      return rc ;
+
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATUNLINKSUBCLSTEP, "catUnlinkSubCLStep" )
+   INT32 catUnlinkSubCLStep ( const string &subCLName,
+                              _pmdEDUCB *cb,
+                              SDB_DMSCB *pDmsCB, SDB_DPSCB *pDpsCB,
+                              INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY ( SDB_CATUNLINKSUBCLSTEP ) ;
+
+      rc = catUpdateCatalogByUnset( subCLName.c_str(), CAT_MAINCL_NAME, cb, w ) ;
+      PD_RC_CHECK( rc, PDWARNING,
+                   "Failed to update the catalog of sub-collection [%s], rc: %d",
+                   subCLName.c_str(), rc ) ;
+   done :
+      PD_TRACE_EXITRC ( SDB_CATUNLINKSUBCLSTEP, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCHECKANDBUILDCATARECORD, "catCheckAndBuildCataRecord" )
+   INT32 catCheckAndBuildCataRecord( const BSONObj &boCollection,
+                                     UINT32 &fieldMask,
+                                     catCollectionInfo &clInfo )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY ( SDB_CATCHECKANDBUILDCATARECORD ) ;
+      const CHAR *origMapping = NULL ;
+
+      clInfo.reset() ;
+
+      fieldMask = 0 ;
+
+      BSONObjIterator it( boCollection ) ;
+      while ( it.more() )
+      {
+         BSONElement eleTmp = it.next() ;
+
+         // collection name
+         if ( ossStrcmp( eleTmp.fieldName(), CAT_COLLECTION_NAME ) == 0 )
+         {
+            PD_CHECK( String == eleTmp.type(),
+                      SDB_INVALIDARG, error, PDWARNING,
+                      "Field [%s] type [%d] error", CAT_COLLECTION_NAME,
+                      eleTmp.type() ) ;
+            clInfo._pCLName = eleTmp.valuestr() ;
+            fieldMask |= UTIL_CL_NAME_FIELD ;
+         }
+         // sharding key
+         else if ( ossStrcmp( eleTmp.fieldName(),
+                              CAT_SHARDINGKEY_NAME ) == 0 )
+         {
+            PD_CHECK( Object == eleTmp.type(),
+                      SDB_INVALIDARG, error, PDWARNING,
+                      "Field [%s] type [%d] error", CAT_SHARDINGKEY_NAME,
+                      eleTmp.type() ) ;
+            clInfo._shardingKey = eleTmp.embeddedObject() ;
+            PD_CHECK( _ixmIndexKeyGen::validateKeyDef( clInfo._shardingKey ),
+                      SDB_INVALIDARG, error, PDWARNING,
+                      "Sharding key [%s] definition is invalid",
+                      clInfo._shardingKey.toString().c_str() ) ;
+            fieldMask |= UTIL_CL_SHDKEY_FIELD ;
+            clInfo._isSharding = TRUE ;
+         }
+         else if ( ossStrcmp( eleTmp.fieldName(),
+                              CAT_LOBSHARDINGKEYFORMAT_NAME ) == 0 )
+         {
+            PD_CHECK( String == eleTmp.type(),
+                      SDB_INVALIDARG, error, PDWARNING,
+                      "Field [%s] type [%d] error",
+                      CAT_LOBSHARDINGKEYFORMAT_NAME, eleTmp.type() ) ;
+            PD_CHECK( clsCheckAndParseLobKeyFormat( eleTmp.valuestr() ),
+                      SDB_INVALIDARG, error, PDWARNING,
+                      "Lob sharding key format [%s] definition is invalid",
+                      eleTmp.valuestr() ) ;
+
+            clInfo._lobShardingKeyFormat = eleTmp.valuestr() ;
+            fieldMask |= UTIL_CL_LOBKEYFORMAT_FIELD ;
+         }
+         // repl size
+         else if ( ossStrcmp( eleTmp.fieldName(), CAT_CATALOG_W_NAME ) == 0 )
+         {
+            PD_CHECK( NumberInt == eleTmp.type(),
+                      SDB_INVALIDARG, error, PDWARNING,
+                      "Field [%s] type [%d] error",
+                      CAT_CATALOG_W_NAME, eleTmp.type() ) ;
+            clInfo._replSize = eleTmp.numberInt() ;
+            if ( 1 <= clInfo._replSize &&
+                 clInfo._replSize <= CLS_REPLSET_MAX_NODE_SIZE )
+            {
+               /// do nothing.
+            }
+            else if ( clInfo._replSize == 0 )
+            {
+               clInfo._replSize = CLS_REPLSET_MAX_NODE_SIZE ;
+            }
+            else if ( -1 == clInfo._replSize )
+            {
+               /// do nothing
+            }
+            else
+            {
+               PD_LOG( PDWARNING,
+                       "Invalid repl size: %d",
+                       clInfo._replSize ) ;
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
+
+            fieldMask |= UTIL_CL_REPLSIZE_FIELD ;
+         }
+         // ensure sharding index
+         else if ( ossStrcmp( eleTmp.fieldName(), CAT_ENSURE_SHDINDEX ) == 0 )
+         {
+            PD_CHECK( Bool == eleTmp.type(),
+                      SDB_INVALIDARG, error, PDWARNING,
+                      "Field [%s] type [%d] error", CAT_ENSURE_SHDINDEX,
+                      eleTmp.type() ) ;
+            clInfo._enSureShardIndex = eleTmp.Bool() ;
+            fieldMask |= UTIL_CL_ENSURESHDIDX_FIELD ;
+         }
+         // sharding type
+         else if ( ossStrcmp( eleTmp.fieldName(), CAT_SHARDING_TYPE ) == 0 )
+         {
+            PD_CHECK( String == eleTmp.type(),
+                      SDB_INVALIDARG, error, PDWARNING,
+                      "Field [%s] type [%d] error", CAT_SHARDING_TYPE,
+                      eleTmp.type() ) ;
+
+            // check string value
+            clInfo._pShardingType = eleTmp.valuestr() ;
+            PD_CHECK( 0 == ossStrcmp( clInfo._pShardingType,
+                                      CAT_SHARDING_TYPE_HASH ) ||
+                      0 == ossStrcmp( clInfo._pShardingType,
+                                      CAT_SHARDING_TYPE_RANGE ),
+                      SDB_INVALIDARG, error, PDWARNING,
+                      "Field [%s] value [%s] should be [%s/%s]",
+                      CAT_SHARDING_TYPE, clInfo._pShardingType,
+                      CAT_SHARDING_TYPE_HASH, CAT_SHARDING_TYPE_RANGE ) ;
+            fieldMask |= UTIL_CL_SHDTYPE_FIELD ;
+
+            clInfo._isHash = ( 0 == ossStrcmp( clInfo._pShardingType,
+                                               CAT_SHARDING_TYPE_HASH ) ) ;
+         }
+         // sharding partition
+         else if ( ossStrcmp( eleTmp.fieldName(),
+                              CAT_SHARDING_PARTITION ) == 0 )
+         {
+            PD_CHECK( NumberInt == eleTmp.type(),
+                      SDB_INVALIDARG, error, PDWARNING,
+                      "Field [%s] type [%d] error",
+                      CAT_SHARDING_PARTITION, eleTmp.type() ) ;
+            clInfo._shardPartition = eleTmp.numberInt() ;
+            // must be the power of 2
+            PD_CHECK( ossIsPowerOf2( (UINT32)clInfo._shardPartition ),
+                      SDB_INVALIDARG, error, PDWARNING,
+                      "Field [%s] value must be power of 2",
+                      CAT_SHARDING_PARTITION ) ;
+            PD_CHECK( clInfo._shardPartition >= CAT_SHARDING_PARTITION_MIN &&
+                      clInfo._shardPartition <= CAT_SHARDING_PARTITION_MAX,
+                      SDB_INVALIDARG, error, PDWARNING, "Field[%s] value[%d] "
+                      "should between in[%d, %d]", CAT_SHARDING_PARTITION,
+                      clInfo._shardPartition, CAT_SHARDING_PARTITION_MIN,
+                      CAT_SHARDING_PARTITION_MAX ) ;
+            fieldMask |= UTIL_CL_PARTITION_FIELD ;
+         }
+         // compression flag
+         else if ( ossStrcmp ( eleTmp.fieldName(),
+                               CAT_COMPRESSED ) == 0 )
+         {
+            PD_CHECK( Bool == eleTmp.type(),
+                      SDB_INVALIDARG, error, PDWARNING,
+                      "Field [%s] type [%d] error",
+                      CAT_COMPRESSED, eleTmp.type() ) ;
+            clInfo._isCompressed = eleTmp.boolean() ;
+            fieldMask |= UTIL_CL_COMPRESSED_FIELD ;
+         }
+         // main-collection flag
+         else if ( ossStrcmp( eleTmp.fieldName(),
+                              CAT_IS_MAINCL ) == 0 )
+         {
+            PD_CHECK( Bool == eleTmp.type(),
+                      SDB_INVALIDARG, error, PDWARNING,
+                      "Field [%s] type [%d] error",
+                      CAT_IS_MAINCL, eleTmp.type() ) ;
+            clInfo._isMainCL = eleTmp.boolean() ;
+            fieldMask |= UTIL_CL_ISMAINCL_FIELD ;
+            if ( !( fieldMask & UTIL_CL_SHDTYPE_FIELD ) )
+            {
+               clInfo._pShardingType = CAT_SHARDING_TYPE_RANGE ;
+               clInfo._isHash = FALSE ;
+            }
+         }
+         // strictDataMode flag
+         else if ( ossStrcmp( eleTmp.fieldName(),
+                              CAT_STRICTDATAMODE ) == 0 )
+         {
+            PD_CHECK( Bool == eleTmp.type(),
+                      SDB_INVALIDARG, error, PDWARNING,
+                      "Field [%s] type [%d] error",
+                      CAT_STRICTDATAMODE, eleTmp.type() ) ;
+            clInfo._strictDataMode = eleTmp.boolean() ;
+            fieldMask |= UTIL_CL_STRICTDATAMODE_FIELD ;
+         }
+         // no trans flag
+         else if ( ossStrcmp( eleTmp.fieldName(),
+                              CAT_NOTRANS ) == 0 )
+         {
+            clInfo._noTrans = eleTmp.boolean() ;
+            fieldMask |= UTIL_CL_NOTRANS_FIELD ;
+         }
+         // group specified
+         else if ( 0 == ossStrcmp( eleTmp.fieldName(),
+                                   CAT_GROUP_NAME ) )
+         {
+            PD_CHECK( String == eleTmp.type(),
+                      SDB_INVALIDARG, error, PDWARNING,
+                      "Field [%s] type [%d] error",
+                      CAT_GROUP_NAME, eleTmp.type() ) ;
+            if ( 0 == ossStrcasecmp( eleTmp.valuestr(),
+                                     CAT_ASSIGNGROUP_FOLLOW ) )
+            {
+               clInfo._assignType = ASSIGN_FOLLOW ;
+            }
+            else if ( 0 == ossStrcasecmp( eleTmp.valuestr(),
+                                          CAT_ASSIGNGROUP_RANDOM ) )
+            {
+               clInfo._assignType = ASSIGN_RANDOM ;
+            }
+            else
+            {
+               clInfo._gpSpecified = eleTmp.valuestr() ;
+            }
+         }
+         // auto split
+         else if ( 0 == ossStrcmp( eleTmp.fieldName(),
+                                   CAT_DOMAIN_AUTO_SPLIT ) )
+         {
+            PD_CHECK( Bool == eleTmp.type(),
+                      SDB_INVALIDARG, error, PDWARNING,
+                      "Field [%s] type [%d] error",
+                      CAT_DOMAIN_AUTO_SPLIT, eleTmp.type() ) ;
+            clInfo._autoSplit = eleTmp.Bool() ;
+            fieldMask |= UTIL_CL_AUTOSPLIT_FIELD ;
+         }
+         // auto rebalance
+         else if ( 0 == ossStrcmp( eleTmp.fieldName(),
+                                   CAT_DOMAIN_AUTO_REBALANCE ) )
+         {
+            PD_CHECK( Bool == eleTmp.type(),
+                      SDB_INVALIDARG, error, PDWARNING,
+                      "Field [%s] type [%d] error",
+                      CAT_DOMAIN_AUTO_REBALANCE, eleTmp.type() ) ;
+            clInfo._autoRebalance = eleTmp.Bool() ;
+            fieldMask |= UTIL_CL_AUTOREBALANCE_FIELD ;
+         }
+         // auto index id
+         else if ( 0 == ossStrcmp( eleTmp.fieldName(),
+                                   CAT_AUTO_INDEX_ID ) )
+         {
+            PD_CHECK( Bool == eleTmp.type(),
+                      SDB_INVALIDARG, error, PDWARNING,
+                      "Field [%s] type [%d] error",
+                      CAT_AUTO_INDEX_ID, eleTmp.type() ) ;
+            clInfo._autoIndexId = eleTmp.Bool() ;
+            fieldMask |= UTIL_CL_AUTOIDXID_FIELD ;
+         }
+         // compression type
+         else if ( 0 == ossStrcmp( eleTmp.fieldName(),
+                                   CAT_COMPRESSIONTYPE ) )
+         {
+            PD_CHECK( String == eleTmp.type(),
+                      SDB_INVALIDARG, error, PDWARNING,
+                      "Field [%s] type [%d] error",
+                      CAT_COMPRESSIONTYPE, eleTmp.type() ) ;
+            if ( 0 == ossStrcmp( eleTmp.valuestr(), CAT_COMPRESSOR_LZW ) )
+            {
+               clInfo._compressorType = UTIL_COMPRESSOR_LZW ;
+            }
+            else if ( 0 == ossStrcmp( eleTmp.valuestr(), CAT_COMPRESSOR_SNAPPY ) )
+            {
+               clInfo._compressorType = UTIL_COMPRESSOR_SNAPPY ;
+            }
+            else
+            {
+               PD_LOG( PDWARNING,
+                       "Invalid Compression Type. Field[%s] value[%s] should "
+                       "be [%s|%s] or leave empty",
+                       CAT_COMPRESSIONTYPE, eleTmp.valuestr(),
+                       CAT_COMPRESSOR_LZW, CAT_COMPRESSOR_SNAPPY );
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
+
+            fieldMask |= UTIL_CL_COMPRESSTYPE_FIELD ;
+         }
+         else if ( 0 == ossStrcmp( eleTmp.fieldName(), CAT_CAPPED_NAME ) )
+         {
+            PD_CHECK( Bool == eleTmp.type(),
+                      SDB_INVALIDARG, error, PDWARNING,
+                      "Field [%s] type [%d] error",
+                      CAT_CAPPED_NAME, eleTmp.type() ) ;
+            clInfo._capped = eleTmp.boolean() ;
+            fieldMask |= UTIL_CL_CAPPED_FIELD ;
+         }
+         else if ( 0 == ossStrcmp( eleTmp.fieldName(), CAT_CL_MAX_RECNUM ) )
+         {
+            PD_CHECK( NumberLong == eleTmp.type()
+                      || NumberInt == eleTmp.type()
+                      || NumberDouble == eleTmp.type(),
+                      SDB_INVALIDARG, error, PDWARNING,
+                      "Field [%s] type [%d] error",
+                      CAT_CL_MAX_RECNUM, eleTmp.type() ) ;
+            PD_CHECK( eleTmp.numberLong() >= 0,
+                      SDB_INVALIDARG, error, PDWARNING,
+                      "Invalid Max[ %lld ] when creating capped collection",
+                      eleTmp.numberLong() ) ;
+            clInfo._maxRecNum = eleTmp.numberLong() ;
+            fieldMask |= UTIL_CL_MAXREC_FIELD ;
+         }
+         else if ( 0 == ossStrcmp( eleTmp.fieldName(), CAT_CL_MAX_SIZE ) )
+         {
+            PD_CHECK( NumberLong == eleTmp.type()
+                      || NumberInt == eleTmp.type()
+                      || NumberDouble == eleTmp.type(),
+                      SDB_INVALIDARG, error, PDWARNING,
+                      "Field [%s] type [%d] error",
+                      CAT_CL_MAX_SIZE, eleTmp.type() ) ;
+            PD_CHECK( eleTmp.numberLong() > 0 &&
+                      eleTmp.numberLong() <= DMS_CAP_CL_SIZE,
+                      SDB_INVALIDARG, error, PDWARNING,
+                      "Invalid Size[ %lld ] when creating capped collection",
+                      eleTmp.numberLong() ) ;
+            // Always align the size upper to 32MB.
+            clInfo._maxSize = ossRoundUpToMultipleX( eleTmp.numberLong() << 20,
+                                                     DMS_MAX_CL_SIZE_ALIGN_SIZE ) ;
+            fieldMask |= UTIL_CL_MAXSIZE_FIELD ;
+         }
+         else if ( 0 == ossStrcmp( eleTmp.fieldName(), CAT_CL_OVERWRITE ) )
+         {
+            PD_CHECK( Bool == eleTmp.type(),
+                      SDB_INVALIDARG, error, PDWARNING,
+                      "Field [%s] type [%d] error",
+                      CAT_CL_OVERWRITE, eleTmp.type() ) ;
+            clInfo._overwrite = eleTmp.Bool() ;
+            fieldMask |= UTIL_CL_OVERWRITE_FIELD ;
+         }
+         else if ( 0 == ossStrcmp( eleTmp.fieldName(), CAT_AUTOINCREMENT ) )
+         {
+            PD_CHECK( Object == eleTmp.type() || Array == eleTmp.type(),
+                      SDB_INVALIDARG, error, PDWARNING,
+                      "Field [%s] type [%d] error",
+                      CAT_AUTOINCREMENT, eleTmp.type() ) ;
+            if ( Object == eleTmp.type() )
+            {
+               BSONObj options ;
+               options = eleTmp.Obj() ;
+               rc = clsAutoIncItem::validAutoIncOption( options ) ;
+               PD_RC_CHECK( rc, PDWARNING, "Invalid autoIncrement options" ) ;
+               rc = catValidSequenceOption( options ) ;
+               PD_RC_CHECK( rc, PDWARNING, "Invalid autoIncrement options" ) ;
+            }
+            else if( Array == eleTmp.type() )
+            {
+               BSONObjIterator it( eleTmp.embeddedObject() ) ;
+               while ( it.more() )
+               {
+                  BSONElement ele ;
+                  BSONObj options ;
+                  ele = it.next() ;
+                  PD_CHECK( Object == ele.type(), SDB_INVALIDARG, error,
+                            PDWARNING, "AutoIncrement[%s] definition is invalid",
+                            eleTmp.String().c_str() ) ;
+                  options = ele.Obj() ;
+                  rc = clsAutoIncItem::validAutoIncOption( options ) ;
+                  PD_RC_CHECK( rc, PDWARNING, "Invalid autoIncrement options" ) ;
+                  rc = catValidSequenceOption( options ) ;
+                  PD_RC_CHECK( rc, PDWARNING, "Invalid autoIncrement options" ) ;
+               }
+            }
+            clInfo._autoIncFields = BSON( CAT_AUTOINCREMENT <<
+                                          boCollection.getField( CAT_AUTOINCREMENT ) ) ;
+            fieldMask |= UTIL_CL_AUTOINC_FIELD ;
+         }
+         else if ( 0 == ossStrcmp( eleTmp.fieldName(), FIELD_NAME_DATASOURCE ) )
+         {
+            PD_CHECK( String == eleTmp.type(), SDB_INVALIDARG, error,
+                      PDWARNING, "Field [%s] type [%d] error",
+                      FIELD_NAME_DATASOURCE, eleTmp.type() ) ;
+            BOOLEAN exist = FALSE ;
+            BSONObj obj ;
+            const CHAR *dsName = eleTmp.valuestrsafe() ;
+            rc = catCheckDataSourceExist( dsName, exist, obj,
+                                          pmdGetThreadEDUCB() ) ;
+            PD_RC_CHECK( rc, PDERROR, "Check data source[%s] existence "
+                         "failed[%d]", dsName, rc ) ;
+            PD_CHECK( exist, SDB_CAT_DATASOURCE_NOTEXIST, error, PDERROR,
+                      "Data source[%s] dose not exist", dsName ) ;
+            clInfo._dsUID = obj.getIntField( FIELD_NAME_ID ) ;
+         }
+         else if ( 0 == ossStrcmp( eleTmp.fieldName(), FIELD_NAME_MAPPING ) )
+         {
+            PD_CHECK( String == eleTmp.type(), SDB_INVALIDARG, error,
+                      PDWARNING, "Field [%s] type [%d] error",
+                      FIELD_NAME_MAPPING, eleTmp.type() ) ;
+            origMapping = eleTmp.valuestr() ;
+            PD_CHECK( ossStrlen(origMapping) > 0, SDB_INVALIDARG, error,
+                      PDERROR, "Mapping value is invalid" ) ;
+         }
+         else
+         {
+            PD_RC_CHECK ( SDB_INVALIDARG, PDWARNING,
+                          "Unexpected field[%s] in create collection command",
+                          eleTmp.toString().c_str() ) ;
+         }
+      }
+
+      if ( clInfo._isMainCL )
+      {
+         PD_CHECK ( clInfo._isSharding,
+                    SDB_NO_SHARDINGKEY, error, PDWARNING,
+                    "main-collection must have ShardingKey!" );
+         PD_CHECK ( !clInfo._isHash,
+                    SDB_INVALID_MAIN_CL_TYPE, error, PDWARNING,
+                    "the sharding-type of main-collection must be range!" );
+
+         PD_CHECK( !( UTIL_CL_AUTOIDXID_FIELD & fieldMask ),
+                   SDB_INVALIDARG, error, PDWARNING,
+                   "can not set auto-index-id on main collection" ) ;
+         PD_CHECK( !( ( UTIL_CL_CAPPED_FIELD & fieldMask ) ||
+                      ( UTIL_CL_MAXREC_FIELD & fieldMask ) ||
+                      ( UTIL_CL_MAXSIZE_FIELD & fieldMask ) ||
+                      ( UTIL_CL_OVERWRITE_FIELD & fieldMask ) ),
+                   SDB_INVALIDARG, error, PDWARNING,
+                   "can not set Capped|Max|Size on main collection" ) ;
+         // no-trans is not supported yet
+         PD_CHECK( !clInfo._noTrans,
+                   SDB_OPTION_NOT_SUPPORT, error, PDERROR,
+                   "can not set no-trans on main collection" ) ;
+      }
+
+      if ( clInfo._autoSplit || clInfo._autoRebalance )
+      {
+         PD_CHECK ( clInfo._isSharding,
+                    SDB_NO_SHARDINGKEY, error, PDWARNING,
+                    "can not do split or rebalance with out ShardingKey!" );
+
+         PD_CHECK ( NULL == clInfo._gpSpecified,
+                    SDB_INVALIDARG, error, PDWARNING,
+                    "can not do split or rebalance with out more than one group" );
+
+         PD_CHECK( clInfo._isHash,
+                   SDB_INVALIDARG, error, PDWARNING,
+                   "auto options only can be set when shard type is hash" ) ;
+      }
+
+      if ( fieldMask & UTIL_CL_ENSURESHDIDX_FIELD ||
+           fieldMask & UTIL_CL_SHDTYPE_FIELD ||
+           fieldMask & UTIL_CL_PARTITION_FIELD )
+      {
+         PD_CHECK( fieldMask & UTIL_CL_SHDKEY_FIELD,
+                   SDB_INVALIDARG, error, PDWARNING,
+                   "these arguments are legal only when sharding key is specified." ) ;
+      }
+
+      PD_CHECK( clInfo._pCLName, SDB_INVALIDARG, error, PDWARNING,
+                "Collection name not set" ) ;
+
+      if ( clInfo._isCompressed &&
+           !( fieldMask & UTIL_CL_COMPRESSTYPE_FIELD ) )
+      {
+         clInfo._compressorType = UTIL_COMPRESSOR_LZW ;
+      }
+
+      if ( !( fieldMask & UTIL_CL_COMPRESSED_FIELD ) &&
+           ( fieldMask & UTIL_CL_COMPRESSTYPE_FIELD ) )
+      {
+         clInfo._isCompressed = TRUE ;
+         fieldMask |= UTIL_CL_COMPRESSED_FIELD ;
+      }
+
+      if ( !clInfo._isCompressed &&
+           ( fieldMask & UTIL_CL_COMPRESSTYPE_FIELD ) )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "CompressionType can't be set when "
+                     "Compressed is false" ) ;
+         goto error ;
+      }
+
+      if ( clInfo._capped &&
+           !( fieldMask & UTIL_CL_ENSURESHDIDX_FIELD ) )
+      {
+         clInfo._enSureShardIndex = FALSE ;
+      }
+
+      if ( clInfo._capped &&
+           !( fieldMask & UTIL_CL_AUTOIDXID_FIELD ) )
+      {
+         clInfo._autoIndexId = FALSE ;
+         fieldMask |= UTIL_CL_AUTOIDXID_FIELD ;
+      }
+
+      if ( !clInfo._capped &&
+           !( fieldMask & UTIL_CL_COMPRESSED_FIELD ) &&
+           !( fieldMask & UTIL_CL_COMPRESSTYPE_FIELD ) )
+      {
+         clInfo._isCompressed = TRUE ;
+         fieldMask |= UTIL_CL_COMPRESSED_FIELD ;
+         clInfo._compressorType = UTIL_COMPRESSOR_LZW ;
+      }
+
+      if ( clInfo._capped )
+      {
+         if ( clInfo._isCompressed )
+         {
+            PD_LOG( PDWARNING,
+                    "Compression is not allowed on capped collection." ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+
+         if ( ( clInfo._isSharding && clInfo._enSureShardIndex ) ||
+              clInfo._autoIndexId )
+         {
+            PD_LOG( PDWARNING,
+                    "Index is not allowed to be created on capped collection, "
+                    "including $id index and $shard index.") ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+
+         if ( 0 == clInfo._maxSize )
+         {
+            PD_LOG( PDWARNING,
+                    "Field[%s] must always be used when Capped is true",
+                    CAT_CL_MAX_SIZE ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+
+         // no-trans is not supported yet
+         PD_CHECK( !clInfo._noTrans,
+                   SDB_OPTION_NOT_SUPPORT, error, PDERROR,
+                   "can not set no-trans on capped collection" ) ;
+      }
+
+      if ( clInfo._lobShardingKeyFormat != NULL )
+      {
+         if ( !clInfo._isMainCL )
+         {
+            PD_LOG( PDWARNING,
+                    "Field[%s] can't be set when collection is not MainCL",
+                    CAT_LOBSHARDINGKEYFORMAT_NAME ) ;
+            rc = SDB_INVALIDARG ;
+         }
+
+         if ( clInfo._shardingKey.nFields() != 1 )
+         {
+            PD_LOG( PDWARNING,
+                    "Field[%s] can't be more than one key when support lob in"
+                    "MainCL",
+                    CAT_SHARDINGKEY_NAME ) ;
+            rc = SDB_INVALIDARG ;
+         }
+      }
+
+      if ( UTIL_INVALID_DS_UID != clInfo._dsUID )
+      {
+         if ( origMapping )
+         {
+            const CHAR *dotPtr = ossStrchr( origMapping, '.' ) ;
+            if ( dotPtr )
+            {
+               // Full name mapping
+               ossStrncpy( clInfo._fullMapping, origMapping,
+                           DMS_COLLECTION_FULL_NAME_SZ ) ;
+            }
+            else
+            {
+               // Short name mapping, need to append the collection space name.
+               dotPtr = ossStrchr( clInfo._pCLName, '.' ) ;
+               SDB_ASSERT( dotPtr, "No dot found in colleciton name" ) ;
+               UINT16 csNameLen = dotPtr - clInfo._pCLName ;
+               ossStrncpy( clInfo._fullMapping, clInfo._pCLName, csNameLen ) ;
+               clInfo._fullMapping[ csNameLen ] = '.' ;
+               ossStrncpy( clInfo._fullMapping + csNameLen + 1, origMapping,
+                           DMS_COLLECTION_FULL_NAME_SZ - csNameLen - 1 ) ;
+            }
+         }
+         else
+         {
+            // Mapping is not specified explicitly. Use name of the collection
+            // as the mapping name.
+            ossStrncpy( clInfo._fullMapping, clInfo._pCLName,
+                        DMS_COLLECTION_FULL_NAME_SZ ) ;
+         }
+      }
+
+   done :
+      PD_TRACE_EXITRC ( SDB_CATCHECKANDBUILDCATARECORD, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   INT32 catBuildInitRangeBound ( const BSONObj & shardingKey,
+                                  const Ordering & order,
+                                  BSONObj & lowBound, BSONObj & upBound )
+   {
+      INT32 index = 0 ;
+      BSONObjBuilder lowBoundBD ;
+      BSONObjBuilder upBoundBD ;
+
+      BSONObjIterator iter( shardingKey ) ;
+      while ( iter.more() )
+      {
+         BSONElement ele        = iter.next() ;
+         const CHAR * fieldName = ele.fieldName() ;
+         if ( order.get( index ) == 1 )
+         {
+            lowBoundBD.appendMinKey ( fieldName ) ;
+            upBoundBD.appendMaxKey ( fieldName ) ;
+         }
+         else
+         {
+            lowBoundBD.appendMaxKey ( fieldName ) ;
+            upBoundBD.appendMinKey ( fieldName ) ;
+         }
+
+         ++index ;
+      }
+
+      lowBound = lowBoundBD.obj () ;
+      upBound = upBoundBD.obj () ;
+
+      return SDB_OK ;
+   }
+
+   INT32 catBuildInitHashBound ( BSONObj & lowBound, BSONObj & upBound,
+                                 INT32 paritition )
+   {
+      INT32 rc = SDB_OK ;
+
+      lowBound = BSON("" << CAT_HASH_LOW_BOUND ) ;
+      upBound = BSON("" << paritition )  ;
+
+      return rc ;
+   }
+
+   INT32 catBuildHashBound ( BSONObj & lowBound, BSONObj & upBound,
+                             INT32 beginBound, INT32 endBound )
+   {
+      INT32 rc = SDB_OK ;
+
+      lowBound = BSON("" << beginBound ) ;
+      upBound = BSON("" << endBound )  ;
+
+      return rc ;
+   }
+
+   INT32 catBuildHashSplitTask ( const CHAR * collection,
+                                 utilCLUniqueID clUniqueID,
+                                 const CHAR * srcGroup,
+                                 const CHAR * dstGroup,
+                                 UINT32 beginBound,
+                                 UINT32 endBound,
+                                 BSONObj & splitTask )
+   {
+      INT32 rc = SDB_OK ;
+
+      splitTask = BSON( CAT_COLLECTION_NAME << collection <<
+                        CAT_CL_UNIQUEID << (INT64)clUniqueID <<
+                        CAT_SOURCE_NAME << srcGroup <<
+                        CAT_TARGET_NAME << dstGroup <<
+                        CAT_SPLITVALUE_NAME << BSON( "" << beginBound ) <<
+                        CAT_SPLITENDVALUE_NAME << BSON( "" << endBound ) ) ;
+
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATBUILDCATAAUTOINCFLD, "catBuildCatalogAutoIncField" )
+   INT32 catBuildCatalogAutoIncField( _pmdEDUCB *cb,
+                                      catCollectionInfo &clInfo,
+                                      const BSONObj &obj,
+                                      utilCLUniqueID clUniqueID ,
+                                      INT16 w )
+   {
+      PD_TRACE_ENTRY ( SDB_CATBUILDCATAAUTOINCFLD ) ;
+      INT32 rc = SDB_OK ;
+      BSONObjBuilder builder ;
+      const CHAR *fieldName = NULL ;
+      utilSequenceID seqID = UTIL_SEQUENCEID_NULL ;
+
+      fieldName = obj.getField( CAT_AUTOINC_FIELD ).valuestr() ;
+
+      builder.append( CAT_AUTOINC_FIELD, fieldName ) ;
+      builder.append( CAT_AUTOINC_SEQ,
+                      catGetSeqName4AutoIncFld( clUniqueID, fieldName ) ) ;
+      rc = catUpdateGlobalID( cb, w, seqID );
+      PD_RC_CHECK( rc, PDERROR, "Failed to get global ID for field[%s], "
+                   "rc: %d", fieldName, rc ) ;
+      builder.append( CAT_AUTOINC_SEQ_ID, (INT64)seqID ) ;
+      if ( obj.hasField( CAT_AUTOINC_GENERATED ) )
+      {
+         builder.append( obj.getField( CAT_AUTOINC_GENERATED ) ) ;
+      }
+      else
+      {
+         builder.append( CAT_AUTOINC_GENERATED, CAT_GENERATED_DEFAULT ) ;
+      }
+
+      rc = clInfo._autoIncSet.insert( builder.obj() ) ;
+      if(  SDB_AUTOINCREMENT_FIELD_CONFLICT == rc )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG( PDERROR, "Failed to insert autoinc field "
+                 "options[%s], rc: %d", PD_SECURE_OBJ( obj ), rc ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC ( SDB_CATBUILDCATAAUTOINCFLD, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // build catalogue-info record:
+   // {  Name: "SpaceName.CollectionName", Version: 1,
+   //    ShardingKey: { Key1: 1, Key2: -1 },
+   //    CataInfo:
+   //       [ { GroupID: 1000, LowBound:{ "":MinKey,"":MaxKey }, UpBound:{"":MaxKey,"":MinKey} } ] }
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATBUILDCATARECORD, "catBuildCatalogRecord" )
+   INT32 catBuildCatalogRecord( _pmdEDUCB *cb,
+                                catCollectionInfo &clInfo,
+                                UINT32 mask, UINT32 attribute,
+                                const CAT_GROUP_SET &grpIDSet,
+                                const std::map<std::string, UINT32> &splitLst,
+                                BSONObj &catRecord,
+                                INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY ( SDB_CATBUILDCATARECORD ) ;
+
+      BSONObjBuilder builder ;
+      CHAR szAttr[ 100 ] = { 0 } ;
+
+      if ( ( mask & UTIL_CL_COMPRESSED_FIELD ) && clInfo._isCompressed )
+      {
+         attribute |= DMS_MB_ATTR_COMPRESSED ;
+      }
+      if ( ( mask & UTIL_CL_AUTOIDXID_FIELD ) && !clInfo._autoIndexId )
+      {
+         attribute |= DMS_MB_ATTR_NOIDINDEX ;
+      }
+      if ( ( mask & UTIL_CL_CAPPED_FIELD ) && clInfo._capped )
+      {
+         attribute |= DMS_MB_ATTR_CAPPED ;
+      }
+      if ( ( mask & UTIL_CL_STRICTDATAMODE_FIELD ) && clInfo._strictDataMode )
+      {
+         attribute |= DMS_MB_ATTR_STRICTDATAMODE ;
+      }
+      if ( ( mask & UTIL_CL_NOTRANS_FIELD ) && clInfo._noTrans )
+      {
+         attribute |= DMS_MB_ATTR_NOTRANS ;
+      }
+      mbAttr2String( attribute, szAttr, sizeof( szAttr ) - 1 ) ;
+
+      if ( mask & UTIL_CL_NAME_FIELD )
+      {
+         builder.append( CAT_CATALOGNAME_NAME, clInfo._pCLName ) ;
+      }
+
+      builder.append( CAT_CL_UNIQUEID, (INT64)clInfo._clUniqueID ) ;
+
+
+      /// this is not specified by user.
+      builder.append( CAT_CATALOGVERSION_NAME,
+                      0 == clInfo._version ?
+                      CAT_VERSION_BEGIN :
+                      clInfo._version ) ;
+
+      if ( mask & UTIL_CL_REPLSIZE_FIELD )
+      {
+         builder.append( CAT_CATALOG_W_NAME, clInfo._replSize ) ;
+      }
+
+      builder.append( CAT_ATTRIBUTE_NAME, attribute ) ;
+      builder.append( FIELD_NAME_ATTRIBUTE_DESC, szAttr ) ;
+
+      /// only record the options specified by user.
+      if ( ( mask & UTIL_CL_COMPRESSED_FIELD ) && clInfo._isCompressed )
+      {
+         builder.append( CAT_COMPRESSIONTYPE, clInfo._compressorType ) ;
+         builder.append( FIELD_NAME_COMPRESSIONTYPE_DESC,
+                         utilCompressType2String( clInfo._compressorType ) ) ;
+      }
+      if ( mask & UTIL_CL_SHDKEY_FIELD )
+      {
+         builder.append( CAT_SHARDINGKEY_NAME, clInfo._shardingKey ) ;
+         builder.appendBool( CAT_ENSURE_SHDINDEX, clInfo._enSureShardIndex ) ;
+         builder.append( CAT_SHARDING_TYPE, clInfo._pShardingType ) ;
+         if( clInfo._isHash )
+         {
+            builder.append( CAT_SHARDING_PARTITION, clInfo._shardPartition ) ;
+
+            /// optimize query on hash-sharding only sdb's version >= 1.12
+            /// update version since 1.12.4
+            builder.append( CAT_INTERNAL_VERSION, CAT_INTERNAL_CURRENT_VERSION ) ;
+         }
+      }
+      /// add catainfo to record even not specified by user.
+      if ( clInfo._isMainCL )
+      {
+         builder.appendBool( CAT_IS_MAINCL, clInfo._isMainCL );
+         BSONObjBuilder sub( builder.subarrayStart( CAT_CATALOGINFO_NAME ) ) ;
+         sub.done() ;
+      }
+      else if ( clInfo._autoSplit && !splitLst.empty() )
+      {
+         // cata info build
+         BSONObjBuilder sub( builder.subarrayStart( CAT_CATALOGINFO_NAME ) ) ;
+         INT32 itemID = 0 ;
+         UINT32 totalBound = (UINT32) clInfo._shardPartition ;
+         UINT32 grpSize = splitLst.size() ;
+         UINT32 avgBound = totalBound / grpSize ;
+         UINT32 modMark = grpSize - ( totalBound % grpSize ) ;
+         UINT32 beginBound = CAT_HASH_LOW_BOUND ;
+         UINT32 endBound = beginBound + avgBound ;
+
+         PD_CHECK ( clInfo._isSharding && clInfo._isHash,
+                    SDB_INVALIDARG, error, PDWARNING,
+                    "AutoSplit only on hash sharding" ) ;
+
+         if (totalBound < grpSize )
+         {
+            rc = SDB_INVALIDARG;
+            PD_LOG_MSG(PDERROR, "Partition can not less than group number of domain."
+                   "partition = %d, group number = %d", totalBound, grpSize);
+            goto error;
+         }
+
+         for ( std::map<std::string, UINT32>::const_iterator iterGrp = splitLst.begin();
+               iterGrp != splitLst.end();
+               ++iterGrp )
+         {
+            UINT32 grpID = iterGrp->second ;
+            const std::string &grpName = iterGrp->first ;
+            BSONObj lowBound, upBound ;
+
+            if ( (UINT32)itemID >= modMark )
+            {
+               ++endBound ;
+            }
+
+            BSONObjBuilder cataItemBd ( sub.subobjStart ( sub.numStr(itemID) ) ) ;
+            cataItemBd.append ( FIELD_NAME_ID, itemID ) ;
+            cataItemBd.append ( CAT_CATALOGGROUPID_NAME, (INT32)grpID ) ;
+            cataItemBd.append ( CAT_GROUPNAME_NAME, grpName ) ;
+
+            rc = catBuildHashBound( lowBound, upBound, beginBound, endBound ) ;
+            PD_RC_CHECK( rc, PDWARNING,
+                         "Failed to build cata info bound, rc: %d",
+                         rc ) ;
+
+            cataItemBd.append ( CAT_LOWBOUND_NAME, lowBound ) ;
+            cataItemBd.append ( CAT_UPBOUND_NAME, upBound ) ;
+
+            cataItemBd.done () ;
+
+            beginBound = endBound ;
+            endBound = endBound + avgBound ;
+            ++ itemID ;
+         }
+         sub.done () ;
+      }
+      else
+      {
+         // cata info build
+         BSONObjBuilder sub( builder.subarrayStart( CAT_CATALOGINFO_NAME ) ) ;
+         BSONObjBuilder cataItemBd ( sub.subobjStart ( sub.numStr(0) ) ) ;
+         pmdKRCB *krcb = pmdGetKRCB() ;
+         sdbCatalogueCB *pCatCB = krcb->getCATLOGUECB() ;
+         UINT32 grpID = CAT_INVALID_GROUPID ;
+         std::string grpName ;
+
+         if ( UTIL_INVALID_DS_UID == clInfo._dsUID )
+         {
+            PD_CHECK( grpIDSet.size() == 1,
+                      SDB_INVALIDARG, error, PDWARNING,
+                      "Must has only one group specified" ) ;
+            grpID = *( grpIDSet.begin() ) ;
+         }
+         else
+         {
+            grpID = SDB_DSID_2_GROUPID( clInfo._dsUID ) ;
+         }
+
+         cataItemBd.append ( CAT_CATALOGGROUPID_NAME, (INT32)grpID ) ;
+
+         /// Get SYS groups for SYS collections
+         grpName = pCatCB->groupID2Name( grpID ) ;
+         cataItemBd.append ( CAT_GROUPNAME_NAME, grpName ) ;
+
+         if ( clInfo._isSharding )
+         {
+            // add LowBound and UpBound
+            BSONObj lowBound, upBound ;
+
+            if ( !clInfo._isHash )
+            {
+               Ordering order = Ordering::make( clInfo._shardingKey ) ;
+               rc = catBuildInitRangeBound ( clInfo._shardingKey, order ,
+                                             lowBound, upBound ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             }
 
             rc = catGetLocationID( groupObj, tmpLocation.c_str(), tmpLocationID ) ;
@@ -6038,6 +10511,7 @@ namespace engine
 
             if ( CAT_INVALID_LOCATIONID == tmpLocationID )
             {
+<<<<<<< HEAD
                rc = SDB_INVALIDARG ;
                PD_LOG_MSG( PDERROR, "Location:[%s] doesn't exist in group[%u]",
                            tmpLocation.c_str(), groupID ) ;
@@ -8838,10 +13312,71 @@ namespace engine
             BSONObjIterator it( ele.embeddedObject() ) ;
             while ( it.more() )
             {
+=======
+               rc = catBuildInitHashBound( lowBound, upBound,
+                                           clInfo._shardPartition ) ;
+            }
+            PD_RC_CHECK( rc, PDWARNING,
+                         "Failed to build cata info bound, rc: %d",
+                         rc ) ;
+
+            cataItemBd.append ( CAT_LOWBOUND_NAME, lowBound ) ;
+            cataItemBd.append ( CAT_UPBOUND_NAME, upBound ) ;
+         }
+         cataItemBd.done () ;
+         sub.done () ;
+      }
+
+      if ( mask & UTIL_CL_AUTOSPLIT_FIELD )
+      {
+         builder.appendBool ( CAT_DOMAIN_AUTO_SPLIT, clInfo._autoSplit ) ;
+      }
+
+      if ( mask & UTIL_CL_AUTOREBALANCE_FIELD )
+      {
+         builder.appendBool ( CAT_DOMAIN_AUTO_REBALANCE, clInfo._autoRebalance ) ;
+      }
+
+      if ( mask & UTIL_CL_MAXREC_FIELD )
+      {
+         builder.append( CAT_CL_MAX_RECNUM, (INT64)clInfo._maxRecNum ) ;
+      }
+
+      if ( mask & UTIL_CL_MAXSIZE_FIELD )
+      {
+         builder.append( CAT_CL_MAX_SIZE, (INT64)clInfo._maxSize ) ;
+      }
+
+      if ( mask & UTIL_CL_OVERWRITE_FIELD )
+      {
+         builder.appendBool( CAT_CL_OVERWRITE, clInfo._overwrite ) ;
+      }
+
+      if ( mask & UTIL_CL_AUTOINC_FIELD )
+      {
+         BSONElement ele ;
+         utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL ;
+
+         clUniqueID = clInfo._clUniqueID ;
+         ele = clInfo._autoIncFields.getField( CAT_AUTOINCREMENT ) ;
+         if ( Object == ele.type() )
+         {
+            rc = catBuildCatalogAutoIncField( cb, clInfo, ele.Obj(),
+                                              clUniqueID, w ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to build autoinc field, rc: %d",
+                         rc ) ;
+         }
+         else if( Array == ele.type() )
+         {
+            BSONObjIterator it( ele.embeddedObject() ) ;
+            while ( it.more() )
+            {
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                rc = catBuildCatalogAutoIncField( cb, clInfo, it.next().Obj(),
                                                  clUniqueID, w ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to get global ID for field, "
                             "rc: %d", rc ) ;
+<<<<<<< HEAD
             }
          }
          builder.appendElements( clInfo._autoIncSet.toBson() ) ;
@@ -8984,9 +13519,25 @@ namespace engine
                locBuilder.doneFast() ;
                pushBuilder.doneFast() ;
             }
+=======
+            }
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          }
-         else
+         builder.appendElements( clInfo._autoIncSet.toBson() ) ;
+      }
+
+      if ( mask & UTIL_CL_LOBKEYFORMAT_FIELD )
+      {
+         builder.append( CAT_LOBSHARDINGKEYFORMAT_NAME,
+                         clInfo._lobShardingKeyFormat ) ;
+      }
+
+      if ( UTIL_INVALID_DS_UID != clInfo._dsUID )
+      {
+         builder.append( FIELD_NAME_DATASOURCE_ID, clInfo._dsUID ) ;
+         if ( ossStrlen( clInfo._fullMapping ) > 0 )
          {
+<<<<<<< HEAD
             itr = locSet.find( oldLocation ) ;
             BOOLEAN existOldLoc = itr == locSet.end() ? FALSE : TRUE ;
 
@@ -9033,6 +13584,9 @@ namespace engine
                unsetBuilder.append( CAT_ACTIVE_LOCATION_NAME, "" ) ;
                unsetBuilder.doneFast() ;
             }
+=======
+            builder.append( FIELD_NAME_MAPPING, clInfo._fullMapping ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          }
       }
       catch( exception &e )
@@ -9043,6 +13597,7 @@ namespace engine
          goto error ;
       }
 
+<<<<<<< HEAD
    done :
       PD_TRACE_EXITRC ( SDB_CATSETLOCATION, rc ) ;
       return rc ;
@@ -9175,10 +13730,26 @@ namespace engine
       PD_TRACE_EXITRC ( SDB_CATREMOVELOCATION, rc ) ;
       return rc ;
 
+=======
+      {
+         UINT64 currentTime = ossGetCurrentMilliseconds() ;
+         CHAR timestamp[ OSS_TIMESTAMP_STRING_LEN + 1 ] = { 0 } ;
+         ossMillisecondsToString( currentTime, timestamp ) ;
+         builder.append( FIELD_NAME_CREATE_TIME, timestamp ) ;
+         builder.append( FIELD_NAME_UPDATE_TIME, timestamp ) ;
+      }
+
+      catRecord = builder.obj () ;
+
+   done :
+      PD_TRACE_EXITRC ( SDB_CATBUILDCATARECORD, rc ) ;
+      return rc ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    error :
       goto done ;
    }
 
+<<<<<<< HEAD
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATSETGRPMODE, "catSetGrpMode" )
    INT32 catSetGrpMode ( const clsGroupMode &grpMode,
                          const BOOLEAN incGrpVer,
@@ -9237,6 +13808,15 @@ namespace engine
       return rc ;
    error :
       goto done ;
+=======
+   string catGetSeqName4AutoIncFld( const utilCLUniqueID id,
+                                    const CHAR* fldName )
+   {
+      stringstream seqNameStream ;
+      seqNameStream.str("") ;
+      seqNameStream << "SYS_" << id << "_" << fldName << "_SEQ" ;
+      return seqNameStream.str() ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCREATENODESTEP, "catCreateNodeStep" )
@@ -9257,6 +13837,7 @@ namespace engine
       BSONObj updator, matcher ;
       BSONObj dummyObj ;
 
+<<<<<<< HEAD
       catBuildNewNode( hostName, dbPath, instanceID, localSvc, replSvc, shardSvc, cataSvc, nodeRole,
                        nodeID, nodeStatus, newNodeBuilder ) ;
       BSONObj newInfoObj = newNodeBuilder.obj() ;
@@ -9308,6 +13889,18 @@ namespace engine
 
       // service
       BSONObjBuilder sub( builder.subarrayStart( CAT_SERVICE_FIELD_NAME ) ) ;
+=======
+      newNodeBuilder.append( CAT_HOST_FIELD_NAME, hostName ) ;
+      newNodeBuilder.append( PMD_OPTION_DBPATH, dbPath ) ;
+
+      if ( utilCheckInstanceID( instanceID, FALSE ) )
+      {
+         newNodeBuilder.append( PMD_OPTION_INSTANCE_ID, (INT32)instanceID ) ;
+      }
+
+      // service
+      BSONObjBuilder sub( newNodeBuilder.subarrayStart( CAT_SERVICE_FIELD_NAME ) ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       // local
       BSONObjBuilder sub1( sub.subobjStart("0") ) ;
       sub1.append( CAT_SERVICE_TYPE_FIELD_NAME, MSG_ROUTE_LOCAL_SERVICE ) ;
@@ -9335,9 +13928,37 @@ namespace engine
 
       sub.done() ;
 
+<<<<<<< HEAD
       builder.append( CAT_NODEID_NAME, nodeID ) ;
       builder.append( CAT_GROUP_STATUS, nodeStatus ) ;
       PD_TRACE_EXIT(SDB_CATBUILDNEWNODE);
+=======
+      newNodeBuilder.append( CAT_NODEID_NAME, nodeID ) ;
+      newNodeBuilder.append( CAT_GROUP_STATUS, nodeStatus ) ;
+      BSONObj newInfoObj = newNodeBuilder.obj() ;
+
+      // update group info
+      updateBuilder.append("$inc", BSON( CAT_VERSION_NAME << 1 ) ) ;
+      updateBuilder.append("$push", BSON( CAT_GROUP_NAME << newInfoObj ) ) ;
+      updator = updateBuilder.obj() ;
+
+      matcher = BSON( FIELD_NAME_GROUPNAME << groupName ) ;
+
+      rc = rtnUpdate( CAT_NODE_INFO_COLLECTION, matcher, updator, dummyObj,
+                      0, cb, pDmsCB, pDpsCB, w ) ;
+      PD_RC_CHECK( rc, PDWARNING,
+                   "Failed to update node info [%s] to group [%s],"
+                   "matcher: %s, updator: %s, rc: %d",
+                   newInfoObj.toString().c_str(), groupName.c_str(),
+                   matcher.toString().c_str(), updator.toString().c_str(),
+                   rc ) ;
+
+   done :
+      PD_TRACE_EXITRC ( SDB_CATCREATENODESTEP, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    }
 
    static INT32 _catRemoveNode ( const BSONObj &boGroup,
@@ -9389,6 +14010,7 @@ namespace engine
                              INT16 w )
    {
       INT32 rc = SDB_OK ;
+<<<<<<< HEAD
 
       PD_TRACE_ENTRY ( SDB_CATREMOVENODESTEP ) ;
 
@@ -9462,6 +14084,55 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
+=======
+
+      PD_TRACE_ENTRY ( SDB_CATREMOVENODESTEP ) ;
+
+      BSONObjBuilder updateBuilder ;
+      BSONObj updator, matcher, dummyObj ;
+      BSONArray baNewNodeList ;
+      BSONObj boGroup ;
+
+      // refresh group
+      rc = catGetGroupObj( groupName.c_str(), FALSE, boGroup, cb ) ;
+      PD_RC_CHECK( rc, PDWARNING,
+                   "Failed to get group [%s], rc: %d",
+                   groupName.c_str(), rc ) ;
+
+      rc = _catRemoveNode( boGroup, nodeID, baNewNodeList ) ;
+      PD_RC_CHECK( rc, PDWARNING,
+                   "Failed to get new node list" ) ;
+
+      // update group info
+      updateBuilder.append( "$inc", BSON( CAT_VERSION_NAME << 1 ) ) ;
+      updateBuilder.append( "$set", BSON( FIELD_NAME_GROUP << baNewNodeList ) ) ;
+
+      updator = updateBuilder.obj() ;
+
+      matcher = BSON( FIELD_NAME_GROUPNAME << groupName ) ;
+
+      rc = rtnUpdate( CAT_NODE_INFO_COLLECTION, matcher, updator, dummyObj,
+                      0, cb, pDmsCB, pDpsCB, w ) ;
+      PD_RC_CHECK( rc, PDWARNING,
+                   "Failed to rollback node [%d] from group [%s],"
+                   "matcher: %s, updator: %s, rc: %d",
+                   nodeID, groupName.c_str(),
+                   matcher.toString().c_str(), updator.toString().c_str(),
+                   rc ) ;
+
+   done :
+      PD_TRACE_EXITRC ( SDB_CATREMOVENODESTEP, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATTRANSBEGIN, "catTransBegin" )
+   INT32 catTransBegin ( _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       PD_TRACE_ENTRY( SDB_CATTRANSBEGIN ) ;
 
       pmdKRCB *pKrcb = pmdGetKRCB() ;
@@ -9490,7 +14161,11 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_CATTRANSEND ) ;
 
+<<<<<<< HEAD
       if ( DPS_INVALID_TRANS_ID != cb->getTransID() )
+=======
+      if ( cb->getTransID().isValid() )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       {
          if ( SDB_OK == result ||
               SDB_DMS_EOC == result )
@@ -10098,6 +14773,7 @@ namespace engine
                     "it is not an object, ele [%s]",
                     FIELD_NAME_RECYCLEBIN, ele.toPoolString().c_str() ) ;
             rewriteAll = TRUE ;
+<<<<<<< HEAD
          }
          else
          {
@@ -10133,6 +14809,43 @@ namespace engine
                   FIELD_NAME_RECYCLEBIN "." FIELD_NAME_MAXVERNUM,
                   newConf.getMaxVersionNum() ) ;
          }
+=======
+         }
+         else
+         {
+            rc = oldConf.fromBSON( result ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to get recycle bin info "
+                         "from BSON, rc: %d", rc ) ;
+         }
+         if ( rewriteAll ||
+              oldConf.getEnable() != newConf.getEnable() )
+         {
+            subBuilder.appendBool(
+                  FIELD_NAME_RECYCLEBIN "." FIELD_NAME_ENABLE,
+                  newConf.getEnable() ) ;
+         }
+         if ( rewriteAll ||
+              oldConf.getExpireTime() != newConf.getExpireTime() )
+         {
+            subBuilder.append(
+                  FIELD_NAME_RECYCLEBIN "." FIELD_NAME_EXPIRETIME,
+                  newConf.getExpireTime() ) ;
+         }
+         if ( rewriteAll ||
+              oldConf.getMaxItemNum() != newConf.getMaxItemNum() )
+         {
+            subBuilder.append(
+                  FIELD_NAME_RECYCLEBIN "." FIELD_NAME_MAXITEMNUM,
+                  newConf.getMaxItemNum() ) ;
+         }
+         if ( rewriteAll ||
+              oldConf.getMaxVersionNum() != newConf.getMaxVersionNum() )
+         {
+            subBuilder.append(
+                  FIELD_NAME_RECYCLEBIN "." FIELD_NAME_MAXVERNUM,
+                  newConf.getMaxVersionNum() ) ;
+         }
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          if ( rewriteAll ||
               oldConf.getAutoDrop() != newConf.getAutoDrop() )
          {

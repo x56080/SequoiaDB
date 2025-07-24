@@ -17,7 +17,11 @@
 
 当发生写操作时，数据库会确保所有复制组节点都同步完成才返回。写操作处理成功后，后续读到的数据一定是当前复制组内最新的。优势是能够有效地保证数据的完整性和安全性，劣势则是会降低复制组的写入性能，并且当集群内有一个节点故障或者异常时，无法写入数据，降低高可用性。
 
+<<<<<<< HEAD
 在联机交易型业务中，为了保证数据安全性，同时可以牺牲写入性能时，推荐使用强一致性策略。
+=======
+在实时处理型业务中，为了保证数据安全性，同时可以牺牲写入性能时，推荐使用强一致性策略。
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 ![强一致性示意图][consistency0]
 
@@ -60,7 +64,11 @@
 
 ### 写多数派 ###
 
+<<<<<<< HEAD
 为了尽量保证数据的安全性，又兼顾高可用性，用户可以将 ReplSize 设为多数派。对数据一致性要求较高的业务，如影像内容管理平台和联机交易服务平台等，推荐使用写多数派的最终一致性策略。
+=======
+为了尽量保证数据的安全性，又兼顾高可用性，用户可以将 ReplSize 设为多数派。对数据一致性要求较高的业务，如影像内容管理平台和实时处理服务平台等，推荐使用写多数派的最终一致性策略。
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 ![写多数派示意图][consistency2]
 
@@ -106,4 +114,8 @@
 [consistency1]:images/Distributed_Engine/Architecture/Replication/consistency1.png
 [consistency2]:images/Distributed_Engine/Architecture/Replication/consistency2.png
 [consistency_alive]:images/Distributed_Engine/Architecture/Replication/consistency_alive.png
+<<<<<<< HEAD
 [session_attr]: manual/Manual/Sequoiadb_Command/SdbCS/setAttributes.md
+=======
+[session_attr]:manual/Manual/Sequoiadb_Command/SdbCS/setAttributes.md
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2

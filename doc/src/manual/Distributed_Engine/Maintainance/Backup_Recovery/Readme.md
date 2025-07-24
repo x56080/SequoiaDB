@@ -16,8 +16,13 @@
 * [数据备份][data_backup]
 * [日志归档][log_archive]
 * [数据恢复][data_restore]
+<<<<<<< HEAD
 
 
+=======
+* [时间点恢复][point_in_time_restore]
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 [^_^]:
     本文使用到的所有链接及引用。
@@ -25,4 +30,8 @@
 [data_backup]:manual/Distributed_Engine/Maintainance/Backup_Recovery/data_backup.md
 [log_archive]:manual/Distributed_Engine/Maintainance/Backup_Recovery/log_archive.md
 [data_restore]:manual/Distributed_Engine/Maintainance/Backup_Recovery/data_restore.md
+<<<<<<< HEAD
 
+=======
+[point_in_time_restore]:manual/Distributed_Engine/Maintainance/Backup_Recovery/point_in_time_restore.md
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2

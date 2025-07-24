@@ -1,5 +1,20 @@
 /*******************************************************************************
 
+<<<<<<< HEAD
+   Copyright (C) 2011-Present SequoiaDB Ltd.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+=======
 
    Copyright (C) 2011-2022 SequoiaDB Ltd.
 
@@ -15,6 +30,7 @@
 
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    Source File Name = authRBAC.hpp
 
@@ -40,6 +56,7 @@
 #define AUTH_RBAC_HPP__
 
 #include "core.hpp"
+<<<<<<< HEAD
 #include "authRBACGen.hpp"
 namespace engine
 {
@@ -52,6 +69,12 @@ namespace engine
    typedef ACTION_TYPE_ENUM ACTION_TYPE;
    typedef RESOURCE_TYPE_ENUM RESOURCE_TYPE;
    const int ACTION_SET_SIZE = ACTION_TYPE_VALID_NUM_GEN;
+=======
+namespace engine
+{
+   UINT32 authGetBuiltinRoleID( const CHAR *roleName ) ;
+   BOOLEAN authIsMonCmd( const CHAR *cmdName ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 }
 
 #endif /* AUTH_RBAC_HPP__ */

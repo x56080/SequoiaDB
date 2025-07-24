@@ -342,56 +342,90 @@ T}@T{
 T}@T{
 T}@T{
 detailed access plan.
+<<<<<<< HEAD
+=======
+<
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
 T}@T{
+<<<<<<< HEAD
 Display the
+=======
+br>Display the estimate
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
 T}@T{
+<<<<<<< HEAD
 estimate part of the
+=======
+part of the detailed
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
 T}@T{
+<<<<<<< HEAD
 detailed access plan if
+=======
+access plan if Estimate
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
 T}@T{
+<<<<<<< HEAD
 Estimate is true.
+=======
+is true.
+Otherwise
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
 T}@T{
+<<<<<<< HEAD
 Otherwise it doesn\[aq]t
+=======
+it doesn\[aq]t display
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
 T}@T{
+<<<<<<< HEAD
 display them.
 If
+=======
+them.
+If the
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
 T}@T{
+<<<<<<< HEAD
 the Estimate option is
+=======
+Estimate option is
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}
 T{
 T}@T{
@@ -786,13 +820,21 @@ T}@T{
 T}@T{
 T}@T{
 estimation results.
+<<<<<<< HEAD
+=======
+<
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
 T}@T{
+<<<<<<< HEAD
 If Filter is
+=======
+br>If Filter is
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}
 T{
 T}@T{
@@ -825,7 +867,11 @@ T}
 T{
 7
 T}@T{
+<<<<<<< HEAD
 CMDLocation
+=======
+Location
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}@T{
 JSON
 T}@T{
@@ -874,7 +920,11 @@ T}@T{
 T}@T{
 T}@T{
 T}@T{
+<<<<<<< HEAD
 CMDLocation option only
+=======
+Location option only
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}
 T{
 T}@T{
@@ -888,13 +938,18 @@ T}@T{
 T}@T{
 T}@T{
 T}@T{
+<<<<<<< HEAD
 and "GroupName"
+=======
+and "GroupName" options.
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
 T}@T{
+<<<<<<< HEAD
 options.If
 T}
 T{
@@ -903,6 +958,9 @@ T}@T{
 T}@T{
 T}@T{
 CMDLocation is
+=======
+If Location is
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}
 T{
 T}@T{
@@ -3165,11 +3223,19 @@ Search option to view the search optimizer\[aq]s search process.
 .fi
 .IP \[bu] 2
 Use the Detail option to view the detailed access plan for the query and use
+<<<<<<< HEAD
 CMDLocation option to view the query\[aq]s access plan on group1.
 .IP
 .nf
 \f[C]
 > db.sample.employee.find( { a : { $gt : 100 } } ).explain( { Detail : true, CMDLocation : { GroupName : \[aq]group1\[aq] } } )
+=======
+Location option to view the query\[aq]s access plan on group1.
+.IP
+.nf
+\f[C]
+> db.sample.employee.find( { a : { $gt : 100 } } ).explain( { Detail : true, Location : { GroupName : \[aq]group1\[aq] } } )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 {
   "NodeName": "hostname:11800",
   "GroupName": "SYSCoord",
@@ -3571,6 +3637,7 @@ use Expand option to expand all detailed information.
               "ReturnNum": 0,
               "ElapsedTime": 0.000034,
               "IndexRead": 0,
+<<<<<<< HEAD
               "DataRead": 0,
               "UserCPU": 0,
               "SysCPU": 0,
@@ -3695,3 +3762,5 @@ use Expand option to expand all detailed information.
 }
 \f[]
 .fi
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2

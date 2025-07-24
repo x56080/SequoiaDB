@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = dmsStorageBase.cpp
 
@@ -36,7 +34,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #include "dmsStorageBase.hpp"
 #include "pdTrace.hpp"
 #include "dmsTrace.hpp"
@@ -418,6 +415,8 @@ namespace engine
       _isTempSU           = FALSE ;
       _isSysSU            = FALSE ;
       _transSupport       = TRUE ;
+      _mvccSupport        = FALSE ;
+      _mvccUpgraded       = FALSE ;
       _blockScanSupport   = TRUE ;
       _pageSize           = 0 ;
       _lobPageSize        = 0 ;
@@ -427,7 +426,11 @@ namespace engine
       _suFileName[ DMS_SU_FILENAME_SZ ] = 0 ;
       ossMemset( _fullPathName, 0, sizeof(_fullPathName) ) ;
 
+<<<<<<< HEAD
       _resetInfoByName( suDescriptor->getSUName() ) ;
+=======
+      _resetInfoByName( pInfo->_suName ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       _pSyncMgr           = NULL ;
       _pStatMgr           = NULL ;
@@ -466,6 +469,16 @@ namespace engine
    void _dmsStorageBase::setTransSupport( BOOLEAN supported )
    {
       _transSupport = supported ;
+   }
+
+   void _dmsStorageBase::setMVCCSupport( BOOLEAN supported )
+   {
+      // only set for user storage
+      // NOTE: MVCC for SYSRBS is always enabled
+      if ( !_isSysSU && !_isTempSU )
+      {
+         _mvccSupport = supported ;
+      }
    }
 
    void _dmsStorageBase::setSyncConfig( UINT32 syncInterval,
@@ -1238,7 +1251,11 @@ namespace engine
       // if the cs without lob, lobd file isn't exist, then _dmsHeader is NULL.
       if ( _dmsHeader && _suDescriptor )
       {
+<<<<<<< HEAD
          _dmsHeader->_csUniqueID = _suDescriptor->getCSUniqueID() ;
+=======
+         _dmsHeader->_csUniqueID = _pStorageInfo->_csUniqueID ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          _onHeaderUpdated() ;
          flushHeader( TRUE ) ;
       }
@@ -1251,10 +1268,14 @@ namespace engine
       INT32 rc = SDB_OK ;
 
       _lobPageSize = lobPageSize ;
+<<<<<<< HEAD
       if ( _suDescriptor )
       {
          _suDescriptor->getStorageInfo()._lobdPageSize = lobPageSize ;
       }
+=======
+      _pStorageInfo->_lobdPageSize = lobPageSize ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       if ( _dmsHeader )
       {
@@ -1424,9 +1445,14 @@ namespace engine
       pHeader->_commitFlag = 0 ;
       pHeader->_commitLsn  = ~0 ;
       pHeader->_commitTime = 0 ;
+<<<<<<< HEAD
       pHeader->_csUniqueID = _suDescriptor->getCSUniqueID() ;
       pHeader->_idxInnerHWM = 0 ;
       pHeader->_clInnderHWM = 0 ;
+=======
+      pHeader->_csUniqueID = _pStorageInfo->_csUniqueID ;
+      pHeader->_idxInnerHWM = 0 ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    }
 
    INT32 _dmsStorageBase::_checkPageSize( dmsStorageUnitHeader * pHeader )
@@ -1744,13 +1770,21 @@ namespace engine
          // extend file size
       retry:
          rc = ossExtend( &_file, fileSize, incFileSize,
+<<<<<<< HEAD
                          _suDescriptor->getStorageInfo()._enableSparse ) ;
+=======
+                         _pStorageInfo->_enableSparse ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          if ( rc )
          {
             INT32 rc1 = SDB_OK ;
             PD_LOG ( PDWARNING, "Failed to extend storage unit for %llu "
                      "bytes, sparse:%s, rc: %d", incFileSize,
+<<<<<<< HEAD
                      _suDescriptor->getStorageInfo()._enableSparse ? "TRUE" : "FALSE", rc ) ;
+=======
+                     _pStorageInfo->_enableSparse ? "TRUE" : "FALSE", rc ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
             // truncate the file when it's failed to extend file
             rc1 = ossTruncateFile ( &_file, fileSize ) ;
@@ -1763,9 +1797,15 @@ namespace engine
                ossPanic () ;
             }
 
+<<<<<<< HEAD
             if ( SDB_INVALIDARG == rc && _suDescriptor->getStorageInfo()._enableSparse )
             {
                _suDescriptor->getStorageInfo()._enableSparse = FALSE ;
+=======
+            if ( SDB_INVALIDARG == rc && _pStorageInfo->_enableSparse )
+            {
+               _pStorageInfo->_enableSparse = FALSE ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                goto retry ;
             }
             // we need to manage how to truncate the file to original size here
@@ -1935,9 +1975,14 @@ namespace engine
                                           dmsContext *context )
    {
       UINT32 totalDataPageNum = 0 ;
+<<<<<<< HEAD
       INT32 rc                = SDB_OK ;
       INT32 rc1               = SDB_OK ;
 
+=======
+      INT32 rc = SDB_OK ;
+      INT32 rc1 = SDB_OK ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       PD_TRACE_ENTRY ( SDB__DMSSTORAGEBASE__FINDFREESPACE ) ;
 
       while ( TRUE )
@@ -2230,6 +2275,18 @@ namespace engine
          _isSysSU = TRUE ;
          _blockScanSupport = FALSE ;
       }
+<<<<<<< HEAD
+=======
+      else if ( 0 == ossStrncmp( csName,
+                                 SDB_DMSRBS_NAME,
+                                 SDB_DMSRBS_NAME_SIZE ) )
+      {
+         _isSysSU = TRUE ;
+         _blockScanSupport = FALSE ;
+         // SYSRBS supports MVCC always
+         _mvccSupport = TRUE ;
+      }
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       else if ( 0 == ossStrncmp( csName, "SYS", 3 ) )
       {
          _isSysSU = TRUE ;

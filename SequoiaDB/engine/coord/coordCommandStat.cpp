@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = coordCommandStat.cpp
 
@@ -34,7 +33,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #include "coordCommandStat.hpp"
 #include "pmd.hpp"
 #include "rtnCB.hpp"
@@ -44,8 +42,13 @@
 #include "coordTrace.hpp"
 #include "clsMainCLMonAggregator.hpp"
 #include "monDump.hpp"
+<<<<<<< HEAD
 #include "dmsStatUnit.hpp"
 #include "utilMinHeap.hpp"
+=======
+#include "utilMinHeap.hpp"
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 using namespace bson ;
 
@@ -766,6 +769,11 @@ namespace engine
          }
 
       private:
+<<<<<<< HEAD
+=======
+         // Merging 200000 MCV samples may take about 1 second
+         static const UINT32 MCV_SAMPLE_RECORDS_LIMIT = 200000 ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          // 10000 is a reference to the maximum of MCV size of data node
          static const UINT32 MCV_SIZE_LIMIT = 10000 ;
 
@@ -954,7 +962,11 @@ namespace engine
                          "Field '" FIELD_NAME_NULL_FRAC "' must be number" ) ;
                nullFrac = ele.numberInt() ;
                _nullRecords =
+<<<<<<< HEAD
                      ( _sampleRecords * nullFrac ) / DMS_STAT_FRACTION_SCALE ;
+=======
+                     ( _sampleRecords * nullFrac ) / RTN_STAT_FRACTION_SCALE ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             }
             else if ( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_UNDEF_FRAC ) )
             {
@@ -962,7 +974,11 @@ namespace engine
                          "Field '" FIELD_NAME_UNDEF_FRAC "' must be number" ) ;
                undefFrac = ele.numberInt() ;
                _undefRecords =
+<<<<<<< HEAD
                      ( _sampleRecords * undefFrac ) / DMS_STAT_FRACTION_SCALE ;
+=======
+                     ( _sampleRecords * undefFrac ) / RTN_STAT_FRACTION_SCALE ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             }
             else if ( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_MCV ) )
             {
@@ -982,7 +998,11 @@ namespace engine
                      BSONObj value = valueIt.next().embeddedObject().getOwned() ;
                      INT32 frac = fracIt.next().numberInt() ;
                      FLOAT64 recInDouble = ( ( FLOAT64 ) _sampleRecords * frac )
+<<<<<<< HEAD
                            / DMS_STAT_FRACTION_SCALE ;
+=======
+                           / RTN_STAT_FRACTION_SCALE ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                      UINT32 records = floor( recInDouble + 0.5 ) ;
                      _coordValRecPair pair( value, records ) ;
                      _mcvList.push_back( pair ) ;
@@ -1002,6 +1022,11 @@ namespace engine
          goto error ;
       }
 
+<<<<<<< HEAD
+=======
+      _nullRecords = ( _sampleRecords * nullFrac ) / RTN_STAT_FRACTION_SCALE ;
+      _undefRecords = ( _sampleRecords * undefFrac ) / RTN_STAT_FRACTION_SCALE ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    done:
       return rc ;
    error:
@@ -1045,9 +1070,9 @@ namespace engine
          if ( _sampleRecords > 0 )
          {
             nullFrac =
-                  ( _nullRecords * DMS_STAT_FRACTION_SCALE ) / _sampleRecords ;
+                  ( _nullRecords * RTN_STAT_FRACTION_SCALE ) / _sampleRecords ;
             undefFrac =
-                  ( _undefRecords * DMS_STAT_FRACTION_SCALE ) / _sampleRecords ;
+                  ( _undefRecords * RTN_STAT_FRACTION_SCALE ) / _sampleRecords ;
          }
          ob.append( FIELD_NAME_NULL_FRAC, nullFrac ) ;
          ob.append( FIELD_NAME_UNDEF_FRAC, undefFrac ) ;
@@ -1069,7 +1094,11 @@ namespace engine
             {
                if ( _mcvSampleRecords > 0 )
                {
+<<<<<<< HEAD
                   INT32 frac = ( it->second * DMS_STAT_FRACTION_SCALE ) /
+=======
+                  INT32 frac = ( it->second * RTN_STAT_FRACTION_SCALE ) /
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                                _mcvSampleRecords ;
                   frac = OSS_MAX( frac, 1 ) ;
                   fracAB.append( frac ) ;
@@ -1229,8 +1258,11 @@ namespace engine
          _coordListItCmp cmp ;
          _utilMinHeap< _coordListItPair, _coordListItCmp > heap( cmp ) ;
          _coordMCVList::iterator it ;
+<<<<<<< HEAD
          // Limits on the number of MCV sample can be set by node configuration "statmcvlimit"
          UINT32 statMCVLimit = pmdGetKRCB()->getOptionCB()->getStatMCVLimit() ;
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
          for ( UINT32 i = 0; i < vec.size(); ++i )
          {
@@ -1240,7 +1272,11 @@ namespace engine
                continue ;
             }
             // Here set a limit to prevent the cost from becoming too expensive.
+<<<<<<< HEAD
             if ( result._mcvSampleRecords > statMCVLimit )
+=======
+            if ( result._mcvSampleRecords > MCV_SAMPLE_RECORDS_LIMIT )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             {
                pList->clear() ;
                vec[ i ]._mcvSampleRecords = 0 ;

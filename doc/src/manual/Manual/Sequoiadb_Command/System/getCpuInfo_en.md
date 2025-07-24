@@ -48,9 +48,17 @@ Acquire CPU information
         "Freq": "2.19999814GHz"
       }
     ],
+<<<<<<< HEAD
     "User": 47223380,
     "Sys": 46662920,
     "Idle": 3513293040,
     "Other": 3023840
+=======
+    "User": 178575090,
+    "Sys": 58415430,
+    "Idle": 6405139420,
+    "IOWait": 22336420,
+    "Other": 7857330
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 }
 ```

@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = dmsEventHandler.hpp
 
@@ -48,6 +46,10 @@
 #include "dpsLogWrapper.hpp"
 #include "dmsSUCache.hpp"
 #include "utilUniqueID.hpp"
+<<<<<<< HEAD
+=======
+#include "utilRecycleItem.hpp"
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 namespace engine
 {
@@ -66,7 +68,10 @@ namespace engine
 
    #define DMS_EVENT_MASK_ALL    0xFFFFFFFF
    #define DMS_EVENT_MASK_STAT   0x00000001
+<<<<<<< HEAD
    #define DMS_EVENT_MASK_PLAN   0x00000002
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    #define DMS_EVENT_MASK_RECY   0x00000004
 
    /*
@@ -88,7 +93,26 @@ namespace engine
         _suID( suID ),
         _suLID( suLID ),
         _csUniqueID( UTIL_UNIQUEID_NULL )
+<<<<<<< HEAD
       {
+      }
+
+      void init( const CHAR *pCSName,
+                 dmsStorageUnitID suID,
+                 UINT32 suLID,
+                 utilCSUniqueID csUniqueID )
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
+      {
+         _pCSName = pCSName ;
+         _suID = suID ;
+         _suLID = suLID ;
+         _csUniqueID = csUniqueID ;
+      }
+
+      BOOLEAN isValid() const
+      {
+         return DMS_INVALID_SUID != _suID ;
       }
 
       void init( const CHAR *pCSName,
@@ -141,6 +165,7 @@ namespace engine
                  UINT16 mbID,
                  UINT32 clLID,
                  _dmsMBContext *mbContext )
+<<<<<<< HEAD
       {
          SDB_ASSERT( NULL != pCLName, "collection name is invalid" ) ;
          SDB_ASSERT( NULL != mbContext, "meta block context is invalid" ) ;
@@ -153,6 +178,20 @@ namespace engine
 
       BOOLEAN isValid() const
       {
+=======
+      {
+         SDB_ASSERT( NULL != pCLName, "collection name is invalid" ) ;
+         SDB_ASSERT( NULL != mbContext, "meta block context is invalid" ) ;
+         _pCLName = pCLName ;
+         _logicCSID = logicCSID ;
+         _mbID = mbID ;
+         _clLID = clLID ;
+         _mbContext = mbContext ;
+      }
+
+      BOOLEAN isValid() const
+      {
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          return DMS_INVALID_MBID != _mbID ;
       }
 
@@ -186,6 +225,319 @@ namespace engine
       dmsExtentID    _idxLID ;
       BSONObj        _boDefine ;
    } dmsEventIdxItem ;
+
+   /*
+      _dmsRecycleOptions define
+    */
+   typedef struct _dmsRecycleOptions
+   {
+      _dmsRecycleOptions()
+      : _blockOpID( 0 ),
+        _localTaskID( 0 ),
+        _needSaveItem( TRUE )
+      {
+      }
+
+      _dmsRecycleOptions( const utilRecycleItem &recycleItem,
+                          BOOLEAN needSaveItem )
+      : _recycleItem( recycleItem ),
+        _blockOpID( 0 ),
+        _localTaskID( 0 ),
+        _needSaveItem( needSaveItem )
+      {
+      }
+
+      BOOLEAN isTakenOver() const
+      {
+         return _recycleItem.isValid() ;
+      }
+
+      utilRecycleItem _recycleItem ;
+      UINT64          _blockOpID ;
+      UINT64          _localTaskID ;
+      BOOLEAN         _needSaveItem ;
+   } dmsRecycleOptions ;
+
+   /*
+      _dmsTruncCLOptions define
+    */
+   typedef struct _dmsTruncCLOptions : public _dmsRecycleOptions
+   {
+      _dmsTruncCLOptions()
+      : _dmsRecycleOptions(),
+        _isPrepared( FALSE )
+      {
+      }
+
+      _dmsTruncCLOptions( const utilRecycleItem &recycleItem,
+                          BOOLEAN needSaveItem )
+      : _dmsRecycleOptions( recycleItem, needSaveItem ),
+        _isPrepared( FALSE )
+      {
+      }
+
+      INT32 parseOptions( const bson::BSONObj &boOptions )
+      {
+         INT32 rc = SDB_OK ;
+
+         try
+         {
+            if ( boOptions.hasField( FIELD_NAME_RECYCLE_ITEM ) )
+            {
+               rc = _recycleItem.fromBSON( boOptions,
+                                           FIELD_NAME_RECYCLE_ITEM ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to parse recycle item, "
+                            "rc: %d", rc ) ;
+            }
+
+            _boOptions = boOptions ;
+            _isPrepared = TRUE ;
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to parse options, occur exception %s",
+                    e.what() ) ;
+            rc = ossException2RC( &e ) ;
+            goto error ;
+         }
+
+      done:
+         return rc ;
+
+      error:
+         goto done ;
+      }
+
+      INT32 prepareOptions()
+      {
+         INT32 rc = SDB_OK ;
+
+         try
+         {
+            if ( !_isPrepared )
+            {
+               bson::BSONObjBuilder builder ;
+               if ( _recycleItem.isValid() )
+               {
+                  rc = _recycleItem.toBSON( builder, FIELD_NAME_RECYCLE_ITEM ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Failed to build recycle item, "
+                               "rc: %d", rc ) ;
+                  _boOptions = builder.obj() ;
+               }
+               _isPrepared = TRUE ;
+            }
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to build options, occur exception %s",
+                    e.what() ) ;
+            rc = ossException2RC( &e ) ;
+            goto error ;
+         }
+
+      done:
+         return rc ;
+
+      error:
+         goto done ;
+      }
+
+      bson::BSONObj _boOptions ;
+      BOOLEAN       _isPrepared ;
+   } dmsTruncCLOptions ;
+
+   /*
+      _dmsDropCLOptions define
+    */
+   typedef struct _dmsDropCLOptions : public _dmsTruncCLOptions
+   {
+      _dmsDropCLOptions()
+      : _dmsTruncCLOptions()
+      {
+      }
+
+      _dmsDropCLOptions( const utilRecycleItem &recycleItem,
+                         BOOLEAN needSaveItem )
+      : _dmsTruncCLOptions( recycleItem, needSaveItem )
+      {
+      }
+   } dmsDropCLOptions ;
+
+   /*
+      _dmsDropCSOptions define
+    */
+   typedef struct _dmsDropCSOptions : public _dmsRecycleOptions
+   {
+      _dmsDropCSOptions()
+      : _dmsRecycleOptions(),
+        _isPrepared( FALSE )
+      {
+      }
+
+      _dmsDropCSOptions( const utilRecycleItem &recycleItem,
+                         BOOLEAN needSaveItem )
+      : _dmsRecycleOptions( recycleItem, needSaveItem ),
+        _isPrepared( FALSE )
+      {
+      }
+
+      INT32 parseOptions( const bson::BSONObj &boOptions )
+      {
+         INT32 rc = SDB_OK ;
+
+         try
+         {
+            if ( boOptions.hasField( FIELD_NAME_RECYCLE_ITEM ) )
+            {
+               rc = _recycleItem.fromBSON( boOptions,
+                                           FIELD_NAME_RECYCLE_ITEM ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to parse recycle item, "
+                            "rc: %d", rc ) ;
+            }
+
+            _boOptions = boOptions ;
+            _isPrepared = TRUE ;
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to parse options, occur exception %s",
+                    e.what() ) ;
+            rc = ossException2RC( &e ) ;
+            goto error ;
+         }
+
+      done:
+         return rc ;
+
+      error:
+         goto done ;
+      }
+
+      INT32 prepareOptions()
+      {
+         INT32 rc = SDB_OK ;
+
+         try
+         {
+            if ( !_isPrepared )
+            {
+               bson::BSONObjBuilder builder ;
+               if ( _recycleItem.isValid() )
+               {
+                  rc = _recycleItem.toBSON( builder, FIELD_NAME_RECYCLE_ITEM ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Failed to build recycle item, "
+                               "rc: %d", rc ) ;
+                  _boOptions = builder.obj() ;
+               }
+               _isPrepared = TRUE ;
+            }
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to build options, occur exception %s",
+                    e.what() ) ;
+            rc = ossException2RC( &e ) ;
+            goto error ;
+         }
+
+      done:
+         return rc ;
+
+      error:
+         goto done ;
+      }
+
+      bson::BSONObj _boOptions ;
+      BOOLEAN       _isPrepared ;
+   } dmsDropCSOptions ;
+
+   /*
+      _dmsReturnOptions define
+    */
+   typedef struct _dmsReturnOptions : public _dmsRecycleOptions
+   {
+      _dmsReturnOptions()
+      : _dmsRecycleOptions(),
+        _isPrepared( FALSE )
+      {
+         _needSaveItem = FALSE ;
+      }
+
+      _dmsReturnOptions( const utilRecycleItem &recycleItem )
+      : _dmsRecycleOptions( recycleItem, FALSE ),
+        _isPrepared( FALSE )
+      {
+      }
+
+      INT32 parseOptions( const bson::BSONObj &boOptions )
+      {
+         INT32 rc = SDB_OK ;
+
+         try
+         {
+            if ( boOptions.hasField( FIELD_NAME_RECYCLE_ITEM ) )
+            {
+               rc = _recycleItem.fromBSON( boOptions,
+                                           FIELD_NAME_RECYCLE_ITEM ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to parse recycle item, "
+                            "rc: %d", rc ) ;
+            }
+
+            _boOptions = boOptions ;
+            _isPrepared = TRUE ;
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to parse options, occur exception %s",
+                    e.what() ) ;
+            rc = ossException2RC( &e ) ;
+            goto error ;
+         }
+
+      done:
+         return rc ;
+
+      error:
+         goto done ;
+      }
+
+      INT32 prepareOptions()
+      {
+         INT32 rc = SDB_OK ;
+
+         try
+         {
+            if ( !_isPrepared )
+            {
+               bson::BSONObjBuilder builder ;
+               if ( _recycleItem.isValid() )
+               {
+                  rc = _recycleItem.toBSON( builder, FIELD_NAME_RECYCLE_ITEM ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Failed to build recycle item, "
+                               "rc: %d", rc ) ;
+                  _boOptions = builder.obj() ;
+               }
+               _isPrepared = TRUE ;
+            }
+         }
+         catch ( exception &e )
+         {
+            PD_LOG( PDERROR, "Failed to build options, occur exception %s",
+                    e.what() ) ;
+            rc = ossException2RC( &e ) ;
+            goto error ;
+         }
+
+      done:
+         return rc ;
+
+      error:
+         goto done ;
+      }
+
+      bson::BSONObj _boOptions ;
+      BOOLEAN       _isPrepared ;
+   } dmsReturnOptions ;
 
    /*
       _IDmsEventHandler
@@ -295,6 +647,7 @@ namespace engine
 
          OSS_INLINE virtual INT32 onTruncateCL ( SDB_EVENT_OCCUR_TYPE type,
                                                  IDmsEventHolder *pEventHolder,
+<<<<<<< HEAD
                                                  IDmsSUCacheHolder *pCacheHolder,
                                                  const dmsEventCLItem &clItem,
                                                  dmsTruncCLOptions *options,
@@ -319,12 +672,41 @@ namespace engine
                                                  IDmsSUCacheHolder *pCacheHolder,
                                                  const dmsEventCLItem &clItem,
                                                  dmsDropCLOptions *options,
+=======
+                                                 IDmsSUCacheHolder *pCacheHolder,
+                                                 const dmsEventCLItem &clItem,
+                                                 dmsTruncCLOptions *options,
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                                                  pmdEDUCB *cb,
                                                  SDB_DPSCB *dpsCB )
          {
             return SDB_OK ;
          }
 
+<<<<<<< HEAD
+=======
+         OSS_INLINE virtual INT32 onCleanTruncCL( IDmsEventHolder *pEventHolder,
+                                                  IDmsSUCacheHolder *pCacheHolder,
+                                                  const dmsEventCLItem &clItem,
+                                                  dmsTruncCLOptions *options,
+                                                  pmdEDUCB *cb,
+                                                  SDB_DPSCB *dpsCB )
+         {
+            return SDB_OK ;
+         }
+
+         // drop collection callbacks
+         OSS_INLINE virtual INT32 onCheckDropCL( IDmsEventHolder *pEventHolder,
+                                                 IDmsSUCacheHolder *pCacheHolder,
+                                                 const dmsEventCLItem &clItem,
+                                                 dmsDropCLOptions *options,
+                                                 pmdEDUCB *cb,
+                                                 SDB_DPSCB *dpsCB )
+         {
+            return SDB_OK ;
+         }
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          OSS_INLINE virtual INT32 onDropCL ( SDB_EVENT_OCCUR_TYPE type,
                                              IDmsEventHolder *pEventHolder,
                                              IDmsSUCacheHolder *pCacheHolder,

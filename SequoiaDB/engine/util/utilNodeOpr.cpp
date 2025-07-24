@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = utilNodeOpr.cpp
 
@@ -33,8 +31,7 @@
 
    Last Changed =
 
-******************************************************************************/
-
+*******************************************************************************/
 #include "utilNodeOpr.hpp"
 #include "pmdDef.hpp"
 #include "utilCommon.hpp"
@@ -492,6 +489,37 @@ namespace engine
    /*
       Local define
    */
+   static INT32 _utilWritePipeOnly( const CHAR *pSvcName, OSSPID pid,
+                                    const CHAR *pWriteBuf, INT32 writeLen )
+   {
+      INT32 rc = SDB_OK ;
+
+      utilNodePipe nodePipe ;
+
+      rc = nodePipe.openPipe( pSvcName, pid ) ;
+      if ( rc && SDB_FE != rc )
+      {
+         PD_LOG ( PDERROR, "Failed to open named pipe: %s, rc: %d",
+                  nodePipe.getReadPipeName(), rc ) ;
+         goto error ;
+      }
+
+      rc = nodePipe.writePipe( pWriteBuf, writeLen ) ;
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "Failed to send %s to %s, rc: %d",
+                  pWriteBuf, nodePipe.getWritePipeName(), rc ) ;
+         goto error ;
+      }
+
+      done:
+         nodePipe.closePipe() ;
+         return rc ;
+
+      error:
+         goto done ;
+   }
+
    static INT32 _utilWriteReadPipe( const CHAR *pSvcName, OSSPID pid,
                                     const CHAR *pWriteBuf, INT32 writeLen,
                                     CHAR *pReadBuf, INT32 readLen,
@@ -543,6 +571,12 @@ namespace engine
       return rc ;
    error:
       goto done ;
+   }
+
+   INT32 utilWritePipe( const CHAR *pSvcName, OSSPID pid,
+                        const CHAR *pWriteBuf, INT32 writeLen )
+   {
+      return _utilWritePipeOnly( pSvcName, pid, pWriteBuf, writeLen ) ;
    }
 
    INT32 utilWriteReadPipe( const CHAR *pSvcName, OSSPID pid,
@@ -699,7 +733,11 @@ namespace engine
                         OSSPID pidFilter,
                         INT32 roleFilter,
                         BOOLEAN allowAloneCM,
+<<<<<<< HEAD
                         BOOLEAN needLocationInfo )
+=======
+                        BOOLEAN includeSTP )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
       INT32 rc                   = SDB_OK ;
       DIR *pDir                  = NULL ;
@@ -770,6 +808,12 @@ namespace engine
          // 2. type
          while ( beginType < SDB_TYPE_MAX )
          {
+            if ( SDB_TYPE_STP == beginType && !includeSTP )
+            {
+               ++beginType ;
+               continue ;
+            }
+
             pStr = ossStrstr( commandLine,
                               utilDBTypeStr( (SDB_TYPE)beginType ) ) ;
             if ( pStr == commandLine &&
@@ -823,6 +867,8 @@ namespace engine
                case SDB_TYPE_DB :
                   findNode._role = SDB_ROLE_STANDALONE ;
                   break ;
+               case SDB_TYPE_STP :
+                  findNode._role = SDB_ROLE_STP ;
                default :
                   break ;
             }
@@ -877,7 +923,12 @@ namespace engine
 
    INT32 utilListNodes( UTIL_VEC_NODES & nodes, INT32 typeFilter,
                         const CHAR * svcnameFilter, OSSPID pidFilter,
+<<<<<<< HEAD
                         INT32 roleFilter, BOOLEAN allowAloneCM, BOOLEAN needLocationInfo )
+=======
+                        INT32 roleFilter, BOOLEAN allowAloneCM,
+                        BOOLEAN includeSTP )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
       INT32 rc = SDB_OK ;
       vector< string > names ;
@@ -913,6 +964,10 @@ namespace engine
             continue ;
          }
          if ( -1 != typeFilter && typeFilter != findNode._type )
+         {
+            continue ;
+         }
+         else if ( SDB_TYPE_STP == findNode._type && !includeSTP )
          {
             continue ;
          }

@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 SequoiaDB 巨杉数据库是一款金融级分布式关系型数据库，可以轻松地部署和运行在主流框架的服务器及虚拟化环境。同时作为一款高性能分布式数据库，SequoiaDB 巨杉数据库支持绝大多数的主流硬件网络设备和主流的 Linux 操作系统环境。
+=======
+SequoiaDB 巨杉数据库是一款金融级分布式数据库，可以轻松地部署和运行在主流框架的服务器及虚拟化环境。同时作为一款高性能分布式数据库，SequoiaDB 巨杉数据库支持绝大多数的主流硬件网络设备和主流的 Linux 操作系统环境。
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 ##受支持的硬件平台##
 
@@ -131,10 +135,17 @@ SequoiaDB 巨杉数据库对于开发、测试和生产环境的服务器硬件�
 
 - Ubuntu:
 
+<<<<<<< HEAD
     设置主机名 
 
      ```lang-bash
      # hostname sdbserver1
+=======
+    设置主机名
+
+    ```lang-bash
+    # hostname sdbserver1
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     ```
    
     将主机名持久化到配置文件
@@ -143,6 +154,37 @@ SequoiaDB 巨杉数据库对于开发、测试和生产环境的服务器硬件�
     # echo "sdbserver1" > /etc/hostname
     ```
 
+<<<<<<< HEAD
+=======
+- UOS V20:
+
+    设置主机名
+
+    ```lang-bash
+    # hostname sdbserver1
+    ```
+   
+    将主机名持久化到配置文件
+
+    ```lang-bash
+    # hostnamectl set-hostname sdbserver1 && bash
+    ```
+
+- Kylin V10:
+
+    设置主机名
+
+    ```lang-bash
+    # hostname sdbserver1
+    ```
+   
+    将主机名持久化到配置文件
+
+    ```lang-bash
+    # hostnamectl set-hostname sdbserver1 && bash
+    ```
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 ###配置主机名/IP地址映射###
 
 **配置方法**
@@ -207,11 +249,37 @@ SequoiaDB 巨杉数据库对于开发、测试和生产环境的服务器硬件�
 
 - Ubuntu:
 
+<<<<<<< HEAD
      执行如下命令：
 
      ```lang-bash
      # ufw disable
      ```
+=======
+    执行如下命令：
+
+    ```lang-bash
+    # ufw disable
+    ```
+
+- UOS V20:
+
+    执行如下命令：
+
+    ```lang-bash
+    # systemctl stop firewalld.service    # 临时关闭防火墙
+    # systemctl disable firewalld.service    # 设置开机禁用防火墙
+    ```
+
+- Kylin V10:
+
+    执行如下命令：
+
+    ```lang-bash
+    # systemctl stop firewalld.service    # 临时关闭防火墙
+    # systemctl disable firewalld.service    # 设置开机禁用防火墙
+    ```
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 **验证方法**
 
@@ -256,12 +324,45 @@ SequoiaDB 巨杉数据库对于开发、测试和生产环境的服务器硬件�
 
 - Ubuntu:
 
+<<<<<<< HEAD
      执行命令，若打印以下信息，说明关闭防火墙成功
 
      ```lang-bash
      # ufw status
      Status: inactive
      ```
+=======
+    执行命令，若打印以下信息，说明关闭防火墙成功
+
+    ```lang-bash
+    # ufw status
+    Status: inactive
+    ```
+
+- UOS V20:
+
+    执行命令，若打印以下信息，说明关闭防火墙成功
+
+    ```lang-bash
+    # systemctl status firewalld.service
+    ● firewalld.service - firewalld - dynamic firewall daemon
+          Loaded: loaded (/usr/lib/systemd/system/firewalld.service; disabled; vendor preset: enabled)
+          Active: inactive (dead)
+            Docs: man:firewalld(1)
+    ```
+
+- Kylin V10:
+
+    执行命令，若打印以下信息，说明关闭防火墙成功
+
+    ```lang-bash
+    # systemctl status firewalld.service
+    ● firewalld.service - firewalld - dynamic firewall daemon
+          Loaded: loaded (/usr/lib/systemd/system/firewalld.service; disabled; vendor preset: enabled)
+          Active: inactive (dead)
+            Docs: man:firewalld(1)
+    ```
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 ###配置 SELinux###
 

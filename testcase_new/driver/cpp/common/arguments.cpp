@@ -43,7 +43,11 @@ arguments::arguments()
    //用例存放临时文件的目录
    strcpy( _workDir, "/tmp/cpptest" ) ;
    //数据源协调节点主机名
+<<<<<<< HEAD
    strcpy( _dsHostName, "localhost" ) ;
+=======
+   strcpy( _dsHostName, "192.168.28.104" ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    //数据源协调节点端口号
    strcpy( _dsSvcName, "11810" ) ;
    //数据源集群的coord连接

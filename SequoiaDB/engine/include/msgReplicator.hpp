@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = msgReplicator.hpp
 
@@ -552,8 +550,12 @@ const UINT32 MSG_SERVICE_MAX = 64 ;
    {
       public:
          _MsgHeader header ;
+         // global serial number of transaction ID of V1
          UINT64     transID ;
-         UINT32     reserved[8] ;
+         // node ID of transaction ID
+         UINT16     transIDNodeID ;
+         // reserved space ( NOTE: align to 4 bytes )
+         UINT32     reserved[ 7 ] ;
 
          _MsgClsTransCheckReq()
          {
@@ -563,6 +565,7 @@ const UINT32 MSG_SERVICE_MAX = 64 ;
             header.TID = 0 ;
             header.requestID = 0 ;
             transID = 0 ;
+            transIDNodeID = 0 ;
             ossMemset( reserved, 0, sizeof( reserved ) ) ;
          }
    } ;
@@ -572,6 +575,63 @@ const UINT32 MSG_SERVICE_MAX = 64 ;
       MsgOpReply + BSON( { TransID:xxx, Status:xxx } )
    */
    typedef MsgOpReply MsgClsTransCheckRes ;
+
+   /*
+      _MsgClsGTSArbitReq define
+    */
+   class _MsgClsGTSArbitReq : public SDBObject
+   {
+   public:
+      MsgHeader header ;
+      // transaction ID of read transaction
+      UINT16    readTransNodeID ;
+      UINT64    readTransID ;
+      // transaction ID of write transaction
+      UINT64    writeTransID ;
+      UINT16    writeTransNodeID ;
+      // status of write transaction
+      UINT16    writeTransStatus ;
+
+      _MsgClsGTSArbitReq()
+      {
+         header.messageLength = sizeof( _MsgClsGTSArbitReq ) ;
+         header.opCode = MSG_CLS_GTS_ARBIT_REQ ;
+         header.routeID.value = MSG_INVALID_ROUTEID ;
+         header.TID = 0 ;
+         header.requestID = 0 ;
+         readTransNodeID = 0 ;
+         readTransID = 0LL ;
+         writeTransNodeID = 0 ;
+         writeTransID = 0LL ;
+         writeTransStatus = 0 ;
+      }
+   } ;
+
+   typedef class _MsgClsGTSArbitReq MsgClsGTSArbitReq ;
+
+   /*
+      _MsgClsGTSArbitRsp define
+    */
+   class _MsgClsGTSArbitRsp : public SDBObject
+   {
+   public:
+      MsgInternalReplyHeader  header ;
+      // indicate visibility of write transaction
+      UINT8                   visible ;
+
+      _MsgClsGTSArbitRsp()
+      {
+         header.header.messageLength = sizeof( _MsgClsGTSArbitRsp ) ;
+         header.header.opCode = MSG_CLS_GTS_ARBIT_RSP ;
+         header.header.routeID.value = MSG_INVALID_ROUTEID ;
+         header.header.TID = 0 ;
+         header.header.requestID = 0 ;
+         header.res = SDB_OK ;
+         visible = FALSE ;
+      }
+   } ;
+
+   typedef class _MsgClsGTSArbitRsp MsgClsGTSArbitRsp ;
 
 }
 

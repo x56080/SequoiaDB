@@ -1,0 +1,85 @@
+/*******************************************************************************
+
+   Copyright (C) 2011-Present SequoiaDB Ltd.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+   Source File Name = ITransLockConsole.h
+
+   Descriptive Name =
+
+   Dependencies: N/A
+
+   Restrictions: N/A
+
+   Change Activity:
+   defect Date        Who Description
+   ====== =========== === ==============================================
+          09/08/2020  WY  Initial Draft
+
+   Last Changed =
+
+*******************************************************************************/
+#ifndef SDB_I_OBJECT_TRANS_LOCK_CONSOLE_H_
+#define SDB_I_OBJECT_TRANS_LOCK_CONSOLE_H_
+
+#include "dpsTransLockDef.hpp"
+#include "sdbInterface.hpp"
+#include "dpsTransLockCallback.hpp"
+
+namespace engine
+{
+   class ITransLockConsole : public SDBObject
+   {
+      public:
+         ITransLockConsole(){}
+         virtual ~ITransLockConsole(){}
+
+      public:
+         virtual INT32 acquire(IExecutor *executor,
+                               const dpsTransLockId &lockId,
+                               const DPS_TRANSLOCK_TYPE &mode,
+                               _IContext * pContext,
+                               dpsTransRetInfo *pdpsTxResInfo,
+                               _dpsITransLockCallback *callback) = 0;
+
+         virtual void release(IExecutor *executor,
+                              const dpsTransLockId &lockId,
+                              BOOLEAN bForceRelease,
+                              _dpsITransLockCallback * callback) = 0;
+
+         virtual void releaseAll(IExecutor *executor,
+                                 _dpsITransLockCallback *callback) = 0;
+
+         virtual INT32 tryAcquire(IExecutor *executor,
+                                  const dpsTransLockId &lockId,
+                                  const DPS_TRANSLOCK_TYPE &mode,
+                                  dpsTransRetInfo *pdpsTxResInfo,
+                                  _dpsITransLockCallback *callback) = 0;
+
+         virtual INT32 testAcquire(IExecutor *executor,
+                                   const dpsTransLockId &lockId,
+                                   const DPS_TRANSLOCK_TYPE &mode,
+                                   BOOLEAN preemptMode,
+                                   dpsTransRetInfo *pdpsTxResInfo,
+                                   _dpsITransLockCallback *callback,
+                                   BOOLEAN intentLock) = 0;
+
+         // virtual INT32 waitLock(IExecutor *executor,
+         //                        const dpsTransLockId &lockId,
+         //                        const DPS_TRANSLOCK_TYPE &mode) = 0;
+   };//class class ITransLockConsole
+} // namespace engine
+
+
+#endif//SDB_I_OBJECT_TRANS_LOCK_CONSOLE_H_

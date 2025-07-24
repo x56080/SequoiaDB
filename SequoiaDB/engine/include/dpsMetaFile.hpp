@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = dpsMetaFile.hpp
 
@@ -36,7 +34,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #ifndef DPSMETAFILE_H_
 #define DPSMETAFILE_H_
 
@@ -86,6 +83,10 @@ namespace engine
 
    #define DPS_INVALID_FILE_SN               ( (UINT32)~0 )
 
+   #define DPS_METAFILE_PADDING_SIZE         ( DPS_METAFILE_CONTENT_LEN - \
+                                               48 - \
+                                               sizeof( dpsLogSummary ) )
+
    /*
       _dpsMetaFileContent define
    */
@@ -100,12 +101,12 @@ namespace engine
       DPS_LSN_VER    _memBeginLsnVer ;
       UINT32         _reserved ;
       DPS_LSN_OFFSET _memBeginLsnOffset ;
-      // 48 == sizeof(_dpsMetaFileContent)
-      CHAR           _padding [ DPS_METAFILE_CONTENT_LEN - 48 ] ;
+      dpsLogSummary  _summary ;
+      CHAR           _padding [ DPS_METAFILE_PADDING_SIZE ] ;
 
       _dpsMetaFileContent ( DPS_LSN_OFFSET offset = DPS_INVALID_LSN_OFFSET )
       {
-         resetStatus() ;
+         resetStatus( TRUE ) ;
 
          _oldestLSNOffset = offset ;
          _reserved = 0 ;
@@ -115,7 +116,7 @@ namespace engine
                      "Dps meta file content size must be 4K" ) ;
       }
 
-      void  resetStatus()
+      void  resetStatus( BOOLEAN resetSummary = FALSE )
       {
          _beginFile        = DPS_INVALID_FILE_SN ;
          _workFile         = DPS_INVALID_FILE_SN ;
@@ -124,12 +125,16 @@ namespace engine
          _curLsnOffset     = DPS_INVALID_LSN_OFFSET ;
          _memBeginLsnVer   = DPS_INVALID_LSN_VERSION ;
          _memBeginLsnOffset= DPS_INVALID_LSN_OFFSET ;
+         if ( resetSummary )
+         {
+            _summary.reset() ;
+         }
       }
 
       void  reset()
       {
          _oldestLSNOffset  = DPS_INVALID_LSN_OFFSET ;
-         resetStatus() ;
+         resetStatus( TRUE ) ;
       }
 
       DPS_LSN_OFFSET getOldestLSNOffset() const
@@ -172,15 +177,31 @@ namespace engine
                   UINT32 workFile,
                   const DPS_LSN &curLSN,
                   UINT32 curLsnLength,
-                  const DPS_LSN &memBeginLSN ) ;
+                  const DPS_LSN &memBeginLSN,
+                  const dpsLogSummary &summary ) ;
 
+<<<<<<< HEAD
       INT32 invalidateStatus() ;
       INT32 writeOldestLSNOffset( DPS_LSN_OFFSET offset,
                                   BOOLEAN needSync = TRUE ) ;
+=======
+      INT32 invalidateStatus( BOOLEAN resetSummary ) ;
+      INT32 writeOldestLSNOffset( DPS_LSN_OFFSET offset ) ;
+      INT32 writeTransMeta( DPS_LSN_OFFSET offset,
+                            const dpsLogSummary &summary,
+                            BOOLEAN needSync = TRUE ) ;
+      INT32 writeSummary( const dpsLogSummary &summary,
+                          BOOLEAN needSync = TRUE ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       DPS_LSN_OFFSET getCacheLSN() const { return _content._oldestLSNOffset ; }
       BOOLEAN        isCacheLSNValid() const ;
       BOOLEAN        hasInvalidateStatus() const { return _invalidateStatus ; }
+
+      const dpsLogSummary &getCacheSummary() const
+      {
+         return _content._summary ;
+      }
 
       dpsMetaFileContent  getContent() const { return _content ; }
 

@@ -48,7 +48,11 @@
 在 SDB Shell 中查看热备组中节点的列表
 
 ```lang-javascript
+<<<<<<< HEAD
 db.getRG("SYSSpare").getDetail()
+=======
+db.getRG("SYSSpare").getDetailObj()
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 ```
 
 ##使用##

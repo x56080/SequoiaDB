@@ -2,8 +2,13 @@
  * @Description   : seqDB-6758:开启压缩，创建CL
  * @Author        : XiaoNi Huang
  * @CreateTime    : 2016.03.23
+<<<<<<< HEAD
  * @LastEditTime  : 2023.02.08
  * @LastEditors   : liuli
+=======
+ * @LastEditTime  : 2021.03.03
+ * @LastEditors   : XiaoNi Huang
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
  ******************************************************************************/
 testConf.skipStandAlone = true;
 testConf.useSrcGroup = true;
@@ -31,6 +36,7 @@ function test ( testPara )
    // 插入数据
    insertRecs1( cl, insertRecsNum );
 
+<<<<<<< HEAD
    // 等待字典构建
    waitDictionary( db, csName, clName );
 
@@ -44,6 +50,14 @@ function test ( testPara )
 }
 
 function checkRecsByDataNode ( rgName, csName, clName, insertRecsNum, checkRecsNum, insertRange )
+=======
+   // 检查结果，检查组内每个节点数据正确性
+   checkLzwAttributeByDataNode( rgName, csName, clName, true );
+   checkRecsByDataNode( rgName, csName, clName, insertRecsNum, checkRecsNum );
+}
+
+function checkRecsByDataNode ( rgName, csName, clName, insertRecsNum, checkRecsNum )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 {
    var rc = db.exec( "select NodeName from $SNAPSHOT_SYSTEM where GroupName='" + rgName + "'" );
    while( rc.next() )
@@ -60,6 +74,7 @@ function checkRecsByDataNode ( rgName, csName, clName, insertRecsNum, checkRecsN
          // 随机检查n条记录正确性
          for( j = 0; j < checkRecsNum; j++ )
          {
+<<<<<<< HEAD
             var i = parseInt( Math.random() * insertRange );
             var cond = { atest: i, btest: i, ctest: "test" + i, dtest: "abcdefg890abcdefg890abcdefg890" };
             var recsCnt = nodeCL.find( cond ).count();
@@ -67,6 +82,11 @@ function checkRecsByDataNode ( rgName, csName, clName, insertRecsNum, checkRecsN
             {
                throw new Error( "expected result is 1 or 2, actual is " + recsCnt + " ,cond is :" + JSON.stringify( cond ) );
             }
+=======
+            var i = parseInt( Math.random() * insertRecsNum );
+            var recsCnt = nodeCL.find( { atest: i, btest: i, ctest: "test" + i, dtest: "abcdefg890abcdefg890abcdefg890" } ).count();
+            assert.equal( recsCnt, 1 );
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          }
       }
       finally 

@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = dmsStatSUMgr.hpp
 
@@ -45,7 +43,6 @@
 #include "dmsSysSUMgr.hpp"
 #include "dmsEventHandler.hpp"
 #include "monDMS.hpp"
-#include "dmsStatUnit.hpp"
 
 using namespace std ;
 
@@ -53,12 +50,11 @@ namespace engine
 {
 
    #define DMS_STAT_SPACE_NAME          "SYSSTAT"
-   #define DMS_STAT_COLLECTION_CL_NAME  DMS_STAT_SPACE_NAME".SYSCOLLECTIONSTAT"
-   #define DMS_STAT_INDEX_CL_NAME       DMS_STAT_SPACE_NAME".SYSINDEXSTAT"
+   #define DMS_STAT_COLLECTION_CL_NAME  DMS_STAT_SPACE_NAME ".SYSCOLLECTIONSTAT"
+   #define DMS_STAT_INDEX_CL_NAME       DMS_STAT_SPACE_NAME ".SYSINDEXSTAT"
    #define DMS_STAT_IDX_IDX_NAME        "STATIDXIDX"
    #define DMS_STAT_CL_IDX_NAME         "STATCLIDX"
 
-   typedef _utilStringMap< dmsStatCache * > dmsStatCacheMap ;
 
    /*
       _dmsStatSUMgr define
@@ -76,50 +72,19 @@ namespace engine
             return _initialized ;
          }
 
-         INT32 loadAllCollectionStats ( const MON_CS_SIM_LIST &monCSList,
-                                        dmsStatCacheMap &statCacheMap,
-                                        pmdEDUCB *cb,
-                                        _SDB_DMSCB *dmsCB,
-                                        _SDB_RTNCB *rtnCB ) ;
+         INT32 loadAllStats( pmdEDUCB *cb );
 
-         INT32 loadAllIndexStats ( const MON_CS_SIM_LIST &monCSList,
-                                   dmsStatCacheMap &statCacheMap,
-                                   pmdEDUCB *cb,
-                                   _SDB_DMSCB *dmsCB,
-                                   _SDB_RTNCB *rtnCB ) ;
+         INT32 loadCSStats( const CHAR *csName, pmdEDUCB *cb );
 
-         INT32 loadSUCollectionStats ( const monCSSimple *pMonCS,
-                                       dmsStatCache *pStatCache, pmdEDUCB *cb,
-                                       _SDB_DMSCB *dmsCB, _SDB_RTNCB *rtnCB ) ;
+         INT32 loadCLStats( const CHAR *clFullName, pmdEDUCB *cb );
 
-         INT32 loadSUIndexStats ( const monCSSimple *pMonCS,
-                                  dmsStatCache *pStatCache, pmdEDUCB *cb,
-                                  _SDB_DMSCB *dmsCB, _SDB_RTNCB *rtnCB ) ;
-
-         INT32 loadCollectionStat ( const monCSSimple *pMonCS,
-                                    const monCLSimple *pMonCL,
-                                    dmsStatCache *pStatCache, pmdEDUCB *cb,
-                                    _SDB_DMSCB *dmsCB, _SDB_RTNCB *rtnCB ) ;
-
-         INT32 loadCLIndexStats ( const monCSSimple *pMonCS,
-                                  const monCLSimple *pMonCL,
-                                  dmsStatCache *pStatCache, pmdEDUCB *cb,
-                                  _SDB_DMSCB *dmsCB, _SDB_RTNCB *rtnCB ) ;
-
-         INT32 loadIndexStats ( const monCSSimple *pMonCS,
-                                const monCLSimple *pMonCL,
-                                const monIndex *pMonIX,
-                                dmsStatCache *pStatCache, pmdEDUCB *cb,
-                                _SDB_DMSCB *dmsCB, _SDB_RTNCB *rtnCB ) ;
-
-         INT32 updateCollectionStat ( const dmsCollectionStat *pCollectionStat,
-                                      pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
-                                      _SDB_RTNCB *rtnCB,
+         INT32 updateCollectionStat ( const BSONObj &collectionStat,
+                                      pmdEDUCB *cb,
                                       _dpsLogWrapper *dpsCB ) ;
 
-         INT32 updateIndexStat ( const dmsIndexStat *pIndexStat,
-                                 pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
-                                 _SDB_RTNCB *rtnCB,
+         INT32 updateIndexStat ( const BSONObj &indexStat,
+                                 BOOLEAN isValidForEstimate,
+                                 pmdEDUCB *cb, 
                                  _dpsLogWrapper *dpsCB ) ;
 
       public :
@@ -202,26 +167,22 @@ namespace engine
          INT32 _ensureStatMetadata ( pmdEDUCB *cb ) ;
 
          INT32 _addCollectionStat ( const MON_CS_SIM_LIST &monCSList,
-                                    dmsStatCacheMap &statCacheMap,
-                                    dmsCollectionStat *pCollectionStat,
+                                    const BSONObj &collectionStat,
                                     BOOLEAN ignoreCrtTime ) ;
 
          INT32 _addIndexStat ( const MON_CS_SIM_LIST &monCSList,
-                               dmsStatCacheMap &statCacheMap,
-                               dmsIndexStat *pIndexStat,
+                               const BSONObj &indexStat,
                                BOOLEAN ignoreCrtTime ) ;
 
          INT32 _addSUCollectionStat ( const monCSSimple *pMonCS,
                                       const monCLSimple *pMonCL,
-                                      dmsStatCache *pStatCache,
-                                      dmsCollectionStat *pCollectionStat,
+                                      const BSONObj &collectionStat,
                                       BOOLEAN ignoreCrtTime ) ;
 
          INT32 _addSUIndexStat ( const monCSSimple *pMonCS,
                                  const monCLSimple *pMonCL,
                                  const monIndex *pMonIX,
-                                 dmsStatCache *pStatCache,
-                                 dmsIndexStat *pIndexStat,
+                                 const BSONObj &indexStat,
                                  BOOLEAN ignoreCrtTime ) ;
 
          INT32 _deleteCollectionStat ( const BSONObj &boMatcher, _pmdEDUCB *cb,
@@ -240,20 +201,14 @@ namespace engine
 
          INT32 _loadCollectionStats ( const monCSSimple *pMonCS,
                                       const monCLSimple *pMonCL,
-                                      dmsStatCache *pStatCache,
                                       const BSONObj &boMatcher,
-                                      pmdEDUCB *cb,
-                                      _SDB_DMSCB *dmsCB,
-                                      _SDB_RTNCB *rtnCB ) ;
+                                      pmdEDUCB *cb ) ;
 
          INT32 _loadIndexStats ( const monCSSimple *pMonCS,
                                  const monCLSimple *pMonCL,
                                  const monIndex *pMonIX,
-                                 dmsStatCache *pStatCache,
                                  const BSONObj &boMatcher,
-                                 pmdEDUCB *cb,
-                                 _SDB_DMSCB *dmsCB,
-                                 _SDB_RTNCB *rtnCB ) ;
+                                 pmdEDUCB *cb ) ;
 
          INT32 _onIndexOperator ( IDmsEventHolder *pEventHolder,
                                   IDmsSUCacheHolder *pCacheHolder,

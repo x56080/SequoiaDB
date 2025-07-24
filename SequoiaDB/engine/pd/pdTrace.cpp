@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = pdTrace.cpp
 
@@ -59,7 +58,7 @@ BOOLEAN g_isTraceStarted = FALSE ;
 // we want
 
 void pdTraceFunc ( UINT64 funcCode, INT32 type,
-                   const CHAR* file, UINT32 line,
+                   UINT32 line,
                    pdTraceArgTuple *tuple )
 {
    pdTraceCB *pdCB = sdbGetPDTraceCB() ;
@@ -114,25 +113,28 @@ void pdTraceFunc ( UINT64 funcCode, INT32 type,
       record._tid = tid ;
       record._line = (UINT16)line ;
 
-      // parse arguments and calcualte the total size of buffer we need
-      for ( INT8 i = 0 ; i < PD_TRACE_MAX_ARG_NUM ; ++i )
+      if ( NULL != tuple )
       {
-         if ( PD_TRACE_ARGTYPE_NONE != tuple[i]._arg.getType() )
+         // parse arguments and calcualte the total size of buffer we need
+         for ( INT8 i = 0 ; i < PD_TRACE_MAX_ARG_NUM ; ++i )
          {
-            /// make sure size is not overflow
-            if ( tuple[i]._arg.argSize() > lastSize )
+            if ( PD_TRACE_ARGTYPE_NONE != tuple[i]._arg.getType() )
             {
-               tuple[i]._arg.setType( PD_TRACE_ARGTYPE_NONE ) ;
+               /// make sure size is not overflow
+               if ( tuple[i]._arg.argSize() > lastSize )
+               {
+                  tuple[i]._arg.setType( PD_TRACE_ARGTYPE_NONE ) ;
+                  break ;
+               }
+
+               ++record._numArgs ;
+               record._recordSize += tuple[i]._arg.argSize() ;
+               lastSize -= tuple[i]._arg.argSize() ;
+            }
+            else
+            {
                break ;
             }
-
-            ++record._numArgs ;
-            record._recordSize += tuple[i]._arg.argSize() ;
-            lastSize -= tuple[i]._arg.argSize() ;
-         }
-         else
-         {
-            break ;
          }
       }
 
@@ -149,20 +151,23 @@ void pdTraceFunc ( UINT64 funcCode, INT32 type,
          goto done ;
       }
 
-      for ( INT8 i = 0 ; i < PD_TRACE_MAX_ARG_NUM ; ++i )
+      if ( NULL != tuple )
       {
-         if ( PD_TRACE_ARGTYPE_NONE != tuple[i]._arg.getType() )
+         for ( INT8 i = 0 ; i < PD_TRACE_MAX_ARG_NUM ; ++i )
          {
-            pBuffer = pdCB->fillIn ( pBuffer,
-                                     (const CHAR*)(&tuple[i]._arg),
-                                     tuple[i]._arg.headerSize() ) ;
-            pBuffer = pdCB->fillIn ( pBuffer,
-                                     (const CHAR*)(tuple[i].y),
-                                     tuple[i]._arg.dataSize() ) ;
-         }
-         else
-         {
-            break ;
+            if ( PD_TRACE_ARGTYPE_NONE != tuple[i]._arg.getType() )
+            {
+               pBuffer = pdCB->fillIn ( pBuffer,
+                                        (const CHAR*)(&tuple[i]._arg),
+                                        tuple[i]._arg.headerSize() ) ;
+               pBuffer = pdCB->fillIn ( pBuffer,
+                                        (const CHAR*)(tuple[i].y),
+                                        tuple[i]._arg.dataSize() ) ;
+            }
+            else
+            {
+               break ;
+            }
          }
       }
 

@@ -53,12 +53,16 @@ namespace engine
    #define UTIL_CSUNIQUEID_MAX       0x7FFFFFFF
    /// cl unique id (64bit) = cs unqiue id (32bit) + cl inner id (32bit)
    /// cl inner id: valid values range from 1 to 4294967040
+<<<<<<< HEAD
    #define UTIL_CLINNERID_MAX        0x7FFFFFFF
 
    #define UTIL_CSUNIQUEID_CAT_MIN   0xFFFFFF00
    #define UTIL_CSUNIQUEID_SYS_MIN   0xFFFFFFF0
 
    #define UTIL_UNIQUEID_LOCAL_BIT   0x80000000
+=======
+   #define UTIL_CLINNERID_MAX        0xFFFFFF00
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    /// Before version 3.0.1, cs/cl has not its unique id. After the upgrade
    /// to version 3.0.1+, unique id will be set. But if the cs only exists
@@ -66,6 +70,7 @@ namespace engine
    /// While if cl only exists on data, doesn't exists on catalog, the cl inner
    /// id will be 0. In addition, system cs/cl unique id is 0.
    #define UTIL_UNIQUEID_NULL        0
+
 
    /// Directly connect data node, then create cs/cl
    #define UTIL_CSUNIQUEID_LOCAL     0xFFFFFFFF
@@ -87,6 +92,14 @@ namespace engine
       ( ( utilGetCLInnerID( id ) != UTIL_UNIQUEID_NULL ) &&     \
         ( utilGetCLInnerID( id ) != UTIL_CLINNERID_LOCAL ) &&   \
         ( utilGetCLInnerID( id ) != UTIL_CLINNERID_LOADCS ) )
+		
+   #define UTIL_IS_VALID_CL_INNERID(id)        \
+      ( ( ( id ) != UTIL_UNIQUEID_NULL ) &&    \
+        ( ( id ) != UTIL_CLINNERID_LOCAL ) &&  \
+        ( ( id ) != UTIL_CLINNERID_LOADCS ) )
+
+   typedef UINT32                         UTIL_DS_UID ;
+   #define UTIL_INVALID_DS_UID            0xFFFFFFFF
 
    typedef UINT32                         UTIL_DS_UID ;
    #define UTIL_INVALID_DS_UID            0xFFFFFFFF
@@ -139,12 +152,15 @@ namespace engine
       return inId ;
    }
 
+<<<<<<< HEAD
    OSS_INLINE utilIdxInnerID utilGetIdxInnerIDWithFlag( utilIdxUniqueID idxUniqueID )
    {
       utilIdxInnerID inId = (utilIdxInnerID)idxUniqueID ;
       return inId ;
    }
 
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    OSS_INLINE BOOLEAN utilIsStandaloneIdx( utilIdxUniqueID idxUniqueID )
    {
       utilIdxInnerID inId = (utilIdxInnerID)idxUniqueID ;
@@ -169,6 +185,15 @@ namespace engine
       return utilGetCSUniqIDFromIdx( idxUniqueID ) == csUniqueID ;
    }
 
+<<<<<<< HEAD
+=======
+   OSS_INLINE BOOLEAN utilCheckIdxInnerID(utilIdxInnerID idxInnerID)
+   {
+      return UTIL_UNIQUEID_NULL != idxInnerID &&
+             UTIL_IDXINNERID_MAX > idxInnerID;
+   }
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    struct util_cmp_str
    {
       bool operator() (const char *a, const char *b) const

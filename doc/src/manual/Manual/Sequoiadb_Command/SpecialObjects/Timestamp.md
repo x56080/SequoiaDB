@@ -1,4 +1,7 @@
+<<<<<<< HEAD
 
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 YYYY-MM-DD-HH.mm.ss.ffffff形式的时间戳。范围：1902-01-01 00:00:00.000000至2037-12-31 23:59:59.999999。
 
 数据类型的介绍可参考 [数据类型](manual/Distributed_Engine/Architecture/Data_Model/data_type.md)。

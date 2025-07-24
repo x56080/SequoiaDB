@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = clsReelection.cpp
 
@@ -29,14 +28,13 @@
    Last Changed =
 
 *******************************************************************************/
-
 #include "clsReelection.hpp"
 #include "pd.hpp"
 #include "clsTrace.hpp"
 #include "pdTrace.hpp"
-#include "clsSyncManager.hpp"
-#include "clsVoteMachine.hpp"
+#include "clsReplAgent.hpp"
 #include "pmd.hpp"
+<<<<<<< HEAD
 #include "dpsLogWrapper.hpp"
 #include "clsMgr.hpp"
 
@@ -50,6 +48,16 @@ namespace engine
     _info( info ),
     _level( CLS_REELECTION_LEVEL_NONE ),
     _blockSync( FALSE )
+=======
+
+namespace engine
+{
+   _clsReelection::_clsReelection( ICLSReplAgent *replAgent )
+   : _replAgent( replAgent ),
+     _vote( replAgent->getVoteMachine() ),
+     _syncMgr( replAgent->getSyncManager() ),
+     _level( CLS_REELECTION_LEVEL_NONE )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
       SDB_ASSERT( NULL != _vote &&
                   NULL != _syncMgr &&
@@ -59,11 +67,14 @@ namespace engine
 
    _clsReelection::~_clsReelection()
    {
+<<<<<<< HEAD
       if ( _blockSync )
       {
          _syncMgr->enableSync() ;
          _blockSync = FALSE ;
       }
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    }
 
    // PD_TRACE_DECLARE_FUNCTION (SDB__CLSREELECTION_WAIT, "_clsReelection::wait" )
@@ -99,7 +110,7 @@ namespace engine
    INT32 _clsReelection::run( CLS_REELECTION_LEVEL lvl,
                               INT32 seconds,
                               pmdEDUCB *cb,
-                              UINT16 destID )
+                              const MsgRouteID &destRID )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CLSREELECTION_RUN ) ;
@@ -137,6 +148,7 @@ namespace engine
          PD_LOG( PDERROR, "only primary node can reelect" ) ;
          goto error ;
       }
+<<<<<<< HEAD
       // If location primary is replica group primary, do nothing
       else if ( isLocation && pmdIsPrimary() )
       {
@@ -147,6 +159,12 @@ namespace engine
       }
       // is self
       else if ( 0 != destID && destID == pmdGetNodeID().columns.nodeID )
+=======
+      /// is self
+      else if ( MSG_INVALID_ROUTEID != destRID.value &&
+                destRID.columns.groupID == pmdGetNodeID().columns.groupID &&
+                destRID.columns.nodeID == pmdGetNodeID().columns.nodeID )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       {
          // restore
          _vote->setShadowWeight( CLS_ELECTION_WEIGHT_USR_MIN ) ;
@@ -189,6 +207,7 @@ namespace engine
       /// WARNING: do not compare with _level.
       if ( CLS_REELECTION_LEVEL_1 < lvl )
       {
+<<<<<<< HEAD
          if ( isLocation )
          {
             rc = _wait4ReplicaByBeat( timePassed, seconds, destID ) ;
@@ -197,6 +216,9 @@ namespace engine
          {
             rc = _wait4Replica( timePassed, seconds, cb, destID ) ;
          }
+=======
+         rc = _wait4Replica( timePassed, seconds, cb, destRID ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "reelection is out of time" ) ;
@@ -291,11 +313,11 @@ namespace engine
    INT32 _clsReelection::_wait4Replica( UINT32 &timePassed,
                                         UINT32 timeout,
                                         pmdEDUCB *cb,
-                                        UINT16 destID )
+                                        const MsgRouteID &destRID )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CLSREELECTION__WAIT4REPLICA ) ;
-      DPS_LSN lsn = pmdGetKRCB()->getDPSCB()->getCurrentLsn() ;
+      DPS_LSN lsn = _replAgent->getLocalCurrentLSN() ;
       while ( timePassed < timeout )
       {
          if ( cb->isInterrupted() )
@@ -304,7 +326,7 @@ namespace engine
             goto error ;
          }
 
-         if ( _syncMgr->atLeastOne( lsn.offset, destID ) )
+         if ( _syncMgr->atLeastOne( lsn.offset, destRID.value ) )
          {
             break ;
          }
@@ -387,10 +409,15 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CLSREELECTION__STEPDOWN ) ;
       pmdEDUMgr *eduMgr = pmdGetKRCB()->getEDUMgr() ;
+<<<<<<< HEAD
       EDUID eduID = eduMgr->getSystemEDU( EDU_TYPE_CLUSTER ) ;
 
       rc = eduMgr->postEDUPost( eduID, PMD_EDU_EVENT_STEP_DOWN,
                                 PMD_EDU_MEM_NONE, NULL, isLocation ) ;
+=======
+      EDUID eduID = _replAgent->getMainEDUID() ;
+      rc = eduMgr->postEDUPost( eduID, PMD_EDU_EVENT_STEP_DOWN ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to post event to repl cb:%d", rc ) ;

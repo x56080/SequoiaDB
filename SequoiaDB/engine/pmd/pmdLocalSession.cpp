@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = pmdLocalSession.cpp
 
@@ -30,7 +28,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #include "pmdLocalSession.hpp"
 #include "pmdEDU.hpp"
 #include "pmdEnv.hpp"
@@ -42,7 +39,10 @@
 #include "rtnContext.hpp"
 #include "msgConvertorImpl.hpp"
 #include "../bson/lib/md5.hpp"
+<<<<<<< HEAD
 #include "auth.hpp"
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 using namespace bson ;
 
@@ -632,7 +632,10 @@ namespace engine
       INT32 fixVersion = 0 ;
       BOOLEAN endianConvert = FALSE ;
       md5::md5digest digest ;
+<<<<<<< HEAD
       MsgGlobalID globalID = getOperator()->getGlobalID() ;
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       MsgSysInfoReply reply ;
 
       reply.header.specialSysInfoLen      = MSG_SYSTEM_INFO_LEN ;
@@ -645,12 +648,15 @@ namespace engine
       reply.version                       = version ;
       reply.subVersion                    = subVersion ;
       reply.fixVersion                    = fixVersion ;
+<<<<<<< HEAD
       reply.reserved                      = 0 ;
 
       globalID.incQueryID() ;
       reply.globalID = globalID ;
       getOperator()->updateGlobalID( globalID ) ;
 
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       ossMemset( reply.pad, 0, sizeof( reply.pad ) ) ;
 
       md5::md5( (const void *)&reply,
@@ -732,6 +738,7 @@ namespace engine
       goto done ;
    }
 
+<<<<<<< HEAD
    void _pmdLocalSession::_saveOrSetMsgGlobalID( MsgHeader *pMsg )
    {
       SDB_ASSERT( pMsg, "msg can't be NULL" ) ;
@@ -761,10 +768,20 @@ namespace engine
 
       // set reply header ( except flags, length )
       getClient()->registerInMsg( pMsg ) ;
+=======
+   INT32 _pmdLocalSession::_onMsgBegin( MsgHeader *msg )
+   {
+      INT32 rc = SDB_OK ;
+      _pEDUCB->clearProcessInfo() ;
+
+      // set reply header ( except flags, length )
+      getClient()->registerInMsg( msg ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       _replyHeader.contextID          = -1 ;
       _replyHeader.numReturned        = 0 ;
       _replyHeader.startFrom          = 0 ;
       _replyHeader.header.eye         = MSG_COMM_EYE_DEFAULT ;
+<<<<<<< HEAD
       _replyHeader.header.opCode      = MAKE_REPLY_TYPE(pMsg->opCode) ;
       _replyHeader.header.requestID   = pMsg->requestID ;
       _replyHeader.header.TID         = pMsg->TID ;
@@ -772,11 +789,24 @@ namespace engine
       _replyHeader.header.version     = SDB_PROTOCOL_VER_2 ;
       _replyHeader.header.flags       = 0 ;
       _replyHeader.header.globalID    = pMsg->globalID ;
+=======
+      _replyHeader.header.opCode      = MAKE_REPLY_TYPE(msg->opCode) ;
+      _replyHeader.header.requestID   = msg->requestID ;
+      _replyHeader.header.TID         = msg->TID ;
+      _replyHeader.header.routeID     = pmdGetNodeID() ;
+      _replyHeader.header.version     = SDB_PROTOCOL_VER_2 ;
+      _replyHeader.header.flags       = 0 ;
+      _replyHeader.header.globalID    = msg->globalID ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       ossMemset( _replyHeader.header.reserve, 0,
                  sizeof(_replyHeader.header.reserve) ) ;
       _replyHeader.returnMask         = 0 ;
 
+<<<<<<< HEAD
       if ( isNoReplyMsg( pMsg->opCode ) )
+=======
+      if ( isNoReplyMsg( msg->opCode ) )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       {
          _needReply = FALSE ;
       }
@@ -789,7 +819,22 @@ namespace engine
       MON_START_OP( _pEDUCB->getMonAppCB() ) ;
       _pEDUCB->getMonAppCB()->setLastOpType( pMsg->opCode ) ;
 
+<<<<<<< HEAD
       return rc ;
+=======
+      rc = getClient()->checkPrivilege( msg ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Authorization failed for the operation, rc: %d",
+                 rc ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    }
 
    void _pmdLocalSession::_onMsgEnd( INT32 result, MsgHeader *msg )
@@ -813,6 +858,7 @@ namespace engine
       getClient()->unregisterInMsg() ;
 
       _pEDUCB->clearProcessInfo() ;
+<<<<<<< HEAD
 
       ((pmdOperator*)getOperator())->clearMsg() ;
 
@@ -820,6 +866,8 @@ namespace engine
       {
          _acl.reset() ;
       }
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_PMDLOCALSN_PROMSG, "_pmdLocalSession::_processMsg" )
@@ -1072,6 +1120,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_PMDLOCALSN__REPLYINNORMALMODE ) ;
+<<<<<<< HEAD
 
       // Step 1: Send the message header
       rc = sendData( (const CHAR *)responseMsg, sizeof(MsgOpReply) ) ;
@@ -1106,6 +1155,42 @@ namespace engine
       SDB_ASSERT( !(_inMsgConvertor || _outMsgConvertor),
                   "Convertor is not NULL" ) ;
 
+=======
+
+      // Step 1: Send the message header
+      rc = sendData( (const CHAR *)responseMsg, sizeof(MsgOpReply) ) ;
+      PD_RC_CHECK( rc, PDERROR, "Session[%s] failed to send response header[%d]",
+                   sessionName(), rc ) ;
+
+      if ( data && dataLen > 0)
+      {
+         rc = sendData( data, dataLen ) ;
+         PD_RC_CHECK( rc, PDERROR, "Session[%s] failed to send data[%d]",
+                      sessionName(), rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_PMDLOCALSN__REPLYINNORMALMODE, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   BOOLEAN _pmdLocalSession::_msgConvertorEnabled() const
+   {
+      return ( NULL != _inMsgConvertor ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_PMDLOCALSN__ENABLEMSGCONVERTOR, "_pmdLocalSession::_enableMsgConvertor" )
+   INT32 _pmdLocalSession::_enableMsgConvertor()
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_PMDLOCALSN__ENABLEMSGCONVERTOR ) ;
+
+      SDB_ASSERT( !(_inMsgConvertor || _outMsgConvertor),
+                  "Convertor is not NULL" ) ;
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       _inMsgConvertor = SDB_OSS_NEW msgConvertorImpl ;
       _outMsgConvertor = SDB_OSS_NEW msgConvertorImpl ;
       if ( !_inMsgConvertor || !_outMsgConvertor )

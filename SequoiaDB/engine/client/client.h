@@ -412,7 +412,11 @@ SDB_EXPORT INT32 sdbGetQueryMeta ( sdbCollectionHandle cHandle,
         SDB_SNAP_SVCTASKS         : Get all the information of schedule task
         SDB_SNAP_SEQUENCES        : Get the snapshot of sequences
         SDB_SNAP_INDEXSTATS       : Get the snapshot of index statistics
+<<<<<<< HEAD
         SDB_SNAP_TRANSWAITS       : Get the snapshot of transaction waits 
+=======
+        SDB_SNAP_TRANSWAITS       : Get the snapshot of transaction waits
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         SDB_SNAP_TRANSDEADLOCK    : Get the snapshot of transaction deadlock
 
     \param [in] condition The matching rule, match all the documents if null
@@ -459,7 +463,11 @@ SDB_EXPORT INT32 sdbGetSnapshot ( sdbConnectionHandle cHandle,
         SDB_SNAP_SVCTASKS         : Get all the information of schedule task
         SDB_SNAP_SEQUENCES        : Get the snapshot of sequences
         SDB_SNAP_INDEXSTATS       : Get the snapshot of index statistics
+<<<<<<< HEAD
         SDB_SNAP_TRANSWAITS       : Get the snapshot of transaction waits 
+=======
+        SDB_SNAP_TRANSWAITS       : Get the snapshot of transaction waits
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         SDB_SNAP_TRANSDEADLOCK    : Get the snapshot of transaction deadlock
 
     \param [in] condition The matching rule, match all the documents if null
@@ -839,7 +847,11 @@ SDB_EXPORT INT32 sdbDropCollectionSpace ( sdbConnectionHandle cHandle,
     \param [in] options The options specified by user, e.g. {"EnsureEmpty": true}.
 
         EnsureEmpty   : Check whether the collection space is empty when deleting it. false in default.
+<<<<<<< HEAD
                         if EnsureEmpty is true but CollectionSpace is not empty, it will report SDB_DMS_CS_NOT_EMPTY error code. 
+=======
+                        if EnsureEmpty is true but CollectionSpace is not empty, it will report SDB_DMS_CS_NOT_EMPTY error code.
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     \retval SDB_OK Operation Success
     \retval Others Operation Fail
 */
@@ -1957,7 +1969,11 @@ SDB_EXPORT INT32 sdbUpdate1 ( sdbCollectionHandle cHandle,
                     using index "ageIndex" to scan data(index scan);
                     {"":null} means table scan. when hint is null,
                     database automatically match the optimal index to scan data
+<<<<<<< HEAD
     \param [in] flag The update flag, default to be 0. Please see the definition of follow flags for more detail.       
+=======
+    \param [in] flag The update flag, default to be 0. Please see the definition of follow flags for more detail.
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     \code
         UPDATE_KEEP_SHARDINGKEY
     \endcode
@@ -2431,9 +2447,9 @@ SDB_EXPORT INT32 sdbCloseAllCursors ( sdbConnectionHandle cHandle ) ;
 SDB_EXPORT INT32 sdbInterrupt ( sdbConnectionHandle cHandle ) ;
 
 /** \fn INT32 sdbInterruptOperation( sdbConnectionHandle cHandle )
-    \brief Send "INTERRUPT_SELF" message to engine to stop the current 
-           operation. When the current operation had finish, nothing 
-           happend, Otherwise, the current operation will be stop, and 
+    \brief Send "INTERRUPT_SELF" message to engine to stop the current
+           operation. When the current operation had finish, nothing
+           happend, Otherwise, the current operation will be stop, and
            return error.
     \param [in] cHandle The database connection handle
     \retval SDB_OK Operation Success
@@ -2766,9 +2782,9 @@ SDB_EXPORT INT32 sdbCancelTask ( sdbConnectionHandle cHandle,
                                   bson *options ) ;
     \brief Set the attributes of the current session.
     \param [in] cHandle The connection handle
-    \param [in] options The options for setting session attributes. Can not be 
-                NULL. While it's a empty options, the local session attributes 
-                cache will be cleanup. Please reference 
+    \param [in] options The options for setting session attributes. Can not be
+                NULL. While it's a empty options, the local session attributes
+                cache will be cleanup. Please reference
                 <a href="http://doc.sequoiadb.com/cn/SequoiaDB-cat_id-1432190808-edition_id-@SDB_SYMBOL_VERSION">here</a>
                 for more detail.
     \retval SDB_OK Operation Success
@@ -3338,13 +3354,13 @@ SDB_EXPORT INT32 sdbListLobPieces1( sdbCollectionHandle cHandle,
                                    INT64 numToReturn,
                                    sdbCursorHandle *cursor ) ;
 
-/** \fn INT32 sdbGetRunTimeDetail( sdbLobHandle lobHandle, 
+/** \fn INT32 sdbGetRunTimeDetail( sdbLobHandle lobHandle,
                                    bson *detail )
 	\brief Get the run time detail information of lob.
 	\retval SDB_OK Operation Success
 	\retval Others Operation Fail
 */
-SDB_EXPORT INT32 sdbGetRunTimeDetail( sdbLobHandle lobHandle, 
+SDB_EXPORT INT32 sdbGetRunTimeDetail( sdbLobHandle lobHandle,
                                       bson *detail) ;
 
 

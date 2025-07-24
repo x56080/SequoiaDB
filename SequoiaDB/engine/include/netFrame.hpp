@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = netFrame.hpp
 
@@ -35,7 +33,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #ifndef NETFRAME_HPP_
 #define NETFRAME_HPP_
 
@@ -251,7 +248,11 @@ namespace engine
 
          OSS_INLINE BOOLEAN isEmpty()
          {
+<<<<<<< HEAD
             ossScopedLock lock( &_mtx, SHARED ) ;
+=======
+            ossScopedLock( &_mtx, SHARED ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             return (_vecEH.size() == 0) ? TRUE : FALSE ;
          }
 
@@ -298,7 +299,11 @@ namespace engine
 
       public:
          /// handler will not be freed by frame
+<<<<<<< HEAD
          _netFrame( _netMsgHandler *handler,
+=======
+         _netFrame( INetMsgHandler *handler,
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                     _netRoute *pRoute,
                     const NET_HANDLE &beginID = NET_MIN_HANDLE ) ;
 
@@ -431,6 +436,14 @@ namespace engine
 
          void  handleClose( NET_EH eh, _MsgRouteID id ) ;
 
+         INT32 onSendMsg( NET_EH eh,
+                          const MsgRouteID &id,
+                          MsgHeader *header ) ;
+         INT32 onReceiveMsg( NET_EH eh,
+                             const MsgRouteID &id,
+                             MsgHeader *header,
+                             UINT32 receivedSize ) ;
+
          INT64 netIn() ;
 
          INT64 netOut() ;
@@ -457,6 +470,14 @@ namespace engine
          {
             return (NET_HANDLE)( _handle.inc() ) ;
          }
+
+         OSS_INLINE INetMsgHandler *getMsgHandler()
+         {
+            return _handler ;
+         }
+
+         // check if listening on protocol
+         BOOLEAN isListening( UINT32 protocolMask = NET_FRAME_MASK_TCP ) ;
 
       protected:
          netEvSuitPtr      _getEvSuit( BOOLEAN needLock ) ;
@@ -511,7 +532,7 @@ namespace engine
 
          MAP_TIMMER                       _timers ;
 
-         _netMsgHandler                   *_handler ;
+         INetMsgHandler                   *_handler ;
          MsgRouteID                       _local ;
          monSpinSLatch                    _mtx ;
          boost::asio::ip::tcp::acceptor   _acceptor ;

@@ -10,7 +10,10 @@
     | [SYSNODES][sysnodes] | 保存了该集群中所有的逻辑节点与复制组信息 |
     | [SYSTASKS][systasks] | 保存了该集群中所有正在运行的后台任务信息 |
     | [SYSDATASOURCES][sysdatasource] | 保存了该集群中所有数据源的元数据信息 |
+<<<<<<< HEAD
     | [SYSGROUPMODES][sysgroupmodes] | 保存了该集群中所有复制组的运行模式 |
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 - SYSAUTH：系统认证集合空间，包含一个用户集合，保存当前系统中所有的用户信息
 
@@ -54,6 +57,9 @@
 [systasks]:manual/Manual/Catalog_Table/SYSTASKS.md
 [sysusrs]:manual/Manual/Catalog_Table/SYSUSRS.md
 [sysdatasource]:manual/Manual/Catalog_Table/SYSDATASOURCES.md
+<<<<<<< HEAD
 [sysgroupmodes]:manual/Manual/Catalog_Table/SYSGROUPMODES.md
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 [storeprocedures]:manual/Manual/Catalog_Table/STOREPROCEDURES.md
 [sequences]:manual/Manual/Catalog_Table/SEQUENCES.md

@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = omagentUtil.cpp
 
@@ -30,7 +28,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #include "ossPrimitiveFileOp.hpp"
 #include "pd.hpp"
 #include "omagentUtil.hpp"
@@ -43,6 +40,13 @@
 #include "ossSocket.hpp"
 #include "utilCommon.hpp"
 #include "ossCmdRunner.hpp"
+#include "utilOptions.hpp"
+#include "utilParam.hpp"
+
+#include "../bson/bson.hpp"
+
+using namespace std ;
+using namespace bson ;
 
 namespace engine
 {
@@ -409,7 +413,7 @@ namespace engine
    }
 
    INT32 omStopDBNode( const CHAR *pExecName, const CHAR *pServiceName,
-                       BOOLEAN force )
+                       BOOLEAN force, BOOLEAN withService )
    {
       INT32 rc                = SDB_OK ;
       CHAR *pArgumentBuffer   = NULL ;
@@ -420,7 +424,7 @@ namespace engine
       OSSPID pid ;
 
       argv.push_back( pExecName ) ;
-      if ( pServiceName && pServiceName[0] )
+      if ( withService && pServiceName && pServiceName[0] )
       {
          argv.push_back( SDBCM_OPTION_PREFIX PMD_OPTION_SVCNAME ) ;
          argv.push_back( pServiceName ) ;
@@ -556,5 +560,87 @@ namespace engine
       return utilStrTrim( nodeStr ) ; ;
    }
 
-}
+   INT32 omGetStpFromConfig( const CHAR *cfgRootDir, string &svcName )
+   {
+      INT32 rc = SDB_OK ;
 
+      CHAR cfgPath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
+      CHAR cfgFileName[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
+      po::options_description desc( "Command options" ) ;
+      po::variables_map vm ;
+
+      // append "stp" to "conf" path
+      rc = utilBuildFullPath( cfgRootDir, STP_DIR_NAME, OSS_MAX_PATHSIZE,
+                              cfgPath ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build STP path from root "
+                   "path %s, rc: %d", cfgRootDir, rc ) ;
+
+      rc = utilBuildFullPath( cfgPath, STP_CFG_FILE_NAME,
+                              OSS_MAX_PATHSIZE, cfgFileName ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build STP config path from STP "
+                   "path %s, rc: %d", cfgPath, rc ) ;
+
+      // read port from config file
+      PMD_ADD_PARAM_OPTIONS_BEGIN( desc )
+         ( STP_OPTION_PORT, po::value<string>(), "port" )
+      PMD_ADD_PARAM_OPTIONS_END
+
+      rc = utilReadConfigureFile( cfgFileName, desc, vm ) ;
+      PD_RC_CHECK( rc, ( SDB_FNE == rc ? PDINFO : PDWARNING ),
+                   "Failed to read STP config file [%s], "
+                   "rc: %d", cfgFileName, rc ) ;
+
+      if ( vm.count( STP_OPTION_PORT ) )
+      {
+         svcName = vm[ STP_OPTION_PORT ].as<string>() ;
+      }
+      else
+      {
+         svcName = STP_DEF_SERVICE_NAME ;
+      }
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   INT32 omGetOptionString( stringstream &ss, const BSONElement &element )
+   {
+      INT32 rc = SDB_OK ;
+
+      ss << element.fieldName() << "=" ;
+      switch( element.type() )
+      {
+         case NumberDouble :
+            ss << element.numberDouble () ;
+            break ;
+         case NumberInt :
+            ss << element.numberLong () ;
+            break ;
+         case NumberLong :
+            ss << element.numberInt () ;
+            break ;
+         case String :
+            ss << element.valuestrsafe () ;
+            break ;
+         case Bool :
+            ss << ( element.boolean() ? "TRUE" : "FALSE" ) ;
+            break ;
+         default :
+            PD_LOG ( PDERROR, "Unexpected type[%d] for %s",
+                     element.type(), element.toString().c_str() ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+      }
+      ss << endl ;
+
+   done:
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+}

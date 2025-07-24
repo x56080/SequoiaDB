@@ -37,7 +37,11 @@ public class DatasourceOptions implements Cloneable {
     private static final int DEFAULT_SESSION_TIMEOUT = -1;
     private int _deltaIncCount = 10;
     private int _maxIdleCount = 10;
+<<<<<<< HEAD
     private int _minIdleCount = 0;
+=======
+    private int _minIdleCount = 10;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     private int _maxCount = 500;
     private int _keepAliveTimeout = 0 * 60 * 1000; // 0 min
     private int _checkInterval = 1 * 60 * 1000; // 1 min
@@ -90,9 +94,14 @@ public class DatasourceOptions implements Cloneable {
 
     /**
      *  Set the minimum number of idle connections. When the number of idle connections in the
+<<<<<<< HEAD
      *         pool is less than the average of 'minIdleCount' and 'maxIdleCount', the pool will
      *         create some connections.
      * @param minIdleCount MinIdleCount can't be less than 0, default to be 0.
+=======
+     *         pool is less than 'minIdleCount', the pool will create some connections.
+     * @param minIdleCount MinIdleCount can't be less than 0, default to be 10.
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
      * @throws BaseException If error happens.
      * @since v2.8.10
      */

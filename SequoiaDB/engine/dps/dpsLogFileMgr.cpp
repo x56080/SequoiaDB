@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = dpsLogFileMgr.cpp
 
@@ -299,7 +297,8 @@ namespace engine
          {
             _files[tmpWork]->reset( DPS_INVALID_LOG_FILE_ID,
                                     DPS_INVALID_LSN_OFFSET,
-                                    DPS_INVALID_LSN_VERSION ) ;
+                                    DPS_INVALID_LSN_VERSION,
+                                    FALSE ) ;
          }
          tmpWork = _incFileID( tmpWork ) ;
          ++i ;
@@ -377,7 +376,8 @@ namespace engine
       if ( pWork->getIdleSize() == 0 ||
            pWork->getIdleSize() == pWork->size() )
       {
-         pWork->reset( _logicalWork, beginLsn.offset, beginLsn.version ) ;
+         pWork->reset( _logicalWork, beginLsn.offset, beginLsn.version,
+                       TRUE ) ;
       }
 
       // write into log file for page size
@@ -547,7 +547,8 @@ namespace engine
          {
             rc = _files[_work]->reset ( DPS_INVALID_LOG_FILE_ID,
                                         DPS_INVALID_LSN_OFFSET,
-                                        DPS_INVALID_LSN_VERSION ) ;
+                                        DPS_INVALID_LSN_VERSION,
+                                        FALSE ) ;
          }
 
          if ( SDB_OK != rc )
@@ -566,7 +567,7 @@ namespace engine
          _work = file ;
          _rollFlag = FALSE ;
          _logicalWork = DPS_LSN_2_FILEID( offset, _logFileSz ) ;
-         rc = _files[_work]->reset ( _logicalWork, offset, version ) ;
+         rc = _files[_work]->reset ( _logicalWork, offset, version, FALSE ) ;
          _files[_work]->idleSize ( _logFileSz - fileOffset ) ;
       }
 
@@ -632,6 +633,72 @@ namespace engine
       return rc ;
    error:
       goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSLGFILEMGR_GETSUMMARY, "_dpsLogFileMgr::getSummary" )
+   INT32 _dpsLogFileMgr::getSummary( UINT32 logicalFileID,
+                                     dpsLogSummary &summary,
+                                     BOOLEAN &isValid )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DPSLGFILEMGR_GETSUMMARY ) ;
+
+      if ( _begin == logicalFileID % _logFileNum )
+      {
+         // this first file ( rolled or not ), summary is invalid
+         // NOTE: summary is for files before this file
+         summary.reset() ;
+         isValid = FALSE ;
+      }
+      else
+      {
+         // file is no the first file
+         dpsLogFile *file = LOG_FILE( logicalFileID ) ;
+         if ( file->header()._logID != logicalFileID )
+         {
+            summary.reset() ;
+            isValid = FALSE ;
+            // logical ID is not matched:
+            // - if the given logical file ID is larger than current working
+            //   logical file ID, the given logical file is not used yet,
+            //   since we always get the summary from next log file, so it
+            //   means the summary has not been generated yet
+            // - other wise, the log files are rolled
+            if ( logicalFileID <= _logicalWork )
+            {
+               PD_LOG( PDERROR, "Failed to get summary of log file [%u], "
+                       "it is out of range, current file ID is [%u]",
+                       logicalFileID, file->header()._logID ) ;
+               rc = SDB_DPS_LSN_OUTOFRANGE ;
+               goto error ;
+            }
+         }
+         else
+         {
+            // logical ID is valid
+            summary = LOG_FILE( logicalFileID )->getFileLogSummary() ;
+            isValid = TRUE ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__DPSLGFILEMGR_GETSUMMARY, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSLGFILEMGR_UPDATECACHHEDSUMMARY, "_dpsLogFileMgr::updateCachedSummary" )
+   void _dpsLogFileMgr::updateCachedSummary( UINT32 logicalFileID,
+                                             const dpsLogSummary &summary )
+   {
+      PD_TRACE_ENTRY( SDB__DPSLGFILEMGR_UPDATECACHHEDSUMMARY ) ;
+
+      LOG_FILE( logicalFileID )->updateCachedLogSummary( summary ) ;
+
+      PD_TRACE_EXIT( SDB__DPSLGFILEMGR_UPDATECACHHEDSUMMARY ) ;
    }
 
 }

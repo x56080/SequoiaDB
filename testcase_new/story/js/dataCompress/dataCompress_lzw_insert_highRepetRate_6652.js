@@ -2,8 +2,13 @@
  * @Description   : seqDB-6652:构建字典后，插入记录中大部分子串在字典中都能匹配到
  * @Author        : XiaoNi Huang
  * @CreateTime    : 2016.03.23
+<<<<<<< HEAD
  * @LastEditTime  : 2023.02.08
  * @LastEditors   : liuli
+=======
+ * @LastEditTime  : 2021.02.23
+ * @LastEditors   : XiaoNi Huang
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
  ******************************************************************************/
 testConf.skipStandAlone = true;
 testConf.useSrcGroup = true;
@@ -24,6 +29,7 @@ function test ( testPara )
    // insert  
    insertRecs( cl, number1, insertRecsNum );
 
+<<<<<<< HEAD
    // 等待字典构建
    waitDictionary( db, csName, clName );
 
@@ -34,6 +40,11 @@ function test ( testPara )
    // 检查结果，检查组内每个节点数据正确性
    checkLzwAttributeByDataNode( rgName, csName, clName, true );
    checkRecsByDataNode( rgName, csName, clName, number1, insertRecsNum + insertRecsNum2, checkRecsNum, insertRecsNum );
+=======
+   // 检查结果，检查组内每个节点数据正确性
+   checkLzwAttributeByDataNode( rgName, csName, clName, true );
+   checkRecsByDataNode( rgName, csName, clName, number1, insertRecsNum, checkRecsNum );
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 }
 
 function insertRecs ( cl, number1, insertRecsNum )
@@ -65,7 +76,11 @@ function insertRecs ( cl, number1, insertRecsNum )
    }
 }
 
+<<<<<<< HEAD
 function checkRecsByDataNode ( rgName, csName, clName, number1, insertRecsNum, checkRecsNum, insertRange )
+=======
+function checkRecsByDataNode ( rgName, csName, clName, number1, insertRecsNum, checkRecsNum )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 {
    var rc = db.exec( "select NodeName from $SNAPSHOT_SYSTEM where GroupName='" + rgName + "'" );
    while( rc.next() )
@@ -82,6 +97,7 @@ function checkRecsByDataNode ( rgName, csName, clName, number1, insertRecsNum, c
          // 随机检查n条记录正确性
          for( j = 0; j < checkRecsNum; j++ )
          {
+<<<<<<< HEAD
             var i = parseInt( Math.random() * insertRange );
 
             if( i < number1 )
@@ -103,6 +119,25 @@ function checkRecsByDataNode ( rgName, csName, clName, number1, insertRecsNum, c
             {
                throw new Error( "expected result is 1 or 2, actual is " + recsCnt + " ,cond is :" + JSON.stringify( cond ) );
             }
+=======
+            var i = parseInt( Math.random() * insertRecsNum );
+
+            if( i < number1 )
+            {
+               var recsCnt = nodeCL.find( {
+                  total_account: i, account_id: i, tx_number: "test" + i,
+                  tx_info: "xzposs/565bf18944f4f14fea84341b/image/2016_1.png"
+               } ).count();
+            }
+            else
+            {
+               var recsCnt = nodeCL.find( {
+                  total_exCount: i, exCount_id: i, tx_number: "testR" + i,
+                  tx_info: "hello/565bf18964f4f14fea84341b/image/20160101_1.png"
+               } ).count();
+            }
+            assert.equal( recsCnt, 1 );
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          }
       }
       finally 

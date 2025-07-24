@@ -162,6 +162,7 @@ public class CollectionSpace {
      * Create collection by options.
      *
      * @param collectionName The collection name
+<<<<<<< HEAD
      * @param options The options are as following:
      *               <ul>
      *               <li>ShardingKey : Assign the sharding key, foramt: { ShardingKey: { <key name>: <1/-1>} }, 
@@ -188,6 +189,10 @@ public class CollectionSpace {
      *               <li>IsMainCL : Main collection or not, default is false, which means it is not main collection
      *               <li>DataSource : The name of the date soure used
      *               <li>Mapping : The name of the collection to be mapped
+=======
+     * @param options        The {@see <a href=//doc.sequoiadb.com/cn/index-cat_id-1432190821-edition_id-@SDB_SYMBOL_VERSION target=new>options</a>}
+     *                       for creating collection or null for not specified any options.
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
      * @return the newly created object of collection.
      * @throws BaseException If error happens.
      */

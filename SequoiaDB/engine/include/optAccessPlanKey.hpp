@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = optAccessPlanKey.hpp
 
@@ -55,86 +53,11 @@ using namespace bson ;
 
 namespace engine
 {
-
-   /*
-      _optCollectionInfo define
-    */
-   class _optCollectionInfo
-   {
-      public :
-         _optCollectionInfo ()
-         : _suID( DMS_INVALID_SUID ),
-           _suLID( DMS_INVALID_LOGICCSID ),
-           _clLID( DMS_INVALID_CLID ),
-           _mbID( DMS_INVALID_MBID )
-         {
-         }
-
-         _optCollectionInfo ( const _optCollectionInfo & info )
-         : _suID( info._suID ),
-           _suLID( info._suLID ),
-           _clLID( info._clLID ),
-           _mbID( info._mbID )
-         {
-         }
-
-         virtual ~_optCollectionInfo ()
-         {
-         }
-
-         OSS_INLINE virtual dmsStorageUnitID getSUID () const
-         {
-            return _suID ;
-         }
-
-         OSS_INLINE virtual UINT32 getSULID () const
-         {
-            return _suLID ;
-         }
-
-         OSS_INLINE virtual UINT16 getCLMBID () const
-         {
-            return _mbID ;
-         }
-
-         OSS_INLINE virtual UINT32 getCLLID () const
-         {
-            return _clLID ;
-         }
-
-         OSS_INLINE virtual void setCSInfo ( dmsStorageUnit *su )
-         {
-            if ( NULL != su )
-            {
-               _suID = su->CSID() ;
-               _suLID = su->LogicalCSID() ;
-            }
-         }
-
-         OSS_INLINE virtual void setCLInfo ( dmsMBContext *mbContext )
-         {
-            if ( NULL != mbContext )
-            {
-               _mbID = mbContext->mbID() ;
-               _clLID = mbContext->clLID() ;
-            }
-         }
-
-      protected :
-         dmsStorageUnitID        _suID ;
-         UINT32                  _suLID ;
-         UINT32                  _clLID ;
-         UINT16                  _mbID ;
-   } ;
-
-   typedef class _optCollectionInfo optCollectionInfo ;
-
    /*
       _optAccessPlanKey define
     */
    class _optAccessPlanKey : public _rtnQueryOptions,
-                             public _utilHashTableKey,
-                             public _optCollectionInfo
+                             public _utilHashTableKey
    {
       public :
          _optAccessPlanKey ( const rtnQueryOptions &options,
@@ -194,6 +117,7 @@ namespace engine
          }
 
          OSS_INLINE BOOLEAN isForceHint() const
+<<<<<<< HEAD
          {
             return ( !isHintEmpty() && testFlag( FLG_QUERY_FORCE_HINT ) ) ;
          }
@@ -205,10 +129,14 @@ namespace engine
 
          OSS_INLINE void setCollectionInfo ( dmsStorageUnit *su,
                                              dmsMBContext *mbContext )
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          {
-            setCSInfo( su ) ;
-            setCLInfo( mbContext ) ;
+            return ( !isHintEmpty() && testFlag( FLG_QUERY_FORCE_HINT ) ) ;
+         }
 
+         OSS_INLINE void generateKeyCodeAndValidate()
+         {
             if ( _cacheLevel > OPT_PLAN_NOCACHE )
             {
                // Key code is not needed for no-cache mode

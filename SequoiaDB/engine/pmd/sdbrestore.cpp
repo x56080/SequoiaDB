@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = sdbrestore.cpp
 
@@ -36,7 +34,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #include "pmd.hpp"
 #include "msgMessage.hpp"
 #include "ossStackDump.hpp"
@@ -85,6 +82,7 @@ namespace engine
    #define RS_BK_OFFLINE_BUILD   "offlinebuild"
    #define RS_BK_IS_SELF         "isSelf"
    #define RS_BK_SKIP_CONF       "skipconf"
+   #define RS_BK_IGNORECONS      "ignoreconsistency"
 
    #define PMD_RS_OPTIONS  \
       ( PMD_COMMANDS_STRING (PMD_OPTION_HELP, ",h"), "help" ) \
@@ -96,6 +94,7 @@ namespace engine
       ( PMD_COMMANDS_STRING (RS_BK_ACTION, ",a"), boost::program_options::value<string>(), "action(restore/list/getconfig/offlinebuild), default is restore" ) \
       ( PMD_COMMANDS_STRING (PMD_OPTION_DIAGLEVEL, ",v"), boost::program_options::value<int>(), "diag level,default:3,value range:[0-5]" ) \
       ( RS_BK_IS_SELF, boost::program_options::value<string>(),          "whether restore self node(true/false),default is true" ) \
+      ( RS_BK_IGNORECONS, "ignore the consistency check and skip the restore state after startup" ) \
       ( PMD_OPTION_DBPATH, boost::program_options::value<string>(),      "override database path" )                    \
       ( PMD_OPTION_IDXPATH, boost::program_options::value<string>(),     "override index path" )                       \
       ( PMD_OPTION_LOGPATH, boost::program_options::value<string>(),     "override log file path" )                    \
@@ -269,6 +268,7 @@ namespace engine
             }
 
             if ( 0 == ossStrcmp( _action, RS_BK_LIST ) )
+<<<<<<< HEAD
             {
                ossMkdir( _dialogPath ) ;
                return SDB_OK;
@@ -276,6 +276,15 @@ namespace engine
 
             if ( 0 == ossStrlen( _bkName ) )
             {
+=======
+            {
+               ossMkdir( _dialogPath ) ;
+               return SDB_OK;
+            }
+
+            if ( 0 == ossStrlen( _bkName ) )
+            {
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                std::cerr << "In restore action[ " << _action << " ],"
                          << " bkname can't be empty"
                          << std::endl ;
@@ -668,7 +677,10 @@ namespace engine
       clsRecycleBinManager recycleBinMgr ;
       rsOptionMgr optMgr ;
       BSONObj baseConf ;
+<<<<<<< HEAD
       BOOLEAN hasRegHandlers = FALSE ;
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       // 1. read command line first
       rc = resolveArguments( argc, argv, optMgr ) ;
@@ -723,6 +735,7 @@ namespace engine
          goto error ;
       }
 
+<<<<<<< HEAD
       // only for getconfig
       if ( TRUE == optMgr._getConfOnly )
       {
@@ -749,6 +762,41 @@ namespace engine
          goto error ;
       }
 
+=======
+      if ( optMgr._vm.count( RS_BK_IGNORECONS ) )
+      {
+         // ignore the global flag from the backup file
+         restoreLogger.ignoreConsistency() ;
+         std::cout << "Ignoring consistency check" << std::endl;
+      }
+
+      // only for getconfig
+      if ( TRUE == optMgr._getConfOnly )
+      {
+         // the final config is now in the krcb
+         string output;
+         // The unfield flag causes the dump to skip unset/default values
+         rc = krcb->getOptionCB()->restore( restoreLogger.getConf(),
+                                            &(optMgr._vm ) ) ;
+         if( rc )
+         {
+            std::cerr << "Init option cb failed: " << rc << std::endl ;
+            goto error ;
+         }
+         rc = krcb->getOptionCB()->toString( output, PMD_CFG_MASK_SKIP_UNFIELD ) ;
+         std::cout << output << std::endl ;
+         return rc ;
+      }
+
+      // load the existing configuration (from path or backup file)
+      rc = getBaseConf( optMgr, restoreLogger.getConf(), baseConf ) ;
+      if ( rc )
+      {
+         std::cerr << "Configuration loader failed: " << rc << std::endl ;
+         goto error ;
+      }
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       // load the remaining default configuration parameters
       rc = krcb->getOptionCB()->restore( baseConf, &(optMgr._vm) );
       if ( rc )
@@ -778,13 +826,20 @@ namespace engine
       }
 
       // register recycle bin manager
+<<<<<<< HEAD
       rc = sdbGetDMSCB()->regHandler( &recycleBinMgr ) ;
+=======
+      rc = sdbGetDMSCB()->regHandler( DMS_ENGINE_MMAP, &recycleBinMgr ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       if ( rc )
       {
          std::cerr << "register recycle bin manager failed, " << rc << std::endl ;
          return rc ;
       }
+<<<<<<< HEAD
       hasRegHandlers = TRUE ;
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       std::cout << "Begin to restore... " << std::endl ;
       // start restore task
@@ -805,11 +860,16 @@ namespace engine
       rc = krcb->getShutdownCode() ;
 
    done :
+<<<<<<< HEAD
       if ( hasRegHandlers )
       {
          // unregister recycle bin manager
          sdbGetDMSCB()->unregHandler( &recycleBinMgr ) ;
       }
+=======
+      // unregister recycle bin manager
+      sdbGetDMSCB()->unregHandler( DMS_ENGINE_MMAP, &recycleBinMgr ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       recycleBinMgr.fini() ;
 
       PMD_SHUTDOWN_DB( rc ) ;

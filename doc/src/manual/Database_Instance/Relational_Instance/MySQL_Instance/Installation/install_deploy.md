@@ -129,10 +129,17 @@
     $ bin/sdb_mysql_ctl addinst myinst -D database/3306/
     ```
     
+<<<<<<< HEAD
     若端口号 3306 被占用，用户可以使用 -P 参数指定实例端口号
     
     ```lang-bash
     $ bin/sdb_mysql_ctl addinst myinst -D database/3316/ -P 3316
+=======
+    若端口号 3306 被占用，用户可以使用 -p 参数指定实例端口号
+    
+    ```lang-bash
+    $ bin/sdb_mysql_ctl addinst myinst -D database/3316/ -p 3316
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     ```
 
     > **Note:**

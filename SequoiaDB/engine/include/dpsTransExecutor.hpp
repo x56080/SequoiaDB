@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = dpsTransExecutor.hpp
 
@@ -36,7 +34,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #ifndef DPS_TRANS_EXECUTOR_HPP__
 #define DPS_TRANS_EXECUTOR_HPP__
 
@@ -44,6 +41,7 @@
 #include "dpsTransLockDef.hpp"
 #include "dpsTransDef.hpp"
 #include "dpsTransLockMgr.hpp"
+#include "dpsTransArbit.hpp"
 #include "monClass.hpp"
 #include "monMgr.hpp"
 #include "utilSegment.hpp"
@@ -134,7 +132,7 @@ namespace engine
          BOOLEAN                 _transAutoCommit ;
          // when transaction operator failed, wether rollback auto
          BOOLEAN                 _transAutoRollback ;
-
+         // whether to use RC isolation to process count()
          BOOLEAN                 _transRCCount ;
 
          // whether allow lock escalation when exceeds limit of max record
@@ -160,29 +158,31 @@ namespace engine
    {
       protected :
          _dpsTransMBStat ()
-         : _totalRecords(),
+         : _globTransAvailTime( NULL ),
+           _totalRecords( NULL ),
            _incDelta( 0 ),
            _decDelta( 0 )
          {
          }
 
       public :
-         _dpsTransMBStat ( ossAtomic64 * totalRecords,
+         _dpsTransMBStat ( ossAtomic64 * globTransAvailTime,
+                           ossAtomic64 * totalRecords,
                            UINT64 incDelta,
                            UINT64 decDelta )
-         : _totalRecords( totalRecords ),
+         : _globTransAvailTime( globTransAvailTime ),
+           _totalRecords( totalRecords ),
            _incDelta( incDelta ),
            _decDelta( decDelta )
          {
          }
 
          _dpsTransMBStat ( const _dpsTransMBStat & stat )
-         : _totalRecords( stat._totalRecords ),
+         : _globTransAvailTime( stat._globTransAvailTime ),
+           _totalRecords( stat._totalRecords ),
            _incDelta( stat._incDelta ),
            _decDelta( stat._decDelta )
          {
-            SDB_ASSERT( NULL != _totalRecords,
-                        "atomic total records should not be NULL" ) ;
          }
 
          ~_dpsTransMBStat ()
@@ -192,8 +192,7 @@ namespace engine
       public :
          _dpsTransMBStat & operator = ( const _dpsTransMBStat & stat )
          {
-            SDB_ASSERT( NULL != stat._totalRecords,
-                        "atomic total records should not be NULL" ) ;
+            _globTransAvailTime = stat._globTransAvailTime ;
             _totalRecords = stat._totalRecords ;
             _incDelta = stat._incDelta ;
             _decDelta = stat._decDelta ;
@@ -211,42 +210,88 @@ namespace engine
             _decDelta += delta ;
          }
 
-         OSS_INLINE UINT64 getTotalRecords () const
+         OSS_INLINE BOOLEAN getTotalRecords ( UINT64 &totalRecords ) const
          {
-            SDB_ASSERT( NULL != _totalRecords,
-                        "atomic total records should not be NULL" ) ;
-            if ( _incDelta > _decDelta )
+            if ( NULL != _totalRecords )
             {
-               return ( _incDelta - _decDelta ) + _totalRecords->fetch() ;
+               if ( _incDelta > _decDelta )
+               {
+                  totalRecords = ( _incDelta - _decDelta ) +
+                                 _totalRecords->fetch() ;
+               }
+               else if ( _incDelta < _decDelta )
+               {
+                  totalRecords = _totalRecords->fetch() -
+                                 ( _decDelta - _incDelta ) ;
+               }
+               else
+               {
+                  totalRecords = _totalRecords->fetch() ;
+               }
+
+               return TRUE ;
             }
-            else if ( _incDelta < _decDelta )
-            {
-               return _totalRecords->fetch() - ( _decDelta - _incDelta ) ;
-            }
-            return _totalRecords->fetch() ;
+
+            return FALSE ;
          }
 
-         OSS_INLINE void commit ()
+         OSS_INLINE void commit ( UINT64 commitTime )
          {
-            SDB_ASSERT( NULL != _totalRecords,
-                        "atomic total records should not be NULL" ) ;
-            if ( _incDelta > _decDelta )
+            if ( NULL != _totalRecords )
             {
-               _totalRecords->add( _incDelta - _decDelta ) ;
+               if ( _incDelta > _decDelta )
+               {
+                  _totalRecords->add( _incDelta - _decDelta ) ;
+               }
+               else if ( _incDelta < _decDelta )
+               {
+                  _totalRecords->sub( _decDelta - _incDelta ) ;
+               }
             }
-            else if ( _incDelta < _decDelta )
+            // current transaction is going to commit and release the locks on
+            // collections, so update global transaction available timestamp
+            // with commit timestamp of current transaction to block
+            // other transactions may fetch MVCC versions before
+            if ( NULL != _globTransAvailTime )
             {
-               _totalRecords->sub( _decDelta - _incDelta ) ;
+               _globTransAvailTime->swapGreaterThan( commitTime ) ;
             }
          }
 
-         OSS_INLINE void rollback ()
+         OSS_INLINE void rollback ( UINT64 rollbackTime )
          {
-            SDB_ASSERT( NULL != _totalRecords,
-                        "atomic total records should not be NULL" ) ;
+            // current transaction is going to commit and release the locks on
+            // collections, so update global transaction available timestamp
+            // with commit timestamp of current transaction to block
+            // other transactions may fetch MVCC versions before
+            if ( NULL != _globTransAvailTime )
+            {
+               _globTransAvailTime->swapGreaterThan( rollbackTime ) ;
+            }
+         }
+
+         OSS_INLINE void setTotalRecords( ossAtomic64 *totalRecords )
+         {
+            _totalRecords = totalRecords ;
+         }
+
+         OSS_INLINE BOOLEAN hasTotalRecords() const
+         {
+            return NULL != _totalRecords ? TRUE : FALSE ;
+         }
+
+         OSS_INLINE void setGlobTransAvailTime( ossAtomic64 *globTransAvailTime )
+         {
+            _globTransAvailTime = globTransAvailTime ;
+         }
+
+         OSS_INLINE BOOLEAN hasGlobTransAvailTime() const
+         {
+            return NULL != _globTransAvailTime ? TRUE : FALSE ;
          }
 
       protected :
+         ossAtomic64 * _globTransAvailTime ;
          ossAtomic64 * _totalRecords ;
          UINT64        _incDelta ;
          UINT64        _decDelta ;
@@ -370,8 +415,8 @@ namespace engine
          DPS_TRANS_ID getNormalizedTransID() ;
 
          // for transaction meta-block statistics
-         void commitMBStats () ;
-         void rollbackMBStats () ;
+         void commitMBStats ( UINT64 commitTime ) ;
+         void rollbackMBStats ( UINT64 rollbackTime ) ;
          void clearMBStats () ;
 
          OSS_INLINE BOOLEAN isMBStatsEmpty () const
@@ -380,14 +425,171 @@ namespace engine
          }
 
          BOOLEAN incMBTotalRecords ( utilCLUniqueID clUniqueID,
+                                     ossAtomic64 * globTransAvailTime,
                                      ossAtomic64 * totalRecords,
                                      UINT64 delta ) ;
          BOOLEAN decMBTotalRecords ( utilCLUniqueID clUniqueID,
+                                     ossAtomic64 * globTransAvailTime,
                                      ossAtomic64 * totalRecords,
                                      UINT64 delta ) ;
+         BOOLEAN updateMBStat( utilCLUniqueID clUniqueID,
+                               ossAtomic64 * globTransAvailTime,
+                               ossAtomic64 * totalRecords ) ;
          BOOLEAN getMBTotalRecords ( utilCLUniqueID clUniqueID,
                                      UINT64 & totalRecords ) const ;
 
+<<<<<<< HEAD
+=======
+         // clear arbitration records
+         void     clearArbit() ;
+
+         // arbitrate current transaction against given write transaction
+         // input:
+         //    - writeTransID: transaction ID of write transaction
+         //    - writeTransStatus: transaction status of write transaction
+         // output:
+         //    - visible: indicate if current transaction could see changes
+         //               from write transaction
+         // NOTE: only when write transaction is committed, current transaction
+         //       could see the changes from write transaction
+         // return:
+         //    - SDB_OK: succeed to arbitrate
+         //    - other errors: failed to arbitrate
+         INT32    arbit( const DPS_TRANS_ID &writeTransID,
+                         DPS_TRANS_STATUS writeTransStatus,
+                         BOOLEAN &visible ) ;
+
+         // find arbitration records for given write transaction
+         // input:
+         //    - writeTransID: transaction ID of write transaction
+         // output:
+         //    - visible: indicate if current transaction could see changes
+         //               from write transaction
+         // return:
+         //    - TRUE: record exists ( had been arbitrated before )
+         //    - FALSE: record does not exist
+         BOOLEAN  findArbit( const DPS_TRANS_ID &writeTransID,
+                             BOOLEAN &visible ) ;
+
+         // save arbitration result for given write transaction
+         // input:
+         //    - writeTransID: transaction ID of write transaction
+         //    - writeTransStatus: transaction status of write transaction
+         //    - visible: indicate if current transaction could see changes
+         //               from write transaction
+         // return:
+         //    - SDB_OK: succeed to arbitrate
+         //    - other errors: failed to arbitrate
+         INT32    saveArbit( const DPS_TRANS_ID &writeTransID,
+                             DPS_TRANS_STATUS writeTransStatus,
+                             BOOLEAN visible ) ;
+
+         // get time error of transaction
+         // NOTE: all transaction times ( begin, pre-commit and commit )
+         //       will reuse the time error of transaction begin
+         OSS_INLINE UINT32 getTimeError() const
+         {
+            return _beginTime.getTimeError() ;
+         }
+
+         // get begin time of transaction
+         OSS_INLINE const stpLogicalTimeUS &getBeginTime() const
+         {
+            return _beginTime ;
+         }
+
+         // set begin time of transaction
+         OSS_INLINE void setBeginTime( const stpLogicalTimeUS &beginTime )
+         {
+            _beginTime = beginTime ;
+         }
+
+         // get pre-commit time of transaction
+         OSS_INLINE const stpLogicalTimeUS &getPreCommitTime() const
+         {
+            return _preCommitTime ;
+         }
+
+         // set pre-commit time of transaction
+         OSS_INLINE void setPreCommitTime( const stpLogicalTimeUS &preCommitTime )
+         {
+            // no time error for pre-commit time, will reuse time error of
+            // transaction begin time
+            _preCommitTime = preCommitTime ;
+            _preCommitTime.setTimeError( _beginTime.getTimeError() ) ;
+         }
+
+         // get commit time of transaction
+         OSS_INLINE const stpLogicalTimeUS &getCommitTime() const
+         {
+            return _commitTime ;
+         }
+
+         // set commit time of transaction
+         OSS_INLINE void setCommitTime( const stpLogicalTimeUS &commitTime )
+         {
+            // no time error for commit time, will reuse time error of
+            // transaction begin time
+            _commitTime = commitTime ;
+            _commitTime.setTimeError( _beginTime.getTimeError() ) ;
+         }
+
+         // set expireTran cache
+         OSS_INLINE void setExpireTranCache( DPS_TRANSID_SN expireTran )
+         {
+            _expireTranCache = expireTran ;
+         }
+
+         // get expireTran cache
+         OSS_INLINE DPS_TRANSID_SN getExpireTranCache() const
+         {
+            return _expireTranCache ;
+         }
+
+         // check if given transaction passed cached expireTran
+         OSS_INLINE BOOLEAN isVersionExpired( const DPS_TRANS_ID &transID ) const
+         {
+            BOOLEAN expired = FALSE ;
+            DPS_TRANSID_SN transSN= transID.getGlobSN() ;
+            if ( DPS_INVALID_TRANSID_SN != _expireTranCache )
+            {
+               expired = ( transSN < _expireTranCache ) ;
+            }
+            return expired ;
+         }
+
+         // check if transaction passed doing arbitration time
+         // - before that time, current transaction needs arbitrate for all
+         //   records created or updated by doing transactions
+         // - after that time, the doing transactions could not be able to
+         //   commit by that time, so the records created or updated by them
+         //   won't be seen by this transaction
+         OSS_INLINE BOOLEAN isPassedDoingArbit() const
+         {
+            return _passedDoingArbit ;
+         }
+
+         // set transaction passed doing arbitration time
+         OSS_INLINE void setPassedDoingArbit( BOOLEAN passed )
+         {
+            _passedDoingArbit = passed ;
+         }
+
+         OSS_INLINE BOOLEAN hasRegReadTran() const
+         {
+            return _regReadTranTime ;
+         }
+
+         OSS_INLINE void setRegReadTran( BOOLEAN hasReg )
+         {
+            _regReadTranTime = hasReg ;
+         }
+
+         // reset transaction times ( begin time, pre-commit time and
+         // pass arbitration time flag )
+         void resetTransTime() ;
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          UINT64   getReservedSpace() const ;
          UINT64   getUsedSpace() const ;
          UINT64   getLogSpace() const ;
@@ -420,7 +622,11 @@ namespace engine
 
          OSS_INLINE DPS_TRANS_ID getOrigTransID()
          {
+<<<<<<< HEAD
             return DPS_TRANS_GET_ID( getTransID() ) ;
+=======
+            return getTransID().getOrigTransID() ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          }
 
       protected:
@@ -463,6 +669,7 @@ namespace engine
          void     updateMaxLogSpace( UINT64 totalLogSpace ) ;
 
          void _initMBStat ( utilCLUniqueID clUniqueID,
+                            ossAtomic64 * globTransAvailTime,
                             ossAtomic64 * totalRecords,
                             UINT64 incDelta,
                             UINT64 decDelta ) ;
@@ -500,6 +707,33 @@ namespace engine
 
          // record counts of collection during transaction
          TRANS_MB_STAT_MAP       _transMBStatMap ;
+
+         // records for global transaction arbitration
+         dpsTransArbit           _transArbit ;
+
+         // logical time of transaction begin
+         stpLogicalTimeUS        _beginTime ;
+         // logical time of transaction pre-commit
+         stpLogicalTimeUS        _preCommitTime ;
+         // logical time of transaction commit
+         stpLogicalTimeUS        _commitTime ;
+
+         // to avoid use atomic value or locks when doing visibility checks
+         // agains global expireTran, we cache expireTran in local transaction,
+         // so visibility checks could use this cache without any locks
+         // NOTE: this will be updated at the beginning of each read operators
+         //       in transaction
+         DPS_TRANSID_SN          _expireTranCache ;
+
+         // indicate if transaction has passed doing arbitration time
+         // - before that time, current transaction needs arbitrate for all
+         //   records created or updated by doing transactions
+         // - after that time, the doing transactions could not be able to
+         //   commit by that time, so the records created or updated by them
+         //   won't be seen by this transaction
+         BOOLEAN                 _passedDoingArbit ;
+         // indicate if transaction registered for read transaction
+         BOOLEAN                 _regReadTranTime ;
 
       private:
          BOOLEAN                 _useTransLock ;

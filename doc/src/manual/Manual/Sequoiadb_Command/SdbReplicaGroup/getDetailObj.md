@@ -47,7 +47,10 @@ v3.4.2 及以上版本
 
 ```lang-text
 {
+<<<<<<< HEAD
   "ActiveLocation": "GuangZhou",
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
   "Group": [
     {
       "HostName": "localhost",
@@ -67,12 +70,17 @@ v3.4.2 及以上版本
           "Name": "11832"
         }
       ],
+<<<<<<< HEAD
       "NodeID": 1002,
       "Location": "GuangZhou"
+=======
+      "NodeID": 1002
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     }
   ],
   "GroupID": 1001,
   "GroupName": "group1",
+<<<<<<< HEAD
   "Locations": [
     {
       "Location": "GuangZhou",
@@ -80,6 +88,8 @@ v3.4.2 及以上版本
       "PrimaryNode": 1002
     }
   ],
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
   "PrimaryNode": 1004,
   "Role": 0,
   "Status": 1,

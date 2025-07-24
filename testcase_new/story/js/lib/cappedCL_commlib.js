@@ -5,7 +5,11 @@ commMakeDir( "localhost", WORKDIR );
 // create cappedCS
 commCreateCS( db, COMMCAPPEDCSNAME, true, "", { Capped: true } );
 // the header size of each record
+<<<<<<< HEAD
 var recordHeader = 55;
+=======
+var recordHeader = 67;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 /************************************
 *@Description: check count

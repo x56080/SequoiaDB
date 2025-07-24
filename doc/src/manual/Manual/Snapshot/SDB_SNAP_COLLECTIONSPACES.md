@@ -1,10 +1,18 @@
+<<<<<<< HEAD
 [^_^]:
+=======
+[^_^]: 
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
     数据库快照
     作者：何嘉文
     时间：20190307
     评审意见
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     王涛：
     许建辉：
     市场部：20190425
@@ -34,7 +42,11 @@ SDB_SNAP_COLLECTIONSPACES
 | MaxCapacitySize | int64      | 集合空间的最大容量上限，单位为字节           |
 | MaxDataCapSize  | int64      | 集合空间数据文件最大容量上限，单位为字节     |
 | MaxIndexCapSize | int64      | 集合空间索引文件最大容量上限，单位为字节     |
+<<<<<<< HEAD
 | MaxLobCapSize   | int64      | 集合空间大对象文件最大容量上限，单位为字节<br>v3.6.1 及以上版本中，该字段已更名为 MaxLobCapacity |
+=======
+| MaxLobCapSize   | int64      | 集合空间大对象文件最大容量上限，单位为字节<br>v5.0.4 及以上版本中，该字段已更名为 MaxLobCapacity |
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 | NumCollections  | int32      | 集合数量                                     |
 | TotalRecords    | int32      | 集合空间的记录总数                           |
 | TotalSize       | int64      | 集合空间的总大小，单位为字节                 |
@@ -43,6 +55,7 @@ SDB_SNAP_COLLECTIONSPACES
 | FreeDataSize    | int64      | 集合空间数据文件空闲空间大小，单位为字节     |
 | TotalIndexSize  | int64      | 集合空间索引文件总大小，单位为字节           |
 | FreeIndexSize   | int64      | 集合空间索引文件空闲空间大小，单位为字节     |
+<<<<<<< HEAD
 | RecycleDataSize | int64      | 集合空间下所有回收站项目的数据文件总大小，单位为字节（仅在 v3.6.1 及以上版本生效）|
 | RecycleIndexSize| int64      | 集合空间下所有回收站项目的索引文件总大小，单位为字节（仅在 v3.6.1 及以上版本生效）|
 | RecycleLobSize  | int64      | 集合空间下所有回收站项目的大对象文件总大小，单位为字节（仅在 v3.6.1 及以上版本生效）|
@@ -69,6 +82,31 @@ SDB_SNAP_COLLECTIONSPACES
 | TotalLobTruncate    | int64     | 服务端中 LOB 分片的截断次数（仅在 v3.6.1 及以上版本生效） |
 | TotalLobAddressing     | int64     | 服务端中 LOB 分片的寻址总次数（仅在 v3.6.1 及以上版本生效） |
 | TotalLobList          | int64     | 客户端列举大对象文件的总次数（仅在 v3.6.1 及以上版本生效） |
+=======
+| FreeLobSize    | int64      | 集合空间大对象文件空闲空间大小，单位为字节<br>v5.0.4 及以上版本中，该字段已更名为 FreeLobSpace  |
+| MaxLobCapacity  | int64      | 集合空间大对象文件最大容量上限，单位为字节（仅在 v5.0.4 及以上版本生效） |
+| LobCapacity     | int64      | 集合空间大对象文件的存储容量，单位为字节（仅在 v5.0.4 及以上版本生效） |
+| LobMetaCapacity | int64      | 集合空间大对象元数据文件大小，单位为字节（仅在 v5.0.4 及以上版本生效） |
+| TotalLobs       | int64      | 集合空间大对象文件总数（仅在 v5.0.4 及以上版本生效）  |
+| TotalLobPages    | int64      | 集合空间大对象文件已使用空间数据页个数（仅在 v5.0.4 及以上版本生效）    |
+| TotalUsedLobSpace   | int64      | 集合空间大对象文件已使用的空间大小，单位为字节（仅在 v5.0.4 及以上版本生效） |
+| UsedLobSpaceRatio    | double      |  集合空间大对象文件已使用的空间占存储容量的比率（仅在 v5.0.4 及以上版本生效） |
+| FreeLobSpace     | int64    | 集合空间大对象文件空闲空间大小，单位为字节（仅在 v5.0.4 及以上版本生效） |
+| TotalLobSize     | int64      | 集合空间大对象文件的数据总大小，单位为字节<br>v5.0.4 以下版本该字段为大对象文件的总大小，v5.0.4 及以上版本为大对象文件的数据总大小 |
+| TotalValidLobSize | int64     | 集合空间大对象文件有效数据总大小，单位为字节（仅在 v5.0.4 及以上版本生效） |
+| LobUsageRate    | double  | 集合空间大对象文件的有效使用率（仅在 v5.0.4 及以上版本生效）<br>使用率越高，空间浪费越少 |
+| AvgLobSize      | int64      | 集合空间大对象文件平均大小，单位为字节（仅在 v5.0.4 及以上版本生效） |
+| TotalLobGet           | int64     | 客户端获取大对象文件的总次数（仅在 v5.0.4 及以上版本生效） |
+| TotalLobPut           | int64     | 客户端上传大对象文件的总次数（仅在 v5.0.4 及以上版本生效） |
+| TotalLobDelete        | int64     | 客户端删除大对象文件的总次数（仅在 v5.0.4 及以上版本生效） |
+| TotalLobReadSize      | int64     | 客户端读大对象文件的总字节数（仅在 v5.0.4 及以上版本生效） |
+| TotalLobWriteSize     | int64     | 客户端写大对象文件的总字节数（仅在 v5.0.4 及以上版本生效） |
+| TotalLobRead     | int64     | 服务端中 LOB 分片的读次数（仅在 v5.0.4 及以上版本生效） |
+| TotalLobWrite     | int64     | 服务端中 LOB 分片的写次数（仅在 v5.0.4 及以上版本生效） |
+| TotalLobTruncate    | int64     | 服务端中 LOB 分片的截断次数（仅在 v5.0.4 及以上版本生效） |
+| TotalLobAddressing     | int64     | 服务端中 LOB 分片的寻址总次数（仅在 v5.0.4 及以上版本生效） |
+| TotalLobList          | int64     | 客户端列举大对象文件的总次数（仅在 v5.0.4 及以上版本生效） |
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 | DataCommitLSN   | int64      | 集合空间数据文件最后提交 LSN                 |
 | IndexCommitLSN  | int64      | 集合空间索引文件最后提交 LSN                 |
 | LobCommitLSN    | int64      | 集合空间大对象文件最后提交 LSN               |
@@ -77,8 +115,13 @@ SDB_SNAP_COLLECTIONSPACES
 | LobCommitted    | boolean    | 集合空间大对象文件当前是否有效提交           |
 | DirtyPage       | int32      | 集合空间大对象文件在开启缓存下脏页数量       |
 | Type            | int32      | 集合空间类型，取值如下：<br>0：普通集合空间<br>1：固定（Capped）集合空间 |
+<<<<<<< HEAD
 | CreateTime | string | 创建集合空间的时间（仅在 v3.6.1 及以上版本生效） |
 | UpdateTime | string | 更新集合空间元数据的时间（仅在 v3.6.1 及以上版本生效） |
+=======
+| CreateTime | string | 创建集合空间的时间（仅在 v5.0.4 及以上版本生效） |
+| UpdateTime | string | 更新集合空间元数据的时间（仅在 v5.0.4 及以上版本生效） |
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 ##协调节点字段信息##
 
@@ -96,6 +139,7 @@ SDB_SNAP_COLLECTIONSPACES
 | FreeDataSize    | int64      | 集合空间数据文件空闲空间大小，单位为字节     |
 | TotalIndexSize  | int64      | 集合空间索引文件总大小，单位为字节           |
 | FreeIndexSize   | int64      | 集合空间索引文件空闲空间大小，单位为字节     |
+<<<<<<< HEAD
 | RecycleDataSize | int64      | 集合空间下所有回收站项目的数据文件总大小，单位为字节（仅在 v3.6.1 及以上版本生效）|
 | RecycleIndexSize| int64      | 集合空间下所有回收站项目的索引文件总大小，单位为字节（仅在 v3.6.1 及以上版本生效）|
 | RecycleLobSize  | int64      | 集合空间下所有回收站项目的大对象文件总大小，单位为字节（仅在 v3.6.1 及以上版本生效）|
@@ -125,6 +169,34 @@ SDB_SNAP_COLLECTIONSPACES
 | Group           | bson array | 该集合空间所在的复制组名列表                 |
 | CreateTime | string | 创建集合空间的时间（仅在 v3.6.1 及以上版本生效） |
 | UpdateTime | string | 更新集合空间元数据的时间（仅在 v3.6.1 及以上版本生效） |
+=======
+| LobCapacity     | int64      | 集合空间大对象文件的存储容量，单位为字节（仅在 v5.0.4 及以上版本生效） |
+| LobMetaCapacity | int64      | 集合空间大对象元数据文件大小，单位为字节（仅在 v5.0.4 及以上版本生效） |
+| MaxLobCapacity  | int64      | 集合空间大对象文件最大容量上限，单位为字节（仅在 v5.0.4 及以上版本生效） |
+| TotalLobPages    | int64      | 集合空间Lob 已使用空间数据页个数（仅在 v5.0.4 及以上版本生效） |
+| TotalLobs       | int64      | 集合空间大对象文件总数（仅在 v5.0.4 及以上版本生效） |
+| TotalUsedLobSpace   | int64     | 集合空间大对象文件已使用的空间大小，单位为字节（仅在 v5.0.4 及以上版本生效） |
+| UsedLobSpaceRatio   | double    |  集合空间大对象文件已使用的空间占存储容量的比率（仅在 v5.0.4 及以上版本生效） |
+| FreeLobSpace     | int64    | 集合空间大对象文件空闲空间大小，单位为字节（仅在 v5.0.4 及以上版本生效） |
+| FreeLobSize    | int64      | 集合空间大对象文件空闲空间大小，单位为字节<br>v5.0.4 及以上版本中，该字段已更名为 FreeLobSpace  |
+| TotalLobSize     | int64      | 集合空间大对象文件的数据总大小，单位为字节<br>v5.0.4 以下版本该字段为大对象文件的总大小，v5.0.4 及以上版本为大对象文件的数据总大小 |
+| TotalValidLobSize | int64     | 集合空间大对象文件有效数据总大小，单位为字节（仅在 v5.0.4 及以上版本生效） |
+| LobUsageRate    | double  | 集合空间大对象文件的有效使用率（仅在 v5.0.4 及以上版本生效）<br>使用率越高，空间浪费越少 |
+| AvgLobSize     | int64      | 集合空间大对象文件平均大小，单位为字节（仅在 v5.0.4 及以上版本生效） |
+| TotalLobGet           | int64     | 客户端获取大对象文件的总次数（仅在 v5.0.4 及以上版本生效） |
+| TotalLobPut           | int64     | 客户端上传大对象文件的总次数（仅在 v5.0.4 及以上版本生效） |
+| TotalLobDelete        | int64     | 客户端删除大对象文件的总次数（仅在 v5.0.4 及以上版本生效） |
+| TotalLobList          | int64     | 客户端列举大对象文件的总次数（仅在 v5.0.4 及以上版本生效） |
+| TotalLobReadSize      | int64     | 客户端读大对象文件的总字节数（仅在 v5.0.4 及以上版本生效） |
+| TotalLobWriteSize     | int64     | 客户端写大对象文件的总字节数（仅在 v5.0.4 及以上版本生效） |
+| TotalLobRead     | int64     | 服务端中 LOB 分片的读次数（仅在 v5.0.4 及以上版本生效） |
+| TotalLobWrite     | int64     | 服务端中 LOB 分片的写次数（仅在 v5.0.4 及以上版本生效） |
+| TotalLobTruncate    | int64     | 服务端中 LOB 分片的截断次数（仅在 v5.0.4 及以上版本生效） |
+| TotalLobAddressing     | int64     | 服务端中 LOB 分片的寻址总次数（仅在 v5.0.4 及以上版本生效） |
+| Group           | bson array | 该集合空间所在的复制组名列表                 |
+| CreateTime | string | 创建集合空间的时间（仅在 v5.0.4 及以上版本生效） |
+| UpdateTime | string | 更新集合空间元数据的时间（仅在 v5.0.4 及以上版本生效） |
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 ##示例##
 
@@ -164,9 +236,12 @@ SDB_SNAP_COLLECTIONSPACES
      "FreeDataSize": 133627904,
      "TotalIndexSize": 151060480,
      "FreeIndexSize": 134152171,
+<<<<<<< HEAD
      "RecycleDataSize": 0,
      "RecycleIndexSize": 0,
      "RecycleLobSize": 0,
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
      "FreeLobSize": 133955584,
      "MaxLobCapacity": 8796093022208,
      "LobCapacity": 134217728,
@@ -209,7 +284,11 @@ SDB_SNAP_COLLECTIONSPACES
    ```lang-javascript
    > db.snapshot(SDB_SNAP_COLLECTIONSPACES)
    ```
+<<<<<<< HEAD
 
+=======
+   
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    输出结果如下：
 
    ```lang-json
@@ -224,9 +303,12 @@ SDB_SNAP_COLLECTIONSPACES
      "FreeDataSize": 133627904,
      "TotalIndexSize": 151060480,
      "FreeIndexSize": 134152171,
+<<<<<<< HEAD
      "RecycleDataSize": 0,
      "RecycleIndexSize": 0,
      "RecycleLobSize": 0,
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
      "LobCapacity": 134217728,
      "LobMetaCapacity": 83984384,
      "MaxLobCapacity": 8796093022208,
@@ -263,4 +345,8 @@ SDB_SNAP_COLLECTIONSPACES
      "UpdateTime": "2022-10-06-18.05.49.384000"
    }
    ...
+<<<<<<< HEAD
    ```
+=======
+   ```
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2

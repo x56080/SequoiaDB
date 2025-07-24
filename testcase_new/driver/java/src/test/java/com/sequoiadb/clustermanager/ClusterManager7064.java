@@ -65,7 +65,11 @@ public class ClusterManager7064 extends SdbTestBase {
             ReplicaGroup cataGroup = sdb.getReplicaGroup( cataGroupName );
             if ( null != cataGroup.getNode( coordIP, cataPortAdd ) ) {
                 cataGroup.removeNode( coordIP, cataPortAdd, null );
+<<<<<<< HEAD
                 sdb.msg( "remove  catalog node " + cataPortAdd + " success." );
+=======
+                sdb.msg("remove  catalog node " + cataPortAdd + " success.");
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             }
             sdb.disconnect();
         } catch ( BaseException e ) {
@@ -100,7 +104,11 @@ public class ClusterManager7064 extends SdbTestBase {
         cataNode = cataGroup.createNode( coordIP, cataPortAdd, cataPathAdd,
                 cataConfigue );
         cataNode.start();
+<<<<<<< HEAD
         sdb.msg( "create catalog node " + cataPortAdd + " success." );
+=======
+        sdb.msg("create catalog node " + cataPortAdd + " success.");
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
         // check cata group name
         String actualCataGroupName = cataGroup.getGroupName();

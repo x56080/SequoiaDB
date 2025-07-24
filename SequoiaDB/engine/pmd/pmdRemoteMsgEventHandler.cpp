@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = pmdRemoteMsgEventHandler.cpp
 
@@ -30,7 +28,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #include "pmdDef.hpp"
 #include "pmdRemoteMsgEventHandler.hpp"
 #include "pmdEDU.hpp"
@@ -39,6 +36,10 @@
 #include "pdTrace.hpp"
 #include "pmdTrace.hpp"
 #include "msgMessage.hpp"
+<<<<<<< HEAD
+=======
+#include "stpAgent.hpp"
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 #include "pmdEnv.hpp"
 
 namespace engine
@@ -70,7 +71,8 @@ namespace engine
 
    INT32 _pmdRemoteMsgHandler::handleMsg( const NET_HANDLE &handle,
                                           const _MsgHeader *header,
-                                          const CHAR *msg )
+                                          const CHAR *msg,
+                                          UINT64 msgUserData )
    {
       INT32 rc = SDB_OK ;
 
@@ -148,12 +150,115 @@ namespace engine
 
    INT32 _pmdRemoteMsgHandler::handleConnect( const NET_HANDLE &handle,
                                               _MsgRouteID id,
+<<<<<<< HEAD
                                               BOOLEAN isPositive )
+=======
+                                              BOOLEAN isPositive,
+                                              netUserDataHolder *userDataHolder )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
       SDB_ASSERT( _pRSManager, "Remote session manager can't be NULL" ) ;
 
       _pRSManager->handleConnect( handle, id, isPositive ) ;
       return SDB_OK ;
+<<<<<<< HEAD
+=======
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDRMTMSGHDL_ONSENDMSG, "_pmdRemoteMsgHandler::onSendMsg" )
+   INT32 _pmdRemoteMsgHandler::onSendMsg( const NET_HANDLE &handle,
+                                          const MsgRouteID &id,
+                                          MsgHeader *header )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__PMDRMTMSGHDL_ONSENDMSG ) ;
+
+      if ( IS_GLOBTIME_TYPE( header->opCode ) )
+      {
+         stpAgent agent ;
+         stpLogicalTimeUS currentTime ;
+
+         rc = agent.getLogicalTimeUS( currentTime, 1, FALSE ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get global logical time for "
+                      "message %s to node %s via handle %u, rc: %d",
+                      msg2String( header, MSG_MASK_ALL, 0 ).c_str(),
+                      routeID2String( id ).c_str(), handle, rc ) ;
+
+         _setSendTime( header, currentTime ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__PMDRMTMSGHDL_ONSENDMSG, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDRMTMSGHDL__SETSENDTIME, "_pmdRemoteMsgHandler::_setSendTime" )
+   BOOLEAN _pmdRemoteMsgHandler::_setSendTime( MsgHeader *header,
+                                               const stpLogicalTimeUS &sendTime )
+   {
+      BOOLEAN setTime = FALSE ;
+
+      PD_TRACE_ENTRY( SDB__PMDRMTMSGHDL__SETSENDTIME ) ;
+
+      switch ( GET_REQUEST_TYPE( header->opCode ) )
+      {
+         case MSG_PACKET :
+         {
+            // for packet message, we need to iterate all messages to find
+            // position to look for transaction begin or transaction pre-commit
+            // messages to set send time
+            // transaction messages will be packeted in below cases
+            // - session init -> transaction begin -> transaction operation
+            // - transaction begin -> transaction operation
+            // - transaction pre-commit -> transaction commit
+            // so we need to iterate one or two messages to set the send time
+            // NOTE: transaction begin -> transaction operation -> commit
+            //       will be send as one transaction operation message, DATA
+            //       node will handle as auto-commit transaction
+            INT32 pos = sizeof( MsgPacketReq ) ;
+            while ( pos < header->messageLength )
+            {
+               MsgHeader *tmpMsg = (MsgHeader *)( ( CHAR *)header + pos ) ;
+
+               setTime = _setSendTime( tmpMsg, sendTime ) ;
+               if ( setTime )
+               {
+                  // set done, break loop
+                  break ;
+               }
+
+               pos += tmpMsg->messageLength ;
+            }
+            break ;
+         }
+         case MSG_BS_TRANS_BEGIN_REQ :
+         {
+            MsgOpTransBegin *request = (MsgOpTransBegin *)header ;
+            request->sendTime = sendTime.getTime() ;
+            setTime = TRUE ;
+            break ;
+         }
+         case MSG_BS_TRANS_COMMITPRE_REQ :
+         {
+            MsgOpTransCommitPre *request = (MsgOpTransCommitPre *)header ;
+            MSG_TRANS_COMMIT_PRE_SET_SEND_TIME( request, sendTime.getTime() ) ;
+            setTime = TRUE ;
+            break ;
+         }
+         default :
+         {
+            break ;
+         }
+      }
+
+      PD_TRACE_EXIT( SDB__PMDRMTMSGHDL__SETSENDTIME ) ;
+
+      return setTime ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDRMTMSGHDL__POSTMSG, "_pmdRemoteMsgHandler::_postMsg" )

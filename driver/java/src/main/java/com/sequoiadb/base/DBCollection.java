@@ -30,7 +30,10 @@ import com.sequoiadb.base.result.DeleteResult;
 import com.sequoiadb.base.result.InsertResult;
 import com.sequoiadb.base.result.UpdateResult;
 import com.sequoiadb.util.Helper;
+<<<<<<< HEAD
 import com.sequoiadb.util.SdbSecureUtil;
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BasicBSONList;
@@ -201,8 +204,11 @@ public class DBCollection {
      *                 <li>{@link DBCollection#FLG_INSERT_CONTONDUP}</li>
      *                 <li>{@link DBCollection#FLG_INSERT_RETURN_OID}</li>
      *                 <li>{@link DBCollection#FLG_INSERT_REPLACEONDUP}</li>
+<<<<<<< HEAD
      *                 <li>{@link InsertOption#FLG_INSERT_CONTONDUP_ID}
      *                 <li>{@link InsertOption#FLG_INSERT_REPLACEONDUP_ID}
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
      *                 </ul>
      * @return The result of inserting, can be the follow values:
      * <ul>
@@ -261,8 +267,11 @@ public class DBCollection {
      *                 <li>{@link DBCollection#FLG_INSERT_CONTONDUP}</li>
      *                 <li>{@link DBCollection#FLG_INSERT_RETURN_OID}</li>
      *                 <li>{@link DBCollection#FLG_INSERT_REPLACEONDUP}</li>
+<<<<<<< HEAD
      *                 <li>{@link InsertOption#FLG_INSERT_CONTONDUP_ID}
      *                 <li>{@link InsertOption#FLG_INSERT_REPLACEONDUP_ID}
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
      *                 </ul>
      * @return The result of inserting, can be the follow values:
      * <ul>
@@ -288,8 +297,11 @@ public class DBCollection {
      *                 <ul>
      *                 <li>{@link DBCollection#FLG_INSERT_CONTONDUP}</li>
      *                 <li>{@link DBCollection#FLG_INSERT_REPLACEONDUP}</li>
+<<<<<<< HEAD
      *                 <li>{@link InsertOption#FLG_INSERT_CONTONDUP_ID}
      *                 <li>{@link InsertOption#FLG_INSERT_REPLACEONDUP_ID}
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
      *                 </ul>
      * @throws BaseException If error happens.
      * @since 3.0.2
@@ -351,9 +363,13 @@ public class DBCollection {
         // build and send message
         InsertRequest request = new InsertRequest( collectionFullName, record, flag );
         SdbReply response = sequoiadb.requestAndResponse( request );
+<<<<<<< HEAD
 
         String securityInfo = SdbSecureUtil.toSecurityStr(record, sequoiadb.getInfoEncryption());
         sequoiadb.throwIfError(response, "inserted data = " + securityInfo);
+=======
+        sequoiadb.throwIfError(response, record);
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         sequoiadb.upsertCache(collectionFullName);
         // get result
         BSONObject result = response.getReturnData();
@@ -771,8 +787,12 @@ public class DBCollection {
         DeleteRequest request = new DeleteRequest( collectionFullName, matcher, hint, flag );
         SdbReply response = sequoiadb.requestAndResponse( request );
         if ( response.getFlag() != 0 ) {
+<<<<<<< HEAD
             String matcherInfo = SdbSecureUtil.toSecurityStr(matcher, sequoiadb.getInfoEncryption());
             String msg = "matcher = " + matcherInfo + ", hint = " + hint + ", flag = " + flag;
+=======
+            String msg = "matcher = " + matcher + ", hint = " + hint + ", flag = " + flag;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             sequoiadb.throwIfError( response, msg );
         }
         sequoiadb.upsertCache( collectionFullName );
@@ -791,6 +811,7 @@ public class DBCollection {
      */
     public UpdateResult updateRecords( BSONObject matcher, BSONObject modifier ) throws BaseException {
         return updateRecords( matcher, modifier, null );
+<<<<<<< HEAD
     }
 
     /**
@@ -855,6 +876,72 @@ public class DBCollection {
     }
 
     /**
+=======
+    }
+
+    /**
+     * Update the matching records of current collection. It won't work to update the ShardingKey field,
+     * but the other fields take effect.
+     *
+     * @param matcher  The matching condition, match all the documents if null
+     * @param modifier The updating rule, can't be null
+     * @param option {@link UpdateOption}
+     * @return {@link UpdateResult}
+     * @throws BaseException If error happens.
+     * @since 3.4.5/5.0.3
+     */
+    public UpdateResult updateRecords(BSONObject matcher, BSONObject modifier, UpdateOption option)
+            throws BaseException {
+        UpdateOption tmp = option != null ? option : new UpdateOption();
+        int flag = tmp.getFlag() | SdbConstants.FLG_UPDATE_RETURNNUM;
+        return _update( matcher, modifier, tmp.getHint(), flag, true );
+    }
+
+    /**
+     * Update the matching records of current collection, insert if no matching. It won't work to update
+     * the ShardingKey field, but the other fields take effect.
+     *
+     * @param matcher     The matching condition, match all the documents if null
+     * @param modifier    The updating rule, can't be null
+     * @return {@link UpdateResult}
+     * @throws BaseException If error happens.
+     * @since 3.4.5/5.0.3
+     */
+    public UpdateResult upsertRecords(BSONObject matcher, BSONObject modifier) throws BaseException {
+        return upsertRecords( matcher, modifier, null );
+    }
+
+    /**
+     * Update the matching records of current collection, insert if no matching. It won't work to update
+     * the ShardingKey field, but the other fields take effect.
+     *
+     * @param matcher     The matching condition, match all the documents if null
+     * @param modifier    The updating rule, can't be null
+     * @param option {@link UpsertOption}
+     * @return {@link UpdateResult}
+     * @throws BaseException If error happens.
+     * @since 3.4.5/5.0.3
+     */
+    public UpdateResult upsertRecords(BSONObject matcher, BSONObject modifier, UpsertOption option)
+            throws BaseException {
+        UpsertOption tmp = option != null ? option : new UpsertOption();
+        BSONObject newHint;
+        if ( tmp.getSetOnInsert() != null ) {
+            newHint = new BasicBSONObject();
+            if ( tmp.getHint() != null) {
+                newHint.putAll( tmp.getHint() );
+            }
+            newHint.put( SdbConstants.FIELD_NAME_SET_ON_INSERT, tmp.getSetOnInsert() );
+        } else {
+            newHint = tmp.getHint();
+        }
+        int flag = tmp.getFlag() | SdbConstants.FLG_UPDATE_UPSERT;
+        flag |= SdbConstants.FLG_UPDATE_RETURNNUM;
+        return _update( matcher, modifier, newHint, flag, true );
+    }
+
+    /**
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
      * Update the matching records of current collection. It won't work to update the ShardingKey field, but
      * the other fields take effect.
      *
@@ -1066,9 +1153,13 @@ public class DBCollection {
      *                    </ul>
      * @param options    The rules of query explain, the options are as below:
      *                   <ul>
-     *                   <li>Run : Whether execute query explain or not, true for executing query explain
-     *                   then get the data and time information; false for not executing query explain but
-     *                   get the query explain information only. e.g. {Run:true}
+     *                   <li>Run: Whether execute query explain or not, true for executing query explain
+     *                   then get the data and time information, default to be false. e.g. {Run: true}
+     *                   <li>Detail: Whether return detail info, such as coord, data and context information,
+     *                   default to be false. e.g. {Detail: true}
+     *                   <li>Location: Filter return info, need a BSONObject as value, only support "GroupID"
+     *                   and "GroupName" as the BSONObject key, if Location options is explicitly set, the Detail
+     *                   options will automatically set to be true, default to be null. e.g. {Location: {GroupName: "group1"}}
      *                   </ul>
      * @return a DBCursor instance of the result
      * @throws BaseException If error happens.
@@ -1584,12 +1675,35 @@ public class DBCollection {
      * @throws BaseException If error happens.
      */
     public BSONObject getIndexStat(String name) throws BaseException {
+<<<<<<< HEAD
+=======
+        return this.getIndexStat(name, false);
+    }
+
+    /**
+     * Get the statistics of the index.
+     *
+     * @param name The index name.
+     * @param detail Whether to get additional MCV (Most Common Values) statistics of index.
+     * @return The statistics of the specified index.
+     * @throws BaseException If error happens.
+     */
+    public BSONObject getIndexStat(String name, boolean detail) throws BaseException {
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         if (name == null || name.isEmpty()) {
             throw new BaseException(SDBError.SDB_INVALIDARG, "index name can not be null or empty");
         }
         BSONObject hint = new BasicBSONObject();
         hint.put(SdbConstants.FIELD_COLLECTION, collectionFullName);
         hint.put(SdbConstants.FIELD_INDEX, name);
+<<<<<<< HEAD
+=======
+
+        BSONObject options = new BasicBSONObject();
+        options.put(SdbConstants.FIELD_NAME_DETAIL, detail);
+        hint.put(SdbConstants.FIELD_NAME_CMD_OPTIONS, options);
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         int flag = DBQuery.FLG_QUERY_WITH_RETURNDATA;
         flag |= DBQuery.FLG_QUERY_CLOSE_EOF_CTX;
 
@@ -1881,10 +1995,17 @@ public class DBCollection {
         }else {
             dropObj.put(SdbConstants.FIELD_NAME_ASYNC, false);
         }
+<<<<<<< HEAD
 
         int flag = DBQuery.FLG_QUERY_WITH_RETURNDATA;
         flag |= DBQuery.FLG_QUERY_CLOSE_EOF_CTX;
 
+=======
+
+        int flag = DBQuery.FLG_QUERY_WITH_RETURNDATA;
+        flag |= DBQuery.FLG_QUERY_CLOSE_EOF_CTX;
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         AdminRequest request = new AdminRequest(AdminCommand.DROP_INDEX, dropObj, null, null, null,
                 0, -1, flag);
         SdbReply response = sequoiadb.requestAndResponse(request);
@@ -1898,6 +2019,7 @@ public class DBCollection {
             }
             taskId = (Long) obj;
         }
+<<<<<<< HEAD
         sequoiadb.upsertCache(collectionFullName);
         return taskId;
     }
@@ -1978,11 +2100,96 @@ public class DBCollection {
             }
             taskId = (Long)obj;
         }
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         sequoiadb.upsertCache(collectionFullName);
         return taskId;
     }
 
     /**
+<<<<<<< HEAD
+=======
+     * Remove the named index of current collection.
+     *
+     * @param indexName The index indexName.
+     * @throws BaseException If error happens.
+     */
+    public void dropIndex(String indexName) throws BaseException {
+        _dropIndex(indexName, false);
+    }
+
+    /**
+     * Remove the named index of current collection.
+     *
+     * @param indexName The index indexName.
+     * @return The id of current task.
+     * @throws BaseException If error happens.
+     */
+    public long dropIndexAsync(String indexName) throws BaseException {
+        return _dropIndex(indexName, true);
+    }
+
+    /**
+     * Snapshot all of or one of the indexes in current collection
+     *
+     * @param matcher    The matching rule, match all the documents if not provided
+     * @param selector   The selective rule, return the whole document if not provided
+     * @param orderBy    The ordered rule, result set is unordered if not provided
+     * @param hint       The hint rule, the options provided for specific snapshot type format:{
+     *                   '$Options': { <options> } }
+     * @param skipRows   Skip the first numToSkip documents, never skip if this parameter is 0
+     * @param returnRows Return the specified amount of documents, default is -1 for returning all results
+     * @return DBCursor of current query
+     * @throws BaseException If error happens.
+     */
+    public DBCursor snapshotIndexes(BSONObject matcher, BSONObject selector, BSONObject orderBy, BSONObject hint,
+                                    long skipRows, long returnRows) throws BaseException {
+        BSONObject hintObj = new BasicBSONObject();
+        hintObj.put(SdbConstants.FIELD_COLLECTION, this.collectionFullName);
+        if (hint != null){
+            hintObj.putAll(hint);
+        }
+        return sequoiadb.getSnapshot(Sequoiadb.SDB_SNAP_INDEXES, matcher, selector, orderBy,
+                                     hintObj, skipRows, returnRows);
+    }
+
+    private long _copyIndex(String subClName, String indexName, boolean isAsync) throws BaseException {
+        BSONObject copyObj = new BasicBSONObject();
+        copyObj.put(SdbConstants.FIELD_NAME_NAME,collectionFullName);
+        if (isAsync){
+            copyObj.put(SdbConstants.FIELD_NAME_ASYNC, true);
+        }else {
+            copyObj.put(SdbConstants.FIELD_NAME_ASYNC, false);
+        }
+        if (subClName != null && !subClName.isEmpty()){
+            copyObj.put(SdbConstants.FIELD_NAME_SUBCLNAME, subClName);
+        }
+        if (indexName != null && !indexName.isEmpty()){
+            copyObj.put(SdbConstants.FIELD_NAME_INDEXNAME, indexName);
+        }
+
+        int flag = DBQuery.FLG_QUERY_WITH_RETURNDATA;
+        flag |= DBQuery.FLG_QUERY_CLOSE_EOF_CTX;
+
+        AdminRequest request = new AdminRequest(AdminCommand.COPY_INDEX, copyObj, null, null, null,
+                0, -1, flag);
+        SdbReply response = sequoiadb.requestAndResponse(request);
+        sequoiadb.throwIfError(response);
+
+        long taskId = 0;
+        if (isAsync){
+            Object obj = sequoiadb.getObjectFromResp(response, SdbConstants.FIELD_NAME_TASKID);
+            if (obj == null){
+                throw new BaseException(SDBError.SDB_UNEXPECTED_RESULT);
+            }
+            taskId = (Long)obj;
+        }
+        sequoiadb.upsertCache(collectionFullName);
+        return taskId;
+    }
+
+    /**
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
      * copy indexes from main-collection to sub-collection
      *
      * @param subClName The sub-collection name, if it is null or an empty string, it means all sub-collections of
@@ -2346,8 +2553,12 @@ public class DBCollection {
         if (response.getFlag() == SDBError.SDB_DMS_EOC.getErrorCode()) {
             return null;
         } else if (response.getFlag() != 0) {
+<<<<<<< HEAD
             String matcherInfo = SdbSecureUtil.toSecurityStr(matcher, sequoiadb.getInfoEncryption());
             String msg = "query = " + matcherInfo + ", hint = " + hint + ", orderBy = " + orderBy
+=======
+            String msg = "query = " + matcher + ", hint = " + hint + ", orderBy = " + orderBy
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                     + ", skipRows = " + skipRows + ", returnRows = " + returnRows;
             sequoiadb.throwIfError(response, msg);
         }
@@ -2657,10 +2868,14 @@ public class DBCollection {
         SdbReply response = sequoiadb.requestAndResponse( request );
 
         if ( response.getFlag() != 0 ) {
+<<<<<<< HEAD
             String matcherInfo = SdbSecureUtil.toSecurityStr(matcher, sequoiadb.getInfoEncryption());
             String modifierInfo = SdbSecureUtil.toSecurityStr(modifier, sequoiadb.getInfoEncryption());
 
             String msg = "matcher = " + matcherInfo + ", modifier = " + modifierInfo + ", hint = " + hint + ", flag = " + flag;
+=======
+            String msg = "matcher = " + matcher + ", modifier = " + modifier + ", hint = " + hint + ", flag = " + flag;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             sequoiadb.throwIfError( response, msg );
         }
         sequoiadb.upsertCache( collectionFullName );
@@ -2788,7 +3003,7 @@ public class DBCollection {
     public ObjectId createLobID(Date d) throws BaseException {
         BSONObject createLobID = null;
         if (null != d) {
-            SimpleDateFormat sdf = new SimpleDateFormat("YYYY-MM-dd-HH.mm.ss");
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd-HH.mm.ss");
             createLobID = new BasicBSONObject(DBLobImpl.FIELD_NAME_LOB_CREATE_TIME, sdf.format(d));
         }
 

@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = coordCommandData.cpp
 
@@ -34,7 +33,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #include "coordCommandData.hpp"
 #include "msgMessage.hpp"
 #include "pmd.hpp"
@@ -1064,6 +1062,7 @@ namespace engine
       const CHAR *pCSName = NULL ;
 
       contextID = -1 ;
+      pdSetShieldRC( SDB_DMS_CS_NOTEXIST ) ;
 
       rc = msgExtractQuery( (const CHAR*)pMsg, NULL, NULL, NULL, NULL,
                             &pQuery, NULL, NULL, NULL ) ;
@@ -1122,6 +1121,7 @@ namespace engine
             rc = SDB_DMS_CS_NOTEXIST ;
             PD_LOG ( PDWARNING, "Collection space[%s] doesn't exist",
                      pCSName ) ;
+            pdSetLastError( rc ) ;
          }
          else
          {
@@ -1174,6 +1174,10 @@ namespace engine
       // In early versions, test collection is done by a list command. Now we
       // first try with test command. If it failed with error of unknow nessage
       // (maybe the catalogue is old version), then try in the old way.
+<<<<<<< HEAD
+=======
+      pdSetShieldRC( SDB_DMS_NOTEXIST ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       rc = executeOnCataGroup( pMsg, cb, TRUE, NULL, &pContext, NULL ) ;
       if ( rc )
       {
@@ -1561,6 +1565,7 @@ namespace engine
       }
       PD_RC_CHECK( rc, PDERROR, "Failed to get field[%s], rc: %d",
                    FIELD_NAME_ASYNC, rc ) ;
+<<<<<<< HEAD
 
       rc = rtnGetNumberLongElement( matcher, FIELD_NAME_TASKID,
                                     (INT64&)taskID ) ;
@@ -1570,6 +1575,17 @@ namespace engine
       // cancel catalog's task
       pMsg->opCode = MSG_CAT_TASK_CANCEL_REQ ;
 
+=======
+
+      rc = rtnGetNumberLongElement( matcher, FIELD_NAME_TASKID,
+                                    (INT64&)taskID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get field[%s], rc: %d",
+                   FIELD_NAME_TASKID, rc ) ;
+
+      // cancel catalog's task
+      pMsg->opCode = MSG_CAT_TASK_CANCEL_REQ ;
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       rc = executeOnCataGroup( pMsg, cb, &groupLst, NULL, TRUE, NULL, buf ) ;
       PD_RC_CHECK( rc, PDERROR, "Excute on catalog failed, rc: %d", rc ) ;
 
@@ -1589,6 +1605,7 @@ namespace engine
          // build wait task message
          BSONObj matcher1 ;
          try
+<<<<<<< HEAD
          {
             matcher1 = BSON( FIELD_NAME_TASKID << (INT64)taskID ) ;
          }
@@ -1622,6 +1639,41 @@ namespace engine
          }
          if ( rc )
          {
+=======
+         {
+            matcher1 = BSON( FIELD_NAME_TASKID << (INT64)taskID ) ;
+         }
+         catch( std::exception &e )
+         {
+            rc = ossException2RC( &e ) ;
+            PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+         }
+         rc = msgBuildQueryMsg( &pWaitMsg, &waitMsgSize,
+                                CMD_ADMIN_PREFIX CMD_NAME_WAITTASK,
+                                0, 0, 0, -1,
+                                &matcher1, NULL, NULL, NULL, cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Build wait task message failed, rc: %d",
+                      rc ) ;
+
+         // create coordOperator
+         rc = pFactory->create( CMD_NAME_WAITTASK, pOperator ) ;
+         PD_RC_CHECK( rc, PDERROR, "Create operator by name[%s] failed, rc: %d",
+                      CMD_NAME_WAITTASK, rc ) ;
+
+         rc = pOperator->init( _pResource, cb, getTimeout() ) ;
+         PD_RC_CHECK( rc, PDERROR, "Init operator[%s] failed, rc: %d",
+                      pOperator->getName(), rc ) ;
+
+         // execute wait task
+         rc = pOperator->execute( (MsgHeader*)pWaitMsg, cb, contextID, buf ) ;
+         if ( SDB_TASK_HAS_CANCELED == rc )
+         {
+            // the task was cancelled, so result code is -243, just ignore
+            rc = SDB_OK ;
+         }
+         if ( rc )
+         {
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             PD_LOG( PDWARNING, "Excute wait task[%llu], rc: %d", taskID, rc ) ;
          }
       }
@@ -2971,6 +3023,7 @@ namespace engine
       ossPoolVector<string> collections ;
       CoordCataInfoPtr cataPtr = getCataPtr() ;
       if ( cataPtr.get() )
+<<<<<<< HEAD
       {
          rc = coordInvalidateSequenceCache( getCataPtr(), cb ) ;
          PD_RC_CHECK( rc, PDERROR,
@@ -2979,6 +3032,16 @@ namespace engine
 
       if ( _needNotifyInvalidateCache( pArgs ) )
       {
+=======
+      {
+         rc = coordInvalidateSequenceCache( getCataPtr(), cb ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to invalidate sequence cache, rc: %d", rc ) ;
+      }
+
+      if ( _needNotifyInvalidateCache( pArgs ) )
+      {
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          BOOLEAN notified = FALSE ;
          coordCacheInvalidator cacheInvalidator( _pResource ) ;
          try
@@ -3020,6 +3083,7 @@ namespace engine
             }
          }
          catch ( std::exception &e )
+<<<<<<< HEAD
          {
             rc= ossException2RC( &e ) ;
             PD_LOG( PDERROR, "Exception occurred: %s", e.what() ) ;
@@ -3041,6 +3105,29 @@ namespace engine
             _pResource->removeCataInfoWithMain( citr->c_str() ) ;
          }
       }
+=======
+         {
+            rc= ossException2RC( &e ) ;
+            PD_LOG( PDERROR, "Exception occurred: %s", e.what() ) ;
+            // In case of exception, we don't know which one to be clean. Try
+            // to notify coordinators to clean all catalogue information.
+            if ( !notified )
+            {
+               cacheInvalidator.notify( COORD_CACHE_CATALOGUE, NULL, cb ) ;
+            }
+            rc = SDB_OK ;
+         }
+      }
+
+      if ( collections.size() > 0 )
+      {
+         for ( ossPoolVector<string>::const_iterator citr = collections.begin();
+               citr != collections.end(); ++citr )
+         {
+            _pResource->removeCataInfoWithMain( citr->c_str() ) ;
+         }
+      }
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       else
       {
          _pResource->removeCataInfoWithMain( pArgs->_targetName.c_str() ) ;
@@ -5158,6 +5245,49 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to get field[%s] from obj[%s], rc: %d",
                       FIELD_NAME_ERROR_NODES, bufObj.toString().c_str(), rc ) ;
+<<<<<<< HEAD
+
+         BSONObjIterator iter( errNodeArr ) ;
+         while ( iter.more() )
+         {
+            INT32 resultCode = SDB_OK ;
+            const CHAR* groupName = NULL ;
+            const CHAR* detail = NULL ;
+            BSONObj infoObj ;
+            BSONObjBuilder objBD( arrayBD.subobjStart() ) ; ;
+
+            BSONElement ele = iter.next() ;
+            PD_CHECK( ele.type() == Object, SDB_SYS, error,
+                      PDERROR, "Invalid element type[%d]", ele.type() ) ;
+
+            BSONObj errNodeObj = ele.embeddedObject() ;
+
+            rc = rtnGetStringElement( errNodeObj, FIELD_NAME_GROUPNAME,
+                                      &groupName ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to get field[%s] from obj[%s], rc: %d",
+                         FIELD_NAME_GROUPNAME, errNodeObj.toString().c_str(), rc ) ;
+
+            rc = rtnGetIntElement( errNodeObj, FIELD_NAME_RCFLAG, resultCode ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to get field[%s] from obj[%s], rc: %d",
+                         FIELD_NAME_RCFLAG, errNodeObj.toString().c_str(), rc ) ;
+
+            rc = rtnGetObjElement( errNodeObj, FIELD_NAME_ERROR_INFO, infoObj ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to get field[%s] from obj[%s], rc: %d",
+                         FIELD_NAME_ERROR_INFO, errNodeObj.toString().c_str(), rc ) ;
+
+            rc = rtnGetStringElement( infoObj, OP_ERR_DETAIL, &detail ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to get field[%s] from obj[%s], rc: %d",
+                         OP_ERR_DETAIL, infoObj.toString().c_str(), rc ) ;
+
+            objBD.append( FIELD_NAME_GROUPNAME, groupName ) ;
+            objBD.append( FIELD_NAME_RESULTCODE, resultCode ) ;
+            objBD.append( FIELD_NAME_DETAIL, detail ) ;
+            objBD.done() ;
+=======
 
          BSONObjIterator iter( errNodeArr ) ;
          while ( iter.more() )
@@ -5279,6 +5409,101 @@ namespace engine
                         "Failed to return task id[%llu] to client, rc: %d",
                         taskID, rc ) ;
             goto error ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
+         }
+      }
+      else
+      {
+<<<<<<< HEAD
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
+   done:
+=======
+         rc = _waitTask( taskID, cb, contextID, buf ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Failed to wait task[%llu], rc: %d", taskID, rc ) ;
+            goto error ;
+         }
+      }
+
+   done:
+      PD_TRACE_EXITRC( COORDIDXHELP_EXECST, rc ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
+      return rc ;
+   error:
+      goto done ;
+   }
+
+<<<<<<< HEAD
+   // PD_TRACE_DECLARE_FUNCTION ( COORDIDXHELP_EXECST, "_coordCMDIndexHelper::_executeConsistent" )
+   INT32 _coordCMDIndexHelper::_executeConsistent( MsgHeader *pMsg,
+                                                   pmdEDUCB *cb,
+                                                   INT64 &contextID,
+                                                   rtnContextBuf *buf )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( COORDIDXHELP_EXECST ) ;
+      UINT64 taskID = CLS_INVALID_TASKID ;
+      INT32 retryCnt = 0 ;
+      INT32 tmpRc = SDB_OK;
+
+      rc = _createTaskInCata( pMsg, cb, buf, taskID ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Failed to create task on catalog" ) ;
+         goto error ;
+      }
+
+   retry:
+      rc = _notifyDataToDoTask( taskID, pMsg, cb, buf ) ;
+      if ( SDB_CLS_FULL_SYNC == rc && retryCnt < 15 )
+      {
+         // data primary is in full sync, we can wait for the data group to
+         // select a new primary
+         PD_LOG( PDWARNING, "Failed to notify data node, rc: %d, "
+                 "just retry", rc ) ;
+         buf->release() ;
+         retryCnt++ ;
+         ossSleep( OSS_ONE_SEC ) ;
+         goto retry ;
+      }
+      else if ( rc )
+      {
+         PD_LOG_MSG( PDERROR,
+                     "Failed to notify data node to do task[%llu], rc: %d",
+                     taskID, rc ) ;
+
+         tmpRc = _cancelTask( taskID, rc, buf, cb ) ;
+         if ( tmpRc )
+         {
+            PD_LOG( PDWARNING, "Failed to cancel task[%llu], rc: %d",
+                    taskID, tmpRc ) ;
+         }
+         else if ( !_isAsync() )
+         {
+            tmpRc = _waitTask( taskID, cb, contextID, buf ) ;
+            if ( tmpRc )
+            {
+               PD_LOG( PDWARNING, "Failed to wait task[%llu], rc: %d",
+                       taskID, tmpRc ) ;
+            }
+         }
+
+         goto error ;
+      }
+
+      if ( _isAsync() )
+      {
+         rc = _returnTaskID( taskID, cb, contextID ) ;
+         if ( rc )
+         {
+            PD_LOG_MSG( PDERROR,
+                        "Failed to return task id[%llu] to client, rc: %d",
+                        taskID, rc ) ;
+            goto error ;
          }
       }
       else
@@ -5293,11 +5518,7 @@ namespace engine
 
    done:
       PD_TRACE_EXITRC( COORDIDXHELP_EXECST, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
+=======
    // PD_TRACE_DECLARE_FUNCTION ( COORDIDXHELP_CRTTASKCAT, "_coordCMDIndexHelper::_createTaskInCata" )
    INT32 _coordCMDIndexHelper::_createTaskInCata( MsgHeader *pMsg,
                                                   pmdEDUCB *cb,
@@ -5389,6 +5610,145 @@ namespace engine
                    "Failed to build data message, rc: %d",
                    rc ) ;
 
+      // notify to data
+      rc = executeOnCL( (MsgHeader*)pBuf, cb, _collectionName(),
+                        FALSE, NULL, NULL, NULL, NULL, buf ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to create index on data node, rc: %d", rc );
+
+   done :
+      if ( pBuf )
+      {
+         msgReleaseBuffer( pBuf, cb ) ;
+         pBuf = NULL ;
+      }
+      PD_TRACE_EXITRC( COORDIDXHELP_NTFDATATODO, rc ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
+      return rc ;
+   error :
+      goto done ;
+   }
+
+<<<<<<< HEAD
+   // PD_TRACE_DECLARE_FUNCTION ( COORDIDXHELP_CRTTASKCAT, "_coordCMDIndexHelper::_createTaskInCata" )
+   INT32 _coordCMDIndexHelper::_createTaskInCata( MsgHeader *pMsg,
+                                                  pmdEDUCB *cb,
+                                                  rtnContextBuf *buf,
+                                                  UINT64 &taskID )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( COORDIDXHELP_CRTTASKCAT ) ;
+      INT32 orgCode = pMsg->opCode ;
+      vector< BSONObj > vecObjs ;
+      BSONObj collectionObj ;
+      CoordCataInfoPtr cataPtr ;
+
+      // build catalog message
+      if ( 0 == ossStrcmp( getName(), CMD_NAME_CREATE_INDEX ) )
+      {
+         pMsg->opCode = MSG_CAT_CREATE_IDX_REQ ;
+=======
+   // PD_TRACE_DECLARE_FUNCTION ( COORDIDXHELP_CANCELTASK, "_coordCMDIndexHelper::_cancelTask" )
+   INT32 _coordCMDIndexHelper::_cancelTask( UINT64 taskID, INT32 resultCode,
+                                            rtnContextBuf *buf, pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( COORDIDXHELP_CANCELTASK ) ;
+      CHAR *pMsg = NULL ;
+      INT32 msgSize = 0 ;
+      rtnContextBuf buff ;
+      BSONObj boSend ;
+      BSONObjBuilder builder ;
+
+      try
+      {
+         BSONArrayBuilder arrayBD( builder.subarrayStart( FIELD_NAME_ERROR_INFO ) ) ;
+         rc = _buildErrInfo( buf, arrayBD ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+         arrayBD.done() ;
+
+         builder.append( FIELD_NAME_TASKID, (INT64)taskID ) ;
+         builder.append( FIELD_NAME_RESULTCODE, resultCode ) ;
+         boSend = builder.done() ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
+      }
+      else if ( 0 == ossStrcmp( getName(), CMD_NAME_DROP_INDEX ) )
+      {
+<<<<<<< HEAD
+         pMsg->opCode = MSG_CAT_DROP_IDX_REQ ;
+      }
+
+      // send message to catalog
+      rc = executeOnCataGroup( pMsg, cb, NULL, &vecObjs, TRUE, NULL, buf ) ;
+      PD_RC_CHECK( rc,
+                   PDERROR, "Execute %s on catalog failed, rc: %d",
+                   getName(), rc ) ;
+
+      // get task ID
+      PD_CHECK( !vecObjs.empty(), SDB_SYS, error, PDERROR,
+                "Failed to get task id from empty result message" ) ;
+
+      rc = rtnGetNumberLongElement( vecObjs[0], FIELD_NAME_TASKID,
+                                    (INT64&)taskID ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to get task id from object[%s], rc: %d",
+                   vecObjs[0].toString().c_str(), rc ) ;
+
+   done:
+      pMsg->opCode = orgCode ;
+      PD_TRACE_EXITRC( COORDIDXHELP_CRTTASKCAT, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( COORDIDXHELP_NTFDATATODO, "_coordCMDIndexHelper::_notifyDataToDoTask" )
+   INT32 _coordCMDIndexHelper::_notifyDataToDoTask( UINT64 taskID,
+                                                    MsgHeader *pMsg,
+                                                    pmdEDUCB *cb,
+                                                    rtnContextBuf *buf )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( COORDIDXHELP_NTFDATATODO ) ;
+      CHAR *pBuf = NULL ;
+      INT32 bufSize = 0 ;
+      const CHAR *pQuery = NULL ;
+      const CHAR *pHint = NULL ;
+      const CHAR *pCmdName = NULL ;
+      BSONObj boQuery, boHint ;
+
+      rc = msgExtractQuery( (CHAR*)pMsg, NULL, &pCmdName, NULL, NULL,
+                            &pQuery, NULL, NULL, &pHint ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to extract message, rc: %d",
+                   rc ) ;
+
+      // build new message, add taskID
+      try
+      {
+         boQuery = BSONObj( pQuery ) ;
+         BSONObjBuilder builder ;
+         builder.appendElements( BSONObj( pHint ) ) ;
+         builder.append( FIELD_NAME_TASKID, (INT64)taskID ) ;
+         boHint = builder.obj() ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
+      rc = msgBuildQueryMsg( &pBuf, &bufSize, pCmdName,
+                             0, 0, 0, -1,
+                             &boQuery, NULL, NULL, &boHint,
+                             cb ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to build data message, rc: %d",
+                   rc ) ;
+
       // createIndex, dropIndex or copyIndex don't need to check replSize
       ((MsgOpQuery*)pBuf)->w = 1 ;
 
@@ -5405,11 +5765,41 @@ namespace engine
          pBuf = NULL ;
       }
       PD_TRACE_EXITRC( COORDIDXHELP_NTFDATATODO, rc ) ;
+=======
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
+      rc = msgBuildQueryMsg( &pMsg, &msgSize,
+                             CMD_ADMIN_PREFIX CMD_NAME_CANCEL_TASK,
+                             0, 0, 0, -1,
+                             &boSend, NULL, NULL, NULL,
+                             cb ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Build cancel task message failed, rc: %d",
+                   rc ) ;
+
+      ((MsgHeader*)pMsg)->opCode = MSG_CAT_TASK_CANCEL_REQ ;
+
+      rc = executeOnCataGroup ( (MsgHeader*)pMsg, cb, TRUE,
+                                NULL, NULL, &buff ) ;
+      PD_RC_CHECK( rc, PDWARNING,
+                   "Execute task[%llu] cancel on catalog failed, rc: %d",
+                   taskID, rc ) ;
+
+   done:
+      if ( pMsg )
+      {
+         msgReleaseBuffer( pMsg, cb ) ;
+      }
+      PD_TRACE_EXITRC( COORDIDXHELP_CANCELTASK, rc ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       return rc ;
    error :
       goto done ;
    }
 
+<<<<<<< HEAD
    // PD_TRACE_DECLARE_FUNCTION ( COORDIDXHELP_CANCELTASK, "_coordCMDIndexHelper::_cancelTask" )
    INT32 _coordCMDIndexHelper::_cancelTask( UINT64 taskID, INT32 resultCode,
                                             rtnContextBuf *buf, pmdEDUCB *cb )
@@ -5461,9 +5851,26 @@ namespace engine
 
    done:
       if ( pMsg )
+=======
+   // PD_TRACE_DECLARE_FUNCTION ( COORDIDXHELP_WAITTASK, "_coordCMDIndexHelper::_waitTask" )
+   INT32 _coordCMDIndexHelper::_waitTask( UINT64 taskID, pmdEDUCB *cb,
+                                          INT64 &contextID, rtnContextBuf *buf )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( COORDIDXHELP_WAITTASK ) ;
+      CHAR *pMsg = NULL ;
+      INT32 msgSize = 0 ;
+      coordOperator *pOperator = NULL ;
+      coordCommandFactory *pFactory = coordGetFactory() ;
+      BSONObj boSend ;
+
+      // Data source collection will return -1 taskID.
+      if ( CLS_INVALID_TASKID == taskID )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       {
-         msgReleaseBuffer( pMsg, cb ) ;
+         goto done ;
       }
+<<<<<<< HEAD
       PD_TRACE_EXITRC( COORDIDXHELP_CANCELTASK, rc ) ;
       return rc ;
    error:
@@ -5497,6 +5904,18 @@ namespace engine
          rc = ossException2RC( &e ) ;
          PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
       }
+=======
+
+      try
+      {
+         boSend = BSON( FIELD_NAME_TASKID << (long long)taskID ) ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       rc = msgBuildQueryMsg( &pMsg, &msgSize,
                              CMD_ADMIN_PREFIX CMD_NAME_WAITTASK,
@@ -5804,6 +6223,7 @@ namespace engine
       if ( expectType == ele.type() )
       {
          isOk = TRUE ;
+<<<<<<< HEAD
       }
       else if ( Array == ele.type() )
       {
@@ -5818,6 +6238,22 @@ namespace engine
          }
          isOk = TRUE ;
       }
+=======
+      }
+      else if ( Array == ele.type() )
+      {
+         BSONObjIterator it( ele.Obj() ) ;
+         while ( it.more() )
+         {
+            BSONElement e = it.next() ;
+            if ( expectType != e.type() )
+            {
+               goto error ;
+            }
+         }
+         isOk = TRUE ;
+      }
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    done:
       PD_TRACE_EXIT( COORDCRTIDX_CHKPARA ) ;
@@ -6295,12 +6731,15 @@ namespace engine
       }
 
    done:
+<<<<<<< HEAD
       if ( SDB_OK == rc )
       {
          PD_LOG( PDDEBUG, "Index[%s:%s] has standalone index: %d, "
                  "has old version index: %d",
                  _pCollection, indexName, hasStandaloneIdx, hasOldVersionIdx ) ;
       }
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       if ( contextID != -1 )
       {
          rtnCB->contextDelete( contextID, cb ) ;

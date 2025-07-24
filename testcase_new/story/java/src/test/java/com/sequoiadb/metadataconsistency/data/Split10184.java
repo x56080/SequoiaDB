@@ -46,9 +46,13 @@ public class Split10184 extends SdbTestBase {
                     "The mode is standlone or only one group or one node, "
                             + "skip the testCase." );
         }
+<<<<<<< HEAD
         if ( sdb.isCollectionSpaceExist( csName ) ) {
             sdb.dropCollectionSpace( csName );
         }
+=======
+        MetaDataUtils.clearCS( sdb, csName );
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
         groupNames = MetaDataUtils.getDataGroupNames( sdb );
 
@@ -60,9 +64,13 @@ public class Split10184 extends SdbTestBase {
     @AfterClass
     public void tearDown() {
         try {
+<<<<<<< HEAD
             if ( sdb.isCollectionSpaceExist( csName ) ) {
                 sdb.dropCollectionSpace( csName );
             }
+=======
+            MetaDataUtils.clearCS( sdb, csName );
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         } finally {
             if ( sdb != null ) {
                 sdb.close();

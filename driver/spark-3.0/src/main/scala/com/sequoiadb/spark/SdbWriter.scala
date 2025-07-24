@@ -16,7 +16,11 @@ import scala.collection.JavaConversions._
   *
   * @param config Configuration parameters (host,collectionspace,collection,...)
   */
+<<<<<<< HEAD
 private[spark] class SdbWriter(config: SdbConfig, sourceInfo: String) extends Serializable with Logging {
+=======
+private[spark] class SdbWriter(config: SdbConfig) extends Serializable with Logging {
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
     /**
       * Storing a bunch of SequoiaDB objects.
@@ -26,8 +30,11 @@ private[spark] class SdbWriter(config: SdbConfig, sourceInfo: String) extends Se
     private def write[T](it: Iterator[T], convert: T => BSONObject): Unit = {
         val sdb = new Sequoiadb(config.host, config.username, config.password, SdbConfig.SdbConnectionOptions)
 
+<<<<<<< HEAD
         SdbConnUtil.setupSourceSessionAttrIgnoreFailures(sdb, sourceInfo)
 
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         try {
             val cs = if (sdb.isCollectionSpaceExist(config.collectionSpace)) {
                 sdb.getCollectionSpace(config.collectionSpace)

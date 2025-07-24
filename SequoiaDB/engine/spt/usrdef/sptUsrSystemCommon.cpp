@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = sptUsrSystemCommon.cpp
 
@@ -686,7 +685,11 @@ namespace engine
                  rc, exitCode ) ;
          rc = SDB_OK ;
       }
+<<<<<<< HEAD
       else 
+=======
+      else
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       {
          rc = runner.read( outStr ) ;
          if ( SDB_OK != rc )
@@ -697,7 +700,11 @@ namespace engine
                << rc ;
             err = ss.str() ;
             goto error ;
+<<<<<<< HEAD
          } 
+=======
+         }
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       }
 
       rc = _extractCpuInfo( outStr.c_str(), builder ) ;
@@ -1883,7 +1890,11 @@ namespace engine
          {
             // if password has been input, we don't save command to history file.
             sdbSetIsNeedSaveHistory( FALSE ) ;
+<<<<<<< HEAD
             
+=======
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             if ( String != elem.type() )
             {
                rc = SDB_INVALIDARG ;
@@ -1891,6 +1902,7 @@ namespace engine
                goto error ;
             }
             cmd << " -p \'" << elem.valuestr() << "\'" ;
+<<<<<<< HEAD
          }
          else if ( 0 == ossStrcmp( elem.fieldName(), "gid" ) )
          {
@@ -1903,10 +1915,42 @@ namespace engine
             cmd << " -g " << elem.valuestr() ;
          }
          else if ( 0 == ossStrcmp( elem.fieldName(), "groups" ) )
+=======
+         }
+         else if ( 0 == ossStrcmp( elem.fieldName(), "gid" ) )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          {
             if ( String != elem.type() )
             {
                rc = SDB_INVALIDARG ;
+<<<<<<< HEAD
+               err = "groups must be string" ;
+               goto error ;
+            }
+            cmd << " -G " << elem.valuestr() ;
+         }
+         else if ( 0 == ossStrcmp( elem.fieldName(), "dir" ) )
+=======
+               err = "gid must be string" ;
+               goto error ;
+            }
+            cmd << " -g " << elem.valuestr() ;
+         }
+         else if ( 0 == ossStrcmp( elem.fieldName(), "groups" ) )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
+         {
+            if ( String != elem.type() )
+            {
+               rc = SDB_INVALIDARG ;
+<<<<<<< HEAD
+               err = "dir must be string" ;
+               goto error ;
+            }
+            cmd << " -d " << elem.valuestr() ;
+         }
+         else if ( 0 == ossStrcmp( elem.fieldName(), "createDir" ) )
+         {
+=======
                err = "groups must be string" ;
                goto error ;
             }
@@ -1924,6 +1968,7 @@ namespace engine
          }
          else if ( 0 == ossStrcmp( elem.fieldName(), "createDir" ) )
          {
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             if ( Bool != elem.type() )
             {
                rc = SDB_INVALIDARG ;
@@ -2038,7 +2083,11 @@ namespace engine
                rc = SDB_INVALIDARG ;
                err = "isUnique must be bool" ;
                goto error ;
+<<<<<<< HEAD
             } 
+=======
+            }
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             if ( FALSE == elem.boolean() )
             {
                cmd << " -o " ;
@@ -2067,7 +2116,11 @@ namespace engine
          err = "name must be config" ;
          goto error ;
       }
+<<<<<<< HEAD
       
+=======
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       // run cmd
       rc = runner.exec( cmd.str().c_str(), exitCode,
                         FALSE, -1, FALSE, NULL, TRUE ) ;
@@ -2267,7 +2320,11 @@ namespace engine
       BOOLEAN           nameFlag = 0 ;
 
       cmd << "userdel" ;
+<<<<<<< HEAD
       
+=======
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       BSONObjIterator it( configObj ) ;
       while ( it.more() )
       {
@@ -2309,7 +2366,11 @@ namespace engine
          err = "name must be config" ;
          goto error ;
       }
+<<<<<<< HEAD
       
+=======
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       // run cmd
       rc = runner.exec( cmd.str().c_str(), exitCode,
                         FALSE, -1, FALSE, NULL, TRUE ) ;
@@ -4377,7 +4438,7 @@ namespace engine
 
       try
       {
-         boost::algorithm::split( splited, buf, boost::is_any_of("\t ") ) ;
+         boost::algorithm::split( splited, buf, boost::is_any_of("\t \n") ) ;
       }
       catch( std::exception &e )
       {
@@ -4415,7 +4476,9 @@ namespace engine
          builder.append( CMD_USR_SYSTEM_USED,
                          boost::lexical_cast<UINT32>(splited.at( 2 ) ) ) ;
          builder.append( CMD_USR_SYSTEM_FREE,
-                         boost::lexical_cast<UINT32>(splited.at( 3) ) ) ;
+                         boost::lexical_cast<UINT32>(splited.at( 3 ) ) ) ;
+         builder.append( CMD_USR_SYSTEM_AVAILABLE,
+                         boost::lexical_cast<UINT32>(splited.at( 6 ) ) ) ;
          builder.append( CMD_USR_SYSTEM_UNIT, "M" ) ;
       }
       catch ( std::exception &e )

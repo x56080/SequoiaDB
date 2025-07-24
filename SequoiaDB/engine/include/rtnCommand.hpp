@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = rtnCommand.hpp
 
@@ -30,7 +28,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #ifndef RTN_COMMAND_HPP_
 #define RTN_COMMAND_HPP_
 
@@ -646,7 +643,12 @@ namespace engine
          DMS_STORAGE_TYPE           _storageType ;
    };
 
+<<<<<<< HEAD
    class _rtnDropCollection : public _rtnCommand
+=======
+   class 
+   _rtnDropCollection : public _rtnCommand
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
       DECLARE_CMD_AUTO_REGISTER()
 
@@ -1646,6 +1648,132 @@ namespace engine
    } ;
 
    /*
+<<<<<<< HEAD
+=======
+      Node handler for restoreToTime()
+      Performs the rollback step of point-in-time restore.
+      See coordCMDRestoreToTime
+   */
+   class _rtnRestoreToTime : public _rtnCommand
+   {
+      DECLARE_CMD_AUTO_REGISTER()
+
+      public:
+         _rtnRestoreToTime () ;
+         virtual ~_rtnRestoreToTime () ;
+
+         virtual const CHAR * name () ;
+         virtual RTN_COMMAND_TYPE type () ;
+         virtual BOOLEAN      writable () ;
+
+         virtual INT32 init ( INT32 flags, INT64 numToSkip, INT64 numToReturn,
+                              const CHAR *pMatcherBuff,
+                              const CHAR *pSelectBuff,
+                              const CHAR *pOrderByBuff,
+                              const CHAR *pHintBuff ) ;
+         virtual INT32 doit ( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
+                              _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
+                              INT16 w = 1, INT64 *pContextID = NULL  ) ;
+         INT32 _parseTimestamp(const BSONObj &matcher);
+         INT32 _parseTransID(const BSONObj &matcher);
+      private:
+         INT64 _timestamp;
+         DPS_TRANS_ID _transID;
+   };
+
+   /**
+   Node handler for db.restoreCheck()
+
+   Performs the checks before a user can call db.restoreToTime(). Given a
+   target time, it checks that there is sufficient log space to undo the
+   records to restore to the target time. The check enters the point-in-time
+   rollback log scanning loop and sums up the log space. The reachable time is
+   cached so for future calls to restoreCheck. The cache is invalidated by
+   db.restoreToTime() because it uses up log space. The cache is cleared by
+   db.restoreAbort().
+   See coordCMDRestoreCheck for the corresponding coordinator class.
+   */
+   class _rtnRestoreCheck : public _rtnCommand
+   {
+      DECLARE_CMD_AUTO_REGISTER()
+
+      public:
+         _rtnRestoreCheck () ;
+         virtual ~_rtnRestoreCheck () ;
+
+         virtual const CHAR * name () ;
+         virtual RTN_COMMAND_TYPE type () ;
+         virtual BOOLEAN      writable () ;
+
+         virtual INT32 init ( INT32 flags, INT64 numToSkip, INT64 numToReturn,
+                              const CHAR *pMatcherBuff,
+                              const CHAR *pSelectBuff,
+                              const CHAR *pOrderByBuff,
+                              const CHAR *pHintBuff ) ;
+         virtual INT32 doit ( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
+                              _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
+                              INT16 w = 1, INT64 *pContextID = NULL  ) ;
+         INT32 _runTest(_pmdEDUCB *cb, UINT64 *limit);
+
+       private:
+         UINT64 _time;
+   };
+
+   /*
+      Local handler for restoreAbort()
+      Resets the node's RestoreInProgress state cache.
+      See coordCMDRestoreAbort
+   */
+   class _rtnRestoreAbort : public _rtnCommand
+   {
+      DECLARE_CMD_AUTO_REGISTER()
+
+      public:
+         _rtnRestoreAbort() ;
+         virtual ~_rtnRestoreAbort() ;
+
+         virtual const CHAR * name () ;
+         virtual RTN_COMMAND_TYPE type () ;
+
+         virtual INT32 init ( INT32 flags, INT64 numToSkip, INT64 numToReturn,
+                              const CHAR *pMatcherBuff,
+                              const CHAR *pSelectBuff,
+                              const CHAR *pOrderByBuff,
+                              const CHAR *pHintBuff ) ;
+         virtual INT32 doit ( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
+                              _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
+                              INT16 w = 1, INT64 *pContextID = NULL  ) ;
+   };
+
+   /*
+      Local handler for restorePrepare()
+      Sets the node's RestoreInProgress state cache.
+      See coordCMDRestorePrepare
+   */
+   class _rtnRestorePrepare : public _rtnCommand
+   {
+      DECLARE_CMD_AUTO_REGISTER()
+
+      public:
+         _rtnRestorePrepare() ;
+         virtual ~_rtnRestorePrepare() ;
+
+         virtual const CHAR * name () ;
+         virtual RTN_COMMAND_TYPE type () ;
+
+         virtual INT32 init ( INT32 flags, INT64 numToSkip, INT64 numToReturn,
+                              const CHAR *pMatcherBuff,
+                              const CHAR *pSelectBuff,
+                              const CHAR *pOrderByBuff,
+                              const CHAR *pHintBuff ) ;
+         virtual INT32 doit ( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
+                              _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
+                              INT16 w = 1, INT64 *pContextID = NULL  ) ;
+         BOOLEAN _isOldRestorePoint() ;
+   };
+
+   /*
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       _rtnCMDGetRecycleBinCount define
     */
    class _rtnCMDGetRecycleBinCount : public _rtnCommand
@@ -1877,6 +2005,7 @@ namespace engine
 
    typedef class _rtnCMDReturnRecycleBinItemToName rtnCMDReturnRecycleBinItemToName ;
 
+<<<<<<< HEAD
    /*
       _rtnCMDInvalidateUserCache define
    */
@@ -2119,6 +2248,8 @@ namespace engine
          UINT32      _mask ;
    } ;
 
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 }
 
 const UINT32 pdGetTraceFunctionListNum();

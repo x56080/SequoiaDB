@@ -99,7 +99,11 @@ TEST_F( snapshotTransTest, SDB_SNAP_TRANSACTIONS )
    rc = sdbNext( cursor, &obj ) ;
    if ( rc == SDB_OK )
    {
+<<<<<<< HEAD
       bson_print(&obj);
+=======
+      bson_print(&obj) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    }
    ASSERT_EQ( SDB_DMS_EOC, rc ) << "fail to get next" ;
    bson_destroy( &obj ) ;

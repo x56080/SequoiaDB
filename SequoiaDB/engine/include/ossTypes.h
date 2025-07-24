@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = ossTypes.h
 
@@ -33,7 +32,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #ifndef OSSTYPES_H_
 #define OSSTYPES_H_
 
@@ -47,6 +45,7 @@
    #define OSS_NEWLINE_SIZE ( 1 )
    #define SDB_INVALID_FH (-1)
 #endif
+
 
 #define SDB_UNUSED(x)      (x)=(x)
 
@@ -109,7 +108,14 @@
 #define OSS_SINT32_MIN_LL (-2147483648LL)
 #define OSS_SINT32_MAX_D  (2147483647.0)
 #define OSS_SINT32_MIN_D  (-2147483648.0)
+<<<<<<< HEAD
 #define OSS_UINT32_MAX    (0xFFFFFFFF)
+=======
+#define OSS_SINT16_MIN    (-32768)
+#define OSS_SINT16_MAX    (32767)
+#define OSS_UINT32_MAX    (0xFFFFFFFF)
+#define OSS_UINT16_MAX    (65535)
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 
 #if defined (_LINUX) || defined ( _AIX )
@@ -191,7 +197,6 @@ typedef UINT64 EDUID ;
 typedef UINT32 OBJIDX ;
 #define OSS_INVALID_OBJIDX    ( ( OBJIDX ) -1 )
 
-
 // return the minimum of two values
 #define OSS_MIN(a, b) (((a) < (b)) ? (a) : (b))
 //
@@ -199,7 +204,11 @@ typedef UINT32 OBJIDX ;
 #define OSS_MAX(a, b) (((a) > (b)) ? (a) : (b))
 
 #define OSS_ROUND(v) (((v) < (0) ) ? ( static_cast<FLOAT64>(ceil((v)-0.5f)) ) :\
+<<<<<<< HEAD
                      ( static_cast<FLOAT64>(floor((v)+0.5f))))
+=======
+                     ( static_cast<FLOAT64>(floor((v)-0.5f))))
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 #define ossRoundDownToMultipleX(x,y) (((x)/(y))*(y))
 #define ossRoundUpToMultipleX(x,y) (((x)+((y)-1))-(((x)+((y)-1))%(y)))
@@ -208,6 +217,7 @@ typedef UINT32 OBJIDX ;
 #define ossIsAlignedNative(x) (0==(((ossValuePtr)(x))&(sizeof(void*)-1)))
 #define ossIsAligned4(x) (0==(((ossValuePtr)(x))&(4-1)))
 #define ossIsAligned8(x) (0==(((ossValuePtr)(x))&(8-1)))
+#define ossIsAligned64(x) (0==(((ossValuePtr)(x))&(63)))
 
 #define ossEndianConvert1(in,out)        \
 do {                                     \

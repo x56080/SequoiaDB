@@ -10,7 +10,10 @@ SYSCAT.SYSCOLLECTIONS 集合中包含了该集群中所有的用户集合信息�
 |IsMainCL|boolean|集合是否为表分区中的主表 |
 |MainCLName|string|集合在表分区中的主表 |
 |ReplSize|number|最小复制组，确保任何写操作必须被复制到至少指定数量的节点后返回成功 |
+<<<<<<< HEAD
 |ConsistencyStrategy|number| [同步一致性][ConsistencyStrategy]策略 |
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 |ShardingKey|object|分区键，为<字段名>:<数值>形式，仅在分区集合中存在<br>字段名为分区字段名，数值取值如下：<br> 1：正向排序 <br>-1：逆向排序 |
 |ShardingType|string|分区类型，仅在分区集合中存在 <br> 分区类型有范围分区（Range）和散列分区（Hash）两种 |
 |Partition|number|散列分区的分区大小值，必须为 2 的幂 |
@@ -20,7 +23,11 @@ SYSCAT.SYSCOLLECTIONS 集合中包含了该集群中所有的用户集合信息�
 |CompressionTypeDesc|string|压缩算法类型描述，取值可参考 [createCL()][createCL] 的参数 CompressionType|
 |CompressionType|number|压缩算法类型掩码，与参数 CompressionTypeDesc 对应，相应的掩码如下：<br>0：对应"snappy" <br>1：对应"lzw"|
 |EnsureShardingIndex|boolean|集合是否自动使用 ShardingKey 包含的字段创建名字为“$shard”的索引|
+<<<<<<< HEAD
 |Internalv|number|hash 算法版本号（仅数据库分区集合显示，内部使用）|
+=======
+|InternalV|number|hash 算法版本号（仅数据库分区集合显示，内部使用）|
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 |LobShardingKeyFormat|string|主分区集合中大对象的切分键格式（仅使用大对象的集合显示）|
 |DataSourceID|number|数据源 ID（仅使用数据源的集合显示）|
 |Mapping|string|在数据源中所映射的集合名称（仅使用数据源的集合显示）|
@@ -63,4 +70,8 @@ SYSCAT.SYSCOLLECTIONS 集合中包含了该集群中所有的用户集合信息�
 [^_^]:
      本文使用的所有引用及链接
 [createCL]:manual/Manual/Sequoiadb_Command/SdbCS/createCL.md
+<<<<<<< HEAD
 [ConsistencyStrategy]:manual/Distributed_Engine/Architecture/Location/consistency_strategy.md
+=======
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2

@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = optAccessPlanRuntime.cpp
 
@@ -36,7 +34,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #include "optAccessPlanRuntime.hpp"
 #include "pdTrace.hpp"
 #include "optTrace.hpp"
@@ -180,17 +177,17 @@ namespace engine
       _optCLScanInfo implement
     */
    _optCLScanInfo::_optCLScanInfo ()
-   : _optCollectionInfo(),
-     _indexExtID( DMS_INVALID_EXTENT ),
-     _indexLID( DMS_INVALID_EXTENT )
+   : _indexExtID( DMS_INVALID_EXTENT ),
+     _indexLID( DMS_INVALID_EXTENT ),
+     _clUID(UTIL_UNIQUEID_NULL)
    {
       setCLFullName( NULL ) ;
    }
 
    _optCLScanInfo::_optCLScanInfo ( const _optCLScanInfo & info )
-   : _optCollectionInfo( info ),
-     _indexExtID( info._indexExtID ),
-     _indexLID( info._indexLID )
+   : _indexExtID( info._indexExtID ),
+     _indexLID( info._indexLID ),
+     _clUID(info._clUID)
    {
       setCLFullName( info._clFullName ) ;
    }
@@ -222,6 +219,7 @@ namespace engine
      _apm( NULL ),
      _hasQueryActivity( FALSE ),
      _isNewPlan( FALSE ),
+     _hasNonGTIndex( TRUE ),
      _ownedPlanInfo( FALSE ),
      _clScanInfo( NULL ),
      _expOptions( NULL )
@@ -240,6 +238,7 @@ namespace engine
       deleteCLScanInfo() ;
       releasePlan() ;
       _isNewPlan = FALSE ;
+      _hasNonGTIndex = FALSE ;
       _hasQueryActivity = FALSE ;
       _apm = NULL ;
    }
@@ -254,7 +253,12 @@ namespace engine
       {
          // The plan is reused, increase the reference count
          plan->incRefCount() ;
+<<<<<<< HEAD
          setPlan( plan, planRuntime->_apm, FALSE ) ;
+=======
+         setPlan( plan, planRuntime->_apm, FALSE,
+                  planRuntime->hasNonGTIndex() ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          setExplainOptions( planRuntime->getExplainOptions() ) ;
 
          // Set match runtime and query info
@@ -297,11 +301,10 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTAPRTM_BINDPLANINFO, "_optAccessPlanRuntime::bindPlanInfo" )
-   INT32 _optAccessPlanRuntime::bindPlanInfo ( const CHAR *pCLFullName,
-                                               dmsStorageUnit *su,
-                                               dmsMBContext *mbContext,
-                                               dmsExtentID indexExtID,
-                                               dmsExtentID indexLID )
+   INT32 _optAccessPlanRuntime::bindPlanInfo( const CHAR *pCLFullName,
+                                              dmsExtentID indexExtID,
+                                              dmsExtentID indexLID,
+                                              utilCLUniqueID clUID )
    {
       INT32 rc = SDB_OK ;
 
@@ -313,13 +316,11 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to create sub-collection scan info, "
                       "rc: %d", rc ) ;
       }
-
-      _clScanInfo->setCSInfo( su ) ;
-      _clScanInfo->setCLInfo( mbContext ) ;
+      
       _clScanInfo->setCLFullName( pCLFullName ) ;
       _clScanInfo->setIndexExtID( indexExtID ) ;
       _clScanInfo->setIndexLID( indexLID ) ;
-
+      _clScanInfo->setCLUniqueID( clUID ) ;
    done :
       PD_TRACE_EXITRC( SDB_OPTAPRTM_BINDPLANINFO, rc ) ;
       return rc ;

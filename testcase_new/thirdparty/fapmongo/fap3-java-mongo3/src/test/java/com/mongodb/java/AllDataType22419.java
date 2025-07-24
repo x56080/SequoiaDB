@@ -67,8 +67,12 @@ public class AllDataType22419 extends MongodbTestBase {
     }
 
     @SuppressWarnings("deprecation")
+<<<<<<< HEAD
     // SEQUOIADBMAINSTREAM-9792
     @Test(enabled = false)
+=======
+    @Test
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     public void test1() {
         MongoCollection< Document > cl = db.getCollection( clName1 );
         BsonDocument bsonDocument = new BsonDocument()

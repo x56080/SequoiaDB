@@ -28,7 +28,11 @@ func.js 中方法：
       删除 domain            commDropDomain(db,domainName,ignoreNotExist)
 
    4、检查
+<<<<<<< HEAD
       检查索引一致性         commCheckIndexConsistency(cl,indexName,exist,timeout)
+=======
+      检查索引一致性         commCheckIndexConsistency(cl,indexName,exist,timeout) 
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       commCheckIndexConsistency存在漏洞，建议使用commCheckIndexConsistent
       检查索引一致性         commCheckIndexConsistent ( db, csname, clname, idxname, isExist )
       检查集群状态(retry)    commCheckBusinessStatus(db,timeout,checkLSN)
@@ -84,12 +88,22 @@ if( typeof ( CLEANFORFAIL ) == "undefined" ) { var CLEANFORFAIL = false; }
 if( typeof ( DSHOSTNAME ) == "undefined" ) { DSHOSTNAME = 'localhost'; }
 //数据源端端口号，CI默认传入11810
 if( typeof ( DSSVCNAME ) == "undefined" ) { DSSVCNAME = '11810'; }
+<<<<<<< HEAD
+=======
+//STP服务端主机名，CI默认传入localhost
+if( typeof ( STPHOSTNAME ) == "undefined" ) { STPHOSTNAME = 'localhost'; }
+//STP服务端端口号，CI默认传入9622
+if( typeof ( STPSVCNAME ) == "undefined" ) { STPSVCNAME = '9622'; }
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 //远程机器用户名
 if( typeof ( REMOTEUSER ) == "undefined" ) { REMOTEUSER = "sdbadmin"; }
 //远程机器用户密码
 if( typeof ( REMOTEPASSWD ) == "undefined" ) { REMOTEPASSWD = "Admin@1024"; }
 // CHANGEDPREFIX = local_test
+<<<<<<< HEAD
 
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 var cmd = new Cmd();
 var hostname = cmd.run( "hostname" ).split( "\n" )[0];
 hostname = hostname.replace( /-/g, "_" );
@@ -257,13 +271,17 @@ function commCreateCL ( db, csName, clName, optionObj, autoCreateCS, ignoreExist
       }
    }
 
-   try
+   try                                                                                      
    {
       return csObj.createCL( clName, optionObj );
    }
-   catch( e )
+   catch( e )                                                                               
    {
+<<<<<<< HEAD
       if( commCompareErrorCode( e, SDB_DMS_EXIST ) && ignoreExisted )
+=======
+      if( commCompareErrorCode( e, SDB_DMS_EXIST ) && ignoreExisted )                                 
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       {
          // think right
          csObj.dropCL( clName );
@@ -342,7 +360,11 @@ function commDropCL ( db, csName, clName, ignoreCSNotExist, ignoreCLNotExist, me
    }
    catch( e )
    {
+<<<<<<< HEAD
       if( ( commCompareErrorCode( e, SDB_DMS_CS_NOTEXIST ) && ignoreCSNotExist ) || ( commCompareErrorCode( e, SDB_DMS_NOTEXIST ) && ignoreCLNotExist ) )
+=======
+      if( ( commCompareErrorCode( e, SDB_DMS_CS_NOTEXIST ) && ignoreCSNotExist ) || ( commCompareErrorCode( e, -23 ) && ignoreCLNotExist ) )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       {
          // think right
       }
@@ -1342,7 +1364,10 @@ function commCompareResults ( cursor, expRecs, exceptId )
          {
             expRecord = expRecs[pos++];
          }
+<<<<<<< HEAD
 
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          var actRecord = cursor.current().toObj();
          if( actRecord._id != undefined && exceptId )
          {
@@ -1364,7 +1389,11 @@ function commCompareResults ( cursor, expRecs, exceptId )
       {
          isSuccess = false;
          pos = actRecs.length > expRecs.length ? expRecs.length : actRecs.length;
+<<<<<<< HEAD
          posOfFailure = pos;
+=======
+         posOfFailure = pos == 0 ? 0 : pos - 1;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          if( actRecs.length != 0 && JSON.stringify( actRecs[posOfFailure] ).length > 1024 )
          {
             isLong = true;
@@ -1390,6 +1419,10 @@ function commCompareResults ( cursor, expRecs, exceptId )
       {
          var expStr = posOfFailure < expRecs.length ? JSON.stringify( expRecs[posOfFailure] ) : "";
          var actStr = posOfFailure < actRecs.length ? JSON.stringify( actRecs[posOfFailure] ) : "";
+<<<<<<< HEAD
+=======
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          throw new Error( "compare the " + recordLocation + "th record failed, "
             + "\nexp record count: " + expRecs.length
             + "\nact record count: " + actRecs.length
@@ -1445,7 +1478,7 @@ function commCompareObject ( expObj, actObj )
    {
       return expObj == actObj;
    }
-   if( isDirectCompare( actObj ) )
+   if( isDirectCompare( actObj ) || isDirectCompare( expObj ) != isDirectCompare( actObj ) )
    {
       if( typeof ( actObj ) === "number" && isNaN( actObj ) )
       {

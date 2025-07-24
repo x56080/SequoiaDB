@@ -1,0 +1,377 @@
+import os
+from os.path import join
+
+Import("stpEnv")
+Import("linux")
+Import("linux64")
+Import("sqlite_dir")
+
+bsonFiles = [
+      "bson/bsonobj.cpp",
+      "bson/oid.cpp",
+      "bson/base64.cpp",
+      "bson/nonce.cpp",
+      "bson/md5.c",
+      "bson/bsonDecimal.cpp",
+      "util/utilBsongen.cpp"
+      ]
+
+rtnJobFiles = [
+      "rtn/rtnBackgroundJobBase.cpp"
+      ]
+
+msgFiles = [
+      "msg/msgMessage.cpp",
+      "msg/msgMessageFormat.cpp",
+      "msg/msgCatalog.cpp",
+      "msg/msgAuth.cpp",
+      "msg/msgConvertorImpl.cpp"
+      ]
+
+ossFiles = [
+      "oss/ossSSLCertificate.c",
+      "oss/ossSSLWrapper.c",
+      "oss/ossSSLContext.c",
+      "oss/ossErr.cpp",
+      "oss/oss.cpp",
+      "oss/ossUtil.cpp",
+      "oss/ossFile.cpp",
+      "oss/ossPath.cpp",
+      "oss/ossPrimitiveFileOp.cpp",
+      "oss/ossStackDump.cpp",
+      "oss/ossEDU.cpp",
+      "oss/ossSocket.cpp",
+      "oss/ossIO.cpp",
+      "oss/ossVer.cpp",
+      "oss/ossMem.cpp",
+      "oss/ossProc.cpp",
+      "oss/ossCmdRunner.cpp",
+      "oss/ossNPipe.cpp",
+      "oss/ossLatch.cpp",
+      "oss/ossRWMutex.cpp",
+      "oss/ossEvent.cpp",
+      "oss/ossDynamicLoad.cpp",
+      "oss/ossHdfs.cpp",
+      "oss/ossShMem.cpp"
+      ]
+
+netFiles = [
+      "net/netEventHandlerBase.cpp",
+      "net/netEventHandler.cpp",
+      "net/netEventSuit.cpp",
+      "net/netUDPEventHandler.cpp",
+      "net/netUDPEventSuit.cpp",
+      "net/netInnerTimer.cpp",
+      "net/netFrame.cpp",
+      "net/netRoute.cpp",
+      "net/netRouteAgent.cpp"
+      ]
+
+pdFiles = [
+      "pd/pdErr.cpp",
+      "pd/pd.cpp",
+      "pd/pdTrace.cpp",
+      "pd/pdComponents.cpp",
+      "pd/pdFunctionList.cpp",
+      "pd/pdTraceAnalysis.cpp"
+      ]
+
+pmdFiles = [
+      "pmd/pmdDaemon.cpp",
+      "pmd/pmdWinService.cpp",
+      "pmd/pmdProc.cpp",
+      "cls/clsUtil.cpp",
+      "pmd/pmdOptionsMgr.cpp",
+      "pmd/pmdOptionsParse.cpp",
+      "pmd/pmdEnv.cpp",
+      "pmd/pmdSignalHandler.cpp",
+      "pmd/pmdStartup.cpp"
+      ]
+
+# pmd multiple thread model files.
+pmdMTFiles = [
+      "pmd/pmdMemPool.cpp",
+      "pmd/pmdLightJobMgr.cpp",
+      "pmd/pmdSyncMgr.cpp",
+      "pmd/pmd.cpp",
+      "pmd/pmdEDU.cpp",
+      "pmd/pmdEDUMgr.cpp",
+      "pmd/pmdEntryPoint.cpp",
+      "mon/monCB.cpp",
+      "mon/monMgr.cpp",
+      "mon/monClass.cpp",
+      "mon/monLatch.cpp",
+      "pmd/pmdAsyncSessionAgent.cpp",
+      "pmd/pmdInnerClient.cpp",
+      "pmd/pmdAsyncHandler.cpp",
+      "pmd/pmdAsyncSession.cpp",
+      "pmd/pmdSessionBase.cpp",
+      "pmd/pmdCBMgrEntryPoint.cpp",
+      "pmd/pmdAsyncNetEntryPoint.cpp",
+      "pmd/pmdBackgroundJob.cpp",
+      "pmd/pmdWindowsListener.cpp",
+      "pmd/pmdPipeManager.cpp",
+      "pmd/pmdEDUEntryPoint.cpp",
+      "pmd/pmdFTMgr.cpp",
+
+      "sched/schedDef.cpp",
+      "sched/schedTaskQue.cpp",
+      "sched/schedTaskContainer.cpp",
+      "sched/schedTaskAdapter.cpp",
+      "sched/schedTaskAdapterBase.cpp",
+      "sched/schedPrepareJob.cpp",
+      "sched/schedDispatchJob.cpp",
+      "sched/schedTaskMgr.cpp",
+
+      "rtn/rtnQueryOptions.cpp"
+      ]
+
+utilFiles = [
+      "util/fromjson.cpp",
+      "util/json2rawbson.c",
+      "client/bson/numbers.c",
+      "client/bson/bson.c",
+      "client/bson/encoding.c",
+      "client/bson/common_decimal.c",
+      "client/base64c.c",
+      "client/cJSON.c",
+      "client/cJSON_ext.c",
+      "client/cJSON_iterator.c",
+      "client/jstobs.c",
+      "client/timestampParse.c",
+      "client/timestampTm.c",
+      "client/timestampValid.c",
+      "bson/md5.c",
+      "util/utilBsonHash.cpp",
+      "util/utilBsonHashObsolete.cpp",
+      "util/utilParseJSONs.cpp",
+      "util/utilParseCSV.cpp",
+      "util/utilParseData.cpp",
+      "util/utilAccessDataLocalIO.cpp",
+      "util/utilAccessDataHdfs.cpp",
+      "util/utilPath.cpp",
+      "util/text.cpp",
+      "util/utilStr.cpp",
+      "util/utilParam.cpp",
+      "util/utilCommon.cpp",
+      "util/utilMemBlockPool.cpp",
+      "util/utilMemListPool.cpp",
+      "util/utilPooledAutoPtr.cpp",
+      "util/utilLightJobBase.cpp",
+      "util/utilNodeOpr.cpp",
+      "util/utilSdb.cpp",
+      "util/csv2rawbson.cpp",
+      "util/rawbson2csv.c",
+      "util/utilDecodeRawbson.cpp",
+      "util/utilCache.cpp",
+      "util/utilOptions.cpp",
+      "util/utilStream.cpp",
+      "util/utilFileStream.cpp",
+      "util/utilZlibStream.cpp",
+      "util/utilJsonFile.cpp",
+      "util/linenoise.cpp",
+      "util/utilPasswdTool.cpp",
+      "util/utilCipherFile.cpp",
+      "util/utilCipherMgr.cpp",
+      "util/utilCipher.c",
+      "util/utilPidFile.cpp",
+      "util/utilTypeCast.c",
+      "util/utilLobID.cpp",
+      "util/utilIniParser.c",
+      "util/utilIniParserEx.cpp"
+      ]
+
+utilSQLiteFiles = [
+      "util/utilSQLiteDB.cpp"
+      ]
+
+ssh2Files = [
+      "ssh2/agent.c",
+      "ssh2/channel.c",
+      "ssh2/comp.c",
+      "ssh2/crypt.c",
+      "ssh2/global.c",
+      "ssh2/hostkey.c",
+      "ssh2/keepalive.c",
+      "ssh2/kex.c",
+      "ssh2/knownhost.c",
+      "ssh2/libgcrypt.c",
+      "ssh2/mac.c",
+      "ssh2/misc.c",
+      "ssh2/openssl.c",
+      "ssh2/packet.c",
+      "ssh2/pem.c",
+      "ssh2/publickey.c",
+      "ssh2/scp.c",
+      "ssh2/session.c",
+      "ssh2/sftp.c",
+      "ssh2/transport.c",
+      "ssh2/userauth.c",
+      "ssh2/version.c",
+      "ssh2/bcrypt_pbkdf.c",
+      "ssh2/blowfish.c",
+      "ssh2/mbedtls.c",
+      "ssh2/wincng.c"
+      ]
+
+clsReplFiles = [
+      "cls/clsReplAgent.cpp",
+      "cls/clsUtil.cpp",
+      "cls/clsVoteMachine.cpp",
+      "cls/clsVSAnnounce.cpp",
+      "cls/clsVSPrimary.cpp",
+      "cls/clsVSSecondary.cpp",
+      "cls/clsVSSilence.cpp",
+      "cls/clsVSVote.cpp",
+      "cls/clsVoteStatus.cpp",
+      "cls/clsReelection.cpp",
+      "cls/clsSyncManager.cpp"
+      ]
+
+clientCFiles = [
+      "client/client.c",
+      "client/common.c",
+      "client/network.c"
+      ]
+
+sqliteFiles = [
+      join( sqlite_dir, "sqlite3.c" )
+      ]
+
+stpCommonFiles = [
+      "tools/stp/stpNode.cpp",
+      "tools/stp/stpSyncStats.cpp",
+      "tools/stp/stpMetaData.cpp",
+      "tools/stp/stpOptions.cpp"
+      ]
+
+stpFiles = [
+      "tools/stp/stpCB.cpp",
+      "tools/stp/stpModule.cpp",
+      "tools/stp/stpServerSession.cpp",
+      "tools/stp/stpMetaStore.cpp",
+      "tools/stp/stpMsgHandler.cpp",
+      "tools/stp/stpNetManager.cpp",
+      "tools/stp/stpSyncSource.cpp",
+      "tools/stp/stpServiceManager.cpp",
+      "tools/stp/stpNodeManager.cpp",
+      "tools/stp/stpMetaManager.cpp",
+      "tools/stp/stpSyncSourceManager.cpp",
+      "tools/stp/stpSyncClientManager.cpp",
+      "tools/stp/stpReplManager.cpp",
+      "tools/stp/stpSession.cpp",
+      "tools/stp/stpCommand.cpp",
+      "tools/stp/stpTimeMapManager.cpp"
+      ]
+
+stpToolFiles = [
+      "tools/stp/stpToolUtil.cpp"
+      ]
+
+stpClientFiles = [
+      "tools/stp/stpClientInternal.cpp",
+      "tools/stp/stpClient.cpp"
+      ]
+
+stpMainFiles = [
+      "tools/stp/stp.cpp"
+      ]
+
+stpstartFiles = [
+      "tools/stp/stpstart.cpp"
+      ]
+
+stpstopFiles = [
+      "tools/stp/stpstop.cpp"
+      ]
+
+stpqFiles = [
+      "tools/stp/stpq.cpp"
+      ]
+
+stplistFiles = [
+      "tools/stp/stplist.cpp"
+      ]
+
+# Runtime
+stpEnv.StaticLibrary('rtnJob', rtnJobFiles)
+# BSON
+stpEnv.StaticLibrary('bson', bsonFiles)
+# Operating System Services
+stpEnv.StaticLibrary('oss', ossFiles)
+# Problem Determination
+stpEnv.StaticLibrary('pd', pdFiles)
+# Process Model
+stpEnv.StaticLibrary('pmd', pmdFiles)
+# Multiple thread model
+stpEnv.StaticLibrary('pmdMT', pmdMTFiles)
+# Utilities
+stpEnv.StaticLibrary('util', utilFiles)
+# SQLite
+stpEnv.StaticLibrary('utilSQLite', utilSQLiteFiles)
+# Message
+stpEnv.StaticLibrary('msg', msgFiles)
+# Network
+stpEnv.StaticLibrary('net', netFiles)
+# ssh
+stpEnv.StaticLibrary('ssh2', ssh2Files)
+# cls replication
+stpEnv.StaticLibrary('clsRepl', clsReplFiles)
+# Client Driver
+stpEnv.StaticLibrary('clientc', clientCFiles)
+# sqlite
+stpEnv.StaticLibrary('sqlite', sqliteFiles)
+# Serial Time Protocol
+stpEnv.StaticLibrary('stp', stpFiles)
+# STP common
+stpEnv.StaticLibrary('stpCommon', stpCommonFiles)
+# STP tool
+stpEnv.StaticLibrary('stpTool', stpToolFiles)
+# STP client
+stpEnv.StaticLibrary('stpClient', stpClientFiles)
+
+#Executable
+stp = stpEnv.Program(
+      "stp",
+      stpMainFiles,
+      LIBDEPS = [ "pd", "oss", "msg", "bson", "util", "net", "pmd",
+                  "pmdMT", "ssh2", "rtnJob", "clsRepl", "stp", "stpTool",
+                  "stpCommon", "utilSQLite", "sqlite" ],
+      _LIBDEPS = '$_LIBDEPS_OBJS'
+      )
+
+stpstart = stpEnv.Program(
+      "stpstart",
+      stpstartFiles,
+      LIBDEPS = [ "pd", "oss", "pmd", "bson", "util", "stpTool" ],
+      _LIBDEPS = '$_LIBDEPS_OBJS'
+      )
+
+stpstop = stpEnv.Program(
+      "stpstop",
+      stpstopFiles,
+      LIBDEPS = [ "pd", "oss", "bson", "util" ],
+      _LIBDEPS = '$_LIBDEPS_OBJS'
+      )
+
+stpq = stpEnv.Program(
+      "stpq",
+      stpqFiles,
+      LIBDEPS = [ "pd", "oss", "pmd", "bson", "util", "stpClient",
+                  "stpCommon", "stpTool", "clientc" ],
+      _LIBDEPS = '$_LIBDEPS_OBJS'
+      )
+
+stplist = stpEnv.Program(
+      "stplist",
+      stplistFiles,
+      LIBDEPS = [ "pd", "oss", "pmd", "bson", "util", "stpClient",
+                  "stpCommon", "stpTool", "clientc" ],
+      _LIBDEPS = '$_LIBDEPS_OBJS'
+      )
+
+stpEnv.Install( '#/bin', stp )
+stpEnv.Install( '#/bin', stpstart )
+stpEnv.Install( '#/bin', stpstop )
+stpEnv.Install( '#/bin', stpq )
+stpEnv.Install( '#/bin', stplist )

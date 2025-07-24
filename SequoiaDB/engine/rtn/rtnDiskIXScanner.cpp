@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = rtnIXScanner.cpp
 
@@ -36,7 +34,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #include "rtnIXScanner.hpp"
 #include "rtnDiskIXScanner.hpp"
 #include "dmsStorageUnit.hpp"
@@ -44,6 +41,10 @@
 #include "keystring/utilKeyStringBuilder.hpp"
 #include "pdTrace.hpp"
 #include "rtnTrace.hpp"
+<<<<<<< HEAD
+=======
+#include "optAccessPlanRuntime.hpp"
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 #include "pdSecure.hpp"
 
 using namespace std ;
@@ -54,14 +55,19 @@ namespace engine
 {
 
    _rtnDiskIXScanner::_rtnDiskIXScanner ( ixmIndexCB *indexCB,
-                                          rtnPredicateList *predList,
+                                          optAccessPlanRuntime * planRuntime,
                                           _dmsStorageUnit *su,
                                           _dmsMBContext *mbContext,
                                           BOOLEAN isAsync,
                                           _pmdEDUCB *cb,
                                           BOOLEAN indexCBOwnned )
+<<<<<<< HEAD
    :_rtnIXScanner( indexCB, predList, su, mbContext, isAsync, cb, indexCBOwnned ),
      _listIterator( *predList ),
+=======
+   :_rtnIXScanner( indexCB, planRuntime, su, cb, indexCBOwnned ),
+     _listIterator( *_pPredList ),
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
      _pMonCtxCB(NULL)
    {
       _reset() ;
@@ -125,8 +131,12 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNDISKIXSCAN_RELORID1, "_rtnDiskIXScanner::_relocateRID" )
    INT32 _rtnDiskIXScanner::_relocateRID( const BSONObj &keyObj,
                                           const dmsRecordID &rid,
+<<<<<<< HEAD
                                           INT32 direction,
                                           BOOLEAN &isFound )
+=======
+                                          INT32 direction )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
       INT32 rc = SDB_OK ;
 
@@ -149,15 +159,45 @@ namespace engine
 
       if ( !_init )
       {
+<<<<<<< HEAD
          rc = _firstInit() ;
          if ( SDB_IXM_EOC == rc )
+=======
+         monAppCB * pMonAppCB   = _cb ? _cb->getMonAppCB() : NULL ;
+         // get root
+         dmsExtentID rootExtent = _indexCB->getRoot() ;
+         ixmExtent root ( rootExtent, _su->index() ) ;
+         BOOLEAN found          = FALSE ;
+
+         // locate the new key, the returned RID is stored in _curIndexRID
+         rc = root.locate ( keyObj, rid, _order, _curIndexRID,
+                            found, direction, _indexCB ) ;
+         PD_RC_CHECK ( rc, PDERROR, "Failed to locate from new keyobj(%s) "
+                       "and rid(%d, %d), rc: %d", PD_SECURE_OBJ( keyObj ),
+                       rid._extent, rid._offset, rc ) ;
+
+         _savedObj = keyObj.getOwned() ;
+         _savedRID = rid ;
+
+         if ( found && !isReadonly() )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          {
             _isEOF = TRUE ;
             goto done ;
          }
          PD_RC_CHECK( rc, PDERROR, "Failed to init scanner, rc: %d", rc ) ;
 
+<<<<<<< HEAD
          _init = TRUE ;
+=======
+         DMS_MON_OP_COUNT_INC( pMonAppCB, MON_INDEX_READ, 1 ) ;
+#ifdef _DEBUG
+         PD_LOG ( PDDEBUG,
+                  "relocateRID to saved obj(%s) and rid(%d, %d), found(%d)",
+                  _savedObj.toString().c_str(),
+                  _savedRID._extent, _savedRID._offset, found ) ;
+#endif
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       }
 
       PD_CHECK( _cursorPtr, SDB_DMS_CONTEXT_IS_CLOSE, error, PDERROR,
@@ -183,9 +223,20 @@ namespace engine
       goto done ;
    }
 
+<<<<<<< HEAD
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNDISKIXSCAN_RELORID, "_rtnDiskIXScanner::relocateRID" )
    INT32 _rtnDiskIXScanner::relocateRID( const BSONObj &keyObj,
                                          const dmsRecordID &rid )
+=======
+   INT32 _rtnDiskIXScanner::relocateRID( const BSONObj &keyObj,
+                                         const dmsRecordID &rid )
+   {
+      return _relocateRID( keyObj, rid, _direction ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNDISKIXSCAN_RELORID2, "_rtnDiskIXScanner::relocateRID" )
+   INT32 _rtnDiskIXScanner::relocateRID( BOOLEAN &found )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
       INT32 rc = SDB_OK ;
 
@@ -195,9 +246,16 @@ namespace engine
       rc = _relocateRID( keyObj, rid, _direction, isFound ) ;
       if ( SDB_IXM_EOC == rc )
       {
+<<<<<<< HEAD
          _isEOF = TRUE ;
          rc = SDB_OK ;
          goto done ;
+=======
+         PD_LOG ( PDERROR, "Failed to locate from saved obj(%s) and "
+                  "rid(%d, %d), rc: %d", PD_SECURE_OBJ( _savedObj ),
+                  _savedRID._extent, _savedRID._offset, rc ) ;
+         goto error ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       }
       PD_RC_CHECK( rc, PDERROR, "Failed to relocate RID, rc: %d", rc ) ;
 
@@ -269,6 +327,7 @@ namespace engine
          }
          else
          {
+<<<<<<< HEAD
             _savedRID.reset() ;
             _relocatedRID.reset() ;
             _savedObj = BSONObj() ;
@@ -276,6 +335,100 @@ namespace engine
 
          rc = _fetchNext( rid, needAdvance ) ;
          if ( SDB_IXM_EOC == rc )
+=======
+            PD_LOG ( PDERROR, "Failed to get buffer from current rid(%d, %d)",
+                     _curIndexRID._extent, _curIndexRID._slot ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+         try
+         {
+            // get the key from index rid
+            try
+            {
+               _builder.reset();
+               _curKeyObj = ixmKey(dataBuffer).toBson( &_builder ) ;
+               DMS_MON_OP_COUNT_INC( pMonAppCB, MON_INDEX_READ, 1 ) ;
+            }
+            catch ( std::exception &e )
+            {
+               PD_RC_CHECK ( SDB_SYS, PDERROR,
+                             "Failed to convert from buffer "
+                             "to bson, rid:(%d, %d): %s",
+                             _curIndexRID._extent,
+                             _curIndexRID._slot, e.what() ) ;
+            }
+            // compare the key in list iterator
+            rc = _listIterator.advance ( _curKeyObj ) ;
+            // if -2, that means we hit end of iterator, so all other keys in
+            // index are not within our select range
+            if ( -2 == rc )
+            {
+               rc = SDB_IXM_EOC ;
+               goto done ;
+            }
+            // if >=0, that means the key is not selected and we want to
+            // further advance the key in index
+            else if ( rc >= 0 )
+            {
+               lastRID = _curIndexRID ;
+               rc = indexExtent.keyAdvance ( _curIndexRID, _curKeyObj, rc,
+                                             _listIterator.after(),
+                                             _listIterator.cmp(),
+                                             _listIterator.inc(),
+                                             _order, _direction, _cb ) ;
+               PD_RC_CHECK ( rc, PDERROR,
+                             "Failed to advance, rc = %d", rc ) ;
+               if ( lastRID == _curIndexRID )
+               {
+                  _curIndexRID.reset() ;
+               }
+               continue ;
+            }
+            // otherwise let's attempt to get dms rid
+            else
+            {
+               _savedRID = indexExtent.getRID( _curIndexRID._slot ) ;
+               // make sure the RID we read is not psuedo-deleted
+               if ( _savedRID.isNull() || !_insert2Dup( _savedRID ) )
+               {
+                  // usually this means a psuedo-deleted rid, we should jump
+                  // back to beginning of the function and advance to next
+                  // key
+                  // if we are able to find the recordid in dupBuffer, that
+                  // means we've already processed the record, so let's also
+                  // jump back to begin
+                  _savedRID.reset() ;
+                  goto begin ;
+               }
+               // make sure we don't hit maximum size of dedup buffer
+               /*if ( _pInfo && _pInfo->isUpToLimit() )
+               {
+                  rc = SDB_IXM_DEDUP_BUF_MAX ;
+                  goto error ;
+               }*/
+
+               // ready to return to caller
+               rid = _savedRID ;
+
+               // if we are write mode, let's record the _savedObj as well
+               if ( !isReadonly() )
+               {
+                  _savedObj = _curKeyObj.getOwned() ;
+               }
+               // otherwise if we are read mode, let's reset _savedRID
+               else
+               {
+                  // in readonly scenario, _savedRID should always be null
+                  // unless pauseScan() is called
+                  _savedRID.reset() ;
+               }
+               rc = SDB_OK ;
+               break ;
+            }
+         } // try
+         catch( std::bad_alloc &e )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          {
             goto done ;
          }
@@ -322,12 +475,43 @@ namespace engine
 
       if ( !_savedRID.isValid() )
       {
+<<<<<<< HEAD
          rc = _cursorPtr->getCurrentKey( _savedObj ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to save key, rc: %d", rc ) ;
          _savedObj = _savedObj.getOwned() ;
 
          rc = _cursorPtr->getCurrentRecordID( _savedRID ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to save record ID, rc: %d", rc ) ;
+=======
+         const CHAR *dataBuffer = NULL ;
+         // for read mode, let's copy savedobj then
+         ixmExtent indexExtent( _curIndexRID._extent, _su->index() ) ;
+         dataBuffer = indexExtent.getKeyData( _curIndexRID._slot ) ;
+         if ( !dataBuffer )
+         {
+            PD_LOG ( PDERROR, "Failed to get buffer from current rid(%d, %d)",
+                     _curIndexRID._extent, _curIndexRID._slot ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+         try
+         {
+            _savedObj = ixmKey(dataBuffer).toBson().getOwned() ;
+         }
+         catch ( std::exception &e )
+         {
+            PD_LOG ( PDERROR, "Failed to convert buffer to bson from current "
+                     "rid(%d, %d): %s", _curIndexRID._extent,
+                     _curIndexRID._slot, e.what() ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+         _savedRID = indexExtent.getRID( _curIndexRID._slot ) ;
+
+         PD_LOG( PDDEBUG, "Paused in obj(%s) with rid(%d, %d)",
+                 PD_SECURE_OBJ( _savedObj ),
+                 _savedRID._extent, _savedRID._offset ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       }
 
       rc = _cursorPtr->pause( _cb ) ;
@@ -417,7 +601,35 @@ namespace engine
          _savedRID.reset() ;
          _curKeyObj = _savedObj ;
       }
+<<<<<<< HEAD
       _relocatedRID.reset() ;
+=======
+      else
+      {
+         // when we get here, it means something changed and we need to
+         // relocateRID
+         // note relocateRID may relocate to the index that already read.
+         // However after advance() returning the RID we'll check if the
+         // index already has been read, so we should be safe to not
+         // reset _savedRID
+         rc = relocateRID( isSame ) ;
+         if ( rc )
+         {
+            PD_LOG ( PDERROR, "Failed to relocate RID, rc: %d", rc ) ;
+            goto error ;
+         }
+
+         PD_LOG( PDDEBUG, "Relocate in obj(%s) with rid(%d, %d), found(%d)",
+                 PD_SECURE_OBJ( _savedObj ), _savedRID._extent,
+                 _savedRID._offset, isSame ) ;
+
+         if ( isSame )
+         {
+            _savedRID.reset() ;
+            _curKeyObj = _savedObj ;
+         }
+      }
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    done:
       PD_TRACE_EXITRC ( SDB__RTNDISKIXSCAN_RESUMESCAN, rc ) ;
@@ -516,8 +728,22 @@ namespace engine
       goto done ;
    }
 
+<<<<<<< HEAD
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNDISKIXSCAN__FETCHNEXT, "_rtnDiskIXScanner::_fetchNext" )
    INT32 _rtnDiskIXScanner::_fetchNext( dmsRecordID &rid, BOOLEAN &needAdvance )
+=======
+   void _rtnDiskIXScanner::getOwnerTransID( DPS_TRANS_ID &transID )
+   {
+      SDB_ASSERT( FALSE, "Owner not provided in disk scan.") ;
+      transID.reset() ;
+   }
+
+   INT32 _rtnDiskIXScanner::_isCursorSame( ixmExtent *pExtent,
+                                           const BSONObj &saveObj,
+                                           const dmsRecordID &saveRID,
+                                           BOOLEAN &isSame,
+                                           BOOLEAN *hasRead )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
       INT32 rc = SDB_OK ;
 
@@ -578,6 +804,7 @@ namespace engine
          // otherwise let's attempt to get dms rid
          else
          {
+<<<<<<< HEAD
             rc = _cursorPtr->getCurrentRecordID( rid ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to get record ID, rc: %d", rc ) ;
 
@@ -596,6 +823,13 @@ namespace engine
             }
             rc = SDB_OK ;
             break ;
+=======
+            PD_LOG ( PDERROR, "Failed to convert buffer to bson from "
+                     "current rid(%d, %d): %s", _curIndexRID._extent,
+                     _curIndexRID._slot, e.what() ) ;
+            rc = SDB_SYS ;
+            goto error ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          }
       }
 
@@ -605,6 +839,49 @@ namespace engine
 
    error:
       goto done ;
+   }
+
+   void _rtnDiskIXScanner::getRBSPositions( dmsRBSOffset & startPos,
+                                            dmsRBSOffset & endPos,
+                                            dmsRecordID  & rid,
+                                            preIdxTreePtr  memTree )
+   {
+      preIdxTreePtr  tree ;
+      // native diskIXScan should not get to here. We can only
+      // call this function through merge scan, and the tree
+      // should have been set up. One speical case was during merge
+      // scan, the MemIXscanner hasn't touch the tree yet,
+      // if we come from disk ixscanner, we might need to search
+      // RBS, but the stopping position would be the first position
+      // pointed by mem tree
+      startPos.reset() ;
+      endPos.reset() ;
+
+      if ( !memTree.get() )
+      {
+         globIdxID gid( getSu()->CSID(),
+                        getIndexCB()->getMBID(),
+                        getIndexCB()->getLogicalID() ) ;
+         tree = pmdGetKRCB()->getTransCB()->getOldVCB()
+                ->getIdxTree( gid, FALSE ) ;
+      }
+      else
+      {
+         tree = memTree ;
+      }
+      if ( tree.get() )
+      {
+         // End position should be the newest index tree value for
+         // this RID. If there is no keynode for this RID in memTree, that
+         // means we didn't change the index before, we should search the
+         // whole RBS
+         INDEX_TREE_POS it = memTree->getKeyNodeFromRidTree( rid ) ;
+         if ( it != memTree->getTree()->end() )
+         {
+            endPos = it->second.getRBSOffset() ;
+         }
+      }
+      return ;
    }
 
 }

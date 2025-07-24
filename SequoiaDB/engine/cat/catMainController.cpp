@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = catMainController.cpp
 
@@ -378,7 +377,8 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATMAINCT_HANDLEMSG, "catMainController::handleMsg" )
    INT32 catMainController::handleMsg( const NET_HANDLE &handle,
                                        const _MsgHeader *header,
-                                       const CHAR *msg )
+                                       const CHAR *msg,
+                                       UINT64 msgUserData )
    {
       SDB_ASSERT ( _pEduMgr && _pCatCB && _pDmsCB,
                    "all of the members must be initialized before init "
@@ -744,6 +744,21 @@ namespace engine
          goto error ;
       }
       rc = _createSysIndex ( CAT_TASK_INFO_COLLECTION,
+<<<<<<< HEAD
+=======
+                             CAT_TASK_INFO_TASKIDIDX, cb ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+      rc = _createSysIndex ( CAT_TASK_INFO_COLLECTION,
+                             CAT_TASK_INFO_MAINTASKIDIDX, cb ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+      rc = _createSysIndex ( CAT_TASK_INFO_COLLECTION,
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                              CAT_TASK_INFO_NAMEIDX, cb ) ;
       if ( rc )
       {
@@ -751,8 +766,12 @@ namespace engine
       }
 
       // create SYSCAT.SYSINDEXES
+<<<<<<< HEAD
       rc = _createSysCollection ( CAT_INDEX_INFO_COLLECTION,
                                   SYS_CAT_INDEXES_CLUID, cb ) ;
+=======
+      rc = _createSysCollection ( CAT_INDEX_INFO_COLLECTION, cb ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       if ( rc )
       {
          goto error ;
@@ -821,8 +840,12 @@ namespace engine
       }
 
       /// SYSDATASOURCES
+<<<<<<< HEAD
       rc = _createSysCollection( CAT_DATASOURCE_COLLECTION,
                                  SYS_CAT_DATASOURCES_CLUID, cb ) ;
+=======
+      rc = _createSysCollection( CAT_DATASOURCE_COLLECTION, cb ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       if ( rc )
       {
          goto error ;
@@ -840,6 +863,7 @@ namespace engine
          goto error ;
       }
 
+<<<<<<< HEAD
       /// SYSGROUPMODES
       rc = _createSysCollection( CAT_GROUP_MODE_COLLECTION,
                                  SYS_CAT_GROUPMODES_CLUID, cb ) ;
@@ -854,6 +878,8 @@ namespace engine
          goto error ;
       }
 
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       /// SYSLOG
       for ( UINT32 i = 0 ; i < CAT_SYSLOG_CL_NUM ; ++i )
       {
@@ -878,8 +904,12 @@ namespace engine
       }
 
       // collection for recycle bin item
+<<<<<<< HEAD
       rc = _createSysCollection( CAT_SYSRECYCLEBIN_ITEM_COLLECTION,
                                  SYS_RECYCLEBIN_ITEMS_CLUID, cb ) ;
+=======
+      rc = _createSysCollection( CAT_SYSRECYCLEBIN_ITEM_COLLECTION, cb ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       PD_RC_CHECK( rc, PDERROR, "Failed to create system collection [%s], "
                    "rc: %d", CAT_SYSRECYCLEBIN_ITEM_COLLECTION, rc ) ;
 
@@ -916,8 +946,12 @@ namespace engine
                    CAT_SYSRECYCLEBIN_ITEM_COLLECTION, rc ) ;
 
       // collection for recycled collection space
+<<<<<<< HEAD
       rc = _createSysCollection( CAT_SYSRECYCLEBIN_CS_COLLECTION,
                                  SYS_RECYCLEBIN_CS_CLUID, cb ) ;
+=======
+      rc = _createSysCollection( CAT_SYSRECYCLEBIN_CS_COLLECTION, cb ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       PD_RC_CHECK( rc, PDERROR, "Failed to create system collection [%s], "
                    "rc: %d", CAT_SYSRECYCLEBIN_CS_COLLECTION, rc ) ;
 
@@ -930,8 +964,12 @@ namespace engine
                    CAT_SYSRECYCLEBIN_CS_COLLECTION, rc ) ;
 
       // collection for recycled collection
+<<<<<<< HEAD
       rc = _createSysCollection( CAT_SYSRECYCLEBIN_CL_COLLECTION,
                                  SYS_RECYCLEBIN_CL_CLUID, cb ) ;
+=======
+      rc = _createSysCollection( CAT_SYSRECYCLEBIN_CL_COLLECTION, cb ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       PD_RC_CHECK( rc, PDERROR, "Failed to create system collection [%s], "
                    "rc: %d", CAT_SYSRECYCLEBIN_CL_COLLECTION, rc ) ;
 
@@ -952,8 +990,12 @@ namespace engine
                    CAT_SYSRECYCLEBIN_CL_COLLECTION, rc ) ;
 
       // collection for recycled sequence
+<<<<<<< HEAD
       rc = _createSysCollection( CAT_SYSRECYCLEBIN_SEQ_COLLECTION,
                                  SYS_RECYCLEBIN_SEQ_CLUID, cb ) ;
+=======
+      rc = _createSysCollection( CAT_SYSRECYCLEBIN_SEQ_COLLECTION, cb ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       PD_RC_CHECK( rc, PDERROR, "Failed to create system collection [%s], "
                    "rc: %d", CAT_SYSRECYCLEBIN_SEQ_COLLECTION, rc ) ;
 
@@ -966,8 +1008,12 @@ namespace engine
                    CAT_SYSRECYCLEBIN_SEQ_COLLECTION, rc ) ;
 
       // collection for recycled index
+<<<<<<< HEAD
       rc = _createSysCollection( CAT_SYSRECYCLEBIN_IDX_COLLECTION,
                                  SYS_RECYCLEBIN_INDEXES_CLUID, cb ) ;
+=======
+      rc = _createSysCollection( CAT_SYSRECYCLEBIN_IDX_COLLECTION, cb ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       PD_RC_CHECK( rc, PDERROR, "Failed to create system collection [%s], "
                    "rc: %d", CAT_SYSRECYCLEBIN_IDX_COLLECTION, rc ) ;
 
@@ -1015,9 +1061,12 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to active recycle bin manager, "
                    "rc: %d", rc ) ;
 
+<<<<<<< HEAD
       rc = _pAuthCB->getRoleManager()->active();
       PD_RC_CHECK( rc, PDERROR, "Failed to active role manager, rc: %d", rc ) ;
 
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       // all managers are active, now we can perform upgrade
       rc = _pCatCB->checkUpgrade() ;
       PD_RC_CHECK( rc, PDERROR, "Failed to upgrade CATALOG, rc: %d", rc ) ;
@@ -1097,7 +1146,23 @@ namespace engine
       BOOLEAN bIsDelay = FALSE ;
       BOOLEAN rtnDel = FALSE ;
 
+<<<<<<< HEAD
       rc = _pRtnCB->contextFind ( pGetMore->contextID, pContext, _pEDUCB ) ;
+=======
+      INT64 contextID = 0 ;
+      INT32 numToRead = 0 ;
+      const CHAR *pHint = NULL ;
+      BSONObj hint ;
+
+      rc = msgExtractGetMore( (CHAR*)pMsg, &numToRead, &contextID, &pHint ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG ( PDERROR, "Failed to extract getMore msg, rc: %d", rc ) ;
+         goto error ;
+      }
+
+      rc = _pRtnCB->contextFind ( contextID, pContext, _pEDUCB ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       if ( rc )
       {
          PD_LOG ( PDERROR, "Context %lld does not exist, rc: %d",
@@ -1116,8 +1181,28 @@ namespace engine
          }
       }
 
+<<<<<<< HEAD
       rc = rtnGetMore( pContext, pGetMore->numToReturn, buffObj,
                        _pEDUCB, _pRtnCB ) ;
+=======
+      if ( pHint )
+      {
+         try
+         {
+            hint = BSONObj( pHint ) ;
+         }
+         catch ( std::exception &e )
+         {
+            rc = ossException2RC( &e ) ;
+            PD_LOG( PDERROR, "An exception occurred when building hint "
+                    "bsonobj: %s, rc: %d", e.what(), rc ) ;
+            goto error ;
+         }
+      }
+
+      rc = rtnGetMore( pContext, pGetMore->numToReturn, buffObj,
+                       _pEDUCB, _pRtnCB, hint ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       if ( rc )
       {
          if ( SDB_DMS_EOC != rc )
@@ -1197,7 +1282,10 @@ namespace engine
       reply.header.TID             = pMsg->TID ;
       reply.header.routeID.value   = 0 ;
       reply.header.requestID       = pMsg->requestID ;
+<<<<<<< HEAD
       reply.header.globalID        = pMsg->globalID ;
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       reply.contextID              = contextID ;
       reply.startFrom              = 0 ;
       reply.numReturned            = 0 ;
@@ -1208,6 +1296,7 @@ namespace engine
       if ( rc )
       {
          PD_LOG( PDERROR, "Extrace advance message failed, rc: %d", rc ) ;
+<<<<<<< HEAD
          goto error ;
       }
 
@@ -1229,6 +1318,29 @@ namespace engine
          goto error ;
       }
 
+=======
+         goto error ;
+      }
+
+      // send the reply whether successful or not
+      try
+      {
+         BSONObj option( pOption ) ;
+         rc = rtnAdvance( contextID, option, pBackData, backDataSize,
+                          _pEDUCB, _pRtnCB ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    done :
       reply.flags = rc ;
       rc = _pCatCB->sendReply( handle, &reply, rc ) ;
@@ -1844,7 +1956,7 @@ namespace engine
 
       _pCatCB->incPacketLevel() ;
 
-      pos += sizeof( MsgHeader ) ;
+      pos += sizeof( MsgPacketReq ) ;
       while( pos < pMsg->messageLength )
       {
          pTmpMsg = ( MsgHeader* )( ( CHAR*)pMsg + pos ) ;

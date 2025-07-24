@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = dpsReplicaLogMgr.hpp
 
@@ -35,7 +33,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #ifndef DPSREPLICALOGMGR_H_
 #define DPSREPLICALOGMGR_H_
 
@@ -52,6 +49,7 @@
 #include "ossQueue.hpp"
 #include "dpsMetaFile.hpp"
 #include "utilCircularQueue.hpp"
+#include "dpsWriteContext.hpp"
 
 #include <vector>
 using namespace std ;
@@ -203,6 +201,11 @@ namespace engine
       // secondary step: write data to pages
       void  writeData ( dpsMergeInfo &info ) ;
 
+      INT32 write( IExecutor *executor,
+                   const dpsWriteRequest &request,
+                   const dpsWriteOptions &o,
+                   dpsLogRecordHeader *result ) ;
+
       INT32 search( const DPS_LSN &minLsn, _dpsMessageBlock *mb,
                     UINT8 type, BOOLEAN onlyHeader,
                     UINT32 *pLength = NULL );
@@ -293,6 +296,48 @@ namespace engine
          return _logger.getLogicalWorkPos() ;
       }
 
+      // get pointer to write mutex
+      ossSpinXLatch *getWriteMutex()
+      {
+         return _restoreFlag ? NULL : &_writeMutex ;
+      }
+
+      // get log summary of working file
+      INT32 getWorkSummary( dpsLogSummary &summary, BOOLEAN &isValid )
+      {
+         return _logger.getWorkSummary( summary, isValid ) ;
+      }
+
+      // get log summary from meta file
+      INT32 getMetaSummary( dpsLogSummary &summary )
+      {
+         summary = _metaFile.getCacheSummary() ;
+         return SDB_OK ;
+      }
+
+      // get begin LSN offset of working file
+      DPS_LSN_OFFSET getWorkBeginOffset()
+      {
+         return _logger.getWorkLogFile()->getFirstLSN( TRUE ).offset ;
+      }
+
+      // get summary for given LSN
+      // NOTE: the "current" is based on the log summary on the log file next
+      // to the given LSN offset
+      // - if the given offset is the first LSN of log file
+      //   ( which exactly the end of the previous log file ),
+      //   look for summary saved in this file
+      // - if the given offset is in the middle of log file,
+      //   look for summary saved in the next file
+      // - if the given offset is 0 ( it means the first LSN of all ),
+      //   summary is invalid
+      INT32 getCurrentSummary( DPS_LSN_OFFSET offset,
+                               dpsLogSummary &summary,
+                               BOOLEAN &isValid ) ;
+
+      // flush metadata of transaction to meta file
+      void flushTransMeta() ;
+
    private:
       void _allocate( UINT32 len,
                       dpsPageMeta &allocated ) ;
@@ -327,11 +372,27 @@ namespace engine
          return pageID >= _pageNum ? 0 : pageID ;
       }
 
-      void _flushOldestTransBeginLSN() ;
+      UINT32 _generateDummySize( BOOLEAN isRow, 
+                                 UINT32 recordSize ) const ;
 
-      UINT32 _generateDummySize( dpsMergeBlock &block,
-                                 dpsLogRecordHeader &head,
-                                 UINT32 logFileSz ) ;
+      OSS_INLINE UINT32 _getAlignedRecordSize(UINT32 bodySize) const
+      {
+         return ossAlign4(DPS_LOG_HEAD_SIZE + bodySize);
+      }
+
+      void _allocateDummyRecord( dpsWriteContext &ctx );
+
+      void _prepareLogBuffers(UINT32 size, dpsPageMeta &pm ) ;
+
+      void _allocateFormalRecord( dpsWriteContext &ctx ) ;
+
+      UINT32 _getCurrentFileFreeSize() const ;
+
+      void _writeToBuffer( dpsWriteContext &ctx ) ;
+
+      void _writeToBuffer( const dpsLogRecordHeader &header,
+                           const utilSlice &body,
+                           const dpsPageMeta &pm ) ;
    };
    typedef class _dpsReplicaLogMgr dpsReplicaLogMgr;
 }

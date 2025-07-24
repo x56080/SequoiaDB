@@ -1,4 +1,5 @@
 /******************************************************************************
+<<<<<<< HEAD
  * @Description   : seqDB-12130:string和array类型记录（记录长度较大）
  * @Author        : Wu Yan
  * @CreateTime    : 2019.05.29
@@ -16,11 +17,30 @@ function test ( args )
    var expRecords = insertRecords( varCL );
    var actRecords = varCL.find();
    commCompareResults( actRecords, expRecords );
+=======
+*@Description : seqDB-12130:string和array类型记录（记录长度较大）                   
+*@Author      : 2019-5-29  wuyan modify
+******************************************************************************/
+
+main( test );
+function test ()
+{
+   var clName = COMMCLNAME + "_12130";
+   var cl = readyCL( clName );
+   var expRecords = insertRecords( cl );
+   var actRecords = cl.find();
+   commCompareResults( actRecords, expRecords );
+   commDropCL( db, COMMCSNAME, clName );
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 }
 
 function getRandomString ( len ) 
 {
+<<<<<<< HEAD
    var strLen = parseInt( 1500 + ( Math.random() * len ) );
+=======
+   var strLen = parseInt( Math.random() * len );
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    var str = "";
    var chars = "ABCDEFGHIJKLMNOPQRATUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*";
    var maxPos = chars.length;

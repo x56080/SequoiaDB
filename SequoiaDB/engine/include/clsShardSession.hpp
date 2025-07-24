@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = clsShardSession.hpp
 
@@ -30,12 +28,15 @@
    Last Changed =
 
 *******************************************************************************/
-
 #ifndef CLS_SHARD_SESSION_HPP_
 #define CLS_SHARD_SESSION_HPP_
 
 #include "pmdAsyncSession.hpp"
 #include "rtn.hpp"
+<<<<<<< HEAD
+=======
+#include "clsCatalogAgent.hpp"
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 #include "rtnInsertModifier.hpp"
 
 using namespace bson ;
@@ -84,6 +85,134 @@ namespace engine
    } ;
    typedef _clsIdentifyInfo clsIdentifyInfo ;
 
+   // if receive buffer contains messages larger than block size, we consider
+   // the socket is blocked by message traffic
+   #define CLS_SHD_MSG_BLOCK_SIZE   ( 1024 )
+   // size of blocking message info array
+   #define CLS_SHD_MAX_BLOCK_SIZE   ( 16 )
+
+   /*
+      _clsShdBlockInfo define
+    */
+   // information of blocking messages, contains block size and logical time
+   // for saving information of blocking messages
+   class _clsShdBlockInfo : public utilPooledObject
+   {
+   public:
+      // constructor and destructor
+      _clsShdBlockInfo()
+      : blockSize( 0 ),
+        blockTimestamp()
+      {
+      }
+
+      ~_clsShdBlockInfo()
+      {
+      }
+
+   public:
+      // size of blocking messages
+      UINT32            blockSize ;
+      // logical timestamp to saving blocking information
+      stpLogicalTimeUS  blockTimestamp ;
+   } ;
+
+   typedef class _clsShdBlockInfo clsShdBlockInfo ;
+
+   /*
+      _clsShdUserData define
+    */
+   // shard user data to save info from net message
+   class _clsShdNetData : public INetUserData
+   {
+   public:
+      // constructor and destructor
+      _clsShdNetData() ;
+      virtual ~_clsShdNetData() ;
+
+   public:
+      OSS_INLINE virtual NET_USER_DATA_TYPE getType() const
+      {
+         return NET_USER_DATA_SHARD ;
+      }
+
+      // get user data
+      // use global logical time as user data
+      OSS_INLINE virtual UINT64 getUserData() const
+      {
+         return ( SDB_OK == _recvTimeRC ) ? ( _recvTime.getTime() ) : 0LL ;
+      }
+
+      // indicate if message requires global logical time
+      OSS_INLINE BOOLEAN isGlobTimeRequest() const
+      {
+         return IS_GLOBTIME_TYPE( _opCode ) ? TRUE : FALSE ;
+      }
+
+      // acquire receive time from STP
+      INT32 acquireRecvTime( UINT32 receivedSize,
+                             UINT32 currentSize ) ;
+
+      // callback event to handle receive messages
+      void onReceiveMsg( UINT32 receivedSize, UINT32 currentSize ) ;
+
+      // set return code to acquire global logical time
+      OSS_INLINE void setRecvTimeRC( INT32 rc )
+      {
+         _recvTimeRC = rc ;
+      }
+
+      // get return code to acquire global logical time
+      OSS_INLINE UINT32 getRecvTimeRC() const
+      {
+         return _recvTimeRC ;
+      }
+
+      // set global logical time to receive message
+      OSS_INLINE void setRecvTime( const stpLogicalTimeUS &recvTime )
+      {
+         _recvTime = recvTime ;
+      }
+
+      // get global logical time to receive message
+      OSS_INLINE const stpLogicalTimeUS &getRecvTime() const
+      {
+         return _recvTime ;
+      }
+
+      // reset receive time info with given return code
+      OSS_INLINE void reset( INT32 rc = SDB_OK )
+      {
+         _recvTimeRC = rc ;
+         _recvTime.reset() ;
+      }
+
+   protected:
+      // calculate blocking size
+      void _calcBlockSize( UINT32 &blockSize, UINT32 currentSize ) ;
+      // add new blocking info
+      INT32 _addBlockInfo( UINT32 blockSize, stpLogicalTimeUS &blockTime ) ;
+
+   protected:
+      // total size of blocking messages
+      UINT32            _totalBlockSize ;
+      // current index to first blocking info
+      UINT8             _blockInfoIndex ;
+      // size of blocking info list
+      UINT8             _blockInfoSize ;
+      // blocking info list
+      clsShdBlockInfo   _blockInfo[ CLS_SHD_MAX_BLOCK_SIZE ] ;
+      // return code to acquire global logical time
+      UINT32            _recvTimeRC ;
+      // global logical time to receive message
+      stpLogicalTimeUS  _recvTime ;
+   } ;
+
+   typedef class _clsShdNetData clsShdNetData ;
+
+   /*
+      _clsShdSession implement
+    */
    class _clsShdSession : public _pmdAsyncSession
    {
       friend class _clsOprHandler ;
@@ -107,7 +236,8 @@ namespace engine
          virtual void    onTimer ( UINT64 timerID, UINT32 interval ) ;
 
          virtual void    onDispatchMsgBegin( const NET_HANDLE netHandle,
-                                             const MsgHeader *pHeader ) ;
+                                             const MsgHeader *pHeader,
+                                             UINT64 recvTime ) ;
          virtual void    onDispatchMsgEnd( INT64 costUsecs ) ;
 
          BOOLEAN isSetLogout() const ;
@@ -152,8 +282,12 @@ namespace engine
                                 INT16 *w = NULL,
                                 CHAR *mainCLName = NULL,
                                 utilCLUniqueID *clUniqueID = NULL,
+<<<<<<< HEAD
                                 BOOLEAN *repairCheck = NULL,
                                 BOOLEAN setReplStrategy = FALSE ) ;
+=======
+                                BOOLEAN *repairCheck = NULL ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
          INT32   _reply ( MsgOpReply *header, const CHAR *buff, UINT32 size ) ;
 
@@ -197,7 +331,10 @@ namespace engine
          INT32 _onTransBeginMsg ( NET_HANDLE handle, MsgHeader *msg ) ;
          INT32 _onTransCommitMsg (NET_HANDLE handle, MsgHeader *msg ) ;
          INT32 _onTransRollbackMsg ( NET_HANDLE handle, MsgHeader *msg ) ;
-         INT32 _onTransCommitPreMsg( NET_HANDLE handle, MsgHeader *msg );
+         INT32 _onTransCommitPreMsg( NET_HANDLE handle,
+                                     MsgHeader *msg,
+                                     rtnContextBuf &retBuffer,
+                                     BSONObjBuilder *pBuilder ) ;
          INT32 _onTransUpdateReqMsg ( NET_HANDLE handle, MsgHeader *msg,
                                       utilUpdateResult &upResult ) ;
          INT32 _onTransInsertReqMsg ( NET_HANDLE handle, MsgHeader *msg,
@@ -396,6 +533,8 @@ namespace engine
 
          INT32 _checkRollbackStatus() ;
 
+         INT32 _checkRestoring() ;
+
          INT32 _checkReplStatus() ;
 
          INT32 _checkClusterActive( MsgHeader *msg ) ;
@@ -432,6 +571,49 @@ namespace engine
                                INT32 waitSyncTimeout = OSS_ONE_SEC * 60,
                                BOOLEAN ignoreWaitSyncError = FALSE ) ;
 
+<<<<<<< HEAD
+=======
+         // check transaction begin with global transaction
+         // input:
+         //    - transID: transaction ID of current transaction
+         //    - remoteRID: route ID of remote node to launch this transaction
+         //    - transBeginTime: global logical time to begin transaction
+         //    - sendTime: global logical time to send transaction begin
+         //                message of this transaction
+         // return:
+         //    - SDB_OK: succeed to check transaction with RR isolation
+         //    - other errors: failed to check transaction with RR isolation
+         // NOTE:
+         //    - the RR isolation requires global transaction support
+         //    - also check global time synchronization between nodes
+         INT32 _checkGlobBegin( const DPS_TRANS_ID &transID,
+                                const MsgRouteID &remoteRID,
+                                const stpLogicalTimeUS &transBeginTime,
+                                const stpLogicalTimeUS &sendTime ) ;
+
+         // check transaction pre-commit with global transaction
+         // input:
+         //    - transID: transaction ID of current transaction
+         //    - remoteRID: route ID of remote node to launch this transaction
+         //    - transBeginTime: global logical time to begin transaction
+         //    - sendTime: global logical time to send transaction pre-commit
+         //                message of this transaction
+         // output:
+         //    - preCommitTime: global logical time to pre-commit transaction
+         //                     in this DATA node
+         // return:
+         //    - SDB_OK: succeed to check transaction with RR isolation
+         //    - other errors: failed to check transaction with RR isolation
+         // NOTE:
+         //    - the RR isolation requires global transaction support
+         //    - also check global time synchronization between nodes
+         INT32 _checkGlobPreCommit( const DPS_TRANS_ID &transID,
+                                    const MsgRouteID &remoteRID,
+                                    const stpLogicalTimeUS &transBeginTime,
+                                    const stpLogicalTimeUS &sendTime,
+                                    stpLogicalTimeUS &preCommitTime ) ;
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          void _setCollectionName( const CHAR *collectionName )
          {
             _pEDUCB->setCurProcessName( collectionName ) ;
@@ -496,6 +678,9 @@ namespace engine
 
          UINT32                 _transWaitTimeout ;
          DPS_TRANS_ID           _transWaitID ;
+
+         // global logical time to receive message
+         UINT64                 _recvGlobTime ;
 
          BSONObjBuilder         _retBuilder ;
    } ;

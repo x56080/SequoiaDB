@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = sptDBSdb.cpp
 
@@ -29,7 +28,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #include "sptDBSdb.hpp"
 #include "sptDBCursor.hpp"
 #include "sptDBRG.hpp"
@@ -127,7 +125,14 @@ namespace engine
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, analyze )
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, updateConfig )
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, deleteConfig )
+<<<<<<< HEAD
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, memTrim )
+=======
+   JS_MEMBER_FUNC_DEFINE( _sptDBSdb, restoreToTime )
+   JS_MEMBER_FUNC_DEFINE( _sptDBSdb, restoreCheck )
+   JS_MEMBER_FUNC_DEFINE( _sptDBSdb, restoreAbort )
+   JS_MEMBER_FUNC_DEFINE( _sptDBSdb, restorePrepare )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, createSequence )
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, getSequence )
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, renameSequence )
@@ -137,6 +142,7 @@ namespace engine
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, getDataSource )
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, listDataSources )
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, getRecycleBin )
+<<<<<<< HEAD
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, getRole )
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, listRoles )
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, createRole )
@@ -150,6 +156,8 @@ namespace engine
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, revokeRolesFromUser )
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, getUser )
    JS_MEMBER_FUNC_DEFINE( _sptDBSdb, invalidateUserCache )
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    JS_RESOLVE_FUNC_DEFINE( _sptDBSdb, resolve )
 
    JS_BEGIN_MAPPING( _sptDBSdb, "Sdb" )
@@ -210,7 +218,14 @@ namespace engine
       JS_ADD_MEMBER_FUNC( "analyze", analyze )
       JS_ADD_MEMBER_FUNC( "updateConf", updateConfig )
       JS_ADD_MEMBER_FUNC( "deleteConf", deleteConfig )
+<<<<<<< HEAD
       JS_ADD_MEMBER_FUNC( "memTrim", memTrim )
+=======
+      JS_ADD_MEMBER_FUNC( "restoreToTime", restoreToTime )
+      JS_ADD_MEMBER_FUNC( "restoreCheck", restoreCheck )
+      JS_ADD_MEMBER_FUNC( "restoreAbort", restoreAbort )
+      JS_ADD_MEMBER_FUNC( "restorePrepare", restorePrepare )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       JS_ADD_MEMBER_FUNC( "createSequence", createSequence )
       JS_ADD_MEMBER_FUNC( "getSequence", getSequence )
       JS_ADD_MEMBER_FUNC( "renameSequence", renameSequence )
@@ -220,6 +235,7 @@ namespace engine
       JS_ADD_MEMBER_FUNC( "getDataSource", getDataSource )
       JS_ADD_MEMBER_FUNC( "listDataSources", listDataSources )
       JS_ADD_MEMBER_FUNC( "getRecycleBin", getRecycleBin )
+<<<<<<< HEAD
       JS_ADD_MEMBER_FUNC( "createRole", createRole )
       JS_ADD_MEMBER_FUNC( "dropRole", dropRole )
       JS_ADD_MEMBER_FUNC( "getRole", getRole )
@@ -233,6 +249,8 @@ namespace engine
       JS_ADD_MEMBER_FUNC( "revokeRolesFromUser", revokeRolesFromUser )
       JS_ADD_MEMBER_FUNC( "getUser", getUser )
       JS_ADD_MEMBER_FUNC( "invalidateUserCache", invalidateUserCache )
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       JS_ADD_RESOLVE_FUNC( resolve )
       JS_SET_CVT_TO_BSON_FUNC( _sptDBSdb::cvtToBSON )
       JS_SET_JSOBJ_TO_BSON_FUNC( _sptDBSdb::fmpToBSON )
@@ -3036,7 +3054,636 @@ namespace engine
       goto done ;
    }
 
+<<<<<<< HEAD
    INT32 _sptDBSdb::memTrim( const _sptArguments &arg,
+=======
+   INT32 _sptDBSdb::restoreToTime( const _sptArguments &arg,
+                                   _sptReturnVal &rval,
+                                   bson::BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+      string ts ;
+      BSONObj options ;
+      rc = arg.getBsonobj( 0, options ) ;
+      if( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
+      {
+         detail = BSON( SPT_ERR << "Options must be obj" ) ;
+         return rc ;
+      }
+
+      rc = _sptSdb.restoreToTime( options ) ;
+      if( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to restore to point in time" ) ;
+         return rc ;
+      }
+
+      return rc ;
+   }
+
+   INT32 _sptDBSdb::restoreCheck( const _sptArguments &arg,
+                                  _sptReturnVal &rval,
+                                  bson::BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+
+      bson::BSONObj options;
+      if ((rc = arg.getBsonobj(0, options)) && SDB_OUT_OF_BOUND != rc)
+      {
+         detail = BSON(SPT_ERR << "Options must be obj");
+         return rc;
+      }
+
+      bson::BSONObj result;
+      if ((rc = _sptSdb.restoreCheck(result, options)))
+      {
+         detail = BSON(SPT_ERR << "Failed restore check");
+         return rc;
+      }
+
+      sptBsonobj *sptResult = SDB_OSS_NEW sptBsonobj(result);
+      if (NULL == sptResult)
+      {
+         detail = BSON(SPT_ERR << "Failed to new sptBsonobj obj");
+         return (rc = SDB_OOM);
+      }
+
+      if ((rc = rval.setUsrObjectVal<sptBsonobj>(sptResult)))
+      {
+         detail = BSON(SPT_ERR << "Failed to set ret obj");
+         SAFE_OSS_DELETE(sptResult);
+         return rc;
+      }
+
+      return rc;
+   }
+
+   INT32 _sptDBSdb::restoreAbort( const _sptArguments &arg,
+                                  _sptReturnVal &rval,
+                                  bson::BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+      string ts ;
+      BSONObj options ;
+      rc = arg.getBsonobj( 0, options ) ;
+      if( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
+      {
+         detail = BSON( SPT_ERR << "Options must be obj" ) ;
+         return rc ;
+      }
+
+      rc = _sptSdb.restoreAbort( options ) ;
+      if( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to abort restore in progress" ) ;
+         return rc ;
+      }
+
+      return rc ;
+   }
+
+   INT32 _sptDBSdb::restorePrepare( const _sptArguments &arg,
+                                    _sptReturnVal &rval,
+                                    bson::BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+      string ts ;
+      BSONObj options ;
+      rc = arg.getBsonobj( 0, options ) ;
+      if( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
+      {
+         detail = BSON( SPT_ERR << "Options must be obj" ) ;
+         return rc ;
+      }
+
+      rc = _sptSdb.restorePrepare( options ) ;
+      if( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to prepare for restore" ) ;
+         return rc ;
+      }
+
+      return rc ;
+   }
+
+   INT32 _sptDBSdb::createSequence( const _sptArguments &arg,
+                                    _sptReturnVal &rval,
+                                    BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+      string seqName ;
+      BSONObj options ;
+      _sdbSequence *pSequence = NULL ;
+      sptDBSequence *pSptSequence = NULL ;
+
+      if( arg.argc() < 1 )
+      {
+         rc = SDB_OUT_OF_BOUND ;
+         detail = BSON( SPT_ERR << "Sequence name must be configured" ) ;
+         goto error ;
+      }
+      else if( arg.argc() > 2 )
+      {
+         rc = SDB_INVALIDARG ;
+         detail = BSON( SPT_ERR << "Too many arguments" ) ;
+         goto error ;
+      }
+
+      if( !arg.isString( 0 ) )
+      {
+         rc = SDB_INVALIDARG ;
+         detail = BSON( SPT_ERR << "Sequence name should be string" ) ;
+         goto error ;
+      }
+      rc = arg.getString( 0, seqName ) ;
+      if( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to parse sequence name" ) ;
+         goto error ;
+      }
+
+      rc = arg.getBsonobj( 1, options ) ;
+      if( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
+      {
+         detail = BSON( SPT_ERR << "Options must be obj" ) ;
+         goto error ;
+      }
+
+      rc = _sptSdb.createSequence( seqName.c_str(), options, &pSequence ) ;
+      if( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to create sequence" ) ;
+         goto error ;
+      }
+
+      pSptSequence = SDB_OSS_NEW sptDBSequence( pSequence ) ;
+      if( NULL == pSptSequence )
+      {
+         rc = SDB_OOM ;
+         detail = BSON( SPT_ERR << "Failed to new sptDBSequence obj" ) ;
+      }
+      pSequence = NULL ;
+
+      rc = rval.setUsrObjectVal< sptDBSequence >( pSptSequence ) ;
+      if( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to set return obj" ) ;
+         goto error ;
+      }
+      pSptSequence = NULL ;
+
+      rval.getReturnVal().setName( seqName.c_str() ) ;
+      rval.getReturnVal().setAttr( SPT_PROP_READONLY ) ;
+      rval.addReturnValProperty( SPT_SEQ_NAME_FIELD )->setValue( seqName.c_str() ) ;
+      rval.addSelfToReturnValProperty( SPT_SEQ_CONN_FIELD ) ;
+   done:
+      return rc ;
+   error:
+      SAFE_OSS_DELETE( pSequence ) ;
+      SAFE_OSS_DELETE( pSptSequence ) ;
+      goto done ;
+   }
+
+   INT32 _sptDBSdb::getSequence( const _sptArguments &arg,
+                                 _sptReturnVal &rval,
+                                 BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+      string seqName ;
+      _sdbSequence *pSequence = NULL ;
+      sptDBSequence *pSptSequence = NULL ;
+
+      if( arg.argc() < 1 )
+      {
+         rc = SDB_OUT_OF_BOUND ;
+         detail = BSON( SPT_ERR << "Sequence name must be configured" ) ;
+         goto error ;
+      }
+      else if( arg.argc() > 1 )
+      {
+         rc = SDB_INVALIDARG ;
+         detail = BSON( SPT_ERR << "Too many arguments" ) ;
+         goto error ;
+      }
+
+      if( !arg.isString( 0 ) )
+      {
+         rc = SDB_INVALIDARG ;
+         detail = BSON( SPT_ERR << "Sequence name should be string" ) ;
+         goto error ;
+      }
+      rc = arg.getString( 0, seqName ) ;
+      if( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to parse sequence name" ) ;
+         goto error ;
+      }
+
+      rc = _sptSdb.getSequence( seqName.c_str(), &pSequence ) ;
+      if( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to get sequence" ) ;
+         goto error ;
+      }
+
+      pSptSequence = SDB_OSS_NEW sptDBSequence( pSequence ) ;
+      if( NULL == pSptSequence )
+      {
+         rc = SDB_OOM ;
+         detail = BSON( SPT_ERR << "Failed to new sptDBSequence obj" ) ;
+      }
+      pSequence = NULL ;
+
+      rc = rval.setUsrObjectVal< sptDBSequence >( pSptSequence ) ;
+      if( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to set return obj" ) ;
+         goto error ;
+      }
+      pSptSequence = NULL ;
+
+      rval.getReturnVal().setName( seqName.c_str() ) ;
+      rval.getReturnVal().setAttr( SPT_PROP_READONLY ) ;
+      rval.addReturnValProperty( SPT_SEQ_NAME_FIELD )->setValue( seqName.c_str() ) ;
+      rval.addSelfToReturnValProperty( SPT_SEQ_CONN_FIELD ) ;
+   done:
+      return rc ;
+   error:
+      SAFE_OSS_DELETE( pSequence ) ;
+      SAFE_OSS_DELETE( pSptSequence ) ;
+      goto done ;
+   }
+
+   INT32 _sptDBSdb::renameSequence( const _sptArguments &arg,
+                                    _sptReturnVal &rval,
+                                    BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+      string oldName ;
+      string newName ;
+
+      rc = arg.getString( 0, oldName ) ;
+      if( SDB_OUT_OF_BOUND == rc )
+      {
+         detail = BSON( SPT_ERR << "Old name must be config" ) ;
+         goto error ;
+      }
+      else if( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Old name must be string" ) ;
+         goto error ;
+      }
+
+      rc = arg.getString( 1, newName ) ;
+      if( SDB_OUT_OF_BOUND == rc )
+      {
+         detail = BSON( SPT_ERR << "New name must be config" ) ;
+         goto error ;
+      }
+      else if( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "New name must be string" ) ;
+         goto error ;
+      }
+
+      if( arg.argc() > 2 )
+      {
+         rc = SDB_OUT_OF_BOUND ;
+         detail = BSON( SPT_ERR << "Too many arguments" ) ;
+         goto error ;
+      }
+
+      rc = _sptSdb.renameSequence( oldName.c_str(), newName.c_str() ) ;
+      if( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to rename sequence" ) ;
+         goto error ;
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sptDBSdb::dropSequence( const _sptArguments &arg,
+                                  _sptReturnVal &rval,
+                                  BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+      string seqName ;
+
+      rc = arg.getString( 0, seqName ) ;
+      if( SDB_OUT_OF_BOUND == rc )
+      {
+         detail = BSON( SPT_ERR << "Sequence name must be config" ) ;
+         goto error ;
+      }
+      else if( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Sequence name must be string" ) ;
+         goto error ;
+      }
+
+      if( arg.argc() > 1 )
+      {
+         rc = SDB_OUT_OF_BOUND ;
+         detail = BSON( SPT_ERR << "Too many arguments" ) ;
+         goto error ;
+      }
+
+      rc = _sptSdb.dropSequence( seqName.c_str() ) ;
+      if( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to drop sequence" ) ;
+         goto error ;
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sptDBSdb::createDataSource( const _sptArguments &arg,
+                                      _sptReturnVal &rval,
+                                      bson::BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+      string dsName ;
+      string address ;
+      string user ;
+      string password ;
+      string type ;
+      BSONObj options ;
+      const CHAR *userPtr = NULL ;
+      const CHAR *passwdPtr = NULL ;
+      const CHAR *typePtr = NULL ;
+      const BSONObj *optionPtr = NULL ;
+      sdbDataSource ds ;
+      sptDBDataSource *sptDS = NULL ;
+
+      // Only the data source name and address list are required all the time.
+      if ( arg.argc() < 2 )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      rc = arg.getString( 0, dsName ) ;
+      if ( SDB_OUT_OF_BOUND == rc )
+      {
+         detail = BSON( SPT_ERR << "Data source name should be specified" ) ;
+         goto error ;
+      }
+      else if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Data source name should be a string" ) ;
+         goto error ;
+      }
+
+      rc = arg.getString( 1, address ) ;
+      if ( SDB_OUT_OF_BOUND == rc )
+      {
+         detail = BSON( SPT_ERR << "Data source address should be specified" ) ;
+         goto error ;
+      }
+      else if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Data source address should be a string" ) ;
+         goto error ;
+      }
+
+      if ( arg.argc() > 2 )
+      {
+         rc = arg.getString( 2, user ) ;
+         if ( SDB_OK != rc )
+         {
+            detail = BSON( SPT_ERR << "Data source user name should be a "
+                                      "string" ) ;
+            goto error ;
+         }
+         userPtr = user.c_str() ;
+         if ( arg.argc() > 3 )
+         {
+            rc = arg.getString( 3, password ) ;
+            if ( rc )
+            {
+               detail = BSON( SPT_ERR << "Data source user password should be "
+                                         "a string" ) ;
+               goto error ;
+            }
+            passwdPtr = password.c_str() ;
+            if ( arg.argc() > 4 )
+            {
+               rc = arg.getString( 4, type ) ;
+               if ( rc )
+               {
+                  detail = BSON( SPT_ERR << "Data source type should be a "
+                                            "string" ) ;
+                  goto error ;
+               }
+               typePtr = type.c_str() ;
+               if ( arg.argc() > 5 )
+               {
+                  rc = arg.getBsonobj( 5, options ) ;
+                  if ( rc )
+                  {
+                     detail = BSON( SPT_ERR << "Options must be an object" ) ;
+                     goto error ;
+                  }
+                  optionPtr = &options ;
+               }
+            }
+         }
+      }
+
+      rc = _sptSdb.createDataSource( ds, dsName.c_str(), address.c_str(),
+                                     userPtr, passwdPtr, typePtr, optionPtr ) ;
+      if ( rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to create data source" ) ;
+         goto error ;
+      }
+
+      sptDS = SDB_OSS_NEW sptDBDataSource( ds.pDataSource ) ;
+      if ( !sptDS )
+      {
+         rc = SDB_OOM ;
+         detail = BSON( SPT_ERR << "Failed to new sptDBDatasource obj" ) ;
+      }
+
+      rc = rval.setUsrObjectVal< sptDBDataSource >( sptDS ) ;
+      if ( rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to set return obj" ) ;
+         goto error ;
+      }
+      rval.addReturnValProperty( SPT_DS_NAME_FIELD )
+         ->setValue( ds.pDataSource->getName() ) ;
+      ds.pDataSource = NULL ;
+
+   done:
+      return rc ;
+   error:
+      if ( !sptDS )
+      {
+         SDB_OSS_DEL sptDS ;
+         sptDS = NULL ;
+         ds.pDataSource = NULL ;
+      }
+      SAFE_OSS_DELETE( ds.pDataSource ) ;
+      goto done ;
+   }
+
+   INT32 _sptDBSdb::dropDataSource( const _sptArguments &arg,
+                                    _sptReturnVal &rval,
+                                    bson::BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+      string name ;
+      rc = arg.getString( 0, name ) ;
+      if ( SDB_OUT_OF_BOUND == rc )
+      {
+         detail = BSON( SPT_ERR << "Data source name should be specified" ) ;
+         goto error ;
+      }
+      else if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Data source name must be a string" ) ;
+         goto error ;
+      }
+
+      rc = _sptSdb.dropDataSource( name.c_str() ) ;
+      if ( rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to drop data source" ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sptDBSdb::getDataSource( const _sptArguments &arg,
+                                   _sptReturnVal &rval,
+                                   bson::BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+      string name ;
+      sdbDataSource ds ;
+      sptDBDataSource *sptDS = NULL ;
+      rc = arg.getString( 0, name ) ;
+      if ( SDB_OUT_OF_BOUND == rc )
+      {
+         detail = BSON( SPT_ERR << "Name must be config" ) ;
+         goto error ;
+      }
+      else if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Name must be string" ) ;
+         goto error ;
+      }
+      rc = _sptSdb.getDataSource( name.c_str(), ds ) ;
+      if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to get data source" ) ;
+         goto error ;
+      }
+
+      sptDS = SDB_OSS_NEW sptDBDataSource( ds.pDataSource ) ;
+      if ( !sptDS )
+      {
+         rc = SDB_OOM ;
+         detail = BSON( SPT_ERR << "Failed to new spt data source obj" ) ;
+         goto error ;
+      }
+      ds.pDataSource = NULL ;
+
+      rc = rval.setUsrObjectVal< sptDBDataSource >( sptDS ) ;
+      if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to set user obj" ) ;
+         goto error ;
+      }
+      rval.addReturnValProperty( SPT_DS_NAME_FIELD )->setValue( name ) ;
+   done:
+      return rc ;
+   error:
+      SAFE_OSS_DELETE( ds.pDataSource ) ;
+      SAFE_OSS_DELETE( sptDS ) ;
+      goto done ;
+   }
+
+   INT32 _sptDBSdb::listDataSources( const _sptArguments &arg,
+                                     _sptReturnVal &rval,
+                                     bson::BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+      UINT32 argNum = arg.argc() ;
+      sdbCursor cursor ;
+      BSONObj cond ;
+      BSONObj sel ;
+      BSONObj order ;
+      BSONObj hint ;
+
+      if ( argNum > 0 )
+      {
+         rc = arg.getBsonobj( 0, cond ) ;
+         if ( SDB_OK != rc )
+         {
+            detail = BSON( SPT_ERR << "Condition must be obj" ) ;
+            goto error ;
+         }
+         if ( argNum > 1 )
+         {
+            rc = arg.getBsonobj( 1, sel ) ;
+            if ( SDB_OK != rc )
+            {
+               detail = BSON( SPT_ERR << "Select must be obj" ) ;
+               goto error ;
+            }
+            if ( argNum > 2 )
+            {
+               rc = arg.getBsonobj( 2, order ) ;
+               if ( SDB_OK != rc )
+               {
+                  detail = BSON( SPT_ERR << "Order must be obj" ) ;
+                  goto error ;
+               }
+               if ( argNum > 3 )
+               {
+                  rc = arg.getBsonobj( 3, hint ) ;
+                  if ( SDB_OK != rc )
+                  {
+                     detail = BSON( SPT_ERR << "Hint must be obj" ) ;
+                     goto error ;
+                  }
+               }
+            }
+         }
+      }
+      rc = _sptSdb.listDataSources( cursor, cond, sel, order, hint ) ;
+      if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to list data sources" ) ;
+         goto error ;
+      }
+      SPT_SET_CURSOR_TO_RETURNVAL( cursor.pCursor ) ;
+      cursor.pCursor = NULL ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sptDBSdb::resolve( const _sptArguments &arg,
+                             UINT32 opcode,
+                             BOOLEAN &processed,
+                             string &callFunc,
+                             BOOLEAN &setIDProp,
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                              _sptReturnVal &rval,
                              bson::BSONObj &detail )
    {
@@ -3237,9 +3884,20 @@ namespace engine
                                     _sptReturnVal &rval,
                                     BSONObj &detail )
    {
+<<<<<<< HEAD
       INT32 rc = SDB_OK ;
       string oldName ;
       string newName ;
+=======
+      INT32  rc = SDB_OK ;
+      string token ;
+      string clusterName ;
+      // userFullName = userShortName + '@' + clusterName
+      string userFullName ;
+      string cipherFile ;
+      stringstream ss ;
+      utilPasswordTool passwdTool ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       rc = arg.getString( 0, oldName ) ;
       if( SDB_OUT_OF_BOUND == rc )

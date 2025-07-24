@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = rplReplayer.cpp
 
@@ -682,103 +681,119 @@ namespace replay
       PD_LOG(PDEVENT, "Replay from LSN[%lld] to LSN[%lld]",
              currentLSN, endLSN);
 
-      while (currentLSN < endLSN)
+      try
       {
-         i++;
-
-         if (!_isRunning)
+         while (currentLSN < endLSN)
          {
-            rc = SDB_INTERRUPT;
-            PD_LOG(PDINFO, "Replay is interrupted");
-            goto done;
-         }
+            i++;
 
-         rc = logFile.read(currentLSN,
-                           sizeof(dpsLogRecordHeader),
-                           (CHAR*)&logHeader);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "Failed to read log file[%s], lsn[%lld], rc:%d",
-                   logFile.path().c_str(), currentLSN, rc);
-            goto error;
-         }
-
-         if (logHeader._lsn != currentLSN)
-         {
-            rc = SDB_DPS_INVALID_LSN;
-            PD_LOG(PDERROR, "Invalid LSN, expect[%lld], real[%lld]",
-                   currentLSN, logHeader._lsn);
-            goto error;
-         }
-
-         rc = _ensureBufSize(logHeader._length);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "Failed to ensure buf size, rc=%d", rc);
-            goto error;
-         }
-
-         rc = logFile.read(currentLSN, logHeader._length, _buf);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "Failed to read log file[%s], lsn[%lld], rc=%d",
-                   logFile.path().c_str(), currentLSN, rc);
-            goto error;
-         }
-
-         log.clear();
-         rc = log.load(_buf);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "Failed to load log, lsn[%lld], rc=%d",
-                   currentLSN, rc);
-            goto error;
-         }
-
-         if (_filter.isFiltered(log, _options->dump()))
-         {
-            _monitor.setLastLSN(currentLSN);
-            currentLSN += logHeader._length;
-            _monitor.setNextLSN(currentLSN);
-            if (_filter.largerThanMaxLSN(logHeader._lsn))
+            if (!_isRunning)
             {
-               PD_LOG(PDINFO, "Current LSN[%lld] is larger than max LSN",
-                      logHeader._lsn);
+               rc = SDB_INTERRUPT;
+               PD_LOG(PDINFO, "Replay is interrupted");
                goto done;
             }
-            continue;
-         }
 
-         if (_options->dump())
-         {
-            _dumpLog(log);
-         }
-         else
-         {
-            rc = _replayLog(_buf);
+            rc = logFile.read(currentLSN,
+                              sizeof(dpsLogRecordHeader),
+                              (CHAR*)&logHeader);
             if (SDB_OK != rc)
             {
-               PD_LOG(PDERROR, "Failed to replay log, lsn[%lld], rc=%d",
-                      logHeader._lsn, rc);
+               PD_LOG(PDERROR, "Failed to read log file[%s], lsn[%lld], rc:%d",
+                      logFile.path().c_str(), currentLSN, rc);
                goto error;
             }
+
+            if (logHeader._lsn != currentLSN)
+            {
+               rc = SDB_DPS_INVALID_LSN;
+               PD_LOG(PDERROR, "Invalid LSN, expect[%lld], real[%lld]",
+                      currentLSN, logHeader._lsn);
+               goto error;
+            }
+
+            rc = _ensureBufSize(logHeader._length);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "Failed to ensure buf size, rc=%d", rc);
+               goto error;
+            }
+
+            rc = logFile.read(currentLSN, logHeader._length, _buf);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "Failed to read log file[%s], lsn[%lld], rc=%d",
+                      logFile.path().c_str(), currentLSN, rc);
+               goto error;
+            }
+
+            log.clear();
+            rc = log.load(_buf);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "Failed to load log, lsn[%lld], rc=%d",
+                      currentLSN, rc);
+               goto error;
+            }
+
+            if (_filter.isFiltered(log, _options->dump()))
+            {
+               _monitor.setLastLSN(currentLSN);
+               currentLSN += logHeader._length;
+               _monitor.setNextLSN(currentLSN);
+               if (_filter.largerThanMaxLSN(logHeader._lsn))
+               {
+                  PD_LOG(PDINFO, "Current LSN[%lld] is larger than max LSN",
+                         logHeader._lsn);
+                  goto done;
+               }
+               continue;
+            }
+
+            if (_options->dump())
+            {
+               _dumpLog(log);
+            }
+            else
+            {
+               rc = _replayLog(_buf);
+               if (SDB_OK != rc)
+               {
+                  PD_LOG(PDERROR, "Failed to replay log, lsn[%lld], rc=%d",
+                         logHeader._lsn, rc);
+                  goto error;
+               }
+            }
+
+            doReplayCount++;
+            _monitor.setLastLSN(currentLSN);
+            currentLSN += logHeader._length;
+            _monitor.opCount(logHeader._type);
+            _monitor.setNextLSN(currentLSN);
+
+            if (0 == doReplayCount%_options->intervalNum())
+            {
+               rc = _monitorStore->flushAndSave() ;
+               PD_RC_CHECK( rc, PDERROR, 
+                            "Failed to save monitor, rc=%d", rc ) ;
+
+               rc = _checkSubmit() ;
+               PD_RC_CHECK( rc, PDERROR, 
+                            "Failed to check submit, rc = %d", rc ) ;
+            }
          }
-
-         doReplayCount++;
-         _monitor.setLastLSN(currentLSN);
-         currentLSN += logHeader._length;
-         _monitor.opCount(logHeader._type);
-         _monitor.setNextLSN(currentLSN);
-
-         if (0 == doReplayCount%_options->intervalNum())
-         {
-            rc = _monitorStore->flushAndSave() ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to save monitor, rc=%d", rc ) ;
-
-            rc = _checkSubmit() ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to check submit, rc = %d", rc ) ;
-         }
+      } // end of try
+      catch(std::exception &e)
+      {
+         rc = SDB_SYS ;
+         PD_LOG(PDERROR, 
+                "With LSN(%llu) unexpected error happened:%s",
+                currentLSN, e.what());
+         std::cerr << "unexpected error happened: "
+                   << e.what()
+                   << std::endl;
       }
+
 
    done:
       return rc;

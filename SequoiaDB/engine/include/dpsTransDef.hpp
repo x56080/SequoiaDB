@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = dpsTransDef.hpp
 
@@ -36,7 +34,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #ifndef DPS_TRANS_DEF_HPP__
 #define DPS_TRANS_DEF_HPP__
 
@@ -54,7 +51,7 @@ namespace engine
       TRANS_ISOLATION_RU = 0, // READ UNCOMMITTED
       TRANS_ISOLATION_RC = 1, // READ COMMITTED
       TRANS_ISOLATION_RS = 2, // READ STABILITY
-    //TRANS_ISOLATION_RR = 3, // REPEATABLE READ
+      TRANS_ISOLATION_RR = 3, // REPEATABLE READ
 
       TRANS_ISOLATION_MAX
    } ;
@@ -86,6 +83,9 @@ namespace engine
       DPS_TRANS_ROLLBACK      = 4,
       // transaction is doing but interrupted (it is going to rollback)
       DPS_TRANS_DOING_INTERRUPT = 5,
+      // transaction is preparing to pre-commit
+      // NOTE: only used in global transaction with RR isolation
+      DPS_TRANS_PRE_WAIT_COMMIT = 6,
       // transaction is not found in history map ( cleared by gc )
       DPS_TRANS_UNKNOWN       = 99
    } ;
@@ -104,6 +104,13 @@ namespace engine
    #define DPS_TRANS_MAXLOGSPACERATIO_MIN ( 1 )
    #define DPS_TRANS_MAXLOGSPACERATIO_MAX ( 50 )
    #define DPS_TRANS_MAXLOGSPACERATIO_DFT ( DPS_TRANS_MAXLOGSPACERATIO_MAX )
+<<<<<<< HEAD
+=======
+
+   #define DPS_DEF_GLOBTRANS_MAXTIMEERROR ( 500000 )
+   #define DPS_MAX_GLOBTRANS_MAXTIMEERROR ( 5000000 )
+   #define DPS_INVALID_GLOBTRANS_MAXTIMEERROR ( 0xFFFFFFFF )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    /*
       TRANS CONFIG MASK

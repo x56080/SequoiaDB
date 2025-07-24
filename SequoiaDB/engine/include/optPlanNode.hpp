@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = optPlanNode.hpp
 
@@ -36,7 +34,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #ifndef OPTPLANNODE_HPP__
 #define OPTPLANNODE_HPP__
 
@@ -542,6 +539,17 @@ namespace engine
             return _clFromStat ;
          }
 
+         OSS_INLINE virtual UINT64 getIxRebuildTime()
+         {
+            // for tbscan, always available
+            return DPS_MIN_TRANS_TIME ;
+         }
+
+         OSS_INLINE virtual void setIxRebuildTime( UINT64 rebuildTime )
+         {
+            // do nothing
+         }
+
       protected :
          void _preEvaluate ( const rtnQueryOptions & queryOptions,
                              optAccessPlanHelper & planHelper,
@@ -747,7 +755,7 @@ namespace engine
          _optIxScanNode () ;
 
          _optIxScanNode ( const CHAR * pCollection,
-                          const ixmIndexCB & indexCB,
+                          const CONST_INDEX_META_INFO_PTR &idxMeta,
                           INT32 estCacheSize ) ;
 
          _optIxScanNode ( const optIxScanNode & node,
@@ -755,32 +763,32 @@ namespace engine
 
          virtual ~_optIxScanNode () ;
 
-         OSS_INLINE virtual OPT_PLAN_NODE_TYPE getType () const
+         OSS_INLINE virtual OPT_PLAN_NODE_TYPE getType () const override
          {
             return OPT_PLAN_IX_SCAN ;
          }
 
-         OSS_INLINE virtual const CHAR * getName () const
+         OSS_INLINE virtual const CHAR * getName () const override
          {
             return OPT_PLAN_NODE_NAME_IXSCAN ;
          }
 
-         OSS_INLINE virtual const CHAR * getIndexName () const
+         OSS_INLINE virtual const CHAR * getIndexName () const override
          {
             return _pIndexName.str() ;
          }
 
-         OSS_INLINE virtual INT32 getDirection () const
+         OSS_INLINE virtual INT32 getDirection () const override
          {
             return _direction ;
          }
 
-         OSS_INLINE virtual BOOLEAN isMatchAll () const
+         OSS_INLINE virtual BOOLEAN isMatchAll () const override
          {
             return _matchAll ;
          }
 
-         OSS_INLINE virtual dmsExtentID getIndexExtID () const
+         OSS_INLINE virtual dmsExtentID getIndexExtID () const override
          {
             return _indexExtID ;
          }
@@ -790,7 +798,7 @@ namespace engine
             _indexExtID = indexExtID ;
          }
 
-         OSS_INLINE virtual dmsExtentID getIndexLID () const
+         OSS_INLINE virtual dmsExtentID getIndexLID () const override
          {
             return _indexLID ;
          }
@@ -800,46 +808,47 @@ namespace engine
             _indexLID = indexLID ;
          }
 
-         OSS_INLINE virtual BSONObj getKeyPattern () const
+         OSS_INLINE virtual BSONObj getKeyPattern () const override
          {
             return _keyPattern ;
          }
 
-         OSS_INLINE virtual BSONObj getIXBound () const
+         OSS_INLINE virtual BSONObj getIXBound () const override
          {
             return _runtimeIXBound ;
          }
 
-         OSS_INLINE virtual void setIXBound ( const BSONObj & ixBound )
+         OSS_INLINE virtual void setIXBound ( const BSONObj & ixBound ) override
          {
             _runtimeIXBound = ixBound ;
          }
 
-         OSS_INLINE virtual optScanType getScanType () const
+         OSS_INLINE virtual optScanType getScanType () const override
          {
             return IXSCAN ;
          }
 
-         OSS_INLINE virtual double getScanSelectivity () const
+         OSS_INLINE virtual double getScanSelectivity () const override
          {
             return _scanSelectivity ;
          }
 
-         OSS_INLINE virtual double getPredSelectivity () const
+         OSS_INLINE virtual double getPredSelectivity () const override
          {
             return _predSelectivity ;
          }
 
-         OSS_INLINE virtual UINT32 getMatchedFields () const
+         OSS_INLINE virtual UINT32 getMatchedFields () const override
          {
             return _matchedFields ;
          }
 
-         OSS_INLINE virtual BOOLEAN isEstimatedFromStat () const
+         OSS_INLINE virtual BOOLEAN isEstimatedFromStat () const override
          {
             return _ixFromStat ;
          }
 
+<<<<<<< HEAD
          // indicates the plan is a good candidate in default priority
          OSS_INLINE virtual BOOLEAN isGoodCandidate() const
          {
@@ -851,6 +860,24 @@ namespace engine
                    ( ( _readIndexOnly && _matchedFields > 0 ) ||
                      ( _scanSelectivity <= OPT_PRED_THRESHOLD_SELECTIVITY ) ||
                      ( _sorted ) ) ;
+=======
+         OSS_INLINE virtual UINT64 getIxRebuildTime() override
+         {
+            return _ixRebuildTime.fetch() ;
+         }
+
+         OSS_INLINE virtual void setIxRebuildTime( UINT64 rebuildTime ) override
+         {
+            if ( DPS_INVALID_TRANS_TIME != rebuildTime &&
+                 DPS_MAX_TRANS_TIME != rebuildTime )
+            {
+               if ( !_ixRebuildTime.compareAndSwap( DPS_MAX_TRANS_TIME,
+                                                    rebuildTime ) )
+               {
+                  _ixRebuildTime.swapLesserThan( rebuildTime ) ;
+               }
+            }
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          }
 
       public :
@@ -860,7 +887,10 @@ namespace engine
                             optCollectionStat * collectionStat,
                             optIndexStat * indexStat ) ;
 
-         virtual void evaluate () ;
+         virtual void evaluate () override;
+
+         BOOLEAN isIndexCover() const override { return _indexCover ; }
+         BOOLEAN notArray() const override { return _notArray ; }
 
          BOOLEAN isIndexCover() const { return _indexCover ; }
          BOOLEAN notArray() const { return _notArray ; }
@@ -880,21 +910,25 @@ namespace engine
                                        UINT64 returnSkipRecords ) ;
 
       public :
-         virtual INT32 toBSONEvaluation ( BSONObjBuilder & builder ) const ;
+         virtual INT32 toBSONEvaluation ( BSONObjBuilder & builder ) const override;
 
-         virtual INT32 toBSONIXStatInfo ( BSONObjBuilder & builder ) const ;
+         virtual INT32 toBSONIXStatInfo ( BSONObjBuilder & builder ) const override;
 
       protected :
          virtual INT32 _toBSONBasic ( BSONObjBuilder & builder,
+<<<<<<< HEAD
                                       const rtnExplainOptions &expOptions ) const ;
+=======
+                                      const rtnExplainOptions &expOptions ) const override;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
-         virtual INT32 _fromBSONBasic ( const BSONObj & object ) ;
+         virtual INT32 _fromBSONBasic ( const BSONObj & object ) override;
 
-         virtual INT32 _toBSONEstimateInput ( BSONObjBuilder & builder ) const ;
+         virtual INT32 _toBSONEstimateInput ( BSONObjBuilder & builder ) const override;
 
-         virtual INT32 _toBSONEstimateFilter ( BSONObjBuilder & builder ) const ;
+         virtual INT32 _toBSONEstimateFilter ( BSONObjBuilder & builder ) const override;
 
-         virtual INT32 _toBSONRunImpl ( BSONObjBuilder & builder ) const ;
+         virtual INT32 _toBSONRunImpl ( BSONObjBuilder & builder ) const override;
 
          INT32 _toBSONIOCostEval ( BSONObjBuilder & builder ) const ;
 
@@ -906,7 +940,10 @@ namespace engine
 
       private:
          void _evalIndexCover( const BSONObj &keyPattern,
+<<<<<<< HEAD
                                BOOLEAN canReadIndexOnly,
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                                BSONObjIterator &restOrder,
                                mthMatchTree *matcher ) ;
 
@@ -919,6 +956,7 @@ namespace engine
          // Operators in matchers are covered by predicates
          BOOLEAN           _matchAll ;
 
+<<<<<<< HEAD
          // indicates this plan supports index cover
          // 1.plan   : index cover matcher orderby
          //            need calculate with selector in runtime
@@ -928,6 +966,13 @@ namespace engine
          BOOLEAN           _notArray ;
          // indicates can read index only
          BOOLEAN           _readIndexOnly ;
+=======
+         // 1.plan   : index cover matcher orderby
+         // 2.explain: index cover matcher orderby and selector
+         BOOLEAN           _indexCover ;
+
+         BOOLEAN           _notArray ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
          // Number of matched fields in index
          UINT32            _matchedFields ;
@@ -967,6 +1012,8 @@ namespace engine
          UINT64            _ixStatTime ;
 
          BSONObj           _runtimeIXBound ;
+
+         ossAtomic64       _ixRebuildTime ;
    } ;
 
    /*

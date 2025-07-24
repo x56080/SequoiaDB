@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = rtnUpdate.cpp
 
@@ -44,6 +42,7 @@
 #include "pmd.hpp"
 #include "pmdCB.hpp"
 #include "pdTrace.hpp"
+#include "rtnObjectInfoFetcher.hpp"
 #include "rtnTrace.hpp"
 #include "dmsScanner.hpp"
 #include "pdSecure.hpp"
@@ -94,6 +93,7 @@ namespace engine
       // matcher, selector, order, hint, collection, skip, limit, flag
       rtnQueryOptions options( matcher, dummy, dummy, hint, pCollectionName,
                                0, -1, flags ) ;
+      options.setWriteOp( TRUE ) ;
       rc = rtnUpdate( options, updator, cb, dmsCB, dpsCB, w, pResult,
                       shardingKey, logWriteMod, opHandler ) ;
       PD_TRACE_EXITRC( SDB_RTNUPDATE2, rc ) ;
@@ -120,6 +120,7 @@ namespace engine
       dmsStorageUnit *su               = NULL ;
       dmsMBContext   *mbContext        = NULL ;
       dmsStorageUnitID suID            = DMS_INVALID_CS ;
+      const CHAR *clFullName = options.getCLFullName();
       const CHAR *pCollectionShortName = NULL ;
       optAccessPlanManager *apm        = NULL ;
       BOOLEAN updateOne                = options.testFlag( FLG_UPDATE_ONE ) ;
@@ -135,6 +136,14 @@ namespace engine
       monContextCB monCtxCB ;
       rtnReturnOptions returnOptions ;
       UINT32 upsertRetyTime = 0 ;
+
+      pdLogRCShield shield;
+      rtnObjectInfoFetcher infoFetcher( dmsCB, rtnCB );
+      CONST_CL_META_INFO_PTR clMetaInfo = nullptr;
+      CONST_CL_STAT_INFO_PTR clStatInfo = nullptr;
+      rc = infoFetcher.getCollectionMetaInfo( cb, clFullName, clMetaInfo );
+      PD_RC_CHECK( rc, PDERROR, "failed to get collection[%s] meta info", clFullName );
+      options.setCLUniqueID( clMetaInfo->getCLUniqueID() );
 
       // updator is modifier
       if ( updator.isEmpty() )
@@ -153,6 +162,7 @@ namespace engine
       }
       writable = TRUE;
 
+<<<<<<< HEAD
       rc = rtnResolveCollectionNameAndLock ( options.getCLFullName(), dmsCB,
                                              &su, &pCollectionShortName,
                                              suID ) ;
@@ -198,6 +208,8 @@ namespace engine
          goto error ;
       }
 
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       try
       {
          UINT64 startDataRead = 0,
@@ -208,10 +220,61 @@ namespace engine
          SDB_ASSERT ( apm, "apm shouldn't be NULL" ) ;
 
 retry:
+<<<<<<< HEAD
          // plan is released when exiting the function
          rc = apm->getAccessPlan( options, su, mbContext, planRuntime, NULL ) ;
+=======
+         UINT32 attributes = clMetaInfo->getAttributes();
+         if ( OSS_BIT_TEST( attributes, DMS_MB_ATTR_NOIDINDEX ) )
+         {
+            PD_LOG( PDERROR, "can not update data when autoIndexId is false" );
+            rc = SDB_RTN_AUTOINDEXID_IS_FALSE;
+            goto error;
+         }
+
+         if ( OSS_BIT_TEST( attributes, DMS_MB_ATTR_STRICTDATAMODE ) )
+         {
+            strictDataMode = TRUE;
+         }
+
+         // get statistics of collection and indexes
+         rc = infoFetcher.getCollectionStatInfo( cb, clFullName, clStatInfo );
+         PD_RC_CHECK( rc, PDERROR, "failed to get collection[%s] stat info", clFullName );
+
+         try
+         {
+            rc = modifier.loadPattern( updator, &dollarList, TRUE, shardingKey, strictDataMode,
+                                       logWriteMod, TRUE );
+            PD_RC_CHECK( rc, PDERROR,
+                         "Invalid pattern is detected for updator: "
+                         "%s",
+                         PD_SECURE_OBJ( updator ) );
+         }
+         catch ( std::exception &e )
+         {
+            PD_LOG( PDERROR, "Invalid pattern is detected for update: %s: %s",
+                    PD_SECURE_OBJ( updator ), e.what() );
+            rc = SDB_INVALIDARG;
+            goto error;
+         }
+
+         // plan is released when exiting the function
+         rc = apm->getAccessPlan( cb, options, rtnCollectionInfo( clMetaInfo, clStatInfo ),
+                                  planRuntime, NULL );
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          PD_RC_CHECK( rc, PDERROR, "Failed to get access plan for %s for update, "
                       "rc: %d", options.getCLFullName(), rc ) ;
+
+         rc = rtnResolveCollectionNameAndLock ( options.getCLFullName(), dmsCB,
+                                                &su, &pCollectionShortName,
+                                                suID ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to resolve collection name %s, rc: %d",
+                     options.getCLFullName(), rc ) ;
+
+         // get mb context
+         rc = su->data()->getMBContext( &mbContext, pCollectionShortName, -1 ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get collection[%s] mb context, "
+                     "rc: %d", options.getCLFullName(), rc ) ;
 
          if ( planRuntime.getScanType() == TBSCAN )
          {
@@ -221,10 +284,24 @@ retry:
          }
          else if ( planRuntime.getScanType() == IXSCAN )
          {
+            shield.addRC( SDB_DMS_COL_DROPPED );
+            shield.addRC( SDB_IXM_NOTEXIST );
             rc = rtnGetIXScanner( pCollectionShortName, &planRuntime, su,
                                   mbContext, cb, &pScanner,
                                   DMS_ACCESS_TYPE_UPDATE, opHandler ) ;
+<<<<<<< HEAD
             if ( SDB_IXM_NOTEXIST == rc && scannerRetryTime < 1 )
+=======
+            shield.clearRC();
+            if ( SDB_DMS_COL_DROPPED == rc && scannerRetryTime < 1)
+            { 
+               planRuntime.reset() ;
+               scannerRetryTime++ ;
+               apm->invalidateCLPlans( options.getCLFullName() ) ;
+               goto retry ;
+            }
+            else if ( SDB_IXM_NOTEXIST == rc && scannerRetryTime < 1 )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             {
                // Maybe in the process of scanning the index,
                // the index is deleted
@@ -232,6 +309,21 @@ retry:
                scannerRetryTime++ ;
                // We only need to try to scan once. In most cases,
                // the next scan is normal
+<<<<<<< HEAD
+=======
+               if ( su && mbContext )
+               {
+                  su->data()->releaseMBContext( mbContext ) ;
+                  mbContext = nullptr ;
+               }
+               if ( DMS_INVALID_CS != suID )
+               {
+                  dmsCB->suUnlock( suID ) ;
+                  suID = DMS_INVALID_CS ;
+                  su = nullptr ;
+               }
+               PD_LOG(PDWARNING, "");
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                goto retry ;
             }
          }
@@ -297,19 +389,26 @@ retry:
                                               recordDataPtr, cb, dpsCB,
                                               modifier, NULL,
                                               pScanner->callbackHandler(),
-                                              pResult ) ;
+                                              pResult,
+                                              pScanner->recordInfo() ) ;
                PD_RC_CHECK( rc, PDERROR, "Update record failed, rc: %d", rc ) ;
 
                ++numUpdatedRecords ;
                mthContext.clear() ;
                mthContext.enableDollarList() ;
-
                execEndTime = krcb->getCurTime() ;
                monCtxCB.monExecuteTimeInc( execStartTime, execEndTime ) ;
 
                if ( updateOne && 1 == numUpdatedRecords )
                {
                   break ;
+               }
+               // All succeeded, set up the cleanup flag
+               if( pmdGetOptionCB()->mvccOn() &&
+                   pScanner->callbackHandler() &&
+                   !cb->isInTransRollback() )
+               {
+                  pScanner->callbackHandler()->setNonTransNeedCleanup() ;
                }
             }
 

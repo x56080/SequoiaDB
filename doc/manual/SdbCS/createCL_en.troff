@@ -87,6 +87,7 @@ to the client.
 Format: \f[C]ReplSize: 0\f[]
 .RE
 .IP \[bu] 2
+<<<<<<< HEAD
 ConsistencyStrategy ( \f[I]number\f[] ): Synchronization consistency strategy.
 .RS 2
 .PP
@@ -107,6 +108,10 @@ Format：\f[C]ConsistencyStrategy: 3\f[]
 Compressed ( \f[I]boolean\f[] ): Whether to enable the data compression
 function, and the default value is "true", which means that the data compression
 function is enable.
+=======
+Compressed ( \f[I]boolean\f[] ): Whether to enable the data compression
+function, and the default value is "true", enable the data compression function.
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 .RS 2
 .PP
 Format: \f[C]Compressed: false\f[]

@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = optAPM.hpp
 
@@ -44,9 +42,10 @@
 #include "oss.hpp"
 #include "optAccessPlan.hpp"
 #include "optAccessPlanRuntime.hpp"
+#include "optPlanMarker.hpp"
 #include "utilHashTable.hpp"
-#include "dmsCachedPlanUnit.hpp"
 #include "dmsEventHandler.hpp"
+#include "rtnCollectionInfo.hpp"
 
 using namespace std ;
 
@@ -84,12 +83,16 @@ namespace engine
 
          void resetCachedPlanActivity( optAccessPlan *pPlan,
                                        INT32 lockType = -1 ) ;
+<<<<<<< HEAD
 
          void invalidateSUPlans ( dmsCachedPlanMgr *pCachedPlanMgr,
                                   UINT32 suLID ) ;
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
-         void invalidateCLPlans ( dmsCachedPlanMgr *pCachedPlanMgr,
-                                  UINT32 suLID, UINT32 clLID ) ;
+         void invalidateSUPlans ( utilCSUniqueID csUID ) ;
+
+         void invalidateCLPlans ( utilCLUniqueID clUID ) ;
 
          void invalidateAllPlans () ;
 
@@ -350,7 +353,6 @@ namespace engine
       _optAccessPlanManager define
     */
    class _optAccessPlanManager : public SDBObject,
-                                 public _IDmsEventHandler,
                                  public _optAccessPlanConfigHolder,
                                  public _mthMatchConfigHolder
    {
@@ -364,7 +366,11 @@ namespace engine
                       UINT32 sortBufferSize,
                       INT32 optCostThreshold,
                       BOOLEAN enableMixCmp,
+<<<<<<< HEAD
                       INT32 planCacheMainCLThreshold ) ;
+=======
+                      BOOLEAN activateClearJob = TRUE ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
          INT32 reinit ( UINT32 bucketNum,
                         OPT_PLAN_CACHE_LEVEL cacheLevel,
@@ -397,19 +403,29 @@ namespace engine
 
          // Try to get access plan from cache, if could not get access plan
          // from cache, create one
+<<<<<<< HEAD
          INT32 getAccessPlan ( const rtnQueryOptions &options,
                                dmsStorageUnit *su,
                                dmsMBContext *mbContext,
                                optAccessPlanRuntime &planRuntime,
                                const rtnExplainOptions *expOptions = NULL ) ;
+=======
+         INT32 getAccessPlan( IExecutor *executor,
+                              const rtnQueryOptions &options,
+                              const rtnCollectionInfo &info,
+                              optAccessPlanRuntime &planRuntime,
+                              const rtnExplainOptions *expOptions = NULL ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
          // Create access plan directly without caching
-         INT32 getTempAccessPlan ( const rtnQueryOptions &options,
-                                   dmsStorageUnit *su,
-                                   dmsMBContext *mbContext,
-                                   optAccessPlanRuntime &planRuntime ) ;
+         INT32 getTempAccessPlan( IExecutor *executor,
+                                  const rtnQueryOptions &options,
+                                  const rtnCollectionInfo &info,
+                                  optAccessPlanRuntime &planRuntime );
 
          void invalidateCLPlans ( const CHAR *pCLFullName ) ;
+
+         void invalidateCLPlans ( utilCLUniqueID clUID ) ;
 
          void invalidateSUPlans ( const CHAR * pCSName ) ;
 
@@ -421,6 +437,7 @@ namespace engine
 
          // acquire access plan ID
          INT64 acquireAccessPlanID()
+<<<<<<< HEAD
          {
             return _accessPlanIdGenerator.inc() ;
          }
@@ -505,8 +522,10 @@ namespace engine
                                           IDmsSUCacheHolder *pCacheHolder ) ;
 
          OSS_INLINE virtual UINT32 getMask () const
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          {
-            return DMS_EVENT_MASK_PLAN ;
+            return _accessPlanIdGenerator.inc() ;
          }
 
          OSS_INLINE virtual const CHAR *getName() const
@@ -515,6 +534,7 @@ namespace engine
          }
 
       protected :
+<<<<<<< HEAD
          INT32 _getCLAccessPlan ( const rtnQueryOptions &options,
                                   dmsStorageUnit *su,
                                   dmsMBContext *mbContext,
@@ -531,17 +551,31 @@ namespace engine
          INT32 _getMainCLAccessPlan ( const rtnQueryOptions &options,
                                       dmsStorageUnit *su,
                                       dmsMBContext *mbContext,
+=======
+         INT32 _getCLAccessPlan ( IExecutor *executor,
+                                  const rtnQueryOptions &options,
+                                  const rtnCollectionInfo &info,
+                                  optAccessPlanRuntime &planRuntime,
+                                  const rtnExplainOptions *expOptions ) ;
+
+         INT32 _getCLAccessPlan ( IExecutor *executor,
+                                  const rtnQueryOptions &options,
+                                  OPT_PLAN_CACHE_LEVEL cacheLevel,
+                                  const rtnCollectionInfo &info,
+                                  optAccessPlanRuntime &planRuntime,
+                                  const rtnExplainOptions *expOptions ) ;
+
+         INT32 _getMainCLAccessPlan ( IExecutor *executor,
+                                      const rtnQueryOptions &options,
+                                      const rtnCollectionInfo &info,
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                                       optAccessPlanRuntime &planRuntime ) ;
 
-         INT32 _prepareAccessPlanKey ( dmsStorageUnit *su,
-                                       dmsMBContext *mbContext,
-                                       optAccessPlanKey &planKey,
+         INT32 _prepareAccessPlanKey ( optAccessPlanKey &planKey,
                                        optAccessPlanHelper &planHelper,
                                        optAccessPlanRuntime &planRuntime ) ;
 
-         INT32 _createAccessPlan ( dmsStorageUnit *su,
-                                   dmsMBContext *mbContext,
-                                   optAccessPlanKey &planKey,
+         INT32 _createAccessPlan ( optAccessPlanKey &planKey,
                                    optAccessPlanRuntime &planRuntime,
                                    optAccessPlanHelper &planHelper,
                                    optGeneralAccessPlan **ppPlan,
@@ -553,8 +587,7 @@ namespace engine
          BOOLEAN _cacheAccessPlan ( optAccessPlan *pPlan ) ;
 
          // Helpers for parameterized plans
-         INT32 _validateParamPlan ( dmsStorageUnit *su,
-                                    dmsMBContext *mbContext,
+         INT32 _validateParamPlan ( const rtnCollectionInfo &info,
                                     optAccessPlanKey &planKey,
                                     optAccessPlanRuntime &planRuntime,
                                     optAccessPlanHelper &planHelper,
@@ -563,34 +596,20 @@ namespace engine
          // Helpers for main-collection plans
          INT32 _createMainCLPlan ( optAccessPlanKey &planKey,
                                    const rtnQueryOptions &subOptions,
-                                   dmsStorageUnit *su,
-                                   dmsMBContext *mbContext,
                                    optAccessPlanRuntime &planRuntime,
                                    optAccessPlanHelper &planHelper,
                                    optMainCLAccessPlan **ppPlan ) ;
 
          INT32 _validateMainCLPlan ( optMainCLAccessPlan *mainPlan,
                                      const rtnQueryOptions &subOptions,
-                                     dmsStorageUnit *su,
-                                     dmsMBContext *mbContext,
                                      optAccessPlanRuntime &planRuntime,
                                      optAccessPlanHelper &planHelper ) ;
 
          INT32 _bindMainCLPlan ( optMainCLAccessPlan *mainPlan,
                                  const rtnQueryOptions &subOptions,
-                                 dmsStorageUnit *su,
-                                 dmsMBContext *mbContext,
                                  optAccessPlanRuntime &planRuntime,
                                  optAccessPlanHelper &planHelper ) ;
-
-         // Helpers for _IDmsEventHandler
-         void _invalidSUPlans ( IDmsSUCacheHolder *pCacheHolder ) ;
-
-         void _invalidCLPlans ( IDmsSUCacheHolder *pCacheHolder,
-                                UINT16 mbID, UINT32 clLID ) ;
-
-         void _resetSUPlanCache ( IDmsSUCacheHolder *pCacheHolder ) ;
-
+         
          // Helpers for clear background job
          INT32 _startClearJob () ;
          void  _stopClearJob () ;
@@ -599,6 +618,7 @@ namespace engine
          monSpinXLatch           _reinitLatch ;
          optAccessPlanCache      _planCache ;
          optCachedPlanMonitor    _monitor ;
+         optPlanMarker           _marker ;
          EDUID                   _clearJobEduID ;
 
          ossAtomicSigned64       _accessPlanIdGenerator ;

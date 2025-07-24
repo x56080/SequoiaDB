@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = rtnCB.cpp
 
@@ -34,7 +33,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #include "rtnCB.hpp"
 #include "pdTrace.hpp"
 #include "rtnTrace.hpp"
@@ -92,6 +90,7 @@ namespace engine
    } ;
    typedef class _rtnClearExpireContextJob rtnClearExpireContextJob ;
 
+<<<<<<< HEAD
    /*
       _rtnClearUserCacheJob define
    */
@@ -133,6 +132,8 @@ namespace engine
    };
    typedef class _rtnClearUserCacheJob rtnClearUserCacheJob;
 
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    _SDB_RTNCB::_SDB_RTNCB()
       : _contextIdGenerator( 0 ),
         _maxContextNum( RTN_MAX_CTX_NUM_DFT ),
@@ -201,12 +202,21 @@ namespace engine
             (OPT_PLAN_CACHE_LEVEL)( optionCB->getPlanCacheLevel() ),
             optionCB->getSortBufSize(),
             optionCB->getOptCostThreshold(),
+<<<<<<< HEAD
             optionCB->isEnabledMixCmp(),
             optionCB->getPlanCacheMainCLThreshold() ) ;
+=======
+            optionCB->isEnabledMixCmp() ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       _maxContextNum = optionCB->maxContextNum() ;
       _maxSessionContextNum = optionCB->maxSessionContextNum() ;
       _contextTimeout = optionCB->contextTimeout() ;
+<<<<<<< HEAD
+=======
+
+      _statCache.init( newRtnObjectStatAgentImpl( sdbGetDMSCB() ) );
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    done:
       return rc ;
@@ -218,6 +228,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
+<<<<<<< HEAD
       if ( SDB_ROLE_DATA == pmdGetDBRole() ||
            SDB_ROLE_CATALOG == pmdGetDBRole() ||
            SDB_ROLE_STANDALONE == pmdGetDBRole() ||
@@ -248,6 +259,21 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to submit clear user cache job, rc: %d", rc ) ;
          PD_LOG( PDDEBUG, "submit clear user cache job [%llu]", jobID ) ;
       }
+=======
+      UINT64 jobID = 0 ;
+      rtnClearExpireContextJob *job = NULL ;
+
+
+      job = SDB_OSS_NEW rtnClearExpireContextJob( this ) ;
+      PD_CHECK( NULL != job, SDB_OOM, error, PDERROR,
+                "Failed to allocate clear context job" ) ;
+
+      rc = job->submit( TRUE, UTIL_LJOB_PRI_LOWEST, UTIL_LJOB_DFT_AVG_COST,
+                        &jobID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to submit clear context job, rc: %d",
+                   rc ) ;
+      PD_LOG( PDDEBUG, "submit clear context job [%llu]", jobID ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       if ( SDB_ROLE_DATA       == pmdGetKRCB()->getDBRole() ||
            SDB_ROLE_STANDALONE == pmdGetKRCB()->getDBRole() )
@@ -269,6 +295,7 @@ namespace engine
       {
          _remoteMessenger->deactive() ;
       }
+<<<<<<< HEAD
       if ( SDB_ROLE_DATA == pmdGetDBRole() ||
            SDB_ROLE_CATALOG == pmdGetDBRole() ||
            SDB_ROLE_STANDALONE == pmdGetDBRole() ||
@@ -276,6 +303,9 @@ namespace engine
       {
          pmdGetKRCB()->getDMSCB()->unregHandler( &_accessPlanManager ) ;
       }
+=======
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       return SDB_OK ;
    }
 
@@ -307,7 +337,11 @@ namespace engine
          _pLTMgr = NULL ;
       }
 
+<<<<<<< HEAD
       _unloadCSSet.clear() ;
+=======
+      _statCache.fini();
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       return SDB_OK ;
    }
@@ -324,12 +358,17 @@ namespace engine
             (OPT_PLAN_CACHE_LEVEL)( optionCB->getPlanCacheLevel() ),
             optionCB->getSortBufSize(),
             optionCB->getOptCostThreshold(),
+<<<<<<< HEAD
             optionCB->isEnabledMixCmp(),
             optionCB->getPlanCacheMainCLThreshold() ) ;
+=======
+            optionCB->isEnabledMixCmp() ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       _maxContextNum = optionCB->maxContextNum() ;
       _maxSessionContextNum = optionCB->maxSessionContextNum() ;
       _contextTimeout = optionCB->contextTimeout() ;
+<<<<<<< HEAD
    }
 
    void _SDB_RTNCB::_setGlobalID( _pmdEDUCB *cb, rtnContextPtr &pContext )
@@ -352,6 +391,8 @@ namespace engine
             pContext->_setGlobalID( sessionOpGlobalID ) ;
          }
       }
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    }
 
    INT32 _SDB_RTNCB::contextFind( INT64 contextID,
@@ -372,7 +413,10 @@ namespace engine
          else
          {
             context = ret.first ;
+<<<<<<< HEAD
             _setGlobalID( cb, context ) ;
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          }
       }
       else
@@ -398,7 +442,10 @@ namespace engine
          if ( type == tempContext->getType() )
          {
             context = tempContext ;
+<<<<<<< HEAD
             _setGlobalID( cb, context ) ;
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          }
          else
          {
@@ -722,10 +769,28 @@ namespace engine
                      type, _contextId, pEDUCB->getID() ) ;
 
       if ( !context )
+<<<<<<< HEAD
       {
          return SDB_OOM ;
       }
 
+      if ( !( _contextMap.insert( _contextId, context ).second ) )
+      {
+         context.release() ;
+         return SDB_OOM ;
+      }
+
+      if ( !pEDUCB->contextInsert( _contextId ) )
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
+      {
+         _contextMap.erase( _contextId ) ;
+         context.release() ;
+         return SDB_OOM ;
+      }
+
+<<<<<<< HEAD
+=======
       if ( !( _contextMap.insert( _contextId, context ).second ) )
       {
          context.release() ;
@@ -739,6 +804,7 @@ namespace engine
          return SDB_OOM ;
       }
 
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       contextID = _contextId ;
 
       pTaskInfo = pEDUCB->getMonAppCB()->getSvcTaskInfo() ;
@@ -768,8 +834,11 @@ namespace engine
          context->disableTimeout() ;
       }
 
+<<<<<<< HEAD
       context->_setGlobalID( pEDUCB->getOperator()->getGlobalID() ) ;
 
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       PD_LOG ( PDDEBUG, "Create new context(contextID=%lld, type: %d[%s], "
                "writing ID %llu)",
                contextID, type, getContextTypeDesp(type),

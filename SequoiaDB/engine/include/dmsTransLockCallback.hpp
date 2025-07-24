@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = dmsTransLockCallback.hpp
 
@@ -36,7 +34,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #ifndef DMS_TRANS_LOCK_CALLBACK_HPP__
 #define DMS_TRANS_LOCK_CALLBACK_HPP__
 
@@ -45,6 +42,7 @@
 #include "dmsOprHandler.hpp"
 #include "dpsTransCB.hpp"
 #include "pmdEDU.hpp"
+#include "utilBitmap.hpp"
 
 using namespace bson ;
 
@@ -57,6 +55,8 @@ namespace engine
    class oldVersionCB ;
    class _rtnScanner ;
    struct _dmsMBStatInfo ;
+
+   typedef _utilStackBitmap< DMS_COLLECTION_MAX_INDEX > DMS_TRANS_INDEX_BITMAP ;
 
    // Class to implment lock call back funtions for DMS scanner
    class dmsTransLockCallback : public _dpsITransLockCallback,
@@ -80,20 +80,63 @@ namespace engine
 
       void     setScanner( _rtnScanner *pScanner ) ;
 
-      void     attachRecordRW( _dmsRecordRW * recordRW ) ;
+      void     attachRecordRW( _dmsRecordRW  * recordRW, 
+                               dmsRecordData * recordData ) ;
       void     detachRecordRW() ;
 
       /*
          Status
       */
       BOOLEAN  isSkipRecord() const { return _skipRecord ; }
-      INT32    getResult() const { return _result ; }
-      BOOLEAN  hasError() const { return SDB_OK != _result ? TRUE : FALSE ; }
+      BOOLEAN  isNonTransNeedCleanup() const { return _nonTransNeedCleanup ; }
+      void     setNonTransNeedCleanup() { _nonTransNeedCleanup = TRUE ; }
       BOOLEAN  isUseOldVersion() const { return _useOldVersion ; }
+      void     setUseLatestVersion() { _useLatestVersion = TRUE ; }
+      BOOLEAN  isUseLatestVersion() const { return _useLatestVersion ; }
+
+      BOOLEAN  idxTreeLatched ( SINT32 lid )
+      {
+         return ( lid == _latchedIdxLid ) ;
+      }
+      INT32 idxTreeLatchMode () const ;
 
       const dmsTransRecordInfo*  getTransRecordInfo() const ;
 
+      DPS_TRANS_ID getRecordTransID() ;
+      DPS_TRANS_ID getOwnerTransID() ;
+
+      BOOLEAN isIndexProtectionRequired() ;
+      BOOLEAN isPostActionRequired() { return _needPostAction ; }
+
+      BOOLEAN isIndexProtected( INT32 idxTreeId, INT32 latchMode = -1 ) ;
+      BOOLEAN isRecordOnDiskVisible() { return _recordOnDiskVisible ; }
+
+      const dmsRBSOffset & getRBSRecordOffset() ;
+
+      void  setRBSRecordOffset( dmsRBSOffset & loc )
+      {
+         _rbsRecordOffset._clID = loc._clID ;
+         _rbsRecordOffset._logicalID = loc._logicalID ;
+      }
+
+      // mark index updated
+      void setIndexUpdated( INT32 indexID )
+      {
+         if ( indexID >= 0 )
+         {
+            _indexBitmap.setBit( (UINT32)indexID ) ;
+         }
+      }
+
+      // check if index is updated
+      BOOLEAN isIndexUpdated( INT32 indexID )
+      {
+         return ( indexID >= 0 ) &&
+                ( _indexBitmap.testBit( (UINT32)indexID ) ) ;
+      }
+
    public:
+      INT32 checkRecordVisible( dmsMBContext *context, BOOLEAN *needData = NULL ) ;
 
       /// Interface
       virtual void afterLockAcquire( const dpsTransLockId &lockId,
@@ -101,17 +144,28 @@ namespace engine
                                      DPS_TRANSLOCK_TYPE requestLockMode,
                                      UINT32 refCounter,
                                      DPS_TRANSLOCK_OP_MODE_TYPE opMode,
-                                     const dpsTransLRBHeader *pLRBHeader,
                                      dpsLRBExtData *pExtData ) ;
+
+      virtual void afterLockAcquirePostAction( const dpsTransLockId &lockId );
 
       virtual void beforeLockRelease( const dpsTransLockId &lockId,
                                       DPS_TRANSLOCK_TYPE lockMode,
                                       UINT32 refCounter,
-                                      const dpsTransLRBHeader *pLRBHeader,
                                       dpsLRBExtData *pExtData ) ;
 
+<<<<<<< HEAD
       virtual INT32 afterLockEscalated( const dpsTransLockId &lockId,
                                         DPS_TRANSLOCK_OP_MODE_TYPE opMode ) ;
+=======
+      virtual void afterLockEscalated( const dpsTransLockId &lockId,
+                                       DPS_TRANSLOCK_OP_MODE_TYPE opMode ) ;
+
+      virtual INT32 getResult() { return _result ; }
+      virtual BOOLEAN hasError()
+      {
+         return SDB_OK != _result ? TRUE : FALSE ;
+      }
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    public:
       virtual void  onCSClosed( INT32 csID ) ;
@@ -169,6 +223,7 @@ namespace engine
                                    utilWriteResult *pResult ) ;
 
       virtual INT32 onUpdateIndex( _dmsMBContext *context,
+                                   INT32 indexID,
                                    const ixmIndexCB *indexCB,
                                    BOOLEAN isUnique,
                                    BOOLEAN isEnforce,
@@ -203,20 +258,22 @@ namespace engine
                                        BOOLEAN allowSelfDup,
                                        utilWriteResult *pResult ) ;
 
-   enum _DELETE_CURSOR
-   {
-      _DELETE_NONE,
-      _DELETE_IGNORE,
-      _DELETE_SAVE
-   } ;
-   INT32            _checkDeleteIndex( preIdxTreePtr &treePtr,
+      enum _DELETE_CURSOR
+      {
+         _DELETE_NONE,
+         _DELETE_IGNORE,
+         _DELETE_SAVE
+      } ;
+      INT32         _checkDeleteIndex( preIdxTreePtr &treePtr,
                                        _DELETE_CURSOR &deleteCursor,
+                                       INT32 indexID,
                                        const ixmIndexCB *indexCB,
                                        BOOLEAN isUnique,
                                        const BSONObj &keyObj,
                                        const dmsRecordID &rid,
                                        _pmdEDUCB* cb ) ;
 
+<<<<<<< HEAD
    private:
 
       INT32    saveOldVersionRecord( const dmsRecordID &rid,
@@ -225,13 +282,60 @@ namespace engine
                                      BOOLEAN isDeleting ) ;
 
       INT32    _getLatchedIdxMode() ;
+=======
+      INT32 _checkIDIndexUpdate( const dmsRecordID &rid,
+                                 const BSONElement &idEle,
+                                 _pmdEDUCB *cb ) ;
+
+      // check if we need to rollback on given index
+      INT32 _checkRollbackIndex( INT32 indexID,
+                                 const ixmIndexCB *indexCB,
+                                 pmdEDUCB *cb ) ;
+
+   private:
+
+      INT32    saveOldVersionRecord( const _dmsRecordRW *pRecordRW,
+                                     const dmsRecordID  &rid,
+                                     const UINT32        clLID,
+                                     const BSONObj      &obj,
+                                     const UINT32        ownerTID ) ;
+
+      INT32    saveOldVersionRecordToRBS( const _dmsRecordRW *pRecordRW,
+                                     const dmsRecordID &rid,
+                                     const BSONObj &obj,
+                                     UINT32 ownerTID ) ;
+
+      void     _afterAcquireUXLockOrNonRRread(
+                                     const dpsTransLockId      &lockId,
+                                     INT32                      irc,
+                                     DPS_TRANSLOCK_TYPE         requestLockMode,
+                                     UINT32                     refCounter,
+                                     DPS_TRANSLOCK_OP_MODE_TYPE opMode,
+                                     dpsLRBExtData             *pExtData ) ;
+
+      void    _afterAcquireSLockRRread(
+                                     const dpsTransLockId      &lockId,
+                                     INT32                      irc,
+                                     DPS_TRANSLOCK_TYPE         requestLockMode,
+                                     UINT32                     refCounter,
+                                     DPS_TRANSLOCK_OP_MODE_TYPE opMode,
+                                     dpsLRBExtData             *pExtData ) ;
+
+      INT32   _validateRecordFromOldVer( pmdEDUCB             *eduCB,
+                                         const DPS_TRANS_ID   &transID,
+                                         BOOLEAN              &visible ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    private:
       dpsTransCB           *_transCB ;    // use it to access global old copy tree
       pmdEDUCB             *_eduCB ;
+      oldVersionCB         *_oldVerCB ;
+      _dmsRBSMgr         *_rbsMgr ;
 
       // DMS related information
-      _dmsRecordRW         * _recordRW ;
+      _dmsRecordRW         *_recordRW ;
+      // record data read from RBS
+      dmsRecordData        *_rbsRecordData ;
       // working area to be setup by callback function so the update can
       // put proper old copy into the area right before the update
       oldVersionContainer  *_oldVer ;
@@ -239,19 +343,44 @@ namespace engine
       /// control var
       BOOLEAN              _skipRecord ;
       INT32                _result ;
+      BOOLEAN              _needPostAction ;
       BOOLEAN              _useOldVersion ;
+      BOOLEAN              _recordOnDiskVisible ;
+      BOOLEAN              _useLatestVersion ;
+      // save transaction ID of record from disk, which will be used
+      // in RBS to check MVCC record chain
+      DPS_TRANS_ID         _diskRecordTransID ;
+      // used for non-transactional operation to track if the operation
+      // (update/delete) need to cleanup nodes for this rid in memidxtree.
+      // Only need the cleanup when the operation was successfull.
+      // Note that because this is for Non-transactional, it's set/reset
+      // per record, and per record lock
+      BOOLEAN              _nonTransNeedCleanup;
       dpsOldRecordPtr      _recordPtr ;
+      dmsRBSOffset         _rbsRecordOffset ;
 
       /// status var
       UINT32               _csLID ;
       UINT32               _clLID ;
       INT32                _csID ;
       UINT16               _clID ;
+<<<<<<< HEAD
       dmsExtentID          _latchedIdxLid ; // which we are holding a latch on
       _rtnScanner          *_pScanner ;
       oldVersionUnitPtr    _unitPtr ;
 
       dmsTransRecordInfo   _recordInfo ;
+=======
+      SINT32               _latchedIdxLid ; // which we are holding a latch on
+      INT32                _transIsolation ;
+      _rtnIXScanner       *_pScanner ;
+      oldVersionUnitPtr    _unitPtr ;
+
+      dmsTransRecordInfo   _recordInfo ;
+
+      // index bitmap to indicate which index is updated
+      DMS_TRANS_INDEX_BITMAP _indexBitmap ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       IDmsOprHandler      *_opHandler ;
    } ;
 

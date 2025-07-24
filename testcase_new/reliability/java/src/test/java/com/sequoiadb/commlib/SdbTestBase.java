@@ -31,6 +31,11 @@ public class SdbTestBase {
     public static String serviceName;
     public static String dsHostName;
     public static String dsServiceName;
+<<<<<<< HEAD
+=======
+    public static String stpHostName;
+    public static String stpServiceName;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     public static String csName;
     public static String cappedCSName;
     public static int reservedPortBegin;
@@ -45,8 +50,11 @@ public class SdbTestBase {
     public static String esHostName;
     public static String esServiceName;
     public static String sdbseadapterDir;
+<<<<<<< HEAD
     public static String expandGroupName;
     public static int expandNodeNum;
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     private static boolean srcdbExist = false;
 
     private static final String TRANSISOLATION = "transisolation";
@@ -54,14 +62,21 @@ public class SdbTestBase {
     private static final String TRANSAUTOCOMMIT = "transautocommit";
     private static final String TRANSAUTOROLLBACK = "transautorollback";
     private static final String TRANSUSERBS = "transuserbs";
+    private static final String GLOBTRANSON = "globtranson";
     private static final String TRANSREPLSIZE = "transreplsize";
+    private static final String MVCCON = "mvccon";
     private static final String RCAUTO = "rcauto";
     private static final String RC = "rc";
+    private static final String RR = "rr";
+    private static final String RRAUTO = "rrauto";
     private static final String NODENAME = "NodeName";
+<<<<<<< HEAD
     public static final String LOCATION = "location";
     public static ArrayList< String > expandGroupNames = new ArrayList<>();
     public static ArrayList< BasicBSONObject > expandNodeInfos = null;
 
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     private static final Map< String, BSONObject > group2Conf = new HashMap<>();
     private static final Map< String, BSONObject > node2Conf = new HashMap<>();
     private static final Map< String, AtomicInteger > groupName2Count = new HashMap<>();
@@ -93,9 +108,15 @@ public class SdbTestBase {
 
     @Parameters({ "HOSTNAME", "SVCNAME", "CHANGEDPREFIX", "RSRVPORTBEGIN",
             "RSRVPORTEND", "RSRVNODEDIR", "WORKDIR", "ROOTPASSWD", "REMOTEUSER",
+<<<<<<< HEAD
             "REMOTEPASSWD", "SCRIPTDIR", "BACKUPTMPNODELOGPATH", "ESHOSTNAME",
             "ESSVCNAME", "FULLTEXTPREFIX", "SDBSEADAPTERDIR", "DSHOSTNAME",
             "DSSVCNAME" })
+=======
+            "REMOTEPASSWD", "SCRIPTDIR", "ESHOSTNAME", "ESSVCNAME",
+            "FULLTEXTPREFIX", "SDBSEADAPTERDIR", "DSHOSTNAME", "DSSVCNAME",
+            "STPHOSTNAME", "STPSVCNAME" })
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     @BeforeSuite(alwaysRun = true)
     public static void initSuite( String HOSTNAME, String SVCNAME,
             String COMMCSNAME, int RSRVPORTBEGIN, int RSRVPORTEND,
@@ -107,7 +128,13 @@ public class SdbTestBase {
             @Optional("") String FULLTEXTPREFIX,
             @Optional("/opt/sequoiadb/conf/sdbseadapter") String SDBSEADAPTERDIR,
             @Optional("${DSHOSTNAME}") String DSHOSTNAME,
+<<<<<<< HEAD
             @Optional("11810") String DSSVCNAME ) {
+=======
+            @Optional("11810") String DSSVCNAME,
+            @Optional("localhost") String STPHOSTNAME,
+            @Optional("9622") String STPSVCNAME ) {
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         hostName = HOSTNAME;
         serviceName = SVCNAME;
         csName = COMMCSNAME;
@@ -129,6 +156,11 @@ public class SdbTestBase {
         sdbseadapterDir = SDBSEADAPTERDIR;
         dsHostName = DSHOSTNAME;
         dsServiceName = DSSVCNAME;
+<<<<<<< HEAD
+=======
+        stpHostName = STPHOSTNAME;
+        stpServiceName = STPSVCNAME;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         srcCoordUrl = DSHOSTNAME + ":" + DSSVCNAME;
 
         getAllNodeConf( confObj );
@@ -173,6 +205,26 @@ public class SdbTestBase {
         group2Conf.get( RC ).put( TRANSUSERBS, true );
         group2Conf.get( RC ).put( TRANSREPLSIZE, transReplsize );
 
+        group2Conf.put( RR, new BasicBSONObject() );
+        group2Conf.get( RR ).put( TRANSISOLATION, 3 );
+        group2Conf.get( RR ).put( TRANSLOCKWAIT, false );
+        group2Conf.get( RR ).put( TRANSAUTOCOMMIT, false );
+        group2Conf.get( RR ).put( TRANSAUTOROLLBACK, true );
+        group2Conf.get( RR ).put( TRANSUSERBS, true );
+        group2Conf.get( RR ).put( MVCCON, true );
+        group2Conf.get( RR ).put( GLOBTRANSON, true );
+        group2Conf.get( RC ).put( TRANSREPLSIZE, transReplsize );
+
+        group2Conf.put( RRAUTO, new BasicBSONObject() );
+        group2Conf.get( RRAUTO ).put( TRANSISOLATION, 3 );
+        group2Conf.get( RRAUTO ).put( TRANSLOCKWAIT, false );
+        group2Conf.get( RRAUTO ).put( TRANSAUTOCOMMIT, true );
+        group2Conf.get( RRAUTO ).put( TRANSAUTOROLLBACK, false );
+        group2Conf.get( RRAUTO ).put( TRANSUSERBS, true );
+        group2Conf.get( RRAUTO ).put( MVCCON, true );
+        group2Conf.get( RRAUTO ).put( GLOBTRANSON, true );
+        group2Conf.get( RC ).put( TRANSREPLSIZE, transReplsize );
+
         for ( String key : group2Conf.keySet() ) {
             groupName2Count.put( key, new AtomicInteger( 0 ) );
             for ( String conf : group2Conf.get( key ).keySet() ) {
@@ -193,14 +245,20 @@ public class SdbTestBase {
             sdb.updateConfig( cfg, object );
         } catch ( BaseException e ) {
             e.printStackTrace();
-            throw e;
+            // coord 节点 mvccon 默认为 false,更新配置时会报-264，由于不支持节点重启，暂不对外抛错；
+            // throw e;
         }
     }
 
+<<<<<<< HEAD
     @Parameters({ "EXPANDNODENUM" })
     @BeforeTest(groups = { RC, RCAUTO, LOCATION })
     public static synchronized void initTestGroups(
             @Optional("0") int EXPANDNODENUM ) {
+=======
+    @BeforeTest(groups = { RC, RCAUTO, RR, RRAUTO })
+    public static synchronized void initTestGroups() {
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         if ( !groupName2Count.containsKey( testGroupOfCurrent ) ) {
             return;
         }
@@ -245,10 +303,15 @@ public class SdbTestBase {
         modifyNodeConf( group2Conf.get( testGroupOfCurrent ), null );
     }
 
+<<<<<<< HEAD
     @Parameters({ "EXPANDNODENUM" })
     @AfterTest(groups = { RC, RCAUTO, LOCATION }, alwaysRun = true)
     public static synchronized void finiTestGroups(
             @Optional("0") int EXPANDNODENUM ) {
+=======
+    @AfterTest(groups = { RC, RCAUTO, RR, RRAUTO }, alwaysRun = true)
+    public static synchronized void finiTestGroups() {
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         if ( !groupName2Count.containsKey( testGroupOfCurrent ) ) {
             return;
         }

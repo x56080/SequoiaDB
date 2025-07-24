@@ -10,7 +10,11 @@ SequoiaDB 巨杉数据库提供回收站机制，可以有效防止因误删集�
 - [truncate()][truncate]：删除集合的所有数据
 
 启用回收站机制后，SequoiaDB 将对已删除的集合空间或集合数据进行回收，并生成对应的回收站项目。用户可通过回收站项目，快速恢复集合空间或集合的数据。
+<<<<<<< HEAD
 
+=======
+ 
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 ##使用##
 
 ###生成回收站项目###
@@ -64,7 +68,13 @@ SequoiaDB 巨杉数据库提供回收站机制，可以有效防止因误删集�
       "OriginID": 12884901889,
       "Type": "Collection",
       "OpType": "Drop",
+<<<<<<< HEAD
       "RecycleTime": "2022-02-11-16.52.59.000000"
+=======
+      "RecycleTime": {
+        "$timestamp": "2022-02-11-16.52.59.000000"
+      }
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     }
     ```
 
@@ -97,7 +107,13 @@ SequoiaDB 巨杉数据库提供回收站机制，可以有效防止因误删集�
       "OriginName": "sample.employee",
       "RecycleID": 5,
       "RecycleName": "SYSRECYCLE_5_12884901889",
+<<<<<<< HEAD
       "RecycleTime": "2022-02-11-16.52.59.000000",
+=======
+      "RecycleTime": {
+        "$timestamp": "2022-02-11-16.52.59.000000"
+      },
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       "Type": "Collection"
     }
     {
@@ -107,7 +123,13 @@ SequoiaDB 巨杉数据库提供回收站机制，可以有效防止因误删集�
       "OriginID": 3,
       "Type": "CollectionSpace",
       "OpType": "Drop",
+<<<<<<< HEAD
       "RecycleTime": "2022-02-11-16.54.06.000000"
+=======
+      "RecycleTime": {
+        "$timestamp": "2022-02-11-16.54.06.000000"
+      }
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     }
     ```
 
@@ -163,7 +185,11 @@ SequoiaDB 巨杉数据库提供回收站机制，可以有效防止因误删集�
 | [SdbRecycleBin.dropAll()][dropAll] | 删除所有的回收站项目 |
 | [Sdb.dropCS()][dropCS]/[SdbCS.dropCL()][dropCL]/[SdbCollection.truncate()][truncate] | 删除集合空间/删除集合/删除集合的所有数据<br>函数中增加参数 SkipRecycleBin，当一些临时表的操作不希望被回收时，可以设置 SkipRecycleBin 为 true
 
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 
 

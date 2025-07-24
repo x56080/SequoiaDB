@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = catGTSMsgHandler.cpp
 
@@ -274,6 +273,12 @@ namespace engine
          break ;
       case MSG_GTS_SEQUENCE_ALTER_REQ:
          rc = _processSequenceAlterMsg( msg, eduCB, buf ) ;
+<<<<<<< HEAD
+=======
+         break ;
+      case MSG_GTS_LOWTRAN_REQ :
+         rc = _processLowTranReq( msg, buf, eduCB ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          break ;
       default:
          rc = SDB_UNKNOWN_MESSAGE ;
@@ -314,8 +319,9 @@ namespace engine
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR,
-                 "Failed to send GTS reply message [%d], rc: %d",
-                 reply.header.opCode, rc ) ;
+                 "Failed to send GTS reply message[opCode:(%d)%d], rc: %d",
+                 IS_REPLY_TYPE( reply.header.opCode ),
+                 GET_REQUEST_TYPE( reply.header.opCode ), rc ) ;
          // no way to handle sending failure, do not jump to error
       }
 
@@ -343,8 +349,9 @@ namespace engine
          if ( SDB_OK != tempRc )
          {
             PD_LOG( PDERROR,
-                    "Failed to send GTS reply message [%d], rc: %d",
-                    reply.header.opCode, tempRc ) ;
+                    "Failed to send GTS reply message[opCode:(%d)%d], rc: %d",
+                    IS_REPLY_TYPE( reply.header.opCode ),
+                    GET_REQUEST_TYPE( reply.header.opCode ), tempRc ) ;
          }
       }
       goto done ;
@@ -373,8 +380,9 @@ namespace engine
       SDB_ASSERT( NULL != reply, "reply should be not null" ) ;
 
       PD_LOG( PDDEBUG,
-              "Sending reply message [%d] with rc [%d]",
-              reply->header.opCode, reply->flags ) ;
+              "Sending reply message[opCode:(%d)%d] with rc [%d]",
+              IS_REPLY_TYPE( reply->header.opCode ),
+              GET_REQUEST_TYPE( reply->header.opCode ), reply->flags ) ;              
 
       /// when error, but has no data, fill the error obj
       if ( reply->flags &&
@@ -402,8 +410,9 @@ namespace engine
       if ( SDB_OK != rc )
       {
          PD_LOG( PDWARNING,
-                 "Failed to send reply message [%d], rc: %d",
-                 reply->header.opCode, rc ) ;
+                 "Failed to send reply message[opCode:(%d)%d], rc: %d",
+                 IS_REPLY_TYPE( reply->header.opCode ),
+                 GET_REQUEST_TYPE( reply->header.opCode ), rc ) ;
       }
 
       PD_TRACE_EXITRC( SDB_GTS_MSG_HANDLER_SEND_REPLY, rc ) ;
@@ -685,6 +694,98 @@ namespace engine
 
       sdbCatalogueCB* cataCB = sdbGetCatalogueCB() ;
       _catSequenceManager* pSeqMgr = cataCB->getCatGTSMgr()->getSequenceMgr() ;
+<<<<<<< HEAD
+
+      rc = msgExtractQuery( ( const CHAR * )msg, NULL, NULL, NULL, NULL,
+                            &pQuery, NULL, NULL, NULL ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to extract sequence msg, rc=%d", rc ) ;
+
+      try
+      {
+         BSONElement beOptions;
+         boQuery = BSONObj( pQuery ) ;
+
+         // parse arguments
+         rc = rtnGetStringElement( boQuery, FIELD_NAME_ACTION, &pAction ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse the action, rc: %d", rc ) ;
+
+         beOptions = boQuery.getField( FIELD_NAME_OPTIONS ) ;
+         PD_CHECK( Object == beOptions.type(), SDB_INVALIDARG, error, PDERROR,
+                   "Field[%s] should be object, but found %s",
+                   FIELD_NAME_OPTIONS, beOptions.toString().c_str() ) ;
+
+         boOptions = beOptions.embeddedObject() ;
+
+         rc = rtnGetStringElement( boOptions, FIELD_NAME_NAME, &pSeqName ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse the sequence name, rc: %d",
+                      rc ) ;
+
+         // set current value
+         if ( 0 == ossStrcmp( pAction, CMD_VALUE_NAME_SET_CURR_VALUE ) )
+         {
+            INT64 expectValue = 0 ;
+            rc = rtnGetNumberLongElement( boOptions, FIELD_NAME_EXPECT_VALUE,
+                                          expectValue ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to parse expect value, rc: %d",
+                         rc ) ;
+            rc = pSeqMgr->adjustSequence( pSeqName, expectValue, eduCB,
+                                          cataCB->majoritySize( TRUE ),
+                                          &alteredSeqID ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to set current value, rc: %d",
+                         rc ) ;
+         }
+         // rename sequence
+         else if ( 0 == ossStrcmp( pAction, CMD_VALUE_NAME_RENAME ) )
+         {
+            const CHAR *pNewName = NULL ;
+            rc = rtnGetStringElement( boOptions, FIELD_NAME_NEWNAME,
+                                      &pNewName ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to parse new name, rc: %d", rc ) ;
+
+            rc = pSeqMgr->renameSequence( pSeqName, pNewName, eduCB,
+                                          cataCB->majoritySize( TRUE ),
+                                          &alteredSeqID ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to rename sequence, rc: %d", rc ) ;
+         }
+         // set attributes
+         else if ( 0 == ossStrcmp( pAction, CMD_VALUE_NAME_SETATTR ) )
+         {
+            rc = pSeqMgr->alterSequence( pSeqName, boOptions, eduCB,
+                                         cataCB->majoritySize( TRUE ),
+                                         NULL, NULL, &alteredSeqID ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to set attributes, rc: %d", rc ) ;
+         }
+         // restart sequence
+         else if ( 0 == ossStrcmp( pAction, CMD_VALUE_NAME_RESTART ) )
+         {
+            INT64 startValue = 0 ;
+            rc = rtnGetNumberLongElement( boOptions, FIELD_NAME_START_VALUE,
+                                          startValue ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to parse start value, rc: %d",
+                         rc ) ;
+            rc = pSeqMgr->restartSequence( pSeqName, startValue, eduCB,
+                                           cataCB->majoritySize( TRUE ),
+                                           &alteredSeqID ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to restart sequence, rc: %d", rc ) ;
+         }
+         else
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Action[%s] is unknown", pAction ) ;
+            goto error ;
+         }
+
+         {
+            BSONObjBuilder ob( 32 ) ;
+            BSONObj obj = ob.append( CAT_SEQUENCE_ID, (INT64) alteredSeqID ).obj() ;
+            buf = _rtnContextBuf( obj ) ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception occurs: %s", e.what() ) ;
+=======
 
       rc = msgExtractQuery( ( const CHAR * )msg, NULL, NULL, NULL, NULL,
                             &pQuery, NULL, NULL, NULL ) ;
@@ -784,5 +885,197 @@ namespace engine
    error:
       goto done ;
    }
-}
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_GTS_MSG_HANDLER__PROCESSLOWTRANREQ, "_catGTSMsgHandler::_processLowTranReq" )
+   INT32 _catGTSMsgHandler::_processLowTranReq( MsgHeader *message,
+                                                rtnContextBuf &replyBuffer,
+                                                pmdEDUCB *eduCB )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_GTS_MSG_HANDLER__PROCESSLOWTRANREQ ) ;
+
+      MsgGTSLowTranReq *request = NULL ;
+      catGlobTransManager *globTransMgr = _gtsMgr->getGlobTransMgr() ;
+      MsgRouteID routeID ;
+      DPS_TRANSID_SN lowTran = DPS_INVALID_TRANSID_SN ;
+      DPS_TRANSID_SN expireTran = DPS_INVALID_TRANSID_SN ;
+      BOOLEAN transOn = FALSE ;
+      BOOLEAN globTransOn = FALSE ;
+      BOOLEAN mvccOn = FALSE ;
+      BOOLEAN stpAvailable = FALSE ;
+      DPS_TRANSID_SN globLowTran = DPS_INVALID_TRANSID_SN ;
+      DPS_TRANSID_SN globExpireTran = DPS_INVALID_TRANSID_SN ;
+      BSONObj requestObject, responseObject ;
+
+      SDB_ASSERT( NULL != message, "message is invalid" ) ;
+      SDB_ASSERT( MSG_GTS_LOWTRAN_REQ == message->opCode,
+                  "should be lowTran request" ) ;
+
+      // convert to lowTran request
+      request = (MsgGTSLowTranReq *)message ;
+      PD_CHECK( request->messageLength >
+                         (INT32)( sizeof( MsgGTSLowTranReq ) ) +
+                         requestObject.objsize(),
+                SDB_SYS, error, PDERROR,
+                "Failed to extract lowTran request, "
+                "message length [%d] is unexpected",
+                request->messageLength ) ;
+
+      // extract route ID from message
+      // NOTE: we use local service for node lowTran
+      routeID.value = message->routeID.value ;
+      routeID.columns.serviceID = MSG_ROUTE_LOCAL_SERVICE ;
+
+      // parse node lowTran
+      try
+      {
+         requestObject = BSONObj( (CHAR *)request +
+                                  sizeof( MsgGTSLowTranReq ) ) ;
+         rc = _parseLowTranReq( requestObject, lowTran, expireTran,
+                                transOn, globTransOn, mvccOn, stpAvailable ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse lowTran request, "
+                      "rc: %d", rc ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to parse request object, error: %s",
+                 e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+      // update global lowTran
+      rc = globTransMgr->updateGlobLowTran( routeID,
+                                            lowTran,
+                                            expireTran,
+                                            transOn,
+                                            globTransOn,
+                                            mvccOn,
+                                            stpAvailable,
+                                            globLowTran,
+                                            globExpireTran ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to update global lowTran, "
+                   "rc: %d", rc ) ;
+
+      // build response BSON object
+      rc = _buildLowTranRsp( responseObject, globLowTran, globExpireTran ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build lowTran response, rc: %d",
+                   rc ) ;
+
+      // push response object to context buffer
+      replyBuffer = rtnContextBuf( responseObject ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB_GTS_MSG_HANDLER__PROCESSLOWTRANREQ, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_GTS_MSG_HANDLER__PARSELOWTRANREQ, "_catGTSMsgHandler::_parseLowTranReq" )
+   INT32 _catGTSMsgHandler::_parseLowTranReq( const BSONObj &requestObject,
+                                              DPS_TRANSID_SN &lowTran,
+                                              DPS_TRANSID_SN &expireTran,
+                                              BOOLEAN &transOn,
+                                              BOOLEAN &globTransOn,
+                                              BOOLEAN &mvccOn,
+                                              BOOLEAN &stpAvailable )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_GTS_MSG_HANDLER__PARSELOWTRANREQ ) ;
+
+      try
+      {
+         BSONElement element ;
+
+         // parse lowTran field
+         element = requestObject.getField( FIELD_NAME_TRANS_LOWTRAN ) ;
+         PD_CHECK( EOO != element.type(), SDB_SYS, error, PDERROR,
+                   "Failed to get field [%s], it should not be empty",
+                   FIELD_NAME_TRANS_LOWTRAN ) ;
+         PD_CHECK( NumberLong == element.type(), SDB_SYS, error, PDERROR,
+                   "Failed to get field [%s], it should be long type",
+                   FIELD_NAME_TRANS_LOWTRAN ) ;
+         lowTran = (DPS_TRANSID_SN)( element.numberLong() ) ;
+
+         // parse expireTran field
+         element = requestObject.getField( FIELD_NAME_TRANS_EXPTRAN ) ;
+         PD_CHECK( EOO != element.type(), SDB_SYS, error, PDERROR,
+                   "Failed to get field [%s], it should not be empty",
+                   FIELD_NAME_TRANS_EXPTRAN ) ;
+         PD_CHECK( NumberLong == element.type(), SDB_SYS, error, PDERROR,
+                   "Failed to get field [%s], it should be long type",
+                   FIELD_NAME_TRANS_EXPTRAN ) ;
+         expireTran = (DPS_TRANSID_SN)( element.numberLong() ) ;
+
+         // get transaction configs of node
+         // NOTE: not critical fields, no need to return error
+         // --transactionon
+         element = requestObject.getField( PMD_OPTION_TRANSACTIONON ) ;
+         transOn = element.booleanSafe() ;
+
+         // --globtranson
+         element = requestObject.getField( PMD_OPTION_GLOBTRANSON ) ;
+         globTransOn = element.booleanSafe() ;
+
+         // --mvccon
+         element = requestObject.getField( PMD_OPTION_MVCCON ) ;
+         mvccOn = element.booleanSafe() ;
+
+         // STP available
+         element = requestObject.getField( FIELD_NAME_STP_AVAILABLE ) ;
+         stpAvailable = element.booleanSafe() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to parse request object, error: %s",
+                 e.what() ) ;
+         rc = SDB_SYS ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_GTS_MSG_HANDLER__PARSELOWTRANREQ, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_GTS_MSG_HANDLER__BUILDLOWTRANRSP, "_catGTSMsgHandler::_buildLowTranRsp" )
+   INT32 _catGTSMsgHandler::_buildLowTranRsp( BSONObj &responseObject,
+                                              DPS_TRANSID_SN globLowTran,
+                                              DPS_TRANSID_SN globExpireTran )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_GTS_MSG_HANDLER__BUILDLOWTRANRSP ) ;
+
+      try
+      {
+         responseObject = BSON( FIELD_NAME_TRANS_GLOBLOWTRAN <<
+                                (INT64)globLowTran <<
+                                FIELD_NAME_TRANS_GLOBEXPTRAN <<
+                                (INT64)globExpireTran ) ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to build response object, error: %s",
+                 e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_GTS_MSG_HANDLER__BUILDLOWTRANRSP, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+}

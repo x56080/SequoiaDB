@@ -112,11 +112,19 @@ public class InsertRequest extends SdbRequest {
             }
             if ((flag & InsertOption.FLG_INSERT_RETURN_OID) != 0) {
                 ((BasicBSONList) oid).put(index++, objId);
+<<<<<<< HEAD
             }
             // Compatible with previous behavior
             if (!doc.containsField(OID)) {
                 doc.put(OID, objId);
             }
+=======
+            }
+            // Compatible with previous behavior
+            if (!doc.containsField(OID)) {
+                doc.put(OID, objId);
+            }
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
             byte[] docBytes = Helper.encodeBSONObj(doc, extendObj);
             extendObj.clear();

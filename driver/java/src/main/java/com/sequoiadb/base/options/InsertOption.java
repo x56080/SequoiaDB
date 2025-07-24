@@ -38,6 +38,7 @@ public class InsertOption extends BaseOption {
      */
     public final static int FLG_INSERT_REPLACEONDUP = 0x00000004;
 
+<<<<<<< HEAD
     /** 
      * The flag represent the error of the dup key will be ignored when the dup key is '_id'.
      */
@@ -49,6 +50,8 @@ public class InsertOption extends BaseOption {
      */
     public final static int FLG_INSERT_REPLACEONDUP_ID = 0x00000040;
 
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     private int flag = 0;
 
     /**
@@ -68,8 +71,11 @@ public class InsertOption extends BaseOption {
      *                 <li>{@link InsertOption#FLG_INSERT_CONTONDUP}
      *                 <li>{@link InsertOption#FLG_INSERT_RETURN_OID}
      *                 <li>{@link InsertOption#FLG_INSERT_REPLACEONDUP}
+<<<<<<< HEAD
      *                 <li>{@link InsertOption#FLG_INSERT_CONTONDUP_ID}
      *                 <li>{@link InsertOption#FLG_INSERT_REPLACEONDUP_ID}
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
      *             </ul>
      * @return this
      */
@@ -86,8 +92,11 @@ public class InsertOption extends BaseOption {
      *                 <li>{@link InsertOption#FLG_INSERT_CONTONDUP}
      *                 <li>{@link InsertOption#FLG_INSERT_RETURN_OID}
      *                 <li>{@link InsertOption#FLG_INSERT_REPLACEONDUP}
+<<<<<<< HEAD
      *                 <li>{@link InsertOption#FLG_INSERT_CONTONDUP_ID}
      *                 <li>{@link InsertOption#FLG_INSERT_REPLACEONDUP_ID}
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
      *             </ul>
      */
     public void appendFlag( int flag ){
@@ -102,8 +111,11 @@ public class InsertOption extends BaseOption {
      *                 <li>{@link InsertOption#FLG_INSERT_CONTONDUP}
      *                 <li>{@link InsertOption#FLG_INSERT_RETURN_OID}
      *                 <li>{@link InsertOption#FLG_INSERT_REPLACEONDUP}
+<<<<<<< HEAD
      *                 <li>{@link InsertOption#FLG_INSERT_CONTONDUP_ID}
      *                 <li>{@link InsertOption#FLG_INSERT_REPLACEONDUP_ID}
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
      *             </ul>
      */
     public void eraseFlag( int flag ){

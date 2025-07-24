@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = rtnQueryOptions.hpp
 
@@ -35,7 +34,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #include "rtnQueryOptions.hpp"
 #include "ossUtil.hpp"
 #include "msgMessage.hpp"
@@ -128,7 +126,9 @@ namespace engine
    _rtnQueryOptions::_rtnQueryOptions ()
    : _rtnReturnOptions(),
      _fullName( NULL ),
-     _mainCLName( NULL )
+     _mainCLName( NULL ),
+     _writeOp( FALSE ),
+     _clUID(UTIL_UNIQUEID_NULL)
    {
    }
 
@@ -145,7 +145,9 @@ namespace engine
      _orderBy( orderBy ),
      _hint( hint ),
      _fullName( fullName ),
-     _mainCLName( NULL )
+     _mainCLName( NULL ),
+     _writeOp( FALSE ),
+     _clUID(UTIL_UNIQUEID_NULL)
    {
    }
 
@@ -162,17 +164,21 @@ namespace engine
      _orderBy( orderBy ),
      _hint( hint ),
      _fullName( fullName ),
-     _mainCLName( NULL )
+     _mainCLName( NULL ),
+     _writeOp( FALSE ),
+     _clUID(UTIL_UNIQUEID_NULL)
    {
    }
 
-   _rtnQueryOptions::_rtnQueryOptions ( const _rtnQueryOptions &o )
+   _rtnQueryOptions::_rtnQueryOptions( const _rtnQueryOptions &o )
    : _rtnReturnOptions( o ),
      _query( o._query ),
      _orderBy( o._orderBy ),
      _hint( o._hint ),
      _fullName( o._fullName ),
-     _mainCLName( o._mainCLName )
+     _mainCLName( o._mainCLName ),
+     _writeOp( o._writeOp ),
+     _clUID( o._clUID )
    {
    }
 
@@ -193,6 +199,7 @@ namespace engine
       _mainCLName = NULL ;
       _fullNameBuf.clear() ;
       _fullName = NULL ;
+      _clUID = UTIL_UNIQUEID_NULL ;
    }
 
    INT32 _rtnQueryOptions::getOwned ()
@@ -302,6 +309,7 @@ namespace engine
       _fullNameBuf.clear() ;
       _mainCLName = o._mainCLName ;
       _mainCLNameBuf.clear() ;
+      _writeOp = o._writeOp ;
 
       return *this ;
    }

@@ -65,7 +65,11 @@ Get the session attributes.
 
 > **Note:**
 >
+<<<<<<< HEAD
 > In v3.4.5 and above, fields PreferedInstance, PreferedInstanceMode, PreferedStrict, PreferedPeriod are renamed to PreferredInstance, PreferredInstanceMode, PreferredStrict, PreferredPeriod. For compatibility, after upgrading to v3.4.5 and above, SequoiaDB is still compatible with the original fields.
+=======
+> In v5.0.3 and above, fields PreferedInstance, PreferedInstanceMode, PreferedStrict, PreferedPeriod are renamed to PreferredInstance, PreferredInstanceMode, PreferredStrict, PreferredPeriod. For compatibility, after upgrading to v5.0.3 and above, SequoiaDB is still compatible with the original fields.
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 [^_^]:
    links

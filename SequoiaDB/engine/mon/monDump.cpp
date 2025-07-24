@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = monDump.cpp
 
@@ -67,6 +65,10 @@
 #include "dpsUtil.hpp"
 #include "msgDef.h"
 #include "monMgr.hpp"
+<<<<<<< HEAD
+=======
+#include "dpsTransVersionCtrl.hpp"
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 #include "utilMath.hpp"
 
 using namespace bson ;
@@ -86,10 +88,13 @@ namespace engine
    #define MON_CL_DETAIL_VERSION_V1 ( 1 )
    #define MON_CL_DETAIL_VERSION_V2 ( 2 )
    #define MON_CL_DETAIL_CURRENT_V  MON_CL_DETAIL_VERSION_V2
+<<<<<<< HEAD
 
    #define MON_CL_STAT_VERSION_NULL ( 0 )
    #define MON_CL_STAT_VERSION_V1 ( 1 )
    #define MON_CL_STAT_CURRENT_V MON_CL_STAT_VERSION_V1
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_MONGETNODENAME, "monGetNodeName" )
    static CHAR *monGetNodeName ( CHAR *nodeName,
@@ -271,7 +276,6 @@ namespace engine
             subBegin.append( FIELD_NAME_LSN_OFFSET, (INT64)beginLSN.offset ) ;
             subBegin.append( FIELD_NAME_LSN_VERSION, beginLSN.version ) ;
             subBegin.done() ;
-
             BSONObjBuilder subCur( ob.subobjStart( FIELD_NAME_CURRENT_LSN ) ) ;
             subCur.append( FIELD_NAME_LSN_OFFSET, (INT64)currentLSN.offset ) ;
             subCur.append( FIELD_NAME_LSN_VERSION, currentLSN.version ) ;
@@ -281,6 +285,7 @@ namespace engine
             subCommit.append( FIELD_NAME_LSN_OFFSET, (INT64)committed.offset ) ;
             subCommit.append( FIELD_NAME_LSN_VERSION, committed.version ) ;
             subCommit.done() ;
+
 
             /// complete lsn and queue size
             DPS_LSN completeLSN ;
@@ -303,15 +308,70 @@ namespace engine
          {
             UINT32 transCount = 0 ;
             DPS_LSN_OFFSET beginLSNOff = 0 ;
+            DPS_TRANSID_SN globLowTran = DPS_INVALID_TRANSID_SN ;
+            DPS_TRANSID_SN globExpireTran = DPS_INVALID_TRANSID_SN ;
+            DPS_TRANSID_SN lowTran = DPS_INVALID_TRANSID_SN ;
+            DPS_TRANSID_SN expireTran = DPS_INVALID_TRANSID_SN ;
+            DPS_TRANSID_SN treeLowTran = DPS_INVALID_TRANSID_SN ;
+            dpsLogSummary logSummary ;
+            CHAR szTmp[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
+            SINT64 treeSizeHWM = 0 ;
+
             if ( transCB )
             {
                transCount = pmdIsPrimary() ? transCB->getTransCBSize() :
-                            (UINT32)transCB->getTransMap()->size() ;
+                            (UINT32)transCB->getTransMapSize() ;
                beginLSNOff = transCB->getOldestBeginLsn() ;
+               globLowTran = transCB->getGlobLowTran().getGlobSN() ;
+               globExpireTran = transCB->getGlobExpireTran().getGlobSN() ;
+               lowTran = transCB->getLocalLowTran().getGlobSN() ;
+               expireTran = transCB->getLocalExpireTran().getGlobSN() ;
+               transCB->dumpLogSummary( FALSE, logSummary ) ;
+               if ( NULL != transCB->getOldVCB() )
+               {
+                  treeLowTran = transCB->getOldVCB()->getMinLowTranSN() ;
+                  treeSizeHWM = transCB->getOldVCB()->getTreeSizeHWM() ;
+               }
             }
+
             BSONObjBuilder subTrans( ob.subobjStart( FIELD_NAME_TRANS_INFO ) ) ;
+
             subTrans.append( FIELD_NAME_TOTAL_COUNT, (INT32)transCount ) ;
             subTrans.append( FIELD_NAME_BEGIN_LSN, (INT64)beginLSNOff ) ;
+
+            // global lowTran
+            // NOTE: node ID is meaningless for global lowTran
+            dpsTransSNToHEXString( globLowTran, szTmp, DPS_TRANS_STR_LEN ) ;
+            subTrans.append( FIELD_NAME_TRANS_GLOBLOWTRAN, szTmp ) ;
+
+            // global expireTran
+            // NOTE: node ID is meaningless for global expireTran
+            dpsTransSNToHEXString( globExpireTran, szTmp, DPS_TRANS_STR_LEN ) ;
+            subTrans.append( FIELD_NAME_TRANS_GLOBEXPTRAN, szTmp ) ;
+
+            // lowTran
+            // NOTE: node ID is meaningless for lowTran
+            dpsTransSNToHEXString( lowTran, szTmp, DPS_TRANS_STR_LEN ) ;
+            subTrans.append( FIELD_NAME_TRANS_LOWTRAN, szTmp ) ;
+
+            // expireTran
+            // NOTE: node ID is meaningless for expireTran
+            dpsTransSNToHEXString( expireTran, szTmp, DPS_TRANS_STR_LEN ) ;
+            subTrans.append( FIELD_NAME_TRANS_EXPTRAN, szTmp ) ;
+
+            // tree min lowTran
+            dpsTransSNToHEXString( treeLowTran, szTmp, DPS_TRANS_STR_LEN ) ;
+            subTrans.append( FIELD_NAME_IDX_TREE_LOW_TRAN, szTmp ) ;
+
+            // restore PIT window
+            subTrans.append( FIELD_NAME_TRANS_MIN_RECOVER_TIME,
+                             (INT64)( logSummary._minRecoverableTime ) ) ;
+            subTrans.append( FIELD_NAME_TRANS_MAX_RECOVER_TIME,
+                             (INT64)( logSummary._restorePointTime ) ) ;
+
+            // tree size High water mark
+            subTrans.append( FIELD_NAME_IDX_TREE_SIZE_HWM, treeSizeHWM ) ;
+
             subTrans.done() ;
          }
 
@@ -1468,6 +1528,35 @@ namespace engine
       goto done ;
    }
 
+   INT32 monDBDumpRBSInfo( BSONObjBuilder &ob )
+   {
+      INT32 rc = SDB_OK ;
+      if ( pmdGetOptionCB()->mvccOn() )
+      {
+         dmsRBSMgr *rbsMgr = pmdGetKRCB()->getDMSCB()->getRBSSUMgr() ;
+         try
+         {
+            ob.append( FIELD_NAME_NUM_ACTIVE_RBS_GC, rbsMgr->getNumActiveGC() ) ;
+            ob.append( FIELD_NAME_TOTAL_RBS_SIZE,
+                       (INT64)(rbsMgr->getNumTotalCL()) * (rbsMgr->getCLSize()) ) ;
+            ob.append( FIELD_NAME_FREE_RBS_SIZE,
+                       (INT64)(rbsMgr->getNumFreeCL()) * (rbsMgr->getCLSize()) ) ;
+            ob.append( FIELD_NAME_NUM_SYNC_ADD_RBS_CL,
+                       (INT32)(rbsMgr->getNumSyncAddCL()) ) ;
+         }
+         catch ( std::exception &e )
+         {
+            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_MONDBDUMPLASTOPINFO, "monDumpLastOpInfo" )
    INT32 monDumpLastOpInfo( BSONObjBuilder &ob, const monAppCB &moncb )
    {
@@ -2458,6 +2547,7 @@ namespace engine
       goto done ;
    }
 
+<<<<<<< HEAD
    INT32 monCollectionStatInfo2Obj( dmsCollectionStat *collectionStat,
                                     const CHAR *clFullName,
                                     BOOLEAN isDefault,
@@ -2507,6 +2597,23 @@ namespace engine
    error:
       goto done ;
    }
+=======
+   INT32 monBuildStatResult( BSONObj &stat, UINT32 addInfoMask,
+                             BSONObjBuilder &ob, BOOLEAN detail )
+   {
+      // Modify the following places to the original record:
+      // 1. Append system info( like "NodeName"... )
+      // 2. Show features of MCV by fields:
+      // "DistinctValNum", "MaxValue", "MinValue", "NullFrac", "UndefFrac".
+      // 3. Rename some fields for interface unification:
+      //    "CreateTime" => "StatTimestamp";
+      //    "IsUnique" => "Unique";
+      //    "IndexPages" => "TotalIndexPages";
+      //    "IndexLevels" => "TotalIndexLevels";
+      //    "CollectionSpace" + "Collection" => "Collection";
+      // 4. Ignore "_id"
+      // 5. If parameter detail is true, show the "MCV" field. Else ignore it.
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    INT32 monCollectionStatInfo2Obj( const collectionStatInfo &collectionStat,
                                     BSONObjBuilder &builder )
@@ -2562,6 +2669,7 @@ namespace engine
             goto error ;
          }
 
+<<<<<<< HEAD
          // internal version
          ele = iter.next() ;
          if ( 0 != ossStrcmp( ele.fieldName(), FIELD_NAME_INTERNAL_VERSION) )
@@ -2814,6 +2922,8 @@ namespace engine
          {
             BSONElement ele = iter.next() ;
 
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             if ( ossStrcmp( ele.fieldName(), FIELD_NAME_MCV ) != 0 )
             {
                if ( 0 == ossStrcmp( ele.fieldName(), DMS_ID_KEY_NAME ) )
@@ -2845,7 +2955,7 @@ namespace engine
                   }
                }
                else if ( 0 == ossStrcmp( ele.fieldName(),
-                                         DMS_STAT_CREATE_TIME ) )
+                                         RTN_STAT_CREATE_TIME ) )
                {
                   ossTimestamp tm( ele.numberLong() ) ;
                   CHAR timestampStr[ OSS_TIMESTAMP_STRING_LEN + 1] = { 0 } ;
@@ -2865,17 +2975,17 @@ namespace engine
                   ob.append( ele ) ;
                }
                else if ( 0 == ossStrcmp( ele.fieldName(),
-                                         DMS_STAT_IDX_IS_UNIQUE ) )
+                                         RTN_STAT_IDX_IS_UNIQUE ) )
                {
                   ob.appendAs( ele, IXM_FIELD_NAME_UNIQUE1 ) ;
                }
                else if ( 0 == ossStrcmp( ele.fieldName(),
-                                         DMS_STAT_IDX_INDEX_PAGES ) )
+                                         RTN_STAT_IDX_INDEX_PAGES ) )
                {
                   ob.appendAs( ele, FIELD_NAME_TOTAL_INDEX_PAGES ) ;
                }
                else if ( 0 == ossStrcmp( ele.fieldName(),
-                                         DMS_STAT_IDX_LEVELS ) )
+                                         RTN_STAT_IDX_LEVELS ) )
                {
                   ob.appendAs( ele, FIELD_NAME_TOTAL_IDX_LEVELS ) ;
                }
@@ -3197,17 +3307,31 @@ namespace engine
          monAppendSystemInfo( builder, _addInfoMask ) ;
          builder.append( FIELD_NAME_SESSIONID,
                          (INT64)_curTransInfo._eduID ) ;
-         /// nodeID(16bit) | TAG(8bit) | SN(40bit)
+         /// nodeID(16bit) | TAG(8bit) | SN(56bit)
          CHAR strTransID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
          dpsTransIDToString( _curTransInfo._transID, strTransID,
                              DPS_TRANS_STR_LEN ) ;
          builder.append( FIELD_NAME_TRANSACTION_ID, strTransID ) ;
-
          builder.append( FIELD_NAME_TRANSACTION_ID_SN,
-                         (INT64)DPS_TRANS_GET_SN( _curTransInfo._transID ) ) ;
+                         (INT64)_curTransInfo._transID.getGlobSN() ) ;
          builder.appendBool( FIELD_NAME_IS_ROLLBACK,
                              pTransCB->isRollback( _curTransInfo._transID ) ?
                              TRUE : FALSE ) ;
+
+         if ( _curTransInfo._transID.isGlobTrans() )
+         {
+            // append begin time
+            BSONObjBuilder beginTimeBuilder(
+                           builder.subobjStart( FIELD_NAME_TRANS_BEGIN_TIME ) ) ;
+            beginTimeBuilder.append(
+                  STP_FIELD_NAME_TIMESTAMP,
+                  (INT64)( _curTransInfo._transBeginTime.getTime() ) ) ;
+            beginTimeBuilder.append(
+                  STP_FIELD_NAME_TIME_ERROR,
+                  (INT32)( _curTransInfo._transBeginTime.getTimeError() ) ) ;
+            beginTimeBuilder.doneFast() ;
+         }
+
          builder.append( FIELD_NAME_TRANS_LSN_CUR,
                          (INT64)_curTransInfo._curTransLsn ) ;
 
@@ -3518,9 +3642,12 @@ namespace engine
             ossTimestamp startTime( ctx._monContext.getStartTimestamp() ) ;
             BSONObjBuilder sub( ba.subobjStart() ) ;
 
+<<<<<<< HEAD
             ctx._queryID.toHexStr( queryIDStr, sizeof(queryIDStr)-1 ) ;
             sub.append( FIELD_NAME_QUERY_ID, queryIDStr ) ;
 
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             sub.append( FIELD_NAME_CONTEXTID, ctx._contextID ) ;
             sub.append( FIELD_NAME_TYPE, ctx._typeDesp ) ;
             sub.append( FIELD_NAME_DESP, ctx._info ) ;
@@ -4202,9 +4329,12 @@ namespace engine
          ob.append ( FIELD_NAME_FREE_DATA_SIZE, full._freeDataSize ) ;
          ob.append ( FIELD_NAME_TOTAL_IDX_SIZE, full._totalIndexSize ) ;
          ob.append ( FIELD_NAME_FREE_IDX_SIZE, full._freeIndexSize ) ;
+<<<<<<< HEAD
          ob.append ( FIELD_NAME_RECYCLE_DATA_SIZE, full._recycleDataSize ) ;
          ob.append ( FIELD_NAME_RECYCLE_IDX_SIZE, full._recycleIndexSize ) ;
          ob.append ( FIELD_NAME_RECYCLE_LOB_SIZE, full._recycleLobSize ) ;
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          ob.append ( FIELD_NAME_FREE_LOB_SIZE, full._freeLobSpace ) ; // deprecated
          ob.append ( FIELD_NAME_MAX_LOB_CAPACITY, lobCapSize ) ;
          ob.append ( FIELD_NAME_LOB_CAPACITY, full._lobCapacity ) ;
@@ -4371,6 +4501,7 @@ namespace engine
 
          monDBDump ( ob, mondbcb, factor, userTime, sysTime ) ;
          monDBDumpLogInfo( ob ) ;
+         monDBDumpRBSInfo( ob ) ;
          monDBDumpProcMemInfo( ob ) ;
          monDBDumpStorageInfo( ob ) ;
          monDBDumpNetInfo( ob ) ;
@@ -4611,6 +4742,87 @@ namespace engine
 
    /*
       _monTasksFetch implement
+<<<<<<< HEAD
+   */
+   IMPLEMENT_FETCH_AUTO_REGISTER( _monTasksFetch )
+
+   _monTasksFetch::_monTasksFetch()
+      : rtnFetchBase( MON_DUMP_DFT_BUILDER_SZ, RTN_FETCH_TASKS ),
+        _addInfoMask( 0 )
+   {
+   }
+
+   _monTasksFetch::~_monTasksFetch()
+   {
+   }
+
+   INT32 _monTasksFetch::init( pmdEDUCB *cb,
+                               BOOLEAN isCurrent,
+                               BOOLEAN isDetail,
+                               UINT32 addInfoMask,
+                               const BSONObj obj )
+   {
+      _addInfoMask = addInfoMask ;
+      _hitEnd = FALSE ;
+
+      sdbGetRTNCB()->getTaskStatusMgr()->dumpInfo( _mapInfo ) ;
+
+      return SDB_OK ;
+   }
+
+   const CHAR* _monTasksFetch::getName() const
+   {
+      return CMD_NAME_SNAPSHOT_TASKS ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__MONTASKFETCH_FETCH, "_monTasksFetch::fetch" )
+   INT32 _monTasksFetch::fetch( BSONObj &obj )
+   {
+      PD_TRACE_ENTRY ( SDB__MONTASKFETCH_FETCH ) ;
+      INT32 rc = SDB_OK ;
+
+      if ( _mapInfo.size() == 0 )
+      {
+         _hitEnd = TRUE ;
+         rc = SDB_DMS_EOC ;
+         goto error ;
+      }
+
+      try
+      {
+         _builder.reset();
+         BSONObjBuilder ob( _builder );
+
+         monAppendSystemInfo( ob, _addInfoMask ) ;
+
+         ossPoolMap<UINT64, BSONObj>::iterator it = _mapInfo.begin() ;
+         ob.appendElements( it->second ) ;
+
+         obj = ob.done();
+
+         /// remove current
+         _mapInfo.erase( it ) ;
+         if ( _mapInfo.empty() )
+         {
+            _hitEnd = TRUE ;
+         }
+      }
+      catch ( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC ( SDB__MONTASKFETCH_FETCH, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   /*
+      _monStorageUnitFetch implement
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    */
    IMPLEMENT_FETCH_AUTO_REGISTER( _monTasksFetch )
 
@@ -4959,6 +5171,21 @@ namespace engine
          {
             sub.append( IXM_2DRANGE_FIELD, range ) ;
          }
+
+         // append create time
+         BSONElement e = indexDef.getField( IXM_FIELD_NAME_CREATETIME ) ;
+         UINT64 createTime = e.isNumber() ?
+                             e.numberLong() :
+                             DPS_INVALID_TRANS_TIME ;
+         sub.append( IXM_FIELD_NAME_CREATETIME, (INT64)createTime ) ;
+
+         // append rebuild time
+         e = indexDef.getField( IXM_FIELD_NAME_REBUILDTIME ) ;
+         UINT64 rebuildTime = e.isNumber() ?
+                              e.numberLong() :
+                              DPS_INVALID_TRANS_TIME ;
+         sub.append( IXM_FIELD_NAME_REBUILDTIME, (INT64)rebuildTime ) ;
+
          sub.done () ;
 
          ob.append( IXM_FIELD_NAME_INDEX_FLAG,
@@ -4966,8 +5193,12 @@ namespace engine
 
          if ( IXM_INDEX_FLAG_CREATING == index._indexFlag )
          {
+<<<<<<< HEAD
             ob.append( IXM_FIELD_NAME_SCAN_EXTLID, index._scanRID._extent ) ;
             ob.append( IXM_FIELD_NAME_SCAN_EXTLID, index._scanRID._offset ) ;
+=======
+            ob.append( IXM_FIELD_NAME_SCAN_EXTLID, index._scanExtLID ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          }
 
          UINT16 idxType = IXM_EXTENT_TYPE_NONE ;
@@ -5874,6 +6105,10 @@ namespace engine
          {
             builder.append( FIELD_NAME_ENDTIMESTAMP, VALUE_NAME_EMPTYENDTIMESTAMP ) ;
          }
+<<<<<<< HEAD
+=======
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          builder.append( FIELD_NAME_TID, _itr->tid ) ;
          //FIXME: PASSING IN FALSE AS DEFAULT
          builder.append( FIELD_NAME_OPTYPE,
@@ -6354,7 +6589,13 @@ namespace engine
       // Scan a whole extent for once
       try
       {
+<<<<<<< HEAD
          dmsDataScanner scanner( _su->data(), _mbContext, _scanner, NULL ) ;
+=======
+         dmsExtScanner scanner( _su->data(), _mbContext, NULL,
+                                _curExtentID, DMS_INVALID_EXTENT,
+                                DMS_ACCESS_TYPE_FETCH, -1L, 0 ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          _mthRecordGenerator generator ;
          dmsRecordID recordID ;
          ossValuePtr recordDataPtr = 0 ;
@@ -6496,13 +6737,20 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_MONRECYBINFETCH_INIT ) ;
 
+<<<<<<< HEAD
       clsRecycleBinManager *recycleBinMgr = NULL ;
+=======
+      clsRecycleBinManager *recycleBinMgr =
+            pmdGetKRCB()->getClsCB()->getRecycleBinMgr() ;
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       BSONObj dummy ;
 
       _isDetail = isDetail ;
       _addInfoMask = addInfoMask ;
       _hitEnd = TRUE ;
 
+<<<<<<< HEAD
       if ( pmdGetDBRole() != SDB_ROLE_DATA )
       {
          goto done ;
@@ -6515,6 +6763,8 @@ namespace engine
 
       recycleBinMgr = pmdGetKRCB()->getClsCB()->getRecycleBinMgr() ;
 
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       rc = recycleBinMgr->getItems( dummy, dummy, dummy, -1, cb, _subContextID ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to open query for recycle items, "
                    "rc: %d", rc ) ;
@@ -6931,7 +7181,10 @@ namespace engine
       goto done ;
    }
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    /*
       _monTransWaitsFetch implement
    */
@@ -6977,7 +7230,11 @@ namespace engine
             {
                _waitInfoSet.clear() ;
 
+<<<<<<< HEAD
                // collect transaction waitng info for each waiting executor
+=======
+              // collect transaction waitng info for each waiting executor
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                DPS_TX_WAIT_LRB_SET_IT it = txWaitLRBSet.begin() ;
                while ( it != txWaitLRBSet.end() )
                {
@@ -7073,9 +7330,15 @@ namespace engine
             // holder trans cost
             ob.append( FIELD_NAME_HOLDER_TRANS_COST,(INT64)info.holderCost );
             // waiter sessionID
+<<<<<<< HEAD
             ob.append( FIELD_NAME_WAITER_SESSIONID,(INT64)info.waiterSessionID);
             // holder sessionID
             ob.append( FIELD_NAME_HOLDER_SESSIONID,(INT64)info.holderSessionID);
+=======
+            ob.append( FIELD_NAME_WAITER_SESSIONID,(INT64)info.waiterSessionID );
+            // holder sessionID
+            ob.append( FIELD_NAME_HOLDER_SESSIONID,(INT64)info.holderSessionID );
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             // waiter RelatedID
             monAppendSessionIdentify( ob,
                                       info.waiterRelatedID,

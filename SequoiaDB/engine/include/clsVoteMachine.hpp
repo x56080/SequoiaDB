@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = clsVoteMachine.hpp
 
@@ -33,7 +32,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #ifndef CLSVOTEMACHINE_HPP_
 #define CLSVOTEMACHINE_HPP_
 
@@ -41,6 +39,7 @@
 #include "oss.hpp"
 #include "clsVoteStatus.hpp"
 #include "ossLatch.hpp"
+#include "netRouteAgent.hpp"
 #include <vector>
 
 using namespace std ;
@@ -53,8 +52,7 @@ namespace engine
    class _clsVoteMachine : public SDBObject
    {
    public:
-      _clsVoteMachine( _clsGroupInfo *info,
-                       _netRouteAgent *agent ) ;
+      _clsVoteMachine( ICLSReplAgent *replAgent ) ;
       ~_clsVoteMachine() ;
 
    public:
@@ -80,6 +78,7 @@ namespace engine
          _shadowWeight = weight ;
          _shadowTimeout = timeout ;
          _shadowForReelect = shadowForReelect ;
+<<<<<<< HEAD
       }
 
       OSS_INLINE UINT8 getElectionWeight() const
@@ -106,6 +105,8 @@ namespace engine
          {
             OSS_BIT_CLEAR( _electionWeight, electionWeight ) ;
          }
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       }
 
       OSS_INLINE BOOLEAN isInStepUp() const
@@ -141,8 +142,6 @@ namespace engine
 
       void  handleTimeout( const UINT32 &millisec ) ;
 
-      INT32 active() ;
-
       void  force( const INT32 &id, UINT32 mills = 0 ) ;
       BOOLEAN  isStatus( const INT32 &id ) const ;
       BOOLEAN  isInit() const { return _current ? TRUE : FALSE ; }
@@ -153,10 +152,19 @@ namespace engine
                         const BOOLEAN &enforced = FALSE ) ;
 
    private:
+<<<<<<< HEAD
       vector<_clsVoteStatus *>   _status ;
       _netRouteAgent             *_agent ;
       _clsVoteStatus             *_current ;
       _clsGroupInfo              *_groupInfo ;
+=======
+      vector<clsVoteStatus *>    _status ;
+      ICLSReplAgent *            _replAgent ;
+      netRouteAgent *            _agent ;
+      clsVoteStatus *            _current ;
+      clsGroupInfo *             _groupInfo ;
+      UINT8                      _shadowWeight ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       UINT32                     _shadowTimeout ;  /// ms
       BOOLEAN                    _shadowForReelect ;
       UINT32                     _forceMillis ;

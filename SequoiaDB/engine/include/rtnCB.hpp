@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = rtnCB.hpp
 
@@ -48,6 +46,7 @@
 #include "pd.hpp"
 #include "monEDU.hpp"
 #include "pmdEDU.hpp"
+#include "rtnObjectStatCache.hpp"
 #include "sdbInterface.hpp"
 #include "utilConcurrentMap.hpp"
 #include "optAPM.hpp"
@@ -58,7 +57,10 @@
 #include "rtnIxmKeySorter.hpp"
 #include "rtnScannerChecker.hpp"
 #include "dmsTaskStatus.hpp"
+<<<<<<< HEAD
 #include "rtnUserCache.hpp"
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 #define RTN_INIT_TEXT_INDEX_VERSION    -1
 
@@ -85,6 +87,11 @@ namespace engine
 
       dmsTaskStatusMgr  _taskStatusMgr ;
 
+<<<<<<< HEAD
+=======
+      rtnObjectStatCache _statCache;
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       // The following members are used for communication with search engine
       // adapter when do text searching. Search engine adapter use the shard
       // plane to get data from data node, and data node use this new plane to
@@ -102,8 +109,11 @@ namespace engine
       rtnIxmKeySorterCreator    _sorterCreator ;
       rtnScannerCheckerCreator  _checkerCreator ;
 
+<<<<<<< HEAD
       rtnUserCache _userCache;
 
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    public:
       virtual void contextDelete( INT64 contextID, IExecutor *pExe ) ;
       virtual void* queryInterface( SDB_INTERFACE_TYPE type ) ;
@@ -199,7 +209,10 @@ namespace engine
             monContextFull item( contextID, *monCB ) ;
             item._typeDesp = (*it).second->name() ;
             item._info = (*it).second.get()->toString() ;
+<<<<<<< HEAD
             item._queryID = (*it).second->getGlobalID().getQueryID() ;
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
             contextList[ eduID ].insert( item ) ;
          }
@@ -269,9 +282,15 @@ namespace engine
          return &_taskStatusMgr ;
       }
 
+<<<<<<< HEAD
       OSS_INLINE rtnUserCache* getUserCacheMgr()
       {
          return &_userCache;
+=======
+      OSS_INLINE rtnObjectStatCache* getObjectStatCache()
+      {
+         return &_statCache ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       }
 
       INT32   addUnloadCS( const CHAR* csName ) ;
@@ -279,8 +298,12 @@ namespace engine
       BOOLEAN hasUnloadCS( const CHAR* csName ) ;
 
    private:
+<<<<<<< HEAD
       void  _notifyKillContexts( const _RTN_EDU_CTX_MAP &contexts ) ;
       void  _setGlobalID( _pmdEDUCB *cb, rtnContextPtr &pContext ) ;
+=======
+      void _notifyKillContexts( const _RTN_EDU_CTX_MAP &contexts ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    } ;
    typedef class _SDB_RTNCB SDB_RTNCB ;
 

@@ -1,4 +1,4 @@
-[^_^]:
+ [^_^]:
     分布式事务
     作者：何国明
     时间：20190817
@@ -37,14 +37,20 @@ SequoiaDB 支持以下类型的事务锁以及事务意向锁：
 ----
 SequoiaDB 通过对只读操作访问的数据记录实行不同的加锁协议来实现不同的隔离级别。一般来说，隔离级别越高，只读操作的请求锁定就越严格，锁的持有时间越长。因此隔离级别越高，一致性就越高，但并发性就越低，同时对性能也相对影响越大。所有隔离级别中，SequoiaDB 都将对插入、更新或删除的数据加上互斥锁。
 
-SequoiaDB 目前支持三种隔离级别：
+SequoiaDB 目前支持四种隔离级别：
 
 - 读未提交（Read Uncommitted，RU）：RU 级别是最低隔离级别，意味着不同会话之间能够互相读到未提交的修改信息
 - 读已提交（Read Committed，RC）：RC 级别为会话读取每条记录最新已被提交的状态
 - 读稳定性（Read Stability，RS）：RS 级别为会话在事务中首次读取的记录，在该会话结束前不会被其他会话所修改
+- 可重复读（Repeatable Read，RR）：RR 级别为会话在事务中首次读取的记录，在该会话结束前不会被其他会话所修改，且不会因为其他事务对结果集的记录个数发生改变。
 
 ##读未提交##
 
+<<<<<<< HEAD
+##读未提交##
+
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 读未提交（Read Uncommitted，RU）级别是最低隔离级别。设置 RU 隔离级别不同的事务之间能够互相读到未提交的修改信息。
 
 RU 级别中事务对读取的数据不加锁，因此可能会出现脏读、不可重复读以及幻读等情况。
@@ -67,20 +73,44 @@ RC 级别中，事务对读取的数据加短的共享锁，访问完即放锁�
 >
 > 一般来说，RC 级别的读事务访问的数据如果正在被其他写事务修改，则需要等待写事务提交或者回滚后才能访问数据。SequoiaDB 提供了非阻塞读的功能，通过 transwaitlock 和 transuserbs 等参数控制是否需要等锁，可以使 RC 级别的读事务读取正在修改的写事务修改前的数据。详细请参考[事务配置][configurations]。
 
+<<<<<<< HEAD
 ##读稳定性##
 
 - 读稳定性（Read Stability，RS）级别为会话在事务中首次读取的记录，在该会话结束前不会被其他会话所修改。
+=======
+读稳定性
+----
+读稳定性（Read Stability，RS）级别为会话在事务中首次读取的记录，在该会话结束前不会被其他会话所修改。
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
-- RS 级别中，事务对读取的数据加长的共享锁，事务结束时才放锁，因此可能会出现幻读的情况。
+RS 级别中，事务对读取的数据加长的共享锁，事务结束时才放锁，因此可能会出现幻读的情况。
 
-- 此隔离级别适用于对数据进行多次查询，且没有新增数据的场景。
+此隔离级别适用于对数据进行多次查询，且没有新增数据的场景。
+
+<<<<<<< HEAD
+##隔离级别摘要##
+
+=======
+可重复读
+----
+可重复读（Repeatable Read，RR）级别为会话在事务中首次读取的记录，在该会话结束前不会被其他会话所修改，且不会因为其他事务对结果集的记录个数发生改变。
+
+SequoiaDB 的 RR 级别是通过多版本并发控制（MVCC，Multi-Version Concurrency Control）实现的。MVCC 是一种数据库常用的事务并发控制机制，通过保存数据在某个事务时间点的快照来进行事务隔离控制。
+
+在 MVCC 的基础上，SequoiaDB 实现了可重复读的事务隔离级别，避免了事务中出现幻读的情况。
+
+> **Note:**
+>
+> RR 隔离级别需要[时间序列服务（STP）][overview]和全局事务的支持。开启全局事务需要设置 SequoiaDB 的配置参数 [mvccon][configuration_parameters] 和 [globtranson][configuration_parameters] 为 true。
 
 ##隔离级别摘要##
 
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 | 隔离级别 | 脏读 | 不可重复读 | 幻读 |
 | :------- | :--- | :--------- | :--- |
+| 可重复读 RR | 不可能 | 不可能 | 不可能 |
 | 读稳定性 RS | 不可能 | 不可能 | 可能 |
-| 读已提交 RC | 不可能 | 可能 | 可能 |
+| 读已提交 RC | 不可能 | 可能 | 可能 | 
 | 读未提交 RU | 可能 | 可能 | 可能 |
 
 - 脏读：写事务 W 修改某一行数据，读事务 R 在W 执行提交前访问该行，如果 W 事务执行回滚，则 R 事务所读取的是不存在的数据。
@@ -93,6 +123,12 @@ RC 级别中，事务对读取的数据加短的共享锁，访问完即放锁�
 
 [^_^]:
     本文使用到的所有链接
+<<<<<<< HEAD
 [configurations]: manual/Distributed_Engine/Architecture/Transactions/configurations.md
+=======
+[configurations]:manual/Distributed_Engine/Architecture/Transactions/configurations.md
+[overview]:manual/Distributed_Engine/Architecture/Stp/Readme.md
+[configuration_parameters]:manual/Distributed_Engine/Maintainance/Database_Configuration/parameter_instructions.md
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 [renameCL]: manual/Manual/Sequoiadb_Command/SdbCS/renameCL.md
 [renameCS]: manual/Manual/Sequoiadb_Command/Sdb/renameCS.md

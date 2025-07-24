@@ -34,10 +34,17 @@ SDB_SNAP_CONTEXTS_CURRENT
 | Contexts.Description    | string | 上下文的描述信息，如：当前的查询条件                     |
 | Contexts.DataRead       | int64  | 所读数据                                                 |
 | Contexts.IndexRead      | int64  | 所读索引                                                 |
+<<<<<<< HEAD
 | Contexts.LobRead     | int64     | 服务端中 LOB 分片的读次数（仅在 v3.6.1 及以上版本生效） |
 | Contexts.LobWrite     | int64     | 服务端中 LOB 分片的写次数（仅在 v3.6.1 及以上版本生效） |
 | Contexts.LobTruncate    | int64     | 服务端中 LOB 分片的截断次数（仅在 v3.6.1 及以上版本生效） |
 | Contexts.LobAddressing     | int64     | 服务端中 LOB 分片的寻址总次数（仅在 v3.6.1 及以上版本生效） |
+=======
+| Contexts.LobRead     | int64     | 服务端中 LOB 分片的读次数（仅在 v5.0.4 及以上版本生效） |
+| Contexts.LobWrite     | int64     | 服务端中 LOB 分片的写次数（仅在 v5.0.4 及以上版本生效） |
+| Contexts.LobTruncate    | int64     | 服务端中 LOB 分片的截断次数（仅在 v5.0.4 及以上版本生效） |
+| Contexts.LobAddressing     | int64     | 服务端中 LOB 分片的寻址总次数（仅在 v5.0.4 及以上版本生效） |
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 | Contexts.QueryTimeSpent | double | 查询总时间，单位为秒                                     |
 | Contexts.StartTimestamp | timestamp | 创建时间                                              |
 

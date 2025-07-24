@@ -69,9 +69,15 @@ public class IndexConsistent23961 extends SdbTestBase {
 
         // cl执行truncate后任务显示集合被清空-321；未truncate之前创建索引则resultCode为0
         if ( createIndex.getRetCode() != 0 ) {
+<<<<<<< HEAD
             Assert.assertTrue( createIndex.getRetCode() == SDBError.SDB_DMS_TRUNCATED.getErrorCode() ||
                                createIndex.getRetCode() == SDBError.SDB_TASK_HAS_CANCELED.getErrorCode() );
             int[] resultCodes = { 0, -321, -247, -243 };
+=======
+            Assert.assertEquals( createIndex.getRetCode(),
+                    SDBError.SDB_DMS_TRUNCATED.getErrorCode() );
+            int[] resultCodes = { -321, -247 };
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             IndexUtils.checkIndexTask( sdb, "Create index", csName, clName,
                     indexName, resultCodes );
             IndexUtils.checkIndexConsistent( sdb, csName, clName, indexName,
@@ -121,8 +127,11 @@ public class IndexConsistent23961 extends SdbTestBase {
                 cl.createIndex( indexName, "{no:1,testa:1}", true, false );
             } catch ( BaseException e ) {
                 if ( e.getErrorType() != SDBError.SDB_DMS_TRUNCATED
+<<<<<<< HEAD
                         .getErrorType() &&
                      e.getErrorType() != SDBError.SDB_TASK_HAS_CANCELED
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                         .getErrorType() ) {
                     throw e;
                 }
@@ -146,4 +155,8 @@ public class IndexConsistent23961 extends SdbTestBase {
             }
         }
     }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2

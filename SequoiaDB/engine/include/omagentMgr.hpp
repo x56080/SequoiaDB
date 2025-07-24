@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = omagentMgr.hpp
 
@@ -30,7 +28,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #ifndef OMAGENT_MGR_HPP__
 #define OMAGENT_MGR_HPP__
 
@@ -71,11 +68,14 @@ namespace engine
          INT32    init ( const CHAR *pRootPath ) ;
          INT32    save () ;
 
+         const CHAR* getCfgPath() const { return _cfgPath ; }
          const CHAR* getCfgFileName() const { return _cfgFileName ; }
          const CHAR* getLocalCfgPath() const { return _localCfgPath ; }
          const CHAR* getScriptPath() const { return _scriptPath ; }
          const CHAR* getStartProcFile() const { return _startProcFile ; }
          const CHAR* getStopProcFile() const { return _stopProcFile ; }
+         const CHAR* getStartStpFile() const { return _startStpFile ; }
+         const CHAR* getStopStpFile() const { return _stopStpFile ; }
 
          const CHAR* getCMServiceName() const { return _cmServiceName ; }
          const CHAR* getOMAddress() const { return _omAddress ; }
@@ -134,11 +134,14 @@ namespace engine
          // enable watch sequoiadb node, default TRUE
          BOOLEAN                    _enableWatch ;
 
+         CHAR                       _cfgPath[ OSS_MAX_PATHSIZE + 1 ] ;
          CHAR                       _cfgFileName[ OSS_MAX_PATHSIZE + 1 ] ;
          CHAR                       _localCfgPath[ OSS_MAX_PATHSIZE + 1 ] ;
          CHAR                       _scriptPath[ OSS_MAX_PATHSIZE + 1 ] ;
          CHAR                       _startProcFile[ OSS_MAX_PATHSIZE + 1 ] ;
          CHAR                       _stopProcFile[ OSS_MAX_PATHSIZE + 1 ] ;
+         CHAR                       _startStpFile[ OSS_MAX_PATHSIZE + 1 ] ;
+         CHAR                       _stopStpFile[ OSS_MAX_PATHSIZE + 1 ] ;
 
          UINT16                     _localPort ;
 

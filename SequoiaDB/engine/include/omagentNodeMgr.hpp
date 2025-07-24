@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = omagentNodeMgr.hpp
 
@@ -30,7 +28,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #ifndef OMAGENT_NODEMGR_HPP__
 #define OMAGENT_NODEMGR_HPP__
 
@@ -74,12 +71,14 @@ namespace engine
       deque< time_t >      _startTime ;
       INT32                _errNum ;
       BOOLEAN              _isDetected ;
+      SDB_TYPE             _type ;
       _dbProcessInfo()
       {
          _pid        = OSS_INVALID_PID ;
          _status     = OMNODE_NORMAL ;
          _errNum     = 0 ;
          _isDetected = FALSE ;
+         _type       = SDB_TYPE_DB ;
       }
 
       void reset()
@@ -108,7 +107,9 @@ namespace engine
    class _startNodeJob : public _rtnBaseJob
    {
       public:
-         _startNodeJob( const string &svcname, NODE_START_TYPE startType,
+         _startNodeJob( const string &svcname,
+                        SDB_TYPE nodeType,
+                        NODE_START_TYPE startType,
                         _omAgentNodeMgr *pNodeMgr ) ;
          virtual ~_startNodeJob() ;
 
@@ -122,6 +123,7 @@ namespace engine
 
       private:
          string               _svcName ;
+         SDB_TYPE             _nodeType ;
          NODE_START_TYPE      _startType ;
          _omAgentNodeMgr      *_pNodeMgr ;
          string               _jobName ;
@@ -135,7 +137,9 @@ namespace engine
    class _stopNodeJob : public _rtnBaseJob
    {
    public:
-      _stopNodeJob( const string &svcname, NODE_START_TYPE type,
+      _stopNodeJob( const string &svcname,
+                    SDB_TYPE nodeType,
+                    NODE_START_TYPE type,
                     _omAgentNodeMgr *pNodeMgr ) ;
       virtual ~_stopNodeJob() ;
 
@@ -149,6 +153,7 @@ namespace engine
 
    private:
       string               _svcName ;
+      SDB_TYPE             _nodeType ;
       NODE_START_TYPE      _type ;
       _omAgentNodeMgr      *_pNodeMgr ;
       string               _jobName ;
@@ -156,12 +161,14 @@ namespace engine
    typedef _stopNodeJob stopNodeJob ;
 
    INT32 runStartNodeJob ( const string &svcname,
+                           SDB_TYPE nodeType,
                            NODE_START_TYPE startType,
                            _omAgentNodeMgr *pNodeMgr,
                            EDUID *pEDUID = NULL,
                            BOOLEAN returnResult = FALSE ) ;
 
    INT32 runStopNodeJob( const string &svcname,
+                         SDB_TYPE nodeType,
                          NODE_START_TYPE type,
                          _omAgentNodeMgr *pNodeMgr,
                          EDUID *pEDUID = NULL,
@@ -227,6 +234,7 @@ namespace engine
             Watch the nodes that create by user created manually
          */
          void     watchManualNodes() ;
+         void     watchStpNode() ;
 
          // remote process functions
          INT32    addANode( const CHAR *arg1, const CHAR *arg2,
@@ -244,19 +252,38 @@ namespace engine
          INT32    clearData( const CHAR *arg1 ) ;
 
       public:
-
-         INT32    addNodeProcessInfo( const string &svcname ) ;
+         INT32    addNodeProcessInfo( const string &svcname,
+                                      SDB_TYPE nodeType ) ;
          INT32    delNodeProcessInfo( const string &svcname ) ;
          dbProcessInfo* getNodeProcessInfo( const string &svcname ) ;
 
          INT32    addNodeGuard( _omaNodePathGuard &nodeGuard ) ;
          INT32    addNodeGuard( const string &svcname ) ;
+         INT32    addStpNodeGuard( const string &svcname ) ;
          INT32    delNodeGuard( const string &svcname ) ;
 
-         INT32    startANode( const CHAR *svcname, NODE_START_TYPE type,
+         INT32    startANode( const CHAR *svcname,
+                              SDB_TYPE nodeType,
+                              NODE_START_TYPE type,
                               BOOLEAN needLock ) ;
-         INT32    stopANode( const CHAR *svcname, NODE_START_TYPE type,
-                             BOOLEAN needLock, BOOLEAN force = FALSE ) ;
+         INT32    stopANode( const CHAR *svcname,
+                             SDB_TYPE nodeType,
+                             NODE_START_TYPE type,
+                             BOOLEAN needLock,
+                             BOOLEAN force = FALSE,
+                             BOOLEAN withService = TRUE ) ;
+
+         INT32    addStpNode( const BSONObj &config ) ;
+         INT32    removeStpNode() ;
+         INT32    startStpNode() ;
+         INT32    stopStpNode() ;
+         INT32    startStpNode( const CHAR *svcname,
+                                NODE_START_TYPE type,
+                                BOOLEAN needLock ) ;
+         INT32    stopStpNode( const CHAR *svcname,
+                               NODE_START_TYPE type,
+                               BOOLEAN needLock,
+                               BOOLEAN force = FALSE ) ;
 
       protected:
          void     lockBucket( const string &svcname ) ;
@@ -270,13 +297,29 @@ namespace engine
 
          const CHAR* _getSvcNameFromArg( const CHAR *arg ) ;
 
-         INT32 _getCfgFile( const CHAR *pSvcName,
-                            CHAR *pBuffer, INT32 bufSize ) ;
-
          void     _checkNodeByStartupFile( const CHAR *pSvcName,
                                            dbProcessInfo *pInfo ) ;
+         void     _checkStpByStartupFile( const CHAR *pSvcName,
+                                          dbProcessInfo *pInfo ) ;
 
          _omaNodePathGuard*      _getNodeGuard( const CHAR *svcname ) ;
+
+         INT32    _getCfgPath( const CHAR *svcname,
+                               SDB_TYPE nodeType,
+                               CHAR *configPath,
+                               UINT32 pathSize,
+                               BOOLEAN getReal ) ;
+
+         INT32    _getCfgFile( const CHAR *pSvcName,
+                               SDB_TYPE nodeType,
+                               CHAR *pBuffer,
+                               INT32 bufSize,
+                               BOOLEAN getReal,
+                               BOOLEAN checkExist ) ;
+
+         const CHAR *_getStartTool( SDB_TYPE nodeType ) ;
+         const CHAR *_getStopTool( SDB_TYPE nodeType ) ;
+         INT32 _checkNodeConflict( _omaNodePathGuard &node ) ;
 
       private:
          MAP_DB_PROCESS               _mapDBProcess ;

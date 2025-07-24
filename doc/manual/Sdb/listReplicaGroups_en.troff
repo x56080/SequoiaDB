@@ -65,8 +65,12 @@ Return all replication group information
         "Name": "11803"
       }
     ],
+<<<<<<< HEAD
     "NodeID": 1000,
     "Location": "GuangZhou"
+=======
+    "NodeID": 1000
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
   },
   {
     "dbpath": "/opt/sequoiadb/data/11850",
@@ -94,6 +98,7 @@ Return all replication group information
 ],
 "GroupID": 1001,
 "GroupName": "group",
+<<<<<<< HEAD
 "Locations": [
   {
     "Location": "GuangZhou",
@@ -108,6 +113,15 @@ Return all replication group information
 "_id": {
   "$oid": "517b2fc33d7e6f820fc0eb57"
   }
+=======
+"PrimaryNode": 1001,
+"Role": 0,
+"Status": 1,
+"Version": 5,
+"_id": {
+  "$oid": "517b2fc33d7e6f820fc0eb57"
+  }
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 }
 \f[]
 .fi

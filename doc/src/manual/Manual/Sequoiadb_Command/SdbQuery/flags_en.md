@@ -36,6 +36,11 @@ The optional values of the 'flag' parameter are as follows：
 
 >Suppose the user specifies an index that is not in the collection to query data, the database will perform a full table query instead of an index query. However, if the user specifies an index that is not in the collection and specifies SDB_FLG_QUERY_FORCE_HINT flag to query data, it will fail too query and return an error.
 
+<<<<<<< HEAD
+=======
+>In RR transaction isolation, using SDB_FLG_QUERY_FOR_SHARE and SDB_FLG_QUERY_FOR_UPDATE may cause inconsistent query results. In the same RR transaction, queries with SDB_FLG_QUERY_FOR_SHARE and SDB_FLG_QUERY_FOR_UPDATE will read the latest version of records, while queries without SDB_FLG_QUERY_FOR_SHARE and SDB_FLG_QUERY_FOR_UPDATE will read the visiable version of records in MVCC.
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 ##RETURN VALUE##
 
 On success, returns the cursor of the query result set.

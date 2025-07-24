@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = clsVSSecondary.cpp
 
@@ -33,19 +32,16 @@
    Last Changed =
 
 *******************************************************************************/
-
 #include "clsVSSecondary.hpp"
+#include "clsReplAgent.hpp"
 #include "pdTrace.hpp"
 #include "clsTrace.hpp"
 
 namespace engine
 {
 
-   INT32 g_startShiftTime = 0 ;
-
-   _clsVSSecondary::_clsVSSecondary( _clsGroupInfo *info,
-                                     _netRouteAgent *agent )
-   :_clsVoteStatus( info, agent, CLS_ELECTION_STATUS_SEC )
+   _clsVSSecondary::_clsVSSecondary( ICLSReplAgent *replAgent )
+   :_clsVoteStatus( replAgent, CLS_ELECTION_STATUS_SEC )
    {
       _hasPrint = FALSE ;
    }
@@ -68,7 +64,7 @@ namespace engine
       }
       else if ( MSG_CLS_BALLOT == header->opCode )
       {
-         g_startShiftTime = -1 ; // some node begin vote
+         _replAgent->setStartShiftTime( -1 ) ; // some node begin vote
 
          const _MsgClsElectionBallot *msg = ( const _MsgClsElectionBallot * ) header ;
          if ( CLS_ELECTION_ROUND_STAGE_ONE == msg->round )
@@ -105,19 +101,20 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__CLSVSSD_HDTMOUT ) ;
       _timeout() += millisec ;
 
-      if ( g_startShiftTime > 0 && _info()->isAllNodeBeat() )
+      if ( _replAgent->getStartShiftTime() > 0 && _info()->isAllNodeBeat() )
       {
-         g_startShiftTime = -1 ; // recieve all node sharing-beat
+         _replAgent->setStartShiftTime( -1 ) ; // recieve all node sharing-beat
       }
 
-      if ( ( g_startShiftTime < 0 || g_startShiftTime <= (INT32)_timeout() ) &&
+      if ( ( _replAgent->getStartShiftTime() < 0 ||
+             _replAgent->getStartShiftTime() <= (INT32)_timeout() ) &&
            CLS_VOTE_CS_TIME <= _timeout() )
       {
          if ( _hasPrint )
          {
             PD_LOG( PDEVENT, "%s Vote: begin to vote...", getScopeName() ) ;
          }
-         g_startShiftTime = -1 ;
+         _replAgent->setStartShiftTime( -1 ) ;
          next = CLS_ELECTION_STATUS_VOTE ;
       }
       else
@@ -125,9 +122,16 @@ namespace engine
          if ( !_hasPrint && CLS_VOTE_CS_TIME <= _timeout() )
          {
             _hasPrint = TRUE ;
+<<<<<<< HEAD
             PD_LOG( PDEVENT, "%s Vote: with waiting %u seconds or when all nodes beat "
                     "here, then begin to vote", getScopeName(),
                     ( g_startShiftTime - (INT32)_timeout() ) / 1000 ) ;
+=======
+            PD_LOG( PDEVENT, "With waiting %u seconds or when all nodes beat "
+                    "here, then begin to vote",
+                    ( _replAgent->getStartShiftTime() - (INT32)_timeout() ) /
+                      1000 ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          }
          next = id() ;
       }
@@ -144,7 +148,7 @@ namespace engine
 
       if ( _info()->groupSize() == 1 )
       {
-         g_startShiftTime = -1 ;
+         _replAgent->setStartShiftTime( -1 ) ;
          next = CLS_ELECTION_STATUS_VOTE ;
       }
       else

@@ -105,9 +105,13 @@ public class TestLobSplitAndTruncate13800 extends SdbTestBase {
                 cl.split( sourceRGName, targetRGName, 50 );
             } catch ( BaseException e ) {
                 if ( e.getErrorCode() != SDBError.SDB_TASK_HAS_CANCELED
+<<<<<<< HEAD
                         .getErrorCode()
                         && e.getErrorCode() != SDBError.SDB_LOCK_FAILED
                                 .getErrorCode() ) {
+=======
+                        .getErrorCode() ) {
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                     throw e;
                 }
             }

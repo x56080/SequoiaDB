@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = pmdPorcessor.cpp
 
@@ -30,7 +28,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #include "pmdProcessor.hpp"
 #include "rtn.hpp"
 #include "../bson/bson.h"
@@ -61,6 +58,11 @@
 #include "pdTrace.hpp"
 #include "pmdTrace.hpp"
 #include "clsResourceContainer.hpp"
+<<<<<<< HEAD
+=======
+#include "ossMemPool.hpp"
+#include "utilStr.hpp"
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 #include "pdSecure.hpp"
 #include "rtnInsertModifier.hpp"
 #include "monCB.hpp"
@@ -495,7 +497,7 @@ namespace engine
             rc = _checkTransOperator( checkDps, TRUE ) ;
             if ( SDB_OK == rc )
             {
-               rc = rtnTransBegin( eduCB(), TRUE ) ;
+               rc = rtnTransBegin( eduCB(), TRUE, eduCB()->isGlobTransOn() ) ;
             }
             else
             {
@@ -581,6 +583,7 @@ namespace engine
                   "hint: %s\nFlag: 0x%08x(%u)", getSession()->sessionName(),
                   PD_SECURE_OBJ( selector ), PD_SECURE_OBJ( updator ),
                   hint.toPoolString().c_str(), flags, flags ) ;
+<<<<<<< HEAD
 
          if ( getSession()->privilegeCheckEnabled() )
          {
@@ -589,6 +592,8 @@ namespace engine
             rc = getSession()->checkPrivilegesForActionsOnExact( pCollectionName, actions );
             PD_RC_CHECK( rc, PDERROR, "Failed to check privileges, rc: %d" );
          }
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
          rc = rtnUpdate( pCollectionName, selector, updator, hint,
                          flags, eduCB(), _pDMSCB, dpsCB, 1, &upResult ) ;
@@ -1122,7 +1127,7 @@ namespace engine
 
    INT32 _pmdDataProcessor::_beginTrans( BOOLEAN isAutoCommit )
    {
-      return rtnTransBegin( eduCB(), isAutoCommit ) ;
+      return rtnTransBegin( eduCB(), isAutoCommit, eduCB()->isGlobTransOn() ) ;
    }
 
    INT32 _pmdDataProcessor::_onGetMoreReqMsg( MsgHeader * msg,
@@ -1133,8 +1138,13 @@ namespace engine
       INT32 rc         = SDB_OK ;
       INT32 numToRead  = 0 ;
       rtnContextPtr pContext ;
+<<<<<<< HEAD
+=======
+      const CHAR *pHint = NULL ;
+      BSONObj hint ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
-      rc = msgExtractGetMore ( (CHAR*)msg, &numToRead, &contextID ) ;
+      rc = msgExtractGetMore( (CHAR*)msg, &numToRead, &contextID, &pHint ) ;
       PD_RC_CHECK( rc, PDERROR, "Session[%s] extract get more msg failed, "
                    "rc: %d", getSession()->sessionName(), rc ) ;
 
@@ -1160,7 +1170,22 @@ namespace engine
       eduCB()->setMonQueryCB( pContext->getMonQueryCB() ) ;
       needRollback = pContext->needRollback() ;
 
-      rc = rtnGetMore ( pContext, numToRead, buffObj, eduCB(), _pRTNCB ) ;
+      if ( pHint )
+      {
+         try
+         {
+            hint = BSONObj( pHint ) ;
+         }
+         catch ( std::exception &e )
+         {
+            rc = ossException2RC( &e ) ;
+            PD_LOG( PDERROR, "An exception occurred when building hint "
+                    "bsonobj: %s, rc: %d", e.what(), rc ) ;
+            goto error ;
+         }
+      }
+
+      rc = rtnGetMore ( pContext, numToRead, buffObj, eduCB(), _pRTNCB, hint ) ;
       if ( rc )
       {
          contextID = -1 ;
@@ -1330,6 +1355,7 @@ namespace engine
          }
          else
          {
+<<<<<<< HEAD
             if ( getSession()->privilegeCheckEnabled() )
             {
                authActionSet actions;
@@ -1339,6 +1365,9 @@ namespace engine
             }
             rc = rtnTransBegin( eduCB() ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to begin transaction, rc: %d", rc );
+=======
+            rc = rtnTransBegin( eduCB(), FALSE, eduCB()->isGlobTransOn() ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          }
       }
    done:
@@ -1360,10 +1389,10 @@ namespace engine
                            eduCB()->getTransRC() ) ;
 
          // add last op info
-         MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), MSG_BS_TRANS_COMMIT_REQ,
-                             "TransactionID: 0x%016x(%llu)",
-                             eduCB()->getTransID(),
-                             eduCB()->getTransID() ) ;
+         MON_SAVE_OP_DETAIL(
+               eduCB()->getMonAppCB(), MSG_BS_TRANS_COMMIT_REQ,
+               "TransactionID: %s",
+               dpsTransIDToString( eduCB()->getTransID() ).c_str() ) ;
 
          if ( getSession()->privilegeCheckEnabled() )
          {
@@ -1391,10 +1420,10 @@ namespace engine
       if ( eduCB()->isTransaction() )
       {
          // add last op info
-         MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), MSG_BS_TRANS_ROLLBACK_REQ,
-                             "TransactionID: 0x%016x(%llu)",
-                             eduCB()->getTransID(),
-                             eduCB()->getTransID() ) ;
+         MON_SAVE_OP_DETAIL(
+               eduCB()->getMonAppCB(), MSG_BS_TRANS_ROLLBACK_REQ,
+               "TransactionID: %s",
+               dpsTransIDToString( eduCB()->getTransID() ).c_str() ) ;
 
          if ( getSession()->privilegeCheckEnabled() )
          {
@@ -1858,7 +1887,7 @@ namespace engine
    void _pmdDataProcessor::_onDetach()
    {
       // rollback transaction
-      if ( DPS_INVALID_TRANS_ID != eduCB()->getTransID() )
+      if ( eduCB()->getTransID().isValid() )
       {
          INT32 rc = doRollback() ;
          if ( rc )
@@ -1953,6 +1982,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       INT32 opCode = msg->opCode ;
       coordResource *pResource = sdbGetResourceContainer()->getResource() ;
+      //pmdRestorePendingChecker restorePendingChecker( msg ) ;
 
       PD_TRACE_ENTRY ( SDB_PMDCOORDPROC_PROCOORDMSG ) ;
 
@@ -1960,6 +1990,16 @@ namespace engine
       // communicating messages with other nodes
       pmdUrgentEventShield _shield( eduCB() ) ;
 
+<<<<<<< HEAD
+=======
+      //if ( !restorePendingChecker.isOpAllowed() )
+      if ( FALSE )
+      {
+         rc = SDB_RESTORE_IN_PROGRESS ;
+         goto error ;
+      }
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       if ( MSG_AUTH_VERIFY_REQ == opCode || MSG_AUTH_VERIFY1_REQ == opCode )
       {
          rc = SDB_COORD_UNKNOWN_OP_REQ ;
@@ -2263,9 +2303,15 @@ namespace engine
       const CHAR *pSelector            = NULL ;
       const CHAR *pOrderby             = NULL ;
       const CHAR *pHint                = NULL ;
+<<<<<<< HEAD
 
       rtnContextPtr pContext ;
 
+=======
+
+      rtnContextPtr pContext ;
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       rc = msgExtractQuery( (const CHAR*)msg, &flag, &pCollectionName,
                             &numToSkip, &numToReturn, &pQuery, &pSelector,
                             &pOrderby, &pHint ) ;
@@ -2589,5 +2635,58 @@ namespace engine
       goto done ;
    }
 
+   BOOLEAN pmdRestorePendingChecker::_isOpAllowed()
+   {
+      switch ( _msg->opCode )
+      {
+      case MSG_AUTH_VERIFY_REQ: /// connect
+      case MSG_AUTH_VERIFY1_REQ: /// connect
+      case MSG_COM_REMOTE_DISC: /// disconnect
+      case MSG_COM_SESSION_INIT_REQ:  /// init session
+      case MSG_BS_GETMORE_REQ:  // get more for list
+      case MSG_BS_DISCONNECT:   ////// disconnect session
+      case MSG_BS_INTERRUPTE:   ////// interrupt session
+      case MSG_BS_KILL_CONTEXT_REQ:  //// kill context in session
+         {
+            return TRUE ;
+         }
+      case MSG_BS_QUERY_REQ:
+         {
+            // only the whitelisted commands are allowed
+            const CHAR *pCollectionName = NULL ;
+            // ignore error, only want the collection name
+            msgExtractQuery ( (const CHAR *)_msg, NULL, &pCollectionName,
+                              NULL, NULL, NULL, NULL, NULL, NULL ) ;
+            if (rtnIsCommand(pCollectionName))
+            {
+               // trim the leading $ from the collection name
+               const CHAR *pCmdName = pCollectionName + 1;
+               if (utilStrStartsWith(pCmdName, CMD_NAME_PREFIX_RESTORE) ||
+                   utilStrStartsWith(pCmdName, CMD_NAME_PREFIX_GET) ||
+                   utilStrStartsWith(pCmdName, CMD_NAME_PREFIX_LIST) ||
+                   utilStrStartsWith(pCmdName, CMD_NAME_PREFIX_SNAPSHOT) ||
+                   utilStrStartsWith(pCmdName, CMD_NAME_PREFIX_TEST) ||
+                   utilStrStartsWith(pCmdName, CMD_NAME_PREFIX_TRACE) ||
+                   utilStrStartsWith(pCmdName, CMD_NAME_STP_PREFIX))
+               {
+                  return TRUE;
+               }
+            }
+            break ;
+         }
+      default:
+         break ;
+      }
+      return FALSE ;
+   }
+
+   BOOLEAN pmdRestorePendingChecker::isOpAllowed()
+   {
+      if ( pmdGetKRCB()->isDBRestoring() )
+      {
+         return _isOpAllowed() ;
+      }
+      return TRUE;
+   }
 }
 

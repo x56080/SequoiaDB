@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = coordCommandSnapshot.cpp
 
@@ -1197,6 +1196,7 @@ namespace engine
    COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDSnapshotIndexStatsIntr,
                                       CMD_NAME_SNAPSHOT_INDEXSTATS_INTR,
                                       TRUE ) ;
+<<<<<<< HEAD
 
    void _coordCMDSnapshotIndexStatsIntr::_preSet( pmdEDUCB *cb,
                                                   coordCtrlParam &ctrlParam )
@@ -1355,4 +1355,162 @@ namespace engine
    }
 
 }
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
+   void _coordCMDSnapshotIndexStatsIntr::_preSet( pmdEDUCB *cb,
+                                                  coordCtrlParam &ctrlParam )
+   {
+      ctrlParam.resetRole() ;
+      ctrlParam._role[ SDB_ROLE_DATA ] = 1 ;
+   }
+
+   /*
+    * _coordCMDSnapshotTransWaits implement
+    */
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDSnapshotTransWaits,
+                                      CMD_NAME_SNAPSHOT_TRANSWAITS,
+                                      TRUE ) ;
+
+   _coordCMDSnapshotTransWaits::_coordCMDSnapshotTransWaits()
+   {
+   }
+
+   _coordCMDSnapshotTransWaits::~_coordCMDSnapshotTransWaits()
+   {
+   }
+
+   const CHAR* _coordCMDSnapshotTransWaits::getIntrCMDName()
+   {
+      return CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_TRANSWAITS_INTR ;
+   }
+
+   const CHAR* _coordCMDSnapshotTransWaits::getInnerAggrContent()
+   {
+      return NULL ;
+   }
+
+   /*
+    * _coordCMDSnapshotTransWaitsIntr implement
+    */
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDSnapshotTransWaitsIntr,
+                                      CMD_NAME_SNAPSHOT_TRANSWAITS_INTR,
+                                      TRUE ) ;
+
+   _coordCMDSnapshotTransWaitsIntr::_coordCMDSnapshotTransWaitsIntr()
+   {
+   }
+
+   _coordCMDSnapshotTransWaitsIntr::~_coordCMDSnapshotTransWaitsIntr()
+   {
+   }
+
+   void _coordCMDSnapshotTransWaitsIntr::_preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam )
+   {
+      ctrlParam.resetRole() ;
+      ctrlParam._role[ SDB_ROLE_DATA ] = 1 ;
+      ctrlParam._emptyFilterSel = NODE_SEL_PRIMARY ;
+   }
+
+   /*
+    * _coordCMDSnapshotTransDeadlock implement
+    */
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDSnapshotTransDeadlock,
+                                      CMD_NAME_SNAPSHOT_TRANSDEADLOCK,
+                                      TRUE ) ;
+
+   _coordCMDSnapshotTransDeadlock::_coordCMDSnapshotTransDeadlock()
+   {
+   }
+
+   _coordCMDSnapshotTransDeadlock::~_coordCMDSnapshotTransDeadlock()
+   {
+   }
+
+   const CHAR* _coordCMDSnapshotTransDeadlock::getIntrCMDName()
+   {
+      return CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_TRANSDEADLOCK_INTR ;
+   }
+
+   const CHAR* _coordCMDSnapshotTransDeadlock::getInnerAggrContent()
+   {
+      return NULL ;
+   }
+
+   /*
+    * _coordCMDSnapshotTransDeadlockIntr implement
+    */
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDSnapshotTransDeadlockIntr,
+                                      CMD_NAME_SNAPSHOT_TRANSDEADLOCK_INTR,
+                                      TRUE ) ;
+
+   _coordCMDSnapshotTransDeadlockIntr::_coordCMDSnapshotTransDeadlockIntr()
+   {
+   }
+
+   _coordCMDSnapshotTransDeadlockIntr::~_coordCMDSnapshotTransDeadlockIntr()
+   {
+   }
+
+   void _coordCMDSnapshotTransDeadlockIntr::_preSet( pmdEDUCB *cb,
+                                                     coordCtrlParam &ctrlParam )
+   {
+      ctrlParam.resetRole() ;
+      ctrlParam._role[ SDB_ROLE_DATA ] = 1 ;
+      ctrlParam._emptyFilterSel = NODE_SEL_PRIMARY ;
+   }
+
+   INT32 _coordCMDSnapshotTransDeadlockIntr::_getMonProcessor
+   (
+      IRtnMonProcessorPtr & ptr
+   )
+   {
+      INT32 rc = SDB_OK ;
+
+      rtnDetectDeadlockPtr tmpPtr =
+         rtnDetectDeadlockPtr::alloc( __FILE__, __LINE__, ALLOC_TC ) ;
+
+      if ( NULL == tmpPtr.get() )
+      {
+         rc = SDB_OOM ;
+         PD_LOG( PDERROR, "Failed to create MonProcessor, rc=%d", rc ) ;
+      }
+      else
+      {
+         ptr = IRtnMonProcessorPtr::makeRaw( tmpPtr.get(), ALLOC_TC ) ;
+      }
+      return rc ;
+   }
+
+   const CHAR* _coordCMDSnapshotTransDeadlockIntr::pushdownCommandName()
+   {
+      return CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_TRANSWAITS ;
+   }
+
+   /*
+      _coordCMDSnapshotRecycleBin implement
+    */
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDSnapshotRecycleBin,
+                                      CMD_NAME_SNAPSHOT_RECYCLEBIN,
+                                      TRUE ) ;
+
+   const CHAR* _coordCMDSnapshotRecycleBin::getInnerAggrContent()
+   {
+      return COORD_SNAPSHOTRECYBIN_INPUT ;
+   }
+
+   /*
+      _coordCMDSnapshotRecycleBinIntr implement
+    */
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDSnapshotRecycleBinIntr,
+                                      CMD_NAME_SNAPSHOT_RECYCLEBIN_INTR,
+                                      TRUE ) ;
+
+   void _coordCMDSnapshotRecycleBinIntr::_preSet( pmdEDUCB *cb,
+                                                  coordCtrlParam &ctrlParam )
+   {
+      ctrlParam.resetRole() ;
+      ctrlParam._role[ SDB_ROLE_DATA ] = 1 ;
+   }
+
+}

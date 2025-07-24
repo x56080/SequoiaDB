@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+=======
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 ##名称##
 
 listSequences - 枚举序列信息
@@ -48,4 +52,8 @@ v3.2 及以上版本
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [error_guide]:manual/FAQ/faq_sdb.md
+<<<<<<< HEAD
 [LIST_SEQUENCES]:manual/Manual/SQL_Grammar/Monitoring/LIST_SEQUENCES.md
+=======
+[LIST_SEQUENCES]:manual/Manual/SQL_Grammar/Monitoring/LIST_SEQUENCES.md
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2

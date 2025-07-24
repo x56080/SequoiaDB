@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = rtnMergeIXScanner.cpp
 
@@ -42,6 +40,10 @@
 #include "pdTrace.hpp"
 #include "rtnTrace.hpp"
 #include "dpsTransCB.hpp"
+<<<<<<< HEAD
+=======
+#include "optAccessPlanRuntime.hpp"
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 #include "pdSecure.hpp"
 
 using namespace bson ;
@@ -49,13 +51,30 @@ using namespace bson ;
 namespace engine
 {
 
+<<<<<<< HEAD
+=======
+   /*
+      RTN_SUB_SCAN_TYPE define
+   */
+   enum RTN_SUB_SCAN_TYPE
+   {
+      SCAN_NONE,   // 0
+      SCAN_LEFT,   // 1
+      SCAN_RIGHT   // 2
+   } ;
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    _rtnMergeIXScanner::_rtnMergeIXScanner( ixmIndexCB *pIndexCB,
-                                           rtnPredicateList *predList,
+                                           optAccessPlanRuntime * planRuntime,
                                            _dmsStorageUnit  *su,
                                            _dmsMBContext    *mbContext,
                                            _pmdEDUCB        *cb,
                                            BOOLEAN indexCBOwnned )
+<<<<<<< HEAD
    :_rtnIXScanner( pIndexCB, predList, su, mbContext, FALSE, cb, indexCBOwnned )
+=======
+   :_rtnIXScanner( pIndexCB, planRuntime, su, cb, indexCBOwnned )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
       _fromDir = SCAN_NONE ;
       _savedRID.reset() ;
@@ -130,7 +149,7 @@ namespace engine
       {
          case SCANNER_TYPE_DISK :
             pScanner = SDB_OSS_NEW _rtnDiskIXScanner( getIndexCB(),
-                                                      getPredicateList(),
+                                                      getPlanRuntime(),
                                                       getSu(),
                                                       getMBContext(),
                                                       FALSE,
@@ -139,7 +158,7 @@ namespace engine
             break ;
          case SCANNER_TYPE_MEM_TREE :
             pScanner = SDB_OSS_NEW _rtnMemIXTreeScanner( getIndexCB(),
-                                                         getPredicateList(),
+                                                         getPlanRuntime(),
                                                          getSu(),
                                                          getMBContext(),
                                                          getEDUCB(),
@@ -474,6 +493,33 @@ namespace engine
          _lrid.reset() ;
       }
 
+#if SDB_INTERNAL_DEBUG
+      if ( ( _rightEnabled && ( SCAN_RIGHT == _fromDir ) && !rIsSame ) ||
+           ( _leftEnabled && ( SCAN_LEFT == _fromDir ) && !lIsSame ) )
+      {
+         PD_LOG( PDDEBUG,
+                 "Resuming, was from %d side but cursor(%d,%d) changed:"
+                 OSS_NEWLINE
+                 "left side:" OSS_NEWLINE
+                 "  savedObj(%s)  savedRID(%d, %d)," OSS_NEWLINE
+                 "  curKeyObj(%s) with rid(%d, %d)," OSS_NEWLINE
+                 "right side:" OSS_NEWLINE
+                 "  savedObj(%s)  savedRID(%d, %d)," OSS_NEWLINE
+                 "  curKeyObj(%s) with rid(%d, %d)",
+                 _fromDir, lIsSame, rIsSame,
+                 _leftIXScanner->getSavedObj()->toString().c_str(),
+                 _leftIXScanner->getSavedRID()._extent,
+                 _leftIXScanner->getSavedRID()._offset,
+                 _leftIXScanner->getCurKeyObj()->toString().c_str(),
+                 _lrid._extent, _lrid._offset,
+                 _rightIXScanner->getSavedObj()->toString().c_str(),
+                 _rightIXScanner->getSavedRID()._extent,
+                 _rightIXScanner->getSavedRID()._offset,
+                 _rightIXScanner->getCurKeyObj()->toString().c_str(),
+                 _rrid._extent, _rrid._offset ) ;
+      }
+#endif
+
       /// when left has changed, but last from right
       if ( SCAN_RIGHT == _fromDir && _leftEnabled &&
            !_leftIXScanner->isEOF() &&
@@ -485,9 +531,19 @@ namespace engine
             PD_LOG( PDERROR, "Left scan advance failed, rc: %d", rc ) ;
             goto error ;
          }
+<<<<<<< HEAD
          PD_LOG( PDDEBUG, "Left scanner advance to obj(%s) with rid(%d,%d)",
                  PD_SECURE_OBJ( *(_leftIXScanner->getCurKeyObj()) ),
                  _lrid._extent, _lrid._offset ) ;
+=======
+#ifdef _DEBUG
+         PD_LOG( PDDEBUG,
+                 "Left scanner advance to obj(%s) with rid(%d,%d)"
+                 "lIsSame(%d), rIsSame(%d)",
+                 _leftIXScanner->getCurKeyObj()->toString().c_str(),
+                 _lrid._extent, _lrid._offset, lIsSame, rIsSame ) ;
+#endif
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          rc = SDB_OK ;
       }
       /// when right has changed, but last from left
@@ -501,9 +557,19 @@ namespace engine
             PD_LOG( PDERROR, "Right scan advance failed, rc: %d", rc ) ;
             goto error ;
          }
+<<<<<<< HEAD
          PD_LOG( PDDEBUG, "Right scanner advance to obj(%s) with rid(%d,%d)",
                  PD_SECURE_OBJ( *(_rightIXScanner->getCurKeyObj()) ),
                  _rrid._extent, _rrid._offset ) ;
+=======
+#ifdef _DEBUG
+         PD_LOG( PDDEBUG,
+                 "Right scanner advance to obj(%s) with rid(%d,%d), "
+                 "lIsSame(%d), rIsSame(%d)",
+                 _rightIXScanner->getCurKeyObj()->toString().c_str(),
+                 _rrid._extent, _rrid._offset, lIsSame, rIsSame ) ;
+#endif
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          rc = SDB_OK ;
       }
 
@@ -544,7 +610,11 @@ namespace engine
          _savedRID = getSavedRIDFromChild() ;
          _savedObj = getSavedObjFromChild()->getOwned() ;
 
+<<<<<<< HEAD
          PD_LOG( PDDEBUG, "Paused in obj(%s) with rid(%d,%d), From(%s)",
+=======
+         PD_LOG( PDDEBUG, "Paused in obj(%s) with rid(%d, %d), From(%s)",
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                  PD_SECURE_OBJ( _savedObj ), _savedRID._extent,
                  _savedRID._offset,
                  ( SCAN_LEFT == _fromDir ? "LEFT" : "RIGHT" ) ) ;
@@ -557,6 +627,7 @@ namespace engine
       goto done ;
    }
 
+<<<<<<< HEAD
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNMERGEIXSCAN_CHECKSNAPSHOTID, "_rtnMergeIXScanner::checkSnapshotID" )
    INT32 _rtnMergeIXScanner::checkSnapshotID( BOOLEAN &isCursorSame )
    {
@@ -590,6 +661,36 @@ namespace engine
 
    error:
       goto done ;
+=======
+   void _rtnMergeIXScanner::getOwnerTransID( DPS_TRANS_ID &transID )
+   {
+      if ( SCAN_LEFT == _fromDir )
+      {
+         _leftIXScanner->getOwnerTransID( transID ) ;
+      }
+      else
+      {
+         _rightIXScanner->getOwnerTransID( transID ) ;
+      }
+   }
+
+   void _rtnMergeIXScanner::getRBSPositions( dmsRBSOffset & startPos,
+                                             dmsRBSOffset & endPos,
+                                             dmsRecordID  & rid,
+                                             preIdxTreePtr  memTree )
+   {
+      if ( SCAN_LEFT == _fromDir )
+      {
+         _leftIXScanner->getRBSPositions( startPos, endPos, rid,
+                      ((_rtnMemIXTreeScanner*) _leftIXScanner)->getMemTree() ) ;
+      }
+      else
+      {
+         _rightIXScanner->getRBSPositions( startPos, endPos, rid,
+                   memTree.get() ? memTree :
+                      ((_rtnMemIXTreeScanner*) _leftIXScanner)->getMemTree() ) ;
+      }
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    }
 
    const dmsRecordID& _rtnMergeIXScanner::getSavedRIDFromChild() const

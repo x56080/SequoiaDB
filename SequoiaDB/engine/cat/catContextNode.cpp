@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = catContextNode.cpp
 
@@ -35,7 +33,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #include "catCommon.hpp"
 #include "catContextNode.hpp"
 #include "clsMgr.hpp"
@@ -278,6 +275,9 @@ namespace engine
                    _targetName.c_str(), rc ) ;
 
       _pCatCB->activeGroup( _groupID ) ;
+
+      // callback on active (create) group
+      _pCatCB->onGroupChange() ;
 
    done :
       PD_TRACE_EXITRC ( SDB_CATCTXACTIVEGRP_EXECUTE_INT, rc ) ;
@@ -550,6 +550,9 @@ namespace engine
                    "rc: %d",
                    _targetName.c_str(), CAT_NODE_INFO_COLLECTION, rc ) ;
 
+      // callback on remove group
+      _pCatCB->onGroupChange() ;
+
    done :
       PD_TRACE_EXITRC ( SDB_CATCTXRMGRP_EXECUTE_INT, rc ) ;
       return rc ;
@@ -561,6 +564,7 @@ namespace engine
       goto done ;
    }
 
+<<<<<<< HEAD
    /*
     * _catCtxAlterGrp implement
     */
@@ -1194,6 +1198,8 @@ namespace engine
       goto done ;
    }
 
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    /*
     * _catCtxCreateNode implement
     */
@@ -1488,6 +1494,9 @@ namespace engine
                     "Failed to create node [%s] on group [%s], rc: %d",
                     _targetName.c_str(), _nodeName.c_str(), rc ) ;
 
+      // callback on create node
+      _pCatCB->onGroupChange() ;
+
    done :
       PD_TRACE_EXITRC ( SDB_CATCTXCREATENODE_EXECUTE_INT, rc ) ;
       return rc ;
@@ -1511,6 +1520,9 @@ namespace engine
                     "Failed to rollback create node [%s] on group [%s], rc: %d",
                     _targetName.c_str(), _nodeName.c_str(), rc ) ;
 
+      // callback on remove node
+      _pCatCB->onGroupChange() ;
+
    done :
       PD_TRACE_EXITRC ( SDB_CATCTXCREATENODE_ROLLBACK_INT, rc ) ;
       if ( CAT_INVALID_NODEID != _nodeID )
@@ -1523,6 +1535,7 @@ namespace engine
       goto done ;
    }
 
+<<<<<<< HEAD
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXCREATENODE__BUILDP2REPLY, "_catCtxCreateNode::_buildP2Reply" )
    INT32 _catCtxCreateNode::_buildP2Reply( bson::BSONObjBuilder &builder )
    {
@@ -1535,6 +1548,8 @@ namespace engine
       return rc ;
    }
 
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXCREATENODE_CHECKLOCALHOST, "_catCtxCreateNode::_checkLocalHost" )
    INT32 _catCtxCreateNode::_checkLocalHost( BOOLEAN isLocalHost,
                                              BOOLEAN &isValid,
@@ -1774,7 +1789,11 @@ namespace engine
          PD_CHECK( nodeNum == 0,
                    SDB_CATA_RM_NODE_FORBIDDEN, error, PDERROR,
                    "Unable to remove the last node or primary with data in a group" ) ;
+<<<<<<< HEAD
 
+=======
+                   
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          /// confirm that no there is no task.
          try
          {
@@ -1888,6 +1907,9 @@ namespace engine
 
       // release node and location
       _pCatCB->releaseNode( _nodeID, _location ) ;
+
+      // callback on remove node
+      _pCatCB->onGroupChange() ;
 
       if ( _needDeactive )
       {

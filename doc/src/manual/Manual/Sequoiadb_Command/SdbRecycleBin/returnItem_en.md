@@ -49,7 +49,11 @@ When the exception happens, use [getLastErrMsg()][getLastErrMsg] to get the erro
 
 ##VERSION##
 
+<<<<<<< HEAD
 v3.6 and above
+=======
+v5.0.3 and above
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 ##EXAMPLES##
 
@@ -64,7 +68,13 @@ v3.6 and above
       "OriginID": 21474836481,
       "Type": "Collection",
       "OpType": "Drop",
+<<<<<<< HEAD
       "RecycleTime": "2022-01-24-12.04.12.000000"
+=======
+      "RecycleTime": {
+        "$timestamp": "2022-01-24-12.04.12.000000"
+      }
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     }
     ```
 

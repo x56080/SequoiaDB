@@ -60,9 +60,20 @@ driver_dir = join(db_dir,'driver')
 java_dir = join(root_dir,'java')
 fuse_dir = join(thirdparty_dir, 'fuse')
 fuse_lib_dir = join(fuse_dir, 'lib')
+<<<<<<< HEAD
 zstd_dir = join(thirdparty_dir, 'zstd')
 zstd_lib_dir = join(zstd_dir, 'lib')
 wiredtiger_dir = join(thirdparty_dir, 'wiredtiger')
+=======
+rocksdb_dir = join(thirdparty_dir, 'rocksdb')
+rocksdb_lib_dir = join(rocksdb_dir, 'lib')
+zstd_dir = join(thirdparty_dir, 'zstd')
+zstd_lib_dir = join(zstd_dir, 'lib')
+bzip2_dir = join(thirdparty_dir, 'bzip2')
+bzip2_lib_dir = join(bzip2_dir, 'lib')
+xxhash_dir = join(thirdparty_dir, 'xxHash')
+sqlite_dir = join( thirdparty_dir, "sqlite" )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 # --- options ----
 
 options = {}
@@ -262,6 +273,8 @@ add_option( "testcase", "build testcases", 0, False)
 add_option( "shell", "build shell", 0, False)
 add_option( "client", "build C/C++ clients", 0, False)
 add_option( "fmp", "build fmp", 0, False)
+add_option( "stp", "build stp", 0, False)
+add_option( "vessel", "build vessel", 0, False)
 add_option( "doc", "build document(pdf, word)", 0, False)
 add_option( "website", "build web site document", 0, False)
 add_option( "chm", "build chm document", 0, False)
@@ -285,6 +298,8 @@ add_option( "fap", "foreign access protocol", 0, False )
 
 #enterprise options
 add_option( "enterprise", "build enterprise sequoiadb ( with SSL )", 0, False )
+
+add_option( "hybrid", "build hybrid version( for both X86 and ARM )", 0, False )
 
 #gprof option
 add_option("gprof", "enable gprofile for sequoiadb", 0, False)
@@ -314,7 +329,11 @@ toolVariantDir = variantDir + "tool"
 fmpVariantDir = variantDir + "fmp"
 driverDir = variantDir + "driver"
 fapVariantDir = variantDir + "fap"
+<<<<<<< HEAD
 wtVariantDir = variantDir + "wiredtiger"
+=======
+stpVariantDir = variantDir + "stp"
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 def printLocalInfo():
    import sys, SCons
@@ -384,6 +403,7 @@ if needCompileDb:
 
 if guess_os == "linux":
    env.Append( CXXFLAGS=" -std=c++11 " )
+<<<<<<< HEAD
    # Ignore warnings caused by the C++11 standard in debug version,
    # 'template<class> class std::auto_ptr' is deprecated.
    if debugBuild:
@@ -391,6 +411,8 @@ if guess_os == "linux":
    if suppressWarning:
       env.Append( CXXFLAGS=" -w " )
       env.Append( CFLAGS=" -w " )
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 libdeps.setup_environment( env )
 
@@ -420,6 +442,8 @@ hasTestcase = has_option( "testcase" )
 hasTool = has_option( "tool" )
 hasShell = has_option( "shell" )
 hasFmp = has_option("fmp")
+hasStp = has_option("stp")
+hasVessel = has_option( "vessel" )
 hasAll = has_option( "all" )
 hasDoc = has_option( "doc" )
 hasWebSite = has_option( "website" )
@@ -434,6 +458,7 @@ if guess_os == "win32":
 else:
     hasFap = has_option("fap")
 hasEnterprise = has_option("enterprise")
+hasHybrid = has_option("hybrid")
 hasGProf = has_option("gprof")
 hasSSL = False
 
@@ -441,6 +466,9 @@ hasSSL = False
 if hasEnterprise:
    hasSSL = True
    env.Append( CPPDEFINES=[ "SDB_ENTERPRISE" ] )
+
+if hasHybrid:
+   env.Append( CPPDEFINES=[ "SDB_HYBRID" ] )
 
 # if everything are set, let's set everything to true
 if hasAll:
@@ -454,16 +482,20 @@ if hasAll:
       hasFap = False
    else:
       hasFap = True
+   hasStp = True
 # if nothing specified, let's use engine+client+shell by default
 elif not ( hasEngine or hasClient or hasTestcase or hasTool or hasShell or
            hasFmp or hasFap or hasDoc or hasWebSite or hasChm or hasOffline or
-           hasDoxygen ):
+           hasDoxygen or hasStp or hasVessel):
    hasEngine = True
    hasClient = True
    hasShell = True
    hasTool = True
    hasFmp = True
+   hasStp = True
 elif ( hasTestcase and not hasEngine ):
+   hasEngine = True
+elif ( hasVessel and not hasEngine ):
    hasEngine = True
 
 boostCompiler = ""
@@ -539,11 +571,51 @@ def findVersion( root , choices ):
     raise RuntimeError("can't find a version of [" + repr(root) + "] choices: "
                        + repr(choices))
 
+<<<<<<< HEAD
+=======
+# add database include, boost include here
+hdfsJniPath = ""
+hdfsJniMdPath = ""
+if guess_os == "linux":
+    if guess_arch == "ia32":
+        hdfsJniPath = join(java_dir,"jdk_linux32/include")
+        hdfsJniMdPath = join(java_dir,"jdk_linux32/include/linux")
+    elif guess_arch == "ia64":
+        hdfsJniPath = join(java_dir,"jdk_linux64/include")
+        hdfsJniMdPath = join(java_dir,"jdk_linux64/include/linux")
+    elif guess_arch == "arm64":
+        hdfsJniPath = join(java_dir,"jdk8_armlinux64/include")
+        hdfsJniMdPath = join(java_dir,"jdk8_armlinux64/include/linux")
+    elif guess_arch == "ppc64":
+        hdfsJniPath = join(java_dir,"jdk_ppclinux64/include")
+        hdfsJniMdPath = join(java_dir,"jdk_ppclinux64/include/linux")
+    elif guess_arch == "ppc64le":
+        hdfsJniPath = join(java_dir,"jdk_ppclelinux64/include")
+        hdfsJniMdPath = join(java_dir,"jdk_ppclelinux64/include/linux")
+    elif guess_arch == "alpha64":
+        hdfsJniPath = join(java_dir,"jdk8_alphalinux64/include")
+        hdfsJniMdPath = join(java_dir,"jdk8_alphalinux64/include/linux")
+elif guess_os == "win32":
+    if guess_arch == "ia32":
+        hdfsJniPath = join(java_dir,"jdk_win32/include")
+        hdfsJniMdPath = join(java_dir,"jdk_win32/include/win32")
+    elif guess_arch == "ia64":
+        hdfsJniPath = join(java_dir,"jdk_win64/include")
+        hdfsJniMdPath = join(java_dir,"jdk_win64/include/win32")
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 env.Append(
-CPPPATH=[join(engine_dir,'include'),join(engine_dir,'client'),
+CPPPATH=[join(engine_dir,'include'),join(engine_dir,'client'),join(engine_dir,'tools/stp'),
          join(ssl_dir,'include'),join(lz4_dir,'include'),join(zlib_dir,'./'),
+<<<<<<< HEAD
          join(snappy_dir,'include'),join(zstd_dir,'lib'),join(gtest_dir,'include'),
          pcre_dir, boost_dir, ssh2_dir] )
+=======
+         join(snappy_dir,'include'),join(gtest_dir,'include'),
+         join(rocksdb_dir,'include'),join(zstd_dir,'lib'),bzip2_dir,
+         pcre_dir, boost_dir, ssh2_dir, hdfsJniPath, xxhash_dir,
+         hdfsJniMdPath] )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 env.Append( CPPDEFINES=["__STDC_LIMIT_MACROS", "HAVE_CONFIG_H", "BOOST_THREAD_HAS_CONDATTR_SET_CLOCK_MONOTONIC"] )
 env.Append( CPPDEFINES=[ "SDB_DLL_BUILD" ] )
@@ -558,9 +630,17 @@ if guess_os is not None:
     snappy_lib_dir = join(snappy_lib_dir, platform_dir, build_dir)
     zstd_lib_dir = join(zstd_lib_dir, platform_dir, build_dir)
     intel_decimal_lib_dir = join(intel_decimal_lib_dir, platform_dir, build_dir)
+    rocksdb_lib_dir = join(rocksdb_lib_dir, platform_dir, build_dir)
+    zstd_lib_dir = join(zstd_lib_dir, platform_dir, build_dir)
+    bzip2_lib_dir = join(bzip2_lib_dir, platform_dir, build_dir)
     env.Append(EXTRALIBPATH=[boost_lib_dir, ssl_lib_dir, zlib_lib_dir,
+<<<<<<< HEAD
                              lz4_lib_dir, snappy_lib_dir, zstd_lib_dir,
                              intel_decimal_lib_dir])
+=======
+                             lz4_lib_dir, snappy_lib_dir, intel_decimal_lib_dir,
+                             rocksdb_lib_dir, zstd_lib_dir,bzip2_lib_dir])
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     # use project-related spidermonkey library
     if usesm:
         env.Append(CPPPATH=join(sm_lib_dir, platform_dir, 'include'))
@@ -644,10 +724,27 @@ if guess_os == "linux":
     zlib_lib = join(zlib_lib_dir, 'libzlib.a')
     lz4_lib = join(lz4_lib_dir, 'liblz4.a')
     snappy_lib = join(snappy_lib_dir, 'libsnappy.a')
+<<<<<<< HEAD
     # zstd
     zstd_lib = join(zstd_lib_dir, 'libzstd.a')
+=======
+    # rocksdb
+    rocksdbLibName = "rocksdb"
+    if debugBuild :
+       rocksdbLibName = "rocksdb_debug"
+       rocksdb_lib = join(rocksdb_lib_dir,'librocksdb_debug.a')
+    else :
+       rocksdb_lib = join(rocksdb_lib_dir,'librocksdb.a')
+    # zstd
+    zstd_lib = join(zstd_lib_dir,'libzstd.a')
+    # bzip2
+    bzip2_lib = join(bzip2_lib_dir, 'libbz2.a')
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
     nix = True
+
+    if debugBuild:
+       env.Append( CPPFLAGS=" -Wno-deprecated-declarations " ) 
 
 elif guess_os == "win32":
     # when building windows
@@ -872,6 +969,7 @@ toolEnv = env.Clone() ;
 fmpEnv = None
 fmpEnv = env.Clone() ;
 
+<<<<<<< HEAD
 env.Append( CPPPATH = wtVariantDir )
 env.Append( LIBS = "wiredtiger" )
 env.Append( LIBPATH = wtVariantDir )
@@ -890,6 +988,11 @@ else:
     toolEnv.Append( LIBS=['lz4', 'zlib', 'snappy', 'zstd'] )
     fmpEnv.Append( LIBS=['lz4', 'zlib', 'snappy', 'zstd'] )
     testEnv.Append( LIBS=['lz4', 'zlib', 'snappy', 'zstd'] )
+=======
+stpEnv = None
+stpEnv = env.Clone();
+stpEnv.Append( CPPPATH = [ sqlite_dir ] )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 if windows:
     shellEnv.Append( LIBS=["winmm.lib"] )
@@ -919,12 +1022,16 @@ fmpEnv.Append( CPPDEFINES=[ "SDB_FMP" ] )
 fmpEnv.Append( CPPDEFINES=[ "SDB_CLIENT" ] )
 fapEnv.Append( CPPDEFINES=["SDB_ENGINE", "SDB_DLL_BUILD"])
 #fapEnv.Append( CPPPATH=[join(engine_dir, "bson")])
+stpEnv.Append( CPPDEFINES=[ "SDB_CLIENT" ] )
+stpEnv.Append( CPPDEFINES=[ "SDB_TOOL" ] )
+stpEnv.Append( CPPDEFINES=[ "SDB_STP" ] )
 
 # drivers always set SSL definition
 toolEnv.Append( CPPDEFINES=[ "SDB_SSL" ] )
 clientCppEnv.Append( CPPDEFINES=[ "SDB_SSL" ] )
 clientCEnv.Append( CPPDEFINES=[ "SDB_SSL" ] )
 shellEnv.Append( CPPDEFINES=[ "SDB_SSL" ] )
+stpEnv.Append( CPPDEFINES=[ "SDB_SSL" ] )
 
 if hasSSL:
     env.Append( CPPDEFINES=[ "SDB_SSL" ] )
@@ -960,15 +1067,19 @@ if cov:
    fmpEnv.Append( LINKFLAGS=" -fprofile-arcs " )
    fapEnv.Append( CPPFLAGS=" -fprofile-arcs -ftest-coverage " )
    fapEnv.Append( LINKFLAGS=" -fprofile-arcs " )
+   stpEnv.Append( CPPFLAGS=" -fprofile-arcs -ftest-coverage " )
+   stpEnv.Append( LINKFLAGS=" -fprofile-arcs " )
 
 
 if linux64:
     toolEnv.Append( CPPDEFINES="_FILE_OFFSET_BITS=64" )
+    stpEnv.Append( CPPDEFINES="_FILE_OFFSET_BITS=64" )
 if usefuse:
     toolEnv.Append( LIBS=['fuse'] )
     toolEnv.Append( CPPPATH = join(fuse_dir, "include") )
     toolEnv.Append( EXTRALIBPATH=[fuse_lib_dir] )
 toolEnv.Append( LIBPATH=['$EXTRALIBPATH'] )
+stpEnv.Append( LIBPATH=['$EXTRALIBPATH'] )
 
 # The following symbols are exported for use in subordinate SConscript files.
 # Ideally, the SConscript files would be purely declarative.  They would only
@@ -985,6 +1096,7 @@ Export("toolEnv")
 Export("testEnv")
 Export("fmpEnv")
 Export("fapEnv")
+Export("stpEnv")
 Export("clientCppEnv")
 Export("clientCEnv")
 Export("wtEnv")
@@ -1008,6 +1120,8 @@ if usefuse:
 Export("hasEngine")
 Export("hasTestcase")
 Export("hasTool")
+Export("hasStp")
+Export("hasVessel")
 Export("driverDir")
 Export("guess_os")
 Export("guess_arch")
@@ -1018,6 +1132,7 @@ Export("debugBuild")
 Export("cov")
 Export("boost_lib_dir")
 Export("intel_decimal_lib_dir")
+<<<<<<< HEAD
 Export("wiredtiger_dir")
 Export("wtVariantDir")
 
@@ -1028,6 +1143,23 @@ thirdpartyEnv.SConscript('thirdparty/SConscript', exports=["boost_lib_dir",
                          "zstd_dir", "zstd_lib_dir",
                          "sm_lib_dir", "mdocml_lib_dir", "fuse_lib_dir", "intel_decimal_lib_dir",
                          "wiredtiger_dir"], duplicate=False)
+=======
+if guess_os == "linux":
+    Export("rocksdb_lib")
+    Export("zstd_lib")
+    Export("bzip2_lib")
+    Export("rocksdbLibName")
+Export("rocksdb_lib_dir")
+Export("zstd_lib_dir")
+Export("bzip2_lib_dir")
+Export("sqlite_dir")
+
+
+print("Begin to build thirdparty...")
+thirdpartyEnv.SConscript('thirdparty/SConscript', exports=["boost_lib_dir",
+                         "ssl_lib_dir", "zlib_lib_dir", "lz4_lib_dir", "snappy_lib_dir",
+                         "sm_lib_dir", "mdocml_lib_dir", "fuse_lib_dir", "intel_decimal_lib_dir", "rocksdb_lib_dir", "zstd_lib_dir", "bzip2_lib_dir"], duplicate=False)
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 if not has_option("noautogen"):
    language = get_option ( "language" )
@@ -1089,3 +1221,5 @@ if hasFmp:
 #   env.SConscript( 'SequoiaDB/SConscript', variant_dir=variantDir, duplicate=False )
 if hasFap:
    fapEnv.SConscript ( 'SequoiaDB/SConscriptFap', variant_dir=fapVariantDir, duplicate=False )
+if hasStp:
+   stpEnv.SConscript ( 'SequoiaDB/SConscriptStp', variant_dir=stpVariantDir, duplicate=False )

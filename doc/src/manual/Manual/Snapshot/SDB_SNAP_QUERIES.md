@@ -6,11 +6,19 @@
 > 每一个数据节点上正在进行的每一个查询操作为一条记录。
 
 
+<<<<<<< HEAD
 ## 标识
 
 SDB_SNAP_QUERIES
 
 ## 协调节点字段信息
+=======
+##标识##
+
+SDB_SNAP_QUERIES
+
+##协调节点字段信息##
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 | 字段名                 | 类型     | 描述                                                |
 | ---------------------- | -------- | --------------------------------------------------- |
@@ -39,12 +47,20 @@ SDB_SNAP_QUERIES
 | ClientPort             | int32    | 所连接的协调节点客户端主机端口，仅在连接客户端为 SQL 引擎时显示    |
 | ClientQID              | int32    | 所连接的协调节点客户端程序查询 ID，仅在连接客户端为 SQL 引擎时显示 |
 
+<<<<<<< HEAD
 ## 数据节点字段信息
 
 | 字段名                 | 类型     | 描述                                                                                     |
 | ---------------------- | -------- | ---------------------------------------------------------------------------------------- |
 | NodeName               | string   | 节点名，格式为\<hostname\>:\<servicename\>                                               |
 | NodeID                 | bson array | 节点的 ID，格式为[<分区组 ID>,<节点 ID>]                                               |
+=======
+##数据节点字段信息##
+
+| 字段名                 | 类型     | 描述                                                                                     |
+| ---------------------- | -------- | ---------------------------------------------------------------------------------------- |
+| NodeID                 | bson array | 节点的 ID，格式为<分区组 ID>,<节点 ID>                                                |
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 | StartTimestamp         | string   | 查询开始时间                                                                             |
 | EndTimestamp           | string   | 查询结束时间                                                                             |
 | TID                    | int32    | 内部线程 ID                                                                              |
@@ -62,12 +78,21 @@ SDB_SNAP_QUERIES
 | IndexWrite             | int32    | 索引写                                                                                   |
 | LobRead                | int32    | 服务端中 LOB 分片的读次数 |
 | LobWrite               | int32    | 服务端中 LOB 分片的写次数  |
+<<<<<<< HEAD
 | LobTruncate    | int64     | 服务端中 LOB 分片的截断次数（仅在 v3.6.1 及以上版本生效） |
 | LobAddressing     | int64     | 服务端中 LOB 分片的寻址总次数（仅在 v3.6.1 及以上版本生效） |
 | TransLockWaitTime      | int32    | 锁等待时间，单位为毫秒                                                                   |
 | LatchWaitTime          | int32    | 闩锁等待时间，单位为毫秒                                                                 |
 
 ## 示例
+=======
+| LobTruncate    | int64     | 服务端中 LOB 分片的截断次数（仅在 v5.0.4 及以上版本生效） |
+| LobAddressing     | int64     | 服务端中 LOB 分片的寻址总次数（仅在 v5.0.4 及以上版本生效） |
+| TransLockWaitTime      | int32    | 锁等待时间，单位为毫秒                                                                   |
+| LatchWaitTime          | int32    | 闩锁等待时间，单位为毫秒                                                                 |
+
+##示例##
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 - 查看协调节点的查询信息
 
@@ -105,7 +130,10 @@ SDB_SNAP_QUERIES
     }
     ```
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 - 查看数据节点的查询信息
 
     ```lang-javascript
@@ -187,3 +215,7 @@ SDB_SNAP_QUERIES
     本文使用的所有引用及链接
 [SnapshotOption]:manual/Manual/Sequoiadb_Command/AuxiliaryObjects/SdbSnapshotOption.md
 [configuration]:manual/Distributed_Engine/Maintainance/Database_Configuration/parameter_instructions.md
+<<<<<<< HEAD
+=======
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2

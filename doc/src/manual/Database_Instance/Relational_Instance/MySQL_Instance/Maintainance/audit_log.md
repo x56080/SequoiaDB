@@ -22,7 +22,11 @@ MySQL 通过审计插件输出审计日志，因此在审计前需完成审计�
     ```
 
 3. 编辑实例配置文件，并根据实际情况调整配置参数的取值
+<<<<<<< HEAD
 	
+=======
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     ```lang-bash
     $ vim /opt/sequoiasql/mysql/database/3306/auto.cnf
     ```

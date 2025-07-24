@@ -16,16 +16,26 @@
 
 package com.sequoiadb.spark
 
+<<<<<<< HEAD
 import com.sequoiadb.base.Sequoiadb
 import com.sequoiadb.exception.BaseException
+=======
+import java.io.{File, FileInputStream}
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 import com.sequoiadb.net.ConfigOptions
 import com.sequoiadb.util.{SdbDecrypt, SdbDecryptUserInfo}
 import org.apache.spark.SparkContext
 import org.bson.util.JSON
+<<<<<<< HEAD
 import org.bson.{BSONObject, BasicBSONObject}
 import org.slf4j.LoggerFactory
 
 import java.io.File
+=======
+import com.sequoiadb.util.{SdbDecrypt, SdbDecryptUserInfo}
+
+import java.util.Properties
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
@@ -392,6 +402,11 @@ object SdbConfig {
     val AutoIncrement = "autoincrement"
     val StrictDataMode = "strictdatamode"
 
+<<<<<<< HEAD
+=======
+    val ConfigPath = "configpath"
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     // sdb connection configurations
     val ConnectTimeout = "connecttimeout"
 
@@ -474,6 +489,10 @@ object SdbConfig {
         AutoIndexId,
         AutoIncrement,
         StrictDataMode,
+<<<<<<< HEAD
+=======
+        ConfigPath,
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         ConnectTimeout)
 
     val RequiredProperties = List(
@@ -569,6 +588,7 @@ object SdbConfig {
 
     val DefaultConnectTimeout = 1000
 
+<<<<<<< HEAD
     def apply(parameters: Map[String, String]): SdbConfig = apply(Map[String, String](), parameters)
 
     /**
@@ -709,7 +729,43 @@ object SdbConnUtil {
         }
 
         sourceInfo
+=======
+    def apply(parameters: Map[String, String]): SdbConfig = {
+        val configPath = parameters.getOrElse(SdbConfig.ConfigPath, "")
+        var newParameters: Map[String, String] = parameters
+
+        // 1. CHECK IF USES config file
+        if (configPath != "") {
+            val properties = new Properties()
+            properties.load(new FileInputStream(configPath))
+
+            val options = properties.propertyNames()
+            while (options.hasMoreElements) {
+                val optionName = options.nextElement().asInstanceOf[String]
+                // 2. VALIDATE OPTIONS that config in file
+                if (!SdbConfig.AllProperties.contains(optionName)) {
+                    throw new SdbException(s"unsupported option: $optionName, please check!")
+                }
+                // 3. Do not overwrite, options
+                if (!parameters.contains(optionName)) {
+                    newParameters += (optionName -> properties.getProperty(optionName))
+                }
+            }
+        }
+
+        // 4. use new parameters to generate SdbConfig, it can be from file or CLI
+        val config = new SdbConfig(newParameters)
+
+        // setup network configurations
+        SdbConnectionOptions.setConnectTimeout(config.connectTimeout)
+        SdbConnectionOptions.setSocketKeepAlive(true)
+        SdbConnectionOptions.setMaxAutoConnectRetryTime(0)
+
+        config
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     }
+
+    private[spark] val SdbConnectionOptions: ConfigOptions = new ConfigOptions
 }
 
 class SdbPreferredInstance(val instances: Array[String], val mode: PreferredInstanceMode, val strict: Boolean) extends Serializable {

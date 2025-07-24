@@ -17,7 +17,11 @@ function isPortUsed ( port )
 {
    try
    {
+<<<<<<< HEAD
       var cmd = new Remote( COORDHOSTNAME, CMSVCNAME ).getCmd();
+=======
+      var cmd = new Remote().getCmd();
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       cmd.run( "lsof -nP -iTCP:" + port + " -sTCP:LISTEN" );
       return true;
    } catch( e )
@@ -28,7 +32,11 @@ function isPortUsed ( port )
 
 function getLocalHostName ()
 {
+<<<<<<< HEAD
    var cmd = new Remote( COORDHOSTNAME, CMSVCNAME ).getCmd();
+=======
+   var cmd = new Remote().getCmd();
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    return cmd.run( 'hostname' ).split( '\n' )[0];
 }
 
@@ -232,7 +240,11 @@ function getExecPath ( cmd )
 {
    if( cmd === undefined )
    {
+<<<<<<< HEAD
       var cmd = new Remote( COORDHOSTNAME, CMSVCNAME ).getCmd();
+=======
+      var cmd = new Remote().getCmd();
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    }
 
    var path = "";
@@ -297,7 +309,11 @@ function calcMD5 ( cmd, path )
 
    if( cmd === undefined )
    {
+<<<<<<< HEAD
       var cmd = new Remote( COORDHOSTNAME, CMSVCNAME ).getCmd();
+=======
+      var cmd = new Remote().getCmd();
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    }
 
    var output = File.md5( path );
@@ -326,7 +342,11 @@ function isTheSameMachine ( cmd, hostName )
 
    if( cmd === undefined )
    {
+<<<<<<< HEAD
       var cmd = new Remote( COORDHOSTNAME, CMSVCNAME ).getCmd();
+=======
+      var cmd = new Remote().getCmd();
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    }
 
    if( hostName === "localhost" || hostName === "127.0.0.1" )
@@ -370,7 +390,11 @@ function sdbRestore ( db, cmd, bakInfo, node )
    var isStandalone = false;
    if( cmd === undefined )
    {
+<<<<<<< HEAD
       var cmd = new Remote( COORDHOSTNAME, CMSVCNAME ).getCmd();
+=======
+      var cmd = new Remote().getCmd();
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    }
 
    if( commIsStandalone( db ) )
@@ -394,7 +418,11 @@ function removeFile ( cmd, filePath )
 
    if( cmd === undefined )
    {
+<<<<<<< HEAD
       var cmd = new Remote( COORDHOSTNAME, CMSVCNAME ).getCmd();
+=======
+      var cmd = new Remote().getCmd();
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    }
 
    var output = cmd.run( "rm -rf " + filePath );
@@ -404,7 +432,11 @@ function stopNode ( db, isStandalone, cmd, node )
 {
    if( cmd === undefined )
    {
+<<<<<<< HEAD
       var cmd = new Remote( COORDHOSTNAME, CMSVCNAME ).getCmd();
+=======
+      var cmd = new Remote().getCmd();
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    }
 
    if( isStandalone )
@@ -426,7 +458,11 @@ function startNode ( db, isStandalone, cmd, node )
 {
    if( cmd === undefined )
    {
+<<<<<<< HEAD
       var cmd = new Remote( COORDHOSTNAME, CMSVCNAME ).getCmd();
+=======
+      var cmd = new Remote().getCmd();
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    }
 
    if( isStandalone )
@@ -454,7 +490,11 @@ function IsBakPathEmpty ( cmd, bakPath )
 
    if( cmd === undefined )
    {
+<<<<<<< HEAD
       cmd = new Remote( COORDHOSTNAME, CMSVCNAME ).getCmd();
+=======
+      cmd = new Remote().getCmd();
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    }
 
    try
@@ -563,7 +603,11 @@ function backupTestCase ( sdb )
    this.sdb = sdb;
    this.db = db;
    this.oids = [];
+<<<<<<< HEAD
    this.localCmd = new Remote( COORDHOSTNAME, CMSVCNAME ).getCmd();
+=======
+   this.localCmd = new Remote().getCmd();
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 }
 
 backupTestCase.prototype.csName = csName;

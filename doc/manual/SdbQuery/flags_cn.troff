@@ -370,6 +370,13 @@ T}
 SDB_FLG_QUERY_FORCE_HINT
 标志位，因为该标志位是强制进行索引查询，所以用户执行该操作会报错。
 .RE
+<<<<<<< HEAD
+=======
+.RS
+.PP
+在 RR 隔离级别下，使用 SDB_FLG_QUERY_FOR_SHARE 和 SDB_FLG_QUERY_FOR_UPDATE 标志可能会导致读取的数据不一致。在同一个 RR 读事务中，使用 SDB_FLG_QUERY_FOR_SHARE 和 SDB_FLG_QUERY_FOR_UPDATE 标志的查询读取的是最新的记录，而不使用这两个标志的查询，读取的是该事务可见的 MVCC 版本记录。
+.RE
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 .SH 返回值
 .PP
 返回查询结果集的游标。

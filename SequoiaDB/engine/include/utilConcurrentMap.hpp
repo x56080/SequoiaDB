@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = utilZlibStream.hpp
 
@@ -52,7 +50,8 @@ namespace engine
    template < class Key,
               class T,
               INT32 BUCKET_NUM = UTIL_CONCURRENT_MAP_DEFAULT_BUCKET_NUM,
-              class Hash = boost::hash<Key> >
+              class Hash = boost::hash<Key>,
+              class Latch = ossSpinSLatch >
    class utilConcurrentMap: public SDBObject
    {
    public:
@@ -61,7 +60,7 @@ namespace engine
       typedef typename map_type::iterator       map_iterator ;
       typedef typename map_type::const_iterator map_const_iterator ;
    private:
-      typedef utilConcurrentMap< Key, T, BUCKET_NUM, Hash > cmap_type ;
+      typedef utilConcurrentMap< Key, T, BUCKET_NUM, Hash, Latch > cmap_type ;
 
    private:
       // disallow copy and assign
@@ -94,9 +93,9 @@ namespace engine
       }
 
    public:
-      class Bucket: public ossSpinSLatch
+      class Bucket
       {
-         friend class utilConcurrentMap< Key, T, BUCKET_NUM, Hash > ;
+         friend class utilConcurrentMap< Key, T, BUCKET_NUM, Hash, Latch > ;
       private:
          // disallow copy and assign
          Bucket( const Bucket& ) ;
@@ -153,6 +152,47 @@ namespace engine
             UINT32 res = _map.erase( key ) ;
             _countRef.sub( res ) ;
             return res ;
+<<<<<<< HEAD
+=======
+         }
+
+         OSS_INLINE void erase( map_const_iterator iter )
+         {
+            UINT32 res = _map.size() ;
+            _map.erase( iter ) ;
+            res -= _map.size() ;
+            _countRef.sub( res ) ;
+         }
+
+         OSS_INLINE void erase( map_iterator iter )
+         {
+            UINT32 res = _map.size() ;
+            _map.erase( iter ) ;
+            res -= _map.size() ;
+            _countRef.sub( res ) ;
+         }
+
+         OSS_INLINE void erase( map_const_iterator begin,
+                                map_const_iterator end )
+         {
+            UINT32 res = _map.size() ;
+            _map.erase( begin, end ) ;
+            res -= _map.size() ;
+            _countRef.sub( res ) ;
+         }
+
+         OSS_INLINE void erase( map_iterator begin, map_iterator end )
+         {
+            UINT32 res = _map.size() ;
+            _map.erase( begin, end ) ;
+            res -= _map.size() ;
+            _countRef.sub( res ) ;
+         }
+
+         OSS_INLINE map_iterator find( const Key &key )
+         {
+            return _map.find( key ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          }
 
          OSS_INLINE map_const_iterator find( const Key& key ) const
@@ -165,15 +205,39 @@ namespace engine
             UINT32 res = _map.size() ;
             _map.clear() ;
             _countRef.sub( res ) ;
+<<<<<<< HEAD
+=======
+         }
+
+         OSS_INLINE const map_type &getMap() const
+         {
+            return _map ;
+         }
+
+         OSS_INLINE map_type &getMap()
+         {
+            return _map ;
+         }
+
+         OSS_INLINE Latch *getLatch()
+         {
+            return &_latch ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          }
 
       private:
          ossAtomic64 & _countRef ;
+<<<<<<< HEAD
+=======
+         Latch    _latch ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          map_type _map ;
       } ;
 
-      #define BUCKET_XLOCK( _bucket ) ossScopedLock __lock( &(_bucket), EXCLUSIVE )
-      #define BUCKET_SLOCK( _bucket ) ossScopedLock __lock( &(_bucket), SHARED )
+      #define BUCKET_XLOCK( _bucket ) \
+                  ossScopedLock __lock( (_bucket).getLatch(), EXCLUSIVE )
+      #define BUCKET_SLOCK( _bucket ) \
+                  ossScopedLock __lock( (_bucket).getLatch(), SHARED )
 
    private:
       OSS_INLINE INT32 _getBucketIndex( const Key& key ) const
@@ -191,14 +255,27 @@ namespace engine
       }
 
    public:
+      OSS_INLINE INT32 getIndex( const Key &key )
+      {
+         return _getBucketIndex( key ) ;
+      }
+
       OSS_INLINE Bucket& getBucket( const Key& key )
       {
          INT32 index = _getBucketIndex( key ) ;
          return _bucketAt( index ) ;
       }
 
+      OSS_INLINE Bucket &getBucketAt( INT32 index )
+      {
+<<<<<<< HEAD
+=======
+         return _bucketAt( index ) ;
+      }
+
       OSS_INLINE UINT32 size( BOOLEAN lock = TRUE )
       {
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          if ( lock )
          {
            return _count.fetch() ;
@@ -276,7 +353,7 @@ namespace engine
    public:
       class bucket_iterator: public SDBObject
       {
-         friend class utilConcurrentMap< Key, T, BUCKET_NUM, Hash > ;
+         friend class utilConcurrentMap< Key, T, BUCKET_NUM, Hash, Latch > ;
       public:
          bucket_iterator()
          {

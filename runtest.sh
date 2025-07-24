@@ -15,8 +15,15 @@ coordsvcname="50000"
 essvcname="9200"
 dssvcname="11810"
 catasvcname="30000"
+stpsvcname="9622"
+dssvcname="11810"
+
 coordhostname="localhost"
 eshostname="localhost"
+<<<<<<< HEAD
+=======
+stphostname="localhost"
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 dshostname="localhost"
 
 rsrvportbegin="26000"
@@ -69,7 +76,11 @@ function showHelpInfo()
 {
    echo "run testcase 1.0.0 2014/2/25"
    echo "$0 --help"
+<<<<<<< HEAD
    echo "$0 [-p path]|[-f file] [-t type] [-s stopFlag] [-n svcname] [-h hostname] [--user user] [--password password] [-eh eshost] [-en essvcname] [-dh dshost] [-dn dssvcname] [-s1] [-s2] [-sp] [-addpid] [-print]"
+=======
+   echo "$0 [-p path]|[-f file] [-t type] [-s stopFlag] [-n svcname] [-h hostname] [--user user] [--password password] [-eh eshost] [-en essvcname] [-dh dshost] [-dn dssvcname] [-sh stphostname] [-sn stpsvcname] [-s1] [-s2] [-sp] [-addpid] [-print]"
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    echo ""
    echo " -p path        : 运行指定路径下的JS用例。为相对目录，默认根目录为用例目录"
    echo " -f file        : 运行指定的JS用例。为相对目录，默认根目录为用例目录"
@@ -87,6 +98,11 @@ function showHelpInfo()
    echo " -en essvcname  : 指定es环境节点服务名，默认为9200"
    echo " -dh dshost     : 指定数据源主机名或ip，默认是localhost"
    echo " -dn dssvcname  : 指定数据源节点服务名，默认是11810"
+<<<<<<< HEAD
+=======
+   echo " -sh stphostname: 指定stp环境主机名或ip，默认是localhost"
+   echo " -sn stpsvcname : 指定stp环境节点服务名，默认是9622"
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    echo " -s1            : 指定预留的RSRVPORTBEGIN端口号，默认为26000"
    echo " -s2            : 指定预留的RSRVPORTEND端口号，默认为27000"
    echo " -sp            : 指定用预留端口创建节点的路径RSRVNODEDIR，默认为 当前路径/database_runtest/"
@@ -138,7 +154,11 @@ function runJSFile()
    local file=$1
 
    result=0
+<<<<<<< HEAD
    lastCmdStr="$sdbRoot/sdb -e \"var CHANGEDPREFIX='${csprefix}'; var COORDSVCNAME='${coordsvcname}'; var COORDHOSTNAME='${coordhostname}';var REMOTEUSER='${remoteuser}';var REMOTEPASSWD='${remotepasswd}';var ESSVCNAME='${essvcname}'; var ESHOSTNAME='${eshostname}';var DSSVCNAME='${dssvcname}'; var DSHOSTNAME='${dshostname}';var RSRVPORTBEGIN='${rsrvportbegin}';var RSRVPORTEND='${rsrvportend}'; var CATASVCNAME='$catasvcname'; var RSRVNODEDIR='$rsrvnodedir'; var RUNRESULT=$runresult; \" -f \"${libRoot}/func.js,$file\""
+=======
+   lastCmdStr="$sdbRoot/sdb -e \"var CHANGEDPREFIX='${csprefix}'; var COORDSVCNAME='${coordsvcname}'; var COORDHOSTNAME='${coordhostname}';var REMOTEUSER='${remoteuser}';var REMOTEPASSWD='${remotepasswd}';var ESSVCNAME='${essvcname}'; var ESHOSTNAME='${eshostname}';var DSSVCNAME='${dssvcname}'; var DSHOSTNAME='${dshostname}';var STPSVCNAME=${stpsvcname}; var STPHOSTNAME='${stphostname}';var RSRVPORTBEGIN='${rsrvportbegin}';var RSRVPORTEND='${rsrvportend}'; var CATASVCNAME='$catasvcname'; var RSRVNODEDIR='$rsrvnodedir'; var RUNRESULT=$runresult; \" -f \"${libRoot}/func.js,$file\""
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 #   runresult=0
    if [ $printOut -eq 1 -o $# -gt 1 ] ; then
       echo "CMD: $lastCmdStr"
@@ -201,7 +221,11 @@ function procJSFile()
    runJSFile "$testFile"
    ret=$?
    # ret == 0 ? runresult : ret
+<<<<<<< HEAD
    runresult=$([ $ret == 0 ] && echo "${runresult}" || echo "${ret}" )
+=======
+   runresult=$([ $ret == 0 ] && echo "${runresult}" || echo "${ret}" ) 
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    $sdbRoot/sdb -s "try{ db.msg('End testcase[$file]') ; } catch( e ) {} "
    testcaseETimeSec=`date +%s`
    if [ $printOut -eq 1 ] ; then
@@ -227,7 +251,11 @@ function procJSFile()
       #runJSFile "${libRoot}/after_usecase.js"
       return 2
    fi
+<<<<<<< HEAD
 
+=======
+   
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    #  runresult=0
    #runJSFile "${libRoot}/after_usecase.js"
 
@@ -357,6 +385,15 @@ function analyPara()
          -dn )           shift
                          dssvcname="$1"
                          ;;
+<<<<<<< HEAD
+=======
+         -sh )           shift
+                         stphostname="$1"
+                         ;;
+         -sn )           shift
+                         stpsvcname="$1"
+                         ;;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          -print )        printOut=1
                          ;;
          -addpid )       csprefix="local_para_$$"
@@ -626,6 +663,11 @@ echo "ESSVCNAME     : $essvcname"
 echo "ESHOSTNAME    : $eshostname"
 echo "DSSVCNAME     : $dssvcname"
 echo "DSHOSTNAME    : $dshostname"
+<<<<<<< HEAD
+=======
+echo "STPSVCNAME    : $stpsvcname"
+echo "STPHOSTNAME   : $stphostname"
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 echo "RSRVPORTBEGIN : $rsrvportbegin"
 echo "RSRVPORTEND   : $rsrvportend"
 echo "RSRVNODEDIR   : $rsrvnodedir"

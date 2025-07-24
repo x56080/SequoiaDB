@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = clsShardMgr.hpp
 
@@ -30,7 +28,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #ifndef CLS_SHD_MGR_HPP_
 #define CLS_SHD_MGR_HPP_
 
@@ -46,6 +43,10 @@
 #include "clsDCMgr.hpp"
 #include "monDMS.hpp"
 #include "ossMemPool.hpp"
+<<<<<<< HEAD
+=======
+#include "dpsTransID.hpp"
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 #include "clsFreezingWindow.hpp"
 
 using namespace bson ;
@@ -125,9 +126,6 @@ namespace engine
       typedef ossPoolMap<UINT64, clsCSEventItem*>        MAP_CS_EVENT ;
       typedef MAP_CS_EVENT::iterator                     MAP_CS_EVENT_IT ;
 
-      typedef std::map<UINT64, _netRouteNode>            MAP_ROUTE_NODE ;
-      typedef MAP_ROUTE_NODE::iterator                   MAP_ROUTE_NODE_IT ;
-
       DECLARE_OBJ_MSG_MAP()
 
       public:
@@ -170,6 +168,13 @@ namespace engine
                                     BOOLEAN *pUpdated = NULL ) ;
          INT32 unlockGroupItem( clsGroupItem *item ) ;
 
+         INT32 getNodeInfo( const MsgRouteID &routeID,
+                            std::string &hostName,
+                            std::string &serviceName,
+                            BOOLEAN noWithUpdate = TRUE,
+                            INT64 waitMillSec = CLS_SHARD_TIMEOUT,
+                            BOOLEAN *updated = NULL ) ;
+
          INT32 rGetCSInfo( const CHAR *csName,
                            utilCSUniqueID &csUniqueID,
                            UINT32 *pageSize = NULL,
@@ -191,7 +196,15 @@ namespace engine
                                BOOLEAN canUpCataGrp = TRUE ) ;
          INT32  syncSend( MsgHeader * msg, UINT32 groupID, BOOLEAN primary,
                           MsgHeader **ppRecvMsg,
-                          INT64 millisec = CLS_SHARD_TIMEOUT ) ;
+                          INT64 millisec = CLS_SHARD_TIMEOUT,
+                          const CHAR *buffer = NULL,
+                          UINT32 bufferSize = 0 ) ;
+         INT32  syncSend( MsgHeader *message,
+                          const MsgRouteID &routeID,
+                          MsgHeader **recvMessage,
+                          INT64 millisec = CLS_SHARD_TIMEOUT,
+                          const CHAR *buffer = NULL,
+                          UINT32 bufferSize = 0 ) ;
          INT32  updatePrimary ( const NodeID & id , BOOLEAN primary ) ;
          INT32  updateCatGroup ( INT64 millsec = 0 ) ;
          INT32  updatePrimaryByReply( MsgHeader *pMsg,
@@ -239,6 +252,15 @@ namespace engine
                                 NET_HANDLE *pHandle = NULL,
                                 INT64 millsec = 0 ) ;
 
+         // send message and receive reply with temporary socket
+         INT32 _sendAndRecv( const CHAR *hostName,
+                             UINT16 port,
+                             MsgHeader *message,
+                             MsgHeader **receiveMessage,
+                             INT64 millisec = CLS_SHARD_TIMEOUT,
+                             const CHAR *buffer = NULL,
+                             UINT32 bufferSize = 0 ) ;
+
          clsEventItem *_findCatSyncEvent ( const CHAR *pCollectionName,
                                            utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL,
                                            BOOLEAN bCreate = FALSE ) ;
@@ -248,7 +270,7 @@ namespace engine
                                           BOOLEAN bCreate = FALSE ) ;
          clsEventItem *_findNMSyncEvent ( UINT64 requestID ) ;
 
-         INT32 _findCatNodeID ( MAP_ROUTE_NODE &catNodes,
+         INT32 _findCatNodeID ( NET_ROUTE_MAP &catNodes,
                                 const CHAR *hostName,
                                 const std::string &service,
                                 NodeID &id ) ;
@@ -284,7 +306,7 @@ namespace engine
          UINT64                        _requestID ;
 
          clsGroupItem                  _cataGrpItem ;
-         MAP_ROUTE_NODE                _mapNodes ;
+         NET_ROUTE_MAP                 _mapNodes ;
 
          UINT32                        _catVerion ;
          ossEvent                      _upCatEvent ;

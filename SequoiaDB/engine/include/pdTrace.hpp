@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = pd.hpp
 
@@ -45,6 +44,7 @@
 #include "ossIO.hpp"
 #include <list>
 #include <vector>
+#include <algorithm>
 
 #ifdef SDB_ENGINE
 #include "pdTrace.h"
@@ -654,6 +654,14 @@ struct _pdTraceArgTuple
 } ;
 typedef struct _pdTraceArgTuple pdTraceArgTuple ;
 
+const CHAR     *pdGetTraceFunction ( UINT64 id ) ;
+const CHAR     *pdGetTraceComponent ( UINT32 id ) ;
+const UINT32   pdGetTraceFunctionListNum() ;
+UINT32      pdGetTraceComponentSize() ;
+void pdTraceFunc ( UINT64 funcCode, INT32 type,
+                   UINT32 line,
+                   pdTraceArgTuple *tuple ) ;
+
 #pragma pack()
 
 #ifndef SDB_ENGINE
@@ -716,10 +724,8 @@ extern BOOLEAN g_isTraceStarted ;
    do {                                                             \
       if ( g_isTraceStarted )                                       \
       {                                                             \
-         pdTraceArgTuple argTuple[PD_TRACE_MAX_ARG_NUM] ;           \
-         ossMemset ( &argTuple[0], 0, sizeof(argTuple) ) ;          \
          pdTraceFunc ( funcCode, PD_TRACE_RECORD_FLAG_ENTRY,        \
-                       __FILE__, __LINE__, &argTuple[0] ) ;         \
+                       __LINE__, NULL ) ;                           \
       }                                                             \
    } while ( FALSE )
 
@@ -727,10 +733,8 @@ extern BOOLEAN g_isTraceStarted ;
    do {                                                             \
       if ( g_isTraceStarted )                                       \
       {                                                             \
-         pdTraceArgTuple argTuple[PD_TRACE_MAX_ARG_NUM] ;           \
-         ossMemset ( &argTuple[0], 0, sizeof(argTuple) ) ;          \
          pdTraceFunc ( funcCode, PD_TRACE_RECORD_FLAG_EXIT,         \
-                       __FILE__, __LINE__, &argTuple[0] ) ;         \
+                       __LINE__, NULL ) ;                           \
       }                                                             \
    } while ( FALSE )
 
@@ -742,7 +746,7 @@ extern BOOLEAN g_isTraceStarted ;
          ossMemset ( &argTuple[0], 0, sizeof(argTuple) ) ;          \
          argTuple[0] = PD_PACK_INT(rc) ;                            \
          pdTraceFunc ( funcCode, PD_TRACE_RECORD_FLAG_EXIT,         \
-                       __FILE__, __LINE__, &argTuple[0] ) ;         \
+                       __LINE__, &argTuple[0] ) ;                   \
       }                                                             \
    } while ( FALSE )
 
@@ -761,7 +765,7 @@ extern BOOLEAN g_isTraceStarted ;
          argTuple[7] = pack7 ;                                      \
          argTuple[8] = pack8 ;                                      \
          pdTraceFunc ( funcCode, PD_TRACE_RECORD_FLAG_NORMAL,       \
-                       file, line,                                  \
+                       line,                                        \
                        &argTuple[0] ) ;                             \
       }                                                             \
    } while ( FALSE )
@@ -906,15 +910,95 @@ extern BOOLEAN g_isTraceStarted ;
                       pack8 ) ;                           \
    } while ( FALSE )
 
-#endif // SDB_ENGINE
 
-const CHAR     *pdGetTraceFunction ( UINT64 id ) ;
-const CHAR     *pdGetTraceComponent ( UINT32 id ) ;
-const UINT32   pdGetTraceFunctionListNum() ;
-UINT32      pdGetTraceComponentSize() ;
-void pdTraceFunc ( UINT64 funcCode, INT32 type,
-                   const CHAR* file, UINT32 line,
-                   pdTraceArgTuple *tuple ) ;
+/*
+ * RAII style tracer for tracing functions.
+ * Do not invoke directly!!!
+ * See the macros below the class.
+ */
+
+class pdFuncTracer
+{
+   UINT64 _funcCode ;
+   INT32 *_pRc ;
+public:
+   pdFuncTracer( UINT64 funcCode, INT32 *pRc = NULL, UINT32 line = 0 )
+      : _funcCode(funcCode), _pRc(pRc)
+   {
+      if ( g_isTraceStarted )
+      {
+          pdTraceFunc ( funcCode, PD_TRACE_RECORD_FLAG_ENTRY, line, NULL ) ;
+      }
+   }
+
+   ~pdFuncTracer()
+   {
+      if ( g_isTraceStarted )
+      {
+         if ( NULL != _pRc )
+         {
+            pdTraceArgTuple argTuple[PD_TRACE_MAX_ARG_NUM] ;
+            ossMemset ( &argTuple[0], 0, sizeof(argTuple) ) ;
+            argTuple[0] = PD_PACK_INT(*_pRc) ;
+            // LINE is not recorded
+            pdTraceFunc ( _funcCode, PD_TRACE_RECORD_FLAG_EXIT,
+                         0, &argTuple[0] ) ;
+         }
+         else
+         {
+            pdTraceFunc ( _funcCode, PD_TRACE_RECORD_FLAG_EXIT,
+                          0, NULL ) ;
+         }
+      }
+   }
+
+   void trace(UINT32 line, UINT32 numArgs, ...)
+   {
+      if ( g_isTraceStarted )
+      {
+         INT32 n = OSS_MIN(numArgs, (UINT32)PD_TRACE_MAX_ARG_NUM) ;
+
+         va_list list;
+
+         pdTraceArgTuple argTuple[PD_TRACE_MAX_ARG_NUM];
+         ossMemset ( &argTuple[0], 0, sizeof(argTuple) ) ;
+
+         va_start(list,numArgs);
+         for (INT32 i = 0;i < n; i++)
+         {
+            void *arg = va_arg(list, void *) ;
+            argTuple[i] = *( (pdTraceArgTuple *)( &arg ) ) ;
+         }
+         va_end(list);
+
+         pdTraceFunc ( _funcCode, PD_TRACE_RECORD_FLAG_NORMAL,
+                       line, &argTuple[0] ) ;
+      }
+   }
+} ;
+
+// Macro for creating the local tracer object named pdFuncTracer_
+// funcCode - the constant used in the PD_TRACE_DECLARE_FUNCTION comment above
+//            the function
+// pRc      - pointer to the function's rc variable
+// Example:
+//   PD_TRACER_BEGIN(RTN_FOO, &rc);
+#define PD_TRACER_BEGIN(funcCode, pRc)                                         \
+   pdFuncTracer pdFuncTracer_(funcCode, pRc, __LINE__)
+
+// Single macro replacement for PD_TRACE0-9
+// PD_TRACER_BEGIN must have been called earlier in the function.
+// numArgs - num of arguments to log, maximum is PD_TRACE_MAX_ARG_NUM
+// ... - numArgs of pdTraceArgTuple objects
+#define PD_TRACER(numArgs, ...)                                        \
+   do {                                                                        \
+      if( g_isTraceStarted )                                                   \
+      {                                                                        \
+         pdFuncTracer_.trace( __LINE__, numArgs, ##__VA_ARGS__ ) ;             \
+      }                                                                        \
+   } while ( FALSE )
+
+#endif // SDB_ENGINE
 
 /*
    get global pdtrace cb

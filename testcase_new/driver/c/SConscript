@@ -116,7 +116,10 @@ testFiles = [
    [ "./crud/closeAllCursors20122.cpp" ],
    [ "./crud/pop14506.cpp" ],
    [ "./crud/insert26324.cpp" ],
+<<<<<<< HEAD
    [ "./crud/insert30390.cpp" ],
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    [ "./crud/delete25407.cpp" ],
    [ "./crud/update25408.cpp" ],
    [ "./crud/upsert25409.cpp" ],
@@ -140,6 +143,7 @@ testFiles = [
    [ "./crud/autoIncrementSequence16623_16624_16654.cpp"],
    [ "./crud/insertReplaceondup18581.cpp" ],
    [ "./sessionAttr/sessionAttrCache19208_19209.cpp" ],   # sync
+   [ "./list/list26398.cpp" ],
    [ "./list/list19948.cpp" ],   # sync
    [ "./list/list26398.cpp" ],
    [ "./crud/query10404.cpp" ],

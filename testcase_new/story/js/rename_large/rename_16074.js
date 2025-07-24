@@ -52,17 +52,26 @@ function checkRenameAllCL ( csName, newClPerfix )
    {
       var ret = cur.current().toObj();
       var num = 0;
+<<<<<<< HEAD
       for( var i = 0; i < ret.Collection.length; i++ )
       {
          var str = ret.Collection[i].Name;
+=======
+      for( var i = 1; i <= 4096; i++ )
+      {
+         var str = ret.Collection[i - 1].Name;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          if( str.indexOf( newClPerfix ) != -1 )
          {
             num++;
          }
+<<<<<<< HEAD
          else
          {
             println( "cl name is wrong : " + str );
          }
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       }
       assert.equal( num, 4096 );
    }

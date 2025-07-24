@@ -47,7 +47,11 @@
 
 > **Note:**
 >
+<<<<<<< HEAD
 > flag 不支持同时指定多个取值，可选取值如下：
+=======
+> 用户设置多个 flag 时，可用 “|” 分隔。flag 取值如下：
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 > - SDB_INSERT_CONTONDUP：遇到索引键重复则跳过，并继续插入
 > - SDB_INSERT_REPLACEONDUP：遇到索引键重复则使用新纪录替换现有记录，并继续插入
 > - SDB_INSERT_CONTONDUP_ID：遇到 $id 索引键重复则跳过，并继续插入

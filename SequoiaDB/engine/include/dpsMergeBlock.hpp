@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = dpsMergeBlock.hpp
 
@@ -36,7 +34,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #ifndef DPSMERGEBLOCK_H_
 #define DPSMERGEBLOCK_H_
 
@@ -146,14 +143,34 @@ namespace engine
          {
             _transEnabled = TRUE ;
          }
+
+         void setIrreversible()
+         {
+            _irreversible = TRUE ;
+         }
+
+         void setTransTime( UINT64 transTime )
+         {
+            _transTime = transTime ;
+         }
+
+         BOOLEAN hasTransTime() const
+         {
+            return ( DPS_INVALID_TRANS_TIME != _transTime ) ? TRUE : FALSE ;
+         }
+
          void resetInfoEx()
-         { 
+         {
             _needNty = FALSE ;
             _transEnabled = FALSE ;
+            _irreversible = FALSE ;
+            _transTime = DPS_INVALID_TRANS_TIME ;
             _pCB     = NULL ;
          }
          BOOLEAN isNeedNotify() const { return _needNty ; }
          BOOLEAN isTransEnabled() const { return _transEnabled ; }
+         BOOLEAN isIrreversible() const { return _irreversible ; }
+         UINT64  getTransTime() const { return _transTime ; }
          UINT32  getCSLID() const { return _csLID ; }
          UINT32  getCLLID() const { return _clLID ; }
          dmsExtentID getExtentID() const { return _extID ; }
@@ -176,6 +193,13 @@ namespace engine
          UINT32               _lobSequence ;
          BOOLEAN              _needNty ;
          BOOLEAN              _transEnabled ;
+         // indicate this record is irreversible when rolling back during
+         // restoreToTime
+         // NOTE: currently, only operators in global transactions are
+         // reversible during restoreToTime
+         BOOLEAN              _irreversible ;
+         // transaction time with this record
+         UINT64               _transTime ;
          IExecutor            *_pCB ;
 
    } ;

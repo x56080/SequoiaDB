@@ -196,8 +196,8 @@ $ ls -l /opt/sequoiadb/database/data/11830/replicalog
 [^_^]:
     本文使用到的所有链接及引用
 [primary]: images/Distributed_Engine/Architecture/Replication/primary.png
-[replication]: images/Distributed_Engine/Architecture/Replication/replication.png
-[dpsdump]: manual/Distributed_Engine/Maintainance/Mgmt_Tools/dpsdump.md
+[replication]:images/Distributed_Engine/Architecture/Replication/replication.png
+[dpsdump]:manual/Distributed_Engine/Maintainance/Mgmt_Tools/dpsdump.md
 [full_sync]:images/Distributed_Engine/Architecture/Replication/full_sync.png
 [create_cl]:manual/Manual/Sequoiadb_Command/SdbCS/createCL.md
 [session_attr]: manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md

@@ -34,7 +34,11 @@ public class DeleteRequest extends SdbRequest {
     private static final int version = 1;
     private static final short w = 0;
     private static final short padding = 0;
+<<<<<<< HEAD
     private int flag = 0;
+=======
+    private static int flag = 0;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     private byte[] clNameBytes;
     private byte[] matcherBytes;
     private byte[] hintBytes;

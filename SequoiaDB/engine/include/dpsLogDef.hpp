@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = dpsLogDef.hpp 
 
@@ -36,7 +34,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #ifndef DPSLOGDEF_HPP_
 #define DPSLOGDEF_HPP_
 
@@ -61,6 +58,9 @@ namespace engine
          version = DPS_INVALID_LSN_VERSION ;
       }
 
+      explicit DPS_LSN(DPS_LSN_OFFSET o, DPS_LSN_VER v):
+      offset(o), version(v){}
+
       DPS_LSN( const DPS_LSN &lsn )
       {
          offset = lsn.offset ;
@@ -74,10 +74,26 @@ namespace engine
          return *this ;
       }
 
+      BOOLEAN operator==( const DPS_LSN &lsn ) const
+      {
+         return offset == lsn.offset && version == lsn.version ;
+      }
+
+      BOOLEAN operator!=( const DPS_LSN &lsn ) const
+      {
+         return offset != lsn.offset || version != lsn.version ;
+      }
+
       BOOLEAN invalid() const
       {
          return ( DPS_INVALID_LSN_OFFSET == offset ) ||
                 ( DPS_INVALID_LSN_VERSION == version ) ;
+      }
+
+      OSS_INLINE BOOLEAN isValid() const
+      {
+         return DPS_INVALID_LSN_OFFSET != offset &&
+                DPS_INVALID_LSN_VERSION != version ;
       }
 
       void set( DPS_LSN_OFFSET offset, DPS_LSN_VER  version )
@@ -193,6 +209,51 @@ namespace engine
          return rc ;
       }
    } ;
+
+   /*
+      _dpsLogSummary define
+    */
+   // log summary for previous log files including transaction information
+   // for restore PIT (point-in-time) window
+   typedef struct _dpsLogSummary
+   {
+      _dpsLogSummary()
+      : _minRecoverableTime( DPS_INVALID_TRANS_TIME ),
+        _maxTransCommitTime( DPS_INVALID_TRANS_TIME ),
+        _restorePointTime( DPS_INVALID_TRANS_TIME )
+      {
+      }
+
+      _dpsLogSummary( const _dpsLogSummary &summary )
+      : _minRecoverableTime( summary._minRecoverableTime ),
+        _maxTransCommitTime( summary._maxTransCommitTime ),
+        _restorePointTime( summary._restorePointTime )
+      {
+      }
+
+      _dpsLogSummary &operator =( const _dpsLogSummary &summary )
+      {
+         _minRecoverableTime = summary._minRecoverableTime ;
+         _maxTransCommitTime = summary._maxTransCommitTime ;
+         _restorePointTime = summary._restorePointTime ;
+         return ( *this ) ;
+      }
+
+      void reset()
+      {
+         _minRecoverableTime = DPS_INVALID_TRANS_TIME ;
+         _maxTransCommitTime = DPS_INVALID_TRANS_TIME ;
+      }
+
+      // minimum recoverable time
+      UINT64   _minRecoverableTime ;
+      // maximum transaction commit time
+      UINT64   _maxTransCommitTime ;
+      // time of restore point (either backup time of image used in the most
+      // recent sdbrestore or the time of the latest restorePrepare)
+      UINT64   _restorePointTime ;
+   } dpsLogSummary ;
+
 }
 
 #endif

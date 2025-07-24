@@ -65,6 +65,10 @@ public class IndexConsistent23941A extends SdbTestBase {
         es.addWorker( dropSubCL );
         es.run();
 
+<<<<<<< HEAD
+=======
+        Assert.assertEquals( createIndex.getRetCode(), 0 );
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         // dropCL可能加锁失败报错-147
         if ( dropSubCL.getRetCode() != 0 ) {
             Assert.assertEquals( dropSubCL.getRetCode(),
@@ -81,6 +85,7 @@ public class IndexConsistent23941A extends SdbTestBase {
                     subclName1, indexName, false );
         }
 
+<<<<<<< HEAD
         if ( createIndex.getRetCode() != SDBError.SDB_TASK_HAS_CANCELED.getErrorCode() ) {
            Assert.assertEquals( createIndex.getRetCode(), 0 );
            IndexUtils.checkIndexTask( sdb, "Create index", SdbTestBase.csName,
@@ -92,6 +97,16 @@ public class IndexConsistent23941A extends SdbTestBase {
            Assert.assertTrue( dbcl.isIndexExist( indexName ),
                    "check maincl index=" + indexName );
         }
+=======
+        IndexUtils.checkIndexTask( sdb, "Create index", SdbTestBase.csName,
+                mainclName, indexName );
+        IndexUtils.checkIndexTask( sdb, "Create index", SdbTestBase.csName,
+                subclName2, indexName );
+        IndexUtils.checkIndexConsistent( sdb, SdbTestBase.csName, subclName2,
+                indexName, true );
+        Assert.assertTrue( dbcl.isIndexExist( indexName ),
+                "check maincl index=" + indexName );
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         runSuccess = true;
     }
 
@@ -179,4 +194,8 @@ public class IndexConsistent23941A extends SdbTestBase {
                 .parse( "{LowBound:{no:20000},UpBound:{no:40000}}" ) );
         return mainCL;
     }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2

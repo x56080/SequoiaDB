@@ -25,7 +25,11 @@ SdbCollection
 | 字段名    | 类型  | 描述   | 
 | ------    | --------  | ------ |
 | name      | string    | 索引名 |
+<<<<<<< HEAD
 | key       | json    | 索引键，取值如下：<br>1：按字段升序<br>-1：按字段降序<br>"text"：[全文索引][text_index]        |
+=======
+| key       | json    | 索引键，取值如下：<br>1：按字段升序<br>-1：按字段降序<br>"text"：[全文索引][text_index] |
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 | v         | int32     | 索引版本号                                   |
 | unique    | boolean   | 索引是否唯一，取值如下： <br> "true"：唯一索引，不允许集合中有重复的值 <br> "false"：普通索引，允许集合中有重复的值                                     | 
 | enforced  | boolean   | 索引是否强制唯一，取值如下：<br>"false"：不强制唯一<br>"true"：强制唯一，即不允许存在一个以上全空的索引键       |
@@ -44,7 +48,11 @@ SdbCollection
 
 ##版本##
 
+<<<<<<< HEAD
 v3.4 及以上版本
+=======
+v5.0 及以上版本
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 ##示例##
 
@@ -91,4 +99,8 @@ v3.4 及以上版本
 [createIndex]:manual/Manual/Sequoiadb_Command/SdbCollection/createIndex.md
 [SDB_SNAP_INDEXSTATS]:manual/Manual/Snapshot/SDB_SNAP_INDEXSTATS.md
 [index]:manual/Distributed_Engine/Architecture/Data_Model/index.md
+<<<<<<< HEAD
 [text_index]:manual/Distributed_Engine/Architecture/Data_Model/text_index.md
+=======
+[text_index]:manual/Distributed_Engine/Architecture/Data_Model/text_index.md
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2

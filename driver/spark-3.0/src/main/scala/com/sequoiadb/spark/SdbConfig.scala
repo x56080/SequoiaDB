@@ -16,6 +16,7 @@
 
 package com.sequoiadb.spark
 
+<<<<<<< HEAD
 import com.sequoiadb.base.Sequoiadb
 import com.sequoiadb.exception.BaseException
 import com.sequoiadb.net.ConfigOptions
@@ -26,6 +27,15 @@ import org.bson.util.JSON
 import org.slf4j.LoggerFactory
 
 import java.io.{File, FileInputStream}
+=======
+import com.sequoiadb.net.ConfigOptions
+import com.sequoiadb.util.{SdbDecrypt, SdbDecryptUserInfo}
+import org.bson.BSONObject
+import org.bson.util.JSON
+
+import java.io.{File, FileInputStream}
+import java.util.Properties
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
@@ -394,6 +404,11 @@ object SdbConfig {
     val AutoIncrement = "autoincrement"
     val StrictDataMode = "strictdatamode"
 
+<<<<<<< HEAD
+=======
+    val ConfigPath = "configpath"
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     // sdb connection configurations
     val ConnectTimeout = "connecttimeout"
 
@@ -476,6 +491,10 @@ object SdbConfig {
         AutoIndexId,
         AutoIncrement,
         StrictDataMode,
+<<<<<<< HEAD
+=======
+        ConfigPath,
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         ConnectTimeout)
 
     val RequiredProperties = List(
@@ -483,6 +502,7 @@ object SdbConfig {
         CollectionSpace,
         Collection)
 
+<<<<<<< HEAD
     /**
      * Configurations that supported by SQLConf now.
      */
@@ -519,6 +539,8 @@ object SdbConfig {
         AutoIncrement,
         StrictDataMode)
 
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     //  Default values
     val DefaultUsername = ""
     val DefaultPassword = ""
@@ -572,6 +594,7 @@ object SdbConfig {
     val DefaultConnectTimeout = 1000
     val DefaultJava8APIEnabled = false
 
+<<<<<<< HEAD
     def apply(parameters: Map[String, String]): SdbConfig = apply(Map[String, String](), parameters)
 
     /**
@@ -584,6 +607,33 @@ object SdbConfig {
     def apply(sqlConfs: Map[String, String], tableConfs: Map[String, String]): SdbConfig = {
         val config = new SdbConfig(
             mergeGlobalConfs(sqlConfs, tableConfs))
+=======
+    def apply(parameters: Map[String, String]): SdbConfig = {
+        val configPath = parameters.getOrElse(SdbConfig.ConfigPath, "")
+        var newParameters: Map[String, String] = parameters
+
+        // 1. CHECK IF USES config file
+        if (configPath != "") {
+            val properties = new Properties()
+            properties.load(new FileInputStream(configPath))
+
+            val options = properties.propertyNames()
+            while (options.hasMoreElements) {
+                val optionName = options.nextElement().asInstanceOf[String]
+                // 2. VALIDATE OPTIONS that config in file
+                if (!SdbConfig.AllProperties.contains(optionName)) {
+                    throw new SdbException(s"unsupported option: $optionName, please check!")
+                }
+                // 3. Do not overwrite, options
+                if (!parameters.contains(optionName)) {
+                    newParameters += (optionName -> properties.getProperty(optionName))
+                }
+            }
+        }
+
+        // 4. use new parameters to generate SdbConfig, it can be from file or CLI
+        val config = new SdbConfig(newParameters)
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
         // setup network configurations
         SdbConnectionOptions.setConnectTimeout(config.connectTimeout)
@@ -594,6 +644,7 @@ object SdbConfig {
     }
 
     private[spark] val SdbConnectionOptions: ConfigOptions = new ConfigOptions
+<<<<<<< HEAD
 
     /**
      * A global default value set as a SQLConf will overwrite the default value of
@@ -713,6 +764,8 @@ object SdbConnUtil {
 
         sourceInfo
     }
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 }
 
 class SdbPreferredInstance(val instances: Array[String], val mode: PreferredInstanceMode, val strict: Boolean) extends Serializable {

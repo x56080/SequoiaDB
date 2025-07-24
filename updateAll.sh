@@ -117,6 +117,10 @@ function installSdb()
       fi
    done
 
+   # stop and clear stp
+   bin/stpstop
+   rm -rf conf/stp 2>/dev/null
+
    rm -f sdb.conf 2>/dev/null
    rm -f nohup 2>/dev/null
 
@@ -158,8 +162,10 @@ function installSdb()
 
    # install coord db1 and db2
    if [ $needInstall -ne 0 ] ; then
-      NODECONFIG="{diaglevel:3, plancachelevel:3, clustername:'xxx', businessname:'yyy'}"
+      NODECONFIG="{sparsefile:true, globtranson:true, mvccon:true, transisolation:3, mvccrbsnum:2, diaglevel:5, plancachelevel:3, clustername:'xxx', businessname:'yyy'}"
       #NODECONFIG="{logfilesz:1,transactionon:'TRUE'}"
+      # create stp
+      bin/sdb -s "var oma = new Oma() ; oma.createStp().start() ;"
       # create coord and start coord
       bin/sdb -s " var oma = new Oma() ; oma.createCoord('17643', '${homePath}/17643', $NODECONFIG) ; oma.startNode('17643') ; "
       # check coord
@@ -332,7 +338,7 @@ if [ $readType -ne 0 ] ; then
 fi
 
 if [ "$buildStr" == "" ] ; then
-   buildStr="--engine --tool --shell --fmp"
+   buildStr="--engine --tool --shell --fmp --stp"
 fi
 
 # run entry

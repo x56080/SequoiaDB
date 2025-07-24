@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = catalogueCB.cpp
 
@@ -34,7 +33,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #include "catalogueCB.hpp"
 #include "catCommon.hpp"
 #include "msgCatalog.hpp"
@@ -254,7 +252,11 @@ namespace engine
       _primaryID.value     = MSG_INVALID_ROUTEID ;
       _isActived           = FALSE ;
       _needForceSecondary  = FALSE ;
+<<<<<<< HEAD
       _nodeInfoChanged     = FALSE ;
+=======
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       _inPacketLevel       = 0 ;
    }
 
@@ -1347,6 +1349,9 @@ namespace engine
 
          if ( primary )
          {
+            // switch to primary, clear global lowTran
+            _catGTSMgr.getGlobTransMgr()->clearGlobLowTran() ;
+
             _isActived = TRUE ;
             _catStartClearTaskJob( CLS_TASK_SEQUENCE ) ;
             _catStartCleanupExpiredTaskJob() ;
@@ -1650,8 +1655,9 @@ namespace engine
          BSONObj errInfo ;
 
          PD_LOG( PDDEBUG,
-                 "Sending reply message [%d] with rc [%d]",
-                 pReply->header.opCode, pReply->flags ) ;
+                 "Sending reply message[opCode:(%d)%d] with rc [%d]",
+                 IS_REPLY_TYPE( pReply->header.opCode ),
+                 GET_REQUEST_TYPE( pReply->header.opCode ), pReply->flags ) ;
 
          /// when error, but has no data, fill the error obj
          if ( pReply->flags &&
@@ -1678,8 +1684,9 @@ namespace engine
          if ( SDB_OK != rc )
          {
             PD_LOG( PDWARNING,
-                    "Failed to send reply message [%d], rc: %d",
-                    pReply->header.opCode, rc ) ;
+                    "Failed to send reply message[opCode:(%d)%d], rc: %d",
+                    IS_REPLY_TYPE( pReply->header.opCode ),
+                    GET_REQUEST_TYPE( pReply->header.opCode ), rc ) ;
          }
       }
       PD_TRACE_EXITRC( SDB_CATALOGCB_SENDREPLY, rc ) ;
@@ -1729,6 +1736,15 @@ namespace engine
       pErrReply->numReturned = 0 ;
       pErrReply->startFrom = pReply->startFrom ;
       pErrReply->returnMask = pReply->returnMask ;
+<<<<<<< HEAD
+=======
+   }
+
+   void sdbCatalogueCB::onGroupChange()
+   {
+      // set lowTran map expired
+      _catGTSMgr.getGlobTransMgr()->setLowTranMapExpired() ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    }
 
    /*

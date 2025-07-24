@@ -36,6 +36,7 @@ v3.4.2 and above
 
 ##EXAMPLES##
 
+<<<<<<< HEAD
 Get details of a replication group named "group1", which exists with one node.
 
 ```lang-javascript
@@ -89,3 +90,12 @@ The result is as follow:
   }
 }
 ```
+=======
+1. Get detailed information of the replica group named group1.
+
+	```lang-javascript
+	> var rg = db.getRG("group1") 
+	> rg.getDetailObj()
+	```
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2

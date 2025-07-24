@@ -28,7 +28,7 @@ import com.sequoiadb.transaction.common.TransferTh;
  * @date 2019-6-19
  *
  */
-@Test(groups = { "rc", "rcauto" })
+@Test(groups = { "rc", "rcauto", "rrauto" })
 public class Transaction18522 extends SdbTestBase {
     private Sequoiadb sdb;
     private Sequoiadb gmrDB;

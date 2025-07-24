@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = dpsTransVersionCtrl.cpp
 
@@ -36,13 +34,20 @@
    Last Changed =
 
 *******************************************************************************/
-
 #include "dpsTransVersionCtrl.hpp"
 #include <sstream>
 #include "ossMem.hpp"
 #include "pdTrace.hpp"
+#include "dmsCB.hpp"
 #include "dpsTrace.hpp"
+#include "dmsRBSSUMgr.hpp"
+#include "dpsTransCB.hpp"
+#include "dmsTransLockCallback.hpp"
 #include "ixmExtent.hpp" // for _keyCmp
+<<<<<<< HEAD
+=======
+#include "dpsUtil.hpp"
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 #include "pdSecure.hpp"
 
 using namespace bson ;
@@ -62,15 +67,16 @@ namespace engine
    */
    preIdxTreeNodeKey::preIdxTreeNodeKey( const BSONObj* key,
                                          const dmsRecordID &rid,
-                                         const Ordering *order )
-   :_keyObj( *key ), _order( order )
+                                         const Ordering *order,
+                                         const DPS_TRANS_ID &transID )
+   :_keyObj( *key ), _transID( transID ), _order( order )
    {
       _rid._extent = rid._extent ;
       _rid._offset = rid._offset ;
    }
 
    preIdxTreeNodeKey::preIdxTreeNodeKey( const preIdxTreeNodeKey &key )
-   : _keyObj( key._keyObj ), _order( key._order )
+   : _keyObj( key._keyObj ), _transID( key._transID ), _order( key._order )
    {
       _rid._extent = key._rid._extent ;
       _rid._offset = key._rid._offset ;
@@ -78,9 +84,13 @@ namespace engine
 
    preIdxTreeNodeKey::~preIdxTreeNodeKey ()
    {
+<<<<<<< HEAD
       // We do not want to free the keyData in super class as we don't
       // own it, simply rid to invalid incase some one continue using it.
       // delete of the lock LRB does the clean up of the key space.
+=======
+      // simply rid to invalid in case some one continue using it.
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       _rid.reset() ;
    }
 
@@ -89,7 +99,12 @@ namespace engine
       std::stringstream ss ;
       ss << "RID(" << _rid._extent << "," << _rid._offset
          << ", Key:"
+<<<<<<< HEAD
          << ( encryptKey ? PD_SECURE_OBJ( _keyObj ) : _keyObj.toString() ) ;
+=======
+         << ( encryptKey ? PD_SECURE_OBJ( _keyObj ) : _keyObj.toString() )
+         << ", TransID:" << dpsTransIDToString( _transID ).c_str() ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       return ss.str() ;
    }
 
@@ -147,11 +162,11 @@ namespace engine
       return BSONObj() ;
    }
 
-   UINT32 preIdxTreeNodeValue::getOwnnerTID() const
+   UINT32 preIdxTreeNodeValue::getOwnerTID() const
    {
       if ( _pOldVer )
       {
-         return _pOldVer->getOwnnerTID() ;
+         return _pOldVer->getOwnerTID() ;
       }
       return 0 ;
    }
@@ -162,24 +177,65 @@ namespace engine
       BSONObj obj = getRecordObj() ;
 
       std::stringstream ss ;
-      ss << "RecordID(" <<  rid._extent << "," << rid._offset << "), " ;
+      ss << "RecordID(" <<  rid._extent << ", " << rid._offset << "), " ;
       if ( isRecordDeleted() )
       {
          ss << "(Deleted)" ;
       }
+<<<<<<< HEAD
+      ss << "Object("
+         << ( encryptObj ? PD_SECURE_OBJ( obj ) : obj.toString() )
+         << ")" ;
+=======
+
       ss << "Object("
          << ( encryptObj ? PD_SECURE_OBJ( obj ) : obj.toString() )
          << ")" ;
 
+      ss << "rbsOffset(" << _rbsOffset._clID << ", "
+         << _rbsOffset._logicalID << ")" ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
+
       return ss.str() ;
    }
+
+   void preIdxTreeNodeValue::setRBSOffset( const dmsRBSOffset& offset )
+   {
+      _rbsOffset = offset ;
+   }
+
+   DPS_PREIDXTREENODEVALUE_STATUS preIdxTreeNodeValue::getStatus() const
+   {
+      DPS_PREIDXTREENODEVALUE_STATUS result = DPS_PREIDXTREENODEVALUE_INVALID ;
+      // When _pOldVer is NULL or recordPtr is NULL,
+      // it will be treated invalid. As for new record or dummy record,
+      // they are not in the tree, the recordPtr will be NULL,
+      // thus they will be treated as invalid.
+      if ( ( NULL != _pOldVer ) && ( NULL != getRecord() ) )
+      {
+         if ( isRecordDeleted() )
+         {
+            result = DPS_PREIDXTREENODEVALUE_DELETED ;
+         }
+         else
+         {
+            result = DPS_PREIDXTREENODEVALUE_VALID ;
+         }
+      }
+      return result ;
+   }
+
 
    /*
       preIdxTree implement
    */
    preIdxTree::preIdxTree( const SINT32 idxID, const ixmIndexCB *indexCB )
+    : _latch(MON_LATCH_PREIDXTREE_LATCH) ,
+      _sizeHWM(0) ,
+      _preSize(0)
    {
       _isValid = TRUE ;
+      _lastLowTranID = DPS_INVALID_TRANSID_SN ;
       _idxLID = idxID ;
       _keyPattern = indexCB->keyPattern().getOwned() ;
       _order = SDB_OSS_NEW clsCataOrder( Ordering::make( _keyPattern ) ) ;
@@ -187,9 +243,13 @@ namespace engine
 
    // copy constructor
    preIdxTree::preIdxTree( const preIdxTree &intree )
+    : _latch(MON_LATCH_PREIDXTREE_LATCH) ,
+      _sizeHWM( intree.getSizeHWM() ) ,
+      _preSize( intree.getPreSize() )
    {
       _idxLID = intree._idxLID ;
       _keyPattern = intree._keyPattern ;
+      _lastLowTranID = intree._lastLowTranID ;
       _tree = intree._tree ;
       _isValid = intree._isValid ;
       _order = SDB_OSS_NEW clsCataOrder( Ordering::make( _keyPattern ) ) ;
@@ -210,9 +270,10 @@ namespace engine
    }
 
    INDEX_TREE_CPOS preIdxTree::find ( const BSONObj *key,
-                                      const dmsRecordID &rid ) const
+                                      const dmsRecordID &rid,
+                                      const DPS_TRANS_ID &transID ) const
    {
-      return find( preIdxTreeNodeKey( key, rid, getOrdering() ) ) ;
+      return find( preIdxTreeNodeKey( key, rid, getOrdering(), transID ) ) ;
    }
 
    BOOLEAN preIdxTree::isPosValid( INDEX_TREE_CPOS pos ) const
@@ -250,6 +311,8 @@ namespace engine
       }
 
       _tree.clear() ;
+      _sizeHWM.init(0) ;
+      _preSize.init(0) ;
 
       if ( !hasLock )
       {
@@ -312,6 +375,63 @@ namespace engine
          goto error ;
       }
 
+      _sizeHWM.swapGreaterThan( _tree.size() ) ;
+
+      // if mvccOn, we need to modify the _ridTree and _ridPre/_ridNext
+      if ( ret.second && pmdGetOptionCB()->mvccOn() )
+      {
+         INDEX_RID_TREE::iterator pre = _ridTree.find(keyNode.getRID()) ;
+
+         try
+         {
+            if ( pre == _ridTree.end() )
+            {
+               // rid not exist, add it
+               ret.first->second.setRidPre( _tree.end() ) ;
+               ret.first->second.setRidNext( _tree.end() ) ;
+               _ridTree.insert( INDEX_RID_TREE::value_type( keyNode.getRID(),
+                                                            ret.first) ) ;
+#if SDB_INTERNAL_DEBUG
+               PD_LOG( PDDEBUG,
+                       "Inserted rid[%d, %d] version(%s) to rid tree[%d]",
+                       keyNode.getRID()._extent, keyNode.getRID()._offset,
+                       dpsTransIDToString(keyNode.getNodeTransID()).c_str(),
+                       _idxLID ) ;
+#endif
+            }
+            else
+            {
+               // rid already exist. Note that newly inserted one
+               // should always be the newest version, thus be directly
+               // pointed by ridTree node.
+               pre->second->second.setRidNext( ret.first );
+               ret.first->second.setRidPre( pre->second ) ;
+               ret.first->second.setRidNext( _tree.end() ) ;
+               _ridTree[keyNode.getRID()] = ret.first ;
+
+#if SDB_INTERNAL_DEBUG
+               PD_LOG( PDDEBUG,
+                       "Added new rid[%d, %d] version(%s) to rid tree[%d]",
+                       keyNode.getRID()._extent, keyNode.getRID()._offset,
+                       dpsTransIDToString(keyNode.getNodeTransID()).c_str(),
+                       _idxLID ) ;
+#endif
+            }
+         }
+         catch ( std::exception &e )
+         {
+            if( !hasLock )
+            {
+               unlockX();
+            }
+
+            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+            rc = SDB_OOM ;
+            goto error ;
+         }
+      }
+
+
       if( !hasLock )
       {
          unlockX();
@@ -331,11 +451,14 @@ namespace engine
 
          goto error ;
       }
+#ifdef _DEBUG
       else
       {
-         PD_LOG( PDDEBUG, "Inserted key[%s] to index tree  with value[%s]",
-                 keyNode.toString().c_str(), value.toString().c_str() ) ;
+         PD_LOG( PDDEBUG, "Inserted key[%s] to index tree(%d) with value[%s]",
+                 keyNode.toString().c_str(), _idxLID,
+                 value.toString().c_str() ) ;
       }
+#endif
 
    done:
       PD_TRACE_EXITRC( SDB_PREIDXTREE_INSERT, rc ) ;
@@ -350,16 +473,20 @@ namespace engine
    INT32 preIdxTree::insert ( const BSONObj *keyData,
                               const dmsRecordID &rid,
                               const preIdxTreeNodeValue &value,
-                              BOOLEAN hasLock )
+                              BOOLEAN hasLock,
+                              const DPS_TRANS_ID &transID )
    {
-      preIdxTreeNodeKey keyNode( keyData, rid, getOrdering() ) ;
+      preIdxTreeNodeKey keyNode( keyData, rid, getOrdering(), transID ) ;
       return insert( keyNode, value, hasLock ) ;
    }
 
    INT32 preIdxTree::insertWithOldVer( const BSONObj *keyData,
                                        const dmsRecordID &rid,
                                        oldVersionContainer *oldVer,
-                                       BOOLEAN hasLock )
+                                       BOOLEAN hasLock,
+                                       const DPS_TRANS_ID &transID,
+                                       dmsTransLockCallback *callback,
+                                       INT32 indexID )
    {
       INT32 rc = SDB_OK ;
 
@@ -372,9 +499,17 @@ namespace engine
       {
          dpsIdxObj myIdxObj( *keyData, getLID() ) ;
          preIdxTreeNodeKey keyNode( &(myIdxObj.getKeyObj()), rid,
-                                    getOrdering() ) ;
+                                    getOrdering(), transID ) ;
          preIdxTreeNodeValue keyValue( oldVer ) ;
          INDEX_TREE_POS pos ;
+
+         // when insert node, we need to add the RBS offset and pre/next
+         // if mvccon
+         if( pmdGetOptionCB()->mvccOn() )
+         {
+            SDB_ASSERT( callback, "Callback should not be NULL" ) ;
+            keyValue.setRBSOffset( callback->getRBSRecordOffset() ) ;
+         }
 
          if ( !hasLock )
          {
@@ -408,6 +543,10 @@ namespace engine
          if( oldVer->insertIdx( myIdxObj ) )
          {
             insert( keyNode, keyValue, TRUE ) ;
+            if ( NULL != callback )
+            {
+               callback->setIndexUpdated( indexID ) ;
+            }
          }
          else
          {
@@ -420,7 +559,7 @@ namespace engine
       catch( std::exception &e )
       {
          PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 
@@ -451,6 +590,7 @@ namespace engine
       UINT32 numDeleted = 0 ;
       preIdxTreeNodeValue tmpValue ;
 
+
       SDB_ASSERT( keyNode.isValid(), "KeyNode is invalid" ) ;
 
       if ( !hasLock )
@@ -459,12 +599,20 @@ namespace engine
       }
 
       pos = _tree.find( keyNode ) ;
+
       if ( pos != _tree.end() )
       {
          if ( !pOldVer || pOldVer == pos->second.getOldVer() )
          {
             tmpValue = pos->second ;
             ++numDeleted ;
+
+            // if mvccOn  deal with _ridTree and _ridPre/_ridNext
+            if ( pmdGetOptionCB()->mvccOn() )
+            {
+               _adjustRidChainForErase( pos ) ;
+            }
+
             _tree.erase( pos ) ;
          }
       }
@@ -505,13 +653,116 @@ namespace engine
                               const oldVersionContainer *pOldVer,
                               BOOLEAN hasLock )
    {
+      // In MVCC, without the transID, we might delete unexpected version
+      SDB_ASSERT( !pmdGetOptionCB()->mvccOn(),
+                  "Should not use this interface when MVCC is enabled" ) ;
       preIdxTreeNodeKey keyNode( keyData, rid, getOrdering() ) ;
       return remove( keyNode, pOldVer, hasLock ) ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_PREIDXTREE_REMOVEFORRECORD, "preIdxTree::removeForRecord" )
+   void preIdxTree::removeForRecord( SINT32 extID, SINT32 offset )
+   {
+      dmsRecordID              rid( extID, offset ) ;
+      INDEX_TREE_POS           curPos, nextPos ;
+      INDEX_RID_TREE::iterator it ;
+
+      PD_TRACE_ENTRY( SDB_PREIDXTREE_REMOVEFORRECORD ) ;
+
+      lockX() ;
+
+      it = _ridTree.find( rid ) ;
+
+      // check if rid exist in the _ridTree
+      if ( it != _ridTree.end() )
+      {
+         // get the first(newest) tree nodes of the record
+         curPos = it->second ;
+         do
+         {
+            nextPos = curPos->second.getRidPre() ;
+#ifdef _DEBUG
+            PD_LOG( PDDEBUG,
+                    "Erasing node in index tree(%d) with key[%s]",
+                    _idxLID,
+                    curPos->first.toString().c_str() ) ;
+#endif
+            _tree.erase( curPos ) ;
+            curPos = nextPos ;
+         }
+         while ( curPos != _tree.end() ) ;
+         // make sure rid is removed
+         _ridTree.erase( rid ) ;
+      }
+
+      unlockX() ;
+      PD_TRACE_EXIT( SDB_PREIDXTREE_REMOVEFORRECORD ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_PREIDXTREE_RESETVALUE, "preIdxTree::resetValue" )
+   void preIdxTree::resetValue( const preIdxTreeNodeKey &keyNode,
+                                DPS_TRANSID_SN           ownerTransID,
+                                BOOLEAN                  hasLock )
+   {
+      PD_TRACE_ENTRY( SDB_PREIDXTREE_RESETVALUE ) ;
+
+      INDEX_TREE_POS pos ;
+      UINT32 numChanged = 0 ;
+
+      SDB_ASSERT( keyNode.isValid(), "KeyNode is invalid" ) ;
+
+      if ( !hasLock )
+      {
+         lockX() ;
+      }
+
+      pos = _tree.find( keyNode ) ;
+      if ( pos != _tree.end() )
+      {
+         ++numChanged ;
+         pos->second.reset() ;
+      }
+
+#ifdef _DEBUG
+      if ( 1 != numChanged )
+      {
+         // this node could be GCed
+         if ( _isValid && ( ownerTransID > _lastLowTranID ) )
+         {
+            PD_LOG( PDWARNING,
+                    "Find %d records in index tree(%d) with key[%s], "
+                    "ownerTransID(%llu), _lastLowTranID(%llu).\n",
+                    numChanged, _idxLID,
+                    keyNode.toString().c_str(),
+                    ownerTransID, _lastLowTranID ) ;
+            printTree() ;
+            SDB_ASSERT( ( 1 == numChanged ),
+                        "Change record number must be 1" ) ;
+         }
+      }
+      else
+      {
+         PD_LOG( PDDEBUG, "Has reset one record from index tree(%d), "
+                 "Key[%s], Value[%s]", _idxLID, keyNode.toString().c_str(),
+                 pos->second.toString().c_str() ) ;
+      }
+#endif
+
+      if ( !hasLock )
+      {
+         unlockX() ;
+      }
+
+      PD_TRACE_EXIT( SDB_PREIDXTREE_RESETVALUE ) ;
+      return ;
+   }
+
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_PREIDXTREE_ADVANCE, "preIdxTree::advance" )
    INT32 preIdxTree::advance( INDEX_TREE_CPOS &pos, INT32 direction ) const
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_PREIDXTREE_ADVANCE ) ;
 
       while( TRUE )
       {
@@ -534,14 +785,21 @@ namespace engine
             pos = (++rtempIter).base() ;
          }
 
-         /// check is deleted
-         if ( !pos->second.isRecordDeleted() )
+         // check if deleted. The record could have been marked deleted
+         // but index haven't been physically removed from the tree due
+         // to async release.
+         // OR in MVCC, the in memory record could be deleted after written
+         // to RBS, but the old version index is still in the tree which
+         // the caller should evaluate and make decision on how to
+         // use the record
+         if ( !pos->second.isRecordDeleted() || pmdGetOptionCB()->mvccOn() )
          {
             break ;
          }
       }
 
    done:
+      PD_TRACE_EXIT( SDB_PREIDXTREE_ADVANCE );
       return rc ;
    error:
       goto done ;
@@ -615,7 +873,7 @@ namespace engine
                                       INT32 keepFieldsNum,
                                       BOOLEAN skipToNext,
                                       const VEC_ELE_CMP &matchEle,
-                                      const VEC_BOOLEAN &matchInclusive,
+                                      const inclusiveVec &matchInclusive,
                                       INT32 direction ) const
    {
       UINT32 index = 0 ;
@@ -670,7 +928,7 @@ namespace engine
                                 INT32 keepFieldsNum,
                                 BOOLEAN skipToNext,
                                 const VEC_ELE_CMP &matchEle,
-                                const VEC_BOOLEAN &matchInclusive,
+                                const inclusiveVec &matchInclusive,
                                 INT32 direction ) const
    {
       PD_TRACE_ENTRY( SDB_PREIDXTREE_KEYLOCATE ) ;
@@ -779,7 +1037,7 @@ namespace engine
                                  const BSONObj &prevKey,
                                  INT32 keepFieldsNum, BOOLEAN skipToNext,
                                  const VEC_ELE_CMP &matchEle,
-                                 const VEC_BOOLEAN &matchInclusive,
+                                 const inclusiveVec &matchInclusive,
                                  INT32 direction ) const
    {
       return keyLocate( pos, prevKey, keepFieldsNum, skipToNext,
@@ -811,7 +1069,8 @@ namespace engine
 
          while ( startIter != _tree.end() && startIter != endIter )
          {
-            if ( startIter->second.isRecordDeleted() )
+            if ( !startIter->second.isValid() ||
+                 startIter->second.isRecordDeleted() )
             {
                ++startIter ;
             }
@@ -829,33 +1088,202 @@ namespace engine
       return found ;
    }
 
-   void preIdxTree::printTree() const
+   // Run garbage collection on a tree, erase all nodes older than lowtran.
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_PREIDXTREE_GC, "preIdxTree::gc" )
+   DPS_TRANSID_SN preIdxTree::gc( DPS_TRANSID_SN lowTran )
    {
-      const UINT32 maxOnceOutSize = 3072 ;
+      INDEX_TREE_POS pos ;
+
+      // Lowest transID in the tree
+      DPS_TRANSID_SN idxTreeLowTran = DPS_MAX_TRANSID_SN ;
+
+      PD_TRACE_ENTRY( SDB_PREIDXTREE_GC );
+#ifdef _DEBUG
+      PD_LOG ( PDDEBUG,
+               "gc memixtree(%d) to lowTran %llu), lastGCtime(%llu)",
+               _idxLID, lowTran, _lastLowTranID );
+#endif
+      SDB_ASSERT( pmdGetOptionCB()->mvccOn(),
+                  "should only be called if mvcc is enabled." ) ;
+      lockX();
+
+      // Only gc if lowtran moved up
+      if ( lowTran > _lastLowTranID )
+      {
+         _preSize.poke( _tree.size() ) ;
+
+         pos = _tree.begin() ;
+
+         // go through each node and check its transID, remove the node
+         // if it's oldver than lowTran
+         while ( pos != _tree.end() )
+         {
+             // Note that this lowtran passed in should has expired version
+             // and max error considered. so we can do the simple sn
+             // comparison with global transaction tag
+            if ( pos->first.getNodeTransID().getGlobSN() < lowTran )
+            {
+               // only remove the node if old version container
+               // pointer is NULL, otherwise, the thread running
+               // releaseRecord() may encounter assertion failure
+               // when it removes this node.
+               if ( FALSE == pos->second.isValid() )
+               {
+                  INDEX_TREE_POS temp = pos ;
+                  //preIdxTreeNodeValue tmpValue = pos->second ;
+#ifdef _DEBUG
+                  PD_LOG ( PDDEBUG,
+                           "Remove node(%s) from ixtree(%d),lowTran(%llu)",
+                           pos->first.toString().c_str(), _idxLID,
+                           lowTran );
+#endif
+                  _adjustRidChainForErase( pos ) ;
+                  pos++ ;
+                  _tree.erase(temp) ;
+               }
+               else
+               {
+                  // skip the node if old version container is still there
+                  pos++ ;
+               }
+            }
+            else
+            {
+               // Node's transID is greater than lowTran, now lets compute
+               // the lowest transID above lowTran for this tree
+               if ( idxTreeLowTran >
+                    pos->first.getNodeTransID().getGlobSN() )
+               {
+                  idxTreeLowTran = pos->first.getNodeTransID().getGlobSN() ;
+               }
+
+               pos++ ;
+            }
+         }
+
+         // All the nodes are older than lowTran
+         if ( idxTreeLowTran == DPS_MAX_TRANSID_SN )
+         {
+            idxTreeLowTran = lowTran ;
+         }
+         _lastLowTranID = idxTreeLowTran ;
+      }
+
+      if ( idxTreeLowTran == DPS_MAX_TRANSID_SN )
+      {
+         idxTreeLowTran = _lastLowTranID ;
+      }
+
+      unlockX() ;
+
+      PD_TRACE_EXIT( SDB_PREIDXTREE_GC );
+      return idxTreeLowTran ;
+   }
+
+   // adjust pre and next node in the rid chain when removing a node from
+   // the in memory index tree. tree latch must be held in X
+   void preIdxTree::_adjustRidChainForErase( INDEX_TREE_POS & pos )
+   {
+      preIdxTreeNodeValue tmpValue = pos->second ;
+      dmsRecordID         rid = pos->first.getRID() ;
+
+      SDB_ASSERT( ( _ridTree.find(rid) != _ridTree.end() ),
+                    "Ridtree node is not valid." ) ;
+      // this is the last version of index for this rid
+      if ( tmpValue.getRidPre() == _tree.end() &&
+           tmpValue.getRidNext() == _tree.end() )
+      {
+#ifdef _DEBUG
+         PD_LOG ( PDDEBUG, "Removing rid(%d, %d) from ridtree(%d)",
+                  rid._extent, rid._offset, _idxLID ) ;
+#endif
+         SDB_ASSERT( ( _ridTree[rid] == pos ),
+                     "Ridtree node is not valid." ) ;
+         _ridTree.erase( rid ) ;
+      }
+      else
+      {
+         // removing the first node(newest version) in rid chain.
+         // this can happen if all the old versions of this rid
+         // are good candidates for GC, but the newest version has the
+         // "front" order in idx tree. So it is cleaned up first.
+         if ( _ridTree[rid] == pos )
+         {
+#ifdef _DEBUG
+            PD_LOG ( PDDEBUG,
+                     "Remove first rid(%d, %d) from ridtree(%d)",
+                     rid._extent, rid._offset, _idxLID ) ;
+#endif
+            _ridTree[rid] = tmpValue.getRidPre() ;
+         }
+
+         if ( tmpValue.getRidPre() != _tree.end() )
+         {
+            tmpValue.getRidPre()->
+               second.setRidNext( tmpValue.getRidNext() ) ;
+         }
+         if ( tmpValue.getRidNext() != _tree.end() )
+         {
+            tmpValue.getRidNext()->
+               second.setRidPre( tmpValue.getRidPre() ) ;
+         }
+      }
+
+   }
+
+   // search _ridTree, find the first version of keynode in memtree
+   // for the given rid. Caller should hold the tree latch
+   INDEX_TREE_POS preIdxTree::getKeyNodeFromRidTree( dmsRecordID rid )
+   {
+      INDEX_TREE_POS pos = _tree.end() ;
+      INDEX_RID_TREE::iterator it = _ridTree.find( rid ) ;
+      if ( it != _ridTree.end() )
+      {
+         pos = it->second ;
+      }
+
+      return pos ;
+   }
+
+   void preIdxTree::printTree( BOOLEAN detailed ) const
+   {
+      const UINT32 maxOnceCount = 20 ;
       UINT32 index = 0 ;
       INDEX_TREE_CPOS pos ;
 
       while( TRUE )
       {
          std::stringstream ss ;
-
+         UINT32 count = 0 ;
          if ( 0 == index )
          {
             ss << "==> Index tree[Key: " << _keyPattern.toString()
                << ", LID:" << _idxLID
+               << ", lastLowTranID:" << _lastLowTranID
                << ", Size:" << _tree.size()
-               << "] nodes:" << std::endl ;
-            pos = _tree.begin() ;
+               << ", preSize:" << getPreSize()
+               << ", SizeHWM:" << getSizeHWM()
+               << " nodes:" << std::endl ;
+            // only print each node if asked for detailed info
+            if ( detailed )
+            {
+               pos = _tree.begin() ;
+            }
+            else
+            {
+               pos = _tree.end() ;
+            }
          }
 
          while ( pos != _tree.end() )
          {
-            ss << ++index << "Key: " << pos->first.toString()
+            ss << ++index << " Key: " << pos->first.toString()
                << ", Value: " << pos->second.toString()
                << std::endl ;
             ++pos ;
+            ++count ;
 
-            if ( ss.gcount() >= maxOnceOutSize )
+            if ( count >= maxOnceCount )
             {
                break ;
             }
@@ -1216,6 +1644,8 @@ namespace engine
       oldVersionCB implement
    */
    oldVersionCB::oldVersionCB()
+      : _minTransIDSN( DPS_INVALID_TRANSID_SN ),
+      _treeSizeHWM(0)
    {
    }
 
@@ -1235,7 +1665,15 @@ namespace engine
       IDXID_TO_TREE_MAP_IT it = _idxTrees.begin() ;
       while( it != _idxTrees.end() )
       {
-         SDB_ASSERT( it->second->empty(), "Index tree should be empty" ) ;
+
+         SDB_ASSERT( pmdGetOptionCB()->mvccOn() || it->second->empty(),
+                     "Index tree should be empty" ) ;
+         if ( !it->second->empty() )
+         {
+            PD_LOG( PDDEBUG, "clean up index tree[%s]",
+                    it->first.toString().c_str() ) ;
+            it->second.get()->clear() ;
+         }
          ++it ;
       }
       _idxTrees.clear() ;
@@ -1426,6 +1864,73 @@ namespace engine
       PD_TRACE_EXIT ( SDB_OLDVERSIONCB_DELIDXTREE ) ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_OLDVERSIONCB_GCIDXTREES, "oldVersionCB::gcIdxTrees" )
+   void oldVersionCB::gcIdxTrees( )
+   {
+      PD_TRACE_ENTRY ( SDB_OLDVERSIONCB_GCIDXTREES ) ;
+      preIdxTreePtr treePtr ;
+      IDXID_TO_TREE_MAP_IT it ;
+      DPS_TRANSID_SN  expiredVersion = DPS_INVALID_TRANSID_SN ;
+      DPS_TRANSID_SN  minTreeLowTran = DPS_MAX_TRANSID_SN ;
+
+      latchS() ;
+      it = _idxTrees.begin() ;
+
+      // loop through trees
+      while ( it != _idxTrees.end() )
+      {
+         // handle one tree
+         // Will release the latch of old version container, save the global
+         // index ID and tree pointer before we release the latch.
+         globIdxID curGIID = it->first ;
+         treePtr = it->second ;
+
+         releaseS() ;
+
+         // get current expired version for each tree. Max time error is
+         // already considered
+         expiredVersion = sdbGetTransCB()->getExpiredVersion() ;
+
+         if ( treePtr.get() &&
+              DPS_INVALID_TRANSID_SN != expiredVersion )
+         {
+            DPS_TRANSID_SN treeLowTran ;
+#ifdef _DEBUG
+            PD_LOG( PDDEBUG, "gc index tree[%s], Key:%s, expired version[%s]",
+                    it->first.toString().c_str(),
+                    treePtr->getKeyPattern().toString().c_str(),
+                    dpsTransSNToString( expiredVersion ).c_str() ) ;
+#endif
+            // NOTE: we need global transaction tag with SN
+            treeLowTran = treePtr->gc( expiredVersion ) ;
+
+            if ( treeLowTran < minTreeLowTran )
+            {
+               minTreeLowTran = treeLowTran ;
+            }
+            _treeSizeHWM.swapGreaterThan( treePtr->getSizeHWM() ) ;
+
+         }
+
+         latchS() ;
+         // We have released latch of oldVerContainer after we got
+         // the tree pointer from this iterator. But during we gc the current
+         // tree, the iterator could be erased by drop index, so the iterator
+         // will not be safe to move to next. We need to find the next
+         // tree by upper bound of the current global index ID
+         it = _idxTrees.upper_bound( curGIID ) ;
+      }
+
+      if ( minTreeLowTran != DPS_MAX_TRANSID_SN )
+      {
+         updateMinLowTranSN( minTreeLowTran ) ;
+      }
+
+      releaseS() ;
+
+      PD_TRACE_EXIT ( SDB_OLDVERSIONCB_GCIDXTREES ) ;
+   }
+
    void oldVersionCB::clearIdxTreeByCSID( UINT32 csID, BOOLEAN hasLock )
    {
       preIdxTreePtr treePtr ;
@@ -1502,13 +2007,12 @@ namespace engine
               it->first._clID == clID )
          {
             treePtr = it->second ;
+            PD_LOG( PDDEBUG, "Removing index tree[%s], Key:%s",
+                    it->first.toString().c_str(),
+                    treePtr->getKeyPattern().toString().c_str() ) ;
 
             if ( treePtr.get() )
             {
-               PD_LOG( PDDEBUG, "Has removed index tree[%s], Key:%s",
-                       it->first.toString().c_str(),
-                       treePtr->getKeyPattern().toString().c_str() ) ;
-
                treePtr->setDeleted() ;
                try
                {
@@ -1531,7 +2035,8 @@ namespace engine
          releaseX() ;
       }
 
-      /// clear trees's node out of latch mutex
+      // clear trees's node out of latch mutex, it's safe to do so because
+      // scanner would have found the tree invalid after having the lock again
       it = mapTmpTree.begin() ;
       while( it != mapTmpTree.end() )
       {
@@ -1750,6 +2255,47 @@ namespace engine
       tmpMapUnit.clear() ;
    }
 
+   // This function will go through each index tree for the given collection,
+   // remove all nodes for the given record by following the ridTree chain.
+   // Proper latch are taken within this function. The caller suppose to hold
+   // the record lock of the provided record. Currently mblatch of the
+   // collection is also held.
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_OLDVERSIONCB_CLEANIDXNODESFORRECORD, "oldVersionCB::cleanIdxNodesForRecord" )
+   void oldVersionCB::cleanIdxNodesForRecord( UINT32 csID,
+                                              UINT16 clID,
+                                              SINT32 extID,
+                                              SINT32 offset )
+   {
+      PD_TRACE_ENTRY ( SDB_OLDVERSIONCB_CLEANIDXNODESFORRECORD ) ;
+      preIdxTreePtr treePtr ;
+      IDXID_TO_TREE_MAP_IT it ;
+      globIdxID   gid(csID, clID, 0);
+
+      latchS() ;
+      // find the first index tree of this collection under the latch
+      // _idxTrees is ordered by globIdxID, where csID/clID take privillage
+      // over idxLid on comparison. And idxLid is in ascending order.
+      it = _idxTrees.lower_bound(gid) ;
+
+      while ( it != _idxTrees.end()     &&
+              (it->first._csID == csID) &&
+              (it->first._clID == clID) )
+      {
+         // this index can't be dropped as we hold the record lock
+         // (and mblatch), we can do the work without latch
+         releaseS() ;
+         treePtr = it->second ;
+
+         treePtr->removeForRecord( extID, offset );
+
+         latchS() ;
+         ++it ;
+      }
+
+      releaseS() ;
+      PD_TRACE_EXIT ( SDB_OLDVERSIONCB_CLEANIDXNODESFORRECORD ) ;
+   }
+
    /*
       oldVersionContainer implement
    */
@@ -1757,10 +2303,10 @@ namespace engine
                                              INT32 csID, UINT16 clID,
                                              UINT32 csLID, UINT32 clLID )
    :_csID( csID ), _clID( clID ), _csLID( csLID ), _clLID( clLID ),
-    _rid( rid )
+    _rid( rid ), _recordTransID(), _ownerTransID()
    {
       _statMask      = 0 ;
-      _ownnerTID     = 0 ;
+      _ownerTID      = 0 ;
       _prev          = NULL ;
       _next          = NULL ;
       _isOnChain     = FALSE ;
@@ -1798,18 +2344,31 @@ namespace engine
       return BSONObj() ;
    }
 
+<<<<<<< HEAD
    INT32 oldVersionContainer::saveRecord( const BSONObj &obj,
                                           UINT32 ownnerTID )
+=======
+   INT32 oldVersionContainer::saveRecord( const dmsRecord *pRecord,
+                                          const BSONObj    &obj,
+                                          UINT32           ownerTID,
+                                          DPS_TRANS_ID     ownerTransID )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
       INT32 rc = SDB_OK ;
       UINT32 recSize = 0 ;
       dmsRecord *pNewRecord = NULL ;
+      DPS_TRANS_ID recordTransID ;
 
       SDB_ASSERT( !_recordPtr.get(), "Old record is not NULL" ) ;
 
       if ( _recordPtr.get() )
       {
          goto done ;
+      }
+
+      if ( pRecord->hasGlobTransID() )
+      {
+         recordTransID = pRecord->getGlobTransID() ;
       }
 
       recSize = DMS_RECORD_METADATA_SZ + obj.objsize() ;
@@ -1824,20 +2383,37 @@ namespace engine
       }
 
       pNewRecord = ( dmsRecord* )_recordPtr.get() ;
+<<<<<<< HEAD
       pNewRecord->setNormal() ;
       pNewRecord->resetAttr() ;
+=======
+      /// copy header
+      ossMemcpy( _recordPtr.get(), (const void*)pRecord,
+                 pRecord->hasGlobTransID() ? DMS_RECORD_METADATA_SZ :
+                                             DMS_RECORD_V0_METADATA_SZ ) ;
+
+      pNewRecord->unsetCompressed() ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       pNewRecord->setSize( recSize ) ;
+      pNewRecord->setHasGlobTransID() ;
+      pNewRecord->setGlobTransID( recordTransID ) ;
 
       /// copy data
       ossMemcpy( _recordPtr.get() + DMS_RECORD_METADATA_SZ,
                  obj.objdata(), obj.objsize() ) ;
 
-#ifdef _DEBUG
-      PD_LOG ( PDDEBUG, "Saved old copy for rid(%d,%d) to oldVer(%x)",
-               _rid._extent, _rid._offset, this ) ;
-#endif //_DEBUG
+      _ownerTID = ownerTID ;
+      _recordTransID = recordTransID ;
+      _ownerTransID = ownerTransID ;
 
-      _ownnerTID = ownnerTID ;
+#ifdef _DEBUG
+      PD_LOG ( PDDEBUG,
+               "Thread(%d) Saved old copy for rid(%d, %d) to oldVer(%x) "
+               "through transaction(%s), recordTransID(%s)",
+               ownerTID, _rid._extent, _rid._offset,
+               this, dpsTransIDToString( _ownerTransID ).c_str(),
+               dpsTransIDToString( _recordTransID ).c_str() ) ;
+#endif //_DEBUG
 
    done:
       return rc ;
@@ -1850,13 +2426,87 @@ namespace engine
       return _oldIdx.empty() ? TRUE : FALSE ;
    }
 
-   void oldVersionContainer::releaseRecord( INT32 idxLID, BOOLEAN hasLock )
+   void oldVersionContainer::_releaseRecord( preIdxTree *pTree,
+                                             const preIdxTreeNodeKey &keyNode,
+                                             BOOLEAN treeLatchHeld )
+   {
+      SDB_ASSERT( NULL != pTree, "tree is invalid" ) ;
+
+      // remove the index from mem tree if mvcc is off or the
+      // transaction had been rolledback
+      if ( !pmdGetOptionCB()->mvccOn() || isRolledback() )
+      {
+#if SDB_INTERNAL_DEBUG
+   PD_LOG( PDDEBUG, "Removing index from mem tree, latchHeld(%d): "
+           "rid(%d, %d), ownertransid(%s), recordtransID(%s), obj(%s)",
+            treeLatchHeld, _rid._extent, _rid._offset,
+            dpsTransIDToString( _ownerTransID ).c_str(),
+            dpsTransIDToString( _recordTransID ).c_str(),
+            this->getRecordObj().toString().c_str() ) ;
+#endif
+         pTree->remove( keyNode, this, treeLatchHeld ) ;
+      }
+      else
+      {
+#if SDB_INTERNAL_DEBUG
+   PD_LOG( PDDEBUG, "Resetting index in mem tree, latchHeld(%d): "
+           "rid(%d, %d), ownertransid(%s), recordtransID(%s), obj(%s)",
+            treeLatchHeld, _rid._extent, _rid._offset,
+            dpsTransIDToString( _ownerTransID ).c_str(),
+            dpsTransIDToString( _recordTransID ).c_str(),
+            this->getRecordObj().toString().c_str() ) ;
+#endif
+         // reset the tree node value if mvcc is on
+         pTree->resetValue( keyNode,
+                            getOwnerTransID().getGlobSN(),
+                            treeLatchHeld ) ;
+      }
+   }
+
+   // free up all the storage for this old version record
+   void oldVersionContainer::releaseRecord( dmsTransLockCallback* callback )
    {
       preIdxTree *pTree = NULL ;
       idxObjSet::iterator itSet ;
       idxLidMap::iterator itMap ;
 
-      /// 1. release the tree node
+      /// 1. save the version to RBS when MVCC is turned on
+      /// NOTE:  maybe we can skip this write out if this is lock
+      ///        release due to rollback. But it won't hurt much
+      ///        if we just write it out. There could be an identical
+      ///        version in RBS, waste one disk read in the future
+/*    //FIXME: potential perf improvement to only write RBS during commit(5505)
+      if ( pmdGetOptionCB()->mvccOn()  && this->hasRecord() )
+      {
+         // FIXME, decide on the API during review
+         SINT32 rc = pmdGetKRCB()->getDMSCB()->getRBSSUMgr()
+                      ->appendRecord( _csID, _clID, _rid,
+                                      _recordTransID,
+                                      _ownerTransID,
+                                      this->getRecordObj() ) ;  // use insertRecord API
+                   //  this->getRecord() ) ;  // use my own interface
+         if ( rc )
+         {
+            PD_LOG( PDERROR,
+                    "Failed to write record (%d, %d, %d, %d) to RBS "
+                    "(rc=%d), leave the record!",
+                    _csID, _clID, _rid._extent, _rid._offset, rc ) ;
+            SDB_ASSERT( FALSE,
+                        "Failed to write in memory old version to RBS") ;
+            goto done ;
+         }
+#ifdef _DEBUG
+         PD_LOG( PDDEBUG, "Successfully saved record to RBS: "
+                 "rid(%d, %d), ownertransid(%s), recordtransID(%s), obj(%s)",
+                  _rid._extent, _rid._offset,
+                  dpsTransIDToString( _ownerTransID ).c_str(),
+                  dpsTransIDToString( _recordTransID ).c_str(),
+                  this->getRecordObj().toString().c_str() ) ;
+#endif
+
+      }
+*/
+      /// 2. release the tree node if mvcc is not turned on
       itSet = _oldIdx.begin() ;
       while( itSet != _oldIdx.end() )
       {
@@ -1865,13 +2515,34 @@ namespace engine
          itMap = _oldIdxLid.find( tmpObj.getIdxLID() ) ;
          if ( itMap == _oldIdxLid.end() )
          {
-            SDB_ASSERT( FALSE, "Index[%u] can't found in index set" ) ;
+#if defined ( _DEBUG )
+            PD_LOG( PDDEBUG, "Index[%u] is not found in idxLidMap",
+                    tmpObj.getIdxLID() );
+            SDB_ASSERT( FALSE, "Index is not found in idxLidMap, _oldIdxLid" ) ;
+#endif
          }
          else
          {
+            BOOLEAN treeLatchHeld = FALSE ;
             pTree = (itMap->second).get() ;
-            pTree->remove( &(tmpObj.getKeyObj()), _rid, this,
-                           idxLID == tmpObj.getIdxLID() ? hasLock : FALSE ) ;
+            preIdxTreeNodeKey keyNode( &(tmpObj.getKeyObj()),
+                                       _rid,
+                                       pTree->getOrdering(),
+                                       _ownerTransID ) ;
+            INT32 idxLID = pTree->getLID() ;
+
+            // For merge scanner, make sure the scanner is X latched ;
+            // as for non-transactional IUD, it could be disk scan.
+            if ( callback &&
+                 callback->isIndexProtectionRequired() &&
+                 callback->isIndexProtected( idxLID ) )
+            {
+               SDB_ASSERT( callback->isIndexProtected( idxLID, EXCLUSIVE ),
+                           "Index tree must be held exclusively" ) ;
+               treeLatchHeld = TRUE ;
+            }
+
+            _releaseRecord( pTree, keyNode, treeLatchHeld ) ;
          }
          ++itSet ;
       }
@@ -1879,14 +2550,18 @@ namespace engine
       _oldIdx.clear() ;
       _oldIdxLid.clear() ;
 
-      /// 2. release the record
+      /// 3. release the record
       _recordPtr = dpsOldRecordPtr() ;
       _statMask = 0 ;
-      _ownnerTID = 0 ;
+      _ownerTID = 0 ;
+
+      _ownerTransID.reset() ;
+      _recordTransID.reset() ;
+
+      return ;
    }
 
-   BOOLEAN oldVersionContainer::tryReleaseRecord( INT32 idxLID,
-                                                  BOOLEAN hasLock )
+   BOOLEAN oldVersionContainer::tryReleaseRecord( dmsTransLockCallback* callback )
    {
       BOOLEAN succeed = FALSE ;
       preIdxTree *pTree = NULL ;
@@ -1902,21 +2577,42 @@ namespace engine
          itMap = _oldIdxLid.find( tmpObj.getIdxLID() ) ;
          if ( itMap == _oldIdxLid.end() )
          {
-            SDB_ASSERT( FALSE, "Index[%u] can't found in index set" ) ;
+#if defined ( _DEBUG )
+            PD_LOG( PDDEBUG, "Index[%u] is not found in idxLidMap",
+                    tmpObj.getIdxLID() );
+            SDB_ASSERT( FALSE, "Index is not found in idxLidMap, _oldIdxLid" ) ;
+#endif
          }
          else
          {
+            BOOLEAN treeLatchHeld = FALSE ;
             pTree = (itMap->second).get() ;
+            preIdxTreeNodeKey keyNode( &(tmpObj.getKeyObj()),
+                                       _rid,
+                                       pTree->getOrdering(),
+                                       _ownerTransID ) ;
+            INT32 idxLID = pTree->getLID() ;
 
-            if ( idxLID == tmpObj.getIdxLID() && hasLock )
+            // For merge scanner, make sure the scanner is X latched ;
+            // as for non-transactional IUD, it could be disk scan.
+            if ( callback &&
+                 callback->isIndexProtectionRequired() &&
+                 callback->isIndexProtected( idxLID ) )
             {
-               pTree->remove( &(tmpObj.getKeyObj()), _rid, this, hasLock ) ;
+               SDB_ASSERT( callback->isIndexProtected( idxLID, EXCLUSIVE ),
+                           "Index tree must be held exclusively" ) ;
+               treeLatchHeld = TRUE ;
+            }
+
+            if ( idxLID == tmpObj.getIdxLID() && treeLatchHeld )
+            {
+               _releaseRecord( pTree, keyNode, treeLatchHeld ) ;
                _oldIdx.erase( itSet++ ) ;
                continue ;
             }
             else if ( pTree->tryLockX() )
             {
-               pTree->remove( &(tmpObj.getKeyObj()), _rid, this, TRUE ) ;
+               _releaseRecord( pTree, keyNode, TRUE ) ;
                pTree->unlockX() ;
                _oldIdx.erase( itSet++ ) ;
                continue ;
@@ -1936,6 +2632,49 @@ namespace engine
       return succeed ;
    }
 
+   BOOLEAN oldVersionContainer::releaseIndex( dmsTransLockCallback *callback,
+                                              preIdxTreePtr &treePtr,
+                                              BOOLEAN hasLocked )
+   {
+      BOOLEAN removed = FALSE ;
+
+      SDB_ASSERT( NULL != treePtr.get(), "index tree is invalid" ) ;
+
+      INT32 indexLID = treePtr->getLID() ;
+
+      // check all index items to match given index LID
+      // NOTE: dpsIdxObj compared by pair ( indexLID, key )
+      dpsIdxObj tempObj( BSONObj(), indexLID ) ;
+      idxObjSet::iterator iter = _oldIdx.upper_bound( tempObj ) ;
+      while ( iter != _oldIdx.end() )
+      {
+         if ( iter->getIdxLID() == indexLID )
+         {
+            const dpsIdxObj &idxObj = ( *iter ) ;
+            preIdxTreeNodeKey keyNode( &( idxObj.getKeyObj() ),
+                                       _rid,
+                                       treePtr->getOrdering(),
+                                       _ownerTransID ) ;
+            treePtr->remove( keyNode, this, hasLocked ) ;
+            _oldIdx.erase( iter ++ ) ;
+            removed = TRUE ;
+            continue ;
+         }
+         else if ( iter->getIdxLID() > indexLID )
+         {
+            break ;
+         }
+         ++ iter ;
+      }
+
+      if ( removed )
+      {
+         _oldIdxLid.erase( indexLID ) ;
+      }
+
+      return removed ;
+   }
+
    void oldVersionContainer::setRecordDeleted()
    {
       OSS_BIT_SET( _statMask, OLDVER_MASK_DELETED ) ;
@@ -1946,10 +2685,10 @@ namespace engine
       OSS_BIT_SET( _statMask, OLDVER_MASK_DISK_DELETING ) ;
    }
 
-   void oldVersionContainer::setRecordNew( UINT32 ownnerTID )
+   void oldVersionContainer::setRecordNew( UINT32 ownerTID )
    {
       OSS_BIT_SET( _statMask, OLDVER_MASK_NEW_RECORD ) ;
-      _ownnerTID = ownnerTID ;
+      _ownerTID = ownerTID ;
    }
 
    BOOLEAN oldVersionContainer::isRecordNew() const
@@ -1957,10 +2696,10 @@ namespace engine
       return OSS_BIT_TEST( _statMask, OLDVER_MASK_NEW_RECORD ) ? TRUE : FALSE ;
    }
 
-   void oldVersionContainer::setRecordDummy( UINT32 ownnerTID )
+   void oldVersionContainer::setRecordDummy( UINT32 ownerTID )
    {
       OSS_BIT_SET( _statMask, OLDVER_MASK_DUMMY ) ;
-      _ownnerTID = ownnerTID ;
+      _ownerTID = ownerTID ;
    }
 
    BOOLEAN oldVersionContainer::isRecordDummy() const
@@ -1968,14 +2707,39 @@ namespace engine
       return OSS_BIT_TEST( _statMask, OLDVER_MASK_DUMMY ) ? TRUE : FALSE ;
    }
 
-   UINT32 oldVersionContainer::getOwnnerTID() const
+   void oldVersionContainer::setRolledback()
    {
-      return _ownnerTID ;
+      OSS_BIT_SET( _statMask, OLDVER_MASK_ROLLED_BACK ) ;
+   }
+
+   BOOLEAN oldVersionContainer::isRolledback() const
+   {
+      return OSS_BIT_TEST( _statMask, OLDVER_MASK_ROLLED_BACK ) ? TRUE : FALSE ;
+   }
+
+
+   UINT32 oldVersionContainer::getOwnerTID() const
+   {
+      return _ownerTID ;
    }
 
    BOOLEAN oldVersionContainer::isRecordDeleted() const
    {
       return OSS_BIT_TEST( _statMask, OLDVER_MASK_DELETED ) ? TRUE : FALSE ;
+   }
+
+   BOOLEAN oldVersionContainer::hasRecord() const
+   {
+      if (NULL != _recordPtr.get())
+      {
+         SDB_ASSERT( !isRecordDummy() && !isRecordNew(),
+                     "Can't be dummy or new when has record" ) ;
+         return TRUE ;
+      }
+      else
+      {
+         return FALSE ;
+      }
    }
 
    BOOLEAN oldVersionContainer::isDiskDeleting() const

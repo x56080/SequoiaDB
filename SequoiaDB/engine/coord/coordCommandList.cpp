@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = coordCommandList.hpp
 
@@ -1342,6 +1341,7 @@ namespace engine
       ctrlParam.resetRole() ;
       ctrlParam._role[ SDB_ROLE_DATA ] = 1 ;
    }
+<<<<<<< HEAD
 
    COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDListDataSources,
                                       CMD_NAME_LIST_DATASOURCES,
@@ -1369,6 +1369,35 @@ namespace engine
    {
    }
 
+=======
+
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDListDataSources,
+                                      CMD_NAME_LIST_DATASOURCES,
+                                      TRUE ) ;
+   _coordCMDListDataSources::_coordCMDListDataSources()
+   {
+   }
+
+   _coordCMDListDataSources::~_coordCMDListDataSources()
+   {
+   }
+
+   INT32 _coordCMDListDataSources::_preProcess( rtnQueryOptions &queryOpt,
+                                                string &clName,
+                                                BSONObj &outSelector )
+   {
+      clName = CAT_DATASOURCE_COLLECTION ;
+      return SDB_OK ;
+   }
+
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDListDataSourceIntr,
+                                      CMD_NAME_LIST_DATASOURCE_INTR,
+                                      TRUE ) ;
+   _coordCMDListDataSourceIntr::_coordCMDListDataSourceIntr()
+   {
+   }
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    _coordCMDListDataSourceIntr::~_coordCMDListDataSourceIntr()
    {
    }
@@ -1438,6 +1467,7 @@ namespace engine
    {
    }
 
+<<<<<<< HEAD
    /*
       _coordCMDListGrpModes implement
     */
@@ -1475,4 +1505,6 @@ namespace engine
    {
    }
 
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 }

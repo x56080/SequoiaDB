@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = utilParam.cpp
 
@@ -33,9 +31,7 @@
 
    Last Changed =
 
-******************************************************************************/
-
-
+*******************************************************************************/
 #include "utilParam.hpp"
 #include "ossIO.hpp"
 #include "ossProc.hpp"
@@ -344,7 +340,13 @@ namespace engine
       goto done ;
    }
 
+<<<<<<< HEAD
    INT32 utilGetServiceByConfigPath( const string &confPath,
+=======
+   INT32 utilGetServiceByConfigPath( const string & confPath,
+                                     const CHAR *fileName,
+                                     const CHAR *fieldName,
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                                      const string &defaultName,
                                      string &svcname,
                                      BOOLEAN allowFileNotExist,
@@ -355,7 +357,7 @@ namespace engine
       po::options_description desc ;
       po::variables_map vm ;
       desc.add_options()
-         ( PMD_OPTION_SVCNAME, po::value<string>(), "" ) ;
+         ( fieldName, po::value<string>(), "" ) ;
       CHAR conf[OSS_MAX_PATHSIZE + 1] = { 0 } ;
 
       if ( NULL != isConfFileValid )
@@ -372,8 +374,8 @@ namespace engine
          svcname = defaultName ;
       }
 
-      rc = utilBuildFullPath ( confPath.c_str(), PMD_DFT_CONF,
-                               OSS_MAX_PATHSIZE, conf ) ;
+      rc = utilBuildFullPath ( confPath.c_str(), fileName, OSS_MAX_PATHSIZE,
+                               conf ) ;
       if ( rc )
       {
          if ( NULL != errMsg )
@@ -407,9 +409,9 @@ namespace engine
          goto error ;
       }
 
-      if ( vm.count ( PMD_OPTION_SVCNAME ) )
+      if ( vm.count ( fieldName ) )
       {
-         svcname = vm [ PMD_OPTION_SVCNAME ].as<string>() ;
+         svcname = vm [ fieldName ].as<string>() ;
       }
 
    done :
@@ -761,7 +763,11 @@ namespace engine
          {
             rc = SDB_SYS ;
             ossPrintf( "Error: Failed to get ulimit[%s]" OSS_NEWLINE,
+<<<<<<< HEAD
                        limitStr.c_str() ) ;
+=======
+                       limStr.c_str() ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             goto error ;
          }
          if ( curSoft != -1 && ( curSoft < expVal || expVal == -1 ) )

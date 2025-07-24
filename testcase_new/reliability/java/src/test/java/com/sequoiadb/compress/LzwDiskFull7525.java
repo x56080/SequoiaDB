@@ -43,7 +43,8 @@ public class LzwDiskFull7525 extends SdbTestBase {
     private int clNum = 3;
     private String clNameBase = "cl7525_";
     // 准备数据
-    private int recsNum = 400000;
+    // 同一条记录，mvcc记录比其他版本记录要大，所以同一批记录，mvcc更容易达到构建字典的条件
+    private int recsNum = 350000;
     private int maxRecsNumForDict = 1000000;
     private List< BSONObject > newRecs = new ArrayList<>();
 

@@ -2,7 +2,11 @@
  * @Description   : seqDB-23852:组上有回收站，删除组
  * @Author        : liuli
  * @CreateTime    : 2022.03.02
+<<<<<<< HEAD
  * @LastEditTime  : 2022.08.30
+=======
+ * @LastEditTime  : 2022.09.05
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
  * @LastEditors   : HuangHaimei
  ******************************************************************************/
 testConf.skipStandAlone = true;

@@ -1,7 +1,22 @@
 /*******************************************************************************
 
+<<<<<<< HEAD
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+=======
+
+   Copyright (C) 2011-2018 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU Affero General Public License as published by
@@ -15,6 +30,7 @@
 
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    Source File Name = clsRecycleBinManager.hpp
 
@@ -32,7 +48,10 @@
    Last Changed =
 
 *******************************************************************************/
+<<<<<<< HEAD
+=======
 
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 #ifndef CLS_RECYCLE_BIN_MGR_HPP__
 #define CLS_RECYCLE_BIN_MGR_HPP__
 
@@ -228,8 +247,12 @@ namespace engine
       INT32 _recycleDropCS( dmsStorageUnit *su,
                             const CHAR *csName,
                             const utilRecycleItem &item,
+<<<<<<< HEAD
                             pmdEDUCB *cb,
                             BOOLEAN needLogRename ) ;
+=======
+                            pmdEDUCB *cb ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       INT32 _regBlockCL( const CHAR *originName,
                          const CHAR *recycleName,

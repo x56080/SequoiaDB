@@ -18,7 +18,11 @@ import org.testng.annotations.Test;
  * @Author Yang Qincheng
  * @Date 2021.12.13
  */
+<<<<<<< HEAD
 @Test(groups = "lockEscalation")
+=======
+@Test( groups = "lockEscalation" )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 public class Transaction24851 extends SdbTestBase {
     private Sequoiadb db;
     private final String clName = "cl_24851";
@@ -56,14 +60,20 @@ public class Transaction24851 extends SdbTestBase {
 
         @Override
         public void exec() throws Exception {
+<<<<<<< HEAD
             try ( Sequoiadb db = new Sequoiadb( coordUrl, "", "" )) {
                 DBCollection cl = db.getCollectionSpace( csName )
                         .getCollection( clName );
+=======
+            try ( Sequoiadb db = new Sequoiadb( coordUrl, "", "" ) ) {
+                DBCollection cl = db.getCollectionSpace( csName ).getCollection( clName );
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                 for ( int i = 0; i < cycleNum; i++ ) {
                     try {
                         cl.createIdIndex( EMPTY_BSON );
                         cl.dropIdIndex();
                     } catch ( BaseException e ) {
+<<<<<<< HEAD
                         if ( e.getErrorCode() == SDBError.SDB_DPS_TRANS_LOCK_INCOMPATIBLE
                                 .getErrorCode()
                                 || e.getErrorCode() == SDBError.SDB_LOCK_FAILED
@@ -72,6 +82,11 @@ public class Transaction24851 extends SdbTestBase {
                         } else if ( e
                                 .getErrorCode() == SDBError.SDB_DMS_TRUNCATED
                                         .getErrorCode() ) {
+=======
+                        if ( e.getErrorCode() == SDBError.SDB_DPS_TRANS_LOCK_INCOMPATIBLE.getErrorCode() ) {
+                            break;
+                        } else if ( e.getErrorCode() == SDBError.SDB_DMS_TRUNCATED.getErrorCode() ) {
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                             continue;
                         }
                         throw e;
@@ -85,19 +100,30 @@ public class Transaction24851 extends SdbTestBase {
 
         @Override
         public void exec() throws Exception {
+<<<<<<< HEAD
             try ( Sequoiadb db = new Sequoiadb( coordUrl, "", "" )) {
                 DBCollection cl = db.getCollectionSpace( csName )
                         .getCollection( clName );
+=======
+            try ( Sequoiadb db = new Sequoiadb( coordUrl, "", "" ) ) {
+                DBCollection cl = db.getCollectionSpace( csName ).getCollection( clName );
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                 for ( int i = 0; i < cycleNum; i++ ) {
                     try {
                         cl.truncate();
                     } catch ( BaseException e ) {
+<<<<<<< HEAD
                         if ( e.getErrorCode() == SDBError.SDB_DPS_TRANS_LOCK_INCOMPATIBLE
                                 .getErrorCode() ) {
                             break;
                         } else if ( e
                                 .getErrorCode() == SDBError.SDB_CLS_COORD_NODE_CAT_VER_OLD
                                         .getErrorCode() ) {
+=======
+                        if ( e.getErrorCode() == SDBError.SDB_DPS_TRANS_LOCK_INCOMPATIBLE.getErrorCode() ) {
+                            break;
+                        } else if ( e.getErrorCode() == SDBError.SDB_CLS_COORD_NODE_CAT_VER_OLD.getErrorCode() ) {
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                             continue;
                         }
                         throw e;

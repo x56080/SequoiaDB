@@ -1058,7 +1058,11 @@ INT32 clientBuildUpdateMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    pUpdate->header.flags               = FLAG_RESULT_DETAIL ;
    pUpdate->header.routeID.value       = clientDefaultRouteID ;
    pUpdate->header.TID                 = tid ;
+<<<<<<< HEAD
    ossMemset( &(pUpdate->header.globalID), 0, sizeof(pUpdate->header.globalID) ) ;
+=======
+   // TODO: Set the message globalID.
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    ossMemset( pUpdate->header.reserve, 0, sizeof(pUpdate->header.reserve) ) ;
    // copy collection name
    ossStrncpy ( pUpdate->name, CollectionName, nameLength ) ;
@@ -1374,7 +1378,11 @@ INT32 clientBuildInsertMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    pInsert->header.flags         = FLAG_RESULT_DETAIL ;
    pInsert->header.routeID.value = 0 ;
    pInsert->header.TID           = ossGetCurrentThreadID() ;
+<<<<<<< HEAD
    ossMemset( &(pInsert->header.globalID), 0, sizeof(pInsert->header.globalID) ) ;
+=======
+   // TODO: Set the message globalID.
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    ossMemset( pInsert->header.reserve, 0, sizeof(pInsert->header.reserve) ) ;
    // copy collection name
    ossStrncpy ( pInsert->name, CollectionName, nameLength ) ;
@@ -1497,7 +1505,11 @@ INT32 clientBuildQueryMsg  ( CHAR **ppBuffer, INT32 *bufferSize,
    pQuery->header.flags          = 0 ;
    pQuery->header.routeID.value  = 0 ;
    pQuery->header.TID            = ossGetCurrentThreadID() ;
+<<<<<<< HEAD
    ossMemset( &(pQuery->header.globalID), 0, sizeof(pQuery->header.globalID) ) ;
+=======
+   // TODO: Set the message globalID.
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    ossMemset( pQuery->header.reserve, 0, sizeof(pQuery->header.reserve) ) ;
 
    // copy collection name
@@ -1681,7 +1693,10 @@ INT32 clientBuildAdvanceMsg( CHAR **ppBuffer, INT32 *bufferSize,
    pAdvance->header.messageLength= packetLength ;
    pAdvance->header.routeID.value= 0 ;
    pAdvance->header.TID          = ossGetCurrentThreadID() ;
+<<<<<<< HEAD
    ossMemset( &(pAdvance->header.globalID), 0, sizeof(pAdvance->header.globalID) ) ;
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    // get the offset of the bson obj
    offset = ossRoundUpToMultipleX( sizeof( MsgOpAdvance ), 4 ) ;
@@ -1839,7 +1854,11 @@ INT32 clientBuildDeleteMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    pDelete->header.flags         = 0 ;
    pDelete->header.routeID.value = 0 ;
    pDelete->header.TID           = ossGetCurrentThreadID() ;
+<<<<<<< HEAD
    ossMemset( &(pDelete->header.globalID), 0, sizeof(pDelete->header.globalID) ) ;
+=======
+   // TODO: Set the message globalID.
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    ossMemset( pDelete->header.reserve, 0, sizeof(pDelete->header.reserve) ) ;
    // copy collection name
    ossStrncpy ( pDelete->name, CollectionName, nameLength ) ;
@@ -2039,7 +2058,11 @@ INT32 clientBuildAggrRequest1( CHAR **ppBuffer, INT32 *bufferSize,
    pAggr->header.routeID.value = 0;
    pAggr->header.requestID = 0;
    pAggr->header.TID = ossGetCurrentThreadID();
+<<<<<<< HEAD
    ossMemset( &(pAggr->header.globalID), 0, sizeof(pAggr->header.globalID) ) ;
+=======
+   // TODO: Set the message globalID.
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    ossMemset( pAggr->header.reserve, 0, sizeof(pAggr->header.reserve) ) ;
    ossStrncpy( pAggr->name, CollectionName, nameLength );
    pAggr->name[nameLength] = 0;
@@ -2143,7 +2166,11 @@ INT32 clientBuildAggrRequest( CHAR **ppBuffer, INT32 *bufferSize,
    pAggr->header.flags         = 0 ;
    pAggr->header.routeID.value = 0 ;
    pAggr->header.TID           = ossGetCurrentThreadID() ;
+<<<<<<< HEAD
    ossMemset( &(pAggr->header.globalID), 0, sizeof(pAggr->header.globalID) ) ;
+=======
+   // TODO: Set the message globalID.
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    ossMemset( pAggr->header.reserve, 0, sizeof(pAggr->header.reserve) ) ;
    // copy collection name
    ossStrncpy ( pAggr->name, CollectionName, nameLength ) ;
@@ -2341,7 +2368,11 @@ INT32 clientBuildLobMsg( CHAR **ppBuffer, INT32 *bufferSize,
    msg->header.flags = 0 ;
    msg->header.routeID.value = clientDefaultRouteID ;
    msg->header.TID = ossGetCurrentThreadID() ;
+<<<<<<< HEAD
    ossMemset( &(msg->header.globalID), 0, sizeof(msg->header.globalID) ) ;
+=======
+   // TODO: Set the message globalID.
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    ossMemset( msg->header.reserve, 0, sizeof(msg->header.reserve) ) ;
 
    offset = sizeof( MsgOpLob ) ;
@@ -2602,7 +2633,11 @@ INT32 clientBuildAuthCrtMsg( CHAR **ppBuffer, INT32 *bufferSize,
    msg->header.flags         = 0 ;
    msg->header.routeID.value = 0 ;
    msg->header.TID           = ossGetCurrentThreadID() ;
+<<<<<<< HEAD
    ossMemset( &(msg->header.globalID), 0, sizeof(msg->header.globalID) ) ;
+=======
+   // TODO: Set the message globalID.
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    ossMemset( msg->header.reserve, 0, sizeof(msg->header.reserve) ) ;
 
    if ( !endianConvert )
@@ -3125,7 +3160,11 @@ INT32 clientBuildGetMoreMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    pGetMore->header.flags         = 0 ;
    pGetMore->header.routeID.value = 0 ;
    pGetMore->header.TID           = ossGetCurrentThreadID() ;
+<<<<<<< HEAD
    ossMemset( &(pGetMore->header.globalID), 0, sizeof(pGetMore->header.globalID) ) ;
+=======
+   // TODO: Set the message globalID.
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    ossMemset( pGetMore->header.reserve, 0, sizeof(pGetMore->header.reserve) ) ;
    if ( endianConvert )
    {
@@ -3172,7 +3211,11 @@ INT32 clientBuildKillContextsMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    pKC->header.flags         = 0 ;
    pKC->header.routeID.value = 0 ;
    pKC->header.TID           = ossGetCurrentThreadID() ;
+<<<<<<< HEAD
    ossMemset( &(pKC->header.globalID), 0, sizeof(pKC->header.globalID) ) ;
+=======
+   // TODO: Set the message globalID.
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    ossMemset( pKC->header.reserve, 0, sizeof(pKC->header.reserve) ) ;
    ossEndianConvertIf ( numContexts, pKC->numContexts, endianConvert ) ;
    if( endianConvert )
@@ -3227,8 +3270,12 @@ INT32 clientBuildInterruptMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    killAllContexts->header.TID           = ossGetCurrentThreadID() ;
    killAllContexts->header.routeID.value = 0 ;
    killAllContexts->header.requestID     = reqID ;
+<<<<<<< HEAD
    ossMemset( &(killAllContexts->header.globalID), 0,
               sizeof(killAllContexts->header.globalID) ) ;
+=======
+   // TODO: Set the message globalID.
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    ossMemset( killAllContexts->header.reserve, 0,
               sizeof(killAllContexts->header.reserve) ) ;
    if ( endianConvert )
@@ -3309,8 +3356,12 @@ INT32 clientBuildDisconnectMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    pDisconnect->header.flags         = 0 ;
    pDisconnect->header.routeID.value = 0 ;
    pDisconnect->header.TID           = ossGetCurrentThreadID() ;
+<<<<<<< HEAD
    ossMemset( &(pDisconnect->header.globalID), 0,
               sizeof(pDisconnect->header.globalID) ) ;
+=======
+   // TODO: Set the message globalID.
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    ossMemset( pDisconnect->header.reserve, 0,
               sizeof(pDisconnect->header.reserve) ) ;
    if( endianConvert )
@@ -3360,7 +3411,11 @@ INT32 clientBuildSqlMsg( CHAR **ppBuffer, INT32 *bufferSize,
       sqlMsg->header.flags         = 0 ;
       sqlMsg->header.routeID.value = 0 ;
       sqlMsg->header.TID           = ossGetCurrentThreadID() ;
+<<<<<<< HEAD
       ossMemset( &(sqlMsg->header.globalID), 0, sizeof(sqlMsg->header.globalID) ) ;
+=======
+      // TODO: Set the message globalID.
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       ossMemset( sqlMsg->header.reserve, 0, sizeof(sqlMsg->header.reserve) ) ;
       ossMemcpy( *ppBuffer + sizeof( MsgOpSql ),
                  sql, sqlLen ) ;
@@ -3461,8 +3516,13 @@ INT32 clientBuildAuthVer0Msg( CHAR **ppBuffer, INT32 *bufferSize,
    msg->header.version       = SDB_PROTOCOL_VER_2 ;
    msg->header.flags         = FLAG_RESULT_DETAIL ;
    msg->header.routeID.value = 0 ;
+   // TODO: Set the message globalID.
    msg->header.TID           = ossGetCurrentThreadID() ;
+<<<<<<< HEAD
    ossMemset( &(msg->header.globalID), 0, sizeof( msg->header.globalID ) ) ;
+=======
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    ossMemset( msg->header.reserve, 0, sizeof( msg->header.reserve ) ) ;
    if ( !endianConvert )
    {
@@ -3594,7 +3654,11 @@ INT32 clientBuildAuthVer1Step1Msg( CHAR **ppBuffer, INT32 *bufferSize,
    msg->header.messageLength = sizeof( MsgAuthentication ) + bsonSize ;
    msg->header.routeID.value = 0 ;
    msg->header.TID           = ossGetCurrentThreadID() ;
+<<<<<<< HEAD
    ossMemset( &(msg->header.globalID), 0, sizeof( msg->header.globalID ) ) ;
+=======
+   // TODO: Set the message globalID.
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    if ( !endianConvert )
    {
       ossMemcpy( *ppBuffer + sizeof(MsgAuthentication),
@@ -3750,7 +3814,10 @@ INT32 clientBuildAuthVer1Step2Msg( CHAR **ppBuffer, INT32 *bufferSize,
    msg->header.flags         = 0 ;
    msg->header.routeID.value = 0 ;
    msg->header.TID           = ossGetCurrentThreadID() ;
+<<<<<<< HEAD
    ossMemset( &(msg->header.globalID), 0, sizeof( msg->header.globalID ) ) ;
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    ossMemset( msg->header.reserve, 0,
               sizeof( msg->header.reserve ) ) ;
    if ( !endianConvert )
@@ -3851,7 +3918,11 @@ INT32 clientBuildAuthDelMsg( CHAR **ppBuffer, INT32 *bufferSize,
    msg->header.eye           = MSG_COMM_EYE_DEFAULT ;
    msg->header.version       = SDB_PROTOCOL_VER_2 ;
    msg->header.flags         = 0 ;
+<<<<<<< HEAD
    ossMemset( &(msg->header.globalID), 0, sizeof(msg->header.globalID) ) ;
+=======
+   // TODO: Set the message globalID.
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    ossMemset( msg->header.reserve, 0, sizeof(msg->header.reserve) ) ;
 
   if ( !endianConvert )
@@ -3926,8 +3997,15 @@ INT32 clientBuildTransactionBegMsg( CHAR **ppBuffer, INT32 *bufferSize,
    transBeginMsg->header.routeID.value = 0 ;
    transBeginMsg->header.TID           = ossGetCurrentThreadID() ;
    transBeginMsg->transID              = 0 ;
+<<<<<<< HEAD
    ossMemset( &(transBeginMsg->header.globalID), 0, sizeof( transBeginMsg->header.globalID ) ) ;
    ossMemset( transBeginMsg->reserved, 0, sizeof( transBeginMsg->reserved ) ) ;
+=======
+   transBeginMsg->transTimeError       = 0 ;
+   transBeginMsg->sendTime             = 0 ;
+   ossMemset( transBeginMsg->reserved, 0, sizeof( transBeginMsg->reserved ) ) ;
+   // TODO: Set the message globalID.
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    ossMemset( transBeginMsg->header.reserve, 0,
               sizeof(transBeginMsg->header.reserve) ) ;
    if( endianConvert )
@@ -3983,8 +4061,12 @@ INT32 clientBuildTransactionCommitMsg( CHAR **ppBuffer, INT32 *bufferSize,
    transCommitMsg->header.flags         = 0 ;
    transCommitMsg->header.routeID.value = 0 ;
    transCommitMsg->header.TID           = ossGetCurrentThreadID() ;
+<<<<<<< HEAD
    ossMemset( &(transCommitMsg->header.globalID), 0,
               sizeof(transCommitMsg->header.globalID) ) ;
+=======
+   // TODO: Set the message globalID.
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    ossMemset( transCommitMsg->header.reserve, 0,
               sizeof(transCommitMsg->header.reserve) ) ;
 
@@ -4074,8 +4156,12 @@ INT32 clientBuildTransactionRollbackMsg( CHAR **ppBuffer, INT32 *bufferSize,
    transRollbackMsg->header.flags         = 0 ;
    transRollbackMsg->header.routeID.value = 0 ;
    transRollbackMsg->header.TID           = ossGetCurrentThreadID() ;
+<<<<<<< HEAD
    ossMemset( &(transRollbackMsg->header.globalID), 0,
               sizeof(transRollbackMsg->header.globalID) ) ;
+=======
+   // TODO: Set the message globalID.
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    ossMemset( transRollbackMsg->header.reserve, 0,
               sizeof(transRollbackMsg->header.reserve) ) ;
    if( endianConvert )
@@ -4241,7 +4327,11 @@ INT32 clientBuildTestMsg( CHAR **ppBuffer, INT32 *bufferSize,
    msgOpMsg->header.flags         = 0 ;
    msgOpMsg->header.routeID.value = 0 ;
    msgOpMsg->header.TID           = ossGetCurrentThreadID() ;
+<<<<<<< HEAD
    ossMemset( &(msgOpMsg->header.globalID), 0, sizeof(msgOpMsg->header.globalID) ) ;
+=======
+   // TODO: Set the message globalID.
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    ossMemset( msgOpMsg->header.reserve, 0, sizeof(msgOpMsg->header.reserve) ) ;
 
    ossMemcpy( msgOpMsg->msg, msg, msgLen ) ;
@@ -4574,7 +4664,10 @@ void clientMsgHeaderUpgrade( const MsgHeaderV1 *msgHeader,
    newMsgHeader->TID = msgHeader->TID ;
    newMsgHeader->routeID = msgHeader->routeID ;
    newMsgHeader->requestID = msgHeader->requestID ;
+<<<<<<< HEAD
    ossMemset( &(newMsgHeader->globalID), 0, sizeof( newMsgHeader->globalID) ) ;
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    ossMemset( newMsgHeader->reserve, 0, sizeof( newMsgHeader->reserve) ) ;
 }
 

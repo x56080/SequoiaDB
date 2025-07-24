@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = barBkupLogger.cpp
 
@@ -34,7 +33,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #include "barBkupLogger.hpp"
 #include "pd.hpp"
 #include "pmd.hpp"
@@ -49,6 +47,7 @@
 #include "utilCompressor.hpp"
 #include "pdTrace.hpp"
 #include "barTrace.hpp"
+#include "catCommon.hpp"
 
 #include <iostream>
 #include <boost/filesystem.hpp>
@@ -419,6 +418,11 @@ namespace engine
 
       _metaHeader.setPath( _path.c_str() ) ;
       _metaHeader.setName( _backupName.c_str(), NULL ) ;
+
+      if ( _pTransCB->isGlobTransOn() )
+      {
+         _metaHeader._global = BAR_BACKUP_GLOBAL_BKP ;
+      }
 
    done:
       return rc ;
@@ -829,6 +833,7 @@ namespace engine
             // 2. backup config
             rc = _backupConfig() ;
             PD_RC_CHECK( rc, PDERROR, "Failed to backup config, rc: %d", rc ) ;
+<<<<<<< HEAD
 
             // 3. do backup data
             rc = _doBackup ( cb ) ;
@@ -838,6 +843,32 @@ namespace engine
             rc = _writeMetaFile () ;
             PD_RC_CHECK( rc, PDERROR, "Failed to write meta file, rc: %d",
                          rc ) ;
+=======
+
+            // 3. do backup data
+            rc = _doBackup ( cb ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to do backup, rc: %d", rc ) ;
+
+            // 4. write meta file
+            rc = _writeMetaFile () ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to write meta file, rc: %d",
+                         rc ) ;
+         }
+         else if ( _metaHeader._global & BAR_BACKUP_GLOBAL_BKP )
+         {
+            // for global backup, we need to save a global timestamp for backup,
+            // so save a file even the backup is empty
+
+            // 2. backup config
+            rc = _backupConfig() ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to backup config, rc: %d", rc ) ;
+
+            // 3. no data to backup
+
+            // 4. write meta file
+            rc = _writeMetaFile () ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to write meta file, rc: %d", rc ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          }
          else
          {
@@ -1400,6 +1431,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       DPS_LSN beginlsn, expectlsn, currentLSN ;
       DPS_LSN_OFFSET transLSN = DPS_INVALID_LSN_OFFSET ;
+      UINT64 backupTime = 0LL ;
 
       isEmpty = FALSE ;
 
@@ -1444,15 +1476,39 @@ namespace engine
          _hasRegBackup = TRUE ;
       }
 
+      // for global transaction backup
+      if ( _pTransCB->isGlobTransOn() )
+      {
+         stpLogicalTimeUS tempTime ;
+         rc = _pTransCB->getGlobTransTime( tempTime, OSS_ONE_SEC ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get global logical time for "
+                      "backup, rc: %d", rc ) ;
+
+         backupTime = tempTime.getUpperTime() ;
+
+         // register as read transaction, so coming transaction will be
+         // committed after backup
+         _pTransCB->regReadTranTime( backupTime ) ;
+
+         // save the meta header
+         _metaHeader._globalBackupTime = backupTime ;
+      }
+
       // if increase backup, need to check lsn
       beginlsn = _pDPSCB->getStartLsn( FALSE ) ;
       expectlsn = _pDPSCB->expectLsn() ;
       currentLSN = _pDPSCB->getCurrentLsn() ;
       transLSN = _pTransCB->getOldestBeginLsn() ;
 
+      _metaHeader._endLSNOffset   = expectlsn.offset ;
+      _metaHeader._transLSNOffset = transLSN ;
+
       if ( BAR_BACKUP_OP_TYPE_INC == _metaHeader._opType )
       {
-         if ( beginlsn.compareOffset( _metaHeader._beginLSNOffset ) > 0 )
+         // if begin LSN in meta is invalid, means the last backup is
+         // empty, should not report error
+         if ( DPS_INVALID_LSN_OFFSET != _metaHeader._beginLSNOffset &&
+              beginlsn.compareOffset( _metaHeader._beginLSNOffset ) > 0 )
          {
             PD_LOG( PDERROR, "Begin lsn[%lld] is smaller than log's begin "
                     "lsn[%u,%lld]", _metaHeader._beginLSNOffset,
@@ -1506,9 +1562,6 @@ namespace engine
             _metaHeader._beginLSNOffset = currentLSN.offset ;
          }
       }
-
-      _metaHeader._endLSNOffset   = expectlsn.offset ;
-      _metaHeader._transLSNOffset = transLSN ;
 
    done:
       return rc ;
@@ -2129,6 +2182,7 @@ namespace engine
 
       _isDoRestoring       = FALSE ;
       _skipConf            = FALSE ;
+      _isGlobal            = FALSE ;
    }
 
    _barRSBaseLogger::~_barRSBaseLogger ()
@@ -2371,6 +2425,9 @@ namespace engine
       // 4. load config
       rc = _loadConf() ;
       PD_RC_CHECK( rc, PDERROR, "Failed to load config, rc: %d", rc ) ;
+
+      // Is this a global backup that is being restored?
+      _isGlobal = _metaHeader._global & BAR_BACKUP_GLOBAL_BKP ;
 
       // 5. reset
       _reset() ;
@@ -3023,6 +3080,7 @@ namespace engine
                      break ;
                   }
 
+<<<<<<< HEAD
                   PD_LOG( PDEVENT, "Begin to load all collection spaces..." ) ;
                   std::cout << "Begin to load all collection spaces..."
                             << std::endl ;
@@ -3033,6 +3091,13 @@ namespace engine
                   PD_RC_CHECK( rc, PDERROR, "Failed to load collection spaces, "
                                "rc: %d", rc ) ;
                   _hasLoadDMS = TRUE ;
+=======
+                  rc = _loadDMS() ;
+                  if ( SDB_OK != rc )
+                  {
+                     goto error ;
+                  }
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                }
                rc = _processReplLog( pExtHeader, pBuff, restoreInc, cb ) ;
                break ;
@@ -3177,7 +3242,7 @@ namespace engine
             PD_RC_CHECK( rc, PDERROR, "Failed to load logRecord, lsn[%d,%lld], "
                          "type: %d, rc: %d", pHeader->_version, pHeader->_lsn,
                          pHeader->_type, rc ) ;
-            _pTransCB->saveTransInfoFromLog( record ) ;
+            _pTransCB->saveTransInfoFromLog( record, TRUE ) ;
          }
 
          pLogIndex += pHeader->_length ;
@@ -3357,18 +3422,10 @@ namespace engine
 
       if ( DPS_INVALID_LSN_OFFSET != _metaHeader._transLSNOffset )
       {
-         if ( !_hasLoadDMS )
+         rc = _loadDMS() ;
+         if ( SDB_OK != rc )
          {
-            PD_LOG( PDEVENT, "Begin to load all collection spaces..." ) ;
-            std::cout << "Begin to load all collection spaces..." << std::endl ;
-
-            // load all collectionspaces
-            pmdGetKRCB()->setIsRestore( FALSE ) ;
-            rc = _pDMSCB->init() ;
-            pmdGetKRCB()->setIsRestore( TRUE ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to load collection spaces, "
-                         "rc: %d", rc ) ;
-            _hasLoadDMS = TRUE ;
+            goto error ;
          }
 
          PD_LOG( PDEVENT, "Begin to rollback all trans..." ) ;
@@ -3379,10 +3436,92 @@ namespace engine
                       rc ) ;
       }
 
+      if ( _isGlobal )
+      {
+         if ( SDB_ROLE_CATALOG == pmdGetDBRole() )
+         {
+            // This is a global restore. The cluster is now awaiting
+            // restoreToTime. Need to set RestoreInProgress: true in
+            // SYSINFO.SYSDCBASE
+            // This requires a real update operation - need to fully init
+            // some CBs
+
+            // Fully init transCB
+            pmdGetKRCB()->setIsRestore( FALSE ) ;
+            rc = _pTransCB->init() ;
+            pmdGetKRCB()->setIsRestore( TRUE ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "Failed to init transCB." ) ;
+               goto error ;
+            }
+
+            // Fully init DMS
+            if ( (rc = _loadDMS()) != SDB_OK )
+            {
+               goto error ;
+            }
+
+            PD_LOG( PDEVENT, "Setting DC to restore-in-progress..." ) ;
+            std::cout << "Setting DC to restore-in-progress..." << std::endl ;
+            if ((rc = catUpdateDCStatus(FIELD_NAME_RESTORE, TRUE, cb, 1,
+                                        _pDMSCB, _pDPSCB)) != SDB_OK)
+            {
+               PD_LOG( PDERROR, "Failed to set restore-in-progress." ) ;
+               goto error ;
+            }
+         }
+
+         // save global backup time to metadata file if needed
+         if ( 0LL != _metaHeader._globalBackupTime )
+         {
+            UINT64 minTime = 0LL, tmp = 0LL, maxTime = 0LL ;
+            if (_isGlobal)
+            {
+               // set the running time to the backup time
+               _pTransCB->setRestorePointTime( _metaHeader._globalBackupTime ) ;
+            }
+            // flush to meta file
+            _pDPSCB->getLogMgr()->flushTransMeta() ;
+            // log a message
+            _pTransCB->getRestoreWindow( minTime, tmp, maxTime ) ;
+            PD_LOG( PDEVENT, "Saved global transaction recoverable window ( "
+                    "min: %llu, max: %llu )", minTime, maxTime ) ;
+            std::cout << "Saved global transaction recoverable window ( " <<
+               "min: " << minTime << ", max: " << maxTime << " )" << std::endl ;
+         }
+         else
+         {
+            PD_LOG( PDWARNING, "No backup time is given for global backup" ) ;
+            std::cout << "WARNING: No backup time is given for global " <<
+               "backup" << std::endl ;
+         }
+      }
+
    done:
       return rc ;
    error:
       goto done ;
+   }
+
+   INT32 _barRSOfflineLogger::_loadDMS()
+   {
+      if ( _hasLoadDMS )
+      {
+         return SDB_OK ;
+      }
+      PD_LOG( PDEVENT, "Begin to load all collection spaces..." ) ;
+      std::cout << "Begin to load all collection spaces..." << std::endl ;
+      pmdGetKRCB()->setIsRestore( FALSE ) ;
+      INT32 rc = _pDMSCB->init() ;
+      pmdGetKRCB()->setIsRestore( TRUE ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "Failed to load DMS collection spaces, rc: %d", rc ) ;
+         return rc ;
+      }
+      _hasLoadDMS = TRUE ;
+      return SDB_OK ;
    }
 
    /*
@@ -3395,7 +3534,7 @@ namespace engine
       _checkGroupName = checkGroupName ;
       _checkHostName = checkHostName ;
       _checkSvcName = checkSvcName ;
-      
+
    }
 
    _barBackupMgr::~_barBackupMgr ()
@@ -3619,6 +3758,13 @@ namespace engine
       builder.append( FIELD_NAME_ENSURE_INC,
                       pHeader->_opType == BAR_BACKUP_OP_TYPE_INC ?
                       true : false ) ;
+
+      builder.append( FIELD_NAME_GLOBAL_TRANS,
+                      pHeader->_global & BAR_BACKUP_GLOBAL_BKP ?
+                      true : false ) ;
+
+      builder.append( FIELD_NAME_GLOBAL_TIME,
+                      (INT64)( pHeader->_globalBackupTime ) ) ;
 
       // stat info
       builder.append( "BeginLSNOffset", (INT64)pHeader->_beginLSNOffset ) ;

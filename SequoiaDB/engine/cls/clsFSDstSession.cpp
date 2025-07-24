@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = clsFSDstSession.cpp
 
@@ -1596,6 +1595,7 @@ namespace engine
                ossSnprintf( recyFullName, DMS_COLLECTION_FULL_NAME_SZ, "%s.%s",
                             csName, options._recycleItem.getRecycleName() ) ;
 
+<<<<<<< HEAD
                // truncate will rename the old collections, and create a new
                // empty collection with the same name, both collections
                // should be synchronized
@@ -1609,6 +1609,10 @@ namespace engine
                   goto error ;
                }
                _addCollection( recyFullName ) ;
+=======
+               _renameCollection( originFullName, recyFullName, replayRC ) ;
+               replayRC = SDB_OK ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             }
 
             if ( SDB_OK != replayRC )
@@ -1677,10 +1681,14 @@ namespace engine
                ossSnprintf( recyFullName, DMS_COLLECTION_FULL_NAME_SZ, "%s.%s",
                             csName, options._recycleItem.getRecycleName() ) ;
 
+<<<<<<< HEAD
                rc = _renameCollection( originFullName, recyFullName, replayRC ) ;
                PD_RC_CHECK( rc, PDERROR, "Session[%s] failed to replay drop "
                             "collection DPS log record, rc: %d", sessionName(),
                             rc ) ;
+=======
+               _renameCollection( originFullName, recyFullName, replayRC ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             }
             else
             {
@@ -1720,12 +1728,18 @@ namespace engine
             if ( options._recycleItem.isValid() )
             {
                // if recycle name is valid, check rename collection
+<<<<<<< HEAD
                rc = _renameCollectionSpace( options._recycleItem.getOriginName(),
                                             options._recycleItem.getRecycleName(),
                                             replayRC ) ;
                PD_RC_CHECK( rc, PDERROR, "Session[%s] failed to replay drop "
                             "collection space DPS log record, rc: %d",
                             sessionName(), rc ) ;
+=======
+               _renameCollectionSpace( options._recycleItem.getOriginName(),
+                                       options._recycleItem.getRecycleName(),
+                                       replayRC ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             }
             else
             {
@@ -2241,12 +2255,15 @@ namespace engine
          goto done ;
       }
 
+<<<<<<< HEAD
       _syncBeginTick = pmdGetDBTick() ;
       ossSnprintf( _lastSyncDetail, CLS_SYNC_DETAIL_MAX_LEN,
                    "Fullsync begin, expect LSN: ( offset: %lld, version: %u )",
                    (INT64)msg->lsn.offset, msg->lsn.version ) ;
       MON_REPLACE_OP_DETAIL( eduCB()->getMonAppCB(), header->opCode, _lastSyncDetail ) ;
 
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       /// begin next status
       _meta() ;
 
@@ -2884,7 +2901,18 @@ namespace engine
          {
             const monCSSimple &csInfo = *it ;
 
+            // skip SYSTEM during sync
             if ( 0 == ossStrcmp( csInfo._name, SDB_DMSTEMP_NAME ) )
+            {
+               csList.erase( it++ ) ;
+               ++count ;
+               continue ;
+            }
+
+            // skip SYSRBS CS during sync because it's local to the node
+            if ( 0 == ossStrncmp( csInfo._name,
+                                  SDB_DMSRBS_NAME,
+                                  SDB_DMSRBS_NAME_SIZE ) )
             {
                csList.erase( it++ ) ;
                ++count ;
@@ -3389,6 +3417,8 @@ namespace engine
       msg.header.TID = CLS_TID( _sessionID ) ;
       _sendTo( _selector.src(), &(msg.header) ) ;
       _timeout = 0 ;
+      // End of split, make it so that restoreToTime cannot go beyond this
+      sdbGetTransCB()->pushRestoreWindow() ;
       PD_TRACE_EXIT ( SDB__CLSSPLDS__LEND );
    }
 
@@ -3440,6 +3470,60 @@ namespace engine
       }
       else if ( STEP_POST_SYNC == _step )
       {
+         INT32       rc       = SDB_OK ;
+         SDB_DMSCB  *dmsCB    = pmdGetKRCB()->getDMSCB() ;
+         dpsTransCB *pTransCB = sdbGetTransCB() ;
+
+         // get glob trans time if RR is supported
+         if ( pTransCB->isRRSupported() )
+         {
+
+            // get glob tx time and mark split finish timestamp in mbStat
+            // until succeed or EDU is interrupted
+            dmsStorageUnit  *su       = NULL ;
+            const CHAR      *pCLShort = NULL ;
+            dmsMBContext    *pContext = NULL ;
+            dmsStorageUnitID suID     = DMS_INVALID_SUID ;
+            stpAgent timeAgent ;
+            stpLogicalTimeUS finishTime ;
+
+            // get global logical time
+            rc = timeAgent.getLogicalTimeUS( finishTime,
+                                             OSS_ONE_SEC,
+                                             FALSE ) ;
+
+            // lock su
+            if ( SDB_OK == rtnResolveCollectionNameAndLock(
+                              _pTask->collectionName(), dmsCB, &su,
+                              &pCLShort, suID ) )
+            {
+               // mark split finish timestamp in mbStat
+               if ( SDB_OK == su->data()->getMBContext( &pContext, pCLShort,
+                                                        SHARED ) )
+               {
+                  UINT64 tm = finishTime.getTime() + STP_MAX_TIME_ERROR_US ;
+                  // update global transaction available timestamp
+                  // split won't fetch old versions from source
+                  if ( SDB_OK != rc )
+                  {
+                     PD_LOG( PDWARNING, "Failed to get STP logical time, rc:%d ", rc ) ;
+                     pContext->mbStat()
+                             ->_globTransAvailTime.swapGreaterThan( DPS_MAX_TRANS_TIME) ;
+                     rc = SDB_OK ;
+                  }
+                  else
+                  {
+                     pContext->mbStat()
+                             ->_globTransAvailTime.swapGreaterThan( tm ) ;
+                  }
+                  // release context
+                  su->data()->releaseMBContext( pContext ) ;
+               }
+               // release sulock
+               dmsCB->suUnlock( suID ) ;
+            }
+         }
+
          _taskNotify( MSG_CAT_SPLIT_CHGMETA_REQ ) ;
       }
       else if ( STEP_META == _step )
@@ -3769,6 +3853,7 @@ namespace engine
       }
 
       _step = STEP_FINISH ;
+<<<<<<< HEAD
       // unregister collection
       if ( _regTask )
       {
@@ -3779,6 +3864,8 @@ namespace engine
                  " unregistered", sessionName(), _pTask->collectionName(),
                  _pTask->taskName() ) ;
       }
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       // notify catalog remove the task
       _taskNotify( MSG_CAT_SPLIT_FINISH_REQ ) ;
 

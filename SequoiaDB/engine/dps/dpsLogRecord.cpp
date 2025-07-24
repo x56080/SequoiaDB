@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = dpsLogRecord.cpp
 
@@ -176,7 +174,7 @@ namespace engine
       // Let's clear them and reload from beginning
       _clearTags() ;
 
-      rc = loadBody( rowData, dataLen, FALSE ) ;
+      rc = _loadBody( rowData, dataLen, FALSE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to parse row-record(rc=%d)!", rc ) ;
       }
 
@@ -187,12 +185,12 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSLGRECD_LOADBODY, "_dpsLogRecord::loadBody" )
-   INT32 _dpsLogRecord::loadBody( const CHAR * pData,
-                                  INT32 totalSize,
-                                  BOOLEAN checkEnd )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSLGRECD__LOADBODY, "_dpsLogRecord::_loadBody" )
+   INT32 _dpsLogRecord::_loadBody( const CHAR * pData,
+                                   INT32 totalSize,
+                                   BOOLEAN checkEnd )
    {
-      PD_TRACE_ENTRY ( SDB__DPSLGRECD_LOADBODY );
+      PD_TRACE_ENTRY ( SDB__DPSLGRECD__LOADBODY );
       SDB_ASSERT( pData, "pData can't be null!" ) ;
 
       INT32 rc = SDB_OK ;
@@ -237,7 +235,7 @@ namespace engine
          location += ( valueSize + DPS_RECORD_ELE_HEADER_LEN ) ;
       }
    done:
-      PD_TRACE_EXITRC ( SDB__DPSLGRECD_LOADBODY, rc ) ;
+      PD_TRACE_EXITRC ( SDB__DPSLGRECD__LOADBODY, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -274,7 +272,7 @@ namespace engine
       totalSize = _head._length
                   - sizeof( dpsLogRecordHeader )
                   - DPS_RECORD_ELE_HEADER_LEN ;
-      rc = loadBody( location, totalSize, checkEnd ) ;
+      rc = _loadBody( location, totalSize, checkEnd ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to parse row-record(rc=%d)!", rc ) ;
    done:
       PD_TRACE_EXITRC ( SDB__DPSLGRECD_LOAD, rc );
@@ -408,7 +406,11 @@ namespace engine
                               " Length : %d" OSS_NEWLINE,
                               _head._length ) ;
          len += ossSnprintf ( outBuf + len, outSize - len,
+<<<<<<< HEAD
                               " Flags  : 0x%04hx(%s)" OSS_NEWLINE, _head._flags,
+=======
+                              " Flags  : 0x%04hx(%s)"OSS_NEWLINE, _head._flags,
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                               tmpStr ) ;
 
          itrTime = this->find( DPS_LOG_PUBLIC_TIME ) ;
@@ -1311,15 +1313,20 @@ namespace engine
             len += ossSnprintf ( outBuf + len, outSize - len,
                                  " Type   : %s(%d)" OSS_NEWLINE,
                                  "ROLLBACK", LOG_TYPE_TS_ROLLBACK ) ;
+<<<<<<< HEAD
              if ( DPS_INVALID_TRANS_ID == transID )
              {
+=======
+            if ( !itrTransID.valid() )
+            {
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                len += ossSnprintf ( outBuf + len, outSize - len,
                                     "*ERROR* : %s" OSS_NEWLINE,
                                     "Failed to find transid in record" ) ;
-                PD_LOG( PDERROR, "Failed to find transid in record" ) ;
-                goto done ;
-             }
-             break ;
+               PD_LOG( PDERROR, "Failed to find transid in record" ) ;
+               goto done ;
+            }
+            break ;
          }
          case LOG_TYPE_LOB_WRITE :
          {
@@ -1806,6 +1813,7 @@ namespace engine
 
          if ( DPS_INVALID_TRANS_ID != transID )
          {
+<<<<<<< HEAD
             CHAR tmpID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
             CHAR tmpAttr[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
 
@@ -1816,6 +1824,60 @@ namespace engine
                                                      DPS_TRANS_STR_LEN ),
                                  dpsTransIDAttrToString( transID, tmpAttr,
                                                          DPS_TRANS_STR_LEN ) ) ;
+=======
+            DPS_TRANS_ID transID ;
+            stpLogicalTimeUS transTime ;
+
+            if ( SDB_OK == dpsGetTransIDFromRecord( *this, transID ) )
+            {
+               CHAR tmpID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
+               CHAR tmpAttr[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
+
+               len += ossSnprintf(
+                     outBuf + len, outSize - len,
+                     " TransID : %s" OSS_NEWLINE
+                     " IDAttr  : %s" OSS_NEWLINE,
+                     dpsTransIDToString( transID, tmpID,
+                                         DPS_TRANS_STR_LEN ),
+                     dpsTransIDAttrToString( transID, tmpAttr,
+                                             DPS_TRANS_STR_LEN ) ) ;
+            }
+            else
+            {
+               len += ossSnprintf ( outBuf + len, outSize - len,
+                                    "*ERROR* : %s" OSS_NEWLINE,
+                                    "Invalid transaction ID record" ) ;
+            }
+
+            // check if record has logical time for transaction
+            if ( transID.isGlobTrans() )
+            {
+               // only first operator, pre-commit record, and commit record
+               // for auto-commit transaction would have logical time
+               // components
+               if ( transID.isFirstOp() &&
+                    SDB_OK == dpsGetTransTimeFromRecord( *this,
+                                                         transID,
+                                                         transTime ) )
+               {
+                  len += ossSnprintf( outBuf + len, outSize - len,
+                                      " TransTime : %llu" OSS_NEWLINE
+                                      " TransTimeError : %u" OSS_NEWLINE,
+                                      transTime.getTime(),
+                                      transTime.getTimeError() ) ;
+               }
+               else if ( LOG_TYPE_TS_COMMIT == _head._type &&
+                         SDB_OK == dpsGetTransTimeFromRecord( *this,
+                                                              transID,
+                                                              transTime ) )
+               {
+                  // no time error for pre-commit record
+                  len += ossSnprintf( outBuf + len, outSize - len,
+                                      " TransTime : %llu" OSS_NEWLINE,
+                                      transTime.getTime() ) ;
+               }
+            }
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          }
          if ( itrTransLsn.valid() )
          {
@@ -1834,7 +1896,11 @@ namespace engine
       if ( SDB_OK != _result )
       {
          len += ossSnprintf( outBuf + len, outSize - len,
+<<<<<<< HEAD
                              OSS_NEWLINE "*ERROR* : %d(%s)" OSS_NEWLINE,
+=======
+                             OSS_NEWLINE"*ERROR* : %d(%s)" OSS_NEWLINE,
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                              _result, getErrDesp( _result ) ) ;
       }
 
@@ -1855,4 +1921,16 @@ namespace engine
    {
       return &_timeMicroSeconds ;
    }
+
+   BOOLEAN _dpsLogRecord::isPreCommit()const
+   {
+      if ( !isCommit() )
+      {
+         return FALSE ;
+      }
+      iterator itr = find( DPS_LOG_TSCOMMIT_ATTR );
+      return itr.valid() &&
+             ( DPS_TS_COMMIT_ATTR_PRE == *(UINT8 *)itr.value() ) ;
+   }
+
 }

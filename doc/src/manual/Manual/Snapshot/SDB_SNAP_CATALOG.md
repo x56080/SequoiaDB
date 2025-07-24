@@ -1,11 +1,19 @@
+<<<<<<< HEAD
 [^_^]:
+=======
+[^_^]: 
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
     编目信息快照
 
 
 编目信息快照可以列出所有集合的编目信息。
 
+<<<<<<< HEAD
 > **Note:**
+=======
+> **Note:**  
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 >
 > 该快照只能在协调节点执行。
 
@@ -21,7 +29,10 @@ SDB_SNAP_CATALOG
 | UniqueID            | int64  | 集合的 UniqueID，在集群上全局唯一 |
 | EnsureShardingIndex | boolean| 是否自动为分区键字段创建索引 |
 | ReplSize            | int32  | 执行修改操作时需要同步的副本数<br>当执行更新、插入、删除记录等操作时，仅当指定副本数的节点都完成操作时才返回操作结果 |
+<<<<<<< HEAD
 | ConsistencyStrategy | int32  | 集合的[同步一致性][ConsistencyStrategy]策略 |
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 | ShardingKey         | object | 数据分区类型，取值如下：<br>  "range"：数据按分区键值的范围进行分区存储<br>  "hash"：数据按分区键的哈希值进行分区存储 |
 | Version             | int32  | 集合版本号，当对集合的元数据执行修改操作时递增该版本号（例如数据切分） |
 | Attribute           | int32  | 集合的属性掩码，取值可参考 [SYSCOLLECTION 集合][syscollection]                  |
@@ -55,9 +66,15 @@ SDB_SNAP_CATALOG
     ```lang-javascript
     > db.snapshot(SDB_SNAP_CATALOG)
     ```
+<<<<<<< HEAD
 
     输出结果如下：
 
+=======
+    
+    输出结果如下：
+     
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     ```lang-json
     {
       "_id": {
@@ -86,9 +103,15 @@ SDB_SNAP_CATALOG
     ```lang-javascript
     > db.snapshot(SDB_SNAP_CATALOG)
     ```
+<<<<<<< HEAD
 
     输出结果如下：
 
+=======
+    
+    输出结果如下：
+    
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     ```lang-json
     {
       "_id": {
@@ -109,7 +132,10 @@ SDB_SNAP_CATALOG
       ],
       "CompressionType": 0,
       "CompressionTypeDesc": "snappy",
+<<<<<<< HEAD
       "ConsistencyStrategy": 3,
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       "ReplSize": 1,
       "ShardingKey": {
         "age": 1
@@ -146,9 +172,15 @@ SDB_SNAP_CATALOG
     ```lang-javascript
     > db.snapshot(SDB_SNAP_CATALOG)
     ```
+<<<<<<< HEAD
 
     输出结果如下：
 
+=======
+    
+    输出结果如下：
+    
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     ```lang-json
     {
       "_id": {
@@ -220,4 +252,7 @@ SDB_SNAP_CATALOG
     本文使用的所有引用及链接
 [datasource]:manual/Distributed_Engine/Architecture/datasource.md
 [syscollection]:manual/Manual/Catalog_Table/SYSCOLLECTIONS.md
+<<<<<<< HEAD
 [ConsistencyStrategy]:manual/Distributed_Engine/Architecture/Location/consistency_strategy.md
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2

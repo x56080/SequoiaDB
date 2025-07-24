@@ -69,4 +69,8 @@ v2.0 及以上版本
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [error_guide]:manual/FAQ/faq_sdb.md
+<<<<<<< HEAD
 [STOREPROCEDURES]:manual/Manual/Catalog_Table/STOREPROCEDURES.md
+=======
+[STOREPROCEDURES]:manual/Manual/Catalog_Table/STOREPROCEDURES.md
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2

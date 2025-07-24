@@ -81,6 +81,8 @@ public class ParseCipherFile17880 extends SdbTestBase {
     private void testParseCipherFile( String username, String password,
             String token ) throws Exception {
         SdbDecrypt sdbDecrypt = new SdbDecrypt();
+        System.out.println( "the test username is" + username + ", password is"
+                + password );
         SdbDecryptUserInfo info = sdbDecrypt.parseCipherFile( username, token,
                 new File( passwordFilePath ) );
         // check
@@ -93,7 +95,7 @@ public class ParseCipherFile17880 extends SdbTestBase {
         db.close();
     }
 
-    @AfterClass(alwaysRun = true)
+    @AfterClass()
     private void tearDown() throws Exception {
         try {
             for ( int i = 0; i < usernames.length; i++ ) {

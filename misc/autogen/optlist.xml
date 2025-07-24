@@ -968,9 +968,15 @@
       </reloadstrategy>
       <detail>
          <en>Specify the preferred instance when executing a read request. For more details can refer to [setSessionAttr()](manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md).<fig></fig>
+<<<<<<< HEAD
              In v3.4.5 and above, this parameter has been renamed. The users of lower versions should use preferedinstance</en>
          <cn>指定执行读请求时优先选择的实例，更多内容可参考 [setSessionAttr()](manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md)。<fig></fig>
              该参数在 v3.4.5 及以上版本中已更名，低版本的用户仍需使用原参数 preferedinstance。</cn>
+=======
+             In v5.0.3 and above, this parameter has been renamed. The users of lower versions should use preferedinstance</en>
+         <cn>指定执行读请求时优先选择的实例，更多内容可参考 [setSessionAttr()](manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md)。<fig></fig>
+             该参数在 v5.0.3 及以上版本中已更名，低版本的用户仍需使用原参数 preferedinstance。</cn>
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       </detail>
       <typeofweb>str</typeofweb>
       <default>M</default>
@@ -1017,9 +1023,15 @@
       </reloadstrategy>
       <detail>
          <en>Specify the selection mode when multiple instance meet the conditions of preferredinstance. For more details can refer to [setSessionAttr()](manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md).<fig></fig>
+<<<<<<< HEAD
              In v3.4.5 and above, this parameter has been renamed. The users of lower versions should use preferedinstancemode</en>
          <cn>指定当多个实例符合 preferredinstance 的条件时的选择模式，更多内容可参考 [setSessionAttr()](manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md)。<fig></fig>
              该参数在 v3.4.5 及以上版本中已更名，低版本的用户仍需使用原参数 preferedinstancemode。</cn>
+=======
+             In v5.0.3 and above, this parameter has been renamed. The users of lower versions should use preferedinstancemode</en>
+         <cn>指定当多个实例符合 preferredinstance 的条件时的选择模式，更多内容可参考 [setSessionAttr()](manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md)。<fig></fig>
+             该参数在 v5.0.3 及以上版本中已更名，低版本的用户仍需使用原参数 preferedinstancemode。</cn>
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       </detail>
       <typeofweb>str</typeofweb>
       <default>random</default>
@@ -1066,9 +1078,15 @@
       </reloadstrategy>
       <detail>
          <en>Specify whether the node selection is a strict mode, and when it is a strict mode, the node can only be selected from the specified IDs by preferredinstance.Default is false.<fig></fig>
+<<<<<<< HEAD
              In v3.4.5 and above, this parameter has been renamed. The users of lower versions should use preferedstrict</en>
          <cn>指定节点选择是否为严格模式，当为严格模式时，节点只能从 preferredinstance 指定的ID中选取，默认为false。<fig></fig>
              该参数在 v3.4.5 及以上版本中已更名，低版本的用户仍需使用原参数 preferedstrict。</cn>
+=======
+             In v5.0.3 and above, this parameter has been renamed. The users of lower versions should use preferedstrict</en>
+         <cn>指定节点选择是否为严格模式，当为严格模式时，节点只能从 preferredinstance 指定的ID中选取，默认为false。<fig></fig>
+             该参数在 v5.0.3 及以上版本中已更名，低版本的用户仍需使用原参数 preferedstrict。</cn>
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       </detail>
       <typeofweb>boolean</typeofweb>
       <default>false</default>
@@ -1115,9 +1133,15 @@
       </reloadstrategy>
       <detail>
          <en>The effective period of the priority instance, in seconds, for more details can refer to [setSessionAttr()](manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md).<fig></fig>
+<<<<<<< HEAD
              In v3.4.5 and above, this parameter has been renamed. The users of lower versions should use preferedperiod</en>
          <cn>优先实例的有效周期，单位为秒，更多内容可参考 [setSessionAttr()](manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md)。<fig></fig>
              该参数在 v3.4.5 及以上版本中已更名，低版本的用户仍需使用原参数 preferedperiod。</cn>
+=======
+             In v5.0.3 and above, this parameter has been renamed. The users of lower versions should use preferedperiod</en>
+         <cn>优先实例的有效周期，单位为秒，更多内容可参考 [setSessionAttr()](manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md)。<fig></fig>
+             该参数在 v5.0.3 及以上版本中已更名，低版本的用户仍需使用原参数 preferedperiod。</cn>
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       </detail>
       <typeofweb>num</typeofweb>
       <type>int</type>
@@ -1397,7 +1421,7 @@
          <en>1. The buckets of access plan cache. <fig></fig>
              2. Sdb will not cache any access plan if it is 0. <fig></fig>
              3. Default is 500, maximum is 4096. <fig></fig>
-             4. Please visit [Access Plan Cache](manual/Distributed_Engine/Maintainance/Access_Plan/cache.md) for more details.</en>
+             4. Please visit [Access Plan Cache](manual/Maintainance/Access_Plan/cache.md) for more details.</en>
          <cn>1. 访问计划缓存内桶的个数。<fig></fig>
              2. 当其为0时数据库将不会缓存任何访问计划。<fig></fig>
              3. 默认为500，最大值为4096。<fig></fig>
@@ -2035,8 +2059,8 @@
       <name>PMD_OPTION_TRANS_ISOLATION</name>
       <long>transisolation</long>
       <description>
-         <en>Specify the isolation level of transaction, 0 for RU, 1 for RC, 2 for RS. Default is 0</en>
-         <cn>指定事务的隔离级别，0为RU级别，1为RC级别，2为RS级别。默认为0。</cn>
+         <en>Specify the isolation level of transaction, 0 for RU, 1 for RC, 2 for RS, 3 for RR. Default is 0</en>
+         <cn>指定事务的隔离级别，0为RU级别，1为RC级别，2为RS级别，3为RR级别。默认为0。</cn>
       </description>
       <reloadable>
          <en>Take effect immediately</en>
@@ -2047,17 +2071,19 @@
          <cn>下一次事务中生效</cn>
       </reloadstrategy>
       <detail>
-         <en>1. Specify the isolation level of transaction. Value is 0(RU), 1(RC), 2(RS). Default is 0.<fig></fig>
+         <en>1. Specify the isolation level of transaction. Value is 0(RU), 1(RC), 2(RS), 3(RR). Default is 0.<fig></fig>
            2. Value enumeration:<fig></fig>
              ● 0: RU, read uncommited<fig></fig>
              ● 1: RC, read commited.<fig></fig>
              ● 2: RS, read stability.<fig></fig>
+             ● 3: RR, repeatable read.<fig></fig>
          </en>
          <cn>1. 指定事务隔离级别，默认是0。<fig></fig>
            2. 取值列表：<fig></fig>
              ● 0: RU，读未提交。<fig></fig>
              ● 1: RC, 读已提交。<fig></fig>
              ● 2: RS，读稳定性。<fig></fig>
+             ● 3: RR，可重复读。<fig></fig>
          </cn>
       </detail>
       <type>int</type>
@@ -2070,7 +2096,7 @@
       <name>PMD_OPTION_TRANS_LOCKWAIT</name>
       <long>translockwait</long>
       <description>
-         <en>Specify the lock wait behavior within transaction under RC isolation level. false for no lock wait, true for lock wait. Default is false</en>
+         <en>Specify the lock wait behavior within transaction under RC isolation level. false for no lock wait, true for lock wait. Default is false.</en>
          <cn>事务在RC隔离级别下是否需要等锁，false为不等锁，true为等锁。默认为false。</cn>
       </description>
       <reloadable>
@@ -2083,12 +2109,14 @@
       </reloadstrategy>
       <detail>
          <en>1. Specify the record lock wait behavior within transaction under RC isolation level. Value is true/false. Default is false. Should be used in conjunction with transisolation<fig></fig>
-           2. Value enumeration:<fig></fig>
+             2. translockwait will be default to false if mvccon is true.<fig></fig>
+             3. Value enumeration:<fig></fig>
              ● false: no lock wait, retrieve last committed version of record from system directly.<fig></fig>
              ● true: wait for the lock to be released and get the newly committed version.<fig></fig>
           </en>
           <cn>1. 指定事务在RC隔离级别下记录锁的等待行为，默认是false。需要与transisolation配合使用<fig></fig>
-              2. 取值列表：<fig></fig>
+              2. 当mvccon被设为true时，translockwait 会被默认为false。<fig></fig>
+              3. 取值列表：<fig></fig>
               ● false: 不等待记录锁，直接从系统读取最后一次提交的版本。<fig></fig>
               ● true: 等待记录锁，读取最新提交版本的数据<fig></fig>
         </cn>
@@ -2148,7 +2176,7 @@
       <long>transuserbs</long>
       <description>
          <en>Whether use rollback segment or not in transaction. Default is true.</en>
-         <cn>事务操作是否使用回滚段。默认为true。</cn>
+         <cn>事务操作是否使用回滚段。默认为true。</cn> 
       </description>
       <reloadable>
          <en>Take effect immediately</en>
@@ -2159,8 +2187,10 @@
          <cn>下一次事务中生效</cn>
       </reloadstrategy>
       <detail>
-         <en>Whether use rollback segment or not in transaction. Default is true. Take effect when transaction is on.</en>
-         <cn>事务操作是否使用回滚段。默认为true。只有当 transaction 开启时取值才会有效。</cn>
+         <en>1. Whether use rollback segment or not in transaction. Default is true. Take effect when transaction is on.<fig></fig>
+             2. transuserbs will be default to true if mvccon is true.</en>
+         <cn>1. 事务操作是否使用回滚段。默认为true。只有当 transaction 开启时取值才会有效。<fig></fig>
+             2. 当mvccon被设为true时，transuserbs 会被默认为true。 </cn>
       </detail>
       <default>true</default>
       <typeofweb>boolean</typeofweb>
@@ -2574,6 +2604,7 @@
       <typeofweb>str</typeofweb>
       <hidden>false</hidden>
    </opt>
+
    <opt>
       <name>PMD_OPTION_MON_HIST_EVENT</name>
       <long>monhistevent</long>
@@ -2593,6 +2624,7 @@
       <default>1000</default>
       <hidden>true</hidden>
    </opt>
+
    <opt>
       <name>PMD_OPTION_FT_MASK</name>
       <long>ftmask</long>
@@ -2805,6 +2837,107 @@
    </opt>
 
    <opt>
+<<<<<<< HEAD
+=======
+      <name>PMD_OPTION_MVCCON</name>
+      <long>mvccon</long>
+      <description>
+         <en>Turn on MVCC support, default:false</en>
+         <cn>是否打开多版本功能,默认为:false</cn>
+      </description>
+      <reloadable>
+         <en>Take effect after restart</en>
+         <cn>重启生效</cn>
+      </reloadable>
+      <default>false</default>
+      <detail>
+         <en>1. It specifies whether support MVCC or not.<fig></fig>
+             2. If it is not specifed, the default value is false.<fig></fig>
+             3. Only takes effect when transactionon is true.<fig></fig>
+             4. transuserbs will be default to true if mvccon is true.<fig></fig>
+             5. translockwait will be default to false if mvccon is true.</en>
+         <cn>1. 指定是否打开多版本。<fig></fig>
+             2. 如果不指定，则默认为false。<fig></fig>
+             3. 只有当 transactionon 开启时，取值才会有效。<fig></fig>
+             4. 当mvccon被设为true时，transuserbs 会被默认为true。<fig></fig>
+             5. 当mvccon被设为true时，translockwait 会被默认为false。</cn>
+      </detail>
+      <typeofweb>boolean</typeofweb>
+   </opt>
+
+   <opt>
+      <name>PMD_OPTION_GLOBTRANSON</name>
+      <long>globtranson</long>
+      <description>
+         <en>Turn on global transaction support, default: false</en>
+         <cn>是否打开全局事务功能，默认值为：false</cn>
+      </description>
+      <reloadable>
+         <en>Take effect after restart</en>
+         <cn>重启生效</cn>
+      </reloadable>
+      <default>false</default>
+      <detail>
+         <en>1. It specifies whether global transaction is supported or not.<fig></fig>
+             2. If it is not specifed, the default value is false.<fig></fig>
+             3. Only takes effect when transactionon is true.<fig></fig>
+             4. Global transaction requires STP support and MVCC support in DATA nodes.</en>
+         <cn>1. 指定是否支持全局事务功能。<fig></fig>
+             2. 如果不指定，则默认值为 false。<fig></fig>
+             3. 只有当 transactionon 开启时，取值才会有效。<fig></fig>
+             4. 全局事务功能要求接入全局时间服务支持，并且数据节点打开 MVCC 支持。</cn>
+      </detail>
+      <typeofweb>boolean</typeofweb>
+   </opt>
+
+   <opt>
+      <name>PMD_OPTION_GLOBTRANSMAXTIMEERROR</name>
+      <long>globtransmaxtimeerror</long>
+      <description>
+        <en>Maximum acceptable time error ( in microsecond ) between global transaction nodes caused by network delay, default is 500000. -1 means global transaction nodes will not check transaction times.</en>
+        <cn>全局事务节点间可以接受的由于网络传输造成的最大时间误差（单位为微秒），默认是 500000。-1 表示全局事务节点间不进行全局时间校对。</cn>
+      </description>
+      <reloadable>
+         <en>Take effect after restart</en>
+         <cn>重启生效</cn>
+      </reloadable>
+      <detail>
+        <en>1. Maximum acceptable time error ( in microsecond ) between global transaction nodes caused by network delay.<fig></fig>
+            2. default is 500000.<fig></fig>
+            3. maximum is 5000000.<fig></fig>
+            4. minimum is -1, means global transaction nodes will not check transaction times.</en>
+        <cn>1. 全局事务节点间可以接受的由于网络传输造成的最大时间误差（单位为微秒）。<fig></fig>
+            2. 默认是 500000。<fig></fig>
+            3. 最大值是 5000000。<fig></fig>
+            4. 最小值为 -1，表示全局事务节点间不进行全局时间校对。</cn>
+      </detail>
+      <type>int</type>
+      <default>500000</default>
+      <hidden>true</hidden>
+   </opt>
+
+   <opt>
+      <name>PMD_OPTION_MVCCRBSNUM</name>
+      <long>mvccrbsnum</long>
+      <description>
+         <en>Number of RBS collection spaces, default: 16, range: [ 1, 128 ]</en>
+         <cn>多版本回滚段集合空间的个数，默认值为：16，取值范围：[ 1, 128 ]</cn>
+      </description>
+      <reloadable>
+         <en>Take effect after restart</en>
+         <cn>重启生效</cn>
+      </reloadable>
+      <default>16</default>
+      <detail>
+         <en>Number of RBS collection spaces, default: 16, range: [ 1, 128 ]</en>
+         <cn>多版本回滚段集合空间的个数，默认值为：16，取值范围：[ 1, 128 ]</cn>
+      </detail>
+      <type>int</type>
+      <hidden>true</hidden>
+   </opt>
+
+   <opt>
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       <name>PMD_OPTION_INDEXCOVERON</name>
       <long>indexcoveron</long>
       <description>
@@ -2973,6 +3106,7 @@
    </opt>
 
    <opt>
+<<<<<<< HEAD
       <name>PMD_OPTION_TRANSCONSISTENCYSTRATEGY</name>
       <long>transconsistencystrategy</long>
       <description>
@@ -3002,6 +3136,8 @@
    </opt>
 
    <opt>
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       <name>PMD_OPTION_DETECT_DISK</name>
       <long>detectdisk</long>
       <description>
@@ -3020,7 +3156,11 @@
       <typeofweb>boolean</typeofweb>
       <hidden>true</hidden>
   </opt>
+<<<<<<< HEAD
 
+=======
+  
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
   <opt>
       <name>PMD_OPTION_DIAG_SECURE_ON</name>
       <long>diagsecureon</long>
@@ -3083,6 +3223,7 @@
       <typeofweb>num</typeofweb>
    </opt>
 
+<<<<<<< HEAD
    <opt>
       <name>PMD_OPTION_STAT_MCV_LIMIT</name>
       <long>statmcvlimit</long>
@@ -3406,4 +3547,6 @@
       <typeofweb>num</typeofweb>
    </opt>
 
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 </optlist>

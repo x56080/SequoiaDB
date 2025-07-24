@@ -73,6 +73,7 @@ TEST_F( getLobModTime13416, lobWrite )
    EXPECT_LE( createTime, initModTime ) 
          << "wrong modification time after init" ;
 
+   usleep(1000);
    // modify lob
    usleep(1000);
    rc = lob.getOid( oid ) ;

@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = clsCommand.cpp
 
@@ -30,7 +28,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #include "clsCommand.hpp"
 #include "pd.hpp"
 #include "pmd.hpp"
@@ -39,6 +36,7 @@
 #include "clsTrace.hpp"
 #include "rtn.hpp"
 #include "rtnContextAlter.hpp"
+#include "rtnContextDump.hpp"
 #include "msgMessageFormat.hpp"
 
 using namespace bson ;
@@ -192,7 +190,607 @@ namespace engine
 
       rc = sdbGetClsCB()->startTaskCheck ( match, TRUE ) ;
       PD_TRACE_EXITRC ( SDB__CLSSPLIT_DOIT, rc ) ;
+<<<<<<< HEAD
       return rc ;
+   }
+
+   IMPLEMENT_CMD_AUTO_REGISTER(_rtnCreateIndex)
+   _rtnCreateIndex::_rtnCreateIndex ()
+   : _collectionName ( NULL ),
+     _indexName( NULL ),
+     _sortBufSize ( SDB_INDEX_SORT_BUFFER_DEFAULT_SIZE ),
+     _textIdx( FALSE ),
+     _isGlobal( FALSE ),
+     _taskID( CLS_INVALID_TASKID ),
+     _isAsync( FALSE ),
+     _isStandaloneIdx( FALSE )
+   {
+   }
+
+   _rtnCreateIndex::~_rtnCreateIndex ()
+   {
+   }
+
+   const CHAR *_rtnCreateIndex::name ()
+   {
+      return NAME_CREATE_INDEX ;
+   }
+
+   RTN_COMMAND_TYPE _rtnCreateIndex::type ()
+   {
+      return CMD_CREATE_INDEX ;
+   }
+
+   BOOLEAN _rtnCreateIndex::writable ()
+   {
+      return _isStandaloneIdx ? FALSE : TRUE ; ;
+   }
+
+   const CHAR *_rtnCreateIndex::collectionFullName ()
+   {
+      return _collectionName ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSCREATEINDEX_INIT, "_rtnCreateIndex::init" )
+   INT32 _rtnCreateIndex::init ( INT32 flags, INT64 numToSkip,
+                                 INT64 numToReturn,
+                                 const CHAR * pMatcherBuff,
+                                 const CHAR * pSelectBuff,
+                                 const CHAR * pOrderByBuff,
+                                 const CHAR * pHintBuff)
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB__CLSCREATEINDEX_INIT ) ;
+      BSONObj arg ( pMatcherBuff ) ;
+      BSONObj hint ( pHintBuff ) ;
+      BOOLEAN hasSortBufSz = FALSE ;
+
+      // get collectio name
+      rc = rtnGetStringElement( arg, FIELD_NAME_COLLECTION, &_collectionName ) ;
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "Failed to get string [collection] " ) ;
+         goto error ;
+      }
+
+      // get index definition
+      rc = rtnGetObjElement( arg, FIELD_NAME_INDEX, _index ) ;
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "Failed to get object [Index] " ) ;
+         goto error ;
+      }
+
+      rc = rtnCheckAndConvertIndexDef( _index ) ;
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "Failed to convert index definition: %s",
+                  _index.toString().c_str() ) ;
+         goto error ;
+      }
+
+      rc = _validateDef( _index ) ;
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "Failed to validate index definition: %s, rc: %d",
+                  _index.toString().c_str(), rc ) ;
+         goto error ;
+      }
+
+      // get global
+      rc = rtnGetBooleanElement( _index, IXM_FIELD_NAME_GLOBAL,
+                                 _isGlobal ) ;
+      rc = SDB_FIELD_NOT_EXIST == rc ? SDB_OK : rc ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get field(%s):index=%s,rc=%d",
+                   IXM_FIELD_NAME_GLOBAL, _index.toString().c_str(), rc ) ;
+
+      // get standalone
+      rc = rtnGetBooleanElement( _index, IXM_FIELD_NAME_STANDALONE,
+                                 _isStandaloneIdx ) ;
+      rc = SDB_FIELD_NOT_EXIST == rc ? SDB_OK : rc ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to get field(%s):index=%s,rc=%d",
+                   IXM_FIELD_NAME_STANDALONE, _index.toString().c_str(), rc ) ;
+
+      // get index name
+      rc = rtnGetStringElement( _index, IXM_FIELD_NAME_NAME, &_indexName ) ;
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "Failed to get string [name] " ) ;
+         goto error ;
+      }
+
+      // get sort buffer size
+      if ( arg.hasField( IXM_FIELD_NAME_SORT_BUFFER_SIZE ) )
+      {
+         hasSortBufSz = TRUE ;
+         rc = rtnGetIntElement( arg, IXM_FIELD_NAME_SORT_BUFFER_SIZE,
+                                _sortBufSize ) ;
+         if ( rc )
+         {
+            PD_LOG_MSG( PDERROR, "%s should be number",
+                        IXM_FIELD_NAME_SORT_BUFFER_SIZE ) ;
+            goto error ;
+         }
+      }
+      else if ( hint.hasField( IXM_FIELD_NAME_SORT_BUFFER_SIZE ) )
+      {
+         hasSortBufSz = TRUE ;
+         rc = rtnGetIntElement( hint, IXM_FIELD_NAME_SORT_BUFFER_SIZE,
+                                _sortBufSize ) ;
+         if ( rc )
+         {
+            PD_LOG_MSG( PDERROR, "%s should be number",
+                        IXM_FIELD_NAME_SORT_BUFFER_SIZE ) ;
+            goto error ;
+         }
+      }
+      if ( _sortBufSize < 0 )
+      {
+         PD_LOG_MSG( PDERROR, "'%s' invalid: %d",
+                     IXM_FIELD_NAME_SORT_BUFFER_SIZE, _sortBufSize ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      if ( !hasSortBufSz )
+      {
+         // For text index, the "sort buffer size" is actually used as the 'Size'
+         // option for the corresponding capped collection.
+         if ( _textIdx )
+         {
+            _sortBufSize = TEXT_INDEX_DATA_BUFF_DEFAULT_SIZE ;
+         }
+      }
+
+      // get task id
+      rc = rtnGetNumberLongElement( hint, FIELD_NAME_TASKID, (INT64&)_taskID ) ;
+      if ( SDB_FIELD_NOT_EXIST == rc )
+      {
+         rc = SDB_OK ;
+      }
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "Failed to get field[%s] from hint[%s]",
+                  FIELD_NAME_TASKID, hint.toString().c_str() ) ;
+         goto error ;
+      }
+
+      // get async
+      rc = rtnGetBooleanElement( arg, FIELD_NAME_ASYNC, _isAsync ) ;
+      if ( SDB_FIELD_NOT_EXIST == rc )
+      {
+         rc = SDB_OK ;
+      }
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "Failed to get field[%s] from match[%s]",
+                  FIELD_NAME_ASYNC, arg.toString().c_str() ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC ( SDB__CLSCREATEINDEX_INIT, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSCREATEINDEX_DOIT, "_rtnCreateIndex::doit" )
+   INT32 _rtnCreateIndex::doit ( _pmdEDUCB *cb, SDB_DMSCB *dmsCB,
+                                 SDB_RTNCB *rtnCB, SDB_DPSCB *dpsCB,
+                                 INT16 w , INT64 *pContextID )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB__CLSCREATEINDEX_DOIT ) ;
+
+      // standalone/ data node does not support aync
+      if ( _isAsync && ( CMD_SPACE_SERVICE_SHARD != getFromService() ) )
+      {
+         rc = SDB_OPERATION_INCOMPATIBLE ;
+         PD_LOG_MSG( PDERROR, "Async is only supported in cluster" ) ;
+         goto error ;
+      }
+
+      // Currently only support text index in cluster.
+      if ( _textIdx && ( CMD_SPACE_SERVICE_SHARD != getFromService() ) )
+      {
+         PD_LOG_MSG( PDERROR, "Text index is only supported in cluster" ) ;
+         rc = SDB_OPERATION_INCOMPATIBLE ;
+         goto error ;
+      }
+
+      // Currently only support global index in cluster.
+      if ( _isGlobal && ( CMD_SPACE_SERVICE_SHARD != getFromService() ) )
+      {
+         PD_LOG_MSG( PDERROR, "Global index is only supported in cluster" ) ;
+         rc = SDB_OPERATION_INCOMPATIBLE ;
+         goto error ;
+      }
+
+      /// create consistent index by coord
+      if ( CMD_SPACE_SERVICE_SHARD == getFromService() && !_isStandaloneIdx )
+      {
+         SDB_ASSERT( _taskID != CLS_INVALID_TASKID, "task id is invalid" ) ;
+
+         rc = sdbGetClsCB()->startIdxTaskCheck( _taskID, FALSE, TRUE ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to start task check, rc: %d",
+                      rc ) ;
+      }
+      /// create standalone index by coord, or
+      /// create index by data or standalone node
+      else
+      {
+         if ( CMD_SPACE_SERVICE_SHARD == getFromService() && _isStandaloneIdx )
+         {
+            dpsCB = NULL ;
+         }
+
+         BOOLEAN sysCall = pmdGetOptionCB()->authEnabled() ? FALSE : TRUE ;
+         dmsTaskStatusMgr *pStatMgr = rtnCB->getTaskStatusMgr() ;
+         dmsIdxTaskStatusPtr statusPtr ;
+
+         rc = pStatMgr->createIdxItem( DMS_TASK_CREATE_IDX, statusPtr ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to create task status, rc: %d",
+                      rc ) ;
+
+         rc = statusPtr->init( _collectionName, _index, _sortBufSize ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to initialize task status, rc: %d",
+                      rc ) ;
+
+         statusPtr->setStatus( DMS_TASK_STATUS_RUN ) ;
+
+         rc = rtnCreateIndexCommand( _collectionName, _index,
+                                     cb, dmsCB, dpsCB, sysCall, _sortBufSize,
+                                     &_writeResult, statusPtr.get() ) ;
+         statusPtr->setStatus2Finish( rc, cb ? cb->getInfo(EDU_INFO_ERROR) :
+                                               NULL, &_writeResult ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to create index[%s] for collection[%s], rc: %d",
+                      _indexName, _collectionName, rc ) ;
+      }
+
+   done:
+      // audit
+      if ( SDB_OK == rc && CMD_SPACE_SERVICE_LOCAL == getFromService() )
+      {
+         PD_AUDIT_COMMAND( AUDIT_DDL, name(), AUDIT_OBJ_CL,
+                           _collectionName, rc,
+                           "IndexDef:%s, SortBuffSize:%d, Async:%s",
+                           _index.toString().c_str(), _sortBufSize,
+                           _isAsync ? "true" : "false" ) ;
+      }
+      PD_TRACE_EXITRC ( SDB__CLSCREATEINDEX_DOIT, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // Check if there is mixed use of normal index and text index.
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSCREATEINDEX__VALIDATEDEF, "_rtnCreateIndex::_validateDef" )
+   INT32 _rtnCreateIndex::_validateDef( const BSONObj &index )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__CLSCREATEINDEX__VALIDATEDEF ) ;
+
+      BOOLEAN hasText = FALSE ;
+      const string textFieldVal = "text" ;
+      BSONObj idxDef = index.getObjectField( IXM_FIELD_NAME_KEY ) ;
+      BSONObjIterator itr( idxDef ) ;
+
+      while ( itr.more() )
+      {
+         BSONElement ele = itr.next() ;
+         if ( ele.eoo() )
+         {
+            PD_LOG( PDERROR, "Index definition ended unexpected. "
+                    "Definition: %s", idxDef.toString().c_str() ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+
+         if ( String == ele.type() && textFieldVal == ele.String() )
+         {
+            hasText = TRUE ;
+         }
+         else
+         {
+            if ( hasText )
+            {
+               PD_LOG( PDERROR, "Text index can only contain fields specified "
+                       "as text. Definition: %s", idxDef.toString().c_str() ) ;
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
+         }
+      }
+
+      _textIdx = hasText ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__CLSCREATEINDEX__VALIDATEDEF, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   IMPLEMENT_CMD_AUTO_REGISTER(_rtnDropIndex)
+   _rtnDropIndex::_rtnDropIndex ()
+   :_collectionName ( NULL ),
+    _indexName( NULL ),
+    _taskID( CLS_INVALID_TASKID ),
+    _isAsync( FALSE ),
+    _isStandaloneIdx( FALSE )
+   {
+   }
+
+   _rtnDropIndex::~_rtnDropIndex ()
+   {
+   }
+
+   const CHAR *_rtnDropIndex::name ()
+   {
+      return NAME_DROP_INDEX ;
+   }
+
+   RTN_COMMAND_TYPE _rtnDropIndex::type ()
+   {
+      return CMD_DROP_INDEX ;
+   }
+
+   const CHAR *_rtnDropIndex::collectionFullName ()
+   {
+      return _collectionName ;
+   }
+
+   BOOLEAN _rtnDropIndex::writable ()
+   {
+      return _isStandaloneIdx ? FALSE : TRUE ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSDROPINDEX_INIT, "_rtnDropIndex::init" )
+   INT32 _rtnDropIndex::init ( INT32 flags, INT64 numToSkip,
+                               INT64 numToReturn,
+                               const CHAR *pMatcherBuff,
+                               const CHAR *pSelectBuff,
+                               const CHAR *pOrderByBuff,
+                               const CHAR *pHintBuff )
+   {
+      PD_TRACE_ENTRY ( SDB__CLSDROPINDEX_INIT ) ;
+
+      BSONElement ele ;
+      BSONObj matcher( pMatcherBuff ) ;
+      BSONObj hint( pHintBuff ) ;
+
+      // get collection
+      INT32 rc = rtnGetStringElement ( matcher, FIELD_NAME_COLLECTION,
+                                       &_collectionName ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG ( PDERROR, "Failed to get string[collection]" ) ;
+         goto error ;
+      }
+
+      // get index
+      rc = rtnGetObjElement ( matcher, FIELD_NAME_INDEX, _index ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG ( PDERROR, "Failed to get index object " ) ;
+         goto error ;
+      }
+
+      ele = _index.firstElement() ;
+      if ( ele.type() != String )
+      {
+         PD_LOG ( PDERROR, "Invalid index obj[%s]",
+                  _index.toString().c_str() ) ;
+         goto error ;
+      }
+      _indexName = ele.valuestr() ;
+
+      // get async
+      rc = rtnGetBooleanElement( matcher, FIELD_NAME_ASYNC, _isAsync ) ;
+      if ( SDB_FIELD_NOT_EXIST == rc )
+      {
+         rc = SDB_OK ;
+      }
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "Failed to get field[%s] from matcher[%s]",
+                  FIELD_NAME_ASYNC, matcher.toString().c_str() ) ;
+         goto error ;
+      }
+
+      // get task id
+      rc = rtnGetNumberLongElement( hint, FIELD_NAME_TASKID,
+                                    (INT64&)_taskID ) ;
+      if ( SDB_FIELD_NOT_EXIST == rc )
+      {
+         rc = SDB_OK ;
+      }
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "Failed to get field[%s] from hint[%s]",
+                  FIELD_NAME_TASKID, hint.toString().c_str() ) ;
+         goto error ;
+      }
+
+      // get standalone
+      rc = rtnGetBooleanElement( hint, FIELD_NAME_STANDALONE,
+                                 _isStandaloneIdx ) ;
+      if ( SDB_FIELD_NOT_EXIST == rc )
+      {
+         rc = SDB_OK ;
+      }
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "Failed to get field[%s] from hint[%s]",
+                  FIELD_NAME_STANDALONE, hint.toString().c_str() ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC ( SDB__CLSDROPINDEX_INIT, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSDROPINDEX_DOIT, "_rtnDropIndex::doit" )
+   INT32 _rtnDropIndex::doit ( _pmdEDUCB *cb, SDB_DMSCB *dmsCB,
+                               SDB_RTNCB *rtnCB, SDB_DPSCB *dpsCB,
+                               INT16 w , INT64 *pContextID )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB__CLSDROPINDEX_DOIT ) ;
+
+      // standalone/ data node does not support aync
+      if ( _isAsync && ( CMD_SPACE_SERVICE_SHARD != getFromService() ) )
+      {
+         PD_LOG_MSG( PDERROR, "Async is only supported in cluster" ) ;
+         rc = SDB_OPERATION_INCOMPATIBLE ;
+         goto error ;
+      }
+
+      /// drop consistent index by coord
+      if ( CMD_SPACE_SERVICE_SHARD == getFromService() && !_isStandaloneIdx )
+      {
+         SDB_ASSERT( _taskID != CLS_INVALID_TASKID, "task id is invalid" ) ;
+
+         rc = sdbGetClsCB()->startIdxTaskCheck( _taskID, FALSE, TRUE ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to start task check, rc: %d",
+                      rc ) ;
+      }
+      /// drop standalone index by coord, or
+      /// drop index by data or standalone node
+      else
+      {
+         BOOLEAN onlyStandalone = FALSE ;
+         if ( CMD_SPACE_SERVICE_SHARD == getFromService() && _isStandaloneIdx )
+         {
+            dpsCB = NULL ;
+            onlyStandalone = TRUE ;
+         }
+
+         BOOLEAN sysCall = pmdGetOptionCB()->authEnabled() ? FALSE : TRUE ;
+         BSONElement indexEle = _index.firstElement() ;
+         dmsTaskStatusMgr *pStatMgr = rtnCB->getTaskStatusMgr() ;
+         dmsIdxTaskStatusPtr statusPtr ;
+
+         rc = pStatMgr->createIdxItem( DMS_TASK_DROP_IDX, statusPtr ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to create task status, rc: %d",
+                      rc ) ;
+
+         rc = statusPtr->init( _collectionName, BSON( "" << _indexName ) ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to initialize task status, rc: %d",
+                      rc ) ;
+
+         statusPtr->setStatus( DMS_TASK_STATUS_RUN ) ;
+
+         rc = rtnDropIndexCommand( _collectionName, indexEle,
+                                   cb, dmsCB, dpsCB, sysCall,
+                                   statusPtr.get(), onlyStandalone ) ;
+         statusPtr->setStatus2Finish( rc, cb ? cb->getInfo(EDU_INFO_ERROR) :
+                                               NULL ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to drop index[%s] for collection[%s], rc: %d",
+                      _indexName, _collectionName, rc ) ;
+      }
+
+   done:
+      // audit
+      if ( SDB_OK == rc && CMD_SPACE_SERVICE_LOCAL == getFromService() )
+      {
+         PD_AUDIT_COMMAND( AUDIT_DDL, name(), AUDIT_OBJ_CL,
+                           _collectionName, rc, "IndexDef:%s, Async:%s",
+                           _index.toString().c_str(),
+                           _isAsync ? "true" : "false" ) ;
+      }
+      PD_TRACE_EXITRC ( SDB__CLSDROPINDEX_DOIT, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   IMPLEMENT_CMD_AUTO_REGISTER(_rtnCopyIndex)
+   _rtnCopyIndex::_rtnCopyIndex () :_collectionName ( NULL )
+   {
+   }
+
+   _rtnCopyIndex::~_rtnCopyIndex ()
+   {
+   }
+
+   const CHAR *_rtnCopyIndex::name ()
+   {
+      return NAME_COPY_INDEX ;
+   }
+
+   RTN_COMMAND_TYPE _rtnCopyIndex::type ()
+   {
+      return CMD_COPY_INDEX ;
+   }
+
+   const CHAR *_rtnCopyIndex::collectionFullName ()
+   {
+      return _collectionName ;
+   }
+
+   BOOLEAN _rtnCopyIndex::writable ()
+   {
+      return TRUE ;
+   }
+
+   INT32 _rtnCopyIndex::spaceNode ()
+   {
+      return CMD_SPACE_NODE_DATA ;
+   }
+
+   INT32 _rtnCopyIndex::spaceService ()
+   {
+      return CMD_SPACE_SERVICE_SHARD ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSCYINDEX_INIT, "_rtnCopyIndex::init" )
+   INT32 _rtnCopyIndex::init ( INT32 flags, INT64 numToSkip,
+                               INT64 numToReturn,
+                               const CHAR *pMatcherBuff,
+                               const CHAR *pSelectBuff,
+                               const CHAR *pOrderByBuff,
+                               const CHAR *pHintBuff )
+   {
+      PD_TRACE_ENTRY ( SDB__CLSCYINDEX_INIT ) ;
+
+      INT32 rc = SDB_OK ;
+
+      BSONObj matcher( pMatcherBuff ) ;
+
+      rc = rtnGetStringElement( matcher, FIELD_NAME_NAME, &_collectionName ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to get field[%s] from matcher[%s], rc: %d",
+                   FIELD_NAME_NAME, matcher.toString().c_str(), rc ) ;
+      // extract other field in copyIndexOnMainCL()
+
+   done:
+      PD_TRACE_EXITRC ( SDB__CLSCYINDEX_INIT, rc ) ;
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _rtnCopyIndex::doit ( _pmdEDUCB *cb, SDB_DMSCB *dmsCB,
+                               SDB_RTNCB *rtnCB, SDB_DPSCB *dpsCB,
+                               INT16 w , INT64 *pContextID )
+   {
+      return SDB_OK ;
    }
 
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnCreateIndex)
@@ -1344,7 +1942,25 @@ namespace engine
       }
       else
       {
+<<<<<<< HEAD
          rc = repl->locationReelect( _level, _timeout, cb, _nodeID ) ;
+=======
+         MsgRouteID targetRID ;
+
+         if ( 0 == _nodeID )
+         {
+            // could reelect to any node
+            targetRID.value = MSG_INVALID_ROUTEID ;
+         }
+         else
+         {
+            // target primary node is specified
+            targetRID.value = pmdGetNodeID().value ;
+            targetRID.columns.nodeID = _nodeID ;
+         }
+
+         rc = repl->reelect( _level, _timeout, cb, targetRID ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "Location Set: Failed to reelect:%d", rc ) ;
@@ -1450,7 +2066,11 @@ namespace engine
                 0 == ossStrcasecmp( CMD_VALUE_NAME_DISABLE_READONLY,
                                     _pAction ) ||
                 0 == ossStrcasecmp( CMD_VALUE_NAME_ACTIVATE, _pAction ) ||
-                0 == ossStrcasecmp( CMD_VALUE_NAME_DEACTIVATE, _pAction ) )
+                0 == ossStrcasecmp( CMD_VALUE_NAME_DEACTIVATE, _pAction ) ||
+                0 == ossStrcasecmp( CMD_VALUE_NAME_ENABLE_RESTORING,
+                                    _pAction ) ||
+                0 == ossStrcasecmp( CMD_VALUE_NAME_DISABLE_RESTORING,
+                                    _pAction ) )
       {
          return FALSE ;
       }
@@ -1520,6 +2140,18 @@ namespace engine
          pInfo->setReadonly( FALSE ) ;
          pmdGetKRCB()->setDBReadonly( FALSE ) ;
       }
+      else if ( 0 == ossStrcasecmp( CMD_VALUE_NAME_ENABLE_RESTORING,
+                                    _pAction ) )
+      {
+         pInfo->setRestoring( TRUE ) ;
+         pmdGetKRCB()->setDBRestoring( TRUE ) ;
+      }
+      else if ( 0 == ossStrcasecmp( CMD_VALUE_NAME_DISABLE_RESTORING,
+                                    _pAction ) )
+      {
+         pInfo->setRestoring( FALSE ) ;
+         pmdGetKRCB()->setDBRestoring( FALSE ) ;
+      }
       else if ( 0 == ossStrcasecmp( CMD_VALUE_NAME_ACTIVATE, _pAction ) )
       {
          pInfo->setAcitvated( TRUE ) ;
@@ -1545,7 +2177,7 @@ namespace engine
                                  _pAction ) ||
              0 == ossStrcasecmp( CMD_VALUE_NAME_ACTIVATE, _pAction ) ) )
       {
-         pClsCB->getReplCB()->voteMachine()->force( CLS_ELECTION_STATUS_SEC ) ;
+         pClsCB->getReplCB()->getVoteMachine()->force( CLS_ELECTION_STATUS_SEC ) ;
       }
 
    done:
@@ -1886,6 +2518,7 @@ namespace engine
       goto done ;
    }
 
+<<<<<<< HEAD
    IMPLEMENT_CMD_AUTO_REGISTER( _rtnAlterGroup )
    _rtnAlterGroup::_rtnAlterGroup()
    : _groupID( INVALID_GROUPID ),
@@ -2073,5 +2706,7 @@ namespace engine
       goto done ;
    }
 
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 }
 

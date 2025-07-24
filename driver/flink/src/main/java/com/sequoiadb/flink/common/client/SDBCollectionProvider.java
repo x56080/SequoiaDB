@@ -102,6 +102,7 @@ public class SDBCollectionProvider implements SDBClientProvider {
             ConfigOptions options = new ConfigOptions();
             options.setSocketKeepAlive(true);
             sdb = new Sequoiadb(hosts, username, password, options);
+<<<<<<< HEAD
 
             // set up source info in session attr, ignore failure and just
             // print warning log when throws exception.
@@ -109,6 +110,8 @@ public class SDBCollectionProvider implements SDBClientProvider {
                 SDBInfoUtil.setupSourceSessionAttrIgnoreFailures(sdb, sinkOptions.getSourceInfo());
             }
 
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             try {
                 /* Because it is a new feature in 3.4.5
                  * It will fail when set it in older version SDB
@@ -127,6 +130,7 @@ public class SDBCollectionProvider implements SDBClientProvider {
         return sdb;
     }
 
+<<<<<<< HEAD
     /**
      * setup source info by setter
      */
@@ -134,6 +138,8 @@ public class SDBCollectionProvider implements SDBClientProvider {
         SDBInfoUtil.setupSourceSessionAttrIgnoreFailures(getClient(), sourceInfo);
     }
 
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     @Override
     public CollectionSpace getCollectionSpace() {
         if (collectionSpace == null) {

@@ -338,6 +338,7 @@
 + 作用范围：Global
 + 是否支持在线修改生效：否
 
+<<<<<<< HEAD
 ###配置 TCP 探活###
 
 MariaDB 实例组件基于 TCP 协议中的 KeepAlive 机制，以发送探测包的方式检测服务端与客户端间的连接状态。当客户端与服务端长时间未交互时，服务端将向客户端发送探测包以确认连接是否存活。
@@ -369,6 +370,8 @@ MariaDB 实例组件基于 TCP 协议中的 KeepAlive 机制，以发送探测�
 + 作用范围：global
 + 是否支持在线修改：是
 
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 ###其它配置###
 
 **sequoiadb_alter_table_overhead_threshold**
@@ -387,6 +390,7 @@ MariaDB 实例组件基于 TCP 协议中的 KeepAlive 机制，以发送探测�
 
 + 类型：boolean
 + 默认值：OFF
+<<<<<<< HEAD
 + 作用范围：Session
 + 是否支持在线修改生效：是
   
@@ -399,6 +403,11 @@ MariaDB 实例组件基于 TCP 协议中的 KeepAlive 机制，以发送探测�
 + 取值范围：[0, 2]
 + 作用范围：Session
 + 是否支持在线修改生效：是
+=======
++ 作用范围：Global,Session
++ 是否支持在线修改生效：是
+  
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 **sequoiadb_debug_log**
 
@@ -431,6 +440,7 @@ MariaDB 实例组件基于 TCP 协议中的 KeepAlive 机制，以发送探测�
 + 作用范围： Global,Session
 + 是否支持在线修改生效：是
 
+<<<<<<< HEAD
 **sql_select_result_limit**
 
 该参数可以配置 select 语句执行后，期望返回的最大记录数。当查询到的记录数大于或等于该参数指定的值时，系统将依据参数 sql_select_result_limit_exceed_handling 的配置，做出相应的行为。
@@ -458,6 +468,8 @@ MariaDB 实例组件基于 TCP 协议中的 KeepAlive 机制，以发送探测�
 + 作用范围：Global,Session
 + 是否支持在线修改生效：是
 
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 ##MariaDB 常用系统配置##
 
 | 参数名                 | 类型   | 动态生效 | 动态范围   | 默认值  | 说明 |
@@ -488,7 +500,11 @@ MariaDB 实例组件基于 TCP 协议中的 KeepAlive 机制，以发送探测�
 [sdbpasswd]:manual/Distributed_Engine/Maintainance/Mgmt_Tools/sdbpasswd.md#引擎配置
 [count]:manual/Manual/Sequoiadb_Command/SdbCollection/count.md
 [setSessionAttr]:manual/Manual/Sequoiadb_Command/Sdb/setSessionAttr.md
+<<<<<<< HEAD
 [sql_mode]:https://mariadb.com/kb/en/sql-mode/
+=======
+[sql_mode]:https://mariadb.com/kb/en/library/sql-mode/
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 [optimizer_switch]:https://mariadb.com/kb/en/library/optimizer_switch/
 [Block_based_join_algorithms]:https://mariadb.com/kb/en/library/block-based-join-algorithms/
 [trans_isolation]:https://mariadb.com/kb/en/server-system-variables/#tx_isolation

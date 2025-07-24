@@ -17,8 +17,11 @@
 package com.sequoiadb.flink.sink.writer;
 
 import com.sequoiadb.flink.common.client.SDBClientProvider;
+<<<<<<< HEAD
 import com.sequoiadb.flink.common.exception.SDBException;
 import com.sequoiadb.flink.common.util.RetryUtil;
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 import com.sequoiadb.flink.config.SDBSinkOptions;
 import com.sequoiadb.flink.serde.SDBDataConverter;
 
@@ -75,6 +78,7 @@ public class SDBUpsertSinkWriter implements SinkWriter<RowData, Void, Void> {
         BSONObject record = converter
                 .toExternal(element, sinkOptions.getIgnoreNullField());
 
+<<<<<<< HEAD
         RetryUtil.retryWhenRuntimeException(() -> {
             switch (element.getRowKind()) {
                 case INSERT:
@@ -92,6 +96,22 @@ public class SDBUpsertSinkWriter implements SinkWriter<RowData, Void, Void> {
             }
             return null;
         }, RetryUtil.DEFAULT_MAX_RETRY_TIMES, RetryUtil.DEFAULT_RETRY_DURATION, true);
+=======
+        switch (element.getRowKind()) {
+            case INSERT:
+            case UPDATE_AFTER:
+                provider.getCollection().upsert(
+                        createMatcher(record),
+                        createModifier(MODIFIER_SET, record),
+                        null,
+                        record, 0);
+                break;
+
+            case DELETE:
+                provider.getCollection().delete(createMatcher(record));
+                break;
+        }
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     }
 
     private BSONObject createMatcher(BSONObject record) {

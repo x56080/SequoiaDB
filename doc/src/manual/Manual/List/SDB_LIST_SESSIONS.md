@@ -13,11 +13,21 @@
 
 会话列表可以列出所有用户会话和系统会话。
 
+<<<<<<< HEAD
 ##标识##
 
 SDB_LIST_SESSIONS
 
 ##字段信息##
+=======
+标识
+----
+
+SDB_LIST_SESSIONS
+
+字段信息
+----
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 | 字段名    | 类型         | 描述                       |
 | --------- | ------------ | -------------------------- |
@@ -27,15 +37,26 @@ SDB_LIST_SESSIONS
 | Status    | string       | 会话状态，取值如下：<br>Creating：创建状态<br>Running：运行状态<br>Waiting：等待状态<br>Idle：线程池待机状态<br>Destroying：销毁状态 |
 | Type      | string       | [EDU 类型][edu_url]        |
 | Name      | string       | EDU 名，一般系统 EDU 名为空             |
+<<<<<<< HEAD
 | Source    | string       | 会话来源信息 |
 | RelatedID | string       | 会话的内部标识             |
 
 ##示例##
+=======
+| RelatedID | string       | 会话的内部标识             |
+
+示例
+----
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 查看会话列表
 
 ```lang-javascript
+<<<<<<< HEAD
 > db.list(SDB_LIST_SESSIONS)
+=======
+> db.list( SDB_LIST_SESSIONS )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 ```
 
 输出结果如下：

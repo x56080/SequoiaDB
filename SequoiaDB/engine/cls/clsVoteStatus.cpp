@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = clsVoteStatus.cpp
 
@@ -33,25 +32,22 @@
    Last Changed =
 
 *******************************************************************************/
-
 #include "clsVoteStatus.hpp"
-#include "pmd.hpp"
-#include "pmdCB.hpp"
-#include "dpsLogWrapper.hpp"
+#include "clsReplAgent.hpp"
 #include "pd.hpp"
 #include "pdTrace.hpp"
 #include "clsTrace.hpp"
-#include "pmdStartup.hpp"
 
 namespace engine
 {
-   _clsVoteStatus::_clsVoteStatus( _clsGroupInfo *info,
-                                   _netRouteAgent *agent,
-                                   INT32 id ):
-                                   _groupInfo( info ),
-                                   _agent( agent ),
-                                   _logger( NULL ),
-                                   _id( id )
+   _clsVoteStatus::_clsVoteStatus( ICLSReplAgent *replAgent,
+                                   INT32 id )
+   : _replAgent( replAgent ),
+     _groupInfo( replAgent->getGroupInfo() ),
+     _agent( replAgent->getNetAgent() ),
+     _id( id ),
+     _time( 0 ),
+     _acceptedNum( 0 )
    {
       SDB_ASSERT( CLS_INVALID_VOTE_ID != _id,
                   "id should not be invalid" ) ;
@@ -97,7 +93,7 @@ namespace engine
          rc = SDB_CLS_VOTE_FAILED ;
          goto error ;
       }
-      else if ( !pmdGetStartup().isOK() &&
+      else if ( _replAgent->isLocalAbnormal() &&
                 !_info()->isAllNodeAbnormal( 0 ) )
       {
          PD_LOG ( PDWARNING, "Start type isn't normal, can't initial voting "
@@ -105,6 +101,7 @@ namespace engine
          rc = SDB_CLS_VOTE_FAILED ;
          goto error ;
       }
+<<<<<<< HEAD
       else if ( SDB_OK != sdbGetReplCB()->getSyncEmptyEvent()->wait( 0 ) )
       {
          PD_LOG( PDWARNING, "Repl sync log is running, "
@@ -113,34 +110,23 @@ namespace engine
          goto error ;
       }
       else if ( !sdbGetReplCB()->getBucket()->isEmpty() )
+=======
+      else if ( !_replAgent->checkVoteLaunch() )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       {
-         PD_LOG( PDWARNING, "Repl log is not empty, can't initial voting, "
-                 "repl bucket size: %d",
-                 sdbGetReplCB()->getBucket()->size() ) ;
+         PD_LOG( PDWARNING, "Failed to check vote launch" ) ;
          rc = SDB_CLS_VOTE_FAILED ;
          goto error ;
-      }
-      else if ( sdbGetTransCB()->isNeedSyncTrans() &&
-                pmdGetStartup().isOK() )
-      {
-         PD_LOG( PDWARNING, "Trans info is not sync, can't initial voting" ) ;
-         rc = SDB_CLS_VOTE_FAILED ;
-         goto error ;
-      }
-
-      if ( NULL == _logger )
-      {
-         _logger = pmdGetKRCB()->getDPSCB() ;
-         SDB_ASSERT( NULL != _logger, "logger should not be NULL" ) ;
       }
 
       // launch
       {
-         DPS_LSN lsn = _logger->expectLsn() ;
+         DPS_LSN lsn = _replAgent->getLocalExpectLSN() ;
          _MsgClsElectionBallot msg ;
          msg.weights = lsn ;
          msg.identity = _groupInfo->local ;
          msg.round = round ;
+<<<<<<< HEAD
          if ( isLocation() )
          {
             // Add locationID to ballot msg
@@ -155,6 +141,14 @@ namespace engine
               CLS_IS_MAJORITY( _groupInfo->criticalAliveSize(), _groupInfo->criticalSize() ) )
          {
             while ( _groupInfo->alives.end() != itr )
+=======
+         CLS_ALIVE_MAP::iterator itr = _groupInfo->alives.begin() ;
+         for ( ; itr != _groupInfo->alives.end(); itr++ )
+         {
+            // if my bs is ok, but peer is not ok, skip
+            if ( SERVICE_ABNORMAL == itr->second->beat.serviceStatus &&
+                 _replAgent->isLocalOK() )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             {
                const _clsSharingStatus* status = ( itr++ )->second ;
                // If local is normal but iterator node is abnormal, continue
@@ -220,7 +214,7 @@ namespace engine
       _MsgClsElectionRes msg ;
       msg.identity = _groupInfo->local ;
       msg.round = round ;
-      map<UINT64, _clsSharingStatus >::iterator itrInfo ;
+      CLS_NODE_MAP::iterator itrInfo ;
       BOOLEAN peerAbnormal = FALSE ;
       BOOLEAN localAbnormal = FALSE ;
       DPS_LSN local ;
@@ -243,7 +237,7 @@ namespace engine
       {
          peerAbnormal = TRUE ;
       }
-      if ( !pmdGetStartup().isOK() )
+      if ( _replAgent->isLocalAbnormal() )
       {
          localAbnormal = TRUE ;
       }
@@ -273,6 +267,7 @@ namespace engine
          PD_LOG( PDDEBUG, "%s Vote: sharing break whih majority", getScopeName() ) ;
          goto error ;
       }
+<<<<<<< HEAD
 
       if ( NULL == _logger )
       {
@@ -280,6 +275,9 @@ namespace engine
          SDB_ASSERT( NULL != _logger, "logger should not be NULL" ) ;
       }
       local = _logger->expectLsn() ;
+=======
+      local = _replAgent->getLocalExpectLSN() ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       // Local node is in enforced critical mode
       if ( ! isLocation() &&
@@ -310,7 +308,11 @@ namespace engine
       // Node is not in enforced critical mode
       else
       {
+<<<<<<< HEAD
          map<UINT64, _clsSharingStatus *>::const_iterator itr = _groupInfo->alives.begin() ;
+=======
+         CLS_ALIVE_MAP::iterator itr = _groupInfo->alives.begin() ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          for ( ; itr != _groupInfo->alives.end(); itr++ )
          {
             if ( !peerAbnormal &&
@@ -345,6 +347,7 @@ namespace engine
          /// the same, judge weight.
          else
          {
+<<<<<<< HEAD
             UINT8 shadowWeight = 0 ;
             UINT8 peerShadowWeight = 0 ;
             _clsVoteMachine* vote = sdbGetReplCB()->voteMachine( isLocation() ) ;
@@ -379,6 +382,13 @@ namespace engine
 
             // Compare weight
             if ( shadowWeight < peerShadowWeight )
+=======
+            UINT8 voteWeight = _replAgent->getVoteWeight() ;
+            UINT8 shadowWeight = _replAgent->getVoteMachine()->getShadowWeight() ;
+            UINT8 weight = CLS_GET_WEIGHT( voteWeight, shadowWeight ) ;
+            const UINT8 remoteWeight = itrInfo->second.beat.weight ;
+            if ( weight < remoteWeight )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             {
                goto accept ;
             }
@@ -386,7 +396,11 @@ namespace engine
             {
                goto accepterr ;
             }
+<<<<<<< HEAD
             else if ( peerShadowWeight < pmdGetOptionCB()->weight() )
+=======
+            else if ( remoteWeight < voteWeight )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             {
                goto accepterr ;
             }
@@ -434,7 +448,11 @@ namespace engine
    void _clsVoteStatus::_broadcastAlives( void *msg )
    {
       PD_TRACE_ENTRY ( SDB__CLSVTSTUS__BCALIVES ) ;
+<<<<<<< HEAD
       map<UINT64, _clsSharingStatus *>::iterator itr = _groupInfo->alives.begin() ;
+=======
+      CLS_ALIVE_MAP::iterator itr = _groupInfo->alives.begin() ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       for ( ; itr != _groupInfo->alives.end(); itr++ )
       {
          _agent->syncSend( itr->second->beat.identity, (MsgHeader *)msg ) ;

@@ -1,6 +1,21 @@
 /*******************************************************************************
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+<<<<<<< HEAD
+   Copyright (C) 2011-Present SequoiaDB Ltd.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+=======
+   Copyright (C) 2011-2018 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU Affero General Public License as published by
@@ -14,6 +29,7 @@
 
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    Source File Name = clsRecycleBinJob.cpp
 
@@ -31,7 +47,10 @@
    Last Changed =
 
 *******************************************************************************/
+<<<<<<< HEAD
+=======
 
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 #include "clsRecycleBinJob.hpp"
 #include "pmd.hpp"
 #include "dmsStorageUnit.hpp"
@@ -125,6 +144,7 @@ namespace engine
       {
          rc = dropItems( _recycleItems, cb, TRUE ) ;
       }
+<<<<<<< HEAD
 
       if ( SDB_OK == rc )
       {
@@ -143,6 +163,9 @@ namespace engine
          result = UTIL_LJOB_DO_FINISH ;
          PD_RC_CHECK( rc, PDERROR, "Failed to drop recycle items, rc: %d", rc ) ;
       }
+=======
+      result = UTIL_LJOB_DO_FINISH ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    done:
       PD_LOG( PDDEBUG, "Stop job [%s], rc: %d", name(), rc ) ;

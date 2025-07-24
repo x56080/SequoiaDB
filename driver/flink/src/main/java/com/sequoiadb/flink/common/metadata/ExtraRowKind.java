@@ -73,7 +73,10 @@ public enum ExtraRowKind {
                 break;
 
             default:
+<<<<<<< HEAD
                 // LOG.warn, fix-me: dump to error changelogs file.
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                 throw new SDBException(String.format(
                         "unsupported extra row kind, code: %s",
                         code));

@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = dpsTransExecutor.cpp
 
@@ -36,10 +34,12 @@
    Last Changed =
 
 *******************************************************************************/
-
 #include "dpsTransExecutor.hpp"
 #include "dpsTransLockDef.hpp"
 #include "dpsTransLRB.hpp"
+#include "dpsUtil.hpp"
+#include "dpsTrace.hpp"
+#include "pdTrace.hpp"
 
 using namespace bson ;
 
@@ -114,7 +114,7 @@ namespace engine
       return _transAutoRollback ;
    }
 
-   BOOLEAN _dpsTransConfItem::isTransRCCount () const
+   BOOLEAN _dpsTransConfItem::isTransRCCount() const
    {
       return _transRCCount ;
    }
@@ -152,6 +152,12 @@ namespace engine
            _transIsolation != isolation )
       {
          _transIsolation = isolation ;
+         // overrid _transWaitLock if _transIsolation
+         // is set to RR
+         if ( TRANS_ISOLATION_RR == _transIsolation )
+         {
+            _transWaitLock = FALSE ;
+         }
          ++_transConfVer ;
       }
       if ( enableMask )
@@ -180,6 +186,12 @@ namespace engine
       if ( _transWaitLock != waitLock )
       {
          _transWaitLock = waitLock ;
+         // overrid _transWaitLock if _transIsolation
+         // is set to RR
+         if ( TRANS_ISOLATION_RR == _transIsolation )
+         {
+            _transWaitLock = FALSE ;
+         }
          ++_transConfVer ;
       }
       if ( enableMask )
@@ -467,6 +479,9 @@ namespace engine
       _maxLogSpace      = OSS_UINT64_MAX ;
       _lockWaitStarted  = FALSE ;
       _monLock          = NULL ;
+      _expireTranCache  = DPS_INVALID_TRANSID_SN ;
+      _passedDoingArbit = FALSE ;
+      _regReadTranTime  = FALSE ;
    }
 
    _dpsTransExecutor::~_dpsTransExecutor()
@@ -476,6 +491,8 @@ namespace engine
    void _dpsTransExecutor::clearAll()
    {
       clearMBStats() ;
+      clearArbit() ;
+      resetTransTime() ;
       for ( UINT32 i = LOCKMGR_TRANS_LOCK; i < LOCKMGR_TYPE_MAX; i++ )
       {
          clearWaiterInfo( (LOCKMGR_TYPE)i ) ;
@@ -795,7 +812,7 @@ namespace engine
          setTransTimeout( timeout, FALSE ) ;
       }
 
-      if ( DPS_INVALID_TRANS_ID == getExecutor()->getTransID() )
+      if ( getExecutor()->getTransID().isInvalid() )
       {
          if ( !OSS_BIT_TEST( _transConfMask, TRANS_CONF_MASK_ISOLATION ) )
          {
@@ -920,6 +937,31 @@ namespace engine
 
    error:
       goto done ;
+<<<<<<< HEAD
+   }
+
+   void _dpsTransExecutor::updateMaxLogSpace( UINT64 totalLogSpace )
+   {
+      SDB_ASSERT( 0 < _transMaxLogSpaceRatio,
+                  "max log space ratio should be > 0" ) ;
+
+      if ( 50 <= _transMaxLogSpaceRatio )
+      {
+         // at most half of log space can be used
+         _maxLogSpace = totalLogSpace / 2 ;
+      }
+      else
+      {
+         FLOAT64 temp = (FLOAT64)totalLogSpace / 100.0 *
+                        (FLOAT64)_transMaxLogSpaceRatio ;
+         _maxLogSpace = (UINT64)( OSS_ROUND( temp ) ) ;
+      }
+
+      PD_LOG( PDDEBUG, "Update max log space to [%llu], "
+              "total [%llu], ratio [%d]", _maxLogSpace, totalLogSpace,
+              _transMaxLogSpaceRatio ) ;
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    }
 
    void _dpsTransExecutor::updateMaxLogSpace( UINT64 totalLogSpace )
@@ -944,24 +986,24 @@ namespace engine
               _transMaxLogSpaceRatio ) ;
    }
 
-   void _dpsTransExecutor::commitMBStats ()
+   void _dpsTransExecutor::commitMBStats ( UINT64 commitTime )
    {
       for ( TRANS_MB_STAT_MAP_IT iter = _transMBStatMap.begin() ;
             iter != _transMBStatMap.end() ;
             ++ iter )
       {
-         iter->second.commit() ;
+         iter->second.commit( commitTime ) ;
       }
       clearMBStats() ;
    }
 
-   void _dpsTransExecutor::rollbackMBStats ()
+   void _dpsTransExecutor::rollbackMBStats ( UINT64 rollbackTime )
    {
       for ( TRANS_MB_STAT_MAP_IT iter = _transMBStatMap.begin() ;
             iter != _transMBStatMap.end() ;
             ++ iter )
       {
-         iter->second.rollback() ;
+         iter->second.rollback( rollbackTime ) ;
       }
       clearMBStats() ;
    }
@@ -972,16 +1014,20 @@ namespace engine
    }
 
    void _dpsTransExecutor::_initMBStat ( utilCLUniqueID clUniqueID,
+                                         ossAtomic64 * globTransAvailTime,
                                          ossAtomic64 * totalRecords,
                                          UINT64 incDelta,
                                          UINT64 decDelta )
    {
-      SDB_ASSERT( NULL != totalRecords, "total records should not be NULL" ) ;
-      dpsTransMBStat stat( totalRecords, incDelta, decDelta ) ;
+      dpsTransMBStat stat( globTransAvailTime,
+                           totalRecords,
+                           incDelta,
+                           decDelta ) ;
        _transMBStatMap.insert( std::make_pair( clUniqueID, stat ) ) ;
    }
 
    BOOLEAN _dpsTransExecutor::incMBTotalRecords ( utilCLUniqueID clUniqueID,
+                                                  ossAtomic64 * globTransAvailTime,
                                                   ossAtomic64 * totalRecords,
                                                   UINT64 delta )
    {
@@ -992,16 +1038,29 @@ namespace engine
       TRANS_MB_STAT_MAP_IT iter = _transMBStatMap.find( clUniqueID ) ;
       if ( iter == _transMBStatMap.end() )
       {
-         _initMBStat( clUniqueID, totalRecords, delta, 0 ) ;
+         _initMBStat( clUniqueID, globTransAvailTime, totalRecords, delta, 0 ) ;
       }
       else
       {
          iter->second.increase( delta ) ;
+
+         if ( NULL != totalRecords &&
+              !( iter->second.hasTotalRecords() ) )
+         {
+            iter->second.setTotalRecords( totalRecords ) ;
+         }
+
+         if ( NULL != globTransAvailTime &&
+              !( iter->second.hasGlobTransAvailTime() ) )
+         {
+            iter->second.setGlobTransAvailTime( globTransAvailTime ) ;
+         }
       }
       return TRUE ;
    }
 
    BOOLEAN _dpsTransExecutor::decMBTotalRecords ( utilCLUniqueID clUniqueID,
+                                                  ossAtomic64 * globTransAvailTime,
                                                   ossAtomic64 * totalRecords,
                                                   UINT64 delta )
    {
@@ -1012,11 +1071,54 @@ namespace engine
       TRANS_MB_STAT_MAP_IT iter = _transMBStatMap.find( clUniqueID ) ;
       if ( iter == _transMBStatMap.end() )
       {
-         _initMBStat( clUniqueID, totalRecords, 0, delta ) ;
+         _initMBStat( clUniqueID, globTransAvailTime, totalRecords, 0, delta ) ;
       }
       else
       {
          iter->second.decrease( delta ) ;
+
+         if ( NULL != totalRecords &&
+              !( iter->second.hasTotalRecords() ) )
+         {
+            iter->second.setTotalRecords( totalRecords ) ;
+         }
+
+         if ( NULL != globTransAvailTime &&
+              !( iter->second.hasGlobTransAvailTime() ) )
+         {
+            iter->second.setGlobTransAvailTime( globTransAvailTime ) ;
+         }
+      }
+      return TRUE ;
+   }
+
+   BOOLEAN _dpsTransExecutor::updateMBStat( utilCLUniqueID clUniqueID,
+                                            ossAtomic64 * globTransAvailTime,
+                                            ossAtomic64 * totalRecords )
+   {
+      if ( !UTIL_IS_VALID_CLUNIQUEID( clUniqueID ) )
+      {
+         return FALSE ;
+      }
+
+      TRANS_MB_STAT_MAP_IT iter = _transMBStatMap.find( clUniqueID ) ;
+      if ( iter == _transMBStatMap.end() )
+      {
+         _initMBStat( clUniqueID, globTransAvailTime, totalRecords, 0, 0 ) ;
+      }
+      else
+      {
+         if ( NULL != totalRecords &&
+              !( iter->second.hasTotalRecords() ) )
+         {
+            iter->second.setTotalRecords( totalRecords ) ;
+         }
+
+         if ( NULL != globTransAvailTime &&
+              !( iter->second.hasGlobTransAvailTime() ) )
+         {
+            iter->second.setGlobTransAvailTime( globTransAvailTime ) ;
+         }
       }
       return TRUE ;
    }
@@ -1031,8 +1133,7 @@ namespace engine
       TRANS_MB_STAT_MAP_CIT citer = _transMBStatMap.find( clUniqueID ) ;
       if ( citer != _transMBStatMap.end() )
       {
-         totalRecords = citer->second.getTotalRecords() ;
-         return TRUE ;
+         return citer->second.getTotalRecords( totalRecords ) ;
       }
       return FALSE ;
    }
@@ -1076,13 +1177,104 @@ namespace engine
       return _accessingTransLRB[ lockMgrType ] ;
    }
 
+<<<<<<< HEAD
+=======
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSTRANSEXE_CLEARARBIT, "_dpsTransExecutor::clearArbit" )
+   void _dpsTransExecutor::clearArbit()
+   {
+      PD_TRACE_ENTRY( SDB__DPSTRANSEXE_CLEARARBIT ) ;
+
+      _transArbit.clear() ;
+
+      PD_TRACE_EXIT( SDB__DPSTRANSEXE_CLEARARBIT ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSTRANSEXE_ARBIT, "_dpsTransExecutor::arbit" )
+   INT32 _dpsTransExecutor::arbit( const DPS_TRANS_ID &writeTransID,
+                                   DPS_TRANS_STATUS writeStatus,
+                                   BOOLEAN &visible )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DPSTRANSEXE_ARBIT ) ;
+
+      rc = _transArbit.arbit( writeTransID, writeStatus, visible ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to check arbitration for transaction "
+                   "[%s], status [%s], rc: %d",
+                   dpsTransIDToString( writeTransID ).c_str(),
+                   dpsTransStatusToString( writeStatus ), rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DPSTRANSEXE_ARBIT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSTRANSEXE_FINDARBIT, "_dpsTransExecutor::findArbit" )
+   BOOLEAN _dpsTransExecutor::findArbit( const DPS_TRANS_ID &writeTransID,
+                                         BOOLEAN &visible )
+   {
+      BOOLEAN found = FALSE ;
+
+      PD_TRACE_ENTRY( SDB__DPSTRANSEXE_FINDARBIT ) ;
+
+      found = _transArbit.findArbit( writeTransID, visible ) ;
+
+      PD_TRACE_EXIT( SDB__DPSTRANSEXE_FINDARBIT ) ;
+
+      return found ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSTRANSEXE_SAVEARBIT, "_dpsTransExecutor::saveArbit" )
+   INT32 _dpsTransExecutor::saveArbit( const DPS_TRANS_ID &writeTransID,
+                                       DPS_TRANS_STATUS writeStatus,
+                                       BOOLEAN visible )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DPSTRANSEXE_SAVEARBIT ) ;
+
+      rc = _transArbit.saveArbit( writeTransID, writeStatus, visible ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to save arbitrate record, "
+                   "rc: %d", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__DPSTRANSEXE_SAVEARBIT, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSTRANSEXE_RESETTRANSTIME, "_dpsTransExecutor::resetTransTime" )
+   void _dpsTransExecutor::resetTransTime()
+   {
+      PD_TRACE_ENTRY( SDB__DPSTRANSEXE_RESETTRANSTIME ) ;
+
+      _beginTime.reset() ;
+      _preCommitTime.reset() ;
+      _commitTime.reset() ;
+      _expireTranCache = DPS_INVALID_TRANSID_SN ;
+      _passedDoingArbit = FALSE ;
+      _regReadTranTime = FALSE ;
+
+      PD_TRACE_EXIT( SDB__DPSTRANSEXE_RESETTRANSTIME ) ;
+   }
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    // get the waiting LRB and lockId if this executor is waiting for a
    // trans lock and it has opened a transaction and has associated with
    // _tmsDataTransContext
    BOOLEAN _dpsTransExecutor::getTransWaitingLRBInfo
    (
       dpsTxWaitLRB & exctrWaitInfo,
+<<<<<<< HEAD
       LOCKMGR_TYPE lockMgrType
+=======
+      LOCKMGR_TYPE   lockMgrType
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    )
    {
       BOOLEAN result = FALSE ;
@@ -1102,7 +1294,11 @@ namespace engine
 
    DPS_TRANS_ID _dpsTransExecutor::getNormalizedTransID()
    {
+<<<<<<< HEAD
       return DPS_TRANS_GET_ID( getExecutor()->getTransID() ) ;
+=======
+      return getExecutor()->getTransID().getOrigTransID() ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    }
 
    INT32 _dpsTransExecutor::checkLockEscalation( LOCKMGR_TYPE lockMgrType,
@@ -1116,8 +1312,13 @@ namespace engine
       // NOTE: only consider lock escalation in transaction
       if ( ( LOCKMGR_TRANS_LOCK == lockMgrType ) &&
            ( lockID.isSupportEscalation() ) &&
+<<<<<<< HEAD
            ( DPS_INVALID_TRANS_ID != getTransID() ) &&
            !( getTransID() & DPS_TRANSID_ROLLBACKTAG_BIT ) )
+=======
+           ( getTransID().isValid() ) &&
+           !( getTransID().isRollback() ) )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       {
          // for transaction lock, we need escalate if already acquired too
          // many record locks to limit the resource of the transaction

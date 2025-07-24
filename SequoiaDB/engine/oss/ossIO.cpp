@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = ossIO.cpp
 
@@ -382,6 +380,9 @@ error :
              break ;
           case EMFILE :
              rc = SDB_TOO_MANY_OPEN_FD ;
+             break ;
+          case ENOSPC :
+             rc = SDB_NOSPC ;
              break ;
           default:
              rc = SDB_IO ;
@@ -1693,7 +1694,7 @@ error :
  * SDB_INVALIDARG (invalid file descriptor)
  */
  // PD_TRACE_DECLARE_FUNCTION ( SDB_OSSFSYNC, "ossFsync" )
-INT32 ossFsync( OSSFILE* pFile )
+INT32 ossFsync( const OSSFILE* pFile )
 {
    INT32   rc  = SDB_OK ;
    PD_TRACE_ENTRY ( SDB_OSSFSYNC );
@@ -1741,6 +1742,57 @@ error :
    return rc ;
 #endif
 }
+
+INT32 ossFdatasync( const OSSFILE* pFile )
+{
+   INT32   rc  = SDB_OK ;
+   PD_TRACE_ENTRY ( SDB_OSSFSYNC );
+   UINT32  err = 0 ;
+
+   // sanity check, only take effect in debug build
+   SDB_ASSERT ( pFile , "pFile is NULL" ) ;
+
+#if defined (_WINDOWS)
+   BOOL   fOk = TRUE ;
+   fOk =  FlushFileBuffers( (HANDLE) pFile->hFile ) ;
+   if ( !fOk )
+   {
+      SDB_VALIDATE_GOTOERROR ( FALSE, SDB_IO,
+                               "Failed to FlushFileBuffers()" ) ;
+   }
+done :
+   PD_TRACE_EXITRC ( SDB_OSSFSYNC, rc );
+   return rc ;
+error :
+   goto done ;
+#elif defined (_LINUX)
+   rc = fdatasync ( pFile->fd ) ;
+   if( rc )
+   {
+      err = ossGetLastError () ;
+      // handle errors
+      pdLog( PDERROR, __FUNC__, __FILE__, __LINE__,
+             "Failed to fdatasync() : %x, Error: %d",
+             pFile->fd, err ) ;
+      switch ( err )
+      {
+      case EROFS:
+      case EINVAL:
+         rc = SDB_INVALIDARG ;
+         break ;
+      case EBADF:
+      case EIO:
+      default:
+         rc = SDB_IO ;
+         break ;
+      }
+   }
+   PD_TRACE_EXITRC ( SDB_OSSFSYNC, rc );
+   return rc ;
+#endif
+}
+
+
 
 /*
  * Type of a given path
@@ -3039,7 +3091,11 @@ INT32 ossFallocate( OSSFILE *file,
    }
 
    rc = fallocate( file->fd, mode, offset, size ) ;
+<<<<<<< HEAD
    if (rc < 0)
+=======
+   if ( rc < 0 )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
       UINT32 lastErr = ossGetLastError() ;
       switch ( lastErr )
@@ -3068,7 +3124,11 @@ INT32 ossFallocate( OSSFILE *file,
       }
    }
 #else
+<<<<<<< HEAD
    /// Windows does not support
+=======
+   /// Windows does not support.
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    rc = SDB_SYS ;
    goto error ;
 #endif //_LINUX

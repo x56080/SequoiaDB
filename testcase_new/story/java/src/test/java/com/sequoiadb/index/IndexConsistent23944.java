@@ -90,18 +90,25 @@ public class IndexConsistent23944 extends SdbTestBase {
                             .getErrorCode()
                     && createIndex
                             .getRetCode() != SDBError.SDB_DMS_SCANNER_INTERRUPT
+<<<<<<< HEAD
                                     .getErrorCode()
                     && createIndex
                             .getRetCode() != SDBError.SDB_TASK_HAS_CANCELED
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                                     .getErrorCode() ) {
                 Assert.fail( "---errorCode=" + createIndex.getRetCode() );
             }
 
+<<<<<<< HEAD
             int[] resultCodes = new int[] { 0, -243 };
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             Assert.assertFalse( sdb.isCollectionSpaceExist( subcsName ) );
             IndexUtils.checkNoTask( sdb, "Create index", subcsName,
                     subclName1 );
             IndexUtils.checkIndexTask( sdb, "Create index", SdbTestBase.csName,
+<<<<<<< HEAD
                     mainclName, indexName, resultCodes );
             IndexUtils.checkIndexTask( sdb, "Create index", SdbTestBase.csName,
                     subclName2, indexName, resultCodes );
@@ -109,6 +116,13 @@ public class IndexConsistent23944 extends SdbTestBase {
                IndexUtils.checkIndexConsistent( sdb, SdbTestBase.csName,
                        subclName2, indexName, true );
             }
+=======
+                    mainclName, indexName );
+            IndexUtils.checkIndexTask( sdb, "Create index", SdbTestBase.csName,
+                    subclName2, indexName );
+            IndexUtils.checkIndexConsistent( sdb, SdbTestBase.csName,
+                    subclName2, indexName, true );
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         } else {
             // 如果没有并发执行，则串行执行都成功
             Assert.assertEquals( createIndex.getRetCode(), 0 );
@@ -215,4 +229,8 @@ public class IndexConsistent23944 extends SdbTestBase {
                         .parse( "{LowBound:{no:30000},UpBound:{no:40000}}" ) );
         return mainCL;
     }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2

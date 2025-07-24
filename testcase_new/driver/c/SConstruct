@@ -217,7 +217,11 @@ elif guess_os == 'aix':
     env.Append( CPPDEFINES=[ "SDB_BIG_ENDIAN" ] )
     env.Append( LIBPATH="/lib" )
     # use project-related boost library
+<<<<<<< HEAD
     #env.Append( LIBPATH=[join(boost_lib_dir,'aix64', build_type)] )
+=======
+    env.Append( LIBPATH=[join(boost_lib_dir,'aix64', build_type)] )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     winLibString = "gtest crypt pthread dl"
     env.Append( LIBS=Split(winLibString) )
     if debugBuild:

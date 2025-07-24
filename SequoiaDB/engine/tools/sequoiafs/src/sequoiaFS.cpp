@@ -1,19 +1,22 @@
 /*******************************************************************************
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+<<<<<<< HEAD
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+=======
+   Copyright (C) 2011-2018 SequoiaDB Ltd.
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = sequoiaFS.cpp
 
@@ -33,7 +36,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #include "sequoiaFS.hpp"
 #include <sys/time.h>
 #include <asm/ioctls.h>
@@ -797,6 +799,7 @@ INT32 sequoiaFS::_addMountID(sdb *db)
    try 
    {
       condition = BSON(FS_MOUNT_CL<<_collection.c_str());
+<<<<<<< HEAD
    }
    catch (std::exception &e)   
    {
@@ -810,6 +813,114 @@ INT32 sequoiaFS::_addMountID(sdb *db)
       PD_LOG(PDERROR, "Fail to query collection, cl=%s, rc=%d",
              SEQUOIAFS_MOUNTID_FULLCL, rc);
       goto error;
+   }
+
+   rc = cursor.current(record);
+   if(SDB_OK != rc)
+   {
+      if(SDB_DMS_EOC == rc)
+      {
+         ret = db->getCollection(SEQUOIAFS_META_ID_CL_FULL.c_str(), seqcl);
+         if(SDB_OK != ret)
+         {
+            PD_LOG(PDERROR, "Failed to get collection, cl=%s, rc=%d",
+                   SEQUOIAFS_META_ID_CL_FULL.c_str(), rc);
+            rc = ret;
+            goto error;
+         } 
+   
+         ret = _getAndUpdateID(&seqcl, SEQUOIAFS_MOUNTCLID, &id);
+         if(SDB_OK != ret)
+         {
+            PD_LOG(PDERROR, "Fail to get and update id in sequence collecion, "
+                   "rc=%d", ret);
+            rc = ret;
+            goto error;
+         }
+
+         try 
+         {
+            obj = BSON(FS_MOUNT_CL<<_collection.c_str()<<\
+                       FS_MOUNT_PATH<<_mountpoint.c_str()<<\
+                       FS_MOUNT_ID<<(id));
+         }
+         catch (std::exception &e)   
+         {
+            rc = SDB_DRIVER_BSON_ERROR;
+            PD_LOG(PDERROR, "Exception[%s] occurs when build bson obj.", e.what());
+            goto error; 
+         }
+         ret = cl.insert(obj);
+         if(SDB_OK != ret)
+         {
+            PD_LOG(PDERROR, "Fail to insert to collection, cl=%s, rc=%d",
+                   SEQUOIAFS_META_ID_CL_FULL.c_str(), ret);
+            rc = ret;
+            goto error;
+         }
+
+         rc = SDB_OK;
+      }
+      else
+      {
+         PD_LOG(PDERROR, "Fail to query collection, cl=%s, rc=%d",
+             SEQUOIAFS_MOUNTID_FULLCL, rc);
+         goto error;
+      }
+   }
+   else
+   {
+      if(!_optionMgr.getForceMount())
+      {
+         //check mountpath is same with mountid cl
+         BSONObjIterator itr(record);
+         while (itr.more())
+         {
+            BSONElement ele = itr.next();
+            if (0 == ossStrcmp(FS_MOUNT_PATH, ele.fieldName()))
+            {
+               PD_CHECK(String == ele.type(), SDB_INVALIDARG,
+                     error, PDERROR, "The type of field:%s is not string",
+                     FS_MOUNT_PATH);
+
+               oldmountpoint = ele.valuestrsafe();
+               if(NULL != ossGetRealPath(ele.valuestrsafe(), tempPath, OSS_MAX_PATHSIZE))
+               {
+                  oldmountpoint = tempPath;
+               }
+
+               if(_mountpoint != oldmountpoint)
+               {
+                  PD_LOG(PDERROR, "The mountpoint must be the same as an "
+                                  "existing mountpoint using the same collection,"
+                                  " existing mountpoint=%s, new mountpoint=%s",
+                                  ele.valuestrsafe(), _mountpoint.c_str());
+                  ossPrintf("The mountpoint must be the same as the "
+                            "existing mountpoint using the same collection,"
+                            " existing mountpoint=%s, new mountpoint=%s. exit." OSS_NEWLINE,
+                            ele.valuestrsafe(), _mountpoint.c_str());                
+                  rc = SDB_INVALIDARG;
+                  goto error;
+               }
+               break;
+            }
+         }
+      }
+=======
+   }
+   catch (std::exception &e)   
+   {
+      rc = SDB_DRIVER_BSON_ERROR;
+      PD_LOG(PDERROR, "Exception[%s] occurs when build bson obj.", e.what());
+      goto error; 
+   }
+   rc = cl.query(cursor, condition);
+   if(SDB_OK != rc)
+   {
+      PD_LOG(PDERROR, "Fail to query collection, cl=%s, rc=%d",
+             SEQUOIAFS_MOUNTID_FULLCL, rc);
+      goto error;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    }
 
    rc = cursor.current(record);
@@ -1174,6 +1285,23 @@ INT32 sequoiaFS::init()
    }
 
    try
+<<<<<<< HEAD
+   {
+      idxDefObj = BSON(SEQUOIAFS_ID << 1);
+      rc = initMetaCSCL(db, _sysDirMetaCSName, _sysDirMetaCLName, idIdx,
+                        TRUE, idxDefObj, TRUE, TRUE);
+      if(SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "Failed to create idIdx for dir meta collection, cs.cl=%s.%s, rc=%d", 
+                _sysDirMetaCSName.c_str(), _sysDirMetaCLName.c_str(), rc);
+         ossPrintf("Failed to create idIdx for dir meta collection, cs.cl=%s.%s, rc=%d, exit." OSS_NEWLINE,
+                   _sysDirMetaCSName.c_str(), _sysDirMetaCLName.c_str(), rc);
+         goto error;
+      }
+   }
+   catch (std::exception &e)
+   {
+=======
    {
       idxDefObj = BSON(SEQUOIAFS_ID << 1);
       rc = initMetaCSCL(db, _sysDirMetaCSName, _sysDirMetaCLName, idIdx,
@@ -1210,11 +1338,36 @@ INT32 sequoiaFS::init()
    }
    catch (std::exception &e)
    {
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       rc = SDB_DRIVER_BSON_ERROR;
       PD_LOG(PDERROR, "Exception[%s] occurs.", e.what());
       goto error;
    }
 
+<<<<<<< HEAD
+   try
+   {
+      idxDefObj = BSON(SEQUOIAFS_PID << 1);
+      rc = initMetaCSCL(db, _sysDirMetaCSName, _sysDirMetaCLName, pidIdx,
+                        TRUE, idxDefObj);
+      if(SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "Failed to create pidIdx for dir meta collection, cs.cl=%s.%s, rc=%d", 
+                _sysDirMetaCSName.c_str(), _sysDirMetaCLName.c_str(), rc);
+         ossPrintf("Failed to create pidIdx for dir meta collection, cs.cl=%s.%s, rc=%d, exit." OSS_NEWLINE,
+                   _sysDirMetaCSName.c_str(), _sysDirMetaCLName.c_str(), rc);
+         goto error;
+      }
+   }
+   catch (std::exception &e)
+   {
+      rc = SDB_DRIVER_BSON_ERROR;
+      PD_LOG(PDERROR, "Exception[%s] occurs.", e.what());
+      goto error;
+   }
+
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    rc = _initRootPath(db);
    if(SDB_OK != rc)
    {
@@ -1245,6 +1398,7 @@ INT32 sequoiaFS::init()
    }
 
    try
+<<<<<<< HEAD
    {
       idxDefObj = BSON(SEQUOIAFS_LOBOID << 1);
       rc = initMetaCSCL(db, _sysFileMetaCSName, _sysFileMetaCLName, lobOidIdx,
@@ -1274,6 +1428,37 @@ INT32 sequoiaFS::init()
       {
          PD_LOG(PDERROR, "Failed to create pidIdx for file meta collection, cs.cl=%s.%s, rc=%d", 
                 _sysFileMetaCSName.c_str(), _sysFileMetaCLName.c_str(), rc);
+=======
+   {
+      idxDefObj = BSON(SEQUOIAFS_LOBOID << 1);
+      rc = initMetaCSCL(db, _sysFileMetaCSName, _sysFileMetaCLName, lobOidIdx,
+                        TRUE, idxDefObj);
+      if(SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "Failed to create lobidIdx for file meta collection, cs.cl=%s.%s, rc=%d", 
+                _sysFileMetaCSName.c_str(), _sysFileMetaCLName.c_str(), rc);
+         ossPrintf("Failed to init create lobidIdx for meta collection, cs.cl=%s.%s, rc=%d, exit." OSS_NEWLINE,
+                   _sysFileMetaCSName.c_str(), _sysFileMetaCLName.c_str(), rc);
+         goto error;
+      }
+   }
+   catch (std::exception &e)
+   {
+      rc = SDB_DRIVER_BSON_ERROR;
+      PD_LOG(PDERROR, "Exception[%s] occurs.", e.what());
+      goto error;
+   }
+
+   try
+   {
+      idxDefObj = BSON(SEQUOIAFS_PID << 1);
+      rc = initMetaCSCL(db, _sysFileMetaCSName, _sysFileMetaCLName, pidIdx,
+                        TRUE, idxDefObj);
+      if(SDB_OK != rc)
+      {
+         PD_LOG(PDERROR, "Failed to create pidIdx for file meta collection, cs.cl=%s.%s, rc=%d", 
+                _sysFileMetaCSName.c_str(), _sysFileMetaCLName.c_str(), rc);
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          ossPrintf("Failed to create pidIdx for file meta collection, cs.cl=%s.%s, rc=%d, exit." OSS_NEWLINE,
                    _sysFileMetaCSName.c_str(), _sysFileMetaCLName.c_str(), rc);
          goto error;

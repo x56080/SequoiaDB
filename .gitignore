@@ -265,7 +265,13 @@ dmypy.json
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 
+<<<<<<< HEAD
 # Package Files #
 .vscode
 .compile_commands.json
 compile_commands.json
+=======
+thirdparty/rocksdb/make_config.mk
+thirdparty/rocksdb/util/build_version.cc
+.vscode
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2

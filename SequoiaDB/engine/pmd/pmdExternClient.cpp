@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = pmdExternClient.cpp
 
@@ -30,11 +28,10 @@
    Last Changed =
 
 *******************************************************************************/
-
-
 #include "pmdExternClient.hpp"
 #include "authDef.hpp"
 #include "pmdEDU.hpp"
+#include "authRBAC.hpp"
 
 #if defined ( SDB_ENGINE )
    #include "clsMgr.hpp"
@@ -690,6 +687,7 @@ namespace engine
    INT32 _pmdExternClient::_parseUserRole( const bson::BSONObj &userInfo )
    {
       INT32 rc = SDB_OK ;
+<<<<<<< HEAD
 
       // For compatibility reason with old version, if there is no field
       // "Option", or "Option.Role", the role is set to "admin".
@@ -737,9 +735,173 @@ namespace engine
          goto error ;
       }
 
+=======
+
+      // For compatibility reason with old version, if there is no field
+      // "Option", or "Option.Role", the role is set to "admin".
+      // In the future, if the user creates a role without any role, the value
+      // of the role is "".
+      try
+      {
+         BSONElement optEle = userInfo.getField( FIELD_NAME_OPTIONS ) ;
+         if ( optEle.eoo() )
+         {
+            _roleID = AUTH_ROLE_ADMIN ;
+         }
+         else if ( Object != optEle.type() )
+         {
+            rc = SDB_SYS ;
+            PD_LOG( PDERROR, "Options in user information should be an object" ) ;
+            goto error ;
+         }
+         else
+         {
+            BSONElement roleEle = optEle.Obj().getField( FIELD_NAME_ROLE ) ;
+            if ( roleEle.eoo() )
+            {
+               _roleID = AUTH_ROLE_ADMIN ;
+            }
+            else
+            {
+               const CHAR *roleName = roleEle.valuestrsafe() ;
+               _roleID = authGetBuiltinRoleID( roleName ) ;
+               if ( AUTH_INVALID_ROLE_ID == _roleID )
+               {
+                  rc = SDB_SYS ;
+                  PD_LOG( PDERROR, "Invalid role name %s for the user",
+                          roleName ) ;
+                  goto error ;
+               }
+            }
+         }
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
+         goto error ;
+      }
+
    done:
       return rc ;
    error:
       goto done ;
    }
+
+   INT32 _pmdExternClient::checkPrivilege( const MsgHeader *msg )
+   {
+      INT32 rc = SDB_OK ;
+      INT32 opCode = msg->opCode ;
+
+      // For SQL operation, let it go here. Check after it's parsed.
+      if ( !_privCheckEnabled ||
+           AUTH_ROLE_ADMIN == _roleID ||
+           _shouldSkipPrivCheck( opCode ) )
+      {
+         goto done ;
+      }
+
+      if ( AUTH_ROLE_MONITOR == _roleID )
+      {
+         rc = SDB_NO_PRIVILEGES ;
+         if ( MSG_BS_QUERY_REQ == opCode )
+         {
+            const MsgOpQuery *query = (MsgOpQuery *)msg ;
+            if ( '$' == query->name[0] )
+            {
+               rc = checkCmdPrivilege( query->name ) ;
+            }
+         }
+
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Authorization for the operation failed, rc: %d",
+                    rc ) ;
+            goto error ;
+         }
+      }
+      else if ( _isAuthed )
+      {
+         SDB_ASSERT( FALSE, "The role is invalid" ) ;
+      }
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+<<<<<<< HEAD
+=======
+
+   INT32 _pmdExternClient::checkCmdPrivilege( const CHAR *cmdName )
+   {
+      INT32 rc = SDB_OK ;
+      SDB_ASSERT( cmdName, "Command name is null" ) ;
+
+      if ( !_privCheckEnabled || ( AUTH_ROLE_ADMIN == _roleID ) )
+      {
+         goto done ;
+      }
+
+      if ( '$' != cmdName[0] )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "The command name is invalid: %s, rc: %d",
+                 cmdName, rc ) ;
+         goto error ;
+      }
+
+      if ( AUTH_ROLE_ADMIN == _roleID )
+      {
+         goto done ;
+      }
+      else if ( AUTH_ROLE_MONITOR == _roleID )
+      {
+         if ( authIsMonCmd( cmdName ) )
+         {
+            goto done ;
+         }
+         else
+         {
+            rc = SDB_NO_PRIVILEGES ;
+            PD_LOG( PDERROR, "No privileges for the command operation: %s, "
+                    "rc: %d", cmdName, rc ) ;
+            goto error ;
+         }
+      }
+      else if ( _isAuthed )
+      {
+         SDB_ASSERT( FALSE, "The role is invalid" ) ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   BOOLEAN _pmdExternClient::_shouldSkipPrivCheck( INT32 opCode )
+   {
+      switch ( opCode )
+      {
+         case MSG_AUTH_VERIFY_REQ:
+         case MSG_AUTH_VERIFY1_REQ:
+         // Check in qgm after parsing.
+         case MSG_BS_SQL_REQ:
+         // Query has passed the checking.
+         case MSG_BS_GETMORE_REQ:
+         // Any cleanup actions should able to run.
+         case MSG_BS_DISCONNECT:
+         case MSG_BS_KILL_CONTEXT_REQ:
+         case MSG_BS_INTERRUPTE:
+         case MSG_BS_INTERRUPTE_SELF:
+         case MSG_BS_LOB_CLOSE_RES:
+         case MSG_BS_ADVANCE_REQ:
+            return TRUE ;
+         default:
+            return FALSE ;
+      }
+   }
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 }

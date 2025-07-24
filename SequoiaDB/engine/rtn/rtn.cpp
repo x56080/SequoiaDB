@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = rtn.cpp
 
@@ -48,9 +46,14 @@
 #include "pmdStartup.hpp"
 #include "pmdStartupHistoryLogger.hpp"
 #include "pdTrace.hpp"
+#include "rtnObjectInfoFetcher.hpp"
 #include "rtnTrace.hpp"
 #include "rtnExtDataHandler.hpp"
+<<<<<<< HEAD
 #include "rtnScannerFactory.hpp"
+=======
+#include "rtnIXScannerFactory.hpp"
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 #include "dmsOprHandler.hpp"
 
 namespace fs = boost::filesystem ;
@@ -775,6 +778,89 @@ namespace engine
       return fileType ;
    }
 
+<<<<<<< HEAD
+=======
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNRESUMECLDICTCREATE, "rtnResumeClDictCreate" )
+   static INT32 rtnResumeClDictCreate( const CHAR *csName, SDB_DMSCB *dmsCB )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_RTNRESUMECLDICTCREATE ) ;
+
+      dmsStorageUnit *su = NULL ;
+      dmsStorageUnitID suID = DMS_INVALID_SUID ;
+      dmsMBContext *context = NULL ;
+      dmsMB *mb = NULL ;
+
+      rc = dmsCB->nameToSUAndLock( csName, suID, &su ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Failed to get and lock collectionspace[%s], "
+                 "rc: %d", csName, rc ) ;
+         goto error ;
+      }
+
+      for ( UINT16 mbID = 0; mbID < DMS_MME_SLOTS; ++mbID )
+      {
+         // If the collection does not exist, lock will failed.
+         rc = su->data()->getMBContext( &context, mbID,
+                                        DMS_INVALID_CLID,
+                                        DMS_INVALID_CLID,
+                                        SHARED ) ;
+         if ( rc )
+         {
+            if ( SDB_DMS_NOTEXIST == rc )
+            {
+               rc = SDB_OK ;
+               continue ;
+            }
+            else
+            {
+               PD_LOG( PDERROR, "Failed to get dms mb context, rc: %d", rc ) ;
+               goto error ;
+            }
+         }
+
+         mb = context->mb() ;
+
+         /*
+          * Three conditions should be matched to resume dictionary creating job
+          * for a collection:
+          * (1) 'Compressed' option is set as true
+          * (2) 'CompressionType' is set as 'lzw'
+          * (3) The dictionary extent id is invalid currently, which means the
+          *     dictionary has not been created yet.
+          *
+          * The in use flag in mb is checked when taking the lock, so no need to
+          * check here.
+          */
+         if ( OSS_BIT_TEST( mb->_attributes, DMS_MB_ATTR_COMPRESSED )
+              && ( UTIL_COMPRESSOR_LZW == mb->_compressorType )
+              && ( DMS_INVALID_EXTENT == mb->_dictExtentID ) )
+         {
+            dmsCB->pushDictJob( dmsDictJob( su->CSID(), su->LogicalCSID(),
+                                context->mbID(), context->clLID() ) ) ;
+         }
+
+         su->data()->releaseMBContext( context ) ;
+      }
+
+   done:
+      if ( context )
+      {
+         su->data()->releaseMBContext( context ) ;
+      }
+      if ( DMS_INVALID_SUID != suID )
+      {
+         dmsCB->suUnlock( suID ) ;
+         suID = DMS_INVALID_SUID ;
+      }
+      PD_TRACE_EXIT( SDB_RTNRESUMECLDICTCREATE ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    // load a single collection name from given path
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNLOADCS, "rtnLoadCollectionSpace" )
    INT32 rtnLoadCollectionSpace ( const CHAR *pCSName,
@@ -870,6 +956,8 @@ namespace engine
                                                     optCB->getSyncRecordNum(),
                                                     optCB->getSyncDirtyRatio() ) ;
                         storageUnit->setSyncDeep( optCB->isSyncDeep() ) ;
+                        // set MVCC support
+                        storageUnit->setMVCCSupport( optCB->mvccOn() ) ;
                         /// add collectionspace
                         rc = dmsCB->addCollectionSpace ( csName, sequence,
                                                          storageUnit, NULL,
@@ -883,6 +971,8 @@ namespace engine
                               PD_LOG ( PDWARNING, "Failed to add collection "
                                        "space[%s] because it's already exist",
                                        csName ) ;
+                              // reset the rc
+                              rc = SDB_OK;
                            }
                            else
                            {
@@ -1077,6 +1167,8 @@ namespace engine
                                            optCB->getSyncRecordNum(),
                                            optCB->getSyncDirtyRatio() ) ;
                storageUnit->setSyncDeep( optCB->isSyncDeep() ) ;
+               // set MVCC support
+               storageUnit->setMVCCSupport( optCB->mvccOn() ) ;
                /// add collectionspace
                rc = dmsCB->addCollectionSpace ( csName, sequence, storageUnit,
                                                 NULL, NULL, FALSE ) ;
@@ -1197,6 +1289,10 @@ namespace engine
       SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
       dpsTransCB *transCB = pmdGetKRCB()->getTransCB() ;
       UINT32 suLogicalID = DMS_INVALID_LOGICCSID ;
+<<<<<<< HEAD
+=======
+      DMS_SU_DESCRIPTOR desc = nullptr;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       SDB_ASSERT ( pCollectionSpace, "collection space can't be NULL" ) ;
       SDB_ASSERT ( dmsCB, "dms control block can't be NULL" ) ;
@@ -1213,11 +1309,19 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc = %d", rc ) ;
       writable = TRUE ;
 
+<<<<<<< HEAD
       rc = dmsCB->nameToSULID( pCollectionSpace, suLogicalID ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get logical ID for "
                    "collection space [%s], rc: %d", pCollectionSpace, rc ) ;
       SDB_ASSERT( DMS_INVALID_LOGICCSID != suLogicalID,
                   "logical ID should be valid" ) ;
+=======
+      rc = dmsCB->nameToSuDescriptor( pCollectionSpace, desc );
+      PD_RC_CHECK( rc, PDERROR, "Failed to get logical ID for "
+                   "collection space [%s], rc: %d", pCollectionSpace, rc ) ;
+      SDB_ASSERT( desc && desc->isValid(), "su descriptor should be valid" );
+      suLogicalID = desc->logicalID;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       // let's find out whether the collection space is held by this
       // EDU. If so we have to get rid of those contexts
@@ -1278,6 +1382,12 @@ namespace engine
                       pCollectionSpace, rc ) ;
          break ;
       }
+<<<<<<< HEAD
+=======
+
+      sdbGetRTNCB()->getObjectStatCache()->removeCLStatInCS( pCollectionSpace );
+      sdbGetRTNCB()->getAPM()->invalidateSUPlans( pCollectionSpace );
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    done :
       if ( writable )
@@ -1741,6 +1851,17 @@ namespace engine
          hasLocked = TRUE ;
       }
 
+<<<<<<< HEAD
+=======
+      if (mbContext->mbID() != indexCB->getMBID())
+      {
+         rc = SDB_DMS_COL_DROPPED ;
+         PD_LOG( PDERROR, "Index[extent id: %d, name: %s] mb id[%d] is not expected[%d], rc: %d",
+                 expectedExtentID, expectedIndexName, indexCB->getMBID(), mbContext->mbID(), rc );
+         goto error;
+      }
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       if ( !indexCB->isInitialized() )
       {
          rc = su->index()->checkIndexCBExtentExist( mbContext,
@@ -1789,6 +1910,58 @@ namespace engine
       goto done ;
    }
 
+<<<<<<< HEAD
+=======
+   INT32 rtnUpdateGlobTranAvailTime( IExecutor *executor,
+                                     const CHAR *clFullName,
+                                     SDB_DMSCB *dmsCB,
+                                     SDB_RTNCB *rtnCB,
+                                     CONST_CL_META_INFO_PTR &clMetaInfo )
+   {
+      SDB_ASSERT( clFullName, "collection name can't be NULL" );
+      INT32 rc = SDB_OK;
+      dmsStorageUnit *su = nullptr;
+      dmsStorageUnitID suID = DMS_INVALID_CS ;
+      dmsMBContext *mbContext = nullptr;
+      const CHAR *pCollectionShortName = NULL;
+      UINT64 globTransAvailTime = DPS_MAX_TRANS_TIME;
+      stpAgent timeAgent;
+      stpLogicalTimeUS curTime;
+      rtnObjectInfoFetcher infoFetcher(dmsCB, rtnCB);
+      // get global logical time
+      PD_LOG( PDDEBUG, "Global transaction time is unvailable. "
+                       "Try to get STP logical time" );
+      rc = timeAgent.getLogicalTimeUS( curTime, OSS_ONE_SEC, FALSE );
+      PD_RC_CHECK( rc, PDERROR, "Failed to get STP logical time, rc:%d", rc );
+      rc = rtnResolveCollectionNameAndLock( clFullName, dmsCB, &su, &pCollectionShortName, suID );
+      PD_RC_CHECK( rc, PDERROR, "Failed to resolve collection name %s", clFullName );
+
+      rc = su->data()->getMBContext( &mbContext, pCollectionShortName, SHARED );
+      PD_RC_CHECK( rc, PDERROR, "Failed to get dms mb context, rc: %d", rc );
+      mbContext->mbStat()->_globTransAvailTime.compareAndSwap( DPS_MAX_TRANS_TIME,
+                                                               curTime.getTime() );
+      globTransAvailTime = mbContext->mbStat()->_globTransAvailTime.peek();
+
+      rc = infoFetcher.getCollectionMetaInfo(executor, clFullName, clMetaInfo);
+      PD_RC_CHECK( rc, PDERROR, "failed to get collection[%s] meta info, rc: %d", clFullName, rc );
+      SDB_ASSERT( globTransAvailTime == clMetaInfo->getGlobTransAvailTime(), "must be equal" );
+
+   done:
+      if ( su && mbContext )
+      {
+         su->data()->releaseMBContext( mbContext );
+      }
+      if ( DMS_INVALID_CS != suID )
+      {
+         dmsCB->suUnlock( suID );
+      }
+      return rc;
+   error:
+      clMetaInfo.reset();
+      goto done;
+   }
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    // Note that Only delete and update are calling this interface
    // In the future, if there are other cases, we should carefully
    // review the usage and decide what scanner to initialize with.
@@ -1815,8 +1988,16 @@ namespace engine
       mthMatchRuntime *matchRuntime = NULL ;
 
       rtnScannerFactory    f ;
+<<<<<<< HEAD
       rtnScannerType scanType = ( DPS_INVALID_TRANS_ID != cb->getTransID() ) ?
                                  SCANNER_TYPE_MERGE : SCANNER_TYPE_DISK ;
+=======
+      // choose merge scanner if in transaction
+
+      IXScannerType scanType = cb->isTransaction() ? SCANNER_TYPE_MERGE :
+                                                     SCANNER_TYPE_DISK ;
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       // delete and update should also use scanner properly
       _rtnIXScanner * scanner     = NULL ;
 
@@ -1850,7 +2031,11 @@ namespace engine
          // get the matcher from plan instead of manually loading it
          matchRuntime = planRuntime->getMatchRuntime( TRUE ) ;
 
+<<<<<<< HEAD
          rc = f.createIXScanner( scanType, &indexCB, predList, su, mbContext, FALSE, cb, scanner ) ;
+=======
+         rc = f.createScanner( scanType, &indexCB, planRuntime, su, cb, scanner ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          if ( rc )
          {
             goto error ;
@@ -1859,9 +2044,15 @@ namespace engine
 
       mbContext->mbUnlock() ;
 
+<<<<<<< HEAD
       *ppScanner = SDB_OSS_NEW dmsIXScanner( su->data(), mbContext, matchRuntime,
                                              scanner, TRUE, accessType,
                                              -1, 0, 0, opHandler ) ;
+=======
+      *ppScanner = SDB_OSS_NEW dmsIXScanner( su->data(), mbContext,
+                                             matchRuntime, scanner, TRUE,
+                                             accessType, -1, 0, 0, opHandler ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       if ( !(*ppScanner) )
       {
          PD_LOG( PDERROR, "Unable to allocate memory for dms ixscanner" ) ;
@@ -1905,6 +2096,7 @@ namespace engine
       SDB_ASSERT ( cb, "cb can't be NULL" ) ;
       SDB_ASSERT ( ppScanner, "scanner can't be NULL" ) ;
 
+<<<<<<< HEAD
       rc = f.createTBScanner( scanType, su, mbContext, FALSE, cb, scanner ) ;
       if ( rc )
       {
@@ -1913,6 +2105,10 @@ namespace engine
 
       *ppScanner = SDB_OSS_NEW dmsTBScanner( su->data(), mbContext, matchRuntime,
                                              scanner, TRUE, accessType,
+=======
+      *ppScanner = SDB_OSS_NEW dmsTBScanner( su->data(), mbContext,
+                                             matchRuntime, accessType,
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                                              -1, 0, 0, opHandler ) ;
       if ( !(*ppScanner) )
       {
@@ -2170,7 +2366,7 @@ namespace engine
          }
          ++syncCSNum ;
 
-         dmsCSMutexScope csLock( dmsCB, csName ) ;
+         // dmsCSMutexScope csLock( dmsCB, csName ) ;
          /// get cs lock
          rc = dmsCB->nameToSUAndLock ( csName, suID, &su, SHARED ) ;
          if ( SDB_DMS_CS_NOTEXIST == rc )
@@ -2639,6 +2835,155 @@ namespace engine
       }
 
    done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+<<<<<<< HEAD
+   INT32 rtnParseCmdLocationMatcher( const BSONObj &query,
+                                     BSONObj &nodesMatcher,
+                                     BSONObj &newMatcher,
+                                     BOOLEAN ignoreNodeParam,
+                                     BOOLEAN ignoreCtrlParam )
+=======
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNLOADCOLLECTIONDICT, "rtnLoadCollectionDict" )
+   INT32 rtnLoadCollectionDict( const CHAR *pCollectionName,
+                                const CHAR *dictionary, UINT32 dictSize )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
+   {
+      INT32 rc = SDB_OK ;
+      BSONObjBuilder matcherBuilder ;
+      BSONObjBuilder nodesCondBuilder ;
+
+      try
+      {
+         BSONObjIterator iter( query ) ;
+         while( iter.more() )
+         {
+            BSONElement ele = iter.next() ;
+
+            /// $and:[{a:{$eq:1}},{global:{$et:1}}]
+            if ( Array == ele.type() &&
+                 0 == ossStrcmp( ele.fieldName(), "$and" ) )
+            {
+               BSONObj tmpNodeMatcher ;
+               BSONObj tmpNewMatcher ;
+               BSONArrayBuilder subMatcher(
+                  matcherBuilder.subarrayStart( ele.fieldName() ) ) ;
+
+<<<<<<< HEAD
+               BSONObjIterator subItr( ele.embeddedObject() ) ;
+               while ( subItr.more() )
+               {
+                  BSONElement subEle = subItr.next() ;
+                  if ( Object != subEle.type() )
+                  {
+                     PD_LOG( PDERROR, "Parse mather obj[%s] failed: "
+                             "invalid $and", query.toString().c_str() ) ;
+                     rc = SDB_INVALIDARG ;
+                     goto error ;
+                  }
+                  else
+                  {
+                     BSONObj tmpObj = subEle.embeddedObject() ;
+                     rc = rtnParseCmdLocationMatcher( tmpObj, tmpNodeMatcher,
+                                                      tmpNewMatcher,
+                                                      ignoreNodeParam,
+                                                      ignoreCtrlParam ) ;
+                     PD_RC_CHECK( rc, PDERROR, "Parse matcher[%s] failed",
+                                  query.toString().c_str() ) ;
+
+                     subMatcher.append( tmpNewMatcher ) ;
+                     nodesCondBuilder.appendElements( tmpNodeMatcher ) ;
+                  }
+               } /// end while
+               subMatcher.done() ;
+            }
+            else if ( !ignoreNodeParam && (
+                      0 == ossStrcasecmp( ele.fieldName(), FIELD_NAME_GROUPID ) ||
+                      0 == ossStrcasecmp( ele.fieldName(), FIELD_NAME_GROUPNAME ) ||
+                      0 == ossStrcasecmp( ele.fieldName(), FIELD_NAME_GROUPS ) ||
+                      0 == ossStrcasecmp( ele.fieldName(), FIELD_NAME_NODEID ) ||
+                      0 == ossStrcasecmp( ele.fieldName(), FIELD_NAME_HOST ) ||
+                      0 == ossStrcasecmp( ele.fieldName(), PMD_OPTION_SVCNAME ) ||
+                      0 == ossStrcasecmp( ele.fieldName(), FIELD_NAME_SERVICE_NAME ) ||
+                      0 == ossStrcasecmp( ele.fieldName(), FIELD_NAME_NODE_NAME ) ||
+                      0 == ossStrcasecmp( ele.fieldName(), FIELD_NAME_INSTANCEID ) ||
+                      0 == ossStrcasecmp( ele.fieldName(), PMD_OPTION_INSTANCE_ID )
+                     ) )
+            {
+               nodesCondBuilder.append( ele ) ;
+            }
+            else if ( !ignoreCtrlParam && (
+                      0 == ossStrcasecmp( ele.fieldName(),
+                                          FIELD_NAME_NODE_SELECT ) ||
+                      0 == ossStrcasecmp( ele.fieldName(),
+                                          FIELD_NAME_GLOBAL ) ||
+                      0 == ossStrcasecmp( ele.fieldName(),
+                                          FIELD_NAME_ROLE ) ||
+                      0 == ossStrcasecmp( ele.fieldName(),
+                                          FIELD_NAME_RAWDATA )
+                     ) )
+            {
+               nodesCondBuilder.append( ele ) ;
+            }
+            else
+            {
+               matcherBuilder.append( ele );
+            }
+         }
+=======
+      rc = data->loadDictionary( context, dictionary, dictSize ) ;
+      PD_RC_CHECK( rc, PDERROR, "Load dictionary for collection[%s] failed[%d]",
+                   pCollectionName, rc ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
+
+         newMatcher = matcherBuilder.obj() ;
+         nodesMatcher = nodesCondBuilder.obj() ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "An exception occurred when parsing cmd location "
+                 "matcher: %s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNLOADCOLLECTIONDICT1, "rtnLoadCollectionDict" )
+   INT32 rtnLoadCollectionDict( dmsStorageDataCommon *dataSu,
+                                dmsMBContext *context,
+                                const CHAR *dictionary,
+                                UINT32 dictSize )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_RTNLOADCOLLECTIONDICT1 ) ;
+
+      SDB_ASSERT( FALSE == context->isMBLock(),
+                  "mb should not have been locked" ) ;
+
+      rc = context->mbLock( EXCLUSIVE ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Lock collection[%s.%s] failed[%d]",
+                   dataSu->getSuName(), context->mb()->_collectionName, rc ) ;
+
+      rc = dataSu->loadDictionary( context, dictionary, dictSize ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Load dictionary for collection[%s.%s] failed[%d]",
+                   dataSu->getSuName(), context->mb()->_collectionName, rc ) ;
+
+   done:
+      if ( context )
+      {
+         context->mbUnlock() ;
+      }
+      PD_TRACE_EXITRC( SDB_RTNLOADCOLLECTIONDICT1, rc ) ;
       return rc ;
    error:
       goto done ;

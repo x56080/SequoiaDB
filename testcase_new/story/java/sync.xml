@@ -39,7 +39,11 @@
     <test name="normaltest">
         <packages>
             <package name="com.sequoiadb.crud.backup" />
+<<<<<<< HEAD
             <package name="com.sequoiadb.serial" />
+=======
+            <package name="com.sequoiadb.datasourceserial" />
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             <package name="com.sequoiadb.session.accessisolation" />
             <package name="com.sequoiadb.metadataconsistency.cluster"/>
             <package name="com.sequoiadb.alter"/>
@@ -48,7 +52,11 @@
             <package name="com.sequoiadb.split.serial" />
             <package name="com.sequoiadb.lob.serial" />
             <package name="com.sequoiadb.explain.serial" />
+<<<<<<< HEAD
             <package name="com.sequoiadb.index.serial"/>
+=======
+            <package name="com.sequoiadb.index.serial" />
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       </packages>    
    </test>
 </suite>

@@ -55,7 +55,7 @@ public class Transaction17264 extends SdbTestBase {
         cappedCL.insert( object );
         expList.add( object );
         object = new BasicBSONObject();
-        oid = 64L;
+        oid = 76L;
         object.put( "_id", oid );
         object.put( "a", 2 );
         object.put( "b", 2 );
@@ -89,7 +89,7 @@ public class Transaction17264 extends SdbTestBase {
         TransUtils.beginTransaction( db2 );
 
         // 事务1插入记录，并读记录走表扫描
-        long oid = 128L;
+        long oid = 152L;
         BSONObject object = new BasicBSONObject();
         object.put( "_id", oid );
         object.put( "a", 3 );

@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = utilAllocator.hpp
 
@@ -31,7 +30,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #ifndef UTIL_ALLOCATOR_HPP_
 #define UTIL_ALLOCATOR_HPP_
 
@@ -39,23 +37,24 @@
 #include "oss.hpp"
 #include "ossMem.hpp"
 #include "ossUtil.hpp"
+#include "utilMemListPool.hpp"
 
 using namespace std ;
 
-#define UTIL_ALLOCATOR_SIZE   265
+#define UTIL_ALLOCATOR_SIZE   256
 
 namespace engine
 {
    template < UINT32 stackSize = UTIL_ALLOCATOR_SIZE >
-   class _utilAllocator
+   class _utilStackOnlyAllocator
    {
       public :
-         _utilAllocator()
+         _utilStackOnlyAllocator()
          {
             _offset = 0 ;
          }
 
-         virtual ~_utilAllocator()
+         virtual ~_utilStackOnlyAllocator()
          {
             _offset = 0 ;
          }
@@ -85,7 +84,152 @@ namespace engine
       protected :
          char _mem[ stackSize ] ;
          INT32 _offset ;
-   } ;
+   } ;//class _utilStackOnlyAllocator
+
+   class utilBaseAllocator : public SDBObject
+   {
+      public:
+         utilBaseAllocator() = default;
+         virtual ~utilBaseAllocator() = default;
+         utilBaseAllocator(const utilBaseAllocator &) = delete;
+         utilBaseAllocator &operator=(const utilBaseAllocator &) = delete;
+      public:
+         virtual void *malloc(size_t size) = 0;
+         virtual void free(void *p) = 0;
+         virtual void *realloc(void *p, size_t size) = 0;
+         virtual BOOLEAN isMovable()const = 0;
+         virtual BOOLEAN isMovable(const void *p)const = 0;
+         virtual UINT32 getFastAllocSize()const {return 0;}
+   };//class utilBaseAllocator
+
+   class utilPoolAllocator : public utilBaseAllocator
+   {
+      public:
+         virtual void *malloc(size_t size) override
+         {
+            return SDB_THREAD_ALLOC(size);
+         }
+         virtual void *realloc(void *p, size_t size) override
+         {
+            void *ptr = nullptr;
+            if (nullptr == p)
+            {
+               ptr = this->malloc(size);
+            }
+            else
+            {
+               ptr = SDB_THREAD_REALLOC(p, size);
+            }
+            return ptr;
+         }
+         virtual void free(void *p) override
+         {
+            SDB_THREAD_FREE(p);
+         }
+
+         virtual BOOLEAN isMovable()const override
+         {
+            return TRUE;
+         }
+
+         virtual BOOLEAN isMovable(const void *p)const override
+         {
+            return TRUE;
+         }
+   };//utilPoolAllocator
+
+   template<UINT32 STACK_SIZE=512>
+   class utilStackAllocator : public utilBaseAllocator
+   {
+      public:
+         UINT32 getMaxStackBufSize()const {return STACK_SIZE;}
+
+         virtual UINT32 getFastAllocSize()const override {return STACK_SIZE;}
+
+         virtual void *malloc(size_t size) override
+         {
+            void *buf = nullptr;
+            /// stack buffer is allocated exclusively.
+            if (0 == _offset && size <= STACK_SIZE)
+            {
+               buf = _statckBuf;
+               _offset = size;
+            }
+            else
+            {
+               buf = _pallocator.malloc(size);
+            }
+            return buf;
+         }
+
+         virtual void *realloc(void *p, size_t size) override
+         {
+            void *buf = nullptr;
+            if (nullptr == p)
+            {
+               buf = this->malloc(size);
+            }
+            else if (isStackBuffer(p))
+            {
+               if (size <= STACK_SIZE)
+               {
+                  buf = _statckBuf;
+                  _offset = size;
+               }
+               else
+               {
+                  buf = _pallocator.malloc(size);
+                  if (nullptr != buf)
+                  {
+                     ossMemcpy(buf, _statckBuf, _offset);
+                     _offset = 0;
+                  }
+               }
+            }
+            else
+            {
+               buf = _pallocator.realloc(p, size);
+            }
+            return buf;
+         }
+
+         virtual void free(void *p) override
+         {
+            if (nullptr != p)
+            {
+               if (isStackBuffer(p))
+               {
+                  _offset = 0;
+               }
+               else
+               {
+                  _pallocator.free(p);
+               }
+            }
+
+            return;
+         }
+
+         BOOLEAN isStackBuffer(const void *p)const
+         {
+            return _statckBuf == (const CHAR *)p;
+         }
+
+         virtual BOOLEAN isMovable()const override
+         {
+            return FALSE;
+         }
+
+         virtual BOOLEAN isMovable(const void *p)const override
+         {
+            return !isStackBuffer(p);
+         }
+      
+      private:
+         CHAR _statckBuf[STACK_SIZE] = {};
+         UINT32 _offset = 0;
+         utilPoolAllocator _pallocator;
+   };//
 }
 
 #endif // UTIL_ALLOCATOR_HPP_

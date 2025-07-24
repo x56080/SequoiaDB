@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = pmdEDUMgr.cpp
 
@@ -35,7 +33,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #include "core.hpp"
 #include "pd.hpp"
 #include "pmd.hpp"
@@ -147,6 +144,22 @@ namespace engine
          }
          ++it ;
       }
+   }
+
+   UINT64 _pmdEDUMgr::getMinRunningLSN()
+   {
+      UINT64 lsn = OSS_UINT64_MAX;
+      ossScopedLock lock( &_latch, SHARED ) ;
+      MAP_EDUCB::const_iterator itr = _mapRuns.begin();
+      for (; itr != _mapRuns.end(); ++itr)
+      {
+         UINT64 l = itr->second->getBeginLsn();
+         if (l < lsn)
+         {
+            lsn = l;
+         }
+      }
+      return lsn;
    }
 
    INT32 _pmdEDUMgr::init( IResource *pResource )
@@ -366,7 +379,7 @@ namespace engine
             goto error ;
          }
 
-         if ( DPS_INVALID_TRANS_ID == cb->getTransID() )
+         if ( cb->getTransID().isInvalid() )
          {
             rc = SDB_DPS_TRANS_NO_TRANS ;
             goto error ;
@@ -1036,9 +1049,18 @@ namespace engine
                            cb->getCurProcessName(),
                            DMS_COLLECTION_FULL_NAME_SZ ) ;
                if ( 0 == processName[ 0 ] )
+<<<<<<< HEAD
+=======
                {
                   continue ;
                }
+               else if ( 0 != idThreshold && opID != cb->getWritingID() )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
+               {
+                  // if the writingID has been changed, just discard it
+                  continue ;
+               }
+<<<<<<< HEAD
                else if ( 0 != idThreshold && opID != cb->getWritingID() )
                {
                   // if the writingID has been changed, just discard it
@@ -1058,6 +1080,22 @@ namespace engine
                   rc = ossException2RC( &e ) ;
                   PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
                }
+=======
+
+               try
+               {
+                  pmdEDUProcessInfo info ;
+                  info._opID = opID ;
+                  info._eduID = cb->getID() ;
+                  info._processName.assign( processName ) ;
+                  writingEDUList.push_back( info ) ;
+               }
+               catch ( exception &e )
+               {
+                  rc = ossException2RC( &e ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
+               }
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             }
          }
       }
@@ -2537,12 +2575,15 @@ namespace engine
             *(cb->getMonConfigCB()) = *(krcb->getMonCB()) ;
             cb->initMonAppCB() ;
             cb->initConf() ;
+<<<<<<< HEAD
 
             if ( cb->getOperator()->getGlobalID().isInvalid() &&
                  0 != pmdGetNodeID().columns.nodeID )
             {
                cb->initOperator() ;
             }
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
             rc = pItem->_pFunc( cb, event._Data ) ;
             // copy name

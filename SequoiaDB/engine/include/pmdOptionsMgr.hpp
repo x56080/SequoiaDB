@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = pmdOptionsMgr.hpp
 
@@ -610,6 +609,9 @@ namespace engine
          OSS_INLINE UINT32 transTimeout () const { return _transTimeout; }
          OSS_INLINE INT32 transIsolation () const { return _transIsolation; }
          OSS_INLINE BOOLEAN transLockwait () const { return _transLockwait; }
+         OSS_INLINE BOOLEAN mvccOn () const { return _mvccOn ; }
+         OSS_INLINE BOOLEAN globTransOn () const { return _globTransOn ; }
+         OSS_INLINE INT32 globTransMaxTimeError() const { return _globTransMaxTimeError ; }
          OSS_INLINE BOOLEAN transAutoCommit() const { return _transAutoCommit ; }
          OSS_INLINE BOOLEAN transAutoRollback() const { return _transAutoRollback ; }
          OSS_INLINE BOOLEAN transUseRBS() const { return _transUseRBS ; }
@@ -696,14 +698,21 @@ namespace engine
          OSS_INLINE BOOLEAN transAllowLockEscalation() const { return _transAllowLockEscalation ; }
          OSS_INLINE INT32 transMaxLockNum() const { return _transMaxLockNum ; }
          OSS_INLINE INT32 transMaxLogSpaceRatio() const { return _transMaxLogSpaceRatio ; }
+<<<<<<< HEAD
          OSS_INLINE SDB_CONSISTENCY_STRATEGY transConsistencyStrategy() const
          {
             return _transConsistencyStrategy ;
          }
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          OSS_INLINE UINT32 slowQueryThreshold() const { return _slowQueryThreshold ; }
          OSS_INLINE UINT32 monGroupMask() const { return _monGroupMask ; }
          OSS_INLINE UINT32 monHistEvent() const { return _monHistEvent ; }
          OSS_INLINE UINT32 serviceMask() const { return _serviceMask ; }
+<<<<<<< HEAD
+=======
+         OSS_INLINE UINT32 mvccRBSNum() const { return _mvccRBSNum ; }
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          OSS_INLINE INT32 maxContextNum() const { return _maxContextNum ; }
          OSS_INLINE INT32 maxSessionContextNum() const { return _maxSessionContextNum ; }
          OSS_INLINE INT32 contextTimeout() const { return _contextTimeout ; }
@@ -712,6 +721,7 @@ namespace engine
          OSS_INLINE BOOLEAN diagSecureOn() const { return _diagSecureOn ; }
          OSS_INLINE UINT32 getMetaCacheExpired() const { return _metacacheexpired ; }
          OSS_INLINE UINT32 getMetaCacheLWM() const { return _metacachelwm ; }
+<<<<<<< HEAD
          OSS_INLINE UINT32 getStatMCVLimit() const { return _statMCVLimit ; }
          OSS_INLINE BOOLEAN isRemoteLocationConsistency() const { return _remoteLocationConsistency ; }
          OSS_INLINE BOOLEAN isConsultRollbackLogOn() const { return _consultRollbackLogOn ; }
@@ -791,6 +801,8 @@ namespace engine
          {
             return _wtCheckPointInterval ;
          }
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 #ifdef SDB_ENTERPRISE
 
@@ -924,11 +936,27 @@ namespace engine
          BOOLEAN     _transAllowLockEscalation ;
          INT32       _transMaxLockNum ;
          INT32       _transMaxLogSpaceRatio ;
+<<<<<<< HEAD
          SDB_CONSISTENCY_STRATEGY _transConsistencyStrategy ;
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          UINT32      _slowQueryThreshold ;
          UINT32      _monGroupMask ;
          UINT32      _monHistEvent ;
          UINT32      _serviceMask ;
+         BOOLEAN     _mvccOn ;
+         BOOLEAN     _globTransOn ;
+         INT32       _globTransMaxTimeError ;
+         UINT32      _mvccRBSNum ;
+
+         INT32       _maxContextNum ;
+         INT32       _maxSessionContextNum ;
+         INT32       _contextTimeout ;
+
+         BOOLEAN     _detectDisk ;
+         BOOLEAN     _diagSecureOn ;
+         UINT32      _metacacheexpired ;
+         UINT32      _metacachelwm ;
 
          INT32       _maxContextNum ;
          INT32       _maxSessionContextNum ;
@@ -991,6 +1019,9 @@ namespace engine
    INT32 optString2LogMod( const CHAR *str, UINT32 &value ) ;
    INT32 optString2MonGroupMask( const CHAR *str, UINT32 &value ) ;
    INT32 optLogMod2String( UINT32 value, CHAR *str, INT32 len ) ;
+   INT32 optBuildErrorReport( const bson::BSONObj &returnObj,
+                              BOOLEAN &hasError,
+                              std::string &returnStr ) ;
 
 }
 

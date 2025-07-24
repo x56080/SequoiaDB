@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = pmdAsyncSession.cpp
 
@@ -32,7 +30,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #include "pmdAsyncSession.hpp"
 #include "ossMem.hpp"
 #include "pmd.hpp"
@@ -765,11 +762,19 @@ namespace engine
       {
          ossScopedLock lock( &_forceLatch ) ;
          if ( _isStop )
+<<<<<<< HEAD
          {
             ret = FALSE ;
          }
          else
          {
+=======
+         {
+            ret = FALSE ;
+         }
+         else
+         {
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             try
             {
                // push session into the force list
@@ -873,6 +878,7 @@ namespace engine
    INT32 _pmdAsycSessionMgr::dispatchMsg( const NET_HANDLE &handle,
                                           const MsgHeader *pMsg,
                                           pmdEDUMemTypes memType,
+                                          UINT64 recvTime,
                                           BOOLEAN decPending,
                                           BOOLEAN *hasDispatched )
    {
@@ -1000,11 +1006,11 @@ namespace engine
          goto done ;
       }
 
-      // On recieve
-      pSession->onRecieve ( handle, (_MsgHeader*)pMsg ) ;
+      // On receive
+      pSession->onRecieve( handle, (_MsgHeader*)pMsg ) ;
 
-      // push the mssage into session manager
-      rc = _pushMessage( pSession, pMsg, memType, handle ) ;
+      // push the message into session manager
+      rc = _pushMessage( pSession, pMsg, memType, handle, recvTime ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG ( PDERROR, "Failed to push message[Len:%u, opCode:%d, "
@@ -1038,13 +1044,14 @@ namespace engine
    INT32 _pmdAsycSessionMgr::_pushMessage( pmdAsyncSession *pSession,
                                            const MsgHeader *header,
                                            pmdEDUMemTypes memType,
-                                           const NET_HANDLE &handle )
+                                           const NET_HANDLE &handle,
+                                           UINT64 recvTime )
    {
       INT32 rc                = SDB_OK ;
       PD_TRACE_ENTRY ( PMD_SESSMGR_PUSHMSG ) ;
       CHAR *pNewBuff          = NULL ;
       UINT64 userData         = PMD_MAKE_SESSION_USERDATA( handle,
-                                           PMD_SESSION_MSG_INPOOL ) ;
+                                                 PMD_SESSION_MSG_INPOOL ) ;
 
       if ( pSession->isClosed() )
       {
@@ -1137,7 +1144,7 @@ namespace engine
       // post edu event
       pSession->eduCB()->postEvent( pmdEDUEvent( PMD_EDU_EVENT_MSG,
                                                  memType, pNewBuff,
-                                                 userData ) ) ;
+                                                 userData, recvTime ) ) ;
    done:
       PD_TRACE_EXITRC ( PMD_SESSMGR_PUSHMSG, rc ) ;
       return rc ;

@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = clsReplayer.cpp
 
@@ -36,7 +34,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #include "clsReplayer.hpp"
 #include "pmd.hpp"
 #include "pmdCB.hpp"
@@ -50,6 +47,10 @@
 #include "utilCompressor.hpp"
 #include "mthModifier.hpp"
 #include "utilBsonHash.hpp"
+<<<<<<< HEAD
+=======
+#include "dpsUtil.hpp"
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 #include "pdSecure.hpp"
 
 using namespace bson ;
@@ -64,7 +65,11 @@ namespace engine
    INT32 startIndexJob ( RTN_JOB_TYPE type, const CHAR *collection,
                          const BSONObj &index, const BSONObj &option,
                          DPS_LSN_OFFSET lsn, _dpsLogWrapper *dpsCB,
+<<<<<<< HEAD
                          BOOLEAN isRollBack, pmdEDUCB *eduCB ) ;
+=======
+                         BOOLEAN isRollBack ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    // default pending count for duplicated key issue
    #define CLS_PARALLA_DEF_PENDING_COUNT     ( 1024 )
@@ -833,15 +838,20 @@ namespace engine
       SDB_ASSERT( NULL != recordHeader, "head should not be NULL" ) ;
 
       dpsTransCB *transCB = sdbGetTransCB() ;
-      DPS_TRANS_ID transID = DPS_INVALID_TRANS_ID ;
+      DPS_TRANS_ID transID ;
       BOOLEAN startedRollback = FALSE ;
+
+      // check transaction rollback
+      dpsGetTransIDFromRecord( (CHAR *)recordHeader, transID ) ;
 
       if ( !_dpsCB )
       {
+         // set last replay LSN
          eduCB->insertLsn( recordHeader->_lsn ) ;
          eduCB->setDoReplay( TRUE ) ;
       }
 
+<<<<<<< HEAD
       // check transaction rollback
       rc = dpsGetTransIDFromRecord( (CHAR *)recordHeader, FALSE, transID ) ;
       if ( SDB_OK != rc )
@@ -850,6 +860,11 @@ namespace engine
       }
 
       if ( DPS_INVALID_TRANS_ID != transID &&
+=======
+      // check if a rollback DPS log, if so, mark rollback status
+      // so duplicated key of non-id index could be ignored
+      if ( transID.isValid() &&
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
            transCB->isRollback( transID ) )
       {
          eduCB->startTransRollback( TRUE ) ;
@@ -1103,6 +1118,7 @@ namespace engine
             {
                goto error ;
             }
+<<<<<<< HEAD
             eduCB->setCurProcessName( cs ) ;
             rc = options.parseOptions( boOptions ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to parse drop collection "
@@ -1116,6 +1132,11 @@ namespace engine
                rtnGetIndexJobHolder()->waitForCSJobs( csUID ) ;
             }
 
+=======
+            rc = options.parseOptions( boOptions ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to parse drop collection "
+                         "space options, rc: %d", rc ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             while ( TRUE )
             {
                rc = rtnDropCollectionSpaceCommand( cs, eduCB, _dmsCB, _dpsCB,
@@ -1156,7 +1177,10 @@ namespace engine
                goto error ;
             }
 
+<<<<<<< HEAD
             eduCB->setCurProcessName( cl ) ;
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             if ( !extOptions.isEmpty() )
             {
                pExtOpt = &extOptions ;
@@ -1213,6 +1237,7 @@ namespace engine
             {
                goto error ;
             }
+<<<<<<< HEAD
             eduCB->setCurProcessName( cl ) ;
             rc = options.parseOptions( boOptions ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to parse drop collection "
@@ -1231,6 +1256,14 @@ namespace engine
             // if recycle item is valid, must be reported
             if ( ( SDB_DMS_NOTEXIST == rc ) &&
                  !( options._recycleItem.isValid() )  )
+=======
+            rc = options.parseOptions( boOptions ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to parse drop collection "
+                         "options, rc: %d", rc ) ;
+            rc = rtnDropCollectionCommand( cl, eduCB, _dmsCB, _dpsCB,
+                                           UTIL_UNIQUEID_NULL, &options ) ;
+            if ( SDB_DMS_NOTEXIST == rc )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             {
                PD_LOG( PDWARNING, "Collection [%s] not exist when drop", cl ) ;
                rc = SDB_OK ;
@@ -1246,11 +1279,18 @@ namespace engine
             {
                goto error ;
             }
+<<<<<<< HEAD
             eduCB->setCurProcessName( cl ) ;
             /// rebuild the index can be very time-consuming.
             /// we create a sub thread to handle it.
             startIndexJob( RTN_JOB_CREATE_INDEX, cl, index, option,
                            recordHeader->_lsn, _dpsCB, FALSE, eduCB ) ;
+=======
+            /// rebuild the index can be very time-consuming.
+            /// we create a sub thread to handle it.
+            startIndexJob( RTN_JOB_CREATE_INDEX, cl, index, option,
+                           recordHeader->_lsn, _dpsCB, FALSE ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             break ;
          }
          case LOG_TYPE_IX_DELETE :
@@ -1262,9 +1302,14 @@ namespace engine
             {
                goto error ;
             }
+<<<<<<< HEAD
             eduCB->setCurProcessName( cl ) ;
             startIndexJob( RTN_JOB_DROP_INDEX, cl, index, option,
                            recordHeader->_lsn, _dpsCB, FALSE, eduCB ) ;
+=======
+            startIndexJob( RTN_JOB_DROP_INDEX, cl, index, option,
+                           recordHeader->_lsn, _dpsCB, FALSE ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             break ;
          }
          case LOG_TYPE_CL_RENAME :
@@ -1381,17 +1426,27 @@ namespace engine
             {
                goto error ;
             }
+<<<<<<< HEAD
             eduCB->setCurProcessName( clname ) ;
             rc = options.parseOptions( boOptions ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to parse truncate collection "
                          "options, rc: %d", rc ) ;
             if ( options._recycleItem.isValid() )
+=======
+            rc = options.parseOptions( boOptions ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to parse truncate collection "
+                         "options, rc: %d", rc ) ;
+            // truncate will reset index flag of dropping indexes,
+            // so we need to wait for collection jobs ( for drop indexes )
+            while ( rtnGetIndexJobHolder()->hasCLJob( clname ) )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             {
                // wait for index jobs to avoid inconsistency of indexes
                // between primary and secondary nodes in recycye bin item
                utilCLUniqueID clUID = (utilCLUniqueID)( options._recycleItem.getOriginID() ) ;
                rtnGetIndexJobHolder()->waitForCLJobs( clUID ) ;
             }
+<<<<<<< HEAD
             else
             {
                // truncate will reset index flag of dropping indexes,
@@ -1399,6 +1454,8 @@ namespace engine
                rtnGetIndexJobHolder()->waitForCLJobs( clname, RTN_JOB_DROP_INDEX ) ;
             }
 
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             rc = rtnTruncCollectionCommand( clname, eduCB, _dmsCB, _dpsCB,
                                             NULL, &options ) ;
             if ( SDB_OK != rc )
@@ -1670,7 +1727,11 @@ namespace engine
             rc = options.parseOptions( boOptions ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to parse return options, "
                          "rc: %d", rc ) ;
+<<<<<<< HEAD
             eduCB->setCurProcessName( options._recycleItem.getOriginName() ) ;
+=======
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             while ( TRUE )
             {
                rc = rtnReturnCommand( options, eduCB, _dmsCB, _dpsCB, FALSE ) ;
@@ -1697,7 +1758,6 @@ namespace engine
             rc = SDB_OK ;
             break ;
          }
-
          case LOG_TYPE_TS_ROLLBACK :
          {
             rc = SDB_OK ;
@@ -2025,7 +2085,11 @@ namespace engine
                goto error ;
             }
             startIndexJob( RTN_JOB_DROP_INDEX, cl, index, option,
+<<<<<<< HEAD
                            recordHeader->_lsn, _dpsCB, TRUE, eduCB ) ;
+=======
+                           recordHeader->_lsn, _dpsCB, TRUE ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             break ;
          }
          case LOG_TYPE_IX_DELETE :
@@ -2038,7 +2102,11 @@ namespace engine
                goto error ;
             }
             startIndexJob( RTN_JOB_CREATE_INDEX, cl, index, option,
+<<<<<<< HEAD
                            recordHeader->_lsn, _dpsCB, TRUE, eduCB ) ;
+=======
+                           recordHeader->_lsn, _dpsCB, TRUE ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             break ;
          }
          case LOG_TYPE_CL_RENAME :
@@ -2803,16 +2871,21 @@ namespace engine
 
       dpsLogRecord &record = info.getMergeBlock().record() ;
 
-      DPS_TRANS_ID transID = eduCB->getTransID() ;
-      DPS_LSN_OFFSET preTransLSN = eduCB->getCurTransLsn() ;
-      DPS_LSN_OFFSET relatedTransLSN = eduCB->getRelatedTransLSN() ;
+      dpsRecordTransInfo transInfo( eduCB->getTransID(),
+                                    eduCB->getCurTransLsn(),
+                                    eduCB->getRelatedTransLSN(),
+                                    eduCB->getTransBeginTime(),
+                                    eduCB->getTransPreCommitTime(),
+                                    eduCB->getTransCommitTime() ) ;
 
-      PD_CHECK( DPS_INVALID_LSN_OFFSET == preTransLSN, SDB_SYS, error, PDERROR,
-                "Failed to log transaction rollback for transaction [%llu], "
-                "preTransLSN is not empty [%llu]", transID, preTransLSN ) ;
+      PD_CHECK( DPS_INVALID_LSN_OFFSET == transInfo._preTransLSN,
+                SDB_SYS, error, PDERROR,
+                "Failed to log transaction rollback for transaction [%s], "
+                "preTransLSN is not empty [%llu]",
+                dpsTransIDToString( transInfo._transID ).c_str(),
+                transInfo._preTransLSN ) ;
 
-      rc = dpsTransRollback2Record( transID, preTransLSN, relatedTransLSN,
-                                    record ) ;
+      rc = dpsTransRollback2Record( transInfo, record ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to transform record into "
                    "transaction rollback record, rc: %d", rc ) ;
 
@@ -3229,15 +3302,22 @@ namespace engine
    INT32 startIndexJob ( RTN_JOB_TYPE type, const CHAR *collection,
                          const BSONObj &index, const BSONObj &option,
                          DPS_LSN_OFFSET lsn, _dpsLogWrapper *dpsCB,
+<<<<<<< HEAD
                          BOOLEAN isRollBack, pmdEDUCB *cb )
+=======
+                         BOOLEAN isRollBack )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_STARTINXJOB ) ;
 
       rtnIndexJob *indexJob = NULL ;
       BOOLEAN useSync = FALSE ;
+<<<<<<< HEAD
       BOOLEAN jobSubmit = FALSE ;
 
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       UINT64 taskID = DMS_INVALID_TASKID ;
       UINT64 mainTaskID = DMS_INVALID_TASKID ;
       INT32 sortBufSize = SDB_INDEX_SORT_BUFFER_DEFAULT_SIZE ;

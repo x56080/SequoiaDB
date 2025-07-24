@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2011-2019 SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = ossMem.hpp
 
@@ -52,10 +50,13 @@
 
 #include <map>
 #include <set>
+#include <boost/unordered_set.hpp>
 #include <list>
 #include <string>
 #include <vector>
 #include <deque>
+#include <unordered_set> // c++11
+#include <unordered_map> // c++11
 
 /*
  * Memory pool ideal for allocation of objects one chunk at a time, such as
@@ -113,6 +114,21 @@ class ossPoolSet : public std::set<K, Compare, typename ossPoolAllocator<K>::Typ
    * DO NOT USE THIS CLASS IN POLYMORPHISM
    */
 };
+
+
+/*
+ * Unordered Set utilizing memory pool
+ */
+
+
+//template < typename K, typename Hash, typename Equal >
+//class ossPoolUnordedSet : public boost::unordered_set<K, Hash, Equal, typename ossPoolAllocator<K>::Type >{
+  /**
+   * DO NOT ADD ANY MEMBER/FUNCTION IN THIS CLASS
+   * DO NOT USE THIS CLASS IN POLYMORPHISM
+   */
+//};
+
 
 /*
  * Multi Set utilizing memory pool
@@ -211,6 +227,28 @@ public:
     * DO NOT USE THIS CLASS IN POLYMORPHISM
     */
 } ;
+
+/*
+ * Unordered Set utilizing memory pool
+ */
+template < typename K, typename Hash=std::hash<K>, typename Equal=std::equal_to<K>>
+class ossPoolUnorderedSet : public std::unordered_set<K, Hash, Equal, typename ossPoolAllocator<K>::Type >{
+  /**
+   * DO NOT ADD ANY MEMBER/FUNCTION IN THIS CLASS
+   * DO NOT USE THIS CLASS IN POLYMORPHISM
+   */
+};
+
+/*
+ * Unordered Map utilizing memory pool
+ */
+template < typename K, typename V, typename Hash=std::hash<K>, typename Equal=std::equal_to<K>>
+class ossPoolUnorderedMap : public std::unordered_map<K, V, Hash, Equal, typename ossPoolAllocator<std::pair<const K, V> >::Type >{
+  /**
+   * DO NOT ADD ANY MEMBER/FUNCTION IN THIS CLASS
+   * DO NOT USE THIS CLASS IN POLYMORPHISM
+   */
+};
 
 #endif
 

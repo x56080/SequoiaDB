@@ -1,18 +1,18 @@
 /*******************************************************************************
-   Copyright (C) 2023-present SequoiaDB Ltd.
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+      http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = pmdEnv.cpp
 
@@ -34,7 +34,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #include "pmdEnv.hpp"
 #include "ossEDU.hpp"
 #include "pmdSignalHandler.hpp"
@@ -726,6 +725,14 @@ namespace engine
          sigSet.sigDel ( SIGHUP ) ;
       }
 
+      if ( tcgetpgrp( STDOUT_FILENO ) != getpgrp() )
+      {
+         // It means that the program is started in the backgroup.
+         // We need to ignore the SIGHUP signal.
+         signal( SIGHUP, SIG_IGN ) ;
+         sigSet.sigDel ( SIGHUP ) ;
+      }
+
       if ( pDelSig )
       {
          UINT32 i = 0 ;
@@ -902,6 +909,7 @@ namespace engine
       return FALSE ;
    }
 
+<<<<<<< HEAD
    OSS_THREAD_LOCAL IExecutor * __executor = NULL ;
 
    IExecutor *sdbGetThreadExecutor()
@@ -909,6 +917,26 @@ namespace engine
       return __executor ;
    }
 
+=======
+   void pmdRenameProcess( INT32 argc, CHAR **argv, const CHAR *serviceName )
+   {
+#if defined (_LINUX)
+      CHAR processName[ OSS_RENAME_PROCESS_BUFFER_LEN + 1 ] = { 0 } ;
+      ossSnprintf( processName, OSS_RENAME_PROCESS_BUFFER_LEN, "%s(%s)",
+                   utilDBTypeStr( pmdGetDBType() ), serviceName ) ;
+      ossEnableNameChanges( argc, argv ) ;
+      ossRenameProcess( processName ) ;
+#endif // _LINUX
+   }
+
+   OSS_THREAD_LOCAL IExecutor * __executor = NULL ;
+
+   IExecutor *sdbGetThreadExecutor()
+   {
+      return __executor ;
+   }
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    INT64 pmdGetSysPageSize()
    {
       return pmdGetSysInfo()->_sysPageSize ;

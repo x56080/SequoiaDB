@@ -53,8 +53,11 @@ INSERT_FLG_DEFAULT = 0x00000000
 INSERT_FLG_CONTONDUP = 0x00000001
 INSERT_FLG_RETURNNUM = 0x00000002
 INSERT_FLG_REPLACEONDUP = 0x00000004
+<<<<<<< HEAD
 INSERT_FLG_CONTONDUP_ID = 0x00000020
 INSERT_FLG_REPLACEONDUP_ID = 0x00000040
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 INSERT_FLG_RETURN_OID = 0x10000000
 
 class collection(object):
@@ -317,9 +320,12 @@ class collection(object):
              INSERT_FLG_RETURN_OID   : Return the value of "_id" field in the record.
              INSERT_FLG_REPLACEONDUP : If the record hit index key duplicate error, database will replace the existing
                                        record by the inserting new record and then go on inserting.
+<<<<<<< HEAD
              INSERT_FLG_CONTONDUP_ID :  The flag represent the error of the dup key will be ignored when the dup key is '_id'.
              INSERT_FLG_REPLACEONDUP_ID : The flag represents the error of the dup key will be ignored when the dup key is '_id',
                                           and the original record will be replaced by new record.
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         """
         if not isinstance(flag, int):
             raise SDBTypeError("flags must be an instance of int")
@@ -383,9 +389,12 @@ class collection(object):
              INSERT_FLG_RETURN_OID   : Return the value of "_id" field in the record.
              INSERT_FLG_REPLACEONDUP : If the record hit index key duplicate error, database will replace the existing
                                        record by the inserting new record and then go on inserting.
+<<<<<<< HEAD
              INSERT_FLG_CONTONDUP_ID :  The flag represent the error of the dup key will be ignored when the dup key is '_id'.
              INSERT_FLG_REPLACEONDUP_ID : The flag represents the error of the dup key will be ignored when the dup key is '_id',
                                           and the original record will be replaced by new record.
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          """
         if not isinstance(record, dict):
             raise SDBTypeError("record must be an instance of dict")
@@ -1084,12 +1093,20 @@ class collection(object):
         rc = sdb.cl_drop_index(self._cl, idx_name)
         raise_if_error(rc, "Failed to drop index")
 
+<<<<<<< HEAD
     def get_index_stat(self, idx_name):
+=======
+    def get_index_stat(self, idx_name, detail=False):
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         """Get the statistics of the index.
 
         Parameters:
            Name         Type  Info:
            idx_name     str   The index name.
+<<<<<<< HEAD
+=======
+           detail       bool  Whether show the detail information.
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         Return values:
            a dict object of result
         Exceptions:
@@ -1097,8 +1114,15 @@ class collection(object):
         """
         if not isinstance(idx_name, str_type):
             raise SDBTypeError("index name must be an instance of str_type")
+<<<<<<< HEAD
 
         rc, result = sdb.cl_get_index_stat(self._cl, idx_name)
+=======
+        if not isinstance(detail, bool):
+            raise SDBTypeError("detail must be an instance of bool")
+
+        rc, result = sdb.cl_get_index_stat(self._cl, idx_name, detail)
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         raise_if_error(rc, "Failed to get index statistics")
         record, size = bson._bson_to_dict(result, dict, False,
                                           bson.OLD_UUID_SUBTYPE, True)

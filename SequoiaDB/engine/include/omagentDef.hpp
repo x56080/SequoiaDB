@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = omagentDef.hpp
 
@@ -30,7 +28,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #ifndef OMAGENT_DEF_HPP__
 #define OMAGENT_DEF_HPP__
 
@@ -89,9 +86,9 @@ namespace engine
    #define SDBOMA_SCRIPT_DIR_NAME      "script"
 
    #define SDBCM_EXE_FILE_NAME         "sdbcm"
-   #define SDBCM_CFG_FILE_NAME         SDBCM_EXE_FILE_NAME".conf"
-   #define SDBCM_DIALOG_FILE_NAME      SDBCM_EXE_FILE_NAME".log"
-   #define SDBCM_PID_FILE_NAME         SDBCM_EXE_FILE_NAME".pid"
+   #define SDBCM_CFG_FILE_NAME         SDBCM_EXE_FILE_NAME ".conf"
+   #define SDBCM_DIALOG_FILE_NAME      SDBCM_EXE_FILE_NAME ".log"
+   #define SDBCM_PID_FILE_NAME         SDBCM_EXE_FILE_NAME ".pid"
 
    #define SDB_CM_ROOT_PATH            ".." OSS_FILE_SEP SDBCM_CONF_DIR_NAME OSS_FILE_SEP
    #define SDBCM_CONF_PATH_FILE        SDB_CM_ROOT_PATH SDBCM_CFG_FILE_NAME
@@ -106,7 +103,7 @@ namespace engine
 #elif defined (_WINDOWS)
       #define SDBSTARTPROG             "sdbstart.exe"
       #define SDBSTOPPROG              "sdbstop.exe"
-      #define SDBSDBCMPROG             SDBCM_EXE_FILE_NAME".exe"
+      #define SDBSDBCMPROG             SDBCM_EXE_FILE_NAME ".exe"
 #endif
 
    #define SDB_OMA_USER                "OMA_ADMIN"

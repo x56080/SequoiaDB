@@ -1,6 +1,21 @@
 /*******************************************************************************
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+<<<<<<< HEAD
+   Copyright (C) 2011-Present SequoiaDB Ltd.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+=======
+   Copyright (C) 2011-2018 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU Affero General Public License as published by
@@ -14,6 +29,7 @@
 
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    Source File Name = rtnRecycleBinManager.cpp
 
@@ -35,7 +51,10 @@
    Last Changed =
 
 *******************************************************************************/
+<<<<<<< HEAD
+=======
 
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 #include "rtnRecycleBinManager.hpp"
 #include "pdTrace.hpp"
 #include "rtnTrace.hpp"
@@ -265,7 +284,11 @@ namespace engine
             _isEmptyFlag = FALSE ;
 
             // check if count is exceed maximum number of items
+<<<<<<< HEAD
             if ( count > (INT64)( conf.getMaxItemNum() ) )
+=======
+            if ( checkLimit && count > (INT64)( conf.getMaxItemNum() ) )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             {
                INT64 expectDropCount = count - conf.getMaxItemNum() ;
                rc = _getOldestItems( OSS_UINT64_MAX, expectDropCount, cb,
@@ -476,7 +499,11 @@ namespace engine
    error:
       goto done ;
    }
+<<<<<<< HEAD
 
+=======
+   
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNRECYBINMGR__GETITEMOBJ_RECYID, "_rtnRecycleBinManager::_getItemObjectByRecyID" )
    INT32 _rtnRecycleBinManager::_getItemObjectByRecyID( utilGlobalID recycleID,
                                                         pmdEDUCB *cb,
@@ -816,6 +843,7 @@ namespace engine
          BSONObjBuilder matcherBuilder( 64 ) ;
          if ( expiredTime < OSS_UINT64_MAX )
          {
+<<<<<<< HEAD
             /* matcher = { "RecycleTime": { "$cast": "timestamp",
              *                              "$lte": { $timestamp: XXXX } } }
              */
@@ -824,6 +852,12 @@ namespace engine
             timeBuilder.append( "$cast", "timestamp" ) ;
             timeBuilder.appendTimestamp( "$lte", (INT64)expiredTime, 0 ) ;
             timeBuilder.doneFast() ;
+=======
+            BSONObjBuilder timeBuilder(
+                  matcherBuilder.subobjStart( FIELD_NAME_RECYCLE_TIME ) ) ;
+            timeBuilder.appendTimestamp( "$lt", (INT64)expiredTime, 0 ) ;
+            timeBuilder.done() ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          }
          matcher = matcherBuilder.obj() ;
 

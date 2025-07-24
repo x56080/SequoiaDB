@@ -24,7 +24,11 @@ Refer to user manual for detailed description of all options.
 Access key and Secret key are your identifiers for Amazon S3. Leave them empty for using the env variables.
 Access Key: ABCDEFGHIJKLMNOPQRST
 Secret Key: abcdefghijklmnopqrstuvwxyz0123456789ABCD
+<<<<<<< HEAD
 Default Region [US]: CHN
+=======
+Default Region [US]: 
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 Use "s3.amazonaws.com" for S3 Endpoint and not modify it to the target Amazon S3.
 S3 Endpoint [s3.amazonaws.com]: 127.0.0.1:8002
@@ -50,7 +54,11 @@ HTTP Proxy server name:
 New settings:
   Access Key: ABCDEFGHIJKLMNOPQRST
   Secret Key: abcdefghijklmnopqrstuvwxyz0123456789ABCD
+<<<<<<< HEAD
   Default Region: CHN
+=======
+  Default Region: US
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
   S3 Endpoint: 127.0.0.1:8002
   DNS-style bucket+hostname:port template for accessing a bucket: mybucket.127.0.0.1:8002
   Encryption password: 

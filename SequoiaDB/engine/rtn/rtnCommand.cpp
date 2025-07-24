@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = rtnCommand.cpp
 
@@ -30,7 +28,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #include "rtnCommand.hpp"
 #include "pd.hpp"
 #include "pmdEDU.hpp"
@@ -52,6 +49,11 @@
 #include "aggrDef.hpp"
 #include "utilCompressor.hpp"
 #include "msgMessageFormat.hpp"
+<<<<<<< HEAD
+=======
+#include "rtnRollbackManager.hpp"
+#include "utilBSON.hpp"
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 #include "clsRecycleBinJob.hpp"
 
 #if defined (_DEBUG)
@@ -63,7 +65,11 @@ using namespace std ;
 
 #define RTN_MIN_TRACE_BUFFER_SIZE     1
 #define RTN_MAX_TRACE_BUFFER_SIZE     1024
+<<<<<<< HEAD
 #define RTN_RECYCLE_MAX_RETRY         5
+=======
+#define RTN_CONFIG_NAME_BUFFER_SIZE   32
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 namespace engine
 {
@@ -411,6 +417,7 @@ namespace engine
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnAlterSequence)
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnListDataSources)
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnGetRecycleBinDetail)
+<<<<<<< HEAD
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnCMDCreateRole)
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnCMDDropRole)
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnCMDGetRole)
@@ -423,6 +430,8 @@ namespace engine
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnCMDGetUser)
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnCMDGrantRolesToUser)
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnCMDRevokeRolesFromUser)
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnBackup)
    _rtnBackup::_rtnBackup ()
@@ -1432,6 +1441,7 @@ namespace engine
    _rtnGet::_rtnGet ()
    : _options(),
      _hintExist( FALSE )
+<<<<<<< HEAD
    {
    }
 
@@ -1456,6 +1466,32 @@ namespace engine
       BSONObj hint( pHintBuff ) ;
       BSONObj realHint ;
 
+=======
+   {
+   }
+
+   _rtnGet::~_rtnGet ()
+   {
+   }
+
+   const CHAR *_rtnGet::collectionFullName ()
+   {
+      return _options.getCLFullName() ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNGET_INIT, "_rtnGet::init" )
+   INT32 _rtnGet::init ( INT32 flags, INT64 numToSkip, INT64 numToReturn,
+                         const CHAR * pMatcherBuff, const CHAR * pSelectBuff,
+                         const CHAR * pOrderByBuff, const CHAR * pHintBuff )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB__RTNGET_INIT ) ;
+
+      const CHAR * collection = NULL ;
+      BSONObj hint( pHintBuff ) ;
+      BSONObj realHint ;
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       _options.setFlag( flags ) ;
       _options.setLimit( numToReturn ) ;
       _options.setSkip( numToSkip ) ;
@@ -2200,6 +2236,8 @@ namespace engine
                                     SDB_RTNCB *rtnCB, SDB_DPSCB *dpsCB,
                                     INT16 w , INT64 *pContextID )
    {
+      pdSetShieldRC( SDB_DMS_NOTEXIST ) ;
+      pdSetShieldRC( SDB_DMS_CS_NOTEXIST ) ;
       return rtnTestCollectionCommand ( _objName, dmsCB ) ;
    }
 
@@ -2226,6 +2264,7 @@ namespace engine
                                          SDB_RTNCB *rtnCB, SDB_DPSCB *dpsCB,
                                          INT16 w , INT64 *pContextID )
    {
+      pdSetShieldRC( SDB_DMS_CS_NOTEXIST ) ;
       return rtnTestCollectionSpaceCommand ( _objName, dmsCB ) ;
    }
 
@@ -2379,104 +2418,18 @@ namespace engine
    INT32 _configOprBase::_errorReport( BSONObj &returnObj )
    {
       INT32 rc = SDB_OK ;
+      BOOLEAN hasError = FALSE ;
       string returnStr;
-      INT32 rebootCount = 0 ;
-      BOOLEAN rebootFirstEntry  = TRUE ;
-      INT32 forbidCount = 0 ;
-      BOOLEAN forbidFirstEntry  = TRUE ;
-      BSONElement rebootEle ;
-      BSONElement forbidEle ;
 
-      try
+      if ( SDB_OK != optBuildErrorReport( returnObj,
+                                          hasError,
+                                          returnStr ) )
       {
-         rebootEle = returnObj.getField( "Reboot" ) ;
-         if ( Array == rebootEle.type() )
-         {
-            BSONObjIterator iter( rebootEle.embeddedObject() ) ;
-            while ( iter.more() )
-            {
-               BSONElement ele = iter.next() ;
-               if ( String == ele.type() )
-               {
-                  if ( TRUE == rebootFirstEntry )
-                  {
-                     returnStr += "Config '" ;
-                     returnStr +=  ele.valuestr() ;
-
-                     rebootFirstEntry = FALSE ;
-                  }
-                  else
-                  {
-                     returnStr += ", '" ;
-                     returnStr +=  ele.valuestr() ;
-                  }
-                  returnStr += "'" ;
-                  rebootCount++ ;
-               }
-               if ( 3 == rebootCount )
-               {
-                  break ;
-               }
-            }
-         }
-
-         if ( rebootCount > 0 && rebootCount < 3 )
-         {
-            returnStr += " require(s) restart to take effect." ;
-         }
-         else if ( rebootCount == 3 )
-         {
-            returnStr += ", etc. require(s) restart to take effect." ;
-         }
-
-         forbidEle = returnObj.getField( "Forbidden" ) ;
-         if ( Array == forbidEle.type() )
-         {
-            BSONObjIterator iter( forbidEle.embeddedObject() ) ;
-            while ( iter.more() )
-            {
-               BSONElement ele = iter.next() ;
-               if ( String == ele.type() )
-               {
-                  if ( TRUE == forbidFirstEntry )
-                  {
-                     returnStr += " Config '" ;
-                     returnStr +=  ele.valuestr() ;
-                     forbidFirstEntry = FALSE ;
-                  }
-                  else
-                  {
-                     returnStr += ", '" ;
-                     returnStr +=  ele.valuestr() ;
-                  }
-                  returnStr += "'" ;
-                  forbidCount++ ;
-               }
-               if ( 3 == forbidCount )
-               {
-                  break ;
-               }
-            }
-         }
-
-         if ( forbidCount > 0 && forbidCount < 3 )
-         {
-            returnStr += " cannot be changed." ;
-         }
-         else if ( forbidCount == 3 )
-         {
-            returnStr += ", etc. cannot be changed." ;
-         }
-      }
-      catch( std::exception &e )
-      {
-         PD_LOG( PDWARNING, "Exception during updateConf/deleteConf "
-                 "info parsing: %s",
-                 e.what() ) ;
+         // ignore error
          goto error ;
       }
 
-      if ( rebootCount > 0 || forbidCount > 0 )
+      if ( hasError )
       {
          rc = SDB_RTN_CONF_NOT_TAKE_EFFECT ;
          PD_LOG_MSG( PDERROR, returnStr.c_str() ) ;
@@ -2522,17 +2475,50 @@ error:
       _isForce = options.getBoolField( FIELD_NAME_FORCE ) ;
       BSONObjBuilder newObjBuilder ;
       CHAR *lowerFieldName = NULL ;
+<<<<<<< HEAD
+=======
+      UINT32 buffSize = 0 ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       try
       {
-         BSONObjIterator iter( cfgObj );
+         BSONObjIterator iter( cfgObj ) ;
+         lowerFieldName = (CHAR *)SDB_OSS_MALLOC( RTN_CONFIG_NAME_BUFFER_SIZE ) ;
+         buffSize = RTN_CONFIG_NAME_BUFFER_SIZE ;
+         if ( !lowerFieldName )
+         {
+            rc = SDB_OOM ;
+            PD_LOG( PDERROR, "Failed to allocate memory for function name, rc: %d", rc ) ;
+            goto error ;
+         }
          while ( iter.more() )
          {
             BSONElement ele = iter.next() ;
             const CHAR *srcFieldName = ele.fieldName() ;
+<<<<<<< HEAD
             rc = utilStrToLower( srcFieldName, lowerFieldName ) ;
             if ( rc )
             {
+=======
+            if ( buffSize < ossStrlen( srcFieldName ) + 1 )
+            {
+               CHAR *newLowerFieldName = (CHAR *)SDB_OSS_REALLOC( lowerFieldName,
+                                                                  ossStrlen( srcFieldName) + 1 ) ;
+               if ( !newLowerFieldName )
+               {
+                  rc = SDB_OOM ;
+                  PD_LOG( PDERROR, "Failed to allocate memory for function name, rc: %d", rc ) ;
+                  goto error ;
+               }
+               lowerFieldName = newLowerFieldName ;
+               buffSize = ossStrlen( srcFieldName ) + 1 ;
+            }
+            ossMemset( lowerFieldName, 0, buffSize ) ;
+            rc = utilStrToLower( srcFieldName, lowerFieldName, buffSize ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Failed to convert fieldName to lowercase, rc: %d", rc ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                goto error ;
             }
             if ( ele.isNumber() || String == ele.type() )
@@ -2546,10 +2532,9 @@ error:
             }
             else
             {
-               PD_LOG( PDERROR, "Field[%s] type[%d] is not "
-                       "number/boolean/string", ele.fieldName(),
-                       ele.type() ) ;
                rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "Field[%s] type[%d] is not number/boolean/string, rc: %d",
+                       ele.fieldName(), ele.type(), rc ) ;
                goto error ;
             }
 
@@ -2559,9 +2544,11 @@ error:
                lowerFieldName = NULL ;
             }
          }
+         _newCfgObj = newObjBuilder.obj() ;
       }
       catch ( std::exception &e )
       {
+<<<<<<< HEAD
          PD_LOG( PDWARNING, "Exception during updateConf init: %s",
                  e.what() ) ;
          rc = ossException2RC( &e ) ;
@@ -2570,6 +2557,14 @@ error:
 
       _newCfgObj = newObjBuilder.obj() ;
 
+=======
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDWARNING, "Exception during updateConf init: %s, rc: %d",
+                 e.what(), rc ) ;
+         goto error ;
+      }
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    done:
       if ( NULL != lowerFieldName )
       {
@@ -2657,6 +2652,10 @@ error:
    {
       INT32 rc = SDB_OK ;
       CHAR *lowerFieldName = NULL ;
+<<<<<<< HEAD
+=======
+      UINT32 buffSize = 0 ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       if ( _newCfgObj.isEmpty() )
       {
          goto done ;
@@ -2666,17 +2665,47 @@ error:
       {
          BSONObjBuilder newCfgBob ;
          BSONObjIterator itr( _newCfgObj ) ;
+<<<<<<< HEAD
+=======
+         lowerFieldName = (CHAR *)SDB_OSS_MALLOC( RTN_CONFIG_NAME_BUFFER_SIZE ) ;
+         buffSize = RTN_CONFIG_NAME_BUFFER_SIZE ;
+         if ( !lowerFieldName )
+         {
+            rc = SDB_OOM ;
+            PD_LOG( PDERROR, "Failed to allocate memory for function name, rc: %d", rc ) ;
+            goto error ;
+         }
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          while ( itr.more() )
          {
             BSONElement ele = itr.next() ;
             const CHAR *fieldName = ele.fieldName() ;
+<<<<<<< HEAD
             rc = utilStrToLower( fieldName, lowerFieldName ) ;
+=======
+            if ( buffSize < ossStrlen( fieldName ) + 1 )
+            {
+               CHAR *newLowerFieldName = (CHAR *)SDB_OSS_REALLOC( lowerFieldName,
+                                                                  ossStrlen( fieldName ) + 1 ) ;
+               if ( !newLowerFieldName )
+               {
+                  rc = SDB_OOM ;
+                  PD_LOG( PDERROR, "Failed to allocate memory for function name, rc: %d", rc ) ;
+                  goto error ;
+               }
+               lowerFieldName = newLowerFieldName ;
+               buffSize = ossStrlen( fieldName ) + 1 ;
+            }
+            ossMemset( lowerFieldName, 0, buffSize ) ;
+            rc = utilStrToLower( fieldName, lowerFieldName, buffSize ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             if ( rc )
             {
                PD_LOG( PDERROR, "Failed to convert fieldName to lowercase, rc: %d", rc ) ;
                goto error ;
             }
             const CHAR *aliasName = pmdGetConfigAliasName( lowerFieldName ) ;
+<<<<<<< HEAD
             if ( NULL != lowerFieldName)
             {
                newCfgBob.append( lowerFieldName, 1 ) ;
@@ -2684,6 +2713,9 @@ error:
                lowerFieldName = NULL ;
             }
 
+=======
+            newCfgBob.append( lowerFieldName, 1 ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             if ( *aliasName &&
                  !_newCfgObj.hasField( aliasName ) )
             {
@@ -5117,6 +5149,7 @@ error:
       goto done ;
    }
 
+<<<<<<< HEAD
    INT32 _rtnAnalyze::_checkPrivileges ( _pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK;
@@ -5186,6 +5219,371 @@ error:
       return NAME_GET_RECYCLEBIN_COUNT ;
    }
 
+=======
+   IMPLEMENT_CMD_AUTO_REGISTER(_rtnRestoreToTime)
+   _rtnRestoreToTime::_rtnRestoreToTime ()
+      : _timestamp(-1),
+        _transID()
+   {
+   }
+
+   _rtnRestoreToTime::~_rtnRestoreToTime ()
+   {
+   }
+
+   const CHAR *_rtnRestoreToTime::name()
+   {
+      return NAME_RESTORE_TO_TIME ;
+   }
+
+   RTN_COMMAND_TYPE _rtnRestoreToTime::type()
+   {
+      return CMD_RESTORE_TO_TIME ;
+   }
+
+   BOOLEAN _rtnRestoreToTime::writable()
+   {
+      return TRUE ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( SDB__RTNRESTOREPIT_INIT, "_rtnRestoreToTime::init" )
+   INT32 _rtnRestoreToTime::init( INT32 flags, INT64 numToSkip,
+                                 INT64 numToReturn,
+                                 const CHAR * pMatcherBuff,
+                                 const CHAR * pSelectBuff,
+                                 const CHAR * pOrderByBuff,
+                                 const CHAR * pHintBuff)
+   {
+      INT32 rc = SDB_OK;
+      PD_TRACER_BEGIN(SDB__RTNRESTOREPIT_INIT, &rc);
+      try
+      {
+         BSONObj matcher = BSONObj(pMatcherBuff);
+         if ((rc = _parseTimestamp(matcher)) ||
+             (rc = _parseTransID(matcher)))
+         {
+            PD_LOG(PDERROR, "Error parsing options [rc=%d]", rc);
+            return rc;
+         }
+      }
+      catch ( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         return (rc = SDB_INVALIDARG) ;
+      }
+      return rc;
+   }
+
+   INT32 _rtnRestoreToTime::_parseTimestamp(const BSONObj &matcher)
+   {
+      INT32 rc = SDB_OK;
+      // Get the timestamp
+      if ((rc = util::fromBsonObj(matcher, FIELD_NAME_GLOBAL_TIME,
+                                  &_timestamp)) ||
+          (_timestamp < 0))
+      {
+         PD_LOG(PDERROR, "Valid %s required", FIELD_NAME_GLOBAL_TIME);
+         return (rc = SDB_INVALIDARG);
+      }
+      return rc;
+   }
+
+   INT32 _rtnRestoreToTime::_parseTransID(const BSONObj &matcher)
+   {
+      INT32 rc = SDB_OK;
+      // User may call this directly on a node and transID would not be set
+      INT64 transID;
+      INT32 transNodeID;
+      if ((rc = util::fromBsonObj(matcher, FIELD_NAME_TRANSACTION_ID_SN,
+                                  &transID)) ||
+          (rc = util::fromBsonObj(matcher, FIELD_NAME_TRANSACTION_ID_NODEID,
+                                  &transNodeID)))
+      {
+         // Trans ID is sent internally only so this is a system error
+         PD_LOG(PDERROR, "Invalid trans ID [rc=%d]", rc);
+         return (rc = SDB_SYS);
+      }
+      _transID = DPS_TRANS_ID(transID, transNodeID);
+      return rc;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( SDB__RTNRESTOREPIT_DOIT, "_rtnRestoreToTime::doit" )
+   INT32 _rtnRestoreToTime::doit ( _pmdEDUCB *cb, SDB_DMSCB *dmsCB,
+                                  SDB_RTNCB *rtnCB, SDB_DPSCB *dpsCB,
+                                  INT16 w , INT64 *pContextID )
+   {
+      INT32 rc = SDB_OK;
+      PD_TRACER_BEGIN(SDB__RTNRESTOREPIT_DOIT, &rc);
+      // restoreToTime on a data node is a type of rollback
+      rtnPITRollbackManager rollbackManager(cb, (UINT64)_timestamp, _transID);
+      if ((rc = rollbackManager.execute()))
+      {
+         PD_LOG(PDERROR,
+                "Failed to rollback during restore to point-in-time [rc=%d]",
+                rc);
+         if (rollbackManager.countRollbackRecords() > 0)
+         {
+            // If any records were written then the cache is no longer valid
+            sdbGetTransCB()->clearLogLimitTime();
+         }
+         return rc;
+      }
+      return rc;
+   }
+
+   IMPLEMENT_CMD_AUTO_REGISTER(_rtnRestoreCheck)
+   _rtnRestoreCheck::_rtnRestoreCheck ()
+      : _time(-1)
+   {
+   }
+
+   _rtnRestoreCheck::~_rtnRestoreCheck ()
+   {
+   }
+
+   const CHAR *_rtnRestoreCheck::name()
+   {
+      return NAME_RESTORE_CHECK ;
+   }
+
+   RTN_COMMAND_TYPE _rtnRestoreCheck::type()
+   {
+      return CMD_RESTORE_CHECK;
+   }
+
+   BOOLEAN _rtnRestoreCheck::writable()
+   {
+      return TRUE ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( SDB__RTNRESTORECHK_INIT, "_rtnRestoreCheck::init" )
+   INT32 _rtnRestoreCheck::init( INT32 flags, INT64 numToSkip,
+                                 INT64 numToReturn,
+                                 const CHAR * pMatcherBuff,
+                                 const CHAR * pSelectBuff,
+                                 const CHAR * pOrderByBuff,
+                                 const CHAR * pHintBuff)
+   {
+      INT32 rc = SDB_OK;
+      PD_TRACER_BEGIN(SDB__RTNRESTORECHK_INIT, &rc);
+      try
+      {
+         BSONObj matcher = BSONObj(pMatcherBuff);
+         // Get the GlobalTime option
+         if ((rc = util::fromBsonObj(matcher, FIELD_NAME_GLOBAL_TIME, &_time)) ||
+             (_time < 0))
+         {
+            PD_LOG(PDERROR, "Valid %s required", FIELD_NAME_GLOBAL_TIME);
+            return (rc = SDB_INVALIDARG);
+         }
+      }
+      catch ( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         return (rc = SDB_INVALIDARG) ;
+      }
+      return rc;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( SDB__RTNRESTORECHK_DOIT, "_rtnRestoreCheck::doit" )
+   INT32 _rtnRestoreCheck::doit ( _pmdEDUCB *cb, SDB_DMSCB *dmsCB,
+                                  SDB_RTNCB *rtnCB, SDB_DPSCB *dpsCB,
+                                  INT16 w , INT64 *pContextID )
+   {
+      INT32 rc = SDB_OK;
+      PD_TRACER_BEGIN(SDB__RTNRESTORECHK_DOIT, &rc);
+
+      // Check the cache first
+      UINT64 limit = sdbGetTransCB()->getLogLimitTime(_time);
+      PD_LOG(PDINFO, "For time [%llu] got cached log limit [%llu]", _time,
+             limit);
+
+      // Max SN means invalid cached value
+      if (DPS_MAX_TRANSID_SN == limit)
+      {
+         if ((rc = _runTest(cb, &limit)) && SDB_DPS_LOG_FILE_OUT_OF_SIZE != rc)
+         {
+            PD_LOG(PDERROR, "Error during restoreCheck test run [rc=%d]", rc);
+            return rc;
+         }
+      }
+      else if (limit > _time)
+      {
+         // Limited by log space
+         rc = SDB_DPS_LOG_FILE_OUT_OF_SIZE;
+      }
+
+      if (SDB_DPS_LOG_FILE_OUT_OF_SIZE == rc)
+      {
+         PD_LOG_MSG(PDERROR, "Restore cannot reach %llu, limited to %llu",
+                    _time, limit);
+         return rc;
+      }
+
+      // Check succeeded - target time is reachable
+      return rc;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( SDB__RTNRESTORECHK_RUNTEST, "_rtnRestoreCheck::_runTest" )
+   INT32 _rtnRestoreCheck::_runTest(_pmdEDUCB *cb, UINT64 *limit)
+   {
+      INT32 rc = SDB_OK;
+      PD_TRACER_BEGIN(SDB__RTNRESTORECHK_RUNTEST, &rc);
+
+      // restoreCheck on a data node is a type of rollback test
+      rtnPITRollbackManager rollbackTester(cb, _time, DPS_TRANS_ID());
+      if ((rc = rollbackTester.test()) && SDB_DPS_LOG_FILE_OUT_OF_SIZE != rc)
+      {
+         PD_LOG(PDERROR, "Failed rollback test [rc=%d]", rc);
+         return rc;
+      }
+      *limit = rollbackTester.getLogLimitTime();
+      // cache the log limit
+      sdbGetTransCB()->setLogLimitTime(_time, *limit);
+      PD_LOG(PDINFO, "For time [%llu] set new cache log limit [%llu]", _time,
+             *limit);
+      return rc;
+   }
+
+   IMPLEMENT_CMD_AUTO_REGISTER(_rtnRestoreAbort)
+   _rtnRestoreAbort::_rtnRestoreAbort ()
+   {
+   }
+
+   _rtnRestoreAbort::~_rtnRestoreAbort ()
+   {
+   }
+
+   const CHAR *_rtnRestoreAbort::name()
+   {
+      return NAME_RESTORE_ABORT ;
+   }
+
+   RTN_COMMAND_TYPE _rtnRestoreAbort::type()
+   {
+      return CMD_RESTORE_ABORT ;
+   }
+
+   INT32 _rtnRestoreAbort::init( INT32 flags, INT64 numToSkip,
+                                 INT64 numToReturn,
+                                 const CHAR * pMatcherBuff,
+                                 const CHAR * pSelectBuff,
+                                 const CHAR * pOrderByBuff,
+                                 const CHAR * pHintBuff)
+   {
+      return SDB_OK;
+   }
+
+   INT32 _rtnRestoreAbort::doit ( _pmdEDUCB *cb, SDB_DMSCB *dmsCB,
+                                  SDB_RTNCB *rtnCB, SDB_DPSCB *dpsCB,
+                                  INT16 w , INT64 *pContextID )
+   {
+      if (SDB_ROLE_DATA == pmdGetDBRole())
+      {
+         // clear the log limit cache and reset the restorePointTime
+         sdbGetTransCB()->clearLogLimitTime();
+         sdbGetTransCB()->setRestorePointTime(DPS_INVALID_TRANS_TIME);
+      }
+      return SDB_OK ;
+   }
+
+   IMPLEMENT_CMD_AUTO_REGISTER(_rtnRestorePrepare)
+   _rtnRestorePrepare::_rtnRestorePrepare ()
+   {
+   }
+
+   _rtnRestorePrepare::~_rtnRestorePrepare ()
+   {
+   }
+
+   const CHAR *_rtnRestorePrepare::name()
+   {
+      return NAME_RESTORE_PREPARE ;
+   }
+
+   RTN_COMMAND_TYPE _rtnRestorePrepare::type()
+   {
+      return CMD_RESTORE_PREPARE ;
+   }
+
+   INT32 _rtnRestorePrepare::init( INT32 flags, INT64 numToSkip,
+                                   INT64 numToReturn,
+                                   const CHAR *pMatcherBuff,
+                                   const CHAR *pSelectBuff,
+                                   const CHAR *pOrderByBuff,
+                                   const CHAR *pHintBuff )
+   {
+      return SDB_OK;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( SDB__RTNRESTOREPREP_DOIT, "_rtnRestorePrepare::doit" )
+   INT32 _rtnRestorePrepare::doit( _pmdEDUCB *cb, SDB_DMSCB *dmsCB,
+                                   SDB_RTNCB *rtnCB, SDB_DPSCB *dpsCB,
+                                   INT16 w, INT64 *pContextID )
+   {
+      INT32 rc = SDB_OK;
+      PD_TRACER_BEGIN(SDB__RTNRESTOREPREP_DOIT, &rc);
+
+      // Only allowed if global transactions and mvcc (data node only) are on
+      if ( !cb->isGlobTransOn() || !sdbGetTransCB()->isGlobTransOn() ||
+           !pmdGetKRCB()->getOptionCB()->mvccOn() )
+      {
+         PD_LOG( PDERROR, "Failed to prepare for restore, which is "
+                          "only supported when mvccOn and is true and "
+                          "global transactions are enabled" ) ;
+         rc = SDB_GLOB_TRANS_NOT_AVAILABLE ;
+         return rc;
+      }
+
+      // Update the restore point if it is old
+      if (_isOldRestorePoint())
+      {
+         stpLogicalTimeUS t;
+         if ((rc = sdbGetTransCB()->getGlobTransTime(t)))
+         {
+            PD_LOG(PDERROR, "Error getting time");
+            return rc;
+         }
+         // Update the running time to now
+         sdbGetTransCB()->setRestorePointTime(t.getTime());
+         PD_LOG(PDEVENT, "New restore point time %llu", t.getTime());
+      }
+      return rc;
+   }
+
+   BOOLEAN _rtnRestorePrepare::_isOldRestorePoint()
+   {
+      UINT64 minRecoverableTime;
+      UINT64 maxCommitTime;
+      UINT64 restorePointTime;
+      sdbGetTransCB()->getRestoreWindow(minRecoverableTime, maxCommitTime,
+                                        restorePointTime);
+      PD_LOG(PDINFO,
+             "Current restore window [min recoverable: %llu, max commit: %llu, "
+             "restore point: %llu]",
+             minRecoverableTime, maxCommitTime, restorePointTime);
+      return (restorePointTime <= maxCommitTime ? TRUE : FALSE);
+   }
+
+   /*
+      _rtnCMDGetRecycleBinCount implement
+    */
+   IMPLEMENT_CMD_AUTO_REGISTER( _rtnCMDGetRecycleBinCount )
+
+   _rtnCMDGetRecycleBinCount::_rtnCMDGetRecycleBinCount()
+   {
+   }
+
+   _rtnCMDGetRecycleBinCount::~_rtnCMDGetRecycleBinCount()
+   {
+   }
+
+   const CHAR *_rtnCMDGetRecycleBinCount::name()
+   {
+      return NAME_GET_RECYCLEBIN_COUNT ;
+   }
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    RTN_COMMAND_TYPE _rtnCMDGetRecycleBinCount::type()
    {
       return CMD_GET_RECYCLEBIN_COUNT ;
@@ -5445,7 +5843,10 @@ error:
 
       clsRecycleBinManager *recycleBinMgr = NULL ;
       UTIL_RECY_ITEM_LIST recycleItems ;
+<<<<<<< HEAD
       UINT32 retryCount = 0 ;
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       *pContextID = -1 ;
 
@@ -5501,16 +5902,25 @@ error:
          if ( _isDropAll() )
          {
             rc = clsStartDropRecycleBinAllJob() ;
+<<<<<<< HEAD
             PD_RC_CHECK( rc, PDERROR, "Failed to start drop all job, rc: %d", rc ) ;
+=======
+            PD_RC_CHECK( rc, PDERROR, "Failed to start drop all job", rc ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          }
          else
          {
             rc = clsStartDropRecycleBinItemJob( recycleItems ) ;
+<<<<<<< HEAD
             PD_RC_CHECK( rc, PDERROR, "Failed to start drop item job, rc: %d", rc ) ;
+=======
+            PD_RC_CHECK( rc, PDERROR, "Failed to start drop item job", rc ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          }
       }
       else
       {
+<<<<<<< HEAD
          while ( TRUE )
          {
             clsDropRecycleBinJob job ;
@@ -5556,6 +5966,26 @@ error:
             }
             PD_RC_CHECK( rc, PDERROR, "Failed to drop recycle items, rc: %d", rc ) ;
             break ;
+=======
+         clsDropRecycleBinJob job ;
+
+         if ( _isDropAll() )
+         {
+            // for job all, should always check existence from CATALOG,
+            // since may have new recycled items added after we drop all
+            // items from CATALOG
+            rc = job.dropAll( cb, TRUE ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to drop all recycle items, "
+                         "rc: %d", rc ) ;
+         }
+         else
+         {
+            // no need to check existence from CATALOG, since already dropped
+            // from CATALOG first
+            rc = job.dropItems( recycleItems, cb, FALSE ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to drop recycle item, rc: %d",
+                         rc ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          }
       }
 
@@ -5802,6 +6232,7 @@ error:
       return CMD_RETURN_RECYCLEBIN_ITEM_TO_NAME ;
    }
 
+<<<<<<< HEAD
    /*
       _rtnCMDInvalidateUserCache implement
    */
@@ -6001,4 +6432,6 @@ error:
       return SDB_OK ;
    }
 
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 }

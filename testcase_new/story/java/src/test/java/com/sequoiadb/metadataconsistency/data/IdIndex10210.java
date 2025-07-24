@@ -88,8 +88,12 @@ public class IdIndex10210 extends SdbTestBase {
                 }
             } catch ( BaseException e ) {
                 int eCode = e.getErrorCode();
+<<<<<<< HEAD
                 if ( eCode != -248 && eCode != -23 && eCode != -34
                         && eCode != -147 && eCode != -190 ) {
+=======
+                if ( eCode != -248 && eCode != -23 && eCode != -34 ) {
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                     throw e;
                 }
             }
@@ -104,8 +108,12 @@ public class IdIndex10210 extends SdbTestBase {
                     "" )) {
                 db.dropCollectionSpace( csName );
             } catch ( BaseException e ) {
+<<<<<<< HEAD
                 if ( e.getErrorCode() != -34 && e.getErrorCode() != -147
                         && e.getErrorCode() != -190 ) {
+=======
+                if ( e.getErrorCode() != -34 && e.getErrorCode() != -190 ) {
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                     throw e;
                 }
             }

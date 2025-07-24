@@ -841,6 +841,7 @@ public class CommLib {
     /**
      * @description: 获取group下的所有节点，以[{"hostName":hostName,"svcName":svcName,"nodeID":nodeID}]形式返回
      * @param db
+<<<<<<< HEAD
      *            db连接
      * @param groupName
      *            需要获取的group名
@@ -848,6 +849,15 @@ public class CommLib {
      */
     public static List< BasicBSONObject > getGroupNodes( Sequoiadb db,
             String groupName ) {
+=======
+     *          db连接
+     * @param groupName
+     *          需要获取的group名
+     * @return
+     */
+    public static List< BasicBSONObject > getGroupNodes( Sequoiadb db,
+                                                         String groupName ) {
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
         List< BasicBSONObject > nodeAddrs = new ArrayList<>();
         try {
@@ -876,6 +886,7 @@ public class CommLib {
     /**
      * @description: 获取CL所在的所有节点
      * @param db
+<<<<<<< HEAD
      *            db连接
      * @param csName
      *            需要获取的CS名
@@ -885,6 +896,17 @@ public class CommLib {
      */
     public static List< BasicBSONObject > getCLNodes( Sequoiadb db,
             String csName, String clName ) {
+=======
+     *          db连接
+     * @param csName
+     *          需要获取的CS名
+     * @param clName
+     *          需要获取的CL名
+     * @return
+     */
+    public static List< BasicBSONObject > getCLNodes( Sequoiadb db,
+                                                      String csName, String clName ) {
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         List< String > groupName = new ArrayList<>();
         List< BasicBSONObject > nodeAddrs = new ArrayList<>();
         List< BasicBSONObject > nodeInfo = new ArrayList<>();
@@ -903,6 +925,7 @@ public class CommLib {
     /**
      * @description: 循环获取CL,超过60s未获取到报超时
      * @param db
+<<<<<<< HEAD
      *            需要获取CL的db连接
      * @param csName
      *            对应的CS名
@@ -912,6 +935,17 @@ public class CommLib {
      */
     public static DBCollection getCL( Sequoiadb db, String csName,
             String clName ) {
+=======
+     *          需要获取CL的db连接
+     * @param csName
+     *          对应的CS名
+     * @param clName
+     *          需要获取的CL名
+     * @return
+     */
+    public static DBCollection getCL( Sequoiadb db, String csName,
+                                      String clName ) {
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         int doTime = 0;
         int timeOut = 60;
         DBCollection dbcl = null;
@@ -923,7 +957,11 @@ public class CommLib {
                 if ( e.getErrorType() != SDBError.SDB_DMS_NOTEXIST
                         .getErrorType()
                         && e.getErrorType() != SDBError.SDB_DMS_CS_NOTEXIST
+<<<<<<< HEAD
                                 .getErrorType() ) {
+=======
+                        .getErrorType() ) {
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                     throw e;
                 }
             }
@@ -939,6 +977,7 @@ public class CommLib {
         }
         return dbcl;
     }
+<<<<<<< HEAD
 
     /**
      * @description: 获取group中的节点数量
@@ -1514,4 +1553,6 @@ public class CommLib {
         groupNames.add( groupName );
         waitGroupSelectMasterNode( db, groupNames, timeOut );
     }
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 }

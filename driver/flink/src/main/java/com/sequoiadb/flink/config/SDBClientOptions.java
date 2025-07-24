@@ -35,8 +35,11 @@ public class SDBClientOptions implements Serializable {
     private final String username;
     private final String password;
 
+<<<<<<< HEAD
     private String sourceInfo;
 
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     public SDBClientOptions(ReadableConfig options) {
         this.hosts = Arrays.asList(options.get(SDBConfigOptions.HOSTS)
                 .split(","));
@@ -79,6 +82,7 @@ public class SDBClientOptions implements Serializable {
         return password;
     }
 
+<<<<<<< HEAD
     public void setSourceInfo(String sourceInfo) {
         this.sourceInfo = sourceInfo;
     }
@@ -87,4 +91,6 @@ public class SDBClientOptions implements Serializable {
         return sourceInfo;
     }
 
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 }

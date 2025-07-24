@@ -135,8 +135,14 @@ coordinator and data source node inherits session attributes from local session
 on the coordinator, the default value is true.
 .RS 2
 .PP
+<<<<<<< HEAD
 The supported attributes include PreferredInstance, PreferredInstanceMode,
 PreferredStrict, PreferredPeriod and Timeout.
+=======
+The supported attributes include
+PreferredInstance，PreferredInstanceMode，PreferredStrict，PreferredPeriod and
+Timeout.
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 .PP
 Format: \f[C]InheritSessionAttr: true\f[]
 .RE
@@ -201,7 +207,11 @@ getLastError() to get the error code.
 For more details, refer to Troubleshooting.
 .SH VERSION
 .PP
+<<<<<<< HEAD
 v3.4.3 and above
+=======
+v5.0.2 and above
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 .SH EXAMPLES
 .PP
 Create a data source named "datasource" that only allows read\-only operations.

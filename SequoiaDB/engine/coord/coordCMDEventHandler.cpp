@@ -1,6 +1,21 @@
 /*******************************************************************************
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+<<<<<<< HEAD
+   Copyright (C) 2011-Present SequoiaDB Ltd.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+=======
+   Copyright (C) 2011-2018 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU Affero General Public License as published by
@@ -14,6 +29,7 @@
 
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    Source File Name = coordCMDEventHandler.cpp
 
@@ -34,7 +50,10 @@
    Last Changed =
 
 *******************************************************************************/
+<<<<<<< HEAD
+=======
 
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 #include "coordCMDEventHandler.hpp"
 #include "msgMessage.hpp"
 #include "pmd.hpp"
@@ -44,8 +63,11 @@
 #include "coordCommandWithLocation.hpp"
 #include "coordCommandRecycleBin.hpp"
 #include "coordCommandData.hpp"
+<<<<<<< HEAD
 #include "msgReplicator.hpp"
 #include "coordUtil.hpp"
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 using namespace bson;
 
@@ -229,6 +251,7 @@ namespace engine
    }
 
    /*
+<<<<<<< HEAD
       _coordNodeCMDHelper implement
    */
 
@@ -431,6 +454,8 @@ namespace engine
    }
 
    /*
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       _coordCMDGlobIdxHandler implement
     */
    // PD_TRACE_DECLARE_FUNCTION( COORD_DATACMDGLOBIDXHANDLER_PARSECATRETURN, "_coordCMDGlobIdxHandler::parseCatReturn" )
@@ -1046,7 +1071,11 @@ namespace engine
 
       if ( SDB_EVT_OCCUR_BEFORE == type )
       {
+<<<<<<< HEAD
          // wait tasks to be finished or cancelled
+=======
+         // wait split tasks to be finished or cancelled
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          rc = _waitTasks( resource, TRUE, cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to wait tasks finish, "
                       "rc: %d", rc ) ;

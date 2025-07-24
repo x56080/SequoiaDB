@@ -1,5 +1,20 @@
 /*******************************************************************************
 
+<<<<<<< HEAD
+   Copyright (C) 2011-Present SequoiaDB Ltd.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+=======
 
    Copyright (C) 2011-2021 SequoiaDB Ltd.
 
@@ -15,6 +30,7 @@
 
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    Source File Name = coordRemoteMsgHandler.cpp
 
@@ -63,7 +79,12 @@ namespace engine
    // is required to send a system info request and do the authentication.
    INT32 _coordDataSourceMsgHandler::handleConnect( const NET_HANDLE& handle,
                                                     _MsgRouteID id,
+<<<<<<< HEAD
                                                     BOOLEAN isPositive )
+=======
+                                                    BOOLEAN isPositive,
+                                                    netUserDataHolder *userDataHolder )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
       INT32 rc = SDB_OK ;
 
@@ -165,8 +186,12 @@ namespace engine
       rc = _pRSManager->pushMessage( handle, header ) ;
       if ( rc )
       {
+<<<<<<< HEAD
          PD_LOG( ( ( SDB_INVALIDARG == rc ) ? PDWARNING : PDERROR ),
                  "Push message[%s] failed, rc: %d",
+=======
+         PD_LOG( PDERROR, "Push message[%s] failed, rc: %d",
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                  msg2String( header, MSG_MASK_ALL, 0 ).c_str(), rc ) ;
          goto error ;
       }
@@ -174,10 +199,13 @@ namespace engine
    done:
       return rc ;
    error:
+<<<<<<< HEAD
       if ( ! ( rc == SDB_INVALIDARG && IS_REPLY_TYPE( header->opCode ) ) )
       {
          rc = SDB_NET_BROKEN_MSG ;
       }
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       goto done ;
    }
 

@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = pd.hpp
 
@@ -77,7 +76,11 @@
 
 #define PD_LOG(level, fmt, ...) \
    do { \
+<<<<<<< HEAD
       if ( getPDLevel() >= ( level ) && !pdIsShieldLog() ) \
+=======
+      if ( getPDLevel() >= level && !pdIsShieldLog() ) \
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       { \
          pdLog(( level ), __FUNC__, __FILE__, __LINE__, fmt, ##__VA_ARGS__); \
       } \
@@ -95,7 +98,11 @@
             pdLocalEnableDiaglogSecure() ; \
          } \
       } \
+<<<<<<< HEAD
       if ( getPDLevel() >= ( level ) && !pdIsShieldLog() ) \
+=======
+      if ( getPDLevel() >= level && !pdIsShieldLog() ) \
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       { \
          pdLog(( level ), __FUNC__, __FILE__, __LINE__, fmt, ##__VA_ARGS__); \
       } \
@@ -177,7 +184,12 @@ void pdcheck( const CHAR* string, const CHAR* func,
 
 #define LOG_MASK_IXM_DUP_KEY     ( 0x0000000000000001 )
 #define LOG_MASK_IXM_ADVANCE_EOC ( 0x0000000000000002 )
+<<<<<<< HEAD
 #define LOG_MASK_RTN_INVALID_HINT ( 0x0000000000000010 )
+=======
+#define LOG_MASK_DMS_CS_NOTEXIST ( 0x0000000000000004 )
+#define LOG_MASK_DMS_NOTEXIST    ( 0x0000000000000008 )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 void pdEnableDiaglogSecure() ;
 void pdDisableDiaglogSecure() ;
@@ -192,12 +204,23 @@ BOOLEAN pdTestShieldLogMask( UINT64 mask ) ;
 BOOLEAN pdIsShieldLog() ;
 void pdPrintShieldInfo() ;
 INT32 pdError( INT32 rc ) ;
+<<<<<<< HEAD
 
 class pdLogShield
 {
 public:
    pdLogShield() ;
    ~pdLogShield() ;
+=======
+void pdSetShieldRC( INT32 rc ) ;
+void pdClearShieldRC() ;
+
+class pdLogRCShield
+{
+public:
+   pdLogRCShield() ;
+   ~pdLogRCShield() ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    void addRC( INT32 rc ) ;
    void clearRC() ;
 private:
@@ -271,7 +294,10 @@ enum AUDIT_OBJ_TYPE
    AUDIT_OBJ_USER,
    AUDIT_OBJ_SEQ,
    AUDIT_OBJ_RECYCLEBIN,
+<<<<<<< HEAD
    AUDIT_OBJ_ROLE,
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    AUDIT_OBJ_MAX
 } ;

@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = rtnIXScanner.cpp
 
@@ -36,9 +34,9 @@
    Last Changed =
 
 *******************************************************************************/
-
 #include "rtnIXScanner.hpp"
 #include "dmsStorageUnit.hpp"
+#include "optAccessPlanRuntime.hpp"
 
 using namespace bson ;
 
@@ -50,6 +48,7 @@ namespace engine
       _rtnScannerSharedInfo define
    */
    _rtnScannerSharedInfo::_rtnScannerSharedInfo()
+   : _setDuplicate ( )
    {
    }
 
@@ -93,13 +92,17 @@ namespace engine
       _rtnIXScanner implement
    */
    _rtnIXScanner::_rtnIXScanner( ixmIndexCB *pIndexCB,
-                                 rtnPredicateList *predList,
+                                 optAccessPlanRuntime * planRuntime,
                                  _dmsStorageUnit *su,
                                  _dmsMBContext *mbContext,
                                  BOOLEAN isAsync,
                                  _pmdEDUCB *cb,
                                  BOOLEAN indexCBOwned )
+<<<<<<< HEAD
    :_rtnScanner( su, mbContext, predList->getDirection(), isAsync, cb ),
+=======
+   :_direction( planRuntime->getPredList()->getDirection() ),
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     _indexLID( pIndexCB->getLogicalID() ),
     _indexCBExtent( pIndexCB->getExtentID() ),
     _order( Ordering::make( pIndexCB->keyPattern() ) ),
@@ -107,8 +110,18 @@ namespace engine
    {
       _indexCB = NULL ;
       _owned = FALSE ;
+<<<<<<< HEAD
       _pPredList = predList ;
       _isReadonly = TRUE ;
+=======
+      _planRuntime = planRuntime;
+      _pPredList = planRuntime->getPredList() ;
+      _su = su ;
+      _cb = cb ;
+      _isReadonly = TRUE ;
+      _eof = FALSE ;
+      _transIsolation = cb->getTransExecutor()->getTransIsolation() ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       _indexCover = FALSE ;
 
       /// set shared info pointer
@@ -189,6 +202,22 @@ namespace engine
          return _pInfo->remove( rid ) ;
       }
       return FALSE ;
+   }
+
+   INT64 _rtnIXScanner::getExpReturn () const
+   {
+      INT64 expReturn = 0 ;
+      if ( _planRuntime )
+      {
+         double score = _planRuntime->getPlan()->getScore();
+         INT64 numRecord = _planRuntime->getPlan()->getInputRecords();
+         expReturn = score * numRecord ;
+#ifdef _DEBUG
+         PD_LOG( PDDEBUG, "Plan score=%f, numRecord=%lld, expectReturn=%lld",
+                 score, numRecord, expReturn ) ;
+#endif
+      }
+      return expReturn ;
    }
 
    dmsExtentID _rtnIXScanner::getIdxLID() const

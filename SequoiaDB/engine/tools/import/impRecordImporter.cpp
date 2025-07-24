@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = impRecordImporter.cpp
 
@@ -61,9 +60,12 @@ namespace import
                                    BOOLEAN enableTransaction,
                                    BOOLEAN allowKeyDuplication,
                                    BOOLEAN replaceKeyDuplication,
+<<<<<<< HEAD
                                    BOOLEAN allowIDKeyDuplication,
                                    BOOLEAN replaceIDKeyDuplication,
                                    BOOLEAN mustHasIDField,
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                                    INT32 batchSize )
          : _insertBufferSize( 0 ),
            _recvBufferSize( 0 ),
@@ -207,7 +209,11 @@ namespace import
       {
          if ( SDB_DMS_NOTEXIST == rc )
          {
+<<<<<<< HEAD
             ossPrintf( "Collection %s does not exist" OSS_NEWLINE,
+=======
+            ossPrintf( "Collection %s does not exist." OSS_NEWLINE,
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                        _clname.c_str() ) ;
             PD_LOG( PDERROR, "Collection %s does not exist, rc = %d",
                     _clname.c_str(), rc ) ;
@@ -399,8 +405,11 @@ namespace import
       _insertMsg->header.flags         = 0 ;
       _insertMsg->header.routeID.value = 0 ;
       _insertMsg->header.TID           = ossGetCurrentThreadID() ;
+<<<<<<< HEAD
       ossMemset( &(_insertMsg->header.globalID), 0,
                 sizeof( _insertMsg->header.globalID ) ) ;
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       ossMemset( _insertMsg->header.reserve, 0,
                 sizeof( _insertMsg->header.reserve ) ) ;
 

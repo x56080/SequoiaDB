@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = dpsUtil.hpp
 
@@ -36,13 +34,14 @@
    Last Changed =
 
 *******************************************************************************/
-
 #ifndef DPSUTIL_HPP_
 #define DPSUTIL_HPP_
 
 #include "ossTypes.h"
 #include "dpsDef.hpp"
 #include "ossMemPool.hpp"
+#include "stpLogicalTime.hpp"
+#include "../bson/bson.hpp"
 
 namespace engine
 {
@@ -55,11 +54,40 @@ namespace engine
 
    INT32 dpsGetTransIDFromString( const CHAR *pStr, DPS_TRANS_ID &transID ) ;
 
+<<<<<<< HEAD
+=======
+   // format transaction ID to string format
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    const CHAR* dpsTransIDToString( const DPS_TRANS_ID &transID,
                                    CHAR *pBuff,
                                    UINT32 bufSize ) ;
 
+   // format transaction ID to string format
    ossPoolString dpsTransIDToString( const DPS_TRANS_ID &transID ) ;
+
+   // format transaction SN to string format
+   const CHAR *dpsTransSNToString( const DPS_TRANSID_SN &transSN,
+                                   CHAR *buffer,
+                                   UINT32 bufferSize ) ;
+
+   // format transaction SN to string format
+   ossPoolString dpsTransSNToString( const DPS_TRANSID_SN &transSN ) ;
+
+   // format transaction SN to HEX string format
+   const CHAR *dpsTransSNToHEXString( const DPS_TRANSID_SN &transSN,
+                                      CHAR *buffer,
+                                      UINT32 bufferSize ) ;
+
+   // format transaction SN to HEX string format
+   ossPoolString dpsTransSNToHEXString( const DPS_TRANSID_SN &transSN ) ;
+
+   // format transaction time to string format
+   const CHAR* dpsTransTimeToString( const stpLogicalTimeUS &time,
+                                     CHAR *buffer,
+                                     UINT32 bufferSize ) ;
+
+   // format transaction time to string format
+   ossPoolString dpsTransTimeToString( const stpLogicalTimeUS &time ) ;
 
    const CHAR* dpsTransIDAttrToString( const DPS_TRANS_ID &transID,
                                        CHAR *pBuff,
@@ -67,6 +95,34 @@ namespace engine
 
    ossPoolString dpsTransIDAttrToString( const DPS_TRANS_ID &transID ) ;
 
+<<<<<<< HEAD
+=======
+   // format transaction ID into BSON object
+   INT32 dpsTransIDToBSON( const DPS_TRANS_ID &transID,
+                           bson::BSONObjBuilder &builder ) ;
+
+   // format transaction ID into BSON object with field name
+   INT32 dpsTransIDToBSON( const DPS_TRANS_ID &transID,
+                           bson::BSONObjBuilder &builder,
+                           const CHAR *fieldName ) ;
+
+   // parse BSON object into transaction ID
+   INT32 dpsTransIDFromBSON( const bson::BSONObj &object,
+                             DPS_TRANS_ID &transID ) ;
+
+   // calculate hash value of transaction ID
+   UINT64 dpsTransIDHashMod( const DPS_TRANS_ID &transID ) ;
+   UINT32 dpsTransIDHashMod( const DPS_TRANS_ID &transID, UINT32 modSize ) ;
+
+   typedef struct _dpsTransIDHash
+   {
+      std::size_t operator()( const DPS_TRANS_ID &transID ) const
+      {
+         return (std::size_t)( transID.getGlobSN() ) ;
+      }
+   } dpsTransIDHash ;
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    void dpsFlags2String( UINT16 flags, CHAR * pBuffer, INT32 bufSize ) ;
 
    void dpsAppendFlagString( CHAR * pBuffer, INT32 bufSize,
@@ -74,10 +130,13 @@ namespace engine
 
    typedef ossPoolSet< DPS_TRANS_ID > DPS_TRANS_ID_SET ;
 
+<<<<<<< HEAD
    // downgrade transaction ID from v1 to v0
    // WARNING: will lose high 16 bits of timestamp
    DPS_TRANS_ID dpsTransIDDowngrade( const dpsTransID_v1 &transID ) ;
 
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 }
 
 #endif // DPSUTIL_HPP_

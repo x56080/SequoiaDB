@@ -1,7 +1,11 @@
 /******************************************************************************
  * @Description   : seqDB-14117:获取系统快照后检查/etc/mtab文件句柄泄露  
  * @Author        : Liang XueWang
+<<<<<<< HEAD
  * @LastEditTime  : 2023.05.26
+=======
+ * @LastEditTime  : 2022.08.01
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
  * @LastEditors   : HuangHaimei
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -20,10 +24,15 @@ function test ()
 // get local cata node pid
 function getCataPid ()
 {
+<<<<<<< HEAD
    var remote = new Remote( COORDHOSTNAME, CMSVCNAME );
    var system = remote.getSystem();
    var cataSvcName = db.getCataRG().getMaster().getServiceName();
    var cursor = system.listProcess( {}, { cmd: "sequoiadb(" + cataSvcName + ") C" } );
+=======
+   var cataSvcName = db.getCataRG().getMaster().getServiceName();
+   var cursor = System.listProcess( {}, { cmd: "sequoiadb(" + cataSvcName + ") C" } );
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    var obj = cursor.next().toObj();
    var pid = obj["pid"];
    remote.close();

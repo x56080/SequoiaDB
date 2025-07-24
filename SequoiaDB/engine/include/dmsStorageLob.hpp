@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = dmsStorageLob.hpp
 
@@ -31,7 +30,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #ifndef DMS_STORAGELOB_HPP_
 #define DMS_STORAGELOB_HPP_
 
@@ -280,9 +278,49 @@ namespace engine
                           _dmsLobDataMapBlk &blk,
                           const dmsLobRecord *pRecord = NULL ) ;
 
+<<<<<<< HEAD
       INT32 _renameMetaOrDataFile( const CHAR* metaFilePath,
                                    const CHAR* dataFilePath ) ;
 
+=======
+      INT32 _find( const _dmsLobRecord &record,
+                   UINT32 clID,
+                   pmdEDUCB *cb,
+                   DMS_LOB_PAGEID &page,
+                   UINT32 *bucket = NULL ) ;
+
+      INT32 _allocatePage( const dmsLobRecord &record,
+                           dmsMBContext *mbContext,
+                           DMS_LOB_PAGEID &page ) ;
+
+      INT32 _fillPage( const dmsLobRecord &record,
+                       DMS_LOB_PAGEID page,
+                       pmdEDUCB *cb,
+                       dmsMBContext *mbContext ) ;
+
+      /// only release space of page. will not change other meta data.
+      INT32 _releasePage( DMS_LOB_PAGEID page, dmsMBContext *mbContext ) ;
+
+      /// release space of page and change other meta data.
+      INT32 _removePage( DMS_LOB_PAGEID page,
+                         _dmsLobDataMapBlk *blk,
+                         const UINT32 *bucket,
+                         pmdEDUCB *cb,
+                         dmsMBContext *mbContext,
+                         BOOLEAN hasLockBucket,
+                         BOOLEAN needRelease = TRUE,
+                         const dmsLobRecord *pRecord = NULL ) ;
+
+      INT32 _rollback( const dmsLobRecord &record,
+                       DMS_LOB_PAGEID page,
+                       pmdEDUCB *cb,
+                       dmsMBContext *mbContext,
+                       BOOLEAN pageFilled ) ;
+
+      INT32 _renameMetaOrDataFile( const CHAR* metaFilePath,
+                                   const CHAR* dataFilePath ) ;
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       INT32 _checkIfMetaOrDataFileExist( const CHAR* metaFilePath,
                                          const CHAR* dataFilePath,
                                          BOOLEAN &exist ) ;

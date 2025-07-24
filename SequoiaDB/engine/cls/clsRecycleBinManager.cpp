@@ -1,7 +1,22 @@
 /*******************************************************************************
 
+<<<<<<< HEAD
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+=======
+
+   Copyright (C) 2011-2018 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU Affero General Public License as published by
@@ -15,6 +30,7 @@
 
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    Source File Name = clsDCMgr.cpp
 
@@ -30,7 +46,10 @@
    Last Changed =
 
 *******************************************************************************/
+<<<<<<< HEAD
+=======
 
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 #include "clsRecycleBinManager.hpp"
 #include "rtnLocalTask.hpp"
 #include "clsUniqueIDCheckJob.hpp"
@@ -666,6 +685,7 @@ namespace engine
          rc = _regBlockCL( origFullName, recyFullName, clItem, opID, cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to register block ID, rc: %d",
                       rc ) ;
+<<<<<<< HEAD
          options->_blockOpID = opID ;
 
          rc = _createRecycleCLTask( origFullName, recyFullName, item, cb,
@@ -673,6 +693,20 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to create local task to "
                       "recycle truncate collection, rc: %d", rc ) ;
 
+=======
+
+         rc = _createRecycleCLTask( origFullName, recyFullName, item, cb,
+                                    taskID ) ;
+         if ( SDB_OK != rc )
+         {
+            _unregBlockCL( origFullName, recyFullName, opID ) ;
+            opID = 0 ;
+         }
+         PD_RC_CHECK( rc, PDERROR, "Failed to create local task to "
+                      "recycle truncate collection, rc: %d", rc ) ;
+
+         options->_blockOpID = opID ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          options->_localTaskID = taskID ;
       }
 
@@ -681,6 +715,7 @@ namespace engine
       return rc ;
 
    error:
+<<<<<<< HEAD
       if ( NULL != options &&
            0 != options->_blockOpID )
       {
@@ -693,6 +728,8 @@ namespace engine
          _unregBlockCL( origFullName, recyFullName, options->_blockOpID ) ;
          options->_blockOpID = 0 ;
       }
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       goto done ;
    }
 
@@ -888,6 +925,7 @@ namespace engine
          rc = _regBlockCL( origFullName, recyFullName, clItem, opID, cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to register block ID, rc: %d",
                       rc ) ;
+<<<<<<< HEAD
          options->_blockOpID = opID ;
 
          rc = _createRecycleCLTask( origFullName, recyFullName, item, cb,
@@ -895,6 +933,20 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to create local task to "
                       "recycle drop collection, rc: %d", rc ) ;
 
+=======
+
+         rc = _createRecycleCLTask( origFullName, recyFullName, item, cb,
+                                    taskID ) ;
+         if ( SDB_OK != rc )
+         {
+            _unregBlockCL( origFullName, recyFullName, opID ) ;
+            opID = 0 ;
+         }
+         PD_RC_CHECK( rc, PDERROR, "Failed to create local task to "
+                      "recycle drop collection, rc: %d", rc ) ;
+
+         options->_blockOpID = opID ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          options->_localTaskID = taskID ;
       }
 
@@ -903,6 +955,7 @@ namespace engine
       return rc ;
 
    error:
+<<<<<<< HEAD
       if ( NULL != options &&
            0 != options->_blockOpID )
       {
@@ -915,6 +968,8 @@ namespace engine
          _unregBlockCL( origFullName, recyFullName, options->_blockOpID ) ;
          options->_blockOpID = 0 ;
       }
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       goto done ;
    }
 
@@ -1105,6 +1160,7 @@ namespace engine
          rc = _regBlockCS( originName, recycleName, suItem, opID, cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to register block ID, rc: %d",
                       rc ) ;
+<<<<<<< HEAD
          options->_blockOpID = opID ;
 
          /// log to .SEQUOIADB_RENAME_INFO
@@ -1122,6 +1178,19 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to create local task to "
                       "recycle drop collection collection, rc: %d", rc ) ;
 
+=======
+
+         rc = _createRecycleCSTask( originName, recycleName, item, cb, taskID ) ;
+         if ( SDB_OK != rc )
+         {
+            _unregBlockCS( originName, recycleName, opID ) ;
+            opID = 0 ;
+         }
+         PD_RC_CHECK( rc, PDERROR, "Failed to create local task to "
+                      "recycle drop collection collection, rc: %d", rc ) ;
+
+         options->_blockOpID = opID ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          options->_localTaskID = taskID ;
       }
 
@@ -1130,6 +1199,7 @@ namespace engine
       return rc ;
 
    error:
+<<<<<<< HEAD
       if ( NULL != options )
       {
          INT32 tmpRC = options->_logger.clear() ;
@@ -1147,6 +1217,8 @@ namespace engine
             options->_blockOpID = 0 ;
          }
       }
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       goto done ;
    }
 
@@ -1154,8 +1226,12 @@ namespace engine
    INT32 _clsRecycleBinManager::_recycleDropCS( dmsStorageUnit *su,
                                                 const CHAR *csName,
                                                 const utilRecycleItem &item,
+<<<<<<< HEAD
                                                 pmdEDUCB *cb,
                                                 BOOLEAN needLogRename )
+=======
+                                                pmdEDUCB *cb )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
       INT32 rc = SDB_OK ;
 
@@ -1171,7 +1247,10 @@ namespace engine
                    "[%s] from deleting, rc: %d", csName, rc ) ;
 
       /// log to .SEQUOIADB_RENAME_INFO
+<<<<<<< HEAD
       if ( needLogRename )
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       {
          utilRenameLog aLog( csName, newName ) ;
 
@@ -1188,16 +1267,27 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to recycle collection space from "
                    "[%s] to [%s], rc: %d", csName, newName, rc ) ;
 
+<<<<<<< HEAD
       if ( needLogRename )
       {
          rc = logger.clear() ;
          PD_RC_CHECK( rc, PDERROR, "Failed to clear rename info, rc: %d", rc ) ;
       }
+=======
+      rc = logger.clear() ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to clear rename info, rc: %d", rc ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       rc = su->recycleCollectionSpace( cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to recycle collection space [%s], "
                    "rc: %d", item.getRecycleName(), rc ) ;
 
+<<<<<<< HEAD
+=======
+      // disable support MVCC for recycled collection space
+      su->setMVCCSupport( FALSE ) ;
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       PD_LOG( PDEVENT, "Recycle drop collection space [%s] to [%s]",
               item.getOriginName(), item.getRecycleName() ) ;
 
@@ -1207,6 +1297,7 @@ namespace engine
 
    error:
       {
+<<<<<<< HEAD
          INT32 tmpRC = _dmsCB->moveCSToDeleting( csName ) ;
          if ( SDB_OK != tmpRC )
          {
@@ -1220,6 +1311,12 @@ namespace engine
             {
                PD_LOG( PDERROR, "Failed to clear rename info, rc: %d", tmpRC ) ;
             }
+=======
+         INT32 tmpRC = logger.clear() ;
+         if ( SDB_OK != tmpRC )
+         {
+            PD_LOG( PDERROR, "Failed to clear rename info, rc: %d", tmpRC ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          }
       }
       goto done ;
@@ -1267,8 +1364,12 @@ namespace engine
                             item.getRecycleName(), rc ) ;
             }
 
+<<<<<<< HEAD
             rc = _recycleDropCS( su, suItem._pCSName, item, cb,
                                  !options->_logger.isOpened() ) ;
+=======
+            rc = _recycleDropCS( su, suItem._pCSName, item, cb ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             PD_RC_CHECK( rc, PDERROR, "Failed to recycle drop collection "
                          "space [origin %s, recycle %s], rc: %d",
                          item.getOriginName(),
@@ -1314,7 +1415,10 @@ namespace engine
       {
          UINT64 blockID = options->_blockOpID ;
          UINT64 taskID = options->_localTaskID ;
+<<<<<<< HEAD
          INT32 tmpRC = SDB_OK ;
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
          const utilRecycleItem &item = options->_recycleItem ;
          const CHAR *originName = item.getOriginName() ;
@@ -1330,6 +1434,7 @@ namespace engine
          }
          options->_localTaskID = 0 ;
          options->_blockOpID = 0 ;
+<<<<<<< HEAD
 
          /// remove .SEQUOIADB_RENAME_INFO
          tmpRC = options->_logger.clear() ;
@@ -1337,6 +1442,8 @@ namespace engine
          {
             PD_LOG( PDWARNING, "Failed to clear rename info, rc: %d", tmpRC ) ;
          }
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       }
 
       PD_TRACE_EXITRC( SDB__CLSRECYBINMGR_ONCLEANDROPCS, rc ) ;
@@ -1851,6 +1958,7 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__CLSRECYBINBGJOB_DOIT ) ;
 
+<<<<<<< HEAD
       if ( PMD_IS_DB_DOWN() )
       {
          PD_LOG( PDDEBUG, "DB is down, stop to drop expired items" ) ;
@@ -1859,11 +1967,15 @@ namespace engine
          goto error ;
       }
       else if ( !_recycleBinMgr->isConfValid() )
+=======
+      if ( !_recycleBinMgr->isConfValid() )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       {
          shardCB *shardCB = sdbGetShardCB() ;
 
          // update DC from remote
          rc = shardCB->updateDCBaseInfo() ;
+<<<<<<< HEAD
          if ( SDB_OK != rc )
          {
             PD_LOG( PDWARNING, "Failed to update DC info from CATALOG, "
@@ -1872,6 +1984,10 @@ namespace engine
             sleepTime = RTN_RECYCLE_RETRY_INTERVAL ;
             goto error ;
          }
+=======
+         PD_RC_CHECK( rc, PDERROR, "Failed to update DC info from CATALOG, "
+                      "rc: %d", rc ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
          _recycleBinMgr->setConf(
                shardCB->getDCMgr()->getDCBaseInfo()->getRecycleBinConf() ) ;

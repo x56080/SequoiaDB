@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = rtnDelete.cpp
 
@@ -36,7 +34,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #include "rtn.hpp"
 #include "dmsStorageUnit.hpp"
 #include "ossTypes.hpp"
@@ -45,6 +42,7 @@
 #include "pmd.hpp"
 #include "pmdCB.hpp"
 #include "pdTrace.hpp"
+#include "rtnObjectInfoFetcher.hpp"
 #include "rtnTrace.hpp"
 #include "dmsScanner.hpp"
 #include "pdSecure.hpp"
@@ -89,6 +87,7 @@ namespace engine
       // matcher, selector, order, hint, collection, skip, limit, flag
       rtnQueryOptions options( matcher, dummy, dummy, hint, pCollectionName,
                                0, -1, flags ) ;
+      options.setWriteOp( TRUE ) ;
       rc = rtnDelete( options, cb, dmsCB, dpsCB, w, pResult ) ;
       PD_TRACE_EXITRC( SDB_RTNDEL2, rc ) ;
       return rc ;
@@ -110,7 +109,7 @@ namespace engine
       SDB_RTNCB *rtnCB                    = krcb->getRTNCB() ;
       dmsStorageUnit *su                  = NULL ;
       dmsMBContext   *mbContext           = NULL ;
-      dmsStorageUnitID suID               = DMS_INVALID_CS ;
+         dmsStorageUnitID suID               = DMS_INVALID_CS ;
       optAccessPlanManager *apm           = NULL ;
       const CHAR *pCollectionShortName    = NULL ;
       dmsScanner *pScanner                = NULL ;
@@ -119,8 +118,13 @@ namespace engine
       UINT64 numDeletedRecords            = 0 ;
       UINT32 scannerRetryTime             = 0 ;
 
+      const CHAR *clFullName = options.getCLFullName();
       optAccessPlanRuntime planRuntime ;
-
+      pdLogRCShield shield;
+      rtnObjectInfoFetcher infoFetcher(pmdGetKRCB()->getDMSCB(), pmdGetKRCB()->getRTNCB());
+      CONST_CL_META_INFO_PTR clMetaInfo = nullptr;
+      CONST_CL_STAT_INFO_PTR clStatInfo = nullptr;
+      
       rc = dmsCB->writable( cb ) ;
       if ( rc )
       {
@@ -129,24 +133,20 @@ namespace engine
       }
       writable = TRUE;
 
-      rc = rtnResolveCollectionNameAndLock ( options._fullName, dmsCB, &su,
-                                             &pCollectionShortName, suID ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to resolve collection name %s, rc: %d",
-                   options._fullName, rc ) ;
-
-      // get mb context
-      rc = su->data()->getMBContext( &mbContext, pCollectionShortName, -1 ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get collection[%s] mb context, "
-                   "rc: %d", options._fullName, rc ) ;
-
+      rc = infoFetcher.getCollectionMetaInfo( cb, clFullName, clMetaInfo );
+      PD_RC_CHECK( rc, PDERROR, "failed to get collection[%s] meta info", clFullName );
+      options.setCLUniqueID( clMetaInfo->getCLUniqueID() );
+      
       // Capped collection has no index, but delete is supported.
-      if ( OSS_BIT_TEST( mbContext->mb()->_attributes, DMS_MB_ATTR_NOIDINDEX )
-           &&
-           !(OSS_BIT_TEST( mbContext->mb()->_attributes, DMS_MB_ATTR_CAPPED ) ) )
       {
-         PD_LOG( PDERROR, "can not delete data when autoIndexId is false" ) ;
-         rc = SDB_RTN_AUTOINDEXID_IS_FALSE ;
-         goto error ;
+         UINT32 attributes = clMetaInfo->getAttributes();
+         if ( OSS_BIT_TEST( attributes, DMS_MB_ATTR_NOIDINDEX ) &&
+              !( OSS_BIT_TEST( attributes, DMS_MB_ATTR_CAPPED ) ) )
+         {
+            PD_LOG( PDERROR, "can not delete data when autoIndexId is false" );
+            rc = SDB_RTN_AUTOINDEXID_IS_FALSE;
+            goto error;
+         }
       }
 
       try
@@ -159,10 +159,29 @@ namespace engine
          SDB_ASSERT ( apm, "apm shouldn't be NULL" ) ;
 
 retry:
+<<<<<<< HEAD
          // plan is released when exiting the function
          rc = apm->getAccessPlan( options, su, mbContext, planRuntime, NULL ) ;
+=======
+         rc = infoFetcher.getCollectionStatInfo( cb, clFullName, clStatInfo );
+         PD_RC_CHECK( rc, PDERROR, "failed to get collection[%s] stat info", clFullName );
+
+         // plan is released when exiting the function
+         rc = apm->getAccessPlan( cb, options, rtnCollectionInfo( clMetaInfo, clStatInfo ),
+                                  planRuntime, NULL );
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          PD_RC_CHECK( rc, PDERROR, "Failed to get access plan for %s for delete"
                       ", rc: %d", options._fullName, rc ) ;
+
+         rc = rtnResolveCollectionNameAndLock ( options._fullName, dmsCB, &su,
+                                             &pCollectionShortName, suID ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to resolve collection name %s, rc: %d",
+                     options._fullName, rc ) ;
+
+         // get mb context
+         rc = su->data()->getMBContext( &mbContext, pCollectionShortName, -1 ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get collection[%s] mb context, "
+                     "rc: %d", options._fullName, rc ) ;
 
          if ( planRuntime.getScanType() == TBSCAN )
          {
@@ -172,10 +191,24 @@ retry:
          }
          else if ( planRuntime.getScanType() == IXSCAN )
          {
+            shield.addRC( SDB_DMS_COL_DROPPED );
+            shield.addRC( SDB_IXM_NOTEXIST );
             rc = rtnGetIXScanner( pCollectionShortName, &planRuntime, su,
                                   mbContext, cb, &pScanner,
                                   DMS_ACCESS_TYPE_DELETE ) ;
+<<<<<<< HEAD
             if ( SDB_IXM_NOTEXIST == rc && scannerRetryTime < 1 )
+=======
+            shield.clearRC();
+            if ( SDB_DMS_COL_DROPPED == rc && scannerRetryTime < 1)
+            { 
+               planRuntime.reset() ;
+               scannerRetryTime++ ;
+               apm->invalidateCLPlans( options.getCLFullName() ) ;
+               goto retry ;
+            }
+            else if ( SDB_IXM_NOTEXIST == rc && scannerRetryTime < 1 )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             {
                // Maybe in the process of scanning the index,
                // the index is deleted
@@ -183,6 +216,20 @@ retry:
                scannerRetryTime++ ;
                // We only need to try to scan once. In most cases,
                // the next scan is normal
+<<<<<<< HEAD
+=======
+               if ( su && mbContext )
+               {
+                  su->data()->releaseMBContext( mbContext ) ;
+                  mbContext = nullptr ;
+               }
+               if ( DMS_INVALID_CS != suID )
+               {
+                  dmsCB->suUnlock( suID ) ;
+                  suID = DMS_INVALID_CS ;
+                  su = nullptr ;
+               }
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                goto retry ;
             }
          }
@@ -265,6 +312,13 @@ retry:
                if ( deleteOne && 1 == numDeletedRecords )
                {
                   break ;
+               }
+               // All succeeded, set up the cleanup flag
+               if( pmdGetOptionCB()->mvccOn() &&
+                   pScanner->callbackHandler() &&
+                   !cb->isInTransRollback() )
+               {
+                  pScanner->callbackHandler()->setNonTransNeedCleanup() ;
                }
             }
 
@@ -368,21 +422,6 @@ retry:
       BSONObj hint ;
       BSONObj dummy ;
 
-      // make sure the database is not doing any offline operations
-      rc = dmsCB->writable( cb ) ;
-      PD_RC_CHECK ( rc, PDERROR, "Database is not writable, rc = %d", rc ) ;
-      writable = TRUE;
-
-      rc = rtnResolveCollectionNameAndLock ( pCollectionName, dmsCB, &su,
-                                             &pCollectionShortName, suID ) ;
-      PD_RC_CHECK ( rc, PDERROR, "Failed to resolve collection name %s, rc: %d",
-                    pCollectionName, rc ) ;
-
-      // get mb context
-      rc = su->data()->getMBContext( &mbContext, pCollectionShortName, -1 ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get collection[%s] mb context, "
-                   "rc: %d", pCollectionName, rc ) ;
-
       try
       {
          // build hint
@@ -397,11 +436,18 @@ retry:
       {
          optAccessPlanRuntime planRuntime ;
          // matcher, selector, order, hint, collection, skip, limit, flag
-         rtnQueryOptions options( dummy, dummy, dummy, hint, pCollectionName,
-                                  0, -1, 0 ) ;
-         rc = sdbGetRTNCB()->getAPM()->getTempAccessPlan( options, su,
-                                                          mbContext,
-                                                          planRuntime ) ;
+         rtnQueryOptions options( dummy, dummy, dummy, hint, pCollectionName, 0, -1, 0 ) ;
+         rtnObjectInfoFetcher infoFetcher( dmsCB, pmdGetKRCB()->getRTNCB() );
+         CONST_CL_META_INFO_PTR clMetaInfo = nullptr;
+         CONST_CL_STAT_INFO_PTR clStatInfo = nullptr;
+         rc = infoFetcher.getCollectionMetaInfo( cb, pCollectionName, clMetaInfo );
+         PD_RC_CHECK( rc, PDERROR, "failed to get collection[%s] meta info", pCollectionName );
+         rc = infoFetcher.getCollectionStatInfo( cb, pCollectionName, clStatInfo );
+         PD_RC_CHECK( rc, PDERROR, "failed to get collection[%s] stat info", pCollectionName );
+         options.setCLUniqueID( clMetaInfo->getCLUniqueID() );
+         options.setWriteOp( TRUE ) ;
+         rc = sdbGetRTNCB()->getAPM()->getTempAccessPlan(
+            cb, options, rtnCollectionInfo( clMetaInfo, clStatInfo ), planRuntime );
          PD_RC_CHECK( rc, PDERROR, "Failed to get access plan, rc: %d", rc ) ;
 
          // Must apply the hint to find index-scan plan
@@ -415,6 +461,21 @@ retry:
 
          // set traversal direction
          planRuntime.getPredList()->setDirection ( dir ) ;
+
+         // make sure the database is not doing any offline operations
+         rc = dmsCB->writable( cb ) ;
+         PD_RC_CHECK ( rc, PDERROR, "Database is not writable, rc = %d", rc ) ;
+         writable = TRUE;
+
+         rc = rtnResolveCollectionNameAndLock ( pCollectionName, dmsCB, &su,
+                                             &pCollectionShortName, suID ) ;
+         PD_RC_CHECK ( rc, PDERROR, "Failed to resolve collection name %s, rc: %d",
+                       pCollectionName, rc ) ;
+
+         // get mb context
+         rc = su->data()->getMBContext( &mbContext, pCollectionShortName, -1 ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get collection[%s] mb context, "
+                      "rc: %d", pCollectionName, rc ) ;
 
          // we do NOT need to create callback for this code path now because
          // of the complexity of split

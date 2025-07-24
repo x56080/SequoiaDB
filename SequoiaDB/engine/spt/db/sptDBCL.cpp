@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = sptDBCL.cpp
 
@@ -505,6 +504,7 @@ namespace engine
                goto error ;
             }
          }
+<<<<<<< HEAD
 
          // ContOnDupID
          elem = options.getField( FIELD_NAME_CONTONDUP_ID ) ;
@@ -521,6 +521,8 @@ namespace engine
          {
             flags |= FLG_INSERT_REPLACEONDUP_ID ;
          }
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       }
       else
       {
@@ -1171,6 +1173,7 @@ namespace engine
       {
          rval.getReturnVal().setValue( taskID ) ;
       }
+<<<<<<< HEAD
    done:
       return rc ;
    error:
@@ -1247,12 +1250,93 @@ namespace engine
       {
          rval.getReturnVal().setValue( taskID ) ;
       }
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    done:
       return rc ;
    error:
       goto done ;
    }
 
+<<<<<<< HEAD
+=======
+   INT32 _sptDBCL::dropIndex( const _sptArguments &arg,
+                              _sptReturnVal &rval,
+                              bson::BSONObj &detail )
+   {
+      return _dropIndex( arg, rval, detail, FALSE ) ;
+   }
+
+   INT32 _sptDBCL::dropIndexAsync( const _sptArguments &arg,
+                                   _sptReturnVal &rval,
+                                   bson::BSONObj &detail )
+   {
+      return _dropIndex( arg, rval, detail, TRUE ) ;
+   }
+
+   INT32 _sptDBCL::_copyIndex( const _sptArguments &arg,
+                               _sptReturnVal &rval,
+                               bson::BSONObj &detail,
+                               BOOLEAN isAsync )
+   {
+      INT32 rc = SDB_OK ;
+      string collectionStr, indexStr ;
+      const CHAR* collection = NULL ;
+      const CHAR* indexName = NULL ;
+      BSONObj option ;
+      INT64 taskID = 0 ;
+
+      // Get collection name
+      rc = arg.getString( 0, collectionStr ) ;
+      if( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
+      {
+         detail = BSON( SPT_ERR << "SubCLName must be string" ) ;
+         goto error ;
+      }
+      if ( !collectionStr.empty() )
+      {
+         collection = collectionStr.c_str() ;
+      }
+
+      // Get index name
+      rc = arg.getString( 1, indexStr ) ;
+      if( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
+      {
+         detail = BSON( SPT_ERR << "IndexName must be string" ) ;
+         goto error ;
+      }
+      if ( !indexStr.empty() )
+      {
+         indexName = indexStr.c_str() ;
+      }
+
+      // copy index
+      if ( isAsync )
+      {
+         rc = _cl.copyIndexAsync( taskID, collection, indexName ) ;
+      }
+      else
+      {
+         rc = _cl.copyIndex( collection, indexName ) ;
+      }
+      if( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to copy index" ) ;
+         goto error ;
+      }
+
+      // return taskID
+      if ( isAsync )
+      {
+         rval.getReturnVal().setValue( taskID ) ;
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    INT32 _sptDBCL::copyIndex( const _sptArguments &arg,
                               _sptReturnVal &rval,
                               bson::BSONObj &detail )
@@ -2933,6 +3017,7 @@ namespace engine
       }
 
       rc = _cl.getIndexStat( indexName.c_str(), result, statDetail ) ;
+<<<<<<< HEAD
       if( SDB_OK != rc )
       {
          goto error ;
@@ -2952,6 +3037,8 @@ namespace engine
       bson::BSONObj result ;
 
       rc = _cl.getCollectionStat( result ) ;
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       if( SDB_OK != rc )
       {
          detail = BSON( SPT_ERR << "Failed to get collection stat" ) ;

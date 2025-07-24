@@ -199,6 +199,11 @@
 
 [^_^]:
     本文使用到的所有链接
+<<<<<<< HEAD
+=======
+
+[threecity_fivedatacenter]:images/Distributed_Engine/Maintainance/HA_DR/threecity_fivedatacenter.png
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 [split_merge]:manual/Distributed_Engine/Maintainance/Mgmt_Tools/split_merge.md
 [consistency]:manual/Distributed_Engine/Architecture/Replication/primary_secondary_consistency.md
 [threecity_fivedatacenter_usage]:manual/Distributed_Engine/Maintainance/HA_DR/disaster_recovery_tool.md

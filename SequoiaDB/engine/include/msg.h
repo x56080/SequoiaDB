@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = msg.h
 
@@ -33,7 +32,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #ifndef MSG_H__
 #define MSG_H__
 #pragma warning( disable: 4200 )
@@ -49,9 +47,20 @@ enum SDB_PROTOCOL_VERSION
    SDB_PROTOCOL_VER_2 = 2
 } ;
 
+// indicates the message is a reply
 #define MAKE_REPLY_TYPE(type)       (INT32)((UINT32)type | 0x80000000)
 #define IS_REPLY_TYPE(type)         (INT32)((UINT32)type >> 31 )
-#define GET_REQUEST_TYPE(type)      (INT32)((UINT32)type & 0x7FFFFFFF)
+
+// indicates the message require global time synchronization
+#define MAKE_GLOBTIME_TYPE( type ) \
+      (INT32)( (UINT32)( type ) | 0x40000000 )
+#define IS_GLOBTIME_TYPE( type ) \
+      (INT32)( (UINT32)( type ) & 0x40000000 )
+#define CLEAR_GLOBTIME_TYPE( type ) \
+      (INT32)( (UINT32)( type ) & ( ~( 0x40000000 ) ) )
+
+// 0x80000000 and 0x40000000 are used
+#define GET_REQUEST_TYPE(type)      (INT32)((UINT32)type & 0x3FFFFFFF)
 
 /// Reserved for cata delay event
 #define CAT_DELAY_EVENT_TYPE        ( MAKE_REPLY_TYPE( 0 ) )
@@ -305,6 +314,7 @@ enum MSG_TYPE
    MSG_CAT_DC_END                      = 3399,
 
    MSG_GTS_BEGIN                       = 3400,
+   // sequence support
    MSG_GTS_SEQUENCE_ACQUIRE_REQ        = 3401,
    MSG_GTS_SEQUENCE_ACQUIRE_RSP        = MAKE_REPLY_TYPE(MSG_GTS_SEQUENCE_ACQUIRE_REQ),
    MSG_GTS_SEQUENCE_CREATE_REQ         = 3402,
@@ -313,6 +323,9 @@ enum MSG_TYPE
    MSG_GTS_SEQUENCE_DROP_RSP           = MAKE_REPLY_TYPE(MSG_GTS_SEQUENCE_DROP_REQ),
    MSG_GTS_SEQUENCE_ALTER_REQ          = 3404,
    MSG_GTS_SEQUENCE_ALTER_RSP          = MAKE_REPLY_TYPE(MSG_GTS_SEQUENCE_ALTER_REQ),
+   // global transaction support
+   MSG_GTS_LOWTRAN_REQ                 = 3405,
+   MSG_GTS_LOWTRAN_RSP                 = MAKE_REPLY_TYPE( MSG_GTS_LOWTRAN_REQ ),
    MSG_GTS_END                         = 3499,
 
    MSG_CAT_END                         = 3999,
@@ -347,6 +360,8 @@ enum MSG_TYPE
 
    MSG_CLS_TRANS_CHECK_REQ             = 4020,
    MSG_CLS_TRANS_CHECK_RES             = MAKE_REPLY_TYPE(MSG_CLS_TRANS_CHECK_REQ),
+   MSG_CLS_GTS_ARBIT_REQ               = 4021,
+   MSG_CLS_GTS_ARBIT_RSP               = MAKE_REPLY_TYPE( MSG_CLS_GTS_ARBIT_REQ ),
    MSG_CLS_END                         = 4999,
 
    /// common msg
@@ -400,6 +415,18 @@ enum MSG_TYPE
    MSG_SEADPT_UPDATE_IDXINFO_RES       = MAKE_REPLY_TYPE( MSG_SEADPT_UPDATE_IDXINFO_REQ ),
 
    MSG_SEADPT_END                      = 10999,
+
+   MSG_STP_BEGIN                        = 11000,
+   MSG_STP_SERVER_REQ                   = 11001,
+   MSG_STP_SERVER_RSP                   = MAKE_REPLY_TYPE( MSG_STP_SERVER_REQ ),
+   MSG_STP_REG_REQ                      = 11004,
+   MSG_STP_REG_RSP                      = MAKE_REPLY_TYPE( MSG_STP_REG_REQ ),
+   MSG_STP_TIME_SYNC_REQ                = 11005,
+   MSG_STP_TIME_SYNC_RSP                = MAKE_REPLY_TYPE( MSG_STP_TIME_SYNC_REQ ),
+   MSG_STP_META_NOTIFY                  = 11006,
+   MSG_STP_META_SYNC_REQ                = 11007,
+   MSG_STP_META_SYNC_RSP                = MAKE_REPLY_TYPE( MSG_STP_META_SYNC_REQ ),
+   MSG_STP_END                          = 11999,
 
    MSG_NULL                            = 999999        //reserved
 };
@@ -456,6 +483,7 @@ union _MsgRouteID
 typedef union _MsgRouteID MsgRouteID ;
 #define MSG_INVALID_ROUTEID  0
 
+<<<<<<< HEAD
 #define MSG_GET_IDENTIFY_ID( tid, nodeID )  (((UINT64)tid<<16)|(UINT16)(nodeID))
 #define MSG_GET_SEQUENCE( highSeq, lowSeq ) (((UINT64)highSeq<<32)|(UINT32)(lowSeq))
 
@@ -656,6 +684,28 @@ private:
    UINT32      _queryOpID ;
 } ;
 typedef struct _MsgGlobalID MsgGlobalID ;
+=======
+// A global unique ID for each message. It can be used to trace the message in
+// the whole cluster.
+typedef struct _MsgGlobalID
+{
+   SINT32 ip ;
+   UINT16 port ;
+   SINT16 random ;
+   UINT32 tid ;
+   UINT32 sequence ;
+#ifdef __cplusplus
+   _MsgGlobalID()
+   : ip(0),
+     port(0),
+     random(0),
+     tid(0),
+     sequence(0)
+   {
+   }
+#endif /* __cplusplus */
+} MsgGlobalID ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 // system info request packet is very special since we do NOT know the endianess
 // of server and client
@@ -694,9 +744,13 @@ struct _MsgSysInfoReply
    UINT8            version ;
    UINT8            subVersion ;
    UINT8            fixVersion ;
+<<<<<<< HEAD
    CHAR             reserved ;
    MsgGlobalID      globalID ;
    CHAR             pad[76] ;
+=======
+   CHAR             pad[93] ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    CHAR             fingerprint[4] ;   // Fingerprint of the reply message.
                                        // Actually part of the md5 value.
 } ;
@@ -790,6 +844,13 @@ typedef struct _MsgInternalReplyHeader MsgInternalReplyHeader ;
    #define CATALOG_INVALID_VERSION      0
    #define CATALOG_DEFAULT_VERSION      1
 
+struct _MsgPacketReq
+{
+   MsgHeader header ;
+} ;
+
+typedef struct _MsgPacketReq MsgPacketReq ;
+
 // If set, the database will insert the supplied object into the collection if
 // no matching document is found.
 #define FLG_UPDATE_UPSERT           0x00000001
@@ -822,6 +883,7 @@ typedef struct _MsgOpUpdate MsgOpUpdate ;
 #define FLG_INSERT_REPLACEONDUP 0x00000004
 #define FLG_INSERT_UPDATEONDUP  0x00000008
 
+<<<<<<< HEAD
 // This flag identifies whether the inserted record (or batch of records) contains
 // the '_id' field, which can be used to skip the '_id' field check.
 #define FLG_INSERT_HAS_ID_FIELD 0x00000010
@@ -832,6 +894,8 @@ typedef struct _MsgOpUpdate MsgOpUpdate ;
 // and the original record will be replaced by new record.
 #define FLG_INSERT_REPLACEONDUP_ID 0x00000040
 
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 // This flag indicates that a hint is sent in the insert message.
 #define FLG_INSERT_HASHINT      0x80000000
 // For Insert, 1 BSON object will be followed
@@ -1126,25 +1190,90 @@ struct _MsgAuthDelUsr
 } ;
 typedef struct _MsgAuthDelUsr MsgAuthDelUsr ;
 
-typedef struct _MsgOpTransBegin
+/*
+   MsgOpTransBegin
+ */
+// version 0 ( version < 3.0 )
+typedef struct _MsgOpTransBegin_V0
 {
-   MsgHeader header ;
-   UINT64    transID ;
-   CHAR      reserved[8] ;
-} MsgOpTransBegin;
+   MsgHeader   header ;
+} MsgOpTransBegin_V0 ;
 
+// old version ( version >= 3.0 and version < 5.0 )
+typedef struct _MsgOpTransBegin_V1
+{
+   MsgHeader   header ;
+   UINT64      transID ;
+   CHAR        reserved[ 8 ] ;
+} MsgOpTransBegin_V1 ;
+
+// new version ( version >= 5.0 )
+typedef struct _MsgOpTransBegin_V2
+{
+   MsgHeader   header ;
+   // serial number component in transaction ID of V1
+   // NOTE: node ID is in MsgHeader
+   UINT64      transID ;
+   // time error of logical time for global transaction
+   UINT32      transTimeError ;
+   // fields to do logical time adjustment
+   UINT64      sendTime ;
+   // reserved new fields in minor version upgrade
+   CHAR        reserved[ 8 ] ;
+} MsgOpTransBegin_V2 ;
+
+typedef MsgOpTransBegin_V2 MsgOpTransBegin ;
+
+/*
+   MsgOpTransCommit
+ */
 typedef struct _MsgOpTransCommit
 {
    MsgHeader header;
-} MsgOpTransCommit;
+} MsgOpTransCommit ;
 
+// internal message for transaction commit
+// NOTE: used between COORD and DATA
+typedef struct _MsgOpTransCommitInt
+{
+   MsgHeader header ;
+   // logical time for commit transaction
+   UINT64    commitTime ;
+} MsgOpTransCommitInt ;
+
+/*
+   MsgOpTransCommitPre
+ */
 typedef struct _MsgOpTransCommitPre
 {
-   MsgHeader header;
+   MsgHeader header ;
+   // global logical time to send message
+   // number of nodes ( primary node of groups ) involved in transaction
    UINT32    nodeNum ;
+   // node list involved in transaction
    UINT64    nodes[0] ;
-} MsgOpTransCommitPre;
+   // version 0/1: node list
+   // version 1: UINT64 send time
+} MsgOpTransCommitPre ;
 
+// size of version 0: message + node list
+#define MSG_TRANS_COMMIT_PRE_SIZE_V0( msg ) \
+            ( sizeof( MsgOpTransCommitPre ) + \
+              ( ( msg )->nodeNum ) * sizeof( UINT64 ) )
+
+// size of version 1: message + node list + send time
+#define MSG_TRANS_COMMIT_PRE_SIZE_V1( msg ) \
+            ( MSG_TRANS_COMMIT_PRE_SIZE_V0( msg ) + sizeof( UINT64 ) )
+
+#define MSG_TRANS_COMMIT_PRE_GET_SEND_TIME( msg ) \
+            ( *(UINT64 *)( (CHAR *)msg + MSG_TRANS_COMMIT_PRE_SIZE_V0( msg ) ) )
+
+#define MSG_TRANS_COMMIT_PRE_SET_SEND_TIME( msg, sendTime ) \
+            ( MSG_TRANS_COMMIT_PRE_GET_SEND_TIME( msg ) = sendTime )
+
+/*
+   MsgOpTransRollback
+ */
 typedef struct _MsgOpTransRollback
 {
    MsgHeader header;

@@ -1,19 +1,18 @@
-/******************************************************************************
+/*******************************************************************************
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = netEventHandler.cpp
 
@@ -34,7 +33,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #include "core.hpp"
 #include "netEventHandler.hpp"
 #include "netFrame.hpp"
@@ -42,6 +40,10 @@
 #include "pmdEnv.hpp"
 #include "msgDef.h"
 #include "msgMessage.hpp"
+<<<<<<< HEAD
+=======
+#include "msgConvertorImpl.hpp"
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 #include "pdTrace.hpp"
 #include "netTrace.hpp"
@@ -113,6 +115,40 @@ namespace engine
       }
 
       return eh ;
+   }
+
+   ip::address_v4 _netEventHandler::localIP() const
+   {
+      ip::address_v4 addr ;
+
+      try
+      {
+         addr = _sock.local_endpoint().address().to_v4() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "get local address occurred exception: %s",
+                 e.what() ) ;
+      }
+
+      return addr ;
+   }
+
+   ip::address_v4 _netEventHandler::remoteIP() const
+   {
+      ip::address_v4 addr ;
+
+      try
+      {
+         addr = _sock.remote_endpoint().address().to_v4() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "get remote address occurred exception: %s",
+                 e.what() ) ;
+      }
+
+      return addr ;
    }
 
    string _netEventHandler::localAddr() const
@@ -262,6 +298,32 @@ namespace engine
                  _handle, e.what() ) ;
       }
       PD_TRACE_EXIT ( SDB__NETEVNHND_SETOPT );
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__NETEVNHND_GETAVAILABLESIZE, "_netEventHandler::getAvailableSize" )
+   UINT32 _netEventHandler::getAvailableSize()
+   {
+      UINT32 availableSize = 0 ;
+
+      PD_TRACE_ENTRY( SDB__NETEVNHND_GETAVAILABLESIZE ) ;
+
+      boost::system::error_code ec ;
+
+      if ( _sock.is_open() )
+      {
+         availableSize = _sock.available( ec ) ;
+         if ( ec )
+         {
+            PD_LOG( PDWARNING, "Connection[Handle:%d, Node:%s] failed to "
+                    "get available size, error: %s,%d",
+                    _handle, routeID2String( _id ).c_str(),
+                    ec.message().c_str(), ec.value() ) ;
+         }
+      }
+
+      PD_TRACE_EXIT( SDB__NETEVNHND_GETAVAILABLESIZE ) ;
+
+      return availableSize ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__NETEVNHND_SYNCCONN, "_netEventHandler::syncConnect" )
@@ -743,6 +805,26 @@ namespace engine
                        remoteAddr().c_str(), remotePort() ) ;
             }
          }
+
+         // on receive message callback
+         if ( SDB_PROTOCOL_VER_1 == _peerVersion )
+         {
+            MsgHeader tmpHeader ;
+            msgConvertorImpl::msgHeaderUpgrade( (MsgHeaderV1 *)&_header,
+                                                tmpHeader ) ;
+            _evSuitPtr->getFrame()->onReceiveMsg( _getSharedBase(),
+                                                  _id,
+                                                  &tmpHeader,
+                                                  _headerSz ) ;
+         }
+         else
+         {
+            _evSuitPtr->getFrame()->onReceiveMsg( _getSharedBase(),
+                                                  _id,
+                                                  &_header,
+                                                  sizeof( MsgHeader ) ) ;
+         }
+
          /// msg has only header
          if ( _headerSz == (UINT32)_header.messageLength )
          {

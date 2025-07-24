@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = optAccessPlanKey.cpp
 
@@ -36,7 +34,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #include "optAccessPlanKey.hpp"
 #include "pdTrace.hpp"
 #include "optTrace.hpp"
@@ -56,7 +53,6 @@ namespace engine
                                           OPT_PLAN_CACHE_LEVEL cacheLevel )
    : _rtnQueryOptions( options ),
      _utilHashTableKey(),
-     _optCollectionInfo(),
      _isValid( FALSE ),
      _cacheLevel( cacheLevel )
    {
@@ -71,7 +67,6 @@ namespace engine
    _optAccessPlanKey::_optAccessPlanKey ( _optAccessPlanKey &planKey )
    : _rtnQueryOptions( planKey ),
      _utilHashTableKey( planKey ),
-     _optCollectionInfo( planKey ),
      _isValid( FALSE ),
      _cacheLevel( planKey._cacheLevel ),
      _normalizedQuery( planKey._normalizedQuery )
@@ -95,14 +90,12 @@ namespace engine
       }
 
       // Check the IDs of Collection Space and Collection
-      if ( DMS_INVALID_SUID == _suID && DMS_INVALID_SUID == planKey._suID &&
-           0 != ossStrncmp( getCLFullName(), planKey.getCLFullName(),
-                            DMS_COLLECTION_FULL_NAME_SZ ) )
+      if ( 0 !=
+           ossStrncmp( getCLFullName(), planKey.getCLFullName(), DMS_COLLECTION_FULL_NAME_SZ ) )
       {
          return FALSE ;
       }
-      else if ( _suID != planKey._suID || _suLID != planKey._suLID ||
-                _mbID != planKey._mbID || _clLID != planKey._clLID )
+      else if ( _clUID != planKey._clUID )
       {
          return FALSE ;
       }
@@ -145,6 +138,7 @@ namespace engine
          }
          lhsFlag = isForceHint() ;
          rhsFlag = planKey.isForceHint() ;
+<<<<<<< HEAD
          if ( lhsFlag != rhsFlag )
          {
             return FALSE ;
@@ -155,6 +149,8 @@ namespace engine
       {
          BOOLEAN lhsFlag = isCount() ;
          BOOLEAN rhsFlag = planKey.isCount() ;
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          if ( lhsFlag != rhsFlag )
          {
             return FALSE ;
@@ -269,21 +265,8 @@ namespace engine
 
    UINT32 _optAccessPlanKey::_generateKeyCodeHash ()
    {
-      UINT32 keyCode = 0 ;
-
-      // Information of collection space and collection
-      if ( DMS_INVALID_SUID != _suID )
-      {
-         keyCode = ossHash( (CHAR *)&_suID, sizeof( _suID ), 5 ) ;
-         keyCode ^= ossHash( (CHAR *)&_suLID, sizeof( _suLID ), 5 ) ;
-         keyCode ^= ossHash( (CHAR *)&_mbID, sizeof( _mbID ), 5 ) ;
-         keyCode ^= ossHash( (CHAR *)&_clLID, sizeof( _clLID ), 5 ) ;
-      }
-      else
-      {
-         keyCode = ossHash( getCLFullName() ) ;
-      }
-
+      UINT32 keyCode = ossHash( getCLFullName() ) ;
+      
       keyCode ^= ossHash( (CHAR *)&_cacheLevel, sizeof( _cacheLevel ), 5 ) ;
 
       // Query

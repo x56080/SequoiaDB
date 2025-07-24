@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = dmsStorageUnit.hpp
 
@@ -36,7 +34,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #ifndef DMSSTORAGEUNIT_HPP_
 #define DMSSTORAGEUNIT_HPP_
 
@@ -49,8 +46,6 @@
 #include "utilCache.hpp"
 #include "dmsEventHandler.hpp"
 #include "dmsExtDataHandler.hpp"
-#include "dmsStatUnit.hpp"
-#include "dmsCachedPlanUnit.hpp"
 #include "ossMemPool.hpp"
 #include "utilInsertResult.hpp"
 #include "dmsOprHandler.hpp"
@@ -105,9 +100,12 @@ namespace engine
       INT64          _totalLobWrite ;
       INT64          _totalLobTruncate ;
       INT64          _totalLobAddressing ;
+<<<<<<< HEAD
       INT64          _recycleDataSize ;
       INT64          _recycleIndexSize ;
       INT64          _recycleLobSize ;
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    } ;
    typedef _dmsStorageUnitStat dmsStorageUnitStat ;
 
@@ -156,11 +154,6 @@ namespace engine
          {
             return _su ;
          }
-
-      protected :
-         INT32 _checkCollectionStat ( dmsCollectionStat *pCollectionStat ) ;
-         INT32 _checkIndexStat ( dmsIndexStat *pIndexStat,
-                                 dmsMBContext *mbContext ) ;
 
       protected :
          dmsStorageUnit *     _su ;
@@ -342,7 +335,9 @@ namespace engine
    class _dmsStorageUnit : public _dmsSUDescriptor
    {
       friend class _dmsTempSUMgr ;
+      friend class _dmsRBSSUMgr ;
       friend class _SDB_DMSCB ;
+      friend class _dmsMmapEngine;
 
       public:
          _dmsStorageUnit ( IStorageService *storageService,
@@ -418,6 +413,7 @@ namespace engine
                                     UINT32 syncRecordNum,
                                     UINT32 syncDirtyRatio ) ;
          void        setSyncDeep( BOOLEAN syncDeep ) ;
+         void        setMVCCSupport( BOOLEAN mvccSupport ) ;
 
          UINT64      getCurrentDataLSN() const ;
          UINT64      getCurrentIdxLSN() const ;
@@ -530,6 +526,28 @@ namespace engine
                                  INT64 position = -1,
                                  utilInsertResult *insertResult = NULL ) ;
 
+<<<<<<< HEAD
+         INT32    recycleCollectionSpace( _pmdEDUCB *cb ) ;
+=======
+         INT32    updateRecords ( const CHAR *pName,
+                                  _pmdEDUCB *cb,
+                                  SDB_DPSCB *dpscb,
+                                  _mthMatchRuntime *matchRuntime,
+                                  _mthModifier &modifier,
+                                  SINT64 maxUpdate = -1,
+                                  dmsMBContext *context = NULL,
+                                  IDmsOprHandler *pHandler = NULL,
+                                  utilUpdateResult *pResult = NULL ) ;
+
+         INT32    deleteRecords ( const CHAR *pName,
+                                  _pmdEDUCB * cb,
+                                  SDB_DPSCB *dpscb,
+                                  _mthMatchRuntime *matchRuntime,
+                                  SINT64 maxDelete = -1,
+                                  dmsMBContext *context = NULL,
+                                  utilDeleteResult *pResult = NULL ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
+
          INT32    recycleCollectionSpace( _pmdEDUCB *cb ) ;
 
          INT32    rebuildIndexes ( const CHAR *pName,
@@ -563,13 +581,31 @@ namespace engine
                              dmsMBContext *context = NULL,
                              dmsIdxTaskStatus *pIdxStatus = NULL,
                              BOOLEAN onlyStandalone = FALSE ) ;
+<<<<<<< HEAD
+=======
 
-         INT32    dropIndex( const CHAR *pName, OID &indexOID,
+         INT32    dropIndex( const CHAR *pName, const OID &indexOID,
                              _pmdEDUCB * cb, SDB_DPSCB *dpscb,
                              BOOLEAN isSys = FALSE,
                              dmsMBContext *context = NULL,
                              dmsIdxTaskStatus *pIdxStatus = NULL,
                              BOOLEAN onlyStandalone = FALSE ) ;
+
+         INT32    dropIndex( utilCLUniqueID clUniqID, const CHAR *indexName,
+                             _pmdEDUCB * cb, SDB_DPSCB *dpscb,
+                             BOOLEAN isSys = FALSE,
+                             dmsMBContext *context = NULL,
+                             dmsIdxTaskStatus *pIdxStatus = NULL,
+                             BOOLEAN onlyStandalone = FALSE ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
+
+         INT32    dropIndex( utilCLUniqueID clUniqID, const OID &indexOID,
+                             _pmdEDUCB * cb, SDB_DPSCB *dpscb,
+                             BOOLEAN isSys = FALSE,
+                             dmsMBContext *context = NULL,
+                             dmsIdxTaskStatus *pIdxStatus = NULL,
+                             BOOLEAN onlyStandalone = FALSE ) ;
+<<<<<<< HEAD
 
          INT32    dropIndex( utilCLUniqueID clUniqID, const CHAR *indexName,
                              _pmdEDUCB * cb, SDB_DPSCB *dpscb,
@@ -584,6 +620,8 @@ namespace engine
                              dmsMBContext *context = NULL,
                              dmsIdxTaskStatus *pIdxStatus = NULL,
                              BOOLEAN onlyStandalone = FALSE ) ;
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
          INT32    countCollection ( const CHAR *pName,
                                     INT64 &recordNum,
@@ -656,6 +694,7 @@ namespace engine
 
          dmsSUCache *getSUCache ( UINT32 type ) ;
 
+<<<<<<< HEAD
          dmsStatCache *getStatCache () ;
          dmsCachedPlanMgr *getCachedPlanMgr () ;
 
@@ -664,6 +703,8 @@ namespace engine
             return _storageService ;
          }
 
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       public :
          // monitor CRUD helper functions
          void clearMBCRUDCB () ;

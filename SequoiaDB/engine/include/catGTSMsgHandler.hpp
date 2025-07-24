@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = catGTSMsgHandler.hpp
 
@@ -40,6 +39,7 @@
 #include "ossLatch.hpp"
 #include "netDef.hpp"
 #include "msg.h"
+#include "dpsTransID.hpp"
 #include "rtnContextBuff.hpp"
 
 namespace engine
@@ -79,6 +79,10 @@ namespace engine
 
    private:
       INT32 _ensureMsgJobController() ;
+<<<<<<< HEAD
+=======
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       INT32 _processSequenceAcquireMsg( MsgHeader* msg, _pmdEDUCB* eduCB,
                                         rtnContextBuf& buf ) ;
       INT32 _processSequenceCreateMsg( MsgHeader* msg, _pmdEDUCB* eduCB ) ;
@@ -86,6 +90,25 @@ namespace engine
                                      rtnContextBuf& buf ) ;
       INT32 _processSequenceAlterMsg( MsgHeader* msg, _pmdEDUCB* eduCB,
                                       rtnContextBuf& buf ) ;
+<<<<<<< HEAD
+=======
+
+      // process lowTran request
+      INT32 _processLowTranReq( MsgHeader *message,
+                                rtnContextBuf &replyBuffer,
+                                _pmdEDUCB *eduCB ) ;
+      INT32 _parseLowTranReq( const BSONObj &requestObject,
+                              DPS_TRANSID_SN &lowTran,
+                              DPS_TRANSID_SN &expireTran,
+                              BOOLEAN &transOn,
+                              BOOLEAN &globTransOn,
+                              BOOLEAN &mvccOn,
+                              BOOLEAN &stpAvailable ) ;
+
+      INT32 _buildLowTranRsp( BSONObj &responseObject,
+                              DPS_TRANSID_SN globLowTran,
+                              DPS_TRANSID_SN globExpireTran ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    private:
       _catGTSManager*         _gtsMgr ;

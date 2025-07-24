@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = rtnContextDel.hpp
 
@@ -156,7 +154,12 @@ namespace engine
       clsCB *pClsCB = sdbGetClsCB() ;
       shardCB *pShdMgr = pClsCB->getShardCB() ;
       clsTaskMgr *pTaskMgr = pmdGetKRCB()->getClsCB()->getTaskMgr() ;
+<<<<<<< HEAD
        dmsTaskStatusMgr *pTaskStatMgr = pRtnCB->getTaskStatusMgr() ;
+=======
+      dmsTaskStatusMgr *pTaskStatMgr = pRtnCB->getTaskStatusMgr() ;
+      rtnObjectStatCache *statCache = pRtnCB->getObjectStatCache();
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       CLS_SUBCL_LIST subCLs ;
       CLS_SUBCL_LIST_IT it ;
       ossPoolSet< string > mainCLs ;
@@ -165,6 +168,7 @@ namespace engine
       _pCatAgent->lock_w() ;
       _pCatAgent->clearBySpaceName( _name, &subCLs, &mainCLs ) ;
       _pCatAgent->release_w() ;
+      statCache->removeCLStatInCS( _name );
 
       it = subCLs.begin() ;
       while( it != subCLs.end() )
@@ -176,6 +180,7 @@ namespace engine
             _pCatAgent->release_w() ;
          }
          pClsCB->invalidateCata( (*it).c_str() ) ;
+         statCache->removeCLStat( (*it).c_str() ) ;
          ++it ;
       }
       pClsCB->invalidateCata( _name ) ;
@@ -189,6 +194,7 @@ namespace engine
          pRtnCB->getAPM()->invalidateCLPlans( mainCLName ) ;
          // Clear plan cache in secondary nodes
          pClsCB->invalidatePlan( mainCLName ) ;
+         statCache->removeCLStat( mainCLName ) ;
          ++ mainIter ;
       }
 
@@ -210,6 +216,7 @@ namespace engine
          //invalidate plan will be executed in dms by calling onDropCS().
          pRtnCB->getAPM()->invalidateSUPlans( _name ) ;
          pClsCB->invalidateCache( _name, DPS_LOG_INVALIDCATA_TYPE_PLAN ) ;
+         statCache->removeCLStat( _name ) ;
       }
 
       rc = SDB_DMS_EOC ;
@@ -420,7 +427,11 @@ namespace engine
 
       {
          // acquire CS lock to avoid drop CS
+<<<<<<< HEAD
          dmsCSMutexScope csLock( _pDmsCB, szCSName ) ;
+=======
+         // dmsCSMutexScope csLock( _pDmsCB, szCSName ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
          rc = _pDmsCB->nameToSUAndLock( szCSName, suID, &_su ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed lock collection space [%s], rc: %d",
@@ -556,13 +567,18 @@ namespace engine
       clsCB * pClsCB = pmdGetKRCB()->getClsCB() ;
       clsTaskMgr * pTaskMgr = pClsCB->getTaskMgr() ;
       dmsTaskStatusMgr *pTaskStatMgr = pRtnCB->getTaskStatusMgr() ;
+<<<<<<< HEAD
+=======
+      rtnObjectStatCache *statCache = pRtnCB->getObjectStatCache() ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       CHAR mainCL[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { '\0' } ;
 
       _pCatAgent->lock_w () ;
       _pCatAgent->clear ( _collectionName, mainCL, sizeof( mainCL ) ) ;
       _pCatAgent->release_w () ;
       pClsCB->invalidateCata( _collectionName ) ;
-
+      statCache->removeCLStat( _collectionName ) ;
+      pRtnCB->getAPM()->invalidateCLPlans( _collectionName ) ;
       // Clear catalog info and cached plans of main-collection if needed
       if ( '\0' != mainCL[ 0 ] )
       {
@@ -570,6 +586,7 @@ namespace engine
          _pCatAgent->clear( mainCL ) ;
          _pCatAgent->release_w() ;
          pRtnCB->getAPM()->invalidateCLPlans( mainCL ) ;
+         statCache->removeCLStat( mainCL ) ;
          pClsCB->invalidateCache( mainCL, DPS_LOG_INVALIDCATA_TYPE_CATA |
                                           DPS_LOG_INVALIDCATA_TYPE_PLAN ) ;
       }
@@ -962,10 +979,17 @@ namespace engine
       PD_CHECK( pNewCSName, SDB_INVALIDARG, error, PDERROR,
                 "new cs name is null!" );
 
+<<<<<<< HEAD
       rc = dmsCheckCSName( pCSName, _flagAllowOldSYS() || allowOldSYS ) ;
       PD_RC_CHECK( rc, PDERROR, "Invalid cs name[%s]", pCSName );
 
       rc = dmsCheckCSName( pNewCSName, _flagAllowNewSYS() || allowNewSYS );
+=======
+      rc = dmsCheckCSName( pCSName, _flagAllowOldSYS() );
+      PD_RC_CHECK( rc, PDERROR, "Invalid cs name[%s]", pCSName );
+
+      rc = dmsCheckCSName( pNewCSName, _flagAllowNewSYS() );
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       PD_RC_CHECK( rc, PDERROR, "Invalid cs name[%s]", pNewCSName );
 
       ossStrncpy( _oldName, pCSName, DMS_COLLECTION_SPACE_NAME_SZ ) ;
@@ -1722,7 +1746,11 @@ namespace engine
 
       {
          // acquire CS lock to avoid drop CS
+<<<<<<< HEAD
          dmsCSMutexScope csLock( _pDmsCB, csName ) ;
+=======
+         // dmsCSMutexScope csLock( _pDmsCB, csName ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
          // get collection info
          rc = _pDmsCB->nameToSUAndLock( csName, suID, &_su, SHARED );
@@ -1872,6 +1900,54 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCTXRENAMECL__DORENAME, "_rtnContextRenameCL::_doRename" )
    INT32 _rtnContextRenameCL::_doRename( _pmdEDUCB *cb )
+<<<<<<< HEAD
+=======
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNCTXRENAMECL__DORENAME ) ;
+
+      rc = _su->data()->renameCollection( _clShortName, _newCLShortName, cb,
+                                          _pDpsCB ) ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to rename collection from [%s] to [%s], rc: %d",
+                   _clShortName, _newCLShortName, rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNCTXRENAMECL__DORENAME, rc ) ;
+      return rc ;
+
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCTXRENAMECL__INITLOCALTASK, "_rtnContextRenameCL::_initLocalTask" )
+   INT32 _rtnContextRenameCL::_initLocalTask( rtnLocalTaskPtr &taskPtr,
+                                              const CHAR *oldName,
+                                              const CHAR *newName )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNCTXRENAMECL__INITLOCALTASK ) ;
+
+      SDB_ASSERT( NULL != oldName, "old name is invalid" ) ;
+      SDB_ASSERT( NULL != newName, "new name is invalid" ) ;
+
+      rtnLTRename *pRenameTask = (rtnLTRename *)( taskPtr.get() ) ;
+      SDB_ASSERT( NULL != pRenameTask, "local task is invalid" ) ;
+
+      pRenameTask->setInfo( oldName, newName ) ;
+
+      PD_TRACE_EXITRC( SDB__RTNCTXRENAMECL__INITLOCALTASK, rc ) ;
+
+      return rc ;
+   }
+
+   RTN_CTX_AUTO_REGISTER(_rtnContextRenameMainCL, RTN_CONTEXT_RENAMEMAINCL, "RENAMEMAINCL")
+
+   _rtnContextRenameMainCL::_rtnContextRenameMainCL( SINT64 contextID, UINT64 eduID )
+   :_rtnContextBase( contextID, eduID )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
       INT32 rc = SDB_OK ;
 
@@ -2133,6 +2209,10 @@ namespace engine
    done:
       return rc ;
    error:
+<<<<<<< HEAD
+=======
+      _releaseLock( cb ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       goto done ;
    }
 

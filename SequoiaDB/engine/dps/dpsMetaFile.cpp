@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = dpsMetaFile.cpp
 
@@ -35,7 +34,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #include "dpsMetaFile.hpp"
 #include "utilStr.hpp"
 
@@ -115,7 +113,8 @@ namespace engine
                              UINT32 workFile,
                              const DPS_LSN &curLSN,
                              UINT32 curLsnLength,
-                             const DPS_LSN &memBeginLSN )
+                             const DPS_LSN &memBeginLSN,
+                             const dpsLogSummary &summary )
    {
       INT32 rc = SDB_OK ;
 
@@ -127,6 +126,7 @@ namespace engine
       _content._curLsnLength = curLsnLength ;
       _content._memBeginLsnVer = memBeginLSN.version ;
       _content._memBeginLsnOffset = memBeginLSN.offset ;
+      _content._summary = summary ;
 
       rc = writeContent() ;
       if ( SDB_OK == rc )
@@ -137,7 +137,9 @@ namespace engine
                                           "WorkFile: %d, "
                                           "CurLsn: %d.%lld, "
                                           "CurLsnLength: %u, "
-                                          "MemBeginLsn: %d.%lld ) succeed",
+                                          "MemBeginLsn: %d.%lld, "
+                                          "MinRecoverableTime: %llu, "
+                                          "MaxTransCommitTime: %llu ) succeed",
                  _content._oldestLSNOffset,
                  _content._beginFile,
                  _content._workFile,
@@ -145,7 +147,9 @@ namespace engine
                  _content._curLsnOffset,
                  _content._curLsnLength,
                  _content._memBeginLsnVer,
-                 _content._memBeginLsnOffset ) ;
+                 _content._memBeginLsnOffset,
+                 _content._summary._minRecoverableTime,
+                 _content._summary._maxTransCommitTime ) ;
       }
       else
       {
@@ -154,7 +158,9 @@ namespace engine
                                           "WorkFile: %d, "
                                           "CurLsn: %d.%lld, "
                                           "CurLsnLength: %u, "
-                                          "MemBeginLsn: %d.%lld ) "
+                                          "MemBeginLsn: %d.%lld, "
+                                          "MinRecoverableTime: %llu, "
+                                          "MaxTransCommitTime: %llu ) "
                                           "failed, rc: %d",
                  _content._oldestLSNOffset,
                  _content._beginFile,
@@ -164,6 +170,8 @@ namespace engine
                  _content._curLsnLength,
                  _content._memBeginLsnVer,
                  _content._memBeginLsnOffset,
+                 _content._summary._minRecoverableTime,
+                 _content._summary._maxTransCommitTime,
                  rc ) ;
       }
 
@@ -210,7 +218,10 @@ namespace engine
                                        "WorkFile: %d, "
                                        "CurLsn: %d.%lld, "
                                        "CurLsnLength: %u, "
-                                       "MemBeginLsn: %d.%lld ) succeed",
+                                       "MemBeginLsn: %d.%lld, "
+                                       "MinRecoverableTime: %llu, "
+                                       "MaxTransCommitTime: %llu, "
+                                       "RestorePointTime: %llu ) succeed",
               _content._oldestLSNOffset,
               _content._beginFile,
               _content._workFile,
@@ -218,7 +229,10 @@ namespace engine
               _content._curLsnOffset,
               _content._curLsnLength,
               _content._memBeginLsnVer,
-              _content._memBeginLsnOffset ) ;
+              _content._memBeginLsnOffset,
+              _content._summary._minRecoverableTime,
+              _content._summary._maxTransCommitTime,
+              _content._summary._restorePointTime ) ;
 
    done:
       return rc ;
@@ -321,16 +335,38 @@ namespace engine
                                              BOOLEAN needSync )
    {
       _content._oldestLSNOffset = offset ;
+<<<<<<< HEAD
+      return writeContent( needSync ) ;
+=======
+      _content._summary.reset() ;
+      return writeContent() ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
+   }
+
+   INT32 _dpsMetaFile::writeTransMeta( DPS_LSN_OFFSET offset,
+                                       const dpsLogSummary &summary,
+                                       BOOLEAN needSync )
+   {
+      _content._oldestLSNOffset = offset ;
+      _content._summary = summary ;
       return writeContent( needSync ) ;
    }
 
-   INT32 _dpsMetaFile::invalidateStatus()
+   INT32 _dpsMetaFile::writeSummary( const dpsLogSummary &summary,
+                                     BOOLEAN needSync )
+   {
+      // write summary only
+      _content._summary = summary ;
+      return writeContent( needSync ) ;
+   }
+
+   INT32 _dpsMetaFile::invalidateStatus( BOOLEAN resetSummary )
    {
       INT32 rc = SDB_OK ;
 
       if ( !_invalidateStatus )
       {
-         _content.resetStatus() ;
+         _content.resetStatus( resetSummary ) ;
          rc =  writeContent() ;
          if ( SDB_OK == rc )
          {

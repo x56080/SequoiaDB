@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = clsVoteStatus.hpp
 
@@ -33,13 +32,13 @@
    Last Changed =
 
 *******************************************************************************/
-
 #ifndef CLSVOTESTATUS_HPP_
 #define CLSVOTESTATUS_HPP_
 
 #include "core.hpp"
 #include "oss.hpp"
-#include "clsDef.hpp"
+#include "clsReplDef.hpp"
+#include "netRouteAgent.hpp"
 #include "msgReplicator.hpp"
 
 namespace engine
@@ -49,14 +48,15 @@ namespace engine
 
    const INT32 CLS_INVALID_VOTE_ID = -1 ;
 
-   class _netRouteAgent ;
-   class _dpsLogWrapper ;
-
    class _clsVoteStatus : public SDBObject
    {
    public:
+<<<<<<< HEAD
       _clsVoteStatus( _clsGroupInfo *info,
                       _netRouteAgent *agent,
+=======
+      _clsVoteStatus( ICLSReplAgent *replAgent,
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                       INT32 id ) ;
 
       virtual ~_clsVoteStatus() ;
@@ -148,6 +148,7 @@ namespace engine
                      const _MsgRouteID &id,
                      const CLS_ELECTION_ROUND &round ) ;
       void _broadcastAlives( void *msg ) ;
+<<<<<<< HEAD
    private:
       _clsGroupInfo *_groupInfo ;
       _netRouteAgent *_agent ;
@@ -156,8 +157,20 @@ namespace engine
       UINT32 _time ;
       UINT32 _acceptedNum ;
       UINT32 _criticalAcceptedNum ;
+=======
+
+   protected:
+      ICLSReplAgent *   _replAgent ;
+      clsGroupInfo *    _groupInfo ;
+      netRouteAgent *   _agent ;
+      INT32             _id ;
+      UINT32            _time ;
+      UINT32            _acceptedNum ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    } ;
+
+   typedef class _clsVoteStatus clsVoteStatus ;
+
 }
 
 #endif
-

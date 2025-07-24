@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = rtnMergeIXScanner.hpp
 
@@ -47,6 +45,7 @@ using namespace bson ;
 
 namespace engine
 {
+   class _optAccessPlanRuntime ;
 
    // Index merge scanner is used to merge results from different scanner.
    // For instance, we have a scanner to traverse on disk index trees; we
@@ -60,7 +59,7 @@ namespace engine
    {
    public:
       _rtnMergeIXScanner( ixmIndexCB *pIndexCB,
-                          rtnPredicateList *predList,
+                          _optAccessPlanRuntime * planRuntime,
                           _dmsStorageUnit  *su,
                           _dmsMBContext    *mbContext,
                           _pmdEDUCB        *cb,
@@ -94,6 +93,7 @@ namespace engine
       virtual const BSONObj*  getCurKeyObj() const ;
       virtual const dmsRecordID& getSavedRID () const { return _savedRID ; }
       virtual const BSONObj*  getSavedObj () const { return &_savedObj ; }
+<<<<<<< HEAD
 
       virtual BOOLEAN canPrefetch() const
       {
@@ -109,6 +109,18 @@ namespace engine
          }
          return _rightEnabled ? _rightIXScanner->getSession() : nullptr ;
       }
+=======
+   
+      virtual INT32           isCursorSame( const BSONObj &saveObj,
+                                            const dmsRecordID &saveRID,
+                                            BOOLEAN &isSame ) ;
+      virtual void getOwnerTransID( DPS_TRANS_ID &transID ) ;
+
+      virtual void getRBSPositions( dmsRBSOffset & startPos, 
+                                    dmsRBSOffset & endPos,
+                                    dmsRecordID  & rid,
+                                    preIdxTreePtr  memTree ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    protected:
       virtual INT32 _relocateRID( BOOLEAN &found ) ;

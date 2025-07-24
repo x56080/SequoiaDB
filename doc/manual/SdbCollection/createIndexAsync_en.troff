@@ -95,7 +95,11 @@ getLastError() to get the error code.
 For more details, refer to Troubleshooting.
 .SH VERSION
 .PP
+<<<<<<< HEAD
 v3.6 and above
+=======
+v5.0.3 and above
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 .SH EXAMPLES
 .IP "1." 3
 Create a unique index in the collection sample.employee.

@@ -64,7 +64,11 @@ TEST_F( traceTest14678, trace )
       strcpy( mask, str.c_str()) ;
       ASSERT_STREQ( masks[i], mask ) << "fail to check component" ;
    }*/
+<<<<<<< HEAD
    ASSERT_GT(components.size(), 0) << "fail to check components num" << obj.toString();
+=======
+   ASSERT_GT(components.size(), 0) << "fail to check components num" << obj.toString() ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    rc = cursor.close() ;
    ASSERT_EQ( SDB_OK, rc ) << "fail to close cursor" ;
 

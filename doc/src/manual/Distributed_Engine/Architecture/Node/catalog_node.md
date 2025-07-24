@@ -99,7 +99,7 @@
 在 SDB Shell 中查看编目复制组的详细信息
 
 ```lang-javascript
-> db.getCataRG().getDetail()
+> db.getCataRG().getDetailObj()
 ```
 
 ## 故障恢复

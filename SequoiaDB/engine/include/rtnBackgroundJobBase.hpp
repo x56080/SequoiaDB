@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = rtnBackgroundJobBase.hpp
 
@@ -32,7 +30,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #ifndef RTN_BACKGROUND_JOB_BASE_HPP_
 #define RTN_BACKGROUND_JOB_BASE_HPP_
 
@@ -81,7 +78,13 @@ namespace engine
       // cls adapter jobs
       RTN_JOB_CLS_ADAPTER_TEXT_INDEX = 29,
 
+<<<<<<< HEAD
       RTN_JOB_TASKINFO_UPDATE        = 30, // update task info in cata and data
+=======
+      RTN_JOB_GTS_LOWTRAN        = 30,
+
+      RTN_JOB_TASKINFO_UPDATE    = 31, // update task info in cata and data
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       RTN_JOB_MAX
    } ;

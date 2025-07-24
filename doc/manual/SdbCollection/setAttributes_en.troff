@@ -43,6 +43,7 @@ Format: \f[C]ReplSize: <number>\f[]
 .IP \[bu] 2
 ShardingKey ( \f[I]object\f[] ): Sharding key, the value is 1 or \-1, indicating
 forward or backward sorting.
+<<<<<<< HEAD
 .IP \[bu] 2
 ConsistencyStrategy ( \f[I]number\f[] ): Synchronization consistency strategy.
 .RS 2
@@ -66,6 +67,11 @@ indicating forward or reverse sorting.
 .RS 2
 .PP
 "ShardingKey" can be modified when the collection only exists in one data group,
+=======
+.RS 2
+.PP
+ShardingKey can be modified when the collection only exists in one data group,
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 or the collection does not have subcollections mounted.
 .PP
 Format: \f[C]ShardingKey: {<field1>: <1|\-1>, [<field2>: <1|\-1>, ...]}\f[]

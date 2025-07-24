@@ -196,6 +196,7 @@ TEST_F( invalidArgTest9524, url9528 )
    string url_right2 = ":000000" ;
    string url_right3 = ":" ;
    rc = ds.init( url_right1, conf ) ;
+<<<<<<< HEAD
    ASSERT_EQ( SDB_OK, rc ) << "fail to test init with url " << url_right1 ;
    ds.close() ;
    rc = ds.init( url_right2, conf ) ;
@@ -203,6 +204,15 @@ TEST_F( invalidArgTest9524, url9528 )
    ds.close() ;
    rc = ds.init( url_right3, conf ) ;
    ASSERT_EQ( SDB_OK, rc ) << "fail to test init with url " << url_right3 ;
+=======
+   ASSERT_EQ( SDB_CLIENT_CONNPOOL_NO_REACHABLE_COORD, rc ) << "fail to test init with url " << url_right1 ;
+   ds.close() ;
+   rc = ds.init( url_right2, conf ) ;
+   ASSERT_EQ( SDB_CLIENT_CONNPOOL_NO_REACHABLE_COORD, rc ) << "fail to test init with url " << url_right2 ;
+   ds.close() ;
+   rc = ds.init( url_right3, conf ) ;
+   ASSERT_EQ( SDB_CLIENT_CONNPOOL_NO_REACHABLE_COORD, rc ) << "fail to test init with url " << url_right3 ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 }
 
 // url列表测试

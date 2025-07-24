@@ -1,3 +1,35 @@
+/*******************************************************************************
+
+   Copyright (C) 2011-Present SequoiaDB Ltd.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+   Source File Name = monLatch.hpp
+
+   Descriptive Name = N/A
+
+   Dependencies: N/A
+
+   Restrictions: N/A
+
+   Change Activity:
+   defect Date        Who         Description
+   ====== =========== =========== =============================================
+          23/07/2025  fangjiabin  Initial Draft
+
+   Last Changed =
+
+*******************************************************************************/
 #ifndef MONLATCH_HPP_
 #define MONLATCH_HPP_
 
@@ -129,6 +161,9 @@ enum MON_LATCH_IDENTIFIER
    MON_LATCH_RTNREMOTEMESSENGER_LOCK,
    MON_LATCH_UTILCACHEBUCKET_RWMUTEX,
    MON_LATCH_UTILHASHTABLE_BUCKETNUMLOCK,
+   MON_LATCH_PREIDXTREE_LATCH,
+   MON_LATCH_RBSHASHBKT_BUCKETLATCH,
+   MON_LATCH_RBSSUMGR_LATCH,
 
    MON_LATCH_ID_MAX  // max id
 
@@ -140,9 +175,14 @@ class monSpinXLatch : public ossXLatch
 {
 public:
    monSpinXLatch( MON_LATCH_IDENTIFIER latchID ) ;
-
+   monSpinXLatch() ;
    ~monSpinXLatch() ;
 
+   monSpinXLatch& operator=(const monSpinXLatch& rhs )
+   {
+      latchID = rhs.latchID ;
+      return *this ;
+   }
    void get() ;
 
    void release() ;
@@ -150,6 +190,12 @@ public:
    BOOLEAN try_get() ;
 
    INT32 getNumOwner() ;
+
+   OSS_INLINE void setLatchID( MON_LATCH_IDENTIFIER id )
+   {
+      latchID = id ;
+   }
+
 public:
    ossSpinXLatch latch ;
    MON_LATCH_IDENTIFIER latchID ;
@@ -188,6 +234,12 @@ public:
    BOOLEAN try_get_shared() ;
 
    INT32 getNumOwner() ;
+
+   OSS_INLINE void setLatchID( MON_LATCH_IDENTIFIER id )
+   {
+      latchID = id ;
+   }
+
 public:
    ossSpinSLatch latch ;
    MON_LATCH_IDENTIFIER latchID ;

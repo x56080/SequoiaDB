@@ -21,13 +21,18 @@
     <!--用例创建节点预留端口号最大值-->
     <parameter name="RSRVPORTEND"       value="27000" />
     <!--用例创建节点存放节点数据目录-->
+<<<<<<< HEAD
     <parameter name="RSRVNODEDIR"       value="${RSRVNODEDIR}" />
+=======
+    <parameter name="RSRVNODEDIR"       value="/opt/sequoiadb/database/" />
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     <!--用例存放临时文件的目录-->
     <parameter name="WORKDIR"           value="/tmp/javatest" />
     <!--sdbTestBaseConf用来修改配置的工具位置-->
     <parameter name="CONFTOOL"          value="trunk/misc/ci_new/src/test/exec_testcase/changeConf.js" />
     <!--是否开启事务-->
     <parameter name="ENABLETRANSACTION" value="true" />
+<<<<<<< HEAD
     <!--用例新增节点备份日志文件路径-->
     <parameter name="BACKUPTMPNODELOGPATH"   value="${BACKUPTMPNODELOGPATH}" />
     <!--远程机器root用户密码-->
@@ -36,12 +41,19 @@
     <parameter name="REMOTEUSER"      value="${REMOTEUSER}" />
     <!--远程机器用户密码-->
     <parameter name="REMOTEPASSWD"    value="${REMOTEPASSWD}" />
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
     <listeners>
         <listener
             class-name="com.sequoiadb.testcommon.TimePrinterListener" />
         <listener
             class-name="com.sequoiadb.testcommon.SdbTestListener" />
+<<<<<<< HEAD
+=======
+        <listener
+            class-name="com.sequoiadb.testcommon.StoryInvokeMethodListener" />
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     </listeners>
 
     <!--The testcases of different configure should be placed in different
@@ -121,8 +133,13 @@
     <test name="normaltest" parallel="classes" thread-count="5">
         <packages>
             <package name="com.sequoiadb.transaction.uniqueIndex" />
+<<<<<<< HEAD
             <package name="com.sequoiadb.transaction.metadata" />
             <package name="com.sequoiadb.transaction.pendingobject" />
+=======
+            <package name="com.sequoiadb.transaction.pendingobject" />
+            <package name="com.sequoiadb.transaction.metadata" />
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         </packages>
     </test>
 
@@ -143,6 +160,7 @@
         </packages>
     </test>
 
+<<<<<<< HEAD
     <test name="lockEscalation" parallel="classes" thread-count="5">
         <groups>
             <run>
@@ -155,12 +173,27 @@
     </test>
 
     <test name="recycleBinSync" parallel="classes" thread-count="1">
+=======
+    <test name="recycleBinSync" parallel="classes" thread-count="1">
         <groups>
             <run>
                 <include name="recycleBin" />
             </run>
         </groups>
         <packages>
+            <package name="com.sequoiadb.recyclebin.serial" />
+        </packages>
+    </test>
+
+    <test name="recycleBin" parallel="classes" thread-count="5">
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
+        <groups>
+            <run>
+                <include name="recycleBin" />
+            </run>
+        </groups>
+        <packages>
+<<<<<<< HEAD
             <package name="com.sequoiadb.recyclebin.serial" />
         </packages>
     </test>
@@ -213,3 +246,56 @@
 
 </suite>
     
+=======
+            <package name="com.sequoiadb.recyclebin" />
+        </packages>
+    </test>
+
+    <test name="rr" parallel="classes" thread-count="5">
+        <groups>
+            <run>
+                <include name="rr" />
+            </run>
+        </groups>
+        <packages>
+            <package name="com.sequoiadb.transaction.rr" />
+            <package name="com.sequoiadb.transaction.rrrbs" />
+            <package name="com.sequoiadb.transaction.rc" />
+        </packages>
+    </test>
+
+    <test name="rrauto" parallel="classes" thread-count="5">
+        <groups>
+            <run>
+                <include name="rrauto" />
+            </run>
+        </groups>
+        <packages>
+            <package name="com.sequoiadb.transaction.rr" />
+            <package name="com.sequoiadb.transaction.rcauto" />
+        </packages>
+    </test>
+
+    <test name="rrsync" parallel="classes" thread-count="1">
+       <groups>
+          <run>
+             <include name="rr" />
+          </run>
+       </groups>
+       <packages>
+          <package name="com.sequoiadb.transaction.rrrbsserial" />
+       </packages>
+    </test>
+
+    <test name="lockEscalation" parallel="classes" thread-count="5">
+        <groups>
+            <run>
+                <include name="lockEscalation" />
+            </run>
+        </groups>
+        <packages>
+            <package name="com.sequoiadb.transaction.lockEscalation" />
+        </packages>
+    </test>
+</suite>
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2

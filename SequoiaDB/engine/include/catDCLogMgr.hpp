@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = catDCLogMgr.hpp
 
@@ -39,7 +38,8 @@
 
 #include "pmd.hpp"
 #include "netDef.hpp"
-#include "dpsLogWrapper.hpp"
+#include "interface/IDataProtectionService.h"
+#include "dpsReplicaLogMgr.hpp"
 #include "pmdEDU.hpp"
 #include <vector>
 #include <string>
@@ -117,7 +117,7 @@ namespace engine
    /*
       _catDCLogMgr define
    */
-   class _catDCLogMgr : public SDBObject, public ILogAccessor
+   class _catDCLogMgr : public IDataJournal
    {
       public:
          _catDCLogMgr() ;
@@ -133,38 +133,61 @@ namespace engine
                            DPS_LSN *pRetLSN = NULL ) ;
 
       public:
-         virtual INT32     search( const DPS_LSN &minLsn,
-                                   _dpsMessageBlock *mb,
-                                   UINT8 type = DPS_SEARCH_ALL,
-                                   INT32 maxNum = 1,
-                                   INT32 maxTime = -1,
-                                   INT32 maxSize = 5242880 ) ;
+         virtual DPS_LSN getMinFileLSN() override ;
+         virtual DPS_LSN getMinBufLSN() override ;
+         virtual DPS_LSN getCurrentLSN() override ;
+         virtual DPS_LSN getExpectedLSN() override ;
+         virtual DPS_LSN getCommittedLSN() override ;
 
-         virtual INT32     searchHeader( const DPS_LSN &lsn,
-                                         _dpsMessageBlock *mb,
-                                         UINT8 type = DPS_SEARCH_ALL ) ;
+         virtual void getLsnWindow( DPS_LSN &minFileLSN,
+                                    DPS_LSN &minBufLSN,
+                                    DPS_LSN &currentLSN,
+                                    DPS_LSN *expectedLSN,
+                                    DPS_LSN *committedLSN ) override ;
 
-         virtual DPS_LSN   getStartLsn ( BOOLEAN logBufOnly = FALSE ) ;
+         virtual INT32 write( IExecutor *executor,
+                              const dpsWriteRequest &request,
+                              const dpsWriteOptions &o,
+                              dpsLogRecordHeader *result ) override ;
 
-         virtual DPS_LSN   getCurrentLsn() ;
-         virtual DPS_LSN   expectLsn() ;
-         virtual DPS_LSN   commitLsn() ;
+         virtual INT32 search( const DPS_LSN &lsn,
+                              const dpsSearchOptions &o,
+                              dpsMessageBlock &block )  override ;
 
-         virtual void      getLsnWindow( DPS_LSN &beginLsn,
-                                         DPS_LSN &memBeginLsn,
-                                         DPS_LSN &endLsn,
-                                         DPS_LSN *pExpectLsn,
-                                         DPS_LSN *committed ) ;
+         virtual INT32 replicate( const CHAR *rawdata, UINT32 size ) override
+         {
+            return recordRow(rawdata, size);
+         }
 
-         virtual void      getLsnWindow( DPS_LSN &beginLsn,
-                                         DPS_LSN &endLsn,
-                                         DPS_LSN *pExpectLsn,
-                                         DPS_LSN *committed ) ;
+         virtual INT32 flush( DPS_LSN_OFFSET offset, BOOLEAN async ) override ;
 
-         virtual INT32     move( const DPS_LSN_OFFSET &offset,
-                                 const DPS_LSN_VER &version ) ;
+         virtual INT32 move( const DPS_LSN_OFFSET &lsn,
+                             const DPS_LSN_VER &version ) override ;
 
-         virtual INT32     recordRow( const CHAR *row, UINT32 len ) ;
+      public:
+         INT32     search( const DPS_LSN &minLsn,
+                           _dpsMessageBlock *mb,
+                           UINT8 type = DPS_SEARCH_ALL,
+                           INT32 maxNum = 1,
+                           INT32 maxTime = -1,
+                           INT32 maxSize = 5242880 ) ;
+
+         INT32     searchHeader( const DPS_LSN &lsn,
+                                 _dpsMessageBlock *mb,
+                                 UINT8 type = DPS_SEARCH_ALL ) ;
+
+         DPS_LSN getStartLsn ( BOOLEAN logBufOnly = FALSE );
+
+         DPS_LSN expectLsn();
+         DPS_LSN commitLsn();
+         DPS_LSN getCurrentLsn();
+
+         void getLsnWindow( DPS_LSN &beginLsn,
+                           DPS_LSN &endLsn,
+                           DPS_LSN *pExpectLsn,
+                           DPS_LSN *committed );  
+
+         INT32 recordRow( const CHAR *row, UINT32 len );
 
       protected:
          UINT32 _incFileID( UINT32 fileID ) ;

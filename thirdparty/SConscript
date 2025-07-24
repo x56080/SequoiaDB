@@ -25,8 +25,15 @@ Import("fuse_lib_dir")
 Import("usemdocml")
 Import("usefuse")
 Import("intel_decimal_lib_dir")
+<<<<<<< HEAD
 Import("zstd_dir")
 Import("zstd_lib_dir")
+=======
+Import("rocksdb_lib_dir")
+Import("zstd_lib_dir")
+Import("bzip2_lib_dir")
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 ERROR = 1
 WARNING = 2
@@ -645,6 +652,56 @@ class IntelDecimalLibCompiler(CompilerBase):
               shutil.copy(os.path.join(self.src_root, 'LIBRARY/libbid.lib'),
                           self._get_lib_archive_dir())
 
+<<<<<<< HEAD
+=======
+
+class RocksDBCompiler(CompilerBase):
+    def __init__(self, src_root):
+        CompilerBase.__init__(self, "rocksdb", src_root)
+
+    def _get_lib_archive_dir(self):
+        return rocksdb_lib_dir
+
+    def _init_linux_cmds(self, arch):
+        compCmd =  'export CC=gcc ; export cc=gcc ; export CXX=g++ ; '
+        compCmd += 'export CPATH=/usr/local/include:$CPATH ; export LIBRARY_PATH=/usr/local/lib:$LIBRARY_PATH ; '
+        compCmd += 'export CPATH=../snappy/include:$CPATH ; '
+        #compCmd += 'export CPATH=../zlib:$CPATH ; '
+        #compCmd += 'export CPATH=../bzip2:$CPATH ; '
+        compCmd += 'export CPATH=../lz4/src:../lz4/include:$CPATH ; '
+        compCmd += 'export CPATH=../zstd/lib/dictBuilder:../zstd/lib:$CPATH ; '
+        if debugBuild:
+           mkCmd = 'USE_RTTI=1 DEBUG_LEVEL=2 make static_lib '
+           # if gflags is installed and want to build debuggable lib,
+           # tools, and rocksdb built-in testing programs, then
+           # mkCmd = ' make dbg '
+        else:
+           mkCmd = 'USE_RTTI=1 DEBUG_LEVEL=0 make static_lib '
+        mkCmd += ' -j ' + str(GetOption('num_jobs'))
+
+        self.append_cmd( compCmd,  mkCmd )
+
+        return 0
+
+    def _get_lib_list(self):
+        libs = []
+        if 'linux' == self.platform:
+           if debugBuild:
+              libs = ['librocksdb_debug.a']
+           else:
+              libs = ['librocksdb.a']
+        return libs
+
+    def archive(self):
+        if debugBuild:
+           shutil.copy(os.path.join(self.src_root, 'librocksdb_debug.a'),
+                       self._get_lib_archive_dir())
+        else:
+           shutil.copy(os.path.join(self.src_root, 'librocksdb.a'),
+                       self._get_lib_archive_dir())
+
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 class zstdCompiler(CompilerBase):
     def __init__(self, src_root):
         CompilerBase.__init__(self, "zstd", src_root)
@@ -653,10 +710,18 @@ class zstdCompiler(CompilerBase):
         return zstd_lib_dir
 
     def _init_linux_cmds(self, arch):
+<<<<<<< HEAD
         mkCmd = ' CPPFLAGS=-DZSTD_MULTITHREAD make '
         if g_silent == True:
             mkCmd += ' --silent'
         self.append_cmd( mkCmd )
+=======
+        compCmd =  'export CC=gcc ; export cc=gcc ; export CXX=g++ ; '
+        compCmd += 'export CPATH=/usr/local/include:$CPATH ; export LIBRARY_PATH=/usr/local/lib:$LIBRARY_PATH ; '
+        mkCmd = ' CPPFLAGS=-DZSTD_MULTITHREAD make '
+
+        self.append_cmd( compCmd,  mkCmd )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
         return 0
 
@@ -664,6 +729,7 @@ class zstdCompiler(CompilerBase):
         libs = []
         if 'linux' == self.platform:
            libs = ['libzstd.a']
+<<<<<<< HEAD
         elif 'win32' == self.platform:
            libs = ['libzstd.lib']
         return libs
@@ -675,6 +741,41 @@ class zstdCompiler(CompilerBase):
         elif 'win32' == self.platform:
             shutil.copy(os.path.join(self.src_root, 'lib', 'libzstd.lib'),
                         self._get_lib_archive_dir())
+=======
+        return libs
+
+    def archive(self):
+        shutil.copy(os.path.join(self.src_root, 'lib/libzstd.a'),
+                    self._get_lib_archive_dir())
+
+
+class bzip2Compiler(CompilerBase):
+    def __init__(self, src_root):
+        CompilerBase.__init__(self, "bzip2", src_root)
+
+    def _get_lib_archive_dir(self):
+        return bzip2_lib_dir
+
+    def _init_linux_cmds(self, arch):
+        compCmd =  'export CC=gcc ; export cc=gcc ; '
+        compCmd += 'export CPATH=/usr/local/include:$CPATH ; export LIBRARY_PATH=/usr/local/lib:$LIBRARY_PATH ; '
+        mkCmd = ' make '
+
+        self.append_cmd( compCmd,  mkCmd )
+
+        return 0
+
+    def _get_lib_list(self):
+        libs = []
+        if 'linux' == self.platform:
+           libs = ['libbz2.a']
+        return libs
+
+    def archive(self):
+        shutil.copy(os.path.join(self.src_root, 'libbz2.a'),
+                    self._get_lib_archive_dir())
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 components = []
 
@@ -689,6 +790,14 @@ components.append(lz4_compiler)
 components.append(zlib_compiler)
 components.append(intelDecimal_compiler)
 components.append(zstd_compiler)
+
+if "linux" == guess_os:
+    rocksdb_compiler = RocksDBCompiler( 'rocksdb' )
+    zstd_compiler = zstdCompiler( 'zstd' )
+    bzip2_compiler = bzip2Compiler( 'bzip2' )
+    components.append(zstd_compiler)
+    components.append(bzip2_compiler)
+    components.append(rocksdb_compiler)
 
 if usemdocml:
     mdocml_compiler = MdocmlCompiler('mdocml')
@@ -708,6 +817,14 @@ if "win32" != guess_os:
     ssl_compiler = SslCompiler('crypto/openssl-1.1.1o')
     components.append(boost_compiler)
     # components.append(spidermonkey_compiler)
+<<<<<<< HEAD
+=======
+
+    # alpha64(sw_64) dose not supported SSL source compile
+    # we need to use the SSL library that comes with it
+    if "alpha64" != guess_arch:
+        components.append(ssl_compiler)
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
     # alpha64(sw_64) dose not supported SSL source compile
     # we need to use the SSL library that comes with it

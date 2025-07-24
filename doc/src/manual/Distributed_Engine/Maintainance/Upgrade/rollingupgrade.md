@@ -20,11 +20,17 @@
 
 1. 选择一台拥有复制组主节点最少的主机，查看有哪些复制组的主节点在该主机上
 2. 使用 [reelect()][reelect] 命令，将这些复制组的主节点切换到其它主机上
+<<<<<<< HEAD
 3. 使用 [startMaintenanceMode()][startMaintenanceMode] 命令，对需要升级的节点开启运维模式
 4. 按照离线升级中的[升级步骤][offlineupgrade]前 5 步完成本主机上的软件升级，在正常完成升级的情况下，所有的节点应已正常启动并重新加入到集群中
 5. 使用 [SDB_LIST_GROUPMODES][SDB_LIST_GROUPMODES] 查看复制组当前的模式，如升级成功的节点仍处于运维模式，请手动调用 [stopMaintenanceMode()][stopMaintenanceMode] 命令从运维模式中移除这些节点，否则这些节点不会参与复制组选主
 6. 选取下一个节点按照上述步骤完成升级，直至完成所有主机上的软件升级
 7. 按照离线升级中的[升级步骤][offlineupgrade]第 6 步完成索引升级
+=======
+3. 按照离线升级中的[升级步骤][offlineupgrade]前 5 步完成本主机上的软件升级，在正常完成升级的情况下，所有的节点应已正常启动并重新加入到集群中
+4. 选取下一个节点按照上述步骤完成升级，直至完成所有主机上的软件升级
+5. 按照离线升级中的[升级步骤][offlineupgrade]第 6 步完成索引升级
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 > **Note:**
 >
@@ -41,6 +47,9 @@
 [dropIndex]:manual/Manual/Sequoiadb_Command/SdbCollection/dropIndex.md
 [copyIndex]:manual/Manual/Sequoiadb_Command/SdbCollection/copyIndex.md
 [split]:manual/Manual/Sequoiadb_Command/SdbCollection/split.md
+<<<<<<< HEAD
 [SDB_LIST_GROUPMODES]:manual/Manual/List/SDB_LIST_GROUPMODES.md
 [startMaintenanceMode]:manual/Manual/Sequoiadb_Command/SdbReplicaGroup/startMaintenanceMode.md
 [stopMaintenanceMode]:manual/Manual/Sequoiadb_Command/SdbReplicaGroup/stopMaintenanceMode.md
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2

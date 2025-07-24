@@ -4,6 +4,10 @@
 @modify list:
         2022-02-14 Lantian init
 ****************************************************/
+<<<<<<< HEAD
+=======
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 <?php
 
 include_once dirname(__FILE__).'/../global.php';

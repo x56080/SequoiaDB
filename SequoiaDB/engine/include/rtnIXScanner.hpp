@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = rtnIXScanner.hpp
 
@@ -43,6 +41,14 @@
 #include "monCB.hpp"
 #include "rtnScanner.hpp"
 #include "rtnPredicate.hpp"
+<<<<<<< HEAD
+=======
+#include "ossMemPool.hpp"
+#include "utilSet.hpp"
+#include "dmsRBSSUMgr.hpp"
+#include "dpsTransID.hpp"
+#include "dpsTransVersionCtrl.hpp"
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 #include "../bson/ordering.h"
 #include "../bson/oid.h"
 #include "utilPooledAutoPtr.hpp"
@@ -54,7 +60,23 @@ namespace engine
    class _dmsStorageUnit ;
    class _dmsMBContext ;
    class _pmdEDUCB ;
+   class _optAccessPlanRuntime ;
 
+<<<<<<< HEAD
+=======
+   // define type of index scanners
+   enum IXScannerType
+   {
+      SCANNER_TYPE_DISK      = 0,
+      SCANNER_TYPE_MEM_TREE,
+      SCANNER_TYPE_MERGE,
+      SCANNER_TYPE_MAX
+   } ;
+
+   // Performance optimization by using the utilSet.
+   typedef _utilSet< dmsRecordID >  SET_RECORDID ;
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    /*
       _rtnScannerSharedInfo define
    */
@@ -99,7 +121,7 @@ namespace engine
    {
    public:
       _rtnIXScanner( ixmIndexCB *pIndexCB,
-                     rtnPredicateList *predList,
+                     _optAccessPlanRuntime *planRuntime,
                      _dmsStorageUnit  *su,
                      _dmsMBContext    *mbContext,
                      BOOLEAN           isAsync,
@@ -136,9 +158,18 @@ namespace engine
       INT32       compareWithCurKeyObj( const BSONObj &keyObj ) const ;
       INT32       syncPredStatus( _rtnIXScanner *source ) ;
 
+<<<<<<< HEAD
       BOOLEAN                isIndexCover() const ;
       void                   setIndexCover( const BOOLEAN indexCover ) ;
       ixmIndexCover&         getIndex() ;
+=======
+      BOOLEAN     eof() const ;
+      BOOLEAN                isIndexCover() const ;
+      void                   setIndexCover( const BOOLEAN indexCover ) ;
+      ixmIndexCover&         getIndex() ;
+
+      INT64 getExpReturn () const ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    /// Interface
    public:
@@ -152,11 +183,27 @@ namespace engine
       virtual const BSONObj*  getCurKeyObj() const = 0 ;
       virtual const dmsRecordID& getSavedRID () const = 0 ;
       virtual const BSONObj*  getSavedObj () const = 0 ;
+      virtual void getOwnerTransID( DPS_TRANS_ID &transID ) = 0 ;
 
+<<<<<<< HEAD
    protected:
       virtual INT32 _relocateRID( BOOLEAN &found ) = 0 ;
       virtual rtnPredicateListIterator*   _getPredicateListInterator() = 0 ;
 
+=======
+      virtual INT32           isCursorSame( const BSONObj &saveObj,
+                                            const dmsRecordID &saveRID,
+                                            BOOLEAN &isSame ) = 0 ;
+      virtual void getRBSPositions( dmsRBSOffset & startPos,
+                                    dmsRBSOffset & endPos,
+                                    dmsRecordID  & rid,
+                                    preIdxTreePtr  memTree ) = 0;
+
+   protected:
+      virtual INT32 relocateRID( BOOLEAN &found ) = 0 ;
+      virtual rtnPredicateListIterator*   getPredicateListInterator() = 0 ;
+      _optAccessPlanRuntime * getPlanRuntime () { return _planRuntime ; }
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    protected:
       BOOLEAN                 _insert2Dup( const dmsRecordID &rid ) ;
 
@@ -164,7 +211,14 @@ namespace engine
       ixmIndexCB              *_indexCB ;
       BOOLEAN                 _owned ;
       rtnPredicateList        *_pPredList ;
+<<<<<<< HEAD
+=======
+      _optAccessPlanRuntime   *_planRuntime ;
+      _dmsStorageUnit         *_su ;
+      _pmdEDUCB               *_cb ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       rtnScannerSharedInfo    *_pInfo ;
+      INT32                   _transIsolation ;
 
       dmsExtentID             _indexLID ;
       dmsExtentID             _indexCBExtent ;

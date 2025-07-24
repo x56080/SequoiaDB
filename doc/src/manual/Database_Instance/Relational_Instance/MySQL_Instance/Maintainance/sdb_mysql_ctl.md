@@ -10,17 +10,27 @@ sdb_mysql_ctl 是 MySQL 实例组件的管理工具。用户通过 sdb_mysql_ctl
 | -h | 返回帮助说明 | 否 |
 | -D | 指定数据库储存路径 | 是 |
 | -l | 指定日志文件，默认在安装路径下，与实例名同名 | 否 |
+<<<<<<< HEAD
 | -P | 指定 MySQL 服务的监听端口，默认为 3306 | 否 |
 | -f | 指定 pid 文件，默认为数据库储存路径下的 `mysqld.pid` | 否 |
 | -s | 指定 mysqld.sock 文件，默认为数据库储存路径下的 `mysqld.sock` | 否 |
 | -u | 指定连接到 MySQL 服务的数据库用户，默认为 root | 否 |
 | -w | 指定连接到 MySQL 服务的密码 | 否 |
+=======
+| -p | 指定 MySQL 服务的监听端口，默认为 3306 | 否 |
+| -f | 指定 pid 文件，默认为数据库储存路径下的 `mysqld.pid` | 否 |
+| -s | 指定 mysqld.sock 文件，默认为数据库储存路径下的 `mysqld.sock` | 否 |
+| -w | 指定本地连接 root 用户的密码 | 否 |
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 | -g | 指定要加入的实例组名，默认为空 | 否 |
 | -k | 指定实例组用户密码的密钥，默认为空 | 否 |
 | -a | 客户端最大连接数，默认为 1024 | 否 |
 | -e | 错误日志级别，默认为 3 | 否 |
 | -v | 输出版本信息 | 否 |
+<<<<<<< HEAD
 | --load-stats | 实例启动过程中加载统计信息 | 否 |
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 | --sdb-conn-addr | 所连接 SequoiaDB 集群的协调节点地址 | 否 |
 | --sdb-user | SequoiaDB 用户名 | 否 |
 | --sdb-passwd | SequoiaDB 用户密码 | 否 |
@@ -37,25 +47,41 @@ sdb_mysql_ctl 是 MySQL 实例组件的管理工具。用户通过 sdb_mysql_ctl
 
 * 创建实例
 
+<<<<<<< HEAD
     sdb_mysql_ctl addinst \<INSTNAME\> \<-D DATADIR\> [-l LOGFILE] [--print] [-P PORT] [-f PIDFILE] [-s SOCKETFILE] [-w PASSWORD] [-g INST_GROUP_NAME] [-k INST_GROUP_KEY] [--sdb-conn-addr=ADDR] [--sdb-user USER] [--sdb-passwd PASSWD] [--sdb-cipherfile PATH] [--sdb-token TOKEN]
+=======
+    sdb_mysql_ctl addinst \<INSTNAME\> \<-D DATADIR\> [-l LOGFILE] [--print] [-p PORT] [-f PIDFILE] [-s SOCKETFILE] [-w PASSWORD] [-g INST_GROUP_NAME] [-k INST_GROUP_KEY] [--sdb-conn-addr=ADDR] [--sdb-user USER] [--sdb-passwd PASSWD] [--sdb-cipherfile PATH] [--sdb-token TOKEN]
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
  
     添加一个 myinst 的实例，指定数据库存储路径为 `/opt/sequoiasql/mysql/database/3306/`，指定密码为 123456
  
     ```lang-bash
+<<<<<<< HEAD
     $ sdb_mysql_ctl addinst myinst -D /opt/sequoiasql/mysql/database/3306/ -l /opt/sequoiasql/mysql/database/myinst.log --print -P 3306 -f /opt/sequoiasql/mysql/database/myinst.pid -s /opt/sequoiasql/mysql/database/myinst.sock -w 123456 
+=======
+    $ sdb_mysql_ctl addinst myinst -D /opt/sequoiasql/mysql/database/3306/ -l /opt/sequoiasql/mysql/database/myinst.log --print -p 3306 -f /opt/sequoiasql/mysql/database/myinst.pid -s /opt/sequoiasql/mysql/database/myinst.sock -w 123456 
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     ```
 
 * 启动实例
 
+<<<<<<< HEAD
     sdb_mysql_ctl start \<INSTNAME\> [--load-stats [-u=USER] [-w=PASSWD]] [--print]
+=======
+    sdb_mysql_ctl start \<INSTNAME\> [--print]
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
  
     ```lang-bash
     $ sdb_mysql_ctl start myinst
     ```
+<<<<<<< HEAD
     > **Note:**
     >
     > - 指定--load-stats 加载统计信息，可以指定连接 MySQL 服务的用户名和密码；如果不指定，用户名默认为 root，密码采用交互式的方式进行验证。
 
+=======
+ 
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 * 查看实例状态
  
     sdb_mysql_ctl status [INSTNAME]
@@ -66,7 +92,11 @@ sdb_mysql_ctl 是 MySQL 实例组件的管理工具。用户通过 sdb_mysql_ctl
  
 * 重启实例
  
+<<<<<<< HEAD
     sdb_mysql_ctl restart \<INSTNAME\> [--load-stats [-u=USER] [-w=PASSWD]]
+=======
+    sdb_mysql_ctl restart \<INSTNAME\>
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
     ```lang-bash
     $ sdb_mysql_ctl restart myinst
@@ -97,7 +127,11 @@ sdb_mysql_ctl 是 MySQL 实例组件的管理工具。用户通过 sdb_mysql_ctl
 * 启动所有实例
 
     ```lang-bash
+<<<<<<< HEAD
     $ sdb_mysql_ctl startall [--load-stats [-u=USER] [-w=PASSWD]]
+=======
+    $ sdb_mysql_ctl startall
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     ```
 
 * 停止所有实例
@@ -108,7 +142,11 @@ sdb_mysql_ctl 是 MySQL 实例组件的管理工具。用户通过 sdb_mysql_ctl
 
 * 创建一个实例并加入[实例组][instance_group]
 
+<<<<<<< HEAD
     sdb_mysql_ctl  addinst \<INSTNAME\> \<-D DATADIR\> [-l LOGFILE] [--print] [-P PORT] [-f PIDFILE] [-s SOCKETFILE] [-w PASSWORD] [-g INST_GROUP_NAME] [-k INST_GROUP_KEY] [--sdb-conn-addr=ADDR] [--sdb-user USER] [--sdb-passwd PASSWD] [--sdb-cipherfile PATH] [--sdb-token TOKEN]
+=======
+    sdb_mysql_ctl  addinst \<INSTNAME\> \<-D DATADIR\> [-l LOGFILE] [--print] [-p PORT] [-f PIDFILE] [-s SOCKETFILE] [-w PASSWORD] [-g INST_GROUP_NAME] [-k INST_GROUP_KEY] [--sdb-conn-addr=ADDR] [--sdb-user USER] [--sdb-passwd PASSWD] [--sdb-cipherfile PATH] [--sdb-token TOKEN]
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
     先初始化一个名为“sql_group”实例组
 
@@ -123,7 +161,11 @@ sdb_mysql_ctl 是 MySQL 实例组件的管理工具。用户通过 sdb_mysql_ctl
     创建一个名为“inst1”的 MySQL 实例并加入 sql_group 实例组
 
     ```lang-bash
+<<<<<<< HEAD
     $ sdb_mysql_ctl addinst inst1  -D /opt/sequoiasql/mysql/database/3306 -P 3306 -g sql_group
+=======
+    $ sdb_mysql_ctl addinst inst1  -D /opt/sequoiasql/mysql/database/3306 -p 3306 -g sql_group
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     ```
 
 * 已有实例加入实例组
@@ -151,7 +193,11 @@ sdb_mysql_ctl 是 MySQL 实例组件的管理工具。用户通过 sdb_mysql_ctl
 用户可通过 sdb_mysql_ctl 修改指定实例的 SequoiaDB 引擎配置，各配置项说明可参考 SequoiaDB [引擎配置][config]。实例组功能的使用及相关配置项可参考[实例组][instance_group]。
  
 ```lang-text
+<<<<<<< HEAD
 sdb_mysql_ctl chconf <INSTNAME> [-P PORT] [-e LEVEL] [-a MAX-CON]
+=======
+sdb_mysql_ctl chconf <INSTNAME> [-p PORT] [-e LEVEL] [-a MAX-CON]
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                      [--sdb-conn-addr=ADDR] [--sdb-user=USER] [--sdb-passwd=PASSWD] [--sdb-auto-partition=BOOL] [--sdb-use-bulk-insert=BOOL]
                      [--sdb-bulk-insert-size=SIZE] [--sdb-use-autocommit=BOOL] 
                      [--sdb-debug-log=BOOL] [--sdb-token=TOKEN] [--sdb-cipherfile=PATH] [--sdb-error-level=ENUM] [--sdb-replica-size=SIZE]

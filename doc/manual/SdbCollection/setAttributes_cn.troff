@@ -34,6 +34,7 @@ ReplSize ( \f[I]number\f[] )：写操作需同步的副本数，其可选取值�
 格式：\f[C]ReplSize: <number>\f[]
 .RE
 .IP \[bu] 2
+<<<<<<< HEAD
 ConsistencyStrategy（ \f[I]number\f[] ）：同步一致性策略
 .RS 2
 .PP
@@ -56,6 +57,12 @@ ShardingKey ( \f[I]object\f[] )：分区键，取值为 1 或 \-1，表示正向
 已有的 ShardingKey 会被修改成新的 ShardingKey。
 .IP \[bu] 2
 集合只能存在于一个数据组中，或者集合为没有挂载子表的主表。
+=======
+ShardingKey ( \f[I]object\f[] )：分区键，取值为 1 或 \-1，表示正向或逆向排序
+.RS 2
+.PP
+当集合仅存在于一个数据组中，或者集合没有挂载子集合时，ShardingKey 可以被修改。
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 .PP
 格式：\f[C]ShardingKey: {<字段1>: <1|\-1>, [<字段2>: <1|\-1>, ...]}\f[]
 .RE

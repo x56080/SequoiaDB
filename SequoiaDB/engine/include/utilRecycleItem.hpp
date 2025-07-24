@@ -1,6 +1,21 @@
 /*******************************************************************************
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+<<<<<<< HEAD
+   Copyright (C) 2011-Present SequoiaDB Ltd.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+=======
+   Copyright (C) 2011-2018 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU Affero General Public License as published by
@@ -14,6 +29,7 @@
 
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    Source File Name = utilRecycleItem.hpp
 
@@ -35,7 +51,10 @@
    Last Changed =
 
 *******************************************************************************/
+<<<<<<< HEAD
+=======
 
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 #ifndef UTIL_RECYCLE_ITEM_HPP__
 #define UTIL_RECYCLE_ITEM_HPP__
 
@@ -304,21 +323,33 @@ namespace engine
    #define UTIL_RECYCLEBIN_ORIGID_INDEX_NAME    "SYSRECYBINORIGIDIDX"
    #define UTIL_RECYCLEBIN_ORIGID_INDEX \
                "{ name : \"" UTIL_RECYCLEBIN_ORIGID_INDEX_NAME "\", " \
+<<<<<<< HEAD
                "key : { \"" FIELD_NAME_ORIGIN_ID "\" : 1 } }"
+=======
+               "key : { \"" FIELD_NAME_ORIGIN_ID"\" : 1 } }"
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    // index for unique ID of recycle item
    // locate recycle objects from the same recycle item
    #define UTIL_RECYCLEBIN_RECYID_INDEX_NAME    "SYSRECYBINRECYIDX"
    #define UTIL_RECYCLEBIN_RECYID_INDEX \
                "{ name : \"" UTIL_RECYCLEBIN_RECYID_INDEX_NAME "\", " \
+<<<<<<< HEAD
                "key : { \"" FIELD_NAME_RECYCLE_ID "\" : 1 } }"
+=======
+               "key : { \"" FIELD_NAME_RECYCLE_ID"\" : 1 } }"
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    // index for unique ID of object
    // locate recycle objects from its own unique ID
    #define UTIL_RECYCLEBIN_UID_INDEX_NAME       "SYSRECYBINUIDIDX"
    #define UTIL_RECYCLEBIN_UID_INDEX \
                "{ name : \"" UTIL_RECYCLEBIN_UID_INDEX_NAME "\", " \
+<<<<<<< HEAD
                "key : { \"" FIELD_NAME_UNIQUEID "\" : 1 } }"
+=======
+               "key : { \"" FIELD_NAME_UNIQUEID"\" : 1 } }"
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 }
 

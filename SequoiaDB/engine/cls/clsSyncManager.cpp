@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = clsSyncManager.hpp
 
@@ -33,18 +32,18 @@
    Last Changed =
 
 *******************************************************************************/
-
 #include "clsSyncManager.hpp"
-#include "pmdEDU.hpp"
-#include "dpsLogWrapper.hpp"
-#include "netRouteAgent.hpp"
+#include "clsReplAgent.hpp"
 #include "clsBase.hpp"
 #include <map>
 #include "pdTrace.hpp"
 #include "clsTrace.hpp"
+<<<<<<< HEAD
 #include "pmd.hpp"
 #include "utilReplSizePlan.hpp"
 #include "utilBitmap.hpp"
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 using namespace std ;
 
@@ -59,6 +58,7 @@ namespace engine
    #define CLS_WAKE_W_TIMEOUT             ( 2000 )
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSYNCMAG__CLSSYNCMAG, "_clsSyncManager::_clsSyncManager" )
+<<<<<<< HEAD
    _clsSyncManager::_clsSyncManager( _netRouteAgent *agent,
                                      _clsGroupInfo *info,
                                      _clsGroupInfo *locationInfo ):
@@ -69,16 +69,56 @@ namespace engine
                                      _timeout( 0 ),
                                      _aliveCount( 0 ),
                                      _blockSync( 0 )
+=======
+   _clsSyncManager::_clsSyncManager( ICLSReplAgent *replAgent )
+   : _replAgent( replAgent ),
+     _agent( replAgent->getNetAgent() ),
+     _info( replAgent->getGroupInfo() ),
+     _validSync( 0 ),
+     _timeout( 0 ),
+     _aliveCount( 0 ),
+     _blockSync( 0 )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
       PD_TRACE_ENTRY ( SDB__CLSSYNCMAG__CLSSYNCMAG ) ;
       _syncSrc.value = MSG_INVALID_ROUTEID ;
       _wakeTimeout = 0 ;
 
+<<<<<<< HEAD
+=======
+      for ( UINT32 i = 0 ; i < CLS_REPLSET_MAX_NODE_SIZE - 1 ; i++ )
+      {
+         _checkList[i] = DPS_INVALID_LSN_OFFSET ;
+      }
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       PD_TRACE_EXIT ( SDB__CLSSYNCMAG__CLSSYNCMAG ) ;
+   }
+
+   _clsSyncManager::_clsSyncManager( netRouteAgent *agent,
+                                     clsGroupInfo *info )
+   : _replAgent( NULL ),
+     _agent( agent ),
+     _info( info ),
+     _validSync( 0 ),
+     _timeout( 0 ),
+     _aliveCount( 0 ),
+     _blockSync( 0 )
+   {
+<<<<<<< HEAD
+=======
+      _syncSrc.value = MSG_INVALID_ROUTEID ;
+      _wakeTimeout = 0 ;
+
+      for ( UINT32 i = 0 ; i < CLS_REPLSET_MAX_NODE_SIZE - 1 ; i++ )
+      {
+         _checkList[i] = DPS_INVALID_LSN_OFFSET ;
+      }
    }
 
    _clsSyncManager::~_clsSyncManager()
    {
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       SDB_ASSERT( 0 == _blockSync.peek(), "block sync should be 0" ) ;
    }
 
@@ -130,9 +170,12 @@ namespace engine
    DPS_LSN_OFFSET _clsSyncManager::getSyncCtrlArbitLSN()
    {
       DPS_LSN_OFFSET offset = DPS_INVALID_LSN_OFFSET ;
-      INT32 syncSty = pmdGetOptionCB()->syncStrategy() ;
 
       PD_TRACE_ENTRY ( SDB__CLSSYNCMAG_GETARBITLSN ) ;
+
+      INT32 syncSty = ( NULL != _replAgent ) ?
+                      ( _replAgent->getSyncStrategy() ) :
+                      ( CLS_SYNC_NONE ) ;
 
       if ( 0 == _validSync || CLS_SYNC_NONE == syncSty )
       {
@@ -187,7 +230,7 @@ namespace engine
 
       /// info's changing is handled in one thread.
       /// no need to require lock.
-      map<UINT64, _clsSharingStatus> &group = _info->info ;
+      CLS_NODE_MAP &group = _info->info ;
       UINT32 removed = 0 ;
       UINT32 prevAlives = 0 ;
       UINT32 aliveRemoved = 0 ;
@@ -230,8 +273,7 @@ namespace engine
       }
 
       UINT32 merge = valid ;
-      map<UINT64, _clsSharingStatus>::const_iterator itr =
-                                        group.begin() ;
+      CLS_NODE_MAP::const_iterator itr = group.begin() ;
       /// add new nodes
       for ( ; itr != group.end(); itr++ )
       {
@@ -313,8 +355,12 @@ namespace engine
          // we can degrade the ReplSize for wait sync, report node is down
          // to caller, who can adjust ReplSize if needed
          if ( ( -1 == session.eduCB->getOrgReplSize() ) ||
+<<<<<<< HEAD
               ( 1 != session.eduCB->getOrgReplSize() &&
                 isFTWhole ) )
+=======
+              ( 1 != session.eduCB->getOrgReplSize() && isFTWhole ) )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          {
             rc = SDB_DATABASE_DOWN ;
          }
@@ -475,8 +521,20 @@ namespace engine
       map<UINT64, _clsSharingStatus *>::iterator iterAlive ;
       UINT32 localLocationID = pmdGetLocationID() ;
 
+<<<<<<< HEAD
       if ( CLS_SELECT_LOCATION != range && blacklist.empty() )
       {
+=======
+      _info->mtx.lock_r() ;
+      CLS_ALIVE_MAP::iterator itr = _info->alives.find( _info->primary.value ) ;
+      /// if primary is peer, choose primary.
+      /// primary is not be affected by the blacklist.
+      if ( _info->alives.end() != itr &&
+           CLS_SYNC_STATUS_PEER ==
+           itr->second->beat.syncStatus )
+      {
+         res.value = itr->first ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          goto done ;
       }
 
@@ -648,6 +706,7 @@ namespace engine
       MsgRouteID id ;
       id.value = MSG_INVALID_ROUTEID ;
       _info->mtx.lock_r() ;
+<<<<<<< HEAD
       // update group info version
       version = _info->version ;
 
@@ -655,6 +714,11 @@ namespace engine
       MsgRouteID priIds[ CLS_SYNC_SET_NUM ] ;
       UINT32 secSub = 0, priSub = 0 ;
       map<UINT64, _clsSharingStatus *>::iterator itr = _info->alives.begin() ;
+=======
+      /*MsgRouteID ids[CLS_REPLSET_MAX_NODE_SIZE -1 ] ;
+      CLS_ALIVE_MAP::iterator itr = _info->alives.begin() ;
+      UINT16 sub = 0 ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       for ( ; itr != _info->alives.end(); itr++ )
       {
          if ( 0 != blacklist.count( itr->first ) )
@@ -730,20 +794,24 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSYNCMAG_ATLEASTONE, "_clsSyncManager::atLeastOne" )
    BOOLEAN _clsSyncManager::atLeastOne( const DPS_LSN_OFFSET &offset,
-                                        UINT16 ensureNodeID )
+                                        UINT64 ensureRIDValue )
    {
       BOOLEAN res = _validSync > 0 ? FALSE : TRUE ;
       PD_TRACE_ENTRY( SDB__CLSSYNCMAG_ATLEASTONE ) ;
       DPS_LSN lsn ;
+      MsgRouteID ensureRID ;
+
       lsn.offset = offset ;
+      ensureRID.value = ensureRIDValue ;
 
       ossScopedRWLock lock( &_info->mtx, SHARED ) ;
 
       for ( UINT32 i = 0; i < _validSync ; i++ )
       {
          /// Found ensureNodeID
-         if ( 0 != ensureNodeID &&
-              ensureNodeID == _notifyList[i].id.columns.nodeID )
+         if ( MSG_INVALID_ROUTEID != ensureRIDValue &&
+              ensureRID.columns.groupID == _notifyList[i].id.columns.groupID &&
+              ensureRID.columns.nodeID == _notifyList[i].id.columns.nodeID )
          {
             if ( 0 > lsn.compareOffset( _notifyList[i].offset ) )
             {
@@ -758,7 +826,7 @@ namespace engine
          else if ( 0 > lsn.compareOffset( _notifyList[i].offset ) )
          {
             res = TRUE ;
-            if ( 0 == ensureNodeID )
+            if ( MSG_INVALID_ROUTEID == ensureRIDValue )
             {
                break ;
             }

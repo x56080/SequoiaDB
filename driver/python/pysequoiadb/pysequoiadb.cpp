@@ -1,3 +1,35 @@
+/*******************************************************************************
+
+   Copyright (C) 2011-Present SequoiaDB Ltd.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+   Source File Name = pysequoiadb.cpp
+
+   Descriptive Name = N/A
+
+   Dependencies: N/A
+
+   Restrictions: N/A
+
+   Change Activity:
+   defect Date        Who         Description
+   ====== =========== =========== =============================================
+          23/07/2025  fangjiabin  Initial Draft
+
+   Last Changed =
+
+*******************************************************************************/
 #include "pysequoiadb.hpp"
 #include "ossUtil.hpp"
 #include "ossVer.hpp"
@@ -2912,9 +2944,16 @@ __METHOD_IMP(cl_get_index_stat)
    PYOBJECT *obj          = NULL ;
    sdbCollection *cl      = NULL ;
    const CHAR *index_name = NULL ;
+<<<<<<< HEAD
    bson::BSONObj retObj ;
 
    if ( !PARSE_PYTHON_ARGS( args, "Os", &obj, &index_name ) )
+=======
+   BOOLEAN detail         = FALSE;
+   bson::BSONObj retObj ;
+
+   if ( !PARSE_PYTHON_ARGS( args, "Osi", &obj, &index_name, &detail ) )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
       rc = SDB_INVALIDARGS ;
       goto done ;
@@ -2922,7 +2961,11 @@ __METHOD_IMP(cl_get_index_stat)
 
    CAST_PYOBJECT_TO_COBJECT( obj, sdbCollection, cl ) ;
 
+<<<<<<< HEAD
    rc = cl->getIndexStat( index_name, retObj ) ;
+=======
+   rc = cl->getIndexStat( index_name, retObj, detail ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    if ( SDB_OK != rc )
    {
       goto done ;

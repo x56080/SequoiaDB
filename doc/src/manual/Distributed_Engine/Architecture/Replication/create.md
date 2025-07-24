@@ -140,12 +140,12 @@
 3. 查看该复制组信息
 
    ```lang-javascript
-   > rg.getDetail()
+   > rg.getDetailObj()
    ```
 
    > **Note:** 
    >
-   > getDetail() 返回字段的说明可参考[复制组列表][SDB_LIST_GROUPS]。
+   > getDetailObj() 返回字段的说明可参考[复制组列表][SDB_LIST_GROUPS]。
 
 
 

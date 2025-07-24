@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = coordCommandDC.cpp
 
@@ -34,7 +33,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #include "coordCommandDC.hpp"
 #include "msgMessage.hpp"
 #include "coordUtil.hpp"
@@ -120,12 +118,21 @@ namespace engine
 
       // 2. execute on the special groups or special nodes, ignore error
       pAttachMsg->header.opCode        = MSG_BS_QUERY_REQ ;
+<<<<<<< HEAD
 
       // These commands will return all groups, no need to update group again
       if ( 0 == ossStrcasecmp( CMD_VALUE_NAME_SET_ACTIVE_LOCATION, pAction ) ||
            0 == ossStrcasecmp( CMD_VALUE_NAME_SET_LOCATION, pAction ) ||
            0 == ossStrcasecmp( CMD_VALUE_NAME_START_MAINTENANCE_MODE, pAction ) ||
            0 == ossStrcasecmp( CMD_VALUE_NAME_STOP_MAINTENANCE_MODE, pAction ) )
+=======
+      if ( 0 == ossStrcasecmp( CMD_VALUE_NAME_ENABLE_READONLY, pAction ) ||
+           0 == ossStrcasecmp( CMD_VALUE_NAME_DISABLE_READONLY, pAction ) ||
+           0 == ossStrcasecmp( CMD_VALUE_NAME_ACTIVATE, pAction ) ||
+           0 == ossStrcasecmp( CMD_VALUE_NAME_DEACTIVATE, pAction ) ||
+           0 == ossStrcasecmp( CMD_VALUE_NAME_ENABLE_RESTORING, pAction ) ||
+           0 == ossStrcasecmp( CMD_VALUE_NAME_DISABLE_RESTORING, pAction ) )
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       {
          coordNodeCMDHelper helper ;
          BOOLEAN hasFailedGroup = FALSE ;

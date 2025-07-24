@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = monDMS.hpp
 
@@ -52,7 +50,10 @@
 #include "ossMemPool.hpp"
 #include "monCB.hpp"
 #include "utilRecycleItem.hpp"
+<<<<<<< HEAD
 #include "dmsStatUnit.hpp"
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 using namespace std ;
 using namespace bson ;
@@ -70,6 +71,7 @@ namespace engine
       CHAR           _version ;
       dmsRecordID    _scanRID ;
       dmsExtentID    _indexLID ;
+      dmsExtentID    _indexCBExtentID ;
       BSONObj        _indexDef ;
       CHAR           _extDataName[ DMS_MAX_EXT_NAME_SIZE + 1 ] ;
 
@@ -79,6 +81,7 @@ namespace engine
          _version = 0 ;
          _scanRID.reset() ;
          _indexLID = -1 ;
+         _indexCBExtentID = DMS_INVALID_EXTENT ;
          ossMemset( _extDataName, 0, DMS_MAX_EXT_NAME_SIZE + 1 ) ;
       }
 
@@ -485,9 +488,12 @@ namespace engine
       INT64 _totalLobTruncate ;
       INT64 _totalLobAddressing ;
       INT64 _totalLobList ;
+<<<<<<< HEAD
       INT64 _recycleDataSize ;
       INT64 _recycleIndexSize ;
       INT64 _recycleLobSize ;
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       /// commit info
       UINT64 _dataCommitLsn ;
@@ -537,9 +543,12 @@ namespace engine
          _totalLobTruncate = 0 ;
          _totalLobAddressing = 0 ;
          _totalLobList = 0 ;
+<<<<<<< HEAD
          _recycleDataSize = 0 ;
          _recycleIndexSize = 0 ;
          _recycleLobSize = 0 ;
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
          _dataCommitLsn = -1 ;
          _idxCommitLsn = -1 ;
@@ -588,9 +597,12 @@ namespace engine
          _totalLobTruncate = right._totalLobTruncate ;
          _totalLobAddressing = right._totalLobAddressing ;
          _totalLobList = right._totalLobList ;
+<<<<<<< HEAD
          _recycleDataSize = right._recycleDataSize ;
          _recycleIndexSize = right._recycleIndexSize ;
          _recycleLobSize = right._recycleLobSize ;
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
          _dataCommitLsn = right._dataCommitLsn ;
          _idxCommitLsn = right._idxCommitLsn ;
@@ -648,9 +660,12 @@ namespace engine
          _totalLobTruncate = right._totalLobTruncate ;
          _totalLobAddressing = right._totalLobAddressing ;
          _totalLobList = right._totalLobList ;
+<<<<<<< HEAD
          _recycleDataSize = right._recycleDataSize ;
          _recycleIndexSize = right._recycleIndexSize ;
          _recycleLobSize = right._recycleLobSize ;
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
          _dataCommitLsn = right._dataCommitLsn ;
          _idxCommitLsn = right._idxCommitLsn ;

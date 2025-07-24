@@ -34,13 +34,20 @@ package com.sequoiadb.base;
  * </pre>
  */
 public class ClientOptions {
+<<<<<<< HEAD
     private static final long CACHE_INTERVAL_DEFAULT = 300L * 1000; // 300s
+=======
+    private static final long CACHE_INTERVAL_DEFAULT = 300 * 1000; // 300s
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
     private boolean enableCache;
     private long cacheInterval;
     private boolean exactlyDate;
+<<<<<<< HEAD
 
     private boolean infoEncryption;
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
     /**
      * The construction method of ClientOptions.
@@ -49,7 +56,10 @@ public class ClientOptions {
         enableCache = true;
         cacheInterval = CACHE_INTERVAL_DEFAULT;
         exactlyDate = false;
+<<<<<<< HEAD
         infoEncryption = true;
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     }
 
     /**
@@ -89,7 +99,11 @@ public class ClientOptions {
 
 
     /**
+<<<<<<< HEAD
      * @return A boolean value indicating whether to use the exact date or not.
+=======
+     * @return A boolean value to indicate whether use exactly date or not
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
      */
     public Boolean getExactlyDate() {
         return exactlyDate;
@@ -113,6 +127,7 @@ public class ClientOptions {
     public void setExactlyDate( boolean exactlyDate ) {
         this.exactlyDate = exactlyDate;
     }
+<<<<<<< HEAD
 
     /**
      * @return A boolean value indicating whether to use information encryption.
@@ -131,4 +146,6 @@ public class ClientOptions {
     public void setInfoEncryption(boolean infoEncryption) {
         this.infoEncryption = infoEncryption;
     }
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 }

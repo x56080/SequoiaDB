@@ -32,9 +32,13 @@ function test ()
    }
 
    // 3.更新CL属性信息 
+<<<<<<< HEAD
    assert.tryThrow(SDB_ENGINE_NOT_SUPPORT, function() {
       db.getCS( csName ).getCL( clName ).disableCompression();
    } );
+=======
+   db.getCS( csName ).getCL( clName ).disableCompression();
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    var cursor3 = db.exec( "select * from $LIST_CS where Name = 'csName_28194' " );
    var createTime3 = cursor3.current().toObj()["CreateTime"];
    var updateTime3 = cursor3.current().toObj()["UpdateTime"];
@@ -70,4 +74,8 @@ function test ()
    {
       throw new Error( "expected post-updateTime to be more than pre-updateTime" );
    }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2

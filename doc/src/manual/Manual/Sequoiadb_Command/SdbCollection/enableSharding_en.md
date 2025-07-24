@@ -22,8 +22,12 @@ Modify the collection properties through the options parameters:
 
 - ShardingKey ( *object, required* ): Sharding key, the value is 1 or -1, indicating forward or backward sorting.
 
+<<<<<<< HEAD
     - The existing "ShardingKey" will be modified to a new "ShardingKey".
     - The collection can only exist in one data group, or the collection is the main table without mounting sub-tables.
+=======
+    ShardingKey can be modified when the collection  only exists in one data group, or the collection does not have subcollections mounted.
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
     Format: `ShardingKey: {<field1>: <1|-1>, [<field2>: <1|-1>, ...]}`
 

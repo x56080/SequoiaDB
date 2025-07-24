@@ -46,7 +46,11 @@ function test ()
    var acquireSize = 11;
    var generated = "strict";
    var currentValue = 999 * increment + 1;
+<<<<<<< HEAD
    dbcl.setAttributes( { AutoIncrement: { Field: fieldName, CacheSize: cacheSize, AcquireSize: acquireSize, Generated: generated }, ShardingKey: { a: 1 }, ReplSize: -1 } );
+=======
+   dbcl.setAttributes( { AutoIncrement: { Field: fieldName, CacheSize: cacheSize, AcquireSize: acquireSize, Generated: generated }, ShardingKey: { a: 1 }, CompressionType: 'lzw' } );
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    var clID = getCLID( db, COMMCSNAME, clName );
    var clSequenceName = "SYS_" + clID + "_" + fieldName + "_SEQ";
    var expIncrementArr = [{ Field: fieldName, SequenceName: clSequenceName, Generated: generated }];

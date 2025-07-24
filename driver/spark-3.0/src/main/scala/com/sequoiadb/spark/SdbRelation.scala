@@ -32,7 +32,11 @@ import scala.collection.JavaConversions._
   * @param providedSchema row schema
   */
 class SdbRelation(@transient val sqlContext: SQLContext,
+<<<<<<< HEAD
                   val parameters: Map[String, String],
+=======
+                  val config: SdbConfig,
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                   val providedSchema: Option[StructType] = None)
     extends BaseRelation
         with TableScan
@@ -42,8 +46,11 @@ class SdbRelation(@transient val sqlContext: SQLContext,
         with Logging
         with Serializable {
 
+<<<<<<< HEAD
     private val config = SdbConfig(sqlContext.getAllConfs, parameters)
 
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     logInfo(s"SdbRelation{config: $config, providedSchema: $providedSchema, " +
         s"preferredInstance: ${config.preferredInstance}}")
 
@@ -51,7 +58,11 @@ class SdbRelation(@transient val sqlContext: SQLContext,
         val conf: SdbConfig = if (config.samplingSingle) {
             val props = config.properties +
                 (SdbConfig.PartitionMode -> SdbConfig.PARTITION_MODE_SINGLE)
+<<<<<<< HEAD
             SdbConfig(sqlContext.getAllConfs, props)
+=======
+            SdbConfig(props)
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         } else {
             config
         }
@@ -103,10 +114,14 @@ class SdbRelation(@transient val sqlContext: SQLContext,
         logInfo(s"select * from ${config.collectionSpace}.${config.collection}")
 
         refreshConf()
+<<<<<<< HEAD
         SdbRowRDD(
             sqlContext.sparkContext,
             SdbConfig(sqlContext.getAllConfs, parameters),
             schema)
+=======
+        SdbRowRDD(sqlContext.sparkContext, config, schema)
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     }
 
     override def buildScan(requiredColumns: Array[String]): RDD[Row] = {
@@ -115,11 +130,16 @@ class SdbRelation(@transient val sqlContext: SQLContext,
         val prunedSchema = SdbRelation.pruneSchema(schema, requiredColumns)
 
         refreshConf()
+<<<<<<< HEAD
         SdbRowRDD(
             sqlContext.sparkContext,
             SdbConfig(sqlContext.getAllConfs, parameters),
             prunedSchema,
             realColumns(prunedSchema, requiredColumns))
+=======
+        SdbRowRDD(sqlContext.sparkContext, config,
+            prunedSchema, realColumns(prunedSchema, requiredColumns))
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     }
 
     override def buildScan(requiredColumns: Array[String], filters: Array[Filter]): RDD[Row] = {
@@ -129,12 +149,17 @@ class SdbRelation(@transient val sqlContext: SQLContext,
         val prunedSchema = SdbRelation.pruneSchema(schema, requiredColumns)
 
         refreshConf()
+<<<<<<< HEAD
         SdbRowRDD(
             sqlContext.sparkContext,
             SdbConfig(sqlContext.getAllConfs, parameters),
             prunedSchema,
             realColumns(prunedSchema, requiredColumns),
             filters)
+=======
+        SdbRowRDD(sqlContext.sparkContext, config,
+            prunedSchema, realColumns(prunedSchema, requiredColumns), filters)
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     }
 
     override def unhandledFilters(filters: Array[Filter]): Array[Filter] = {
@@ -142,6 +167,7 @@ class SdbRelation(@transient val sqlContext: SQLContext,
     }
 
     override def insert(data: DataFrame, overwrite: Boolean): Unit = {
+<<<<<<< HEAD
         val newConf = SdbConfig(sqlContext.getAllConfs, parameters)
 
         logInfo(s"insert into ${newConf.collectionSpace}.${newConf.collection}")
@@ -161,6 +187,25 @@ class SdbRelation(@transient val sqlContext: SQLContext,
                 } else {
                     throw new SdbException(s"Collection is not existing: " +
                         s"${newConf.collectionSpace}.${newConf.collection}")
+=======
+        logInfo(s"insert into ${config.collectionSpace}.${config.collection}")
+        refreshConf()
+
+        if (overwrite) {
+            val sdb = new Sequoiadb(config.host, config.username, config.password, SdbConfig.SdbConnectionOptions)
+            try {
+                val cs = if (sdb.isCollectionSpaceExist(config.collectionSpace)) {
+                    sdb.getCollectionSpace(config.collectionSpace)
+                } else {
+                    throw new SdbException(s"Collection space is not existing: ${config.collectionSpace}")
+                }
+
+                val cl = if (cs.isCollectionExist(config.collection)) {
+                    cs.getCollection(config.collection)
+                } else {
+                    throw new SdbException(s"Collection is not existing: " +
+                        s"${config.collectionSpace}.${config.collection}")
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                 }
 
                 cl.truncate()
@@ -169,6 +214,7 @@ class SdbRelation(@transient val sqlContext: SQLContext,
             }
         }
 
+<<<<<<< HEAD
         val sourceInfo = SdbConnUtil.generateSourceInfo(sqlContext.sparkContext)
         data.foreachPartition((it: Iterator[Row]) => {
             // always write through coordinator node which specified in config
@@ -176,14 +222,28 @@ class SdbRelation(@transient val sqlContext: SQLContext,
         })
 
         logInfo(s"finished inserting into ${newConf.collectionSpace}.${newConf.collection}")
+=======
+        data.foreachPartition((it: Iterator[Row]) => {
+            // always write through coordinator node which specified in config
+            new SdbWriter(config).write(it, schema)
+        })
+
+        logInfo(s"finished inserting into ${config.collectionSpace}.${config.collection}")
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     }
 }
 
 object SdbRelation {
     def apply(sqlContext: SQLContext,
+<<<<<<< HEAD
               parameters: Map[String, String],
               providedSchema: Option[StructType] = None): SdbRelation = {
         new SdbRelation(sqlContext, parameters, providedSchema)
+=======
+              sdbConfig: SdbConfig,
+              providedSchema: Option[StructType] = None): SdbRelation = {
+        new SdbRelation(sqlContext, sdbConfig, providedSchema)
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     }
 
     /**

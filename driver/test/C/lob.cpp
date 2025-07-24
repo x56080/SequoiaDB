@@ -1,3 +1,35 @@
+/*******************************************************************************
+
+   Copyright (C) 2011-Present SequoiaDB Ltd.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+   Source File Name = lob.cpp
+
+   Descriptive Name = N/A
+
+   Dependencies: N/A
+
+   Restrictions: N/A
+
+   Change Activity:
+   defect Date        Who         Description
+   ====== =========== =========== =============================================
+          23/07/2025  fangjiabin  Initial Draft
+
+   Last Changed =
+
+*******************************************************************************/
 #include <stdio.h>
 #include <gtest/gtest.h>
 #include "testcommon.h"
@@ -250,6 +282,11 @@ TEST(lob,lob_createLob_test)
    ASSERT_EQ( SDB_OK, rc ) ;
 
    ASSERT_STREQ(oid1.bytes,lob_oid1.bytes);
+<<<<<<< HEAD
+   rc = sdbCloseLob(&lob1);
+   ASSERT_EQ( SDB_OK, rc ) ;
+   rc = sdbOpenLob(cl, &oid1, SDB_LOB_READ, &lob1);
+=======
    rc = sdbCloseLob(&lob1);
    ASSERT_EQ( SDB_OK, rc ) ;
    rc = sdbOpenLob(cl, &oid1, SDB_LOB_READ, &lob1);
@@ -257,9 +294,15 @@ TEST(lob,lob_createLob_test)
    rc = sdbCloseLob(&lob1);
    ASSERT_EQ( SDB_OK, rc ) ;
    rc = sdbOpenLob(cl, &lob_oid1, SDB_LOB_READ, &lob1);
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    ASSERT_EQ( SDB_OK, rc ) ;
    rc = sdbCloseLob(&lob1);
    ASSERT_EQ( SDB_OK, rc ) ;
+   rc = sdbOpenLob(cl, &lob_oid1, SDB_LOB_READ, &lob1);
+   ASSERT_EQ( SDB_OK, rc ) ;
+   rc = sdbCloseLob(&lob1);
+   ASSERT_EQ( SDB_OK, rc ) ;
+
 
 
    // case 2, oid is NULL 
@@ -299,8 +342,13 @@ TEST(lob,lob_createLob_test)
     ASSERT_EQ( SDB_OK, rc ) ;
     rc = sdbCloseLob(&lob3);
     ASSERT_EQ( SDB_OK, rc ) ;
+<<<<<<< HEAD
 
 
+=======
+
+
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    // case 4, use sdbCreateLobID to gen oid
    pTimeStamp = "2019-07-23-18.04.07" ;
    rc = sdbCreateLobID1(cl,pTimeStamp, &oid );

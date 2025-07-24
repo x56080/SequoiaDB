@@ -155,7 +155,11 @@ public class SDBSinkClient implements SDBClient {
                     unique_indexes.add(new HashSet<String>(keys.toMap().keySet()));
                 }
             }
+<<<<<<< HEAD
             db.getCollectionSpace(collectionSpace).getCollection(collection).createIdIndex(null);
+=======
+            db.getCollectionSpace(collectionSpace).getCollection(collection).createIdIndex(null);            
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         } catch (BaseException e) {
             throw e;
         } finally {
@@ -178,11 +182,14 @@ public class SDBSinkClient implements SDBClient {
             ConfigOptions options = new ConfigOptions();
             options.setSocketKeepAlive(true);
             sdb = new Sequoiadb(hosts, username, password, options);
+<<<<<<< HEAD
 
             // set up source info in session attr, ignore failure and just
             // print warning log when throws exception.
             SDBInfoUtil.setupSourceSessionAttrIgnoreFailures(sdb, sdboptions.getSourceInfo());
 
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             try {
                 /* Because it is a new feature in 3.4.5
                  * It will fail when set it in older version SDB

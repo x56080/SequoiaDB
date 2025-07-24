@@ -23,7 +23,10 @@ import com.sequoiadb.flink.serde.SDBDataConverter;
 import com.sequoiadb.flink.source.SDBLookupTableFunction;
 import com.sequoiadb.flink.source.SDBSource;
 import com.sequoiadb.flink.table.pushdown.FilterPushDownSupport;
+<<<<<<< HEAD
 
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 import org.apache.flink.table.connector.ChangelogMode;
 import org.apache.flink.table.connector.source.TableFunctionProvider;
 import org.apache.flink.table.connector.source.DynamicTableSource;

@@ -1,20 +1,18 @@
 /*******************************************************************************
 
+   Copyright (C) 2011-Present SequoiaDB Ltd.
 
-   Copyright (C) 2023-present SequoiaDB Ltd.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = pmdRemoteSession.cpp
 
@@ -30,7 +28,6 @@
    Last Changed =
 
 *******************************************************************************/
-
 #include "pmdRemoteSession.hpp"
 #include "pmdEDU.hpp"
 #include "msgMessage.hpp"
@@ -189,12 +186,17 @@ namespace engine
       _reqID = cb->incCurRequestID() ;
       _pReqMsg->requestID = getReqID() ;
       _pReqMsg->TID = cb->getTID() ;
+<<<<<<< HEAD
       _reqOpCode = _pReqMsg->opCode ;
       _pReqMsg->routeID.value = MSG_INVALID_ROUTEID ;
       if ( _pReqMsg->globalID.isInvalid() )
       {
          _pReqMsg->globalID = cb->getOperator()->getGlobalID() ;
       }
+=======
+      _reqOpCode = GET_REQUEST_TYPE( _pReqMsg->opCode ) ;
+      _pReqMsg->routeID.value = MSG_INVALID_ROUTEID ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       isIgnored = FALSE ;
 
@@ -1749,7 +1751,10 @@ namespace engine
             pMsg->header.requestID = eduCB()->getCurRequestID() ;
             pMsg->header.TID = eduCB()->getTID() ;
             pMsg->header.routeID.value = id.value ;
+<<<<<<< HEAD
             ossMemset( &(pMsg->header.globalID), 0, sizeof(pMsg->header.globalID) ) ;
+=======
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             ossMemset( pMsg->header.reserve, 0, sizeof(pMsg->header.reserve) ) ;
             pMsg->contextID = -1 ;
             pMsg->flags = SDB_COORD_REMOTE_DISC ;
@@ -1913,6 +1918,7 @@ namespace engine
       MAP_SUB_SESSIONPTR_IT itPtr ;
       MsgHeader *pReply = NULL ;
       UINT64 nodeID = 0 ;
+      UINT64 requestID = 0 ;
       pmdSubSession *pSubSession = NULL ;
       NET_HANDLE handle = (NET_HANDLE)event._userData ;
 
@@ -1928,6 +1934,7 @@ namespace engine
 
       pReply = ( MsgHeader* )event._Data ;
       nodeID = pReply->routeID.value ;
+      requestID = pReply->requestID ;
 
       // if is MSG_BS_DISCONNECT, the reeventmote node is disconnect
       if ( MSG_BS_DISCONNECT == pReply->opCode )
@@ -1942,7 +1949,7 @@ namespace engine
          // can not switch connection.
          while ( itPtr != _mapReq2SubSession.end() )
          {
-            if ( pReply->requestID < itPtr->first )
+            if ( requestID < itPtr->first )
             {
                break ;
             }
@@ -2020,7 +2027,11 @@ namespace engine
       {
          // By the request ID in the message that we know which subsession the
          // reply belongs to.
+<<<<<<< HEAD
          itPtr = _mapReq2SubSession.find( pReply->requestID ) ;
+=======
+         itPtr = _mapReq2SubSession.find( requestID ) ;
+>>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          if ( itPtr != _mapReq2SubSession.end() )
          {
             pSubSession = itPtr->second ;
@@ -2063,7 +2074,7 @@ namespace engine
             PD_LOG( PDWARNING, "Session[%s] recv expired msg[opCode: (%d)%u, "
                     "ReqID: %lld, Len: %d, NodeID: %s]",
                     _pEDUCB->toString().c_str(), IS_REPLY_TYPE(pReply->opCode),
-                    GET_REQUEST_TYPE(pReply->opCode), pReply->requestID,
+                    GET_REQUEST_TYPE(pReply->opCode), requestID,
                     pReply->messageLength,
                     routeID2String(pReply->routeID).c_str() ) ;
 
