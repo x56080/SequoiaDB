@@ -1,5 +1,4 @@
-/*******************************************************************************
-
+"""
    Copyright (C) 2011-Present SequoiaDB Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,7 +28,7 @@
 
    Last Changed =
 
-*******************************************************************************/
+"""
 #!/usr/bin/python
 import getopt
 import os
