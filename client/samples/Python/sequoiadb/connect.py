@@ -1,4 +1,4 @@
-/*******************************************************************************
+"""
 
    Copyright (C) 2011-Present SequoiaDB Ltd.
 
@@ -29,7 +29,7 @@
 
    Last Changed =
 
-*******************************************************************************/
+"""
 #! /usr/bin/python
 
 import pysequoiadb
@@ -51,7 +51,7 @@ if "__main__" == __name__:
 
    # connect to db, using default args value.
    # host= '192.168.20.111', port= 11810, user= '', password= ''
-   # 192.168.20.111 is not a valid 
+   # 192.168.20.111 is not a valid
    try:
       db_to_1 = client('192.168.20.48', 11810, '', '')
       del db_to_1
