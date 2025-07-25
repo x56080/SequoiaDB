@@ -26,6 +26,301 @@ import urllib2
 import stat
 from os.path import join, dirname, abspath
 import libdeps
+import SCons.Script
+
+import json
+import hashlib
+import tarfile
+import zipfile
+import time
+
+def get_sdb_dependency_platform_string():
+    """
+    Detects the current OS and architecture, and returns a string
+    that matches our agreed-upon directory naming convention for dependencies.
+    """
+    system = platform.system()
+    machine = platform.machine().lower()
+
+    if system == 'Linux':
+        os_name = 'linux'
+        if machine == 'x86_64':
+            arch = 'x86_64'
+        elif machine in ['i686', 'i386', 'x86']:
+            arch = 'x86'
+        elif machine == 'aarch64':
+            arch = 'aarch64'
+        elif machine == 'ppc64le':
+            arch = 'ppc64le'
+        elif machine == 'ppc64':
+            arch = 'ppc64'
+        else:
+            raise Exception("Unsupported Linux architecture for prebuilt dependencies: %s" % machine)
+
+    elif system == 'Windows':
+        os_name = 'windows'
+        if machine in ['amd64', 'x86_64']:
+            arch = 'x86_64'
+        elif machine in ['x86', 'i386']:
+            arch = 'x86'
+        else:
+            raise Exception("Unsupported Windows architecture for prebuilt dependencies: %s" % machine)
+
+    else:
+        raise Exception("Unsupported OS for prebuilt dependencies: %s" % system)
+
+    return "%s-%s" % (arch, os_name)
+
+def download_with_retry(url, dest_path, max_retries=3, timeout=300, show_progress=True):
+    """
+    Enhanced download with retry mechanism and better error handling.
+    """
+    for attempt in range(max_retries):
+        try:
+            curl_cmd = [
+                "curl", "--fail", "--location", "--connect-timeout", "30",
+                "--max-time", str(timeout), "--retry", "2", "--retry-delay", "5"
+            ]
+
+            if show_progress:
+                curl_cmd.append("--progress-bar")
+            else:
+                curl_cmd.extend(["--silent", "--show-error"])
+
+            curl_cmd.extend(["-o", dest_path, url])
+            
+            # Use subprocess.check_call for Python 2.7 compatibility
+            subprocess.check_call(curl_cmd)
+            return True
+        except subprocess.CalledProcessError as e:
+            if attempt == max_retries - 1:
+                raise Exception("Download failed after %d attempts: %s" % (max_retries, str(e)))
+            print("SCons: Download attempt %d failed, retrying..." % (attempt + 1))
+            time.sleep(2 ** attempt)  # Exponential backoff
+        except OSError as e:
+            # Handle case where curl is not available
+            raise Exception("Failed to execute curl command: %s. Please ensure curl is installed." % str(e))
+    return False
+
+def verify_cached_dependency(dest_path, expected_hash, lib_name):
+    """
+    Verify if cached dependency is valid and complete.
+    """
+    if not os.path.isdir(dest_path):
+        return False
+    
+    # Check if cache marker exists with hash
+    cache_marker = os.path.join(dest_path, '.sdb_cache_info')
+    if os.path.exists(cache_marker):
+        try:
+            with open(cache_marker, 'r') as f:
+                cache_info = json.load(f)
+                if cache_info.get('sha256') == expected_hash:
+                    print("SCons: INFO: Valid cache found for %s" % lib_name)
+                    return True
+        except:
+            pass
+    
+    # Directory exists but no valid cache marker
+    print("SCons: WARNING: Invalid cache for %s, will re-download" % lib_name)
+    shutil.rmtree(dest_path)
+    return False
+
+def create_cache_marker(dest_path, expected_hash, lib_info):
+    """
+    Create cache marker with metadata.
+    """
+    cache_marker = os.path.join(dest_path, '.sdb_cache_info')
+    cache_info = {
+        'sha256': expected_hash,
+        'timestamp': time.time(),
+        'library': lib_info
+    }
+    with open(cache_marker, 'w') as f:
+        json.dump(cache_info, f, indent=2)
+
+def validate_dependency_config(lib):
+    """
+    Validate dependency configuration before processing.
+    """
+    required_fields = ['name', 'repository_slug']
+    
+    for field in required_fields:
+        if field not in lib:
+            raise ValueError("Missing required field '%s' in library config: %s" % (field, lib))
+    
+    if 'platform_details' in lib:
+        # Validate platform_details format
+        for platform, details in lib['platform_details'].items():
+            required_details = ['release_tag', 'filename', 'sha256', 'destination_path']
+            for detail in required_details:
+                if detail not in details:
+                    raise ValueError("Missing '%s' in platform_details for %s.%s" % (detail, lib['name'], platform))
+    else:
+        # Validate legacy format
+        legacy_required = ['version', 'destination', 'filename_template', 'sha256']
+        for field in legacy_required:
+            if field not in lib:
+                raise ValueError("Missing required field '%s' in legacy format for %s" % (field, lib['name']))
+
+def download_and_extract(lib, download_url, platform_dest_path, expected_hash, filename):
+    """
+    Download and extract a single dependency (for serial processing).
+    """
+    temp_dir = os.path.join(os.getcwd(), '#build', 'downloads')
+    if not os.path.isdir(temp_dir):
+        os.makedirs(temp_dir)
+    archive_path = os.path.join(temp_dir, filename)
+
+    print("SCons: Downloading %s from %s..." % (lib['name'], download_url))
+    # Show progress bar for serial downloads
+    download_with_retry(download_url, archive_path, show_progress=True)
+    
+    _verify_sha256(archive_path, expected_hash)
+
+    print("SCons: Extracting %s to %s..." % (filename, platform_dest_path))
+    if not os.path.isdir(platform_dest_path):
+        os.makedirs(platform_dest_path)
+
+    if archive_path.endswith('.tar.gz'):
+        with tarfile.open(archive_path, 'r:gz') as tar:
+            tar.extractall(path=platform_dest_path)
+    elif archive_path.endswith('.zip'):
+        with zipfile.ZipFile(archive_path, 'r') as z:
+            z.extractall(path=platform_dest_path)
+    else:
+        raise Exception("Unsupported archive format for %s" % archive_path)
+    
+    # Create cache marker
+    create_cache_marker(platform_dest_path, expected_hash, lib)
+    print("SCons: Successfully processed %s" % lib['name'])
+
+def _verify_sha256(file_path, expected_hash):
+    """Verifies the SHA256 hash of a file."""
+    sha256 = hashlib.sha256()
+    with open(file_path, 'rb') as f:
+        for chunk in iter(lambda: f.read(4096), b''):
+            sha256.update(chunk)
+    actual_hash = sha256.hexdigest()
+    if actual_hash.lower() != expected_hash.lower():
+        raise Exception("SHA256 mismatch for %s. Expected %s, got %s" % (file_path, expected_hash, actual_hash))
+    print("SCons: SHA256 verified for %s" % os.path.basename(file_path))
+
+def fetch_prebuilt_libs():
+    """
+    Reads dependencies.json, downloads, verifies, and extracts prebuilt libraries.
+    Enhanced with parallel downloads, improved caching, and better error handling.
+    """
+    start_time = time.time()
+    
+    # Fallback to the simplest possible method: the current working directory.
+    project_root = os.getcwd()
+    deps_file = os.path.join(project_root, 'dependencies.json')
+    if not os.path.exists(deps_file):
+        print("SCons: INFO: dependencies.json not found at %s, skipping prebuilt library download." % deps_file)
+        return
+
+    try:
+        with open(deps_file, 'r') as f:
+            deps_data = json.load(f)
+    except Exception as e:
+        print("SCons: ERROR: Failed to parse dependencies.json: %s" % e)
+        raise
+
+    platform_str = get_sdb_dependency_platform_string()
+    base_url = deps_data.get('default_repository_base_url', 'https://github.com')
+    
+    # Prepare download directory
+    temp_dir = os.path.join(os.getcwd(), '#build', 'downloads')
+    if not os.path.isdir(temp_dir):
+        os.makedirs(temp_dir)
+
+    # Collect download tasks
+    download_tasks = []
+    cached_count = 0
+    
+    for lib in deps_data.get('libraries', []):
+        try:
+            # Validate configuration
+            validate_dependency_config(lib)
+            
+            platform_dest_path = None
+            expected_hash = None
+            download_url = None
+            filename = None
+
+            # --- BEGIN: New Platform-Aware Logic ---
+            # A library can now provide a 'platform_details' map for complex,
+            # platform-dependent configurations (e.g., different versions per platform).
+            if 'platform_details' in lib:
+                if platform_str not in lib['platform_details']:
+                    print("SCons: INFO: Library %s not configured for platform %s in 'platform_details'. Skipping." % (lib['name'], platform_str))
+                    continue
+
+                details = lib['platform_details'][platform_str]
+                platform_dest_path = os.path.join(os.getcwd(), details['destination_path'])
+                expected_hash = details['sha256']
+                filename = details['filename']
+                # The release tag is now explicitly defined per-platform for full flexibility.
+                release_tag = details['release_tag']
+                download_url = "%s/%s/releases/download/%s/%s" % (base_url, lib['repository_slug'], release_tag, filename)
+
+            else: # --- Fallback to the existing, simpler logic ---
+                if 'platform_dest_map' in lib:
+                    if platform_str in lib['platform_dest_map']:
+                        custom_path = lib['platform_dest_map'][platform_str]
+                        platform_dest_path = os.path.join(os.getcwd(), custom_path)
+                    else:
+                        print("SCons: INFO: Library %s is not configured for platform %s in 'platform_dest_map'. Skipping." % (lib['name'], platform_str))
+                        continue
+                else:
+                    dest_lib_path = os.path.join(os.getcwd(), lib['destination'], 'lib')
+                    platform_dest_path = os.path.join(dest_lib_path, platform_str)
+
+                if platform_str not in lib['sha256']:
+                    print("SCons: INFO: Library %s is not configured for platform %s in dependencies.json. Skipping." % (lib['name'], platform_str))
+                    continue
+
+                version = lib['version']
+                filename = lib['filename_template'].format(version=version, platform=platform_str)
+                expected_hash = lib['sha256'][platform_str]
+                # For older configs, the release tag is derived from the library name and version.
+                download_url = "%s/%s/releases/download/%s/v%s/%s" % (base_url, lib['repository_slug'], lib['name'], version, filename)
+            # --- END: New Platform-Aware Logic ---
+
+            # Use improved cache verification
+            if verify_cached_dependency(platform_dest_path, expected_hash, lib['name']):
+                cached_count += 1
+                continue
+
+            # Add to download tasks for parallel processing
+            download_tasks.append((lib, download_url, platform_dest_path, expected_hash, filename))
+            
+        except Exception as e:
+            print("SCons: ERROR: Failed to process library %s: %s" % (lib.get('name', 'unknown'), e))
+            raise
+
+    if not download_tasks:
+        print("SCons: All %d dependencies are up to date (cached: %d)." % (len(deps_data.get('libraries', [])), cached_count))
+        elapsed = time.time() - start_time
+        print("SCons: Dependency check completed in %.2f seconds" % elapsed)
+        return
+
+    print("SCons: Processing %d dependencies (%d cached, %d to download)..." % 
+          (len(deps_data.get('libraries', [])), cached_count, len(download_tasks)))
+
+    # Download dependencies serially for clear progress feedback
+    for i, task in enumerate(download_tasks):
+        try:
+            print("SCons: Downloading dependency %d/%d: %s" % (i + 1, len(download_tasks), task[0]['name']))
+            download_and_extract(*task)
+        except Exception as e:
+            print("SCons: ERROR: Failed to download %s: %s" % (task[0]['name'], e))
+            raise
+
+    elapsed = time.time() - start_time
+    print("SCons: Dependency fetching completed in %.2f seconds" % elapsed)
+
 
 import scons_compiledb
 
@@ -317,7 +612,7 @@ fapVariantDir = variantDir + "fap"
 def printLocalInfo():
    import sys, SCons
    print( "scons version: " + SCons.__version__ )
-   print( "python version: " + " ".join( [ `i` for i in sys.version_info ] ) )
+   print( "python version: " + " ".join( [ str(i) for i in sys.version_info ] ) )
 
 printLocalInfo()
 
@@ -367,8 +662,10 @@ if not debugBuild and cov:
 
 env = Environment( BUILD_DIR=variantDir,
                    tools=["default", "gch", "mergelib" ],
-                   PYSYSPLATFORM=os.sys.platform,
+                   PYSYSPLATFORM=os.sys.platform
                    )
+
+fetch_prebuilt_libs()
 
 needCompileDb = False
 needCompileDb = has_option( "compiledb" )
@@ -560,9 +857,38 @@ if guess_os is not None:
                              lz4_lib_dir, snappy_lib_dir, intel_decimal_lib_dir])
     # use project-related spidermonkey library
     if usesm:
-        env.Append(CPPPATH=join(sm_lib_dir, platform_dir, 'include'))
-        sm_lib_dir = join(sm_lib_dir, platform_dir, build_dir)
-        env.Append(EXTRALIBPATH=[sm_lib_dir])
+        try:
+            sdb_platform_string = get_sdb_dependency_platform_string()
+
+            # Base path for the library, e.g., thirdparty/parser/sm/js/lib/x86_64-linux
+            sm_platform_base_path = os.path.join(sm_lib_dir, sdb_platform_string)
+
+            # --- Determine library path with debug fallback ---
+            sm_lib_path_debug = os.path.join(sm_platform_base_path, 'debug')
+            sm_lib_path_release = os.path.join(sm_platform_base_path, 'release')
+
+            final_sm_lib_path = sm_lib_path_release # Default to release
+            if build_dir == 'debug' and os.path.isdir(sm_lib_path_debug):
+                final_sm_lib_path = sm_lib_path_debug
+            elif build_dir == 'debug':
+                print("SCons: WARNING: Spidermonkey debug build requested but prebuilt debug library not found.")
+                print("SCons: WARNING: Falling back to release version at: %s" % sm_lib_path_release)
+
+            # --- Check if final paths exist ---
+            sm_include_path = os.path.join(sm_platform_base_path, 'include')
+            if not os.path.isdir(sm_include_path) or not os.path.isdir(final_sm_lib_path):
+                 raise Exception("Spidermonkey prebuilt directories not found for platform %s. Expected include path: %s, lib path: %s" % (sdb_platform_string, sm_include_path, final_sm_lib_path))
+
+            # --- Apply to environment ---
+            env.Append(CPPPATH=[sm_include_path])
+            env.Append(EXTRALIBPATH=[final_sm_lib_path])
+
+            # --- Re-assign global sm_lib_dir for compatibility with later script sections ---
+            sm_lib_dir = final_sm_lib_path
+
+        except Exception as e:
+            print("ERROR: Failed to configure spidermonkey prebuilt library: %s" % e)
+            Exit(1)
     if usemdocml:
         # for engine does not need to use mdocml, so we are not going to add
         # its lib_dir to env
@@ -632,7 +958,11 @@ if guess_os == "linux":
     if usesm:
         smlib_file = join(sm_lib_dir, 'libmozjs185.so')
         env.Append( CPPDEFINES=[ "XP_UNIX" ] )
-        env.Append( LIBS=['js_static'] )
+        if build_dir == 'debug':
+            # Assuming debug library for static linking is named libjs_static_d.a
+            env.Append( LIBS=['js_static_d', 'js_static'] ) # Fallback to release if _d is not found
+        else:
+            env.Append( LIBS=['js_static'] )
     # fuse
     if usefuse:
         fuse_lib = join(fuse_lib_dir, 'libfuse.a')
@@ -664,7 +994,11 @@ elif guess_os == "win32":
     if usesm:
         smlib_file = join(sm_lib_dir, 'mozjs185-1.0.dll')
         env.Append( CPPDEFINES=[ "XP_WIN" ] )
-        env.Append( LIBS=['mozjs185-1.0'] )
+        if build_dir == 'debug':
+            # Assuming debug library is named mozjs185-1.0_d.lib
+            env.Append( LIBS=['mozjs185-1.0_d', 'mozjs185-1.0'] ) # Fallback
+        else:
+            env.Append( LIBS=['mozjs185-1.0'] )
         env.Append( CPPDEFINES=["JS_HAVE_STDINT_H"] )
     if usemdocml:
         mdocml_lib = join(mdocml_lib_dir, 'libmdocml.lib')
@@ -762,7 +1096,10 @@ elif guess_os == 'aix':
    if usesm:
       smlib_file = join(sm_lib_dir, 'libmozjs185.so')
       env.Append( CPPDEFINES=[ "XP_UNIX" ] )
-      env.Append( LIBS=['js_static'] )
+      if build_dir == 'debug':
+          env.Append( LIBS=['js_static_d', 'js_static'] )
+      else:
+          env.Append( LIBS=['js_static'] )
 
    # lz4, zlib and snappy
    env.Append( LIBS=['lz4', 'zlib', 'snappy'] )
@@ -805,7 +1142,7 @@ if nix:
         env.Append( CPPFLAGS=" -DNDEBUG" )
 
 try:
-    umask = os.umask(022)
+    umask = os.umask(0o022)
 except OSError:
     pass
 
