@@ -1,0 +1,40 @@
+{
+  "default_repository_base_url": "https://github.com",
+  "libraries": [
+    {
+      "name": "sm",
+      "version": "1.8.5",
+      "repository_slug": "SequoiaDB/sdb-dependencies",
+      "destination": "thirdparty/parser/sm/js",
+      "filename_template": "sm-v{version}-{platform}.tar.gz",
+      "sha256": {
+        "aarch64-linux": "7a78b63c54675d4483c9decddbd76aca3e18525c18da832fcf99bef4375c0750",
+        "x86_64-linux": "286bcecbf0f2ffb713ddb795f485b83309b87bc4ebcc4ec95455398971578920"
+      }
+    },
+    {
+      "name": "jdk-1.7",
+      "repository_slug": "SequoiaDB/sdb-dependencies",
+      "platform_details": {
+        "x86_64-linux": {
+          "release_tag": "jdk/v1.7",
+          "filename": "jdk-v1.7-x86_64-linux.tar.gz",
+          "sha256": "c281bc138ab7df0bfd44d467449fddf6b1abcd22f7cec3221c63ae4b388189d5",
+          "destination_path": "java/jdk_linux64"
+        }
+      }
+    },
+    {
+      "name": "jdk-1.8",
+      "repository_slug": "SequoiaDB/sdb-dependencies",
+      "platform_details": {
+        "aarch64-linux": {
+          "release_tag": "jdk/v1.8",
+          "filename": "jdk-v1.8-aarch64-linux.tar.gz",
+          "sha256": "93ea213000c943aae4c52406f4d186431d74bec8d0d30ca5e60b3c9795ba9520",
+          "destination_path": "java/jdk8_armlinux64"
+        }
+      }
+    }
+  ]
+}
