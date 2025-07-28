@@ -1,4 +1,4 @@
-/*******************************************************************************
+"""
 
 <<<<<<< HEAD
    Copyright (C) 2011-Present SequoiaDB Ltd.
@@ -34,7 +34,7 @@ from pysequoiadb import *
 
    Last Changed =
 
-*******************************************************************************/
+"""
 #! /usr/bin/python
 
 from pysequoiadb import *
