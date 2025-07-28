@@ -1,4 +1,4 @@
-/*******************************************************************************
+"""
 
    Copyright (C) 2011-Present SequoiaDB Ltd.
 
@@ -29,7 +29,7 @@
 
    Last Changed =
 
-*******************************************************************************/
+"""
 import pysequoiadb
 from pysequoiadb import client
 from pysequoiadb.error import SDBEndOfCursor

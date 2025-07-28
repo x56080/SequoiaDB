@@ -1,4 +1,4 @@
-/*******************************************************************************
+"""
 
    Copyright (C) 2011-Present SequoiaDB Ltd.
 
@@ -29,7 +29,7 @@
 
    Last Changed =
 
-*******************************************************************************/
+"""
 # find python3 C API include directory
 import os
 import platform
