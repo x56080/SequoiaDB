@@ -958,11 +958,7 @@ if guess_os == "linux":
     if usesm:
         smlib_file = join(sm_lib_dir, 'libmozjs185.so')
         env.Append( CPPDEFINES=[ "XP_UNIX" ] )
-        if build_dir == 'debug':
-            # Assuming debug library for static linking is named libjs_static_d.a
-            env.Append( LIBS=['js_static_d', 'js_static'] ) # Fallback to release if _d is not found
-        else:
-            env.Append( LIBS=['js_static'] )
+        env.Append( LIBS=['js_static'] )
     # fuse
     if usefuse:
         fuse_lib = join(fuse_lib_dir, 'libfuse.a')
@@ -994,11 +990,7 @@ elif guess_os == "win32":
     if usesm:
         smlib_file = join(sm_lib_dir, 'mozjs185-1.0.dll')
         env.Append( CPPDEFINES=[ "XP_WIN" ] )
-        if build_dir == 'debug':
-            # Assuming debug library is named mozjs185-1.0_d.lib
-            env.Append( LIBS=['mozjs185-1.0_d', 'mozjs185-1.0'] ) # Fallback
-        else:
-            env.Append( LIBS=['mozjs185-1.0'] )
+        env.Append( LIBS=['mozjs185-1.0'] )
         env.Append( CPPDEFINES=["JS_HAVE_STDINT_H"] )
     if usemdocml:
         mdocml_lib = join(mdocml_lib_dir, 'libmdocml.lib')
@@ -1096,10 +1088,7 @@ elif guess_os == 'aix':
    if usesm:
       smlib_file = join(sm_lib_dir, 'libmozjs185.so')
       env.Append( CPPDEFINES=[ "XP_UNIX" ] )
-      if build_dir == 'debug':
-          env.Append( LIBS=['js_static_d', 'js_static'] )
-      else:
-          env.Append( LIBS=['js_static'] )
+      env.Append( LIBS=['js_static'] )
 
    # lz4, zlib and snappy
    env.Append( LIBS=['lz4', 'zlib', 'snappy'] )
