@@ -83,6 +83,32 @@ def format_date(timestamp):
     """Format a timestamp (epoch seconds) as DD/MM/YYYY."""
     return time.strftime("%d/%m/%Y", time.localtime(timestamp))
 
+def is_python_file(filepath):
+    """Check if the file is a Python file based on its extension."""
+    return filepath.lower().endswith('.py')
+
+def convert_template_to_python(template):
+    """Convert a C-style /* */ template to Python # style."""
+    lines = template.split('\n')
+    python_lines = []
+    
+    for line in lines:
+        # Remove /* and */ markers
+        line = line.replace('/*', '').replace('*/', '')
+        # Remove leading * and whitespace
+        line = re.sub(r'^\s*\*+\s?', '', line)
+        # Add # prefix for non-empty lines
+        if line.strip():
+            python_lines.append('# ' + line)
+        else:
+            python_lines.append('#')
+    
+    # Remove trailing empty comment lines
+    while python_lines and python_lines[-1] == '#':
+        python_lines.pop()
+    
+    return '\n'.join(python_lines)
+
 def process_file(filepath, template1, template2, counters, error_list,
                  added_list, replaced_list, test_mode):
     """
@@ -108,32 +134,90 @@ def process_file(filepath, template1, template2, counters, error_list,
         counters['skipped'] += 1
         return 'skipped'
 
-    # 2) Check for /* ... */ at top
+    # Determine if this is a Python file
+    is_py_file = is_python_file(filepath)
+    
+    # 2) Check for existing header based on file type
     stripped = text.lstrip()
-    has_header = stripped.startswith("/*")
+    has_header = False
     header_end_idx = -1
-    if has_header:
-        idx = text.find("*/")
-        if idx >= 0:
-            header_end_idx = idx + 2
-        else:
-            header_end_idx = -1
-            has_header = False
+    
+    if is_py_file:
+        # For Python files, look for # comment blocks at the top
+        lines = text.split('\n')
+        header_lines = []
+        i = 0
+        
+        # Skip shebang and encoding lines
+        while i < len(lines) and (lines[i].startswith('#!') or 'coding' in lines[i] or lines[i].strip() == ''):
+            if lines[i].startswith('#!') or 'coding' in lines[i]:
+                i += 1
+            else:
+                i += 1
+        
+        # Look for consecutive # comment lines
+        start_idx = i
+        while i < len(lines) and (lines[i].strip().startswith('#') or lines[i].strip() == ''):
+            header_lines.append(lines[i])
+            i += 1
+        
+        # Check if we found a substantial header (more than just a few comment lines)
+        if len([l for l in header_lines if l.strip().startswith('#') and len(l.strip()) > 1]) > 3:
+            has_header = True
+            # Calculate the end index of the header
+            header_end_idx = len('\n'.join(lines[:start_idx + len(header_lines)]))
+            if header_end_idx < len(text) and text[header_end_idx] == '\n':
+                header_end_idx += 1
+    else:
+        # For non-Python files, use the original /* ... */ logic
+        has_header = stripped.startswith("/*")
+        if has_header:
+            idx = text.find("*/")
+            if idx >= 0:
+                header_end_idx = idx + 2
+            else:
+                header_end_idx = -1
+                has_header = False
 
     if has_header and header_end_idx > 0:
         header = text[:header_end_idx]
 
-        # Extract [Other]
+        # Extract [Other] section - handle differently for Python vs other files
         other_text = ""
-        pos = header.find("Source File Name")
-        if pos >= 0:
-            other_text = header[pos:header_end_idx - 2].rstrip('\r\n')
-            lines = other_text.splitlines()
-            while lines and re.match(r'^\s*\*+\s*$', lines[-1]):
-                lines.pop()
-            other_text = "\n".join(lines)
+        if is_py_file:
+            # For Python files, look for "Source File Name" in # comments
+            for line in header.split('\n'):
+                if "Source File Name" in line:
+                    # Extract the remaining part of the header after "Source File Name"
+                    lines = header.split('\n')
+                    start_collecting = False
+                    collected_lines = []
+                    for line in lines:
+                        if "Source File Name" in line:
+                            start_collecting = True
+                        if start_collecting:
+                            # Remove # prefix and clean up
+                            clean_line = re.sub(r'^\s*#\s?', '', line)
+                            collected_lines.append(clean_line)
+                    other_text = "\n".join(collected_lines).rstrip()
+                    break
+        else:
+            # Original logic for non-Python files
+            pos = header.find("Source File Name")
+            if pos >= 0:
+                other_text = header[pos:header_end_idx - 2].rstrip('\r\n')
+                lines = other_text.splitlines()
+                while lines and re.match(r'^\s*\*+\s*$', lines[-1]):
+                    lines.pop()
+                other_text = "\n".join(lines)
 
-        new_header = template1.replace("[Other]", other_text)
+        # Choose the appropriate template based on file type
+        if is_py_file:
+            new_header = convert_template_to_python(template1)
+        else:
+            new_header = template1
+        
+        new_header = new_header.replace("[Other]", other_text)
         if not new_header.endswith("\n"):
             new_header += "\n"
 
@@ -162,11 +246,38 @@ def process_file(filepath, template1, template2, counters, error_list,
         except Exception:
             date_str = ""
 
-        new_header = template2.replace("[Source File Name]", basename)
+        # Choose the appropriate template based on file type
+        if is_py_file:
+            new_header = convert_template_to_python(template2)
+        else:
+            new_header = template2
+            
+        new_header = new_header.replace("[Source File Name]", basename)
         new_header = new_header.replace("[DD/MM/YYYY]", date_str)
         if not new_header.endswith("\n"):
             new_header += "\n"
-        new_content = new_header + text
+        
+        # For Python files, preserve shebang and encoding lines
+        if is_py_file:
+            lines = text.split('\n')
+            preserved_lines = []
+            i = 0
+            # Preserve shebang
+            if i < len(lines) and lines[i].startswith('#!'):
+                preserved_lines.append(lines[i])
+                i += 1
+            # Preserve encoding
+            if i < len(lines) and 'coding' in lines[i]:
+                preserved_lines.append(lines[i])
+                i += 1
+            
+            if preserved_lines:
+                remaining_text = '\n'.join(lines[i:])
+                new_content = '\n'.join(preserved_lines) + '\n' + new_header + remaining_text
+            else:
+                new_content = new_header + text
+        else:
+            new_content = new_header + text
 
         counters['added'] += 1
         added_list.append(filepath)
