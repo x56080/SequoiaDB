@@ -1793,6 +1793,73 @@ function checkCanUpgradeAndStandaloneIdx()
    }
 }
 
+function checkUniqueIdxKey( uniqueIdxKey, shardingKey )
+{
+   for ( let key in shardingKey )
+   {
+      if ( uniqueIdxKey[key] !== null && uniqueIdxKey[key] == shardingKey[key] )
+      {
+         continue ;
+      }
+      else
+      {
+         return false ;
+      }
+   }
+   return true ;
+}
+
+// All fields in sharding key must be included in unique index
+function checkClusterClInvalidUniqueIdx()
+{
+   try
+   {
+      var rc = null ;
+      var beginTime = Date.now() ;
+      println( "(" + step + "/" + STEP_NUM + ")Begin to check invalid unique indexes" ) ;
+
+      var tmpCS = db.getCS( TMP_CS_UPGRADE_INDEX ) ;
+      var dataIdxCheckInfoCl = tmpCS.getCL( TMP_CL_DATA_INDEX_CHECK_INFO ) ;
+      var cannotUpgradeIdxInfoCl = tmpCS.getCL( TMP_CL_CANNOT_UPGRADE_INDEX_INFO ) ;
+
+      rc = dataIdxCheckInfoCl.find( { "IndexDef.unique": true,
+                                      "IndexName": { "$ne": "$id" },
+                                      "ShardingKey": { "$isnull": 0 } },
+                                    { "ClFullName": 1, "IndexDef": 1,
+                                      "IndexName": 1, "ShardingKey": 1 } ) ;
+      while ( rc.next() )
+      {
+         var obj = rc.current().toObj() ;
+         if ( !checkUniqueIdxKey( obj.IndexDef.key, obj.ShardingKey ) )
+         {
+            obj.UpgradeIndexType = IDX_TYPE_INVALID_UNI ;
+            cannotUpgradeIdxInfoCl.insert( obj ) ;
+         }
+      }
+
+      rc = cannotUpgradeIdxInfoCl.find( { "UpgradeIndexType": IDX_TYPE_INVALID_UNI },
+                                        { "ClFullName": 1, "IndexDef": 1,
+                                          "IndexName": 1, "ShardingKey": 1 } ) ;
+      while ( rc.next() )
+      {
+         var obj = rc.current().toObj() ;
+         dataIdxCheckInfoCl.remove( obj ) ;
+      }
+
+      println( "(" + step + "/" + STEP_NUM + ")End to check invalid unique indexes, spent time: " +
+               ( (Date.now()) - beginTime )/1000 + "s" ) ;
+      step++ ;
+   }
+   catch( e )
+   {
+      if( e instanceof Error )
+      {
+         println( "Failed to check invalid unique indexes, error Stack:\n" + e.stack ) ;
+      }
+      throw e ;
+   }
+}
+
 function checkClusterClIndexInfo()
 {
    aggregateIndexInfo() ;
@@ -1806,9 +1873,11 @@ function checkClusterClIndexInfo()
    checkCataIndexMetaData() ;
 
    checkCanUpgradeAndStandaloneIdx() ;
+
+   checkClusterClInvalidUniqueIdx() ;
 }
 
-function checkMainClIndexInfo()
+function checkMainClCanUpgradeIndexInfo()
 {
    try
    {
@@ -1827,15 +1896,15 @@ function checkMainClIndexInfo()
       else
       {
          var t2SqlStr1 = "select IndexName,EnsureShardingIndex,IndexDef,MainClName,count(ClFullName) as SubCLCount,addtoset(ShardingKey) as SubClShardingKeys from " + TMP_CL_FULL_DATA_INDEX_CHECK_INFO + " group by MainClName,IndexName" ;
-         var t3SqlStr1 = "select T2.IndexName as IndexName,T2.EnsureShardingIndex as EnsureShardingIndex,T2.IndexDef as IndexDef,T2.MainClName as MainClName,T2.SubClShardingKeys as SubClShardingKeys, T2.SubCLCount as SubCLCount from " + TMP_CL_FULL_CATA_MAIN_CL_INFO + " as T1 inner join ( " + t2SqlStr1 + " ) as T2 on T1.Name=T2.MainClName and T1.SubCLCount=T2.SubCLCount" ;
+         var t3SqlStr1 = "select T2.IndexName as IndexName,T2.EnsureShardingIndex as EnsureShardingIndex,T2.IndexDef as IndexDef,T2.MainClName as MainClName,T2.SubClShardingKeys as SubClShardingKeys, T2.SubCLCount as SubCLCount, T1.ShardingKey as ShardingKey from " + TMP_CL_FULL_CATA_MAIN_CL_INFO + " as T1 inner join ( " + t2SqlStr1 + " ) as T2 on T1.Name=T2.MainClName and T1.SubCLCount=T2.SubCLCount" ;
 
-         var sqlStr1 = "insert into " + TMP_CL_FULL_CACHE_INFO + " select T3.EnsureShardingIndex as EnsureShardingIndex,T3.MainClName as ClFullName,T3.SubClShardingKeys as SubClShardingKeys,T3.IndexName as IndexName,T3.IndexDef as IndexDef, count(T3.IndexName) as IndexDataType, T3.SubCLCount as SubCLCount from ( " + t3SqlStr1 + " ) as T3 group by T3.MainClName,T3.IndexName" ;
+         var sqlStr1 = "insert into " + TMP_CL_FULL_CACHE_INFO + " select T3.EnsureShardingIndex as EnsureShardingIndex,T3.MainClName as ClFullName,T3.SubClShardingKeys as SubClShardingKeys,T3.IndexName as IndexName,T3.IndexDef as IndexDef, count(T3.IndexName) as IndexDataType, T3.SubCLCount as SubCLCount, T3.ShardingKey as ShardingKey from ( " + t3SqlStr1 + " ) as T3 group by T3.MainClName,T3.IndexName" ;
          db.execUpdate( sqlStr1 ) ;
 
          var sqlStr2 = "insert into " + TMP_CL_FULL_CACHE_INFO + " select * from ( select T2.ClFullName, T2.IndexName, T2.IndexDataType from " + TMP_CL_FULL_CATA_MAIN_CL_INFO + " as T1 inner join " + TMP_CL_FULL_CATA_INDEX_INFO + " as T2 on T1.Name=T2.ClFullName /*+use_hash()*/ ) as T3" ;
          db.execUpdate( sqlStr2 ) ;
 
-         var sqlStr3 = "insert into " + TMP_CL_FULL_MAIN_CL_INDEX_CHECK_INFO + " select ClFullName,IndexName,max(IndexDataType) as IndexDataType,max(EnsureShardingIndex) as EnsureShardingIndex,max(SubClShardingKeys) as SubClShardingKeys,max(IndexDef) as IndexDef,max(SubCLCount) as SubCLCount from " + TMP_CL_FULL_CACHE_INFO + " group by ClFullName,IndexName" ;
+         var sqlStr3 = "insert into " + TMP_CL_FULL_MAIN_CL_INDEX_CHECK_INFO + " select ClFullName,IndexName,max(IndexDataType) as IndexDataType,max(EnsureShardingIndex) as EnsureShardingIndex,max(SubClShardingKeys) as SubClShardingKeys,max(IndexDef) as IndexDef,max(SubCLCount) as SubCLCount, max(ShardingKey) as ShardingKey from " + TMP_CL_FULL_CACHE_INFO + " group by ClFullName,IndexName" ;
          db.execUpdate( sqlStr3 ) ;
 
          var sqlStr4 = "delete from " + TMP_CL_FULL_MAIN_CL_INDEX_CHECK_INFO + " where IndexName='$id' or IndexName='$shard'"
@@ -1857,6 +1926,73 @@ function checkMainClIndexInfo()
       }
       throw e ;
    }
+}
+
+function checkMainClInvalidUniqueIdx()
+{
+   try
+   {
+      var beginTime = Date.now() ;
+      var tmpCS = db.getCS( TMP_CS_UPGRADE_INDEX ) ;
+      var mainClInfoCl = tmpCS.getCL( TMP_CL_MAIN_CL_INDEX_CHECK_INFO ) ;
+      var cannotUpgradeIdxInfoCl = tmpCS.getCL( TMP_CL_CANNOT_UPGRADE_INDEX_INFO ) ;
+
+      println( "(" + step + "/" + STEP_NUM + ")Begin to check main collection invalid unique indexes" ) ;
+
+      rc = mainClInfoCl.find( { "IndexDef.unique": true,
+                                "IndexName": { "$ne": "$id" },
+                                "ShardingKey": { "$isnull": 0 } } ) ;
+      while ( rc.next() )
+      {
+         var obj = rc.current().toObj() ;
+         var subClShardingKeys = obj.SubClShardingKeys ;
+         var includeAllSubShardingKey = true ;
+         // unique idx must include all subcl shardingKey fields
+         for ( let i = 0 ; i < subClShardingKeys.length ; ++i )
+         {
+            if ( !checkUniqueIdxKey( obj.IndexDef.key, subClShardingKeys[i] ) )
+            {
+               includeAllSubShardingKey = false ;
+               break ;
+            }
+         }
+         // unique idx must include maincl shardingKey fields
+         if ( !includeAllSubShardingKey ||
+              !checkUniqueIdxKey( obj.IndexDef.key, obj.ShardingKey ) )
+         {
+            obj.UpgradeIndexType = IDX_TYPE_INVALID_UNI ;
+            cannotUpgradeIdxInfoCl.insert( obj ) ;
+         }
+      }
+
+      rc = cannotUpgradeIdxInfoCl.find( { "UpgradeIndexType": IDX_TYPE_INVALID_UNI },
+                                        { "ClFullName": 1, "IndexDef": 1,
+                                          "IndexName": 1, "ShardingKey": 1 } ) ;
+      while ( rc.next() )
+      {
+         var obj = rc.current().toObj() ;
+         mainClInfoCl.remove( obj ) ;
+      }
+
+      println( "(" + step + "/" + STEP_NUM + ")End to check main collection invalid unique indexes, spent time: " +
+               ( (Date.now()) - beginTime )/1000 + "s" ) ;
+      step++ ;
+   }
+   catch( e )
+   {
+      if( e instanceof Error )
+      {
+         println( "Failed to check main collection invalid unique indexes, error Stack:\n" + e.stack ) ;
+      }
+      throw e ;
+   }
+}
+
+function checkMainClIndexInfo()
+{
+   checkMainClCanUpgradeIndexInfo() ;
+
+   checkMainClInvalidUniqueIdx() ;
 }
 
 function checkLocalClIndexInfo()
@@ -2654,7 +2790,7 @@ function generateMissIdxDetailInfo( id, indexInfoObj, missIdxDetail )
 }
 
 function generateConflictIdxDetailInfo( id, indexInfoObj, conflictIdxDetail,
-                                        maxIndexNameLength, maxIndexKeyLength )
+                                        maxIndexNameLength, maxConflictIndexKeyLength )
 {
    try
    {
@@ -2688,7 +2824,7 @@ function generateConflictIdxDetailInfo( id, indexInfoObj, conflictIdxDetail,
                      if ( firstFoundIdxInfo )
                      {
                         detailStr += " " +
-                                     pad( JSON.stringify( nodeInfo.IndexDef.key ), maxIndexKeyLength ) + " " +
+                                     pad( JSON.stringify( nodeInfo.IndexDef.key ), maxConflictIndexKeyLength ) + " " +
                                      pad( getIdxAttrDesc( indexInfoObj.IndexDef ), MAX_INDEX_ATTR_DESC_LENGTH ) + " " ;
                         firstFoundIdxInfo = false ;
                      }
@@ -2739,7 +2875,7 @@ function generateConflictIdxDetailInfo( id, indexInfoObj, conflictIdxDetail,
                      if ( firstFoundIdxInfo )
                      {
                         detailStr += " " +
-                                     pad( JSON.stringify( indexDef.key ), maxIndexKeyLength ) + " " +
+                                     pad( JSON.stringify( indexDef.key ), maxConflictIndexKeyLength ) + " " +
                                      pad( getIdxAttrDesc( indexDef ), MAX_INDEX_ATTR_DESC_LENGTH ) + " " ;
                         firstFoundIdxInfo = false ;
                      }
@@ -2846,6 +2982,50 @@ function generateLocalClIdxDetailInfo( id, indexInfoObj, localclIdxDetail, maxCl
       if( e instanceof Error )
       {
          println( "Failed to generate local cl index detail info, error Stack:\n" + e.stack ) ;
+      }
+      throw e ;
+   }
+}
+
+/*
+
+  ---------- Index ( ID: 19 ) InvalidUniqueIndex -----------
+                                    Collection        IndexName           IndexKey MainAndSubCLShardingKeys
+    csName_test.sharding_without_unique_maincl all_unique_idx_1  {"all_field_1":1} { "main_shard": 1 }
+                                                                                   { "no1": 1 }
+                                                                                   { "no2": 1 }
+
+*/
+function generateInvalidUniqueIdxDetailInfo( id, indexInfoObj, invalidUniqueIdxDetail, maxClFullNameLength,
+                                             maxIndexNameLength, maxInvalidUniqueIndexKeyLength )
+{
+   try
+   {
+      var detailStr = "" ;
+      var tmpLength = 0 ;
+
+      detailStr += "  " +
+                   pad( indexInfoObj.ClFullName, maxClFullNameLength ) + " " +
+                   pad( indexInfoObj.IndexName, maxIndexNameLength ) + " " +
+                   pad( JSON.stringify( indexInfoObj.IndexDef.key ), maxInvalidUniqueIndexKeyLength ) + " " ;
+
+      tmpLength = detailStr.length ;
+      var emptyStr = Array( tmpLength + 1 ).join( ' ' ) ;
+
+      detailStr += JSON.stringify( indexInfoObj.ShardingKey ) + "\n" ;
+
+      for ( i in indexInfoObj.SubClShardingKeys )
+      {
+         detailStr += emptyStr + JSON.stringify( indexInfoObj.SubClShardingKeys[i] ) + "\n" ;
+      }
+
+      invalidUniqueIdxDetail.push( { "ID": id, "Detail": detailStr, "InvalidType": indexInfoObj.InvalidType } ) ;
+   }
+   catch( e )
+   {
+      if( e instanceof Error )
+      {
+         println( "Failed to generate invalid unique index detail info, error Stack:\n" + e.stack ) ;
       }
       throw e ;
    }
@@ -3200,7 +3380,46 @@ function getMaxConflictIndexKeyLength( cannotUpgradeIdxInfoCl )
    {
       if( e instanceof Error )
       {
-         println( "Failed to get cl fullname length, error Stack:\n" + e.stack ) ;
+         println( "Failed to get max conflict index key length, error Stack:\n" + e.stack ) ;
+      }
+      throw e ;
+   }
+}
+
+function getMaxInvalidUniqueIndexKeyLength( cannotUpgradeIdxInfoCl )
+{
+   try
+   {
+      var rc = null ;
+      var maxLength = 0 ;
+
+      rc = cannotUpgradeIdxInfoCl.find( { "UpgradeIndexType": IDX_TYPE_INVALID_UNI } ) ;
+      while ( rc.next() )
+      {
+         var obj = rc.current().toObj() ;
+         var key = JSON.stringify( obj.IndexDef.key ) ;
+         if ( maxLength < key.length )
+         {
+            maxLength = key.length ;
+         }
+      }
+
+      if ( maxLength < FIELD_INDEXKEY.length )
+      {
+         maxLength = FIELD_INDEXKEY.length ;
+      }
+      else if ( maxLength > MAX_INDEX_KEY_LENGTH )
+      {
+         maxLength = MAX_INDEX_KEY_LENGTH ;
+      }
+
+      return maxLength ;
+   }
+   catch( e )
+   {
+      if( e instanceof Error )
+      {
+         println( "Failed to get max invalid unique index key length, error Stack:\n" + e.stack ) ;
       }
       throw e ;
    }
@@ -3218,6 +3437,7 @@ function writeCannotUpgradeIdxReport( cannotUpgradeIdxCount, cannotUpgradeIdxInf
       var invalidIdIdxDetail = [] ;
       var invalidShardIdxDetail = [] ;
       var localclIdxDetail = [] ;
+      var invalidUniqueIdxDetail = [] ;
 
       println( "(" + step + "/" + STEP_NUM + ")Begin to write cannot upgrade index infos" ) ;
       println( "(" + step + "/" + STEP_NUM + ")Cannot Indexes Count: " + cannotUpgradeIdxCount ) ;
@@ -3231,7 +3451,9 @@ function writeCannotUpgradeIdxReport( cannotUpgradeIdxCount, cannotUpgradeIdxInf
 
       var maxIndexTypeLength = getMaxCannotUpgradeIndexTypeLength( cannotUpgradeIdxInfoCl ) ;
 
-      var maxIndexKeyLength = getMaxConflictIndexKeyLength( cannotUpgradeIdxInfoCl ) ;
+      var maxConflictIndexKeyLength = getMaxConflictIndexKeyLength( cannotUpgradeIdxInfoCl ) ;
+
+      var maxInvalidUniqueIndexKeyLength = getMaxInvalidUniqueIndexKeyLength( cannotUpgradeIdxInfoCl ) ;
 
       writeCheckInfo( "===================== Check Result ( Cannot be Upgraded ) ======================\n" +
                       pad( FIELD_ID, idLen ) + " " +
@@ -3287,7 +3509,7 @@ function writeCannotUpgradeIdxReport( cannotUpgradeIdxCount, cannotUpgradeIdxInf
             }
 
             generateConflictIdxDetailInfo( id, obj, conflictIdxDetail,
-                                           maxIndexNameLength, maxIndexKeyLength ) ;
+                                           maxIndexNameLength, maxConflictIndexKeyLength ) ;
          }
          else if ( IDX_TYPE_INVALID_SHARD == obj.UpgradeIndexType )
          {
@@ -3323,6 +3545,18 @@ function writeCannotUpgradeIdxReport( cannotUpgradeIdxCount, cannotUpgradeIdxInf
 
             generateLocalClIdxDetailInfo( id, obj, localclIdxDetail, maxClFullNameLength ) ;
          }
+         else if ( IDX_TYPE_INVALID_UNI == obj.UpgradeIndexType )
+         {
+            writeCheckInfo( pad( id, idLen ) + " " +
+                            pad( obj.UpgradeIndexType, maxIndexTypeLength ) + " " +
+                            pad( obj.ClFullName, maxClFullNameLength ) + " " +
+                            pad( obj.IndexName, maxIndexNameLength ) + " " +
+                            pad( getIdxAttrDesc( obj.IndexDef ), MAX_INDEX_ATTR_DESC_LENGTH ) + " " +
+                            JSON.stringify( obj.IndexDef.key ) + "\n", false ) ;
+
+            generateInvalidUniqueIdxDetailInfo( id, obj, invalidUniqueIdxDetail, maxClFullNameLength,
+                                                maxIndexNameLength, maxInvalidUniqueIndexKeyLength ) ;
+         }
          else
          {
             // do nothing
@@ -3348,7 +3582,7 @@ function writeCannotUpgradeIdxReport( cannotUpgradeIdxCount, cannotUpgradeIdxInf
          writeCheckInfo( "  " + "---------- Index ( ID: " + conflictIdxDetail[i].ID + " ) " +
                          IDX_TYPE_CONFLICT + " -----------\n" + "  " +
                          pad( FIELD_INDEXNAME, maxIndexNameLength )  + " " +
-                         pad( FIELD_INDEXKEY, maxIndexKeyLength )   + " " +
+                         pad( FIELD_INDEXKEY, maxConflictIndexKeyLength )   + " " +
                          pad( FIELD_INDEXATTR, MAX_INDEX_ATTR_DESC_LENGTH )  + " " +
                          pad( FIELD_GROUPNAME, MAX_GROUP_NAME_LENGTH ) + "  " +
                          FIELD_NODENAME + "\n" + conflictIdxDetail[i].Detail + "\n", false ) ;
@@ -3376,6 +3610,17 @@ function writeCannotUpgradeIdxReport( cannotUpgradeIdxCount, cannotUpgradeIdxInf
                          localclIdxDetail[i].InvalidType + " CL -----------\n" + "  " +
                          pad( FIELD_COLLECTION, maxClFullNameLength ) + " " +
                          FIELD_NODENAME + "\n" + localclIdxDetail[i].Detail + "\n", false ) ;
+      }
+
+      for ( i in invalidUniqueIdxDetail )
+      {
+         writeCheckInfo( "  " + "---------- Index ( ID: " + invalidUniqueIdxDetail[i].ID + " ) " +
+                         IDX_TYPE_INVALID_UNI + " -----------\n" + "  " +
+                         pad( FIELD_COLLECTION, maxClFullNameLength ) + " " +
+                         pad( FIELD_INDEXNAME, maxIndexNameLength ) + " " +
+                         pad( FIELD_INDEXKEY, maxInvalidUniqueIndexKeyLength ) + " " +
+                         FIELD_MAIN_AND_SUB_CL_SHARDKEY + "\n" +
+                         invalidUniqueIdxDetail[i].Detail + "\n", false ) ;
       }
 
       writeCheckInfo( "", true ) ;

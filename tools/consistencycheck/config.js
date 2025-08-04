@@ -54,6 +54,7 @@ const IDX_TYPE_CONFLICT      = "Conflict" ;
 const IDX_TYPE_INVALID_SHARD = "ResidualShardIndex" ;
 const IDX_TYPE_INVALID_ID    = "ResidualIdIndex" ;
 const IDX_TYPE_LOCAL_IDX     = "Invalid CL" ;
+const IDX_TYPE_INVALID_UNI   = "InvalidUniqueIndex"
 
 // 无效集合类型
 const INVALID_CL_TYPE_LOCAL = "Local" ;
@@ -92,6 +93,7 @@ const FIELD_INVALID_TYPE = "InvalidType" ;
 const FIELD_UNIQUEID = "UniqueID" ;
 const FIELD_RECORD_COUNT = "RecordCount" ;
 const FIELD_LOB_COUNT = "LobCount" ;
+const FIELD_MAIN_AND_SUB_CL_SHARDKEY = "MainAndSubCLShardingKeys" ;
 
 const MASK_CLATTR_NOIDIDX = 0x02 ;
 
@@ -219,7 +221,9 @@ const _CHECK_STEP_ARR =
    "checkInvalidIdAndShardIdx",
    "checkCataIndexMetaData",
    "checkCanUpgradeAndStandaloneIdx",
-   "checkMainClIndexInfo",
+   "checkClusterClInvalidUniqueIdx",
+   "checkMainClCanUpgradeIndexInfo",
+   "checkMainClInvalidUniqueIdx",
    "checkLocalClIndexInfo",
    "get indexes count",
    "writeNoNeedUpgradeIdxReport",
