@@ -328,6 +328,11 @@ namespace engine
          hasRegisterEdu = TRUE ;
 
          rc = sdbGetResourceContainer()->getResource()->getOrUpdateCataInfo( collection, cataPtr, cb ) ;
+         if ( SDB_DMS_NOTEXIST == rc || SDB_DMS_CS_NOTEXIST == rc )
+         {
+            rc = SDB_OK ;
+            goto done ;
+         }
          PD_RC_CHECK( rc, PDERROR, "Failed to get cata info, rc: %d", rc ) ;
 
          if ( NULL != cataPtr )
