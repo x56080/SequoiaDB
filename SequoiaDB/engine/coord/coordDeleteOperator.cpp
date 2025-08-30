@@ -160,8 +160,6 @@ namespace engine
                       e.what() ) ;
       }
 
-      MONQUERY_SET_QUERY_TEXT( cb, cb->getMonAppCB()->getLastOpDetail() ) ;
-
       rc = cataSel.bind( _pResource, pCollectionName, cb, FALSE, TRUE ) ;
       if ( rc )
       {

@@ -409,7 +409,6 @@ namespace engine
       // add last op info
       MON_SAVE_OP_DETAIL( cb->getMonAppCB(), pMsg->opCode,
                           "Option:%s", obj.toString().c_str() ) ;
-      MONQUERY_SET_QUERY_TEXT( cb, cb->getMonAppCB()->getLastOpDetail() ) ;
 
       /// release operator's groupSession to improve perfermance
       _groupSession.release() ;
@@ -533,7 +532,6 @@ namespace engine
       // add last op info
       MON_SAVE_OP_DETAIL( cb->getMonAppCB(), pMsg->opCode,
                           "Option:%s", obj.toString().c_str() ) ;
-      MONQUERY_SET_QUERY_TEXT( cb, cb->getMonAppCB()->getLastOpDetail() ) ;
 
       /// release operator's groupSession to improve perfermance
       _groupSession.release() ;
@@ -665,7 +663,6 @@ namespace engine
       // add last op info
       MON_SAVE_OP_DETAIL( cb->getMonAppCB(), pMsg->opCode,
                           "Option:%s", obj.toString().c_str() ) ;
-      MONQUERY_SET_QUERY_TEXT( cb, cb->getMonAppCB()->getLastOpDetail() ) ;
 
       rc = rtnCreateLobID( obj, oid ) ;
       if ( SDB_OK != rc )

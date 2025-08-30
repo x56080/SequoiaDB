@@ -348,8 +348,6 @@ namespace engine
       // add list op info
       MON_SAVE_OP_OPTION( cb->getMonAppCB(), pMsg, options ) ;
 
-      MONQUERY_SET_QUERY_TEXT( cb, cb->getMonAppCB()->getLastOpDetail() ) ;
-
       // Find out which groups is the collection sharded. And later the message
       // will only be transfered to these groups.
       rc = cataSel.bind( _pResource, pCollectionName, cb, FALSE, TRUE ) ;

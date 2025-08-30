@@ -423,6 +423,24 @@ void   monUpdateConf( UINT32 queryThreshold,
  */
 BOOLEAN monArchiveQuery ( monClass *obj )
 {
+   if ( monNeedArchiveQuery( obj ) )
+   {
+      pmdEDUCB *cb = pmdGetThreadEDUCB() ;
+      if ( cb )
+      {
+         DMS_MON_OP_COUNT_INC( cb->getMonAppCB(), MON_GENERAL_SLOW_QUERY, 1 ) ;
+      }
+
+      return TRUE ;
+   }
+   else
+   {
+      return FALSE ;
+   }
+}
+
+BOOLEAN monNeedArchiveQuery( _monClass * obj)
+{
    monClassQuery *monQuery = (monClassQuery*)obj ;
    // in ms
    UINT64 responseTime = monQuery->responseTime.toUINT64() / 1000 ;
@@ -432,12 +450,6 @@ BOOLEAN monArchiveQuery ( monClass *obj )
         ( !monQuery->isCommand() &&
           responseTime >= monGetSlowQueryThreshold() ) )
    {
-      pmdEDUCB *cb = pmdGetThreadEDUCB() ;
-      if ( cb )
-      {
-         DMS_MON_OP_COUNT_INC( cb->getMonAppCB(), MON_GENERAL_SLOW_QUERY, 1 ) ;
-      }
-
       return TRUE ;
    }
    else

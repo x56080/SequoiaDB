@@ -96,6 +96,7 @@ namespace engine
       void    buildRetInfo( BSONObjBuilder &builder ) const ;
       void    setClientVersion( INT32 version ) ;
       INT32   getCatalogVersion() const ;
+      INT32   getObjects( ossPoolSet< ossPoolString > &setObjs ) const ;
 
       INT32 fetch( BSONObj &obj ) ;
 

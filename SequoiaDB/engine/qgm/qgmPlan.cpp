@@ -174,6 +174,15 @@ namespace engine
       return latestClVersion ;
    }
 
+   void _qgmPlan::getObjects( ossPoolSet< ossPoolString > &setObjs ) const
+   {
+      for ( UINT32 i = 0 ; i < _input.size() ; ++i )
+      {
+         const _qgmPlan *pPlan = _input[i] ;
+         pPlan->getObjects( setObjs ) ;
+      }
+   }
+
    // PD_TRACE_DECLARE_FUNCTION( SDB__QGMPLAN_EXECUTE, "_qgmPlan::execute" )
    INT32 _qgmPlan::execute( _pmdEDUCB *eduCB )
    {
