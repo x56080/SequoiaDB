@@ -82,7 +82,7 @@ namespace engine
 
    #define MON_SET_OP_TYPE( _pMonAppCB_, opType )           \
    {                                                        \
-      if ( NULL != _pMonAppCB_ )                            \
+      if ( NULL != _pMonAppCB_ && !_pMonAppCB_->isOpLocked() ) \
       {                                                     \
          _pMonAppCB_->setLastOpType( opType ) ;             \
       }                                                     \
@@ -90,7 +90,7 @@ namespace engine
 
    #define MON_SAVE_OP_DETAIL( _pMonAppCB_, opType, format, ... )    \
    {                                                                 \
-      if ( NULL != _pMonAppCB_ )                                     \
+      if ( NULL != _pMonAppCB_ && !_pMonAppCB_->isOpLocked() )       \
       {                                                              \
          try {                                                       \
             _pMonAppCB_->setLastOpType( opType ) ;                   \
@@ -101,6 +101,12 @@ namespace engine
       }                                                              \
    }
 
+   #define MON_LOCK_OP( _pMonAppCB_ )                                \
+      if ( NULL != _pMonAppCB_ )                                     \
+      {                                                              \
+         _pMonAppCB_->lockOp() ;                                     \
+      }         
+
    #define MON_CLEAR_OP_DETAIL( _pMonAppCB_ )                        \
    {                                                                 \
       if ( NULL != _pMonAppCB_ )                                     \
@@ -109,6 +115,7 @@ namespace engine
             _pMonAppCB_->setLastOpType( 0 ) ;                        \
             _pMonAppCB_->setLastCmdType( CMD_UNKNOW ) ;              \
             _pMonAppCB_->clearLastOpDetail() ;                       \
+            _pMonAppCB_->unLockOp() ;                                \
          } catch ( ...) {}                                           \
       }                                                              \
    }
@@ -127,7 +134,7 @@ namespace engine
 
    #define MON_SAVE_OP_OPTION( _pMonAppCB_, msg, options )           \
    {                                                                 \
-      if ( NULL != _pMonAppCB_ )                                     \
+      if ( NULL != _pMonAppCB_ && !_pMonAppCB_->isOpLocked() )       \
       {                                                              \
          try {                                                       \
             _pMonAppCB_->setLastOpType( msg->opCode ) ;              \
@@ -139,7 +146,7 @@ namespace engine
 
    #define MON_SAVE_CMD_DETAIL( _pMonAppCB_, cmdType, format, ... )  \
    {                                                                 \
-      if ( NULL != _pMonAppCB_ )                                     \
+      if ( NULL != _pMonAppCB_ && !_pMonAppCB_->isOpLocked() )       \
       {                                                              \
          try {                                                       \
             _pMonAppCB_->setLastOpType( MSG_BS_QUERY_REQ ) ;         \
@@ -1069,6 +1076,8 @@ namespace engine
       CHAR           _lastOpDetail[ MON_APP_LASTOP_DESC_LEN + 1 ] ;
       BOOLEAN        _lastOpMsgSaved ;
 
+      BOOLEAN        _lockOp ;
+
       void monOperationTimeInc( MON_OPERATION_TYPES op, ossTickDelta &delta )
       {
          switch ( op )
@@ -1251,6 +1260,9 @@ namespace engine
       void setLastOpType( INT32 opType ) ;
       void setLastCmdType( INT32 cmdType ) ;
       void setUnknownCmdType() ;
+      void lockOp() ;
+      void unLockOp() ;
+      BOOLEAN isOpLocked() const ;
       void opTimeSpentInc( ossTickDelta delta );
       const CHAR * getLastOpDetail() ;
       void saveLastOpQuery( const MsgHeader *message,

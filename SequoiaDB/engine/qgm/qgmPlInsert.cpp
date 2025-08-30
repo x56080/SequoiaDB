@@ -108,6 +108,11 @@ namespace engine
       return _catalogVersion ;
    }
 
+   void _qgmPlInsert::getObjects( ossPoolSet< ossPoolString > &setObjs ) const
+   {
+      setObjs.insert( _fullName ) ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION( SDB__QGMPLINSERT__NEXTRECORD, "_qgmPlInsert::_nextRecord" )
    INT32 _qgmPlInsert::_nextRecord( _pmdEDUCB *eduCB, BSONObj &obj )
    {

@@ -817,6 +817,12 @@ namespace engine
          delta.fromUINT64( _getLastTimeSpan() ) ;
          monQuery->responseTime += delta ;
 
+         if ( monQuery->anchorToContext || monNeedArchiveQuery( monQuery ) )
+         {
+            MONQUERY_SET_QUERY_TEXT( eduCB(),
+                                     eduCB()->getMonAppCB()->getLastOpDetail() ) ;
+         }
+
          if ( !monQuery->anchorToContext )
          {
             pmdGetKRCB()->getMonMgr()->removeMonitorObject( monQuery ) ;
@@ -948,9 +954,6 @@ namespace engine
             tmpData.diff(*(eduCB()->getMonAppCB())) ;
             monQuery->incMetrics(tmpData) ;
             monQuery->numMsgReply++ ;
-
-            MONQUERY_SET_QUERY_TEXT( eduCB(),
-                                     eduCB()->getMonAppCB()->getLastOpDetail() ) ;
          }
 
          if ( rc )

@@ -181,12 +181,9 @@ namespace engine
          {
             if ( SDB_DMS_EOC != rc )
             {
-               PD_RC_CHECK ( rc, PDERROR, "get more failed, rc = %d", rc ) ;
+               PD_LOG ( PDERROR, "get more failed, rc: %d", rc ) ;
             }
-            else
-            {
-               _contextID = -1 ;
-            }
+            _contextID = -1 ;
             goto error ;
          }
       }

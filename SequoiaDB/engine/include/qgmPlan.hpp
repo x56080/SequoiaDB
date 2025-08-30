@@ -84,6 +84,7 @@ namespace engine
       virtual void    buildRetInfo( BSONObjBuilder &builder ) const ;
       virtual void    setClientVersion( INT32 version ) ;
       virtual INT32   getCatalogVersion() const ;
+      virtual void    getObjects( ossPoolSet< ossPoolString > &setObjs ) const ;
 
       OSS_INLINE QGM_PLAN_TYPE type() const { return _type ; }
 

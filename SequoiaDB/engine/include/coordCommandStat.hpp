@@ -68,6 +68,8 @@ namespace engine
 
          virtual BOOLEAN openEmptyContext() const { return FALSE ; }
 
+         virtual void    _onParsedCollection( const CHAR *pCollectionName, pmdEDUCB *cb ) {}
+
       private:
          INT32 _executeOnVCL( const CHAR *pCLName,
                               pmdEDUCB *cb,
@@ -113,6 +115,8 @@ namespace engine
                                           rtnContext *pContext,
                                           pmdEDUCB *cb ) ;
          virtual BOOLEAN openEmptyContext() const { return TRUE ; }
+
+         virtual void    _onParsedCollection( const CHAR *pCollectionName, pmdEDUCB *cb ) ;
    } ;
    typedef _coordCMDGetCount coordCMDGetCount ;
 

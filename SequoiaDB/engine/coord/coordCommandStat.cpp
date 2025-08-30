@@ -106,6 +106,8 @@ namespace engine
                     FIELD_NAME_COLLECTION ) ;
          queryConf._realCLName = ele.str() ;
 
+         _onParsedCollection( queryConf._realCLName.c_str(), cb ) ;
+
          /// real hint
          ele = boHint.getField( FIELD_NAME_HINT ) ;
          if ( Object == ele.type() )
@@ -359,6 +361,12 @@ namespace engine
 
    _coordCMDGetCount::~_coordCMDGetCount()
    {
+   }
+
+   void _coordCMDGetCount::_onParsedCollection( const CHAR *pCollectionName, pmdEDUCB *cb )
+   {
+      /// reset name
+      MONQUERY_SET_NAME( cb, pCollectionName ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( COORD_GETCOUNT_GENRESULT, "_coordCMDGetCount::generateResult" )

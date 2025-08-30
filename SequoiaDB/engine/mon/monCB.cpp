@@ -336,6 +336,7 @@ namespace engine
          _lastOpDetail[ MON_APP_LASTOP_DESC_LEN ] = '\0' ;
       }
       _lastOpMsgSaved = FALSE ;
+      _lockOp = FALSE ;
 
       return *this ;
    }
@@ -470,6 +471,8 @@ namespace engine
       // first char of formatted detail are reset
       *( (INT32 *)_lastOpDetail ) = 0 ;
       _lastOpMsgSaved = FALSE ;
+
+      _lockOp = FALSE ;
    }
 
    void _monAppCB::startOperator( UINT64 *pTime )
@@ -490,6 +493,7 @@ namespace engine
       // first char of formatted detail are reset
       *( (INT32 *)_lastOpDetail ) = 0 ;
       _lastOpMsgSaved = FALSE ;
+      _lockOp = FALSE ;
    }
 
    void _monAppCB::endOperator( UINT64 *pTime )
@@ -508,6 +512,8 @@ namespace engine
          ossTickDelta delta = _lastOpEndTime - _lastOpBeginTime ;
          opTimeSpentInc( delta ) ;
       }
+
+      _lockOp = FALSE ;
    }
 
    void _monAppCB::setLastOpType( INT32 opType )
@@ -523,6 +529,21 @@ namespace engine
    void _monAppCB::setUnknownCmdType()
    {
       _cmdType = CMD_UNKNOW ;
+   }
+
+   void _monAppCB::lockOp()
+   {
+      _lockOp = TRUE ;
+   }
+
+   void _monAppCB::unLockOp()
+   {
+      _lockOp = FALSE ;
+   }
+
+   BOOLEAN _monAppCB::isOpLocked() const
+   {
+      return _lockOp ;
    }
 
    void _monAppCB::opTimeSpentInc( ossTickDelta delta )

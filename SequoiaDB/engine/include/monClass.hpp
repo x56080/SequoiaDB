@@ -73,6 +73,34 @@ class _monAppCB ;
      } \
   }\
 
+#define MONQUERY_SET_NAMES(edu, names)\
+    if (edu->getMonQueryCB()) \
+    { \
+       try \
+       { \
+          std::stringstream ss ; \
+          std::string tmpName ; \
+          INT32 num = 0 ; \
+          ossPoolSet<ossPoolString>::iterator it = names.begin() ; \
+          while( it != names.end() ) \
+          { \
+             if ( 0 != num ) \
+             { \
+                ss << "," ; \
+             } \
+             ss << ( *it ) ; \
+             ++num ; \
+             ++it ; \
+          } \
+          tmpName = ss.str() ; \
+          edu->getMonQueryCB()->name.assign(tmpName.c_str()); \
+       } \
+       catch ( std::exception &e ) \
+       { \
+          PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ; \
+       } \
+    }\
+
 #define MONQUERY_SET_QUERY_TEXT(edu, n)\
   if (edu->getMonQueryCB() && \
       edu->getMonQueryCB()->dataLvl == MON_DATA_LVL_DETAIL && \
@@ -88,6 +116,13 @@ class _monAppCB ;
      } \
   }\
 
+#define MONQUERY_CLEAR_QUERY_TEXT(edu)\
+    if (edu->getMonQueryCB() && \
+        !edu->getMonQueryCB()->queryText.empty() )\
+    {\
+       edu->getMonQueryCB()->queryText.clear() ; \
+    }\
+
 #define MONQUERY_REPLACE_QUERY_TEXT(edu, n)\
     if (edu->getMonQueryCB() && \
         edu->getMonQueryCB()->dataLvl == MON_DATA_LVL_DETAIL )\
@@ -102,6 +137,12 @@ class _monAppCB ;
        } \
     }\
 
+#define MONQUERY_RESET_OPCODE_IF(edu,code,cmpCode)\
+        if (edu->getMonQueryCB() && \
+            edu->getMonQueryCB()->opCode == cmpCode )\
+        {\
+           edu->getMonQueryCB()->opCode = code ; \
+        }\
 
 typedef enum
 {
@@ -382,6 +423,8 @@ public:
  * archive query information based on response time
  */
 BOOLEAN monArchiveQuery ( _monClass *obj ) ;
+
+BOOLEAN monNeedArchiveQuery( _monClass *obj ) ;
 
 /**
  * archive latch information based on wait time

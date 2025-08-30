@@ -195,6 +195,14 @@ namespace engine
       return _catalogVersion ;
    }
 
+   void _qgmPlCommand::getObjects( ossPoolSet< ossPoolString > &setObjs ) const
+   {
+      if ( !_fullName.empty() )
+      {
+         setObjs.insert( _fullName.toString() ) ;
+      }
+   }
+
    // PD_TRACE_DECLARE_FUNCTION( SDB__QGMPLCOMMAND__EXEC, "_qgmPlCommand::_execute" )
    INT32 _qgmPlCommand::_execute( _pmdEDUCB *eduCB )
    {
@@ -756,6 +764,7 @@ namespace engine
             PD_LOG( PDERROR, "Failed to getmore from non-coord, rc = %d",
                     rc) ;
          }
+         _contextID = -1 ;
          goto error ;
       }
 
@@ -774,8 +783,6 @@ namespace engine
       PD_TRACE_EXITRC( SDB__QGMPLCOMMAND__FETCHNEXT, rc ) ;
       return rc ;
    error:
-      if ( SDB_DMS_EOC == rc )
-         _contextID = -1 ;
       goto done ;
    }
 

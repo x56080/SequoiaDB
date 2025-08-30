@@ -84,13 +84,10 @@ namespace engine
          goto error ;
       }
 
-      MONQUERY_SET_NAME( cb, sql ) ;
-
       // add last op info
       MON_SAVE_OP_DETAIL( cb->getMonAppCB(), pMsg->opCode,
                           "%s", sql ) ;
-
-      MONQUERY_SET_QUERY_TEXT( cb, cb->getMonAppCB()->_lastOpDetail ) ;
+      MON_LOCK_OP( cb->getMonAppCB() ) ;
 
       rc = sqlcb->exec( sql, cb, contextID, _needRollback, &retBuilder ) ;
       if ( rc )

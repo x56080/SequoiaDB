@@ -113,6 +113,11 @@ namespace engine
       return _catalogVersion ;
    }
 
+   void _qgmPlDelete::getObjects( ossPoolSet< ossPoolString > &setObjs ) const
+   {
+      setObjs.insert( _collection.toString() ) ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION( SDB__QGMPLDELETE__EXEC, "_qgmPlDelete::_execute" )
    INT32 _qgmPlDelete::_execute( _pmdEDUCB *eduCB )
    {

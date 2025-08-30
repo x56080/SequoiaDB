@@ -70,6 +70,7 @@ namespace engine
       virtual void    buildRetInfo( BSONObjBuilder &builder ) const ;
       virtual void    setClientVersion( INT32 version ) ;
       virtual INT32   getCatalogVersion() const ;
+      virtual void    getObjects( ossPoolSet< ossPoolString > &setObjs ) const ;
 
    protected:
       INT32 _updateVCS( const CHAR *fullName,

@@ -108,6 +108,11 @@ namespace engine
       return _catalogVersion ;
    }
 
+   void _qgmPlUpdate::getObjects( ossPoolSet< ossPoolString > &setObjs ) const
+   {
+      setObjs.insert( _collection.toString() ) ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION( SDB__QGMPLUPDATE__EXEC, "_qgmPlUpdate::_execute" )
    INT32 _qgmPlUpdate::_execute( _pmdEDUCB *eduCB )
    {

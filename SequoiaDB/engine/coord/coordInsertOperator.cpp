@@ -352,8 +352,6 @@ namespace engine
       // add list op info
       MON_SAVE_OP_OPTION( cb->getMonAppCB(), pMsg, options ) ;
 
-      MONQUERY_SET_QUERY_TEXT( cb, cb->getMonAppCB()->getLastOpDetail() ) ;
-
       if ( cb->getSession()->privilegeCheckEnabled() )
       {
          authActionSet actions;

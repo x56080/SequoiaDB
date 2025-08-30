@@ -893,6 +893,12 @@ namespace engine
          if ( NULL != pCommand->collectionFullName() )
          {
             eduCB()->setCurProcessName( pCommand->collectionFullName() ) ;
+
+            if ( CMD_GET_COUNT == pCommand->type() )
+            {
+               /// reset the monQuery name
+               MONQUERY_SET_NAME( eduCB(), pCommand->collectionFullName() ) ;
+            }
          }
          else if ( NULL != pCommand->spaceName() )
          {
@@ -1277,11 +1283,10 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Session[%s] extract sql msg failed, rc: %d",
                    getSession()->sessionName(), rc ) ;
 
-      MONQUERY_SET_NAME( eduCB(), sql ) ;
-
       // add last op info
       MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                           "%s", sql ) ;
+      MON_LOCK_OP( eduCB()->getMonAppCB() ) ;
 
       rc = sqlcb->exec( sql, eduCB(), contextID, needRollback, &builder ) ;
       if ( rc )
@@ -1434,6 +1439,7 @@ namespace engine
                              "Flag:0x%08x(%u)",
                              pCollectionName, count, szTmp,
                              flags, flags ) ;
+         MON_LOCK_OP( eduCB()->getMonAppCB() ) ;
 
          rc = rtnAggregate( pCollectionName, objs, count, flags, eduCB(),
                             _pDMSCB, contextID ) ;
@@ -1679,7 +1685,6 @@ namespace engine
          // add last op info
          MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                              "Option:%s", meta.toPoolString().c_str() ) ;
-         MONQUERY_SET_QUERY_TEXT( eduCB(), eduCB()->getMonAppCB()->getLastOpDetail() ) ;
 
          rc = rtnRemoveLob( meta, header->flags, header->w, eduCB(), dpsCB ) ;
          if ( SDB_OK != rc )
@@ -1735,7 +1740,6 @@ namespace engine
          // add last op info
          MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                              "Option:%s", meta.toString().c_str() ) ;
-         MONQUERY_SET_QUERY_TEXT( eduCB(), eduCB()->getMonAppCB()->getLastOpDetail() ) ;
 
          rc = rtnTruncateLob( meta, header->flags, header->w, eduCB(), dpsCB ) ;
          if ( SDB_OK != rc )
@@ -1791,8 +1795,7 @@ namespace engine
 
       // add last op info
       MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
-                          "ContextID:%lld", header->contextID ) ;
-      MONQUERY_SET_QUERY_TEXT( eduCB(), eduCB()->getMonAppCB()->getLastOpDetail() ) ;
+                          "Option:%s", obj.toString().c_str() ) ;
 
       rc = rtnCreateLobID( obj, oid ) ;
       if ( SDB_OK != rc )
@@ -2316,8 +2319,6 @@ namespace engine
                               BSONObj(pOrderby).toString().c_str(),
                               BSONObj(pHint).toString().c_str(),
                               numToSkip, numToReturn, flag, flag ) ;
-
-         MONQUERY_SET_QUERY_TEXT( eduCB(), eduCB()->getMonAppCB()->_lastOpDetail ) ;
 
          rc = getSession()->checkPrivilegesForCmd( pCollectionName + 1, pQuery, pSelector, pOrderby,
                                                    pHint );

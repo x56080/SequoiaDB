@@ -164,8 +164,6 @@ namespace engine
                       e.what() ) ;
       }
 
-      MONQUERY_SET_QUERY_TEXT( cb, cb->getMonAppCB()->getLastOpDetail() ) ;
-
       if ( cb->getSession()->privilegeCheckEnabled() )
       {
          authActionSet actions;

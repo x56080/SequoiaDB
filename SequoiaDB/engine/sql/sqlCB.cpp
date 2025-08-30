@@ -185,6 +185,14 @@ namespace engine
          containerOwnned = FALSE ;
       }
 
+      /// set names
+      if ( cb->getMonQueryCB() )
+      {
+         ossPoolSet< ossPoolString > setObjs ;
+         container->getObjects( setObjs ) ;
+         MONQUERY_SET_NAMES( cb, setObjs ) ;         
+      }
+
       /// step 7: execute.
       rc = container->execute( cb ) ;
       needRollback = container->needRollback() ;

@@ -169,6 +169,26 @@ namespace engine
       return CATALOG_INVALID_VERSION ;
    }
 
+   INT32 _qgmPlanContainer::getObjects( ossPoolSet< ossPoolString > &setObjs ) const
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( _plan )
+      {
+         try
+         {
+            _plan->getObjects( setObjs ) ;
+         }
+         catch( std::exception &e )
+         {
+            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+            rc = ossException2RC( &e ) ;
+         }
+      }
+
+      return rc ;
+   }
+   
    INT32 _qgmPlanContainer::fetch( BSONObj &obj )
    {
       INT32 rc = SDB_OK ;

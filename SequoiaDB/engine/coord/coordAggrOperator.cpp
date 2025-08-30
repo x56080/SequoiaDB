@@ -118,6 +118,7 @@ namespace engine
                              "Flag:0x%08x(%u)",
                              pCollectionName, count, szTmp,
                              flags, flags ) ;
+         MON_LOCK_OP( cb->getMonAppCB() ) ;
 
          rc = pAggrBuilder->build( objs, count, pCollectionName,
                                    BSONObj(), cb, contextID,

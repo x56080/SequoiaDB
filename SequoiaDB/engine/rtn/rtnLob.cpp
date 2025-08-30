@@ -265,7 +265,6 @@ namespace engine
                           lobContext->mode(), lobContext->mode(),
                           lobContext->flags(), lobContext->flags(),
                           contextID ) ;
-      MONQUERY_SET_QUERY_TEXT( cb, cb->getMonAppCB()->getLastOpDetail() ) ;
 
       /// when explain lob
       if ( flags & FLG_LOB_EXPLAIN )
@@ -363,7 +362,8 @@ namespace engine
                           lobContext->mode(), lobContext->mode(),
                           lobContext->flags(), lobContext->flags(),
                           contextID, offset, len ) ;
-      MONQUERY_REPLACE_QUERY_TEXT( cb, cb->getMonAppCB()->getLastOpDetail() ) ;
+      MONQUERY_CLEAR_QUERY_TEXT( cb ) ;
+      MONQUERY_RESET_OPCODE_IF( cb, MSG_BS_LOB_READ_REQ, MSG_BS_LOB_OPEN_REQ ) ;
 
       rc = lobContext->read( len, offset, cb ) ;
       if ( SDB_OK != rc )
@@ -446,7 +446,8 @@ namespace engine
                           lobContext->mode(), lobContext->mode(),
                           lobContext->flags(), lobContext->flags(),
                           contextID, lobOffset, len ) ;
-      MONQUERY_REPLACE_QUERY_TEXT( cb, cb->getMonAppCB()->getLastOpDetail() ) ;
+      MONQUERY_CLEAR_QUERY_TEXT( cb ) ;
+      MONQUERY_RESET_OPCODE_IF( cb, MSG_BS_LOB_WRITE_REQ, MSG_BS_LOB_OPEN_REQ ) ;
 
       if ( lobOffset < -1 )
       {
@@ -510,7 +511,7 @@ namespace engine
                           lobContext->mode(), lobContext->mode(),
                           lobContext->flags(), lobContext->flags(),
                           contextID, offset, length ) ;
-      MONQUERY_REPLACE_QUERY_TEXT( cb, cb->getMonAppCB()->getLastOpDetail() ) ;
+      MONQUERY_CLEAR_QUERY_TEXT( cb ) ;
 
       if ( offset < 0 || length < -1 )
       {
@@ -569,7 +570,8 @@ namespace engine
                           lobContext->mode(), lobContext->mode(),
                           lobContext->flags(), lobContext->flags(),
                           contextID ) ;
-      MONQUERY_REPLACE_QUERY_TEXT( cb, cb->getMonAppCB()->getLastOpDetail() ) ;
+      MONQUERY_CLEAR_QUERY_TEXT( cb ) ;
+      MONQUERY_RESET_OPCODE_IF( cb, MSG_BS_LOB_GETRTDETAIL_REQ, MSG_BS_LOB_OPEN_REQ ) ;
 
       rc = lobContext->getRTDetail( cb, detail, option ) ;
       if ( SDB_OK != rc )
@@ -628,7 +630,7 @@ namespace engine
                           lobContext->mode(), lobContext->mode(),
                           lobContext->flags(), lobContext->flags(),
                           contextID, lobContext->getLobLength() ) ;
-      MONQUERY_REPLACE_QUERY_TEXT( cb, cb->getMonAppCB()->getLastOpDetail() ) ;
+      MONQUERY_CLEAR_QUERY_TEXT( cb ) ;
 
       rc = lobContext->close( cb ) ;
       if ( SDB_OK != rc )

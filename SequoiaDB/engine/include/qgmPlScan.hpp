@@ -73,6 +73,7 @@ namespace engine
 
       virtual void    setClientVersion( INT32 version ) ;
       virtual INT32   getCatalogVersion() const ;
+      virtual void    getObjects( ossPoolSet< ossPoolString > &setObjs ) const ;
 
    protected:
       INT32 _executeOnData( _pmdEDUCB *eduCB ) ;
