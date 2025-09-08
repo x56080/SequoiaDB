@@ -210,6 +210,12 @@
                                  "en": "Audit Log"
                               },
                               {
+                                 "id": 1756948366,
+                                 "file": "slow_log",
+                                 "cn": "慢查询日志",
+                                 "en": "Slow Query Log"
+                              },
+                              {
                                  "id":1694416493,
                                  "file": "sdb_permission_conf",
                                  "cn": "SequoiaDB权限配置",

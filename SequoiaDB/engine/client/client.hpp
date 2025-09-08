@@ -6247,6 +6247,12 @@ namespace sdbclient
 
       virtual INT32 invalidateFsCache( const bson::BSONObj &options = _sdbStaticObject,
                                        const CHAR *pExpiredTime = NULL ) = 0;
+
+      virtual void enableClientQueryID() = 0 ;
+
+      virtual void incQueryID() = 0 ;
+
+      virtual UINT32 getQueryIDStr( CHAR *pStr, UINT32 strlen ) = 0 ;
    } ;
    /** \typedef class _sdb _sdb
    */
@@ -9057,6 +9063,45 @@ namespace sdbclient
          }
          return pSDB->invalidateFsCache( options, pExpiredTime ) ;
       }
+
+	  /* \fn void enableClientQueryID()
+          \brief client maintains query ID to monitor client operations.
+      */
+      void enableClientQueryID()
+      {
+         if ( pSDB )
+         {
+            pSDB->enableClientQueryID() ;
+         }
+      }
+
+	  /* \fn void incQueryID()
+          \brief increase query ID manually.
+      */
+      void incQueryID()
+      {
+         if ( pSDB )
+         {
+            pSDB->incQueryID() ;
+         }
+      }
+
+	  /* \fn UINT32 getQueryIDStr( CHAR *pStr, UINT32 strlen )
+          \brief get current query ID string.
+          \retval written string length
+      */
+      UINT32 getQueryIDStr( CHAR *pStr, UINT32 strlen )
+      {
+         if ( pSDB )
+         {
+            return pSDB->getQueryIDStr( pStr, strlen ) ;
+         }
+         else
+         {
+            return 0 ;
+         }
+      }
+
    } ;
 
    /** \typedef class sdb sdb

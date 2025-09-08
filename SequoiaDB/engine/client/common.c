@@ -4115,7 +4115,7 @@ INT32 clientExtractSysInfoReply ( CHAR *pBuffer, BOOLEAN *endianConvert,
                                   INT16 *peerProtocolVersion,
                                   UINT64 *dbStartTime,
                                   UINT8 *version, UINT8 *subVersion,
-                                  UINT8 *fixVersion )
+                                  UINT8 *fixVersion, MsgGlobalID *globalID )
 {
    INT32 rc = SDB_OK ;
    MsgSysInfoReply *reply = (MsgSysInfoReply*)pBuffer ;
@@ -4156,6 +4156,19 @@ INT32 clientExtractSysInfoReply ( CHAR *pBuffer, BOOLEAN *endianConvert,
    if ( fixVersion )
    {
       ossEndianConvertIf1( reply->fixVersion, *fixVersion, e ) ;
+   }
+   if ( globalID )
+   {
+      ossEndianConvertIf4( reply->globalID._queryID._tid,
+                           globalID->_queryID._tid, e ) ;
+      ossEndianConvertIf2( reply->globalID._queryID._nodeID,
+                           globalID->_queryID._nodeID, e ) ;
+      ossEndianConvertIf2( reply->globalID._queryID._highSequence,
+                           globalID->_queryID._highSequence, e ) ;
+      ossEndianConvertIf4( reply->globalID._queryID._lowSequence,
+                           globalID->_queryID._lowSequence, e ) ;
+      ossEndianConvertIf4( reply->globalID._queryOpID,
+                           globalID->_queryOpID, e ) ;
    }
    if ( peerProtocolVersion )
    {

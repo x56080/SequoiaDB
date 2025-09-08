@@ -368,7 +368,7 @@ INT32 clientExtractSysInfoReply ( CHAR *pBuffer, BOOLEAN *endianConvert,
                                   INT16 *peerProtocolVersion,
                                   UINT64 *dbStartTime,
                                   UINT8 *version, UINT8 *subVersion,
-                                  UINT8 *fixVersion ) ;
+                                  UINT8 *fixVersion, MsgGlobalID *globalID ) ;
 
 INT32 clientValidateSql( const CHAR *sql, BOOLEAN isExec ) ;
 

@@ -9639,6 +9639,7 @@ do                                                            \
 
       _isOldVersionLobServer = FALSE ;
       _isOperationInterrupted = FALSE ;
+      _useClientQueryID = FALSE ;
    }
 
    _sdbImpl::~_sdbImpl ()
@@ -9946,12 +9947,11 @@ do                                                            \
       rc = clientExtractSysInfoReply ( (CHAR*)pReply, &_endianConvert, NULL,
                                        &_authVersion, &_peerProtocolVersion,
                                        &_dbStartTime, &_version, &_subVersion,
-                                       &_fixVersion ) ;
+                                       &_fixVersion, &_currentGlobalID ) ;
       if ( rc )
       {
          goto error ;
       }
-
    done :
       return rc ;
    error :
@@ -11182,6 +11182,15 @@ do                                                            \
          }
          SDB_ASSERT( tmpLen == *(UINT32 *)pBuffer,
                      "Length of converted message is not as expected" ) ;
+      }
+      if ( _useClientQueryID )
+      {
+         if ( _currentGlobalID.getQueryID() == _lastGlobalID.getQueryID() )
+         {
+            _currentGlobalID.incQueryOpID() ;
+         }
+         ((MsgHeader *)pBuffer)->globalID = _currentGlobalID ;
+         _lastGlobalID = _currentGlobalID ;
       }
 
       ossEndianConvertIf4 ( *(SINT32*)pBuffer, len, _endianConvert ) ;
@@ -14694,6 +14703,28 @@ error:
       return rc ;
    error:
       goto done ;
+   }
+
+   void _sdbImpl::enableClientQueryID()
+   {
+      _useClientQueryID = TRUE ;
+   }
+
+   void _sdbImpl::incQueryID()
+   {
+      if ( _useClientQueryID )
+      {
+         _currentGlobalID.incQueryID() ;
+      }
+   }
+
+   UINT32 _sdbImpl::getQueryIDStr( CHAR *pStr, UINT32 strlen )
+   {
+      if ( _useClientQueryID )
+      {
+         return _currentGlobalID.getQueryID().toHexStr( pStr, strlen ) ;
+      }
+      return 0 ;
    }
 
    _sdb *_sdb::getObj ( BOOLEAN useSSL )

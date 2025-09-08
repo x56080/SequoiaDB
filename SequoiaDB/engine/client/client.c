@@ -1363,7 +1363,7 @@ static INT32 requestSysInfo ( sdbConnectionStruct *connection )
                                     &(connection->_endianConvert),
                                     NULL, &(connection->_authVersion),
                                     &(connection->_peerProtocolVersion),
-                                    NULL, NULL, NULL, NULL ) ;
+                                    NULL, NULL, NULL, NULL, NULL ) ;
    if ( SDB_OK != rc )
    {
       goto error ;
