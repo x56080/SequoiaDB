@@ -895,6 +895,7 @@ namespace engine
 
    BOOLEAN pmdDBIsAbnormal()
    {
+/*
       UINT64 validationTick = 0 ;
       UINT64 tick = 0 ;
       const static UINT64 s_maxTick = (30*OSS_ONE_SEC)/PMD_SYNC_CLOCK_INTERVAL ;
@@ -907,6 +908,19 @@ namespace engine
                  tick, validationTick ) ;
          return TRUE ;
       }
+*/
+#if defined( SDB_ENGINE )
+      if ( pmdGetKRCB() && pmdGetKRCB()->getFTMgr() )
+      {
+         UINT32 ftConfirmedStat = pmdGetKRCB()->getFTMgr()->getConfirmedStat() ;
+         if ( OSS_BIT_TEST( ftConfirmedStat, PMD_FT_MASK_DISK_FAULT ) )
+         {
+            PD_LOG( PDERROR, "disk is abnormal" ) ;
+            return TRUE ;
+         }
+      }
+#endif
+
       return FALSE ;
    }
 

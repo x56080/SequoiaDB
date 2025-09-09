@@ -715,7 +715,7 @@ namespace engine
          OSS_INLINE INT32 maxSessionContextNum() const { return _maxSessionContextNum ; }
          OSS_INLINE INT32 contextTimeout() const { return _contextTimeout ; }
          std::string getOmAddr() const ;
-         OSS_INLINE BOOLEAN detectDisk() const { return _detectDisk ; }
+         OSS_INLINE UINT32 detectDisk() const { return _detectDisk ; }
          OSS_INLINE BOOLEAN diagSecureOn() const { return _diagSecureOn ; }
          OSS_INLINE UINT32 getMetaCacheExpired() const { return _metacacheexpired ; }
          OSS_INLINE UINT32 getMetaCacheLWM() const { return _metacachelwm ; }
@@ -747,6 +747,9 @@ namespace engine
          OSS_INLINE const SDB_CONSISTENCY_STRATEGY getConsistencyStrategy() const { return _consistencyStrategy ; }
          OSS_INLINE INT32  getRecordRecycleDelay() const { return _recordRecycleDelay ; }
          OSS_INLINE UINT32 getRecordRecycleRatio() const { return _recordRecycleRatio ; }
+
+         OSS_INLINE UINT32 ftDiskSlowThreshold() const { return _ftDiskSlowThreshold ; }
+         OSS_INLINE UINT32 ftDiskSlowIncrement() const { return _ftDiskSlowIncrement ; }
 
 #ifdef SDB_ENTERPRISE
 
@@ -895,7 +898,9 @@ namespace engine
          INT32       _maxSessionContextNum ;
          INT32       _contextTimeout ;
 
-         BOOLEAN     _detectDisk ;
+         CHAR        _detectDiskNumStr[ PMD_MAX_SHORT_STR_LEN + 1 ] ;
+         UINT32      _detectDisk ;
+
          BOOLEAN     _diagSecureOn ;
          UINT32      _metacacheexpired ;
          UINT32      _metacachelwm ;
@@ -923,6 +928,9 @@ namespace engine
          SDB_CONSISTENCY_STRATEGY _consistencyStrategy ;
          INT32       _recordRecycleDelay ;      /// only -1 for testability, no add to deleting list
          UINT32      _recordRecycleRatio ;
+
+         UINT32      _ftDiskSlowThreshold ;
+         UINT32      _ftDiskSlowIncrement ;
 
 #ifdef SDB_ENTERPRISE
 

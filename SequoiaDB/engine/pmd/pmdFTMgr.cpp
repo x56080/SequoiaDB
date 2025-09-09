@@ -37,6 +37,8 @@
 #include "pd.hpp"
 #include "dmsCB.hpp"
 
+#include "clsLocalValidation.hpp"
+
 namespace engine
 {
 
@@ -47,6 +49,8 @@ namespace engine
    #define PMD_FT_SLOWNODE_N_WND_SZ                   ( 40 )
 
    #define PMD_FT_NOSPC_ADJ_MAX                       ( 30 )
+
+   #define PMD_FT_DISK_FAULT_N_WND_SZ                 PMD_FT_SLOWNODE_N_WND_SZ
 
    /*
       _ftSampleWindow implement
@@ -248,6 +252,9 @@ namespace engine
 
       _slowNodeThreshold = 0 ;
       _slowNodeIncrement = 0 ;
+
+      _diskSlowThreshold = 0 ;
+      _diskSlowIncrement = 0 ;
    }
 
    _pmdFTMgr::~_pmdFTMgr()
@@ -345,6 +352,12 @@ namespace engine
       _slowNodeIncrement = (UINT64)increment * 1024 * 1024 ;
    }
 
+   void _pmdFTMgr::setDiskDetectInfo( UINT64 threshold, UINT64 increment )
+   {
+      _diskSlowThreshold = threshold ;
+      _diskSlowIncrement = increment ;
+   }
+
    UINT64 _pmdFTMgr::_sumPrevnLsnDiff( ftSampleWndItem *pItem, UINT32 count )
    {
       UINT64 totalLsnDiff = 0 ;
@@ -357,6 +370,20 @@ namespace engine
       } while ( ++i < count ) ;
 
       return totalLsnDiff ;
+   }
+
+   UINT64 _pmdFTMgr::_sumPrevnDiskWriteCostTime( ftSampleWndItem *pItem, UINT32 count )
+   {
+      UINT64 totalDiskWriteCostTime = 0 ;
+      UINT32 i = 0 ;
+
+      do
+      {
+         totalDiskWriteCostTime += pItem->_sys._diskWriteCostTime ;
+         pItem = _sampleWnd.prev( pItem->getPos() ) ;
+      } while ( ++i < count ) ;
+
+      return totalDiskWriteCostTime ;
    }
 
    ftSampleWndItem* _pmdFTMgr::_sample( UINT64 dbTick )
@@ -384,6 +411,8 @@ namespace engine
       UINT32 transSucInc = 0 ;
       UINT32 transErrInc = 0 ;
       monDBCB *pMonDB = krcb->getMonDBCB() ;
+
+      clsDiskWriteCostTime curTime = getCurDiskWriteCostTime() ;
 
       if ( !pDpsCB )
       {
@@ -495,8 +524,81 @@ namespace engine
       pItem->_sys._lsnQueSize = lsnQueSize ;
       pItem->_sys._primaryLsn = primaryLsn ;
       pItem->_sys._lsnDiff = lsnDiff ;
+      if ( curTime.isValid() )
+      {
+         UINT64 tmpTime = 0 ;
+         if ( curTime.isFinish() )
+         {
+            tmpTime = curTime.curSpentTime ;
+         }
+         else
+         {
+            tmpTime = pmdGetTickSpanTime( curTime.beginTime ) ;
+         }
+
+         if ( !curTime.finishAllDiskWrite )
+         {
+            if ( tmpTime < curTime.lastSpentTime / 2 )
+            {
+               tmpTime = curTime.lastSpentTime ;
+            }
+         }
+
+         pItem->_sys._diskWriteCostTime = tmpTime ;
+      }
 
       /// calc risk
+      /// disk fault
+      if ( OSS_BIT_TEST( _ftMask, PMD_FT_MASK_DISK_FAULT ) &&
+           !_isInShield( PMD_FT_MASK_DISK_FAULT, dbTick ) &&
+           curTime.isValid() )
+      {
+         if ( SDB_OK != curTime.returnCode )
+         {
+            _sampleWnd.reportRisk( FT_RISK_DISK_FAULT ) ;
+            PD_LOG( PDINFO, "Report risk( FT_RISK_DISK_FAULT ), failed to check disk, rc: %d",
+                    curTime.returnCode ) ;
+         }
+         else if ( pItem->_sys._diskWriteCostTime >= _diskSlowThreshold )
+         {
+            if ( 0 == _diskSlowIncrement )
+            {
+               _sampleWnd.reportRisk( FT_RISK_DISK_FAULT ) ;
+               PD_LOG( PDINFO, "Report risk( FT_RISK_DISK_FAULT ), Expr: "
+                       "DiskWriteCostTime(%llu ms) >= Threshold(%llu ms)",
+                       pItem->_sys._diskWriteCostTime, _diskSlowThreshold ) ;
+            }
+            else if ( _sampleWnd.getCount() > PMD_FT_DISK_FAULT_N_WND_SZ  )
+            {
+               UINT64 costTimeN = _sumPrevnDiskWriteCostTime( pItem, PMD_FT_DISK_FAULT_N_WND_SZ ) ;
+               UINT64 preCostTimeN = _sumPrevnDiskWriteCostTime( pPrevItem, PMD_FT_DISK_FAULT_N_WND_SZ ) ;
+               UINT64 avgN = costTimeN / PMD_FT_DISK_FAULT_N_WND_SZ ;
+               UINT64 prevAvgN = preCostTimeN / PMD_FT_DISK_FAULT_N_WND_SZ ;
+
+               if ( avgN > prevAvgN + _diskSlowIncrement )
+               {
+                  _sampleWnd.reportRisk( FT_RISK_DISK_FAULT ) ;
+                  PD_LOG( PDINFO, "Report risk( FT_RISK_DISK_FAULT ), Expr: "
+                          "DiskWriteCostTime(%llu ms) >= Threshold(%llu ms) && "
+                          "AvgN(%llu ms) >= PrevAvgN(%llu ms) + Increment(%llu ms)",
+                          pItem->_sys._diskWriteCostTime, _diskSlowThreshold,
+                          avgN, prevAvgN, _diskSlowIncrement ) ;
+               }
+               else if ( avgN > prevAvgN &&
+                         pPrevItem->_risk[ FT_RISK_DISK_FAULT ]._count > 0 )
+               {
+                  _sampleWnd.reportRisk( FT_RISK_DISK_FAULT ) ;
+                  PD_LOG( PDINFO, "Report risk( FT_RISK_DISK_FAULT ), Expr: "
+                          "DiskWriteCostTime(%llu) >= Threshold(%llu) && "
+                          "AvgN(%llu) > PrevAvgN(%llu) && "
+                          "PrevItem is FT_RISK_DISK_FAULT",
+                          pItem->_sys._diskWriteCostTime, _diskSlowThreshold,
+                          avgN, prevAvgN ) ;
+               }
+            }
+         }
+      }
+
       /// slow node
       if ( OSS_BIT_TEST( _ftMask, PMD_FT_MASK_SLOWNODE ) )
       {
@@ -695,6 +797,29 @@ namespace engine
       } while ( ++count < confirmWndSize ) ;
 
       /// Analyse
+      /// Risk: FT_RISK_SLOW_NODE
+      if ( OSS_BIT_TEST( _ftMask, PMD_FT_MASK_DISK_FAULT ) )
+      {
+         ratio = (FLOAT64)statItem._risk[ FT_RISK_DISK_FAULT ]._count /
+                 confirmWndSize ;
+         if ( ratio >= confirmRatio )
+         {
+            OSS_BIT_SET( confirmStat, PMD_FT_MASK_DISK_FAULT ) ;
+            PD_LOG( ( ( _confirmedStat & PMD_FT_MASK_DISK_FAULT ) ?
+                    PDINFO : PDWARNING ),
+                    "Confirm Risk( FT_RISK_DISK_FAULT ), Expr: "
+                    "Ratio(%.2f) >= ConfirmRatio(%.2f)",
+                    ratio, confirmRatio ) ;
+         }
+         else if ( _confirmedStat & PMD_FT_MASK_DISK_FAULT )
+         {
+            PD_LOG( PDEVENT,
+                    "Disable Risk( FT_RISK_DISK_FAULT ), Expr: "
+                    "Ratio(%.2f) < ConfirmRatio(%.2f)",
+                    ratio, confirmRatio ) ;
+         }
+      }
+
       /// Risk: FT_RISK_SLOW_NODE
       if ( OSS_BIT_TEST( _ftMask, PMD_FT_MASK_SLOWNODE ) )
       {

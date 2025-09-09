@@ -2706,25 +2706,27 @@
       <name>PMD_OPTION_FT_MASK</name>
       <long>ftmask</long>
       <description>
-         <en>Fault-tolerant mask,default:NOSPC|DEADSYNC,value list: NOSPC,DEADSYNC,SLOWNODE, use '|' join multiple values, ALL enable all mask, NONE disable all mask</en>
-         <cn>容错掩码,默认值:NOSPC|DEADSYNC,取值列表为: NOSPC,DEADSYNC,SLOWNODE, 使用'|'连接多个取值, ALL取值表示开启所有, NONE关闭全部</cn>
+         <en>Fault-tolerant mask,default:NOSPC|DEADSYNC|DISKFAULT,value list: NOSPC,DEADSYNC,SLOWNODE,DISKFAULT, use '|' join multiple values, ALL enable all mask, NONE disable all mask</en>
+         <cn>容错掩码,默认值:NOSPC|DEADSYNC|DISKFAULT,取值列表为: NOSPC,DEADSYNC,SLOWNODE,DISKFAULT, 使用'|'连接多个取值, ALL取值表示开启所有, NONE关闭全部</cn>
       </description>
       <reloadable>
          <en>Take effect immediately</en>
          <cn>在线生效</cn>
       </reloadable>
       <detail>
-         <en>Specify the mask for enabling fault tolerance processing, the default value is "NOSPC|DEADSYNC"，and the values are as follows:<fig></fig>
+         <en>Specify the mask for enabling fault tolerance processing, the default value is "NOSPC|DEADSYNC|DISKFAULT"，and the values are as follows:<fig></fig>
              ● "NOSPC": Insufficient disk space<fig></fig>
              ● "DEADSYNC": Node data is out of sync<fig></fig>
              ● "SLOWNODE": Node data synchronization is too slow<fig></fig>
+             ● "DISKFAULT": Disk failure<fig></fig>
              ● "ALL": Turn on all fault tolerance processing<fig></fig>
              ● "NONE": Turn off all fault tolerance processing
          </en>
-         <cn>指定开启容错处理的掩码，默认值为"NOSPC|DEADSYNC"，取值如下：<fig></fig>
+         <cn>指定开启容错处理的掩码，默认值为"NOSPC|DEADSYNC|DISKFAULT"，取值如下：<fig></fig>
              ● "NOSPC"：磁盘空间不足<fig></fig>
              ● "DEADSYNC"：节点数据不同步<fig></fig>
              ● "SLOWNODE"：节点数据同步过慢<fig></fig>
+             ● "DISKFAULT": 磁盘故障<fig></fig>
              ● "ALL"：开启所有容错处理<fig></fig>
              ● "NONE"：关闭所有容错处理
          </cn>
@@ -2843,6 +2845,61 @@
       </detail>
       <type>int</type>
       <default>8</default>
+      <typeofweb>num</typeofweb>
+   </opt>
+   <opt>
+      <name>PMD_OPTION_DETECT_DISK</name>
+      <long>detectdisk</long>
+      <description>
+         <en>Disk detection interval. Default:5, value range:[5,300], Unit:s</en>
+         <cn>磁盘检测时间间隔，默认：5，取值范围：[5,300]，单位：秒</cn>
+      </description>
+      <reloadable>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
+      </reloadable>
+      <detail>
+         <en>Disk detection interval. Default:5, value range:[5,300], Unit:s</en>
+         <cn>磁盘检测时间间隔，默认：5，取值范围：[5,300]，单位：秒</cn>
+      </detail>
+      <typeofweb>str</typeofweb>
+   </opt>
+   <opt>
+      <name>PMD_OPTION_FT_DISK_SLOW_THRESHOLD</name>
+      <long>ftdiskslowthreshold</long>
+      <description>
+         <en>Disk I/O latency monitoring threshold. Default:1000, value range:[1000,600000], Unit:ms</en>
+         <cn>磁盘检测I/O操作卡顿监控阈值，默认：1000，取值范围：[1000,600000]，单位：毫秒</cn>
+      </description>
+      <reloadable>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
+      </reloadable>
+      <detail>
+         <en>Disk I/O latency monitoring threshold. Default:1000, value range:[1000,600000], Unit:ms</en>
+         <cn>磁盘检测I/O操作卡顿监控阈值，默认：1000，取值范围：[1000,600000]，单位：毫秒</cn>
+      </detail>
+      <type>int</type>
+      <default>1000</default>
+      <typeofweb>num</typeofweb>
+   </opt>
+   <opt>
+      <name>PMD_OPTION_FT_DISK_SLOW_INCREMENT</name>
+      <long>ftdiskslowincrement</long>
+      <description>
+         <en>Incremental value of disk I/O latency. Default:500, value range:[0,600000], Unit:ms</en>
+         <cn>磁盘检测I/O操作卡顿时间增量值，默认：500，取值范围：[0,600000]，单位：毫秒</cn>
+      </description>
+      <reloadable>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
+      </reloadable>
+      <detail>
+         <en>Incremental value of disk I/O latency. Default:500, value range:[0,600000], Unit:ms</en>
+         <cn>磁盘检测I/O操作卡顿时间增量值，默认：500，取值范围：[0,600000]，单位：毫秒</cn>
+      </detail>
+      <type>int</type>
+      <default>500</default>
       <typeofweb>num</typeofweb>
    </opt>
    <opt>
@@ -3109,26 +3166,6 @@
       <typeofweb>int</typeofweb>
       <hidden>true</hidden>
    </opt>
-
-   <opt>
-      <name>PMD_OPTION_DETECT_DISK</name>
-      <long>detectdisk</long>
-      <description>
-         <en>Turn on disk detection. Default is true</en>
-         <cn>开启磁盘检测，默认为true</cn>
-      </description>
-      <reloadable>
-         <en>Take effect immediately</en>
-         <cn>在线生效</cn>
-      </reloadable>
-      <detail>
-         <en>Turn on disk detection. Default is true</en>
-         <cn>开启磁盘检测，默认为true</cn>
-      </detail>
-      <default>true</default>
-      <typeofweb>boolean</typeofweb>
-      <hidden>true</hidden>
-  </opt>
 
   <opt>
       <name>PMD_OPTION_DIAG_SECURE_ON</name>

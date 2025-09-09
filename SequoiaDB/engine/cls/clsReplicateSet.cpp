@@ -1494,12 +1494,13 @@ namespace engine
          _reelection.onTimer( interval ) ;
          _locationReelection.onTimer( interval ) ;
 
-         /// When self is primary NOSPC or TRANSERR, should force to secondary
+         /// When self is primary NOSPC or TRANSERR or DISKFAULT, should force to secondary
          if ( _vote.primaryIsMe() && _info.groupSize() > 1 )
          {
             UINT32 ftConfirmedStat = _pFTMgr->getConfirmedStat() ;
             if ( OSS_BIT_TEST( ftConfirmedStat, PMD_FT_MASK_NOSPC ) ||
-                 OSS_BIT_TEST( ftConfirmedStat, PMD_FT_MASK_TRANSERR ) )
+                 OSS_BIT_TEST( ftConfirmedStat, PMD_FT_MASK_TRANSERR ) ||
+                 OSS_BIT_TEST( ftConfirmedStat, PMD_FT_MASK_DISK_FAULT ) )
             {
                DPS_LSN lsn = _logger->expectLsn() ;
                if ( lsn.invalid() || _sync.atLeastOne( lsn.offset ) )
@@ -1507,7 +1508,8 @@ namespace engine
                   CHAR ftStatStr[ CLS_FORMART_STR_128 + 1 ] = { 0 } ;
                   utilFTMaskToStr( ftConfirmedStat &
                                    ( PMD_FT_MASK_NOSPC |
-                                     PMD_FT_MASK_TRANSERR ),
+                                     PMD_FT_MASK_TRANSERR |
+                                     PMD_FT_MASK_DISK_FAULT ),
                                    ftStatStr,
                                    CLS_FORMART_STR_128 ) ;
 
@@ -1808,8 +1810,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSREPSET__SHRBEAT ) ;
 
-      if ( _info.info.empty() ||
-           ( pmdGetOptionCB()->detectDisk() && pmdDBIsAbnormal() ) )
+      if ( _info.info.empty() )
       {
          goto done ;
       }
@@ -2429,11 +2430,6 @@ namespace engine
       {
          _alive( beat.identity, _isUDPHandle( handle ), isLocationBeat ) ;
          _MsgClsBeatRes res ;
-
-         if ( pmdGetOptionCB()->detectDisk() && pmdDBIsAbnormal() )
-         {
-            goto done ;
-         }
 
          res.header.header.requestID = msg->header.requestID ;
          res.identity = _info.local ;

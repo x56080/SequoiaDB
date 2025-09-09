@@ -37,9 +37,59 @@
 #include "core.hpp"
 #include "ossUtil.hpp"
 #include "ossMemPool.hpp"
+#include "pmd.hpp"
 
 namespace engine
 {
+   struct _clsDiskWriteCostTime
+   {
+      UINT64 beginTime ;
+      UINT64 endTime ;
+      UINT64 curSpentTime ;
+      UINT64 lastSpentTime ;
+      UINT32 returnCode ;
+      BOOLEAN finishAllDiskWrite ;
+
+      _clsDiskWriteCostTime()
+      {
+         beginTime = 0 ;
+         endTime = 0 ;
+         curSpentTime = 0 ;
+         lastSpentTime = 0 ;
+         returnCode = SDB_OK ;
+         finishAllDiskWrite = FALSE ;
+      }
+
+      _clsDiskWriteCostTime& operator= ( const _clsDiskWriteCostTime &rhs )
+      {
+         beginTime = rhs.beginTime ;
+         endTime = rhs.endTime ;
+         curSpentTime = rhs.curSpentTime ;
+         lastSpentTime = rhs.lastSpentTime ;
+         returnCode = rhs.returnCode ;
+         finishAllDiskWrite = rhs.finishAllDiskWrite ;
+         return *this ;
+      }
+
+      BOOLEAN isValid()
+      {
+         return ( beginTime != 0 ) ;
+      }
+
+      BOOLEAN isFinish()
+      {
+         return ( beginTime != 0 && endTime != 0 && endTime >= beginTime && curSpentTime != 0 ) ;
+      }
+   } ;
+   typedef _clsDiskWriteCostTime clsDiskWriteCostTime ;
+
+   extern clsDiskWriteCostTime curDiskWriteCostTime ;
+
+   OSS_INLINE clsDiskWriteCostTime& getCurDiskWriteCostTime()
+   {
+      return curDiskWriteCostTime ;
+   }
+
    class _clsDiskDetector : public SDBObject
    {
    public:
@@ -51,15 +101,15 @@ namespace engine
 
    private:
       INT32   _addFilePath( const CHAR* pFilePath ) ;
-      INT32   _tryToWriteFile( const CHAR* pFilePath ) ;
+      INT32   _tryToWriteFile( const CHAR* pFilePath, clsDiskWriteCostTime &time ) ;
       BOOLEAN _isNeedToDetect() ;
 
    private:
       ossPoolSet<ossPoolString> _filePathsSet ;
-      ossPoolSet<ossPoolString>::iterator _it ;
       UINT64 _lastTick ;
       BOOLEAN _isMonitoredRole ;
       BOOLEAN _hasInit ;
+      CHAR    *_content ;
    } ;
 
    class _clsLocalValidation : public SDBObject

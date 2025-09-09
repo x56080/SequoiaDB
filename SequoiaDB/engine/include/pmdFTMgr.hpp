@@ -76,6 +76,7 @@ namespace engine
       UINT32            _lsnQueSize ;
       UINT64            _primaryLsn ;
       UINT64            _lsnDiff ;
+      UINT64            _diskWriteCostTime ;   // ms
 
       _ftSampleSysItem()
       {
@@ -89,6 +90,7 @@ namespace engine
          _lsnQueSize = 0 ;
          _primaryLsn = 0 ;
          _lsnDiff = 0 ;
+         _diskWriteCostTime = 0 ;
       }
    } ;
    typedef _ftSampleSysItem ftSampleSysItem ;
@@ -271,6 +273,7 @@ namespace engine
          void     setConfrimRatio( UINT32 confirmRatio ) ;
          void     setFTLevel( INT32 ftLevel ) ;
          void     setSlowNodeInfo( UINT32 threshold, UINT32 increment ) ;
+         void     setDiskDetectInfo( UINT64 threshold, UINT64 increment ) ;
 
          INT32    getFTLevel() const { return _ftLevel ; }
 
@@ -300,6 +303,9 @@ namespace engine
          UINT64            _sumPrevnLsnDiff( ftSampleWndItem *pItem,
                                              UINT32 count ) ;
 
+         UINT64            _sumPrevnDiskWriteCostTime( ftSampleWndItem *pItem,
+                                                       UINT32 count ) ;
+
          BOOLEAN           _isInShield( UINT32 mask, UINT64 dbTick ) ;
 
       private:
@@ -324,6 +330,9 @@ namespace engine
 
          LIST_SHIELD_ITEM     _lstShield ;
          ossSpinSLatch        _shieldLatch ;
+
+         UINT64         _diskSlowThreshold ;
+         UINT64         _diskSlowIncrement ;
    } ;
    typedef _pmdFTMgr pmdFTMgr ;
 

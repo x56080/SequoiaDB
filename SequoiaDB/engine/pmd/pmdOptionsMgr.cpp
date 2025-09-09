@@ -141,6 +141,17 @@ namespace engine
 
    #define PMD_DFT_START_COST_LIMIT     (1000)
 
+   #define PMD_DISK_DETECT_TIME_MIN   (5)   // s
+   #define PMD_DISK_DETECT_TIME_MAX   (300)
+   #define PMD_DFT_DISK_DETECT_TIME   PMD_DISK_DETECT_TIME_MIN
+
+   #define PMD_DISK_DETECT_TIME_STR_MIN   "5"
+   #define PMD_DISK_DETECT_TIME_STR_MAX   "300"
+   #define PMD_DEF_DISK_DETECT_TIME_STR   PMD_DISK_DETECT_TIME_STR_MIN
+
+   #define PMD_DFT_FT_DISK_SLOW_THRESHOLD   ( 1000 ) // ms
+   #define PMD_DFT_FT_DISK_SLOW_INCREMENT   ( 500 ) // ms
+
    /*
       _pmdCfgExchange implement
    */
@@ -2063,7 +2074,8 @@ done:
       _monHistEvent = PMD_DFT_MONHISTEVENT ;
       _monHistExpiredTime = PMD_DFT_MONHIST_EXPIREDTIME ;
 
-      _detectDisk = TRUE ;
+      ossMemset( _detectDiskNumStr, 0, sizeof(_detectDiskNumStr) ) ;
+      _detectDisk = PMD_DFT_DISK_DETECT_TIME ;
       _diagSecureOn = TRUE ;
       _metacacheexpired = PMD_DFT_METACACHE_EXPIRED ;
       _metacachelwm = PMD_DFT_METACACHE_LWM ;
@@ -2090,6 +2102,9 @@ done:
       _recordRecycleDelay = PMD_DFT_RECORD_RECYCLE_DELAY ;
       _recordRecycleRatio = PMD_DFT_RECORD_RECYCLE_RATIO ;
       _optStartCostLimit = PMD_DFT_START_COST_LIMIT ;
+
+      _ftDiskSlowThreshold = PMD_DFT_FT_DISK_SLOW_THRESHOLD ;
+      _ftDiskSlowIncrement = PMD_DFT_FT_DISK_SLOW_INCREMENT ;
 
 #ifdef SDB_ENTERPRISE
 
@@ -2672,8 +2687,9 @@ done:
                  RTN_CTX_TIMEOUT_MAX, TRUE ) ;
 
       // --detectdisk
-      rdxBooleanS( pEX, PMD_OPTION_DETECT_DISK, _detectDisk,
-                   FALSE, PMD_CFG_CHANGE_RUN, TRUE, TRUE ) ;
+      rdxString( pEX, PMD_OPTION_DETECT_DISK, _detectDiskNumStr,
+                 sizeof (_detectDiskNumStr), FALSE, PMD_CFG_CHANGE_RUN,
+                 PMD_DEF_DISK_DETECT_TIME_STR ) ;
 
       // --diagsecureon
       rdxBooleanS( pEX, PMD_OPTION_DIAG_SECURE_ON, _diagSecureOn,
@@ -2765,6 +2781,18 @@ done:
       // --optstartcostlimit
       rdxUInt( pEX, PMD_OPTION_OPT_START_COST_LIMIT, _optStartCostLimit, FALSE,
                PMD_CFG_CHANGE_RUN, PMD_DFT_START_COST_LIMIT, TRUE ) ;
+
+      // --ftdiskslowthreshold
+      rdxUInt( pEX, PMD_OPTION_FT_DISK_SLOW_THRESHOLD, _ftDiskSlowThreshold,
+               FALSE, PMD_CFG_CHANGE_RUN, PMD_DFT_FT_DISK_SLOW_THRESHOLD,
+               TRUE ) ;
+      rdvMinMax( pEX, _ftDiskSlowThreshold, 1000, 600000 ) ;
+
+      // --ftdiskslowincrement
+      rdxUInt( pEX, PMD_OPTION_FT_DISK_SLOW_INCREMENT, _ftDiskSlowIncrement,
+               FALSE, PMD_CFG_CHANGE_RUN, PMD_DFT_FT_DISK_SLOW_INCREMENT,
+               TRUE ) ;
+      rdvMinMax( pEX, _ftDiskSlowIncrement, 0, 600000 ) ;
 
       // end map
 
@@ -2859,6 +2887,7 @@ done:
          std::cerr << PMD_OPTION_FT_MASK << "value error, use default"
                    << endl ;
          _ftMask = PMD_FT_MASK_DFT ;
+         ossStrncpy( _ftMaskStr, PMD_FT_MASK_DFT_STR, sizeof( _ftMaskStr ) ) ;
          _invalidConfNum++ ;
       }
 
@@ -3296,6 +3325,38 @@ done:
       if ( 0 == _fsCacheExpiredMs )
       {
          _fsCacheExpiredMs = (UINT64)~0 ;
+      }
+
+      if ( !utilStrIsDigit( _detectDiskNumStr ) )
+      {
+         std::cerr << PMD_OPTION_DETECT_DISK << " value error, use default"
+                   << std::endl ;
+         _detectDisk = PMD_DFT_DISK_DETECT_TIME ;
+         ossStrncpy( _detectDiskNumStr, PMD_DEF_DISK_DETECT_TIME_STR,
+                     sizeof( _detectDiskNumStr ) ) ;
+         _invalidConfNum++ ;
+      }
+      else
+      {
+         _detectDisk = ossAtoi( _detectDiskNumStr ) ;
+         if ( _detectDisk < PMD_DISK_DETECT_TIME_MIN )
+         {
+            std::cerr << PMD_OPTION_DETECT_DISK << " value error, use min value"
+                     << std::endl ;
+            _detectDisk = PMD_DISK_DETECT_TIME_MIN ;
+            ossStrncpy( _detectDiskNumStr, PMD_DISK_DETECT_TIME_STR_MIN,
+                        sizeof( _detectDiskNumStr ) ) ;
+            _invalidConfNum++ ;
+         }
+         else if ( _detectDisk > PMD_DISK_DETECT_TIME_MAX )
+         {
+            std::cerr << PMD_OPTION_DETECT_DISK << " value error, use max value"
+                     << std::endl ;
+            _detectDisk = PMD_DISK_DETECT_TIME_MAX ;
+            ossStrncpy( _detectDiskNumStr, PMD_DISK_DETECT_TIME_STR_MAX,
+                        sizeof( _detectDiskNumStr ) ) ;
+            _invalidConfNum++ ;
+         }
       }
 
    done:
