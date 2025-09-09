@@ -2819,11 +2819,13 @@ error:
    goto done ;
 }
 
+// PD_TRACE_DECLARE_FUNCTION ( SDB_OSS_WRITEN, "ossWriteN" )
 INT32 ossWriteN( OSSFILE *file,
                  const CHAR *buf,
                  SINT64 len )
 {
    INT32 rc = SDB_OK ;
+   PD_TRACE_ENTRY( SDB_OSS_WRITEN ) ;
    SDB_ASSERT( NULL != file && NULL != buf, "can not be null" ) ;
 
    SINT64 total = len ;
@@ -2847,6 +2849,7 @@ INT32 ossWriteN( OSSFILE *file,
       }
    }
 done:
+   PD_TRACE_EXITRC( SDB_OSS_WRITEN, rc ) ;
    return rc ;
 error:
    goto done ;

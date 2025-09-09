@@ -34,8 +34,7 @@
 #include "pmdEnv.hpp"
 #include "clsLocalValidation.hpp"
 #include "pd.hpp"
-#include "pdTrace.hpp"
-#include "pmdTrace.hpp"
+#include "pmdFTMgr.hpp"
 
 namespace engine
 {
@@ -106,15 +105,14 @@ namespace engine
          rc = v.run() ;
          if ( SDB_OK != rc )
          {
+            ftReportErr( rc ) ;
             PD_LOG( PDERROR, "Failed to run local validation: %d", rc ) ;
          }
 
          if ( pmdDBIsAbnormal() )
          {
             PMD_RESTART_DB( SDB_SYS ) ;
-            PD_LOG( PDSEVERE, "DB is under abnormal status, because of "
-                    "tick - validationTick > %dms. We must restart db!",
-                    (30*OSS_ONE_SEC)/PMD_SYNC_CLOCK_INTERVAL ) ;
+            PD_LOG( PDSEVERE, "DB or Disk is under abnormal status. We must restart db!" ) ;
          }
       }
 

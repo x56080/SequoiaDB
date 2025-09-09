@@ -460,6 +460,7 @@ namespace engine
       FT_RISK_SLOW_NODE,
       FT_RISK_DEADSYNC,
       FT_RISK_TRANSERR,
+      FT_RISK_DISK_FAULT,
 
       FT_RISK_MAX
    } ;
@@ -483,19 +484,25 @@ namespace engine
    #define PMD_FT_MASK_DEADSYNC        0x00000002
    #define PMD_FT_MASK_SLOWNODE        0x00000004
    #define PMD_FT_MASK_TRANSERR        0x00000008
+   #define PMD_FT_MASK_DISK_FAULT      0x00000010
 
    #define PMD_FT_MASK_ALL             0xFFFFFFFF
 
    #define PMD_FT_MASK_DFT             ( PMD_FT_MASK_NOSPC|\
-                                         PMD_FT_MASK_DEADSYNC )
+                                         PMD_FT_MASK_DEADSYNC|\
+                                         PMD_FT_MASK_DISK_FAULT )
 
    #define PMD_FT_MASK_NOSPC_STR       "NOSPC"
    #define PMD_FT_MASK_DEADSYNC_STR    "DEADSYNC"
    #define PMD_FT_MASK_SLOWNODE_STR    "SLOWNODE"
    #define PMD_FT_MASK_TRANSERR_STR    "TRANSERR"
+   #define PMD_FT_MASK_DISK_FAULT_STR  "DISKFAULT"
+   #define PMD_FT_MASK_NONE_STR        "NONE"
+   #define PMD_FT_MASK_ALL_STR         "ALL"
 
    #define PMD_FT_MASK_DFT_STR         ( PMD_FT_MASK_NOSPC_STR"|"\
-                                         PMD_FT_MASK_DEADSYNC_STR )
+                                         PMD_FT_MASK_DEADSYNC_STR"|"\
+                                         PMD_FT_MASK_DISK_FAULT_STR )
 
    #define PMD_FT_IS_FATAL_FAULT(mask) \
       ( (PMD_FT_MASK_NOSPC & (mask)) || \

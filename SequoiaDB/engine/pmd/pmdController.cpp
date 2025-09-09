@@ -340,6 +340,8 @@ namespace engine
          ftMgr->setFTLevel( pmdGetOptionCB()->ftLevel() ) ;
          ftMgr->setSlowNodeInfo( pmdGetOptionCB()->ftSlowNodeThreshold(),
                                  pmdGetOptionCB()->ftSlowNodeIncrement() ) ;
+         ftMgr->setDiskDetectInfo( pmdGetOptionCB()->ftDiskSlowThreshold(),
+                                   pmdGetOptionCB()->ftDiskSlowIncrement() ) ;
       }
 
       pmdGetKRCB()->getBuffPool()->enablePerfStat(

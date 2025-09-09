@@ -332,11 +332,15 @@ namespace engine
       {
          ftMask |= PMD_FT_MASK_TRANSERR ;
       }
-      else if ( 0 == ossStrncasecmp( start, "NONE", len ) )
+      else if ( 0 == ossStrncasecmp( start, PMD_FT_MASK_DISK_FAULT_STR, len ) )
+      {
+         ftMask |= PMD_FT_MASK_DISK_FAULT ;
+      }
+      else if ( 0 == ossStrncasecmp( start, PMD_FT_MASK_NONE_STR, len ) )
       {
          /// do nothing
       }
-      else if ( 0 == ossStrncasecmp( start, "ALL", len ) )
+      else if ( 0 == ossStrncasecmp( start, PMD_FT_MASK_ALL_STR, len ) )
       {
          ftMask = PMD_FT_MASK_ALL ;
       }
@@ -515,6 +519,10 @@ namespace engine
       if ( OSS_BIT_TEST ( ftMask, PMD_FT_MASK_TRANSERR ) )
       {
          _utilAppendOrString( pBuff, size, PMD_FT_MASK_TRANSERR_STR ) ;
+      }
+      if ( OSS_BIT_TEST ( ftMask, PMD_FT_MASK_DISK_FAULT ) )
+      {
+         _utilAppendOrString( pBuff, size, PMD_FT_MASK_DISK_FAULT_STR ) ;
       }
    }
 

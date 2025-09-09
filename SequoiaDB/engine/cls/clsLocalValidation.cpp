@@ -31,32 +31,49 @@
 
 *******************************************************************************/
 #include "clsLocalValidation.hpp"
-#include "pmdEDU.hpp"
-#include "rtn.hpp"
-#include "dmsCB.hpp"
+#include "pdTrace.hpp"
+#include "clsTrace.hpp"
 
 #define CLS_DISK_DETECT_FILE_NAME     ".SEQUOIADB_DISK_DETECT_FILE"
-#define CLS_DISK_DETECT_FILE_CONTENT  "N"
-#define CLS_DISK_DETECT_INTERVAL_TIME ( OSS_ONE_SEC * 60 )
-
-using namespace bson ;
+#define CLS_DISK_DETECT_FILE_CONTENT  'N'
+#define CLS_DISK_DETECT_FILE_CONTENT_SIZE OSS_FILE_DIRECT_IO_ALIGNMENT
 
 namespace engine
 {
+   clsDiskWriteCostTime curDiskWriteCostTime ;
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CLS_TRACE_EMPTY_FUNC, "clsTarceEmptyFunction" )
+   static INT32 clsTarceEmptyFunction()
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_CLS_TRACE_EMPTY_FUNC ) ;
+      PD_TRACE_EXITRC( SDB_CLS_TRACE_EMPTY_FUNC, rc ) ;
+      return rc ;
+   }
+
    _clsDiskDetector::_clsDiskDetector()
    {
       _isMonitoredRole = TRUE ;
       _lastTick = 0 ;
       _hasInit = FALSE ;
+      _content = NULL ;
    }
 
    _clsDiskDetector::~_clsDiskDetector()
    {
+      if ( NULL != _content )
+      {
+         SDB_OSS_ORIGINAL_FREE( _content ) ;
+         _content = NULL ;
+      }
    }
 
    INT32 _clsDiskDetector::detect()
    {
       INT32  rc = SDB_OK ;
+      BOOLEAN needUpdateLastTick = FALSE ;
+      BOOLEAN first = TRUE ;
+      clsDiskWriteCostTime tmpTime ;
 
       if ( !_hasInit )
       {
@@ -73,26 +90,45 @@ namespace engine
          goto done ;
       }
 
-      if ( _it != _filePathsSet.end() )
+      needUpdateLastTick = TRUE ;
+
+      curDiskWriteCostTime.lastSpentTime = curDiskWriteCostTime.curSpentTime ;
+      curDiskWriteCostTime.finishAllDiskWrite = FALSE ;
+
+      for( ossPoolSet<ossPoolString>::iterator it = _filePathsSet.begin() ;
+           it != _filePathsSet.end() ; ++it )
       {
-         // The file in the _filePathsSet are written in turns,
-         // and only one file is written at a time
-         rc = _tryToWriteFile( _it->c_str() ) ;
+         rc = _tryToWriteFile( it->c_str(), curDiskWriteCostTime ) ;
          if ( rc )
          {
             goto error ;
          }
-         ++_it ;
-
-         if ( _it == _filePathsSet.end() )
+         if ( first )
          {
-            _it = _filePathsSet.begin() ;
+            // write the first file
+            tmpTime = curDiskWriteCostTime ;
+            first = FALSE ;
+         }
+         else
+         {
+            // get the max spentTime
+            if ( tmpTime.curSpentTime > curDiskWriteCostTime.curSpentTime )
+            {
+               curDiskWriteCostTime = tmpTime ;
+            }
+            else
+            {
+               tmpTime = curDiskWriteCostTime ;
+            }
          }
       }
 
-      _lastTick = pmdGetDBTick() ;
-
    done:
+      if ( needUpdateLastTick )
+      {
+         _lastTick = pmdGetDBTick() ;
+      }
+      curDiskWriteCostTime.finishAllDiskWrite = TRUE ;
       return rc ;
    error:
       goto done ;
@@ -101,7 +137,8 @@ namespace engine
    BOOLEAN _clsDiskDetector::_isNeedToDetect()
    {
       if ( _isMonitoredRole &&
-           pmdGetTickSpanTime( _lastTick ) >= CLS_DISK_DETECT_INTERVAL_TIME )
+           pmdGetTickSpanTime( _lastTick ) >= OSS_ONE_SEC * pmdGetOptionCB()->detectDisk() &&
+           OSS_BIT_TEST( pmdGetOptionCB()->ftMask(), PMD_FT_MASK_DISK_FAULT ) )
       {
          return TRUE ;
       }
@@ -156,7 +193,21 @@ namespace engine
          goto error ;
       }
 
-      _it = _filePathsSet.begin() ;
+      _content = ( CHAR * )ossAlignedAlloc( OSS_FILE_DIRECT_IO_ALIGNMENT,
+                                            CLS_DISK_DETECT_FILE_CONTENT_SIZE ) ;
+      if ( NULL != _content )
+      {
+         ossMemset( _content, CLS_DISK_DETECT_FILE_CONTENT, CLS_DISK_DETECT_FILE_CONTENT_SIZE ) ;
+      }
+      else
+      {
+         rc = SDB_OOM ;
+         PD_LOG( PDERROR, "Failed to malloc file content, rc: %d", rc ) ;
+         goto error ;
+      }
+
+      _lastTick = pmdGetDBTick() ;
+
       _hasInit = TRUE ;
 
    done:
@@ -200,23 +251,29 @@ namespace engine
       goto done ;
    }
 
-   INT32 _clsDiskDetector::_tryToWriteFile( const CHAR* pFilePath )
+   INT32 _clsDiskDetector::_tryToWriteFile( const CHAR* pFilePath, clsDiskWriteCostTime &time )
    {
       SDB_ASSERT( pFilePath, "pFilePath can't be null" ) ;
 
       UINT32 rc = SDB_OK ;
       OSSFILE file ;
 
-      rc = ossOpen( pFilePath, OSS_REPLACE | OSS_WRITEONLY, OSS_WU | OSS_RU,
-                    file ) ;
+      time.beginTime = pmdGetDBTick() ;
+      time.endTime = 0 ;
+      time.curSpentTime = 0 ;
+      time.returnCode = rc ;
+
+      rc = ossOpen( pFilePath, OSS_REPLACE | OSS_WRITEONLY | OSS_DIRECTIO,
+                    OSS_WU | OSS_RU, file ) ;
       if ( rc )
       {
          PD_LOG( PDERROR, "Failed to open file[%s], rc: %d", pFilePath, rc ) ;
          goto error ;
       }
 
-      rc = ossWriteN( &file, CLS_DISK_DETECT_FILE_CONTENT,
-                      ossStrlen( CLS_DISK_DETECT_FILE_CONTENT ) ) ;
+      clsTarceEmptyFunction() ;
+
+      rc = ossWriteN( &file, _content, CLS_DISK_DETECT_FILE_CONTENT_SIZE ) ;
       if ( rc )
       {
          PD_LOG( PDERROR, "Failed to write file[%s], rc: %d", pFilePath, rc ) ;
@@ -229,6 +286,9 @@ namespace engine
          ossClose( file ) ;
          ossDelete( pFilePath ) ;
       }
+      time.returnCode = rc ;
+      time.endTime = pmdGetDBTick() ;
+      time.curSpentTime = pmdGetTickSpanTime( time.beginTime ) ;
       return rc ;
    error:
       goto done ;
@@ -238,18 +298,14 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      if ( pmdGetOptionCB()->detectDisk() )
-      {
-         rc = _diskDetector.detect() ;
-         if ( rc == SDB_IO )
-         {
-            PD_LOG( PDERROR, "Unexpected error" ) ;
-            goto error ;
-         }
-      }
-
-      /// 4. update validation tick
       pmdUpdateValidationTick() ;
+
+      rc = _diskDetector.detect() ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Unexpected error, rc: %d", rc ) ;
+         goto error ;
+      }
 
    done:
       return rc ;

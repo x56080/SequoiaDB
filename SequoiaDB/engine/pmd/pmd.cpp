@@ -379,6 +379,8 @@ namespace engine
       }
       _pFTMgr->setSlowNodeInfo( _optioncb.ftSlowNodeThreshold(),
                                 _optioncb.ftSlowNodeIncrement() ) ;
+      _pFTMgr->setDiskDetectInfo( _optioncb.ftDiskSlowThreshold(),
+                                  _optioncb.ftDiskSlowIncrement() ) ;
 
       rc = _svcTaskMgr.init() ;
       if ( rc )
