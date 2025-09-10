@@ -49,7 +49,7 @@ function test ()
          ftconfirmperiod: 6,
          ftmask: "ALL",
          ftslownodethreshold: 1,
-         ftslownodeincrement: 0 
+         ftslownodeincrement: 0
       },
       { GroupName: groupName }
    );
@@ -60,7 +60,7 @@ function test ()
    {
       master = db.getRG( groupName ).getMaster().connect();
       slave = db.getRG( groupName ).getSlave().connect();
-      var option = new SdbTraceOption().breakPoints("ossDelete");
+      var option = new SdbTraceOption().breakPoints("ossDelete").tids(getSlaveReplSessionTID( slave ));
       var longString = getRandomString( 1024 );
       slave.traceOn( 1000, option );
 
