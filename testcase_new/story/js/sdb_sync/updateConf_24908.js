@@ -11,33 +11,34 @@ function test ()
    try
    {
       // 校验默认配置
-      var actConfig = { detectdisk: "TRUE" };
+      var actConfig = { detectdisk: "5" };
       checkSnapshot( db, actConfig );
 
       var config = { detectdisk: false };
       db.updateConf( config );
-      var actConfig = { detectdisk: "FALSE" };
+      var actConfig = { detectdisk: "5" };
       checkSnapshot( db, actConfig );
 
       var config = { detectdisk: true };
       db.updateConf( config );
-      var actConfig = { detectdisk: "TRUE" };
+      var actConfig = { detectdisk: "5" };
       checkSnapshot( db, actConfig );
 
       var config = { detectdisk: 1 };
       db.updateConf( config );
       checkSnapshot( db, actConfig );
 
-      var actConfig = { detectdisk: "FALSE" };
+      var actConfig = { detectdisk: "5" };
       var config = { detectdisk: 0 };
       db.updateConf( config );
       checkSnapshot( db, actConfig );
 
-      var actConfig = { detectdisk: "TRUE" };
+      var actConfig = { detectdisk: "300" };
       var config = { detectdisk: -1 };
       db.updateConf( config );
       checkSnapshot( db, actConfig );
 
+      var actConfig = { detectdisk: "5" };
       var config = { detectdisk: "true" };
       db.updateConf( config );
       checkSnapshot( db, actConfig );

@@ -8,7 +8,7 @@ function getRandomInt ( min, max ) // [min, max)
    return value;
 }
 
-function getRandomString ( strLen ) 
+function getRandomString ( strLen )
 {
    var str = "";
    for( var i = 0; i < strLen; i++ )
@@ -18,4 +18,11 @@ function getRandomString ( strLen )
       str += c;
    }
    return str;
+}
+
+function getSlaveReplSessionTID( slave )
+{
+   var cursor = slave.snapshot( 2, { "Type": "ReplAgent" }, { "TID": '' } );
+   var tid = cursor.current().toObj().TID ;
+   return tid;
 }

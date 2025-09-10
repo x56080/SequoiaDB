@@ -46,7 +46,8 @@ function test ()
    {
       master = db.getRG( groupName ).getMaster().connect();
       slave = db.getRG( groupName ).getSlave().connect();
-      var option = new SdbTraceOption().breakPoints("ossDelete");
+
+      var option = new SdbTraceOption().breakPoints("ossDelete").tids(getSlaveReplSessionTID( slave ));
       slave.traceOn( 1000, option );
 
       commDropCS( db, csName );
