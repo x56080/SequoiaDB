@@ -1921,24 +1921,8 @@ namespace engine
 
    BOOLEAN coordIsLobMsg( INT32 opCode )
    {
-      BOOLEAN isLobMsg = FALSE ;
-
-      switch ( opCode )
-      {
-         case MSG_BS_LOB_OPEN_REQ:
-         case MSG_BS_LOB_TRUNCATE_REQ:
-         case MSG_BS_LOB_CLOSE_REQ:
-         case MSG_BS_LOB_WRITE_REQ:
-         case MSG_BS_LOB_READ_REQ:
-         case MSG_BS_LOB_REMOVE_REQ:
-         case MSG_BS_LOB_UPDATE_REQ:
-            isLobMsg = TRUE ;
-            break ;
-         default:
-            break ;
-      }
-
-      return isLobMsg ;
+      return ( opCode > ( SINT32 )MSG_LOB_BEGIN &&
+               opCode < ( SINT32 )MSG_LOB_END ) ;
    }
 
    /**
