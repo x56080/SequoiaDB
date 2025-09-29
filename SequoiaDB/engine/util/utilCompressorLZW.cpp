@@ -247,7 +247,7 @@ namespace engine
 
          dictionary->getVarLenInfo( code, lenIdx, splitSize ) ;
          codeVec.push_back( code ) ;
-         varLenTotalBits += splitSize + UTIL_VAR_LEN_FLAG_SIZE ;
+         varLenTotalBits += splitSize + dictionary->getVarLenFlagSize() ;
          currPos += length ;
          remainLen -= length ;
       } while ( remainLen > 0 ) ;
@@ -465,6 +465,7 @@ namespace engine
             break ;
          case UTIL_COMP_BALANCE:
             rc = _compressLevelTwo( context, source, sourceLen, maxSize ) ;
+            varLenCode = TRUE ;
             break ;
          default:
             rc = _compressLevelThree( context, source, sourceLen,

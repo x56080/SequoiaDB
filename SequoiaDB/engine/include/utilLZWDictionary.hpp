@@ -403,7 +403,8 @@ namespace engine
       BOOLEAN isVarLenCode() { return ( 0 != (_value & UTIL_VAR_LEN_FLAG ) ) ; }
       void setLength( UINT32 len )
       {
-         _value = ( ( _value & UTIL_VAR_LEN_FLAG ) | len ) ;
+         SDB_ASSERT( 0 == ( len & ~UTIL_VAR_LEN_LENGTH_MASK ), "Invalid length" ) ;
+         _value = ( ( _value & UTIL_VAR_LEN_FLAG ) | ( len & UTIL_VAR_LEN_LENGTH_MASK ) ) ;
       }
       UINT32 getLength()
       {
