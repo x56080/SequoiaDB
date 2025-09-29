@@ -60,7 +60,6 @@ namespace engine
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-<<<<<<< HEAD
 
    done:
       return rc ;
@@ -72,19 +71,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-=======
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 _rtnQueryModifier::_onInit()
-   {
-      INT32 rc = SDB_OK ;
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       if ( RTN_MODIFY_UPDATE != _modifyOp )
       {
          goto done ;

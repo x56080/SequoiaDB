@@ -212,7 +212,6 @@ namespace import
 
       ret = _waitParserStop() ;
       if ( ret )
-<<<<<<< HEAD
       {
          PD_LOG( PDERROR, "Failed to wait parser stop, rc=%d", ret ) ;
       }
@@ -220,15 +219,6 @@ namespace import
       ret = _stopImporter();
       if ( ret )
       {
-=======
-      {
-         PD_LOG( PDERROR, "Failed to wait parser stop, rc=%d", ret ) ;
-      }
-
-      ret = _stopImporter();
-      if ( ret )
-      {
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          PD_LOG(PDERROR, "Failed to stop importers, rc=%d", ret ) ;
       }
 
@@ -411,7 +401,6 @@ namespace import
             ss << "See " << _packer.logFileName()
                << " for sharding failure records" << std::endl ;
          }
-<<<<<<< HEAD
 
          if ( _importer.failedNum() > 0 )
          {
@@ -419,15 +408,6 @@ namespace import
                << " for import failure records" << std::endl ;
          }
 
-=======
-
-         if ( _importer.failedNum() > 0 )
-         {
-            ss << "See " << _importer.logFileName()
-               << " for import failure records" << std::endl ;
-         }
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          string stat = ss.str() ;
 
          std::cout << stat ;

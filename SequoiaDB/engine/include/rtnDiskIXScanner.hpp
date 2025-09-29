@@ -44,7 +44,7 @@ using namespace bson ;
 
 namespace engine
 {
-   class _optAccessPlanRuntime ;
+
    /*
       _rtnDiskIXScanner define
       A scanner to traverse through on disk index pages/slots
@@ -53,7 +53,7 @@ namespace engine
    {
    public:
       _rtnDiskIXScanner ( ixmIndexCB *pIndexCB,
-                          _optAccessPlanRuntime * planRuntime,
+                          rtnPredicateList *predList,
                           _dmsStorageUnit  *su,
                           _dmsMBContext    *mbContext,
                           BOOLEAN          isAsync,
@@ -85,7 +85,6 @@ namespace engine
       virtual const dmsRecordID& getSavedRID () const { return _savedRID ; }
       virtual const BSONObj*  getSavedObj () const { return &_savedObj ; }
 
-<<<<<<< HEAD
       virtual BOOLEAN canPrefetch() const
       {
          return _cursorPtr ? _cursorPtr->isAsync() : FALSE ;
@@ -95,17 +94,6 @@ namespace engine
       {
          return _cursorPtr ? _cursorPtr->getSession() : nullptr ;
       }
-=======
-      virtual INT32           isCursorSame( const BSONObj &saveObj,
-                                            const dmsRecordID &saveRID,
-                                            BOOLEAN &isSame ) ;
-      virtual void getOwnerTransID( DPS_TRANS_ID &transID) ;
-
-      virtual void getRBSPositions( dmsRBSOffset & startPos,
-                                    dmsRBSOffset & endPos,
-                                    dmsRecordID  & rid,
-                                    preIdxTreePtr  memTree ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    protected:
       virtual INT32 _relocateRID( BOOLEAN &found ) ;
@@ -116,22 +104,12 @@ namespace engine
 
       INT32                   _relocateRID( const BSONObj &keyObj,
                                             const dmsRecordID &rid,
-<<<<<<< HEAD
                                             INT32 direction,
                                             BOOLEAN &isFound ) ;
 
       INT32                   _firstInit() ;
       INT32                   _advance() ;
       INT32                   _fetchNext( dmsRecordID &rid, BOOLEAN &needAdvance ) ;
-=======
-                                            INT32 direction ) ;
-
-      INT32                   _isCursorSame( ixmExtent *pExtent,
-                                             const BSONObj &saveObj,
-                                             const dmsRecordID &saveRID,
-                                             BOOLEAN &isSame,
-                                             BOOLEAN *hasRead = NULL )  ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    private:
       rtnPredicateListIterator   _listIterator ;

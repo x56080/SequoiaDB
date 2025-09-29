@@ -53,22 +53,14 @@ namespace import
                               const string& stringDelimiter,
                               BOOLEAN autoAddField,
                               BOOLEAN autoAddValue,
-<<<<<<< HEAD
                               BOOLEAN autoAddStrDel,
                               BOOLEAN mustHasIDField)
-=======
-                              BOOLEAN autoAddStrDel)
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    : _fieldDelimiter(fieldDelimiter),
      _stringDelimiter(stringDelimiter),
      _autoAddField(autoAddField),
      _autoAddValue(autoAddValue),
-<<<<<<< HEAD
      _autoAddStrDel(autoAddStrDel),
      _mustHasIDField(mustHasIDField)
-=======
-     _autoAddStrDel(autoAddStrDel)
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
    }
 
@@ -93,12 +85,8 @@ namespace import
                                         options.ignoreNull(),
                                         options.force(),
                                         options.strictFieldNum(),
-<<<<<<< HEAD
                                         options.autoAddStrDel(),
                                         options.mustHasIDField());
-=======
-                                        options.autoAddStrDel());
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          if (NULL == csvParser)
          {
             rc = SDB_OOM;

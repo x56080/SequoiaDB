@@ -35,7 +35,8 @@
 #ifndef CORE_HPP_
 #define CORE_HPP_
 
-#include "ossTypes.hpp"
 #include "core.h"
+#include "ossTypes.hpp"
 
 #endif /* CORE_HPP_ */
+

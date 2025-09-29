@@ -293,11 +293,8 @@ namespace engine
 
       void _increaseMetrics( _pmdEDUCB *cb ) ;
 
-<<<<<<< HEAD
       INT32 _checkPrivileges( pmdEDUCB *cb );
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    private:
       INT64                _uniqueId ;
       CHAR                 _fullName[ DMS_COLLECTION_SPACE_NAME_SZ +

@@ -6,9 +6,7 @@ var tmpSdbCS = {
    dropCL: SdbCS.prototype.dropCL,
    enableCapped: SdbCS.prototype.enableCapped,
    getCL: SdbCS.prototype.getCL,
-   getDomainName: SdbCS.prototype.getDomainName,
    help: SdbCS.prototype.help,
-   listCollections: SdbCS.prototype.listCollections,
    removeDomain: SdbCS.prototype.removeDomain,
    renameCL: SdbCS.prototype.renameCL,
    setAttributes: SdbCS.prototype.setAttributes,
@@ -26,9 +24,7 @@ SdbCS.prototype.disableCapped=function(){try{return tmpSdbCS.disableCapped.apply
 SdbCS.prototype.dropCL=function(){try{return tmpSdbCS.dropCL.apply(this,arguments);}catch(e){throw new Error(e);}};
 SdbCS.prototype.enableCapped=function(){try{return tmpSdbCS.enableCapped.apply(this,arguments);}catch(e){throw new Error(e);}};
 SdbCS.prototype.getCL=function(){try{return tmpSdbCS.getCL.apply(this,arguments);}catch(e){throw new Error(e);}};
-SdbCS.prototype.getDomainName=function(){try{return tmpSdbCS.getDomainName.apply(this,arguments);}catch(e){throw new Error(e);}};
 SdbCS.prototype.help=function(){try{return tmpSdbCS.help.apply(this,arguments);}catch(e){throw new Error(e);}};
-SdbCS.prototype.listCollections=function(){try{return tmpSdbCS.listCollections.apply(this,arguments);}catch(e){throw new Error(e);}};
 SdbCS.prototype.removeDomain=function(){try{return tmpSdbCS.removeDomain.apply(this,arguments);}catch(e){throw new Error(e);}};
 SdbCS.prototype.renameCL=function(){try{return tmpSdbCS.renameCL.apply(this,arguments);}catch(e){throw new Error(e);}};
 SdbCS.prototype.setAttributes=function(){try{return tmpSdbCS.setAttributes.apply(this,arguments);}catch(e){throw new Error(e);}};

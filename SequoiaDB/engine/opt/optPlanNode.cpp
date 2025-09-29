@@ -394,17 +394,17 @@ namespace engine
          rc = rtnGetDoubleElement( object, OPT_FIELD_START_COST, result ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get field [%s], rc: %d",
                       OPT_FIELD_START_COST, rc ) ;
-         _estStartCost = (UINT64)RTN_STAT_ROUND_INT( result / OPT_COST_TO_SEC ) ;
+         _estStartCost = (UINT64)DMS_STAT_ROUND_INT( result / OPT_COST_TO_SEC ) ;
 
          rc = rtnGetDoubleElement( object, OPT_FIELD_RUN_COST, result ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get field [%s], rc: %d",
                       OPT_FIELD_RUN_COST, rc ) ;
-         _estRunCost = (UINT64)RTN_STAT_ROUND_INT( result / OPT_COST_TO_SEC ) ;
+         _estRunCost = (UINT64)DMS_STAT_ROUND_INT( result / OPT_COST_TO_SEC ) ;
 
          rc = rtnGetDoubleElement( object, OPT_FIELD_TOTAL_COST, result ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get field [%s], rc: %d",
                       OPT_FIELD_TOTAL_COST, rc ) ;
-         _estTotalCost = (UINT64)RTN_STAT_ROUND_INT( result / OPT_COST_TO_SEC ) ;
+         _estTotalCost = (UINT64)DMS_STAT_ROUND_INT( result / OPT_COST_TO_SEC ) ;
       }
       catch ( std::exception &e )
       {
@@ -795,8 +795,8 @@ namespace engine
       SDB_ASSERT( collectionStat, "collectionStat is invalid" ) ;
 
       _inputRecords = OPT_ROUND_NUM_DEF( collectionStat->getTotalRecords(),
-                                         RTN_STAT_DEF_TOTAL_RECORDS ) ;
-      _inputPages = OPT_ROUND_NUM( collectionStat->getTotalDataPages( TRUE ) );
+                                         DMS_STAT_DEF_TOTAL_RECORDS ) ;
+      _inputPages = OPT_ROUND_NUM( collectionStat->getTotalDataPages() ) ;
       _inputRecordSize = OPT_ROUND_NUM(
                   (UINT32)ceil( (double)collectionStat->getTotalDataSize() /
                                 (double)_inputRecords ) ) ;
@@ -1446,10 +1446,7 @@ namespace engine
      _matchAll( FALSE ),
      _indexCover( FALSE ),
      _notArray( FALSE ),
-<<<<<<< HEAD
      _readIndexOnly( FALSE ),
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
      _matchedFields( 0 ),
      _indexExtID( DMS_INVALID_EXTENT ),
      _indexLID( DMS_INVALID_EXTENT ),
@@ -1461,23 +1458,19 @@ namespace engine
      _idxReadRecords( 0 ),
      _idxReadPages( 0 ),
      _ixFromStat( FALSE ),
-     _ixStatTime( 0 ),
-     _ixRebuildTime( DPS_INVALID_TRANS_TIME )
+     _ixStatTime( 0 )
    {
    }
 
    _optIxScanNode::_optIxScanNode ( const CHAR * pCollection,
-                                    const CONST_INDEX_META_INFO_PTR &idxMeta,
+                                    const ixmIndexCB & indexCB,
                                     INT32 estCacheSize )
    : _optScanNode ( pCollection, estCacheSize ),
      _direction( 1 ),
      _matchAll( FALSE ),
      _indexCover( FALSE ),
      _notArray( FALSE ),
-<<<<<<< HEAD
      _readIndexOnly( FALSE ),
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
      _matchedFields( 0 ),
      _indexExtID( DMS_INVALID_EXTENT ),
      _indexLID( DMS_INVALID_EXTENT ),
@@ -1489,25 +1482,15 @@ namespace engine
      _idxReadRecords( 0 ),
      _idxReadPages( 0 ),
      _ixFromStat( FALSE ),
-     _ixStatTime( 0 ),
-     _ixRebuildTime( DPS_INVALID_TRANS_TIME )
+     _ixStatTime( 0 )
    {
-      if ( idxMeta )
+      if ( indexCB.isInitialized() )
       {
-<<<<<<< HEAD
          _pIndexName.append( indexCB.getName() ) ;
          _indexExtID = indexCB.getExtentID() ;
          _indexLID = indexCB.getLogicalID() ;
          _keyPattern = indexCB.keyPattern().getOwned() ;
          _notArray = indexCB.notArray() ;
-=======
-         _pIndexName.append( idxMeta->getIndexName() ) ;
-         _indexExtID = idxMeta->getExtentID();
-         _indexLID = idxMeta->getLogicalID();
-         _keyPattern = idxMeta->getKeyPattern().getOwned() ;
-         _ixRebuildTime.init( idxMeta->getStpEffectiveTime() ) ;
-         _notArray = idxMeta->isNotArray();
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       }
    }
 
@@ -1516,12 +1499,8 @@ namespace engine
    : _optScanNode( node, context ),
      _direction( node._direction ),
      _matchAll( node._matchAll ),
-<<<<<<< HEAD
      _indexCover( node._indexCover ),
      _readIndexOnly( node._readIndexOnly ),
-=======
-     _indexCover( FALSE ),
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
      _matchedFields( node._matchedFields ),
      _indexExtID( DMS_INVALID_EXTENT ),
      _indexLID( DMS_INVALID_EXTENT ),
@@ -1534,8 +1513,7 @@ namespace engine
      _idxReadPages( node._idxReadPages ),
      _ixFromStat( node._ixFromStat ),
      _ixStatTime( node._ixStatTime ),
-     _runtimeIXBound( node._runtimeIXBound ),
-     _ixRebuildTime( DPS_INVALID_TRANS_TIME )
+     _runtimeIXBound( node._runtimeIXBound )
    {
       if ( node._pIndexName.len() > 0 )
       {
@@ -1543,10 +1521,6 @@ namespace engine
          _indexExtID = node._indexExtID ;
          _indexLID = node._indexLID ;
          _keyPattern = node._keyPattern.getOwned() ;
-<<<<<<< HEAD
-=======
-         _ixRebuildTime.init( node._ixRebuildTime.peek() ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          _notArray = node.notArray() ;
       }
 
@@ -1598,7 +1572,7 @@ namespace engine
       _preEvaluate( queryOptions, planHelper, collectionStat ) ;
 
       _indexPages = indexStat->getIndexPages() ;
-      _indexLevels = indexStat->getIndexLevels();
+      _indexLevels = indexStat->getIndexLevels() ;
 
       BOOLEAN isBestIndex = collectionStat->isBestIndex( indexStat ) ;
       BOOLEAN canReadIndexOnly = queryOptions.testInternalFlag( RTN_INTERNAL_QUERY_COUNT_FLAG ) ;
@@ -1647,8 +1621,8 @@ namespace engine
 
       if ( indexStat->isValid() )
       {
-            _ixFromStat = TRUE ;
-            _ixStatTime = indexStat->getCreateTime() ;
+         _ixFromStat = TRUE ;
+         _ixStatTime = indexStat->getCreateTime() ;
       }
 
       PD_TRACE_EXIT( SDB_OPTIXSCAN_PREEVAL ) ;
@@ -2171,11 +2145,7 @@ namespace engine
          _needMatch = FALSE ;
       }
 
-<<<<<<< HEAD
       _evalIndexCover( _keyPattern, canReadIndexOnly, iterOrder, matcher ) ;
-=======
-      _evalIndexCover( _keyPattern, iterOrder, matcher ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       _matchedFields = matchedFields ;
       _matchedOrders = matchedOrders ;
@@ -2193,10 +2163,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTIXSCAN_EVALINDEXCOVER, "_optIxScanNode::_evalIndexCover" )
    void _optIxScanNode::_evalIndexCover( const BSONObj &keyPattern,
-<<<<<<< HEAD
                                          BOOLEAN canReadIndexOnly,
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                                          BSONObjIterator &restOrder,
                                          mthMatchTree *matcher )
    {
@@ -2204,7 +2171,6 @@ namespace engine
       ixmIndexCover index( keyPattern ) ;
       PD_TRACE_ENTRY( SDB_OPTIXSCAN_EVALINDEXCOVER ) ;
 
-<<<<<<< HEAD
       BOOLEAN indexCoverOn = pmdGetOptionCB()->isIndexCoverOn() ;
 
       _indexCover = FALSE ;
@@ -2212,10 +2178,6 @@ namespace engine
 
       if( ( !canReadIndexOnly ) &&
           ( ( !_notArray ) || ( !indexCoverOn ) ) )
-=======
-      _indexCover = FALSE ;
-      if( FALSE == _notArray || FALSE == pmdGetOptionCB()->isIndexCoverOn() )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       {
          // if index support array, then can't be indexCover
          goto done ;
@@ -2259,7 +2221,6 @@ namespace engine
          }
       }
 
-<<<<<<< HEAD
       if ( canReadIndexOnly )
       {
          _readIndexOnly = TRUE ;
@@ -2269,9 +2230,6 @@ namespace engine
          _indexCover = TRUE ;
       }
 
-=======
-      _indexCover =  TRUE ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    done :
       PD_TRACE_EXIT( SDB_OPTIXSCAN_EVALINDEXCOVER ) ;
       return ;

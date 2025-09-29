@@ -256,7 +256,6 @@ namespace engine
    } ;
 
    typedef _coordCMDAnalyze coordCMDAnalyze ;
-<<<<<<< HEAD
 
    /*
       _coordCMDInvalidateUserCache define
@@ -298,8 +297,6 @@ namespace engine
    } ;
    typedef _coordCMDMemTrim coordCMDMemTrim ;
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 }
 
 #endif // COORD_COMMAND_WITH_LOCATION_HPP__

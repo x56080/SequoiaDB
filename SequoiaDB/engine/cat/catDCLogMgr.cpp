@@ -1110,68 +1110,6 @@ END
       _expectLsn.version = version ;
    }
 
-   DPS_LSN _catDCLogMgr::getMinFileLSN()
-   {
-      ossScopedLock lock( &_latch, SHARED ) ;
-      return _getStartLsn() ; 
-   }
-
-   DPS_LSN _catDCLogMgr::getMinBufLSN()
-   {
-      ossScopedLock lock( &_latch, SHARED ) ;
-      return _getStartLsn() ; 
-   }
-
-   DPS_LSN _catDCLogMgr::getCurrentLSN()
-   {
-      ossScopedLock lock( &_latch, SHARED ) ;
-      return _curLsn;
-   }
-
-   DPS_LSN _catDCLogMgr::getExpectedLSN()
-   {
-      return expectLsn();
-   }
-
-   DPS_LSN _catDCLogMgr::getCommittedLSN()
-   {
-      return commitLsn();
-   }
-
-   INT32 _catDCLogMgr::write( IExecutor *executor,
-                              const dpsWriteRequest &request,
-                              const dpsWriteOptions &o,
-                              dpsLogRecordHeader *result )
-   {
-      return SDB_NOT_SUPPORTED;
-   }
-
-   INT32 _catDCLogMgr::search( const DPS_LSN &lsn,
-                               const dpsSearchOptions &o,
-                               dpsMessageBlock &block )
-   {
-      UINT8 type = 0;
-      if (o.searchMem)
-      {
-         type |= DPS_SEARCH_MEM;
-      }
-      if (o.searchFile)
-      {
-         type |= DPS_SEARCH_FILE;
-      }
-
-      return o.onlyHeader ?
-             searchHeader(lsn, &block, type) : 
-             search(lsn, &block, type, o.limits,
-                    o.maxTime, o.maxSize);
-   }
-
-   INT32 _catDCLogMgr::flush( DPS_LSN_OFFSET offset, BOOLEAN async )
-   {
-      SDB_ASSERT(FALSE, "not supported");
-      return SDB_NOT_SUPPORTED ;
-   }
-
 }
 
 

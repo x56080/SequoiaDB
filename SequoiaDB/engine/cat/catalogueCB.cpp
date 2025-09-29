@@ -252,11 +252,7 @@ namespace engine
       _primaryID.value     = MSG_INVALID_ROUTEID ;
       _isActived           = FALSE ;
       _needForceSecondary  = FALSE ;
-<<<<<<< HEAD
       _nodeInfoChanged     = FALSE ;
-=======
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       _inPacketLevel       = 0 ;
    }
 
@@ -1349,9 +1345,6 @@ namespace engine
 
          if ( primary )
          {
-            // switch to primary, clear global lowTran
-            _catGTSMgr.getGlobTransMgr()->clearGlobLowTran() ;
-
             _isActived = TRUE ;
             _catStartClearTaskJob( CLS_TASK_SEQUENCE ) ;
             _catStartCleanupExpiredTaskJob() ;
@@ -1655,9 +1648,8 @@ namespace engine
          BSONObj errInfo ;
 
          PD_LOG( PDDEBUG,
-                 "Sending reply message[opCode:(%d)%d] with rc [%d]",
-                 IS_REPLY_TYPE( pReply->header.opCode ),
-                 GET_REQUEST_TYPE( pReply->header.opCode ), pReply->flags ) ;
+                 "Sending reply message [%d] with rc [%d]",
+                 pReply->header.opCode, pReply->flags ) ;
 
          /// when error, but has no data, fill the error obj
          if ( pReply->flags &&
@@ -1684,9 +1676,8 @@ namespace engine
          if ( SDB_OK != rc )
          {
             PD_LOG( PDWARNING,
-                    "Failed to send reply message[opCode:(%d)%d], rc: %d",
-                    IS_REPLY_TYPE( pReply->header.opCode ),
-                    GET_REQUEST_TYPE( pReply->header.opCode ), rc ) ;
+                    "Failed to send reply message [%d], rc: %d",
+                    pReply->header.opCode, rc ) ;
          }
       }
       PD_TRACE_EXITRC( SDB_CATALOGCB_SENDREPLY, rc ) ;
@@ -1736,15 +1727,6 @@ namespace engine
       pErrReply->numReturned = 0 ;
       pErrReply->startFrom = pReply->startFrom ;
       pErrReply->returnMask = pReply->returnMask ;
-<<<<<<< HEAD
-=======
-   }
-
-   void sdbCatalogueCB::onGroupChange()
-   {
-      // set lowTran map expired
-      _catGTSMgr.getGlobTransMgr()->setLowTranMapExpired() ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    }
 
    /*

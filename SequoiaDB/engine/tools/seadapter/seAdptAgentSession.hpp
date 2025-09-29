@@ -61,8 +61,7 @@ namespace seadapter
       virtual SDB_SESSION_TYPE sessionType() const ;
       virtual const CHAR* className() const { return "SEAdptAgent" ; }
 
-      virtual void onRecieve( const NET_HANDLE netHandle,
-                              MsgHeader * msg ) ;
+      virtual void onRecieve( const NET_HANDLE netHandle, MsgHeader * msg ) ;
       virtual BOOLEAN timeout( UINT32 interval ) ;
       virtual void onTimer( UINT64 timerID, UINT32 interval ) ;
 

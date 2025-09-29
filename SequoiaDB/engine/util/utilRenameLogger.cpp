@@ -335,14 +335,11 @@ namespace engine
       return _fileName ;
    }
 
-<<<<<<< HEAD
    BOOLEAN _utilRenameLogger::isOpened() const
    {
       return _isOpened ;
    }
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    /*
       _utilRenameLogManager implement
     */
@@ -479,7 +476,6 @@ namespace engine
    done:
       PD_TRACE_EXITRC( SDB_UTILRENAMELOGMGR__CLEAR, rc ) ;
       return rc ;
-<<<<<<< HEAD
 
    error:
       goto done ;
@@ -493,21 +489,6 @@ namespace engine
 
       _UTIL_STRING_MAP_IT iter ;
 
-=======
-
-   error:
-      goto done ;
-   }
-
-   _utilRenameLogManager::_UTIL_STRING_MAP_IT
-   _utilRenameLogManager::_find( const CHAR *name,
-                                 _UTIL_STRING_MAP &targetMap )
-   {
-      SDB_ASSERT( NULL != name, "name is invalid" ) ;
-
-      _UTIL_STRING_MAP_IT iter ;
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       try
       {
          iter = targetMap.find( name ) ;

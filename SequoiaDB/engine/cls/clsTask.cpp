@@ -1134,7 +1134,6 @@ namespace engine
             updator = BSON( "$set" <<
                             BSON( FIELD_NAME_STATUS << CLS_TASK_STATUS_RUN <<
                                   FIELD_NAME_STATUSDESC << VALUE_NAME_RUNNING ) ) ;
-<<<<<<< HEAD
          }
          else if ( CLS_TASK_STATUS_CANCELED == _status )
          {
@@ -1153,118 +1152,6 @@ namespace engine
       {
          rc = ossException2RC( &e ) ;
          PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB_CLSSPLITTASK_BSTARTTASK, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CLSSPLITTASK_BCANCELTASK, "_clsSplitTask::buildCancelTask" )
-   INT32 _clsSplitTask::buildCancelTask( const BSONObj& obj,
-                                         BSONObj& updator,
-                                         BSONObj& matcher )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB_CLSSPLITTASK_BCANCELTASK ) ;
-
-      try
-      {
-         // can't cancel finish status
-         if ( CLS_TASK_STATUS_META == _status ||
-              CLS_TASK_STATUS_CLEANUP == _status )
-         {
-            PD_LOG_MSG( PDERROR, "The task[%llu] status is %s, "
-                        "cannot be canceled", _taskID, clsTaskStatusStr( _status ) ) ;
-            rc = SDB_TASK_CANNOT_CANCEL ;
-=======
-         }
-         else if ( CLS_TASK_STATUS_CANCELED == _status )
-         {
-            // do not update, let the finial finish request to udpate
-            rc = SDB_TASK_HAS_CANCELED ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
-            goto error ;
-         }
-         else if ( CLS_TASK_STATUS_FINISH == _status )
-         {
-<<<<<<< HEAD
-            PD_LOG_MSG( PDERROR, "The task[%llu] is already finished"
-                        , _taskID ) ;
-            rc = SDB_TASK_ALREADY_FINISHED ;
-            goto error ;
-         }
-         else if ( CLS_TASK_STATUS_READY == _status )
-         {
-            matcher = BSON( FIELD_NAME_TASKID << (INT64)_taskID ) ;
-            updator = BSON( "$set" <<
-                            BSON( FIELD_NAME_STATUS << CLS_TASK_STATUS_FINISH <<
-                                  FIELD_NAME_STATUSDESC << VALUE_NAME_FINISH <<
-                                  FIELD_NAME_RESULTCODE << SDB_TASK_HAS_CANCELED <<
-                                  FIELD_NAME_RESULTCODEDESC <<
-                                  getErrDesp(SDB_TASK_HAS_CANCELED) ) ) ;
-         }
-         else if ( CLS_TASK_STATUS_CANCELED != _status )
-         {
-            matcher = BSON( FIELD_NAME_TASKID << (INT64)_taskID ) ;
-            updator = BSON( "$set" <<
-                            BSON( FIELD_NAME_STATUS << CLS_TASK_STATUS_CANCELED <<
-                                  FIELD_NAME_STATUSDESC << VALUE_NAME_CANCELED ) ) ;
-
-            goto error ;
-         }
-=======
-            // already finish, no need to update
-            rc = SDB_TASK_ALREADY_FINISHED ;
-            goto error ;
-         }
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
-      }
-      catch( std::exception &e )
-      {
-         rc = ossException2RC( &e ) ;
-         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
-<<<<<<< HEAD
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB_CLSSPLITTASK_BCANCELTASK, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 _clsSplitTask::calcHashPartition( clsCatalogSet & cataSet,
-                                           INT32 groupID, FLOAT64 percent,
-                                           BSONObj & bKey, BSONObj & eKey )
-   {
-      INT32 rc = SDB_OK ;
-      INT32 totalNum = 0 ;
-      INT32 rangeNum = 0 ;
-      INT32 splitNum = 0 ;
-      clsCatalogItem *cataItem = NULL ;
-      clsCatalogSet::POSITION pos ;
-
-      if ( !cataSet.isHashSharding() )
-      {
-         rc = SDB_CLS_SHARDING_NOT_HASH ;
-         goto error ;
-      }
-
-      // calc all partition number
-      pos = cataSet.getFirstItem() ;
-      while ( NULL != ( cataItem = cataSet.getNextItem( pos ) ) )
-      {
-         if ( cataItem->getGroupID() != (UINT32)groupID )
-         {
-            continue ;
-         }
-         totalNum += ( cataItem->getUpBound().firstElement().numberInt() -
-                       cataItem->getLowBound().firstElement().numberInt() ) ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       }
 
    done:
@@ -2224,7 +2111,6 @@ namespace engine
       goto done ;
    }
 
-<<<<<<< HEAD
    CLS_TASK_STATUS _clsIdxTask::getTaskStatusByGroup( const CHAR* groupName )
    {
       SDB_ASSERT( groupName, "group name can't be NULL" ) ;
@@ -2257,8 +2143,6 @@ namespace engine
       return status ;
    }
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    BSONObj _clsIdxTask::toBson( UINT32 mask )
    {
       BSONObjBuilder builder ;
@@ -2745,10 +2629,6 @@ namespace engine
                                          BSONObj& matcher )
    {
       SDB_ASSERT( srcGroup && dstGroup, "group name can't be null" ) ;
-<<<<<<< HEAD
-=======
-      SDB_ASSERT( !_isMainTask, "can't be used by main-task" ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_CLSIDXTASK_BMGTGP ) ;
@@ -2797,14 +2677,10 @@ namespace engine
             _changedMask |= CLS_IDX_MASK_GROUPS ;
 
             // change other field
-<<<<<<< HEAD
             if ( ! _isMainTask )
             {
                _updateOtherByGroupInfo() ;
             }
-=======
-            _updateOtherByGroupInfo() ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
             // to bson
             rc = _toChangedObj( dstGroupUnit, NULL, matcher, updator ) ;
@@ -3054,15 +2930,9 @@ namespace engine
             }
             _decTotalGroups() ;
 
-<<<<<<< HEAD
             _changedMask |= CLS_IDX_MASK_PULL_GROUP ;
             _pullGroupName = curGroupInfo.groupName ;
             _mapGroupInfo.erase( itGroup ) ;
-=======
-            _mapGroupInfo.erase( itGroup ) ;
-            _changedMask |= CLS_IDX_MASK_PULL_GROUP ;
-            _pullGroupName = curGroupInfo.groupName ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          }
          else
          {
@@ -3201,7 +3071,6 @@ namespace engine
             _changedGroupMask |= CLS_IDX_MASK_STATUS ;
             _changedMask |= CLS_IDX_MASK_GROUPS ;
          }
-<<<<<<< HEAD
          else if( CLS_TASK_STATUS_FINISH == groupUnit->status )
          {
             rc = SDB_TASK_ALREADY_FINISHED ;
@@ -3209,8 +3078,6 @@ namespace engine
                     "do not start thread", _taskID, groupName ) ;
             goto done ;
          }
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
          // change sub-task's status
          if ( _isMainTask )
@@ -3588,12 +3455,8 @@ namespace engine
       }
 
       if ( CLS_TASK_STATUS_FINISH == it->second.status &&
-<<<<<<< HEAD
            ( newGroupInfo.resultCode == it->second.resultCode ||
              newGroupInfo.resultCode == SDB_TASK_ALREADY_FINISHED  ) )
-=======
-           newGroupInfo.resultCode == it->second.resultCode )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       {
          // 'finish + ok' can convert to 'finish + -243'
          goto done ;

@@ -396,8 +396,6 @@ struct _ciNode
 typedef _ciNode ciNode ;
 
 #define NONE_NAME "None"
-#define SYSRBS_NAME "SYSRBS"
-
 struct _ciCollection
 {
    _ciCollection *_next ;

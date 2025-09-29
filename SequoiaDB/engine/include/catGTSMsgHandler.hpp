@@ -39,7 +39,6 @@
 #include "ossLatch.hpp"
 #include "netDef.hpp"
 #include "msg.h"
-#include "dpsTransID.hpp"
 #include "rtnContextBuff.hpp"
 
 namespace engine
@@ -79,10 +78,6 @@ namespace engine
 
    private:
       INT32 _ensureMsgJobController() ;
-<<<<<<< HEAD
-=======
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       INT32 _processSequenceAcquireMsg( MsgHeader* msg, _pmdEDUCB* eduCB,
                                         rtnContextBuf& buf ) ;
       INT32 _processSequenceCreateMsg( MsgHeader* msg, _pmdEDUCB* eduCB ) ;
@@ -90,25 +85,6 @@ namespace engine
                                      rtnContextBuf& buf ) ;
       INT32 _processSequenceAlterMsg( MsgHeader* msg, _pmdEDUCB* eduCB,
                                       rtnContextBuf& buf ) ;
-<<<<<<< HEAD
-=======
-
-      // process lowTran request
-      INT32 _processLowTranReq( MsgHeader *message,
-                                rtnContextBuf &replyBuffer,
-                                _pmdEDUCB *eduCB ) ;
-      INT32 _parseLowTranReq( const BSONObj &requestObject,
-                              DPS_TRANSID_SN &lowTran,
-                              DPS_TRANSID_SN &expireTran,
-                              BOOLEAN &transOn,
-                              BOOLEAN &globTransOn,
-                              BOOLEAN &mvccOn,
-                              BOOLEAN &stpAvailable ) ;
-
-      INT32 _buildLowTranRsp( BSONObj &responseObject,
-                              DPS_TRANSID_SN globLowTran,
-                              DPS_TRANSID_SN globExpireTran ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    private:
       _catGTSManager*         _gtsMgr ;

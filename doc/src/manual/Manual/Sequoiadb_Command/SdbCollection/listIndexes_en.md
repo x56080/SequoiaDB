@@ -44,11 +44,7 @@ When the exception happens, use [getLastErrMsg()][getLastErrMsg] to get the erro
 
 ##VERSION##
 
-<<<<<<< HEAD
 v3.4 and above
-=======
-v5.0 and above
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 ##EXAMPLES##
 
@@ -94,8 +90,4 @@ List the information of all indexes in the collection "sample.employee".
 [index]:manual/Distributed_Engine/Architecture/Data_Model/index.md
 [indexDef]:manual/Manual/Sequoiadb_Command/SdbCollection/createIndex.md
 [enforced]:manual/Manual/Sequoiadb_Command/SdbCollection/createIndex.md
-<<<<<<< HEAD
 [text_index]:manual/Distributed_Engine/Architecture/Data_Model/text_index.md
-=======
-[text_index]:manual/Distributed_Engine/Architecture/Data_Model/text_index.md
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2

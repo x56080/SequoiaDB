@@ -250,11 +250,6 @@ public class CGBCanalJsonDeserializationSchema implements DeserializationSchema<
 
         // if it has primary key changes, split changelog into UPDATE_PK_BEF, UPDATE_PK_AFT
         if (before != null && hasPriKeyChanges(before)) {
-<<<<<<< HEAD
-=======
-            final int erkPos = findFieldPosByMetadata(
-                    ReadableMetadata.EXTRA_ROW_KIND, jsonRowType);
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             fillPriKeyInBefore(before, after);
             GenericRowData producedBef = convertToFinalRow(rootRow, before);
 

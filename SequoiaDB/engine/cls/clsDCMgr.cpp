@@ -148,20 +148,6 @@ namespace engine
          goto error ;
       }
 
-      e = obj.getField( FIELD_NAME_RESTORE ) ;
-      if ( e.eoo() )
-      {
-         _restoring = FALSE ;
-      }
-      else if ( Bool == e.type() )
-      {
-         _restoring = e.Bool() ? TRUE : FALSE ;
-      }
-      else
-      {
-         goto error;
-      }
-
       e = obj.getField( FIELD_NAME_CSUNIQUEHWM ) ;
       if ( e.eoo() )
       {
@@ -496,11 +482,6 @@ namespace engine
    void _clsDCBaseInfo::setReadonly( BOOLEAN readonly )
    {
       _readonly = readonly ;
-   }
-
-   void _clsDCBaseInfo::setRestoring( BOOLEAN restoring )
-   {
-      _restoring = restoring  ;
    }
 
    INT32 _clsDCBaseInfo::_addGroup( const BSONObj &obj, BOOLEAN check,

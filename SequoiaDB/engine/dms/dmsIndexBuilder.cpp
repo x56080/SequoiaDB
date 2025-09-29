@@ -32,14 +32,10 @@
 #include "dmsStorageUnit.hpp"
 #include "dmsStorageIndex.hpp"
 #include "dmsStorageData.hpp"
-<<<<<<< HEAD
 #include "dmsIndexOnlineBuilder.hpp"
 #include "dmsIndexSortingBuilder.hpp"
 #include "dmsIndexExtBuilder.hpp"
 #include "dmsScanner.hpp"
-=======
-#include "dmsIndexBuilderImpl.hpp"
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 #include "dmsCB.hpp"
 #include "ixm.hpp"
 #include "pdSecure.hpp"
@@ -57,19 +53,12 @@ namespace engine
                                        _pmdEDUCB* eduCB,
                                        dmsExtentID indexExtentID,
                                        dmsExtentID indexLogicID,
-<<<<<<< HEAD
                                        dmsIndexBuildGuardPtr &guardPtr,
                                        dmsDupKeyProcessor *dkProcessor,
                                        dmsIdxTaskStatus* pIdxStatus )
    : _su( su ),
      _suIndex ( su->index() ),
      _suData ( su->data() ),
-=======
-                                       dmsDupKeyProcessor *dkProcessor,
-                                       dmsIdxTaskStatus* pIdxStatus )
-   : _suIndex ( indexSU ),
-     _suData ( dataSU ),
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
      _mbContext ( mbContext ),
      _eduCB ( eduCB ),
      _buildGuardPtr( guardPtr ),
@@ -79,14 +68,7 @@ namespace engine
      _pIdxStatus( pIdxStatus )
    {
       _indexCB = NULL ;
-<<<<<<< HEAD
       _scanRID.reset() ;
-=======
-      _scanExtLID = DMS_INVALID_EXTENT ;
-      _currentExtentID = DMS_INVALID_EXTENT ;
-      _lastExtentID = DMS_INVALID_EXTENT ;
-      _extent = NULL ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       _unique = FALSE ;
       _dropDups = FALSE ;
       _pOprHandler = NULL ;
@@ -116,83 +98,6 @@ namespace engine
    void _dmsIndexBuilder::setWriteResult( utilWriteResult *pResult )
    {
       _pResult = pResult ;
-   }
-
-   INT32 _dmsIndexBuilder::updateRebuildTime( _dmsMBContext* mbContext,
-                                              ixmIndexCB &indexCB,
-                                              BOOLEAN isEmpty )
-   {
-      INT32 rc = SDB_OK ;
-
-      dpsTransCB *transCB = sdbGetTransCB() ;
-      UINT64 rebuildTime = DPS_MIN_TRANS_TIME ;
-      UINT64 currentRebuildTime = DPS_INVALID_TRANS_TIME ;
-      INT32 getTimeRC = SDB_OK ;
-
-      SDB_ASSERT( NULL != mbContext, "meta-block context is invalid" ) ;
-      SDB_ASSERT( mbContext->isMBLock( EXCLUSIVE ),
-                  "meta-context block must be locked in exclusive" ) ;
-
-      PD_CHECK( NULL != mbContext, SDB_SYS, error, PDERROR,
-                "Failed to set rebuild time for index, meta-block context "
-                "is invalid" ) ;
-      PD_CHECK( mbContext->isMBLock( EXCLUSIVE ), SDB_SYS, error, PDERROR,
-                "Failed to set rebuild time for index, meta-block context "
-                "is not locked in exclusive" ) ;
-
-      currentRebuildTime = indexCB.getRebuildTime() ;
-
-      if ( DPS_MAX_TRANS_TIME == currentRebuildTime )
-      {
-         if ( isEmpty )
-         {
-            // empty collection, so everyone is safe to access this index
-            // set index rebuild time to a minimum transaction time
-            rebuildTime = DPS_MIN_TRANS_TIME ;
-         }
-         else if ( transCB->isRRSupported() )
-         {
-            // RR requires index rebuild time
-            stpAgent timeAgent ;
-            stpLogicalTimeUS logicalTime ;
-            getTimeRC = timeAgent.getLogicalTimeUS( logicalTime,
-                                                    OSS_ONE_SEC,
-                                                    FALSE ) ;
-            if ( SDB_OK == getTimeRC )
-            {
-               rebuildTime = logicalTime.getTime() ;
-            }
-            else
-            {
-               // failed to get logical time, set to max value, and later
-               // transactions could try to set rebuild time
-               rebuildTime = DPS_MAX_TRANS_TIME ;
-            }
-         }
-      }
-
-      // only update when rebuild time is changed to valid value
-      // NOTE: could update to minimum value if RR is not enabled anymore
-      if ( DPS_MAX_TRANS_TIME == currentRebuildTime &&
-           DPS_MAX_TRANS_TIME != rebuildTime )
-      {
-         rc = indexCB.updateRebuildTime( rebuildTime ) ;
-         PD_RC_CHECK( rc, PDWARNING, "Failed to update rebuild time for index, "
-                      "rc: %d", rc ) ;
-
-         PD_LOG( PDDEBUG, "Update rebuild time [%llu] for index %s",
-                 rebuildTime, indexCB.getName() ) ;
-      }
-
-   done:
-      if ( SDB_OK == rc )
-      {
-         rc = getTimeRC ;
-      }
-      return rc ;
-
-   error:
-      goto done ;
    }
 
    INT32 _dmsIndexBuilder::_init()
@@ -312,11 +217,7 @@ namespace engine
       _mbContext->mbUnlock() ;
       return rc ;
    error:
-<<<<<<< HEAD
       SAFE_DELETE( _indexCB ) ;
-=======
-      SAFE_OSS_DELETE( _indexCB ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       _releaseScannerChecker() ;
       goto done ;
    }
@@ -341,40 +242,10 @@ namespace engine
 
       if ( _pIdxStatus && DMS_TASK_STATUS_RUN == _pIdxStatus->status() )
       {
-<<<<<<< HEAD
          _pIdxStatus->setTotalRecNum( _mbContext->mbStat()->_totalRecords.fetch() ) ;
          _pIdxStatus->resetPcsedRecNum() ;
       }
 
-=======
-         /// when the collection is empty, we complete the index creating
-         /// fast( when unlock the context and scan the data, because the
-         /// scanExtLID always is -1, so when scan finished, the new instor
-         /// will not insert to the index )
-
-         // since the collection is empty, index rebuild is finished here
-         // so set the rebuild time
-         if ( sdbGetTransCB()->isRRSupported() )
-         {
-            // try to set rebuild logical time if global transaction enabled
-            updateRebuildTime( _mbContext, *_indexCB, TRUE ) ;
-         }
-
-         _indexCB->setFlag ( IXM_INDEX_FLAG_NORMAL ) ;
-         _indexCB->scanExtLID ( DMS_INVALID_EXTENT ) ;
-         rc = SDB_DMS_EOC ;
-         goto error ;
-      }
-
-      if ( _pIdxStatus && DMS_TASK_STATUS_RUN == _pIdxStatus->status() )
-      {
-         _pIdxStatus->setTotalRecNum(
-            _suData->getMBStatInfo( _mbContext->mbID() )->_totalRecords ) ;
-         _pIdxStatus->resetPcsedRecNum() ;
-      }
-
-   done:
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       return rc ;
    }
 
@@ -382,43 +253,12 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-<<<<<<< HEAD
       if ( SDB_OK == ( rc = _checkIndexAfterLock( EXCLUSIVE ) ) )
-=======
-      dpsTransCB *transCB = sdbGetTransCB() ;
-      BOOLEAN updatedRebuildTime = FALSE ;
-
-      // if in global transaction, we need to update rebuild time in index
-      // definition, so we need a exclusive lock
-      // if not in global transaction, other threads will be excluded by
-      // NORMAL flag, so we only need a shared lock
-      INT32 lockType = transCB->isRRSupported() ? EXCLUSIVE : SHARED ;
-
-      if ( SDB_OK == ( rc = _checkIndexAfterLock( lockType ) ) )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       {
-         if ( transCB->isRRSupported() )
-         {
-            // try to set rebuild logical time if global transaction enabled
-            if ( SDB_OK == updateRebuildTime( _mbContext, *_indexCB, FALSE ) )
-            {
-               updatedRebuildTime = TRUE ;
-            }
-         }
-
-         // set index normal to be used
          _indexCB->setFlag ( IXM_INDEX_FLAG_NORMAL ) ;
          _indexCB->scanExtLID ( DMS_INVALID_EXTENT ) ;
          _indexCB->setScanExtOffset( DMS_INVALID_OFFSET ) ;
          _mbContext->mbUnlock() ;
-
-         // if rebuild time is updated, make a sleep, so later transaction
-         // from the same session could use this index
-         if ( updatedRebuildTime &&
-              _eduCB->getTransExecutor()->useTransLock() )
-         {
-            ossSleep( STP_MICROSEC_TO_MILLISEC( STP_MAX_TIME_ERROR_US ) ) ;
-         }
       }
 
       _releaseScannerChecker() ;
@@ -503,13 +343,6 @@ namespace engine
          _pIdxStatus->setTotalRecNum( _mbContext->mbStat()->_totalRecords.fetch() ) ;
       }
 
-      if ( _pIdxStatus && DMS_TASK_STATUS_RUN == _pIdxStatus->status() )
-      {
-         // in case _totalRecords has changed
-         _pIdxStatus->setTotalRecNum(
-            _suData->getMBStatInfo( _mbContext->mbID() )->_totalRecords ) ;
-      }
-
    done:
       return rc ;
    error:
@@ -522,11 +355,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-<<<<<<< HEAD
       if ( isEOF )
-=======
-      if ( DMS_INVALID_EXTENT == _extent->_nextExtent )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       {
          // done scan, set scanned extent to maximum value
          // so coming write operators will update this index
@@ -550,21 +379,6 @@ namespace engine
          goto error ;
       }
 
-<<<<<<< HEAD
-=======
-      if ( _pIdxStatus && DMS_TASK_STATUS_RUN == _pIdxStatus->status() )
-      {
-         _pIdxStatus->incPcsedRecNum( _extent->_recCount ) ;
-      }
-
-      // check if scanner is interrupted
-      rc = _checkInterrupt() ;
-      if ( SDB_OK != rc )
-      {
-         goto error ;
-      }
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    done:
       return rc ;
 
@@ -586,7 +400,6 @@ namespace engine
          PD_RC_CHECK ( rc, PDERROR, "Failed to get keys from object %s",
                        PD_SECURE_OBJ( obj ) ) ;
 
-<<<<<<< HEAD
          rc = _indexCB->checkKeys( obj, keySet, arrEle, _pResult ) ;
          if ( SDB_OK != rc &&
               NULL != _pResult &&
@@ -594,9 +407,6 @@ namespace engine
          {
             _pResult->setCurrentID( obj ) ;
          }
-=======
-         rc = _indexCB->checkKeys( keySet, arrEle ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          PD_RC_CHECK( rc, PDERROR, "Failed to check keys for object %s, "
                       "rc: %d", PD_SECURE_OBJ( obj ), rc ) ;
       }
@@ -703,11 +513,7 @@ namespace engine
                                        0 ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to insert to remote:cl=%s,"
                       "insertor=%s,rc=%d", _indexCB->getIndexCLName(),
-<<<<<<< HEAD
                       PD_SECURE_OBJ( key ), rc ) ;
-=======
-                      PD_SECURE_OBJ( insertor ), rc ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       }
 
    done:
@@ -894,12 +700,7 @@ namespace engine
    }
 
 
-<<<<<<< HEAD
    _dmsIndexBuilder* _dmsIndexBuilder::createInstance( dmsSUDescriptor* su,
-=======
-   _dmsIndexBuilder* _dmsIndexBuilder::createInstance( _dmsStorageIndex* indexSU,
-                                                       _dmsStorageData* dataSU,
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                                                        _dmsMBContext* mbContext,
                                                        _pmdEDUCB* eduCB,
                                                        dmsExtentID indexExtentID,
@@ -949,10 +750,7 @@ namespace engine
                                                           eduCB,
                                                           indexExtentID,
                                                           indexLogicID,
-<<<<<<< HEAD
                                                           guardPtr,
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                                                           dkProcessor,
                                                           pIdxStatus ) ;
             if ( NULL == builder)
@@ -968,10 +766,7 @@ namespace engine
                                                            indexExtentID,
                                                            indexLogicID,
                                                            sortBufferSize,
-<<<<<<< HEAD
                                                            guardPtr,
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                                                            dkProcessor,
                                                            pIdxStatus ) ;
             if ( NULL == builder)

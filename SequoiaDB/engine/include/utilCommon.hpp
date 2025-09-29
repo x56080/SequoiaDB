@@ -112,17 +112,10 @@ namespace engine
                                       INT32 transRC = SDB_OK ) ;
 
 #if defined( SDB_ENGINE )
-<<<<<<< HEAD
    /*
       util print bson batch
    */
    ossPoolString utilPrintBSONBatch( const CHAR *detail, const INT32 count ) ;
-=======
-      /*
-         util print bson batch
-      */
-      ossPoolString utilPrintBSONBatch( const CHAR *detail, const INT32 count ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 #endif
 
    /*

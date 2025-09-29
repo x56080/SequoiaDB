@@ -38,11 +38,8 @@
 #include "clsRemoteOperator.hpp"
 #include "dmsTaskStatus.hpp"
 #include "dmsScanner.hpp"
-<<<<<<< HEAD
 #include "rtnTBScanner.hpp"
 #include "dmsWriteGuard.hpp"
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 namespace engine
 {
@@ -91,10 +88,7 @@ namespace engine
                         _pmdEDUCB* eduCB,
                         dmsExtentID indexExtentID,
                         dmsExtentID indexLogicID,
-<<<<<<< HEAD
                         dmsIndexBuildGuardPtr &guardPtr,
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                         dmsDupKeyProcessor *dkProcessor,
                         dmsIdxTaskStatus* pIdxStatus = NULL ) ;
       virtual ~_dmsIndexBuilder() ;
@@ -102,12 +96,6 @@ namespace engine
 
       void  setOprHandler( IDmsOprHandler *pOprHander ) ;
       void  setWriteResult( utilWriteResult *pResult ) ;
-
-      // set rebuild time of index
-      // WARNING: must have exclusive lock for mbContext
-      static INT32 updateRebuildTime( _dmsMBContext* mbContext,
-                                      ixmIndexCB &indexCB,
-                                      BOOLEAN isEmpty ) ;
 
    protected:
       virtual INT32 _build() = 0 ;
@@ -146,15 +134,7 @@ namespace engine
       dmsExtentID        _indexLID ;
       _ixmIndexCB*       _indexCB ;
       OID                _indexOID ;
-<<<<<<< HEAD
       dmsRecordID        _scanRID ;
-=======
-      dmsExtentID        _scanExtLID ;
-      dmsExtentID        _currentExtentID ;
-      dmsExtentID        _lastExtentID ;
-      dmsExtRW           _extRW ;
-      const dmsExtent*   _extent ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       BOOLEAN            _unique ;
       BOOLEAN            _dropDups ;
 

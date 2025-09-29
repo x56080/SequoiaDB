@@ -213,18 +213,7 @@ namespace engine
          ossSnprintf( tmpPID, sizeof( tmpPID ) - 1, "%d", node._pid ) ;
       }
 
-<<<<<<< HEAD
       if ( showLong || showLocation )
-=======
-      if ( !showLong )
-      {
-         ossPrintf( "%s(%s) (%s) %s" OSS_NEWLINE,
-                    utilDBTypeStr( (SDB_TYPE)node._type ),
-                    node._svcname.c_str(), tmpPID,
-                    utilDBRoleShortStr( (SDB_ROLE)node._role ) ) ;
-      }
-      else
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       {
          struct tm otm ;
          time_t tt = node._startTime ;
@@ -534,11 +523,7 @@ namespace engine
       }
 
       utilListNodes( listNodes, typeFilter, NULL, OSS_INVALID_PID,
-<<<<<<< HEAD
                      roleFilter, FALSE, showLocation ) ;
-=======
-                     roleFilter, FALSE, FALSE ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       if ( RUN_MODE_RUN == modeFilter )
       {
@@ -647,17 +632,12 @@ namespace engine
             ++total ;
             if ( showLocation )
             {
-<<<<<<< HEAD
                CHAR tmpPID[ 11 ] = { 0 } ;
                ossSnprintf( tmpPID, sizeof( tmpPID ) - 1, "%d",
                             procs[ i ]._pid ) ;
                ossPrintf( PMD_LIST_LONG_LOCATION OSS_NEWLINE,
                           PMDDMN_SVCNAME_DEFAULT,
                           "-", "-", tmpPID, "-", "-", "-", "-", "-", "-", "-", "-" ) ;
-=======
-               ossPrintf( "%s (%d)" OSS_NEWLINE, PMDDMN_SVCNAME_DEFAULT,
-                          procs[ i ]._pid ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             }
             else if ( showLong )
             {

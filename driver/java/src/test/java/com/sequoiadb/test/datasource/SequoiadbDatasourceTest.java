@@ -43,7 +43,6 @@ import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.junit.*;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
@@ -633,24 +632,6 @@ public class SequoiadbDatasourceTest {
                 }finally {
                     ds2.close();
                 }
-<<<<<<< HEAD
-=======
-
-                // user name and cipher file
-                UserConfig userConfig = new UserConfig( Constants.TEST_USER_NAME,
-                        new File( Constants.TEST_USER_CIPHER_FILE ), Constants.TEST_USER_TOKEN );
-                SequoiadbDatasource ds3 = SequoiadbDatasource.builder()
-                        .userConfig( userConfig )
-                        .serverAddress( Constants.COOR_NODE_CONN )
-                        .configOptions( netOpt )
-                        .datasourceOptions( dsOpt )
-                        .build();
-                try {
-                    checkDataSource( ds3 );
-                } finally {
-                    ds3.close();
-                }
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             } finally {
                 db.removeUser( Constants.TEST_USER_NAME, Constants.TEST_USER_PASSWORD );
             }

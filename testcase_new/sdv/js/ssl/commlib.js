@@ -6,10 +6,6 @@
 var csName = CHANGEDPREFIX + "_cs";;
 var cmd = new Cmd();
 var installDir = initPath();
-<<<<<<< HEAD
-=======
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 db.updateConf({ usessl: true},{role:"coord"});
 var dbs = new SecureSdb( COORDHOSTNAME, COORDSVCNAME );
 

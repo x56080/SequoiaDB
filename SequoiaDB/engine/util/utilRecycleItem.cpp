@@ -1,6 +1,5 @@
 /*******************************************************************************
 
-<<<<<<< HEAD
    Copyright (C) 2011-Present SequoiaDB Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,22 +13,6 @@
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
-=======
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
-
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
-
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    Source File Name = utilRecycleItem.cpp
 
@@ -51,10 +34,6 @@
    Last Changed =
 
 *******************************************************************************/
-<<<<<<< HEAD
-=======
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 #include "utilRecycleItem.hpp"
 #include "utilUniqueID.hpp"
 #include "pdTrace.hpp"
@@ -331,11 +310,8 @@ namespace engine
 
       try
       {
-<<<<<<< HEAD
          CHAR timeStamp[ OSS_TIMESTAMP_STRING_LEN + 1 ] = { 0 } ;
          ossMillisecondsToString( _recycleTime, timeStamp ) ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          builder.append( FIELD_NAME_RECYCLE_NAME, _recycleName ) ;
          builder.append( FIELD_NAME_RECYCLE_ID, (INT64)_recycleID ) ;
          builder.append( FIELD_NAME_ORIGIN_NAME, _originName ) ;
@@ -343,12 +319,7 @@ namespace engine
          builder.append( FIELD_NAME_TYPE, utilGetRecycleTypeName( _type ) ) ;
          builder.append( FIELD_NAME_OPTYPE,
                          utilGetRecycleOpTypeName( _opType ) ) ;
-<<<<<<< HEAD
          builder.append( FIELD_NAME_RECYCLE_TIME, timeStamp ) ;
-=======
-         builder.appendTimestamp( FIELD_NAME_RECYCLE_TIME,
-                                  (INT64)_recycleTime, 0 ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          if ( _isMainCL )
          {
             builder.appendBool( FIELD_NAME_ISMAINCL, TRUE ) ;
@@ -463,7 +434,6 @@ namespace engine
 
          // recycle time
          element = object.getField( FIELD_NAME_RECYCLE_TIME ) ;
-<<<<<<< HEAD
          if ( String == element.type() )
          {
             _recycleTime = ossStringToMilliseconds( element.valuestr() ) ;
@@ -479,12 +449,6 @@ namespace engine
             rc = SDB_SYS ;
             goto error ;
          }
-=======
-         PD_CHECK( Timestamp == element.type(), SDB_SYS, error, PDERROR,
-                   "Failed to get field [%s], it is not long number",
-                   FIELD_NAME_RECYCLE_TIME ) ;
-         _recycleTime = (UINT64)( element.timestampTime() ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
          // is main collection
          element = object.getField( FIELD_NAME_ISMAINCL ) ;

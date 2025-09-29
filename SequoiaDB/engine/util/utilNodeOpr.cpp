@@ -489,37 +489,6 @@ namespace engine
    /*
       Local define
    */
-   static INT32 _utilWritePipeOnly( const CHAR *pSvcName, OSSPID pid,
-                                    const CHAR *pWriteBuf, INT32 writeLen )
-   {
-      INT32 rc = SDB_OK ;
-
-      utilNodePipe nodePipe ;
-
-      rc = nodePipe.openPipe( pSvcName, pid ) ;
-      if ( rc && SDB_FE != rc )
-      {
-         PD_LOG ( PDERROR, "Failed to open named pipe: %s, rc: %d",
-                  nodePipe.getReadPipeName(), rc ) ;
-         goto error ;
-      }
-
-      rc = nodePipe.writePipe( pWriteBuf, writeLen ) ;
-      if ( rc )
-      {
-         PD_LOG ( PDERROR, "Failed to send %s to %s, rc: %d",
-                  pWriteBuf, nodePipe.getWritePipeName(), rc ) ;
-         goto error ;
-      }
-
-      done:
-         nodePipe.closePipe() ;
-         return rc ;
-
-      error:
-         goto done ;
-   }
-
    static INT32 _utilWriteReadPipe( const CHAR *pSvcName, OSSPID pid,
                                     const CHAR *pWriteBuf, INT32 writeLen,
                                     CHAR *pReadBuf, INT32 readLen,
@@ -571,12 +540,6 @@ namespace engine
       return rc ;
    error:
       goto done ;
-   }
-
-   INT32 utilWritePipe( const CHAR *pSvcName, OSSPID pid,
-                        const CHAR *pWriteBuf, INT32 writeLen )
-   {
-      return _utilWritePipeOnly( pSvcName, pid, pWriteBuf, writeLen ) ;
    }
 
    INT32 utilWriteReadPipe( const CHAR *pSvcName, OSSPID pid,
@@ -733,11 +696,7 @@ namespace engine
                         OSSPID pidFilter,
                         INT32 roleFilter,
                         BOOLEAN allowAloneCM,
-<<<<<<< HEAD
                         BOOLEAN needLocationInfo )
-=======
-                        BOOLEAN includeSTP )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
       INT32 rc                   = SDB_OK ;
       DIR *pDir                  = NULL ;
@@ -808,12 +767,6 @@ namespace engine
          // 2. type
          while ( beginType < SDB_TYPE_MAX )
          {
-            if ( SDB_TYPE_STP == beginType && !includeSTP )
-            {
-               ++beginType ;
-               continue ;
-            }
-
             pStr = ossStrstr( commandLine,
                               utilDBTypeStr( (SDB_TYPE)beginType ) ) ;
             if ( pStr == commandLine &&
@@ -867,8 +820,6 @@ namespace engine
                case SDB_TYPE_DB :
                   findNode._role = SDB_ROLE_STANDALONE ;
                   break ;
-               case SDB_TYPE_STP :
-                  findNode._role = SDB_ROLE_STP ;
                default :
                   break ;
             }
@@ -923,12 +874,7 @@ namespace engine
 
    INT32 utilListNodes( UTIL_VEC_NODES & nodes, INT32 typeFilter,
                         const CHAR * svcnameFilter, OSSPID pidFilter,
-<<<<<<< HEAD
                         INT32 roleFilter, BOOLEAN allowAloneCM, BOOLEAN needLocationInfo )
-=======
-                        INT32 roleFilter, BOOLEAN allowAloneCM,
-                        BOOLEAN includeSTP )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
       INT32 rc = SDB_OK ;
       vector< string > names ;
@@ -964,10 +910,6 @@ namespace engine
             continue ;
          }
          if ( -1 != typeFilter && typeFilter != findNode._type )
-         {
-            continue ;
-         }
-         else if ( SDB_TYPE_STP == findNode._type && !includeSTP )
          {
             continue ;
          }

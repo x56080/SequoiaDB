@@ -169,15 +169,12 @@ namespace engine
          virtual EDU_TYPES       eduType () const = 0 ;
          virtual const CHAR*     className() const = 0 ;
 
-         // on receive callback for async session
-         // NOTE: pass user data from net handler to async session if needed
          virtual void    onRecieve ( const NET_HANDLE netHandle,
                                      MsgHeader * msg ) ;
          virtual BOOLEAN timeout ( UINT32 interval ) ;
 
          virtual void    onDispatchMsgBegin( const NET_HANDLE netHandle,
-                                             const MsgHeader *pHeader,
-                                             UINT64 recvTime )
+                                             const MsgHeader *pHeader )
          {
          }
          virtual void    onDispatchMsgEnd( INT64 costUsecs )
@@ -237,13 +234,13 @@ namespace engine
          UINT32         _incBuffPos ( UINT32 pos ) ;
          UINT32         _decBuffPos ( UINT32 pos ) ;
 
+         void           _holdIn() ;
+         void           _holdOut() ;
+
       protected:
          INT32 _lock () ;
          INT32 _unlock () ;
          void  _reset() ;
-
-         void           _holdIn() ;
-         void           _holdOut() ;
 
          netRouteAgent* routeAgent() ;
 
@@ -329,7 +326,6 @@ namespace engine
          INT32                dispatchMsg( const NET_HANDLE &handle,
                                            const MsgHeader *pMsg,
                                            pmdEDUMemTypes memType,
-                                           UINT64 recvTime,
                                            BOOLEAN decPending,
                                            BOOLEAN *hasDispatched = NULL ) ;
 
@@ -428,8 +424,7 @@ namespace engine
          INT32          _pushMessage ( pmdAsyncSession *pSession,
                                        const MsgHeader *header,
                                        pmdEDUMemTypes memType,
-                                       const NET_HANDLE &handle,
-                                       UINT64 recvTime ) ;
+                                       const NET_HANDLE &handle ) ;
 
       protected:
          void           _checkSession( UINT32 interval ) ;

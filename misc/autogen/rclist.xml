@@ -1,12 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <rclist>
-   <taglist>
-      <tag>
-         <name>vessel</name>
-         <base>800</base>      
-      </tag>
-   </taglist> 
-
    <conslist>
       <constant>
         <name>SDB_MAX_ERROR</name>
@@ -2802,58 +2795,58 @@
       </code>
 
       <code>
-         <name>STP_NOT_AVAILABLE</name>
+         <name>SDB_ERROR_RESERVED_349</name> <!-- STP_NOT_AVAILABLE -->
          <description>
-            <en>SequoiaDB Time Protocol node is not available</en>
-            <cn>时间服务不可用</cn>
+            <en>Reserved</en> <!-- SequoiaDB Time Protocol node is not available -->
+            <cn>保留</cn> <!-- 时间服务不可用 -->
          </description>
       </code>
 
       <code>
-         <name>STP_SYNC_FAILED</name>
+         <name>SDB_ERROR_RESERVED_350</name> <!-- STP_SYNC_FAILED -->
          <description>
-            <en>Serial Time Protocol node failed to synchronize</en>
-            <cn>时间服务同步失败</cn>
+            <en>Reserved</en> <!-- Serial Time Protocol node failed to synchronize -->
+            <cn>保留</cn> <!-- 时间服务同步失败 -->
          </description>
       </code>
 
       <code>
-         <name>STP_TIME_AHEAD_AFTER_SYNC</name>
+         <name>SDB_ERROR_RESERVED_351</name> <!-- STP_TIME_AHEAD_AFTER_SYNC -->
          <description>
-            <en>Time of Serial Time Protocol node is ahead of the source after synchronization</en>
-            <cn>时间服务同步后本地时间太快</cn>
+            <en>Reserved</en> <!-- Time of Serial Time Protocol node is ahead of the source after synchronization -->
+            <cn>保留</cn> <!-- 时间服务同步后本地时间太快 -->
          </description>
       </code>
 
       <code>
-         <name>STP_SYNC_BUSY</name>
+         <name>SDB_ERROR_RESERVED_352</name> <!-- STP_SYNC_BUSY -->
          <description>
-            <en>Serial Time Protocol node is busy synchronizing</en>
-            <cn>时间服务正在同步</cn>
+            <en>Reserved</en> <!-- Serial Time Protocol node is busy synchronizing -->
+            <cn>保留</cn> <!-- 时间服务正在同步 -->
          </description>
       </code>
 
       <code>
-         <name>SDB_GLOB_TRANS_NOT_AVAILABLE</name>
+         <name>SDB_ERROR_RESERVED_353</name> <!-- SDB_GLOB_TRANS_NOT_AVAILABLE -->
          <description>
-            <en>Global transaction is not available</en>
-            <cn>全局事务不可用</cn>
+            <en>Reserved</en> <!-- Global transaction is not available -->
+            <cn>保留</cn> <!-- 全局事务不可用 -->
          </description>
       </code>
 
       <code>
-         <name>SDB_GLOB_LOWTRAN_UNKNOWN</name>
+         <name>SDB_ERROR_RESERVED_354</name> <!-- SDB_GLOB_LOWTRAN_UNKNOWN -->
          <description>
-            <en>Global LowTran is unknown</en>
-            <cn>全局事务最早正在执行的事务 ID 未知</cn>
+            <en>Reserved</en> <!-- Global LowTran is unknown -->
+            <cn>保留</cn> <!-- 全局事务最早正在执行的事务 ID 未知 -->
          </description>
       </code>
 
       <code>
-         <name>SDB_GLOB_TRANS_NOT_SYNC</name>
+         <name>SDB_ERROR_RESERVED_355</name> <!-- SDB_GLOB_TRANS_NOT_SYNC -->
          <description>
-            <en>Global transaction times of nodes are not synchronized</en>
-            <cn>节点间的全局逻辑时间不同步</cn>
+            <en>Reserved</en> <!-- Global transaction times of nodes are not synchronized -->
+            <cn>保留</cn> <!-- 节点间的全局逻辑时间不同步 -->
          </description>
       </code>
 
@@ -2874,47 +2867,26 @@
       </code>
 
       <code>
-<<<<<<< HEAD
          <name>SDB_ERROR_RESERVED_358</name> <!-- SDB_RESTORE_IN_PROGRESS -->
          <description>
             <en>Reserved</en> <!-- Database in restore-in-progress state -->
             <cn>保留</cn> <!-- 数据库处于恢复中状态 -->
-=======
-         <name>SDB_RESTORE_IN_PROGRESS</name>
-         <description>
-            <en>Database is in restore-in-progress state</en>
-            <cn>数据库处于恢复中状态</cn>
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          </description>
       </code>
 
       <code>
-<<<<<<< HEAD
          <name>SDB_ERROR_RESERVED_359</name> <!-- SDB_RESTORE_NOT_IN_PROGRESS -->
          <description>
             <en>Reserved</en> <!-- Database is not in restore-in-progress state -->
             <cn>保留</cn> <!-- 数据库不处于恢复中状态 -->
-=======
-         <name>SDB_RESTORE_NOT_IN_PROGRESS</name>
-         <description>
-            <en>Database is not in restore-in-progress state</en>
-            <cn>数据库不处于恢复中状态</cn>
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          </description>
       </code>
 
       <code>
-<<<<<<< HEAD
          <name>SDB_ERROR_RESERVED_360</name> <!-- SDB_RESTORE_NO_CONSISTENT_PIT -->
          <description>
             <en>Reserved</en> <!-- No valid consistency point for point-in-time restore -->
             <cn>保留</cn> <!-- 按时间还原没有一致的有效时间点 -->
-=======
-         <name>SDB_RESTORE_NO_CONSISTENT_PIT</name>
-         <description>
-            <en>No valid consistency point for point-in-time restore</en>
-            <cn>按时间还原没有一致的有效时间点</cn>
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          </description>
       </code>
 
@@ -2949,11 +2921,7 @@
             <cn>索引键的任意一个字段都不允许为数组</cn>
          </description>
       </code>
-<<<<<<< HEAD
 
-=======
-      
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       <code>
          <name>SDB_TASK_ROLLBACK</name>
          <description>
@@ -3105,11 +3073,7 @@
             <cn>任务状态错误</cn>
          </description>
       </code>
-<<<<<<< HEAD
 
-=======
- 
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       <code>
          <name>SDB_RECYCLE_ITEM_NOTEXIST</name>
          <description>
@@ -3175,17 +3139,6 @@
       </code>
 
       <code>
-<<<<<<< HEAD
-=======
-         <name>SDB_NO_PRIVILEGES</name>
-         <description>
-            <en>No privileges for the operation</en>
-            <cn>权限不足</cn>
-         </description>
-      </code>
-
-      <code> 
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          <name>SDB_DMS_SCANNER_INTERRUPT</name>
          <description>
             <en>Data scanner is interrupted</en>
@@ -3194,435 +3147,162 @@
       </code>
 
       <code>
-<<<<<<< HEAD
          <name>SDB_NO_PRIVILEGES</name>
          <description>
             <en>No privileges for the operation</en>
             <cn>权限不足</cn>
-=======
-         <name>SDB_OPERATION_DENIED</name>
-         <description>
-            <en>Operation denied</en>
-            <cn>操作被拒绝</cn>
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          </description>
       </code>
 
       <code>
-<<<<<<< HEAD
          <name>SDB_OPERATION_DENIED</name>
          <description>
             <en>Operation denied</en>
             <cn>操作被拒绝</cn>
-=======
-         <name>SDB_NOT_SUPPORTED</name>
-         <description>
-            <en>The operation has not been supported</en>
-            <cn>操作尚未支持</cn>
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          </description>
       </code>
 
       <code>
-<<<<<<< HEAD
          <name>SDB_CLS_NOT_LOCATION_PRIMARY</name>
          <description>
             <en>Node is not primary of location set</en>
             <cn>非位置集主节点</cn>
-=======
-         <name>SDB_DPS_BROKEN_OPL</name>
-         <description>
-            <en>The operation list has been broken</en>
-            <cn>日志操作链已损坏</cn>     
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          </description>
       </code>
 
       <code>
-<<<<<<< HEAD
          <name>SDB_ERROR_RESERVED_396</name> <!--Not used-->
          <description>
             <en>Reserved</en> <!--Not used-->
             <cn>保留</cn> <!--Not used-->
-=======
-         <name>SDB_INVALID_OPERATION</name>
-         <description>
-            <en>The operation is not valid</en>
-            <cn>非法的操作</cn>
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          </description>
       </code>
 
       <code>
-<<<<<<< HEAD
          <name>SDB_OPERATION_RETRY</name>
          <description>
             <en>Operation need retry</en>
             <cn>操作需要重试</cn>
-=======
-         <tag>vessel</tag>
-         <name>SDB_VESSEL_INTERNAL_ERR</name>
-         <description>
-            <en>An internal error of vessel has occurred</en>
-            <cn>发生了一个内部错误</cn>
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          </description>
       </code>
 
       <code>
-<<<<<<< HEAD
          <name>SDB_SEC_KEYS_INITIALIZED</name>
          <description>
             <en>Security keys already initialized</en>
             <cn>安全密钥已初始化</cn>
-=======
-         <tag>vessel</tag>
-         <name>SDB_VESSEL_FORBIDDEN_OP_WLT</name>
-         <description>
-            <en>forbidden operation because of holding wrong type latch</en>
-            <cn>由于没有持有正确类型的锁，操作被禁止</cn>
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          </description>
       </code>
 
       <code>
-<<<<<<< HEAD
          <name>SDB_SEC_KEYS_UNINITIALIZED</name>
          <description>
             <en>Security keys are uninitialized</en>
             <cn>安全密钥未初始化</cn>
-=======
-         <tag>vessel</tag>
-         <name>SDB_VESSEL_INVALID_FILE</name>
-         <description>
-            <en>invalid file to load</en>
-            <cn>待加载文件校验不通过</cn>
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          </description>
       </code>
 
       <code>
-<<<<<<< HEAD
          <name>SDB_SEC_KEYS_CORRUPTED</name>
          <description>
             <en>Security keys are corrupted</en>
             <cn>安全密钥损坏</cn>
-=======
-         <tag>vessel</tag>
-         <name>SDB_VESSEL_INVALID_PTR_OFFSET</name>
-         <description>
-            <en>invalid pointer offset of disk page</en>
-            <cn>非法的数据块指针偏移</cn>
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          </description>
       </code>
 
       <code>
-<<<<<<< HEAD
          <name>SDB_SEC_DEK_NOT_EXIST</name>
          <description>
             <en>Data encryption key does not exist</en>
             <cn>数据加密密钥不存在</cn>
-=======
-         <tag>vessel</tag>
-         <name>SDB_VESSEL_FS_UPPER_LIMIT</name>
-         <description>
-            <en>the space of file reaches the upper limit</en>
-            <cn>文件空间达到上限</cn>
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          </description>
       </code>
 
       <code>
-<<<<<<< HEAD
          <name>SDB_LOB_OUT_OF_PUT_SIZE</name>
          <description>
             <en>The lob which to put is out of page size</en>
             <cn>集合空间页无法容纳该对象</cn>
-=======
-         <tag>vessel</tag>
-         <name>SDB_VESSEL_NOT_ENOUGH_FREE_RESOURCE</name>
-         <description>
-            <en>not enough free resource</en>
-            <cn>空闲资源不足</cn>
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          </description>
       </code>
 
       <code>
-<<<<<<< HEAD
          <name>SDB_RTN_CONTEXT_NOTOWNED</name>
          <description>
             <en>Context is not owned by current session</en>
             <cn>上下文不属于当前会话</cn>
-=======
-         <tag>vessel</tag>
-         <name>SDB_VESSEL_PAGE_HEAD_NOT_MATCH</name>
-         <description>
-            <en>the page head does not match the input arguments</en>
-            <cn>数据页头与传入参数不符</cn>
-         </description>
-      </code>
-      
-      <code>
-         <tag>vessel</tag>
-         <name>SDB_VESSEL_PAGE_CRASHED</name>
-         <description>
-            <en>data page is crashed</en>
-            <cn>数据页损坏</cn>
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          </description>
       </code>
 
       <code>
-<<<<<<< HEAD
          <name>SDB_ERROR_RESERVED_404</name> <!--Not used-->
          <description>
             <en>Reserved</en> <!--Not used-->
             <cn>保留</cn> <!--Not used-->
-=======
-         <tag>vessel</tag>
-         <name>SDB_VESSEL_CURSOR_NO_SPACE</name>
-         <description>
-            <en>not enough space in cursor buf</en>
-            <cn>游标缓存空间不足</cn>
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          </description>
       </code>
 
       <code>
-<<<<<<< HEAD
          <name>SDB_ERROR_RESERVED_405</name> <!--Not used-->
          <description>
             <en>Reserved</en> <!--Not used-->
             <cn>保留</cn> <!--Not used-->
-=======
-         <tag>vessel</tag>
-         <name>SDB_VESSEL_OUT_OF_RESOURCE</name>
-         <description>
-            <en>some request is out of resource</en>
-            <cn>处理请求所需资源不足</cn>
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          </description>
       </code>
 
       <code>
-<<<<<<< HEAD
          <name>SDB_ERROR_RESERVED_406</name> <!--Not used-->
          <description>
             <en>Reserved</en> <!--Not used-->
             <cn>保留</cn> <!--Not used-->
-=======
-         <tag>vessel</tag>
-         <name>SDB_VESSEL_LOGICAL_PAGE_UNMAPPED</name>
-         <description>
-            <en>logical page has not been mapped</en>
-            <cn>逻辑数据页尚未映射到物理数据页</cn>
          </description>
       </code>
 
       <code>
-         <tag>vessel</tag>
-         <name>SDB_VESSEL_PAGE_IN_SNAPSHOT</name>
-         <description>
-            <en>page is readonly because of in the snapshot</en>
-            <cn>数据页在快照范围内无法进行写操作</cn>
-         </description>
-      </code>
-
-      <code>
-         <tag>vessel</tag>
-         <name>SDB_VESSEL_NOT_ENOUGH_SPACE_IN_PAGE</name>
-         <description>
-            <en>not enough free space in data page</en>
-            <cn>数据页中剩余空间不足</cn>
-         </description>
-      </code>
-
-      <code>
-         <tag>vessel</tag>
-         <name>SDB_VESSEL_FSM_ENTRY_BROKEN</name>
-         <description>
-            <en>the entry of free space map on disk is broken</en>
-            <cn>空间管理索引入口元数据损坏</cn>
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
-         </description>
-      </code>
-
-      <code>
-<<<<<<< HEAD
          <name>SDB_CLS_NODE_IN_MAINTENANCE</name>
          <description>
             <en>Node is in maintenance mode</en>
             <cn>节点处于运维模式</cn>
-=======
-         <tag>vessel</tag>
-         <name>SDB_VESSEL_FSM_PAGE_BROKEN</name>
-         <description>
-            <en>the page of free space map on disk is broken</en>
-            <cn>空间管理索引页损坏</cn>
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          </description>
       </code>
 
       <code>
-<<<<<<< HEAD
          <name>SDB_AUTH_ROLE_EXIST</name>
          <description>
             <en>Role already exists</en>
             <cn>角色已存在</cn>
-=======
-         <tag>vessel</tag>
-         <name>SDB_VESSEL_CL_PAGE_SEQ_NOT_EXISTS</name>
-         <description>
-            <en>the page sequence of collection does not exist</en>
-            <cn>集合中目标数据页序列不存在</cn>
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          </description>
       </code>
 
       <code>
-<<<<<<< HEAD
          <name>SDB_AUTH_ROLE_NOT_EXIST</name>
          <description>
             <en>Role does not exist</en>
             <cn>角色不存在</cn>
-=======
-         <tag>vessel</tag>
-         <name>SDB_VESSEL_RESOURCES_NOT_INIT</name>
-         <description>
-            <en>the resources has not been initialized yet</en>
-            <cn>目标资源尚未完成初始化</cn>
          </description>
       </code>
 
       <code>
-         <tag>vessel</tag>
-         <name>SDB_VESSEL_DUPLICATED_KEY</name>
-         <description>
-            <en>the key is duplicated</en>
-            <cn>唯一键冲突</cn>
-         </description>
-      </code>
-
-      <code>
-         <tag>vessel</tag>
-         <name>SDB_VESSEL_KEY_NOT_FOUND</name>
-         <description>
-            <en>the key is not found</en>
-            <cn>目标键不存在</cn>
-         </description>
-      </code>
-
-      <code>
-         <tag>vessel</tag>
-         <name>SDB_VESSEL_TEMP_SU</name>
-         <description>
-            <en>the storage unit is temporary</en>
-            <cn>临时的存储对象</cn>
-         </description>
-      </code>
-
-      <code>
-         <tag>vessel</tag>
-         <name>SDB_VESSEL_OUT_OF_MBID_RESOURCE</name>
-         <description>
-            <en>no more free mb id can be allocated</en>
-            <cn>没有可用的集合槽位</cn>
-         </description>
-      </code>
-
-      <code>
-         <tag>vessel</tag>
-         <name>SDB_VESSEL_SAME_TASK_RUNNING</name>
-         <description>
-            <en>task with same type is running</en>
-            <cn>同类型的任务正在进行</cn>
-         </description>
-      </code>
-
-      <code>
-         <tag>vessel</tag>
-         <name>SDB_VESSEL_INDEX_BUILDING_TERMINATED</name>
-         <description>
-            <en>the creating of index is terminated</en>
-            <cn>索引创建被终止</cn>
-         </description>
-      </code>
-
-      <code>
-         <tag>vessel</tag>
-         <name>SDB_VESSEL_IXM_ITEM_NOT_FOUND</name>
-         <description>
-            <en>the index item with key and rid not found</en>
-            <cn>目标索引项不存在</cn>
-         </description>
-      </code>
-
-      <code>
-         <tag>vessel</tag>
-         <name>SDB_VESSEL_ROW_BATCH_LIMITS</name>
-         <description>
-            <en>hit the limits of row batch</en>
-            <cn>达到批量资源上限</cn>
-         </description>
-      </code>
-      
-      <code>
-         <tag>vessel</tag>
-         <name>SDB_VESSEL_RECORD_NOT_FOUND</name>
-         <description>
-            <en>the target record not found</en>
-            <cn>没有发现目标记录</cn>
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
-         </description>
-      </code>
-
-      <code>
-<<<<<<< HEAD
          <name>SDB_AUTH_ROLE_CYCLE_DETECTED</name>
          <description>
             <en>The cycle of the role inheritance detected</en>
             <cn>角色继承关系中存在环</cn>
-=======
-         <tag>vessel</tag>
-         <name>SDB_VESSEL_INVALID_CONTROL_FILE</name>
-         <description>
-            <en>invalid control file</en>
-            <cn>非法的控制文件</cn>
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          </description>
       </code>
 
       <code>
-<<<<<<< HEAD
          <name>SDB_ENTERPRISE_ONLY</name>
          <description>
             <en>The operation is for enterprise version only</en>
             <cn>该操作仅适用于企业版</cn>
-=======
-         <tag>vessel</tag>
-         <name>SDB_VESSEL_INVALID_KEY_STR_DATA</name>
-         <description>
-            <en>invalid control key string data</en>
-            <cn>非法的键编码数据</cn>
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          </description>
       </code>
 
       <code>
-<<<<<<< HEAD
          <name>SDB_ENGINE_NOT_SUPPORT</name>
          <description>
             <en>The operation is not supported in current storage engine</en>
             <cn>当前存储引擎不支持该操作</cn>
-=======
-         <tag>vessel</tag>
-         <name>SDB_VESSEL_BTREE_LOCATION_EXPIRED</name>
-         <description>
-            <en>the location of btree has been expired</en>
-            <cn>索引树的定位已经失效</cn>
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          </description>
       </code>
 

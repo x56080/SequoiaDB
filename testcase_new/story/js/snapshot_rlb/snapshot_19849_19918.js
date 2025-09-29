@@ -139,11 +139,7 @@ function showInformation ( cursor, nodeAddresses )
    {
       var obj = cursor.current().toObj();
       var nodeName = obj["NodeName"];
-<<<<<<< HEAD
       var flag = obj["Flag"];
-=======
-      var flag = obj["Flag"]; 
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       for( var i = 0; i < nodeAddresses.length; i++ )
       {
          var hostName = nodeAddresses[i]["hostName"];

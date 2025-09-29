@@ -14,7 +14,6 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 
-<<<<<<< HEAD
    Source File Name = update.py
 
    Descriptive Name = N/A
@@ -33,8 +32,6 @@
 """
 #! /usr/bin/python
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 from pysequoiadb import *
 
 if __name__ == "__main__":

@@ -83,11 +83,8 @@ public class IndexConsistent24307 extends SdbTestBase {
                     && copyIndex.getRetCode() != SDBError.SDB_DMS_CS_NOTEXIST
                             .getErrorCode()
                     && copyIndex.getRetCode() != SDBError.SDB_LOCK_FAILED
-<<<<<<< HEAD
                             .getErrorCode()
                     && copyIndex.getRetCode() != SDBError.SDB_TASK_HAS_CANCELED
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                             .getErrorCode() ) {
                 Assert.fail( "---errorCode=" + copyIndex.getRetCode() );
             }
@@ -120,10 +117,6 @@ public class IndexConsistent24307 extends SdbTestBase {
             IndexUtils.checkNoTask( sdb, "Copy index", csName1, mainclName );
             IndexUtils.checkNoTask( sdb, "Create index", csName1, mainclName );
             IndexUtils.checkNoTask( sdb, "Create index", csName1, subclName1 );
-<<<<<<< HEAD
-=======
-            IndexUtils.checkNoTask( sdb, "Create index", csName2, subclName2 );
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         }
 
         runSuccess = true;
@@ -220,8 +213,4 @@ public class IndexConsistent24307 extends SdbTestBase {
                 .parse( "{LowBound:{no:20000},UpBound:{no:40000}}" ) );
         return mainCL;
     }
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2

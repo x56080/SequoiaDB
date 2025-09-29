@@ -111,7 +111,6 @@ namespace engine
    class _authCB ;
    class aggrBuilder ;
    class _spdFMPMgr ;
-   class _dmsEngineCB;
 
    /*
     * Kernel Control Block
@@ -153,7 +152,6 @@ namespace engine
       virtual std::string        getDBModeDesp() const ;
       virtual BOOLEAN            isDBReadonly() const ;
       virtual BOOLEAN            isDBDeactivated() const ;
-      virtual BOOLEAN            isDBRestoring() const ;
 
       virtual BOOLEAN            isInFlowControl() const ;
 
@@ -250,8 +248,6 @@ namespace engine
       // RESERVED FOR NOW, can be used to jump out sleep in the future
       BOOLEAN        _keepSleep ;
 
-
-
    public :
       pmdEDUMgr* getEDUMgr ()
       {
@@ -305,10 +301,6 @@ namespace engine
       {
          return &_svcTaskMgr ;
       }
-      OSS_INLINE _dmsEngineCB *getDMSEngineCB()
-      {
-         return (_dmsEngineCB *)getOrgPointByType(SDB_CB_DMS_ENGINE);
-      } 
       void setMonCB( monConfigCB & monCB )
       {
          _monCfgCB = monCB ;
@@ -418,17 +410,6 @@ namespace engine
          else
          {
             _dbMode &= ~SDB_DB_MODE_DEACTIVATED ;
-         }
-      }
-      void setDBRestoring( BOOLEAN restoring )
-      {
-         if ( restoring )
-         {
-            _dbMode |= SDB_DB_MODE_RESTORING ;
-         }
-         else
-         {
-            _dbMode &= ~SDB_DB_MODE_RESTORING ;
          }
       }
       void setFlowControl( BOOLEAN flowControl )

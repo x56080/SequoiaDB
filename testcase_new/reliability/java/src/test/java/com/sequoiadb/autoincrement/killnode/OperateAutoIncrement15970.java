@@ -314,11 +314,7 @@ public class OperateAutoIncrement15970 extends SdbTestBase {
         // 自增字段任务检查
         BSONObject filter = ( BSONObject ) JSON
                 .parse( "{\"StatusDesc\":{$ne:\"Finish\"}}" );
-<<<<<<< HEAD
         DBCursor cursorTasks = db.listTasks( filter, null, null, null );
-=======
-        DBCursor cursorTasks = db.listTasks( filter, null, null, null ); 
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         while ( cursorTasks.hasNext() ) {
             Assert.fail( "exists tasks ：" + cursorTasks.getNext().toString() );
         }

@@ -1,6 +1,5 @@
 /*******************************************************************************
 
-<<<<<<< HEAD
    Copyright (C) 2011-Present SequoiaDB Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,23 +13,6 @@
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
-=======
-
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
-
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
-
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    Source File Name = rtnContextRecycle.hpp
 
@@ -52,10 +34,6 @@
    Last Changed =
 
 *******************************************************************************/
-<<<<<<< HEAD
-=======
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 #include "rtnContextRecycle.hpp"
 #include "rtn.hpp"
 #include "dpsOp2Record.hpp"
@@ -200,13 +178,8 @@ namespace engine
          if ( SDB_OK == rc )
          {
             // get number of records and lobs
-<<<<<<< HEAD
             UINT64 totalRecords = mbContext->mbStat()->_totalRecords.fetch() ;
             UINT64 totalLobs = mbContext->mbStat()->_totalLobs.fetch() ;
-=======
-            UINT64 totalRecords = mbContext->mbStat()->_totalRecords ;
-            UINT64 totalLobs = mbContext->mbStat()->_totalLobs ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
             // make sure meta block is released
             _su->data()->releaseMBContext( mbContext ) ;
@@ -513,7 +486,6 @@ namespace engine
       UINT32 retryTime = 0 ;
       SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
       UINT32 suLogicalID = DMS_INVALID_LOGICCSID ;
-<<<<<<< HEAD
 
       rc = _pDmsCB->nameToSULID( _oldName, suLogicalID ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get logical ID for "
@@ -521,16 +493,6 @@ namespace engine
                    suLogicalID, rc ) ;
       SDB_ASSERT( DMS_INVALID_LOGICCSID != suLogicalID,
                   "logical ID should be valid" ) ;
-=======
-      DMS_SU_DESCRIPTOR desc = nullptr;
-
-      rc = _pDmsCB->nameToSuDescriptor( _oldName, desc ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get logical ID for "
-                   "collection space [%s], rc: %d", _oldName,
-                   suLogicalID, rc ) ;
-      SDB_ASSERT( desc && desc->isValid(), "collection space descriptor should be valid" );
-      suLogicalID = desc->logicalID;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       // let's find out whether the collection space is held by this
       // EDU. If so we have to get rid of those contexts

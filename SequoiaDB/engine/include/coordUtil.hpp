@@ -121,13 +121,10 @@ namespace engine
                                BOOLEAN &isDataSourceCL,
                                BOOLEAN &isHighErrLevel ) ;
 
-<<<<<<< HEAD
    INT32 coordRemoveFailedGroup( CoordGroupList &groupLst,
                                  BOOLEAN &hasFailedGroup,
                                  const vector<BSONObj> &replyObjs ) ;
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 }
 
 #endif // COORD_UTIL_HPP__

@@ -38,10 +38,7 @@
 #include "rtnContext.hpp"
 #include "rtnContextLob.hpp"
 #include "rtnLobMetricsSubmitor.hpp"
-<<<<<<< HEAD
 #include "auth.hpp"
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 using namespace bson ;
 
@@ -101,7 +98,6 @@ namespace engine
       }
    }
 
-<<<<<<< HEAD
    INT32 convertModeToActions( INT32 mode, authActionSet &actions )
    {
       INT32 rc = SDB_OK;
@@ -137,8 +133,6 @@ namespace engine
       return rc;
    }
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    _rtnLobStream::_rtnLobStream( IMonSubmitEvent *pMonSubmitEvent )
    :_uniqueId( -1 ),
     _dpsCB( NULL ),
@@ -584,12 +578,9 @@ namespace engine
          goto error ;
       }
 
-<<<<<<< HEAD
       rc = _checkPrivileges( cb );
       PD_RC_CHECK( rc, PDERROR, "Failed to check privileges of actions, rc: %d", rc );
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       // monitor lob bytes write by client
       RTN_MON_LOB_BYTES_COUNT_INC( pMonAppCB, MON_LOB_WRITE_BYTES, len ) ;
 
@@ -1597,61 +1588,6 @@ namespace engine
    error:
       goto done ;
    }
-<<<<<<< HEAD
-=======
-
-   void _rtnLobStream::onSubmit( const monAppCB &delta )
-   {
-      _totalDeltaMonApp += delta ;
-      if ( _pMonSubmitEvent )
-      {
-         _pMonSubmitEvent->onSubmit( delta ) ;
-      }
-   }
-
-   void _rtnLobStream::_increaseLobOpCount( _pmdEDUCB *cb )
-   {
-      monAppCB *pMonAppCB = cb ? cb->getMonAppCB() : NULL ;
-
-      if ( _opType )
-      {
-         if ( _opType & MON_LOB_OP_GET )
-         {
-            RTN_MON_LOB_OP_COUNT_INC( pMonAppCB, MON_LOB_GET, 1 ) ;
-         }
-         if ( _opType & MON_LOB_OP_PUT )
-         {
-            RTN_MON_LOB_OP_COUNT_INC( pMonAppCB, MON_LOB_PUT, 1 ) ;
-         }
-         if ( _opType & MON_LOB_OP_DELETE )
-         {
-            RTN_MON_LOB_OP_COUNT_INC( pMonAppCB, MON_LOB_DELETE, 1 ) ;
-         }
-      }
-   }
-
-   void _rtnLobStream::_increaseMetrics( _pmdEDUCB *cb )
-   {
-      if ( cb )
-      {
-         monAppCB *pMonAppCB = cb->getMonAppCB() ;
-         // submit from session snapshot to database and svcTask snapshot
-         if ( pMonAppCB && pMonAppCB->getSvcTaskInfo() )
-         {
-            pMonAppCB->getSvcTaskInfo()->incMetrics( _totalDeltaMonApp ) ;
-         }
-         if ( pMonAppCB && pMonAppCB->mondbcb )
-         {
-            pMonAppCB->mondbcb->incMetrics( _totalDeltaMonApp ) ;
-         }
-         // submit from session snapshot to other snapshot
-         _onIncreaseMetrics( _totalDeltaMonApp ) ;
-         _totalDeltaMonApp.reset() ;
-      }
-   }
-
-}
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    void _rtnLobStream::onSubmit( const monAppCB &delta )
    {

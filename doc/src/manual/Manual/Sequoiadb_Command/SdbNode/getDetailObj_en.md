@@ -58,15 +58,9 @@ v3.2.8 and above, v3.4.2 and above, v5.0.2 and above
       "Name": "11832"
     }
   ],
-<<<<<<< HEAD
   "Location": "GuangZhou",
   "NodeID": 1002,
   "GroupID": 1001,
   "GroupName": "group1"
-=======
-    "NodeID": 1002,
-    "GroupID": 1001,
-    "GroupName": "group1"
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 }
 ```

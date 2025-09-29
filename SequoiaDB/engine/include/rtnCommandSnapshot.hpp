@@ -918,10 +918,7 @@ namespace engine
          virtual BOOLEAN _isCurrent() const ;
    } ;
 
-<<<<<<< HEAD
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    class _rtnSnapshotTransDeadlock : public _rtnSnapshot
    {
       DECLARE_CMD_AUTO_REGISTER()
@@ -940,10 +937,6 @@ namespace engine
       protected:
          virtual BOOLEAN _isCurrent() const ;
          virtual INT32   _getMonProcessor( IRtnMonProcessorPtr & ptr ) ;
-<<<<<<< HEAD
-=======
-      protected:
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    } ;
 
    class _rtnSnapshotTransDeadlockInner : public _rtnSnapshotInner
@@ -963,10 +956,6 @@ namespace engine
       protected:
          virtual BOOLEAN _isCurrent() const ;
          virtual INT32   _getMonProcessor( IRtnMonProcessorPtr & ptr ) ;
-<<<<<<< HEAD
-=======
-      protected:
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    } ;
 
    /*

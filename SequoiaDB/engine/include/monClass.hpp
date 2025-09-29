@@ -36,18 +36,20 @@
 #ifndef MONCLASS_HPP_
 #define MONCLASS_HPP_
 
+#include "monLatch.hpp"
+#include "dpsTransLockDef.hpp"
+#include "utilPooledObject.hpp"
 #include "ossTypes.h"
+#include "monLatch.hpp"
 #include "ossAtomic.hpp"
 #include "ossUtil.hpp"
-#include "utilPooledObject.hpp"
 #include "utilList.hpp"
-#include "dpsTransLockDef.hpp"
 #include "msg.h"
 #include "pd.hpp"
 #include "../bson/bson.hpp"
 #include <boost/intrusive/list.hpp>
-#include "monLatch.hpp"
 #include <iterator>
+#include "monLatch.hpp"
 
 using namespace bson ;
 

@@ -177,17 +177,17 @@ namespace engine
       _optCLScanInfo implement
     */
    _optCLScanInfo::_optCLScanInfo ()
-   : _indexExtID( DMS_INVALID_EXTENT ),
-     _indexLID( DMS_INVALID_EXTENT ),
-     _clUID(UTIL_UNIQUEID_NULL)
+   : _optCollectionInfo(),
+     _indexExtID( DMS_INVALID_EXTENT ),
+     _indexLID( DMS_INVALID_EXTENT )
    {
       setCLFullName( NULL ) ;
    }
 
    _optCLScanInfo::_optCLScanInfo ( const _optCLScanInfo & info )
-   : _indexExtID( info._indexExtID ),
-     _indexLID( info._indexLID ),
-     _clUID(info._clUID)
+   : _optCollectionInfo( info ),
+     _indexExtID( info._indexExtID ),
+     _indexLID( info._indexLID )
    {
       setCLFullName( info._clFullName ) ;
    }
@@ -219,7 +219,6 @@ namespace engine
      _apm( NULL ),
      _hasQueryActivity( FALSE ),
      _isNewPlan( FALSE ),
-     _hasNonGTIndex( TRUE ),
      _ownedPlanInfo( FALSE ),
      _clScanInfo( NULL ),
      _expOptions( NULL )
@@ -238,7 +237,6 @@ namespace engine
       deleteCLScanInfo() ;
       releasePlan() ;
       _isNewPlan = FALSE ;
-      _hasNonGTIndex = FALSE ;
       _hasQueryActivity = FALSE ;
       _apm = NULL ;
    }
@@ -253,12 +251,7 @@ namespace engine
       {
          // The plan is reused, increase the reference count
          plan->incRefCount() ;
-<<<<<<< HEAD
          setPlan( plan, planRuntime->_apm, FALSE ) ;
-=======
-         setPlan( plan, planRuntime->_apm, FALSE,
-                  planRuntime->hasNonGTIndex() ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          setExplainOptions( planRuntime->getExplainOptions() ) ;
 
          // Set match runtime and query info
@@ -301,10 +294,11 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTAPRTM_BINDPLANINFO, "_optAccessPlanRuntime::bindPlanInfo" )
-   INT32 _optAccessPlanRuntime::bindPlanInfo( const CHAR *pCLFullName,
-                                              dmsExtentID indexExtID,
-                                              dmsExtentID indexLID,
-                                              utilCLUniqueID clUID )
+   INT32 _optAccessPlanRuntime::bindPlanInfo ( const CHAR *pCLFullName,
+                                               dmsStorageUnit *su,
+                                               dmsMBContext *mbContext,
+                                               dmsExtentID indexExtID,
+                                               dmsExtentID indexLID )
    {
       INT32 rc = SDB_OK ;
 
@@ -316,11 +310,13 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to create sub-collection scan info, "
                       "rc: %d", rc ) ;
       }
-      
+
+      _clScanInfo->setCSInfo( su ) ;
+      _clScanInfo->setCLInfo( mbContext ) ;
       _clScanInfo->setCLFullName( pCLFullName ) ;
       _clScanInfo->setIndexExtID( indexExtID ) ;
       _clScanInfo->setIndexLID( indexLID ) ;
-      _clScanInfo->setCLUniqueID( clUID ) ;
+
    done :
       PD_TRACE_EXITRC( SDB_OPTAPRTM_BINDPLANINFO, rc ) ;
       return rc ;

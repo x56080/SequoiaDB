@@ -222,7 +222,6 @@ namespace engine
                _calcFreeSize() ;
             }
          }
-<<<<<<< HEAD
 
          OSS_INLINE void unionBitmap( const _utilBitmapBase &bitmap )
          {
@@ -236,21 +235,6 @@ namespace engine
                   idx ++ ;
                }
 
-=======
-
-         OSS_INLINE void unionBitmap( const _utilBitmapBase &bitmap )
-         {
-            if ( !bitmap.isEmpty() )
-            {
-               UINT32 idx = 0 ;
-               while ( idx < _bitmapSize &&
-                       idx < bitmap._bitmapSize )
-               {
-                  _bitmap[ idx ] |= bitmap._bitmap[ idx ] ;
-                  idx ++ ;
-               }
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                _calcFreeSize() ;
             }
          }

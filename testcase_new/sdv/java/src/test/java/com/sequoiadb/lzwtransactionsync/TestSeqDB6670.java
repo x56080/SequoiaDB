@@ -186,17 +186,11 @@ public class TestSeqDB6670 extends SdbTestBase {
 
     @AfterClass()
     public void tearDown() {
-<<<<<<< HEAD
         if ( runSuccess ) {
             cs.dropCollection( clName );
             if ( sdb.isReplicaGroupExist( rgName ) ) {
                 sdb.removeReplicaGroup( rgName );
             }
-=======
-        cs.dropCollection( clName );
-        if ( sdb.isReplicaGroupExist( rgName ) ) {
-            sdb.removeReplicaGroup( rgName );
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         }
         sdb.close();
     }

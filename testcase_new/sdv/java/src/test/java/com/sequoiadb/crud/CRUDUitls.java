@@ -120,11 +120,7 @@ public class CRUDUitls {
          * @param str
          *            排序字段
          */
-<<<<<<< HEAD
         public OrderBy( String str ) {
-=======
-        OrderBy( String str ) {
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             this.str = str;
         }
 

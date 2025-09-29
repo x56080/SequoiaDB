@@ -45,7 +45,6 @@
 #include "dmsCompress.hpp"
 #include "pdTrace.hpp"
 #include "dmsTrace.hpp"
-#include "dpsTransID.hpp"
 #include "dmsIndexBuilder.hpp"
 #include "dmsTransLockCallback.hpp"
 #include "pdSecure.hpp"
@@ -53,9 +52,6 @@
 using namespace bson ;
 
 #define DMS_MAX_TEXT_IDX_NUM        1
-
-#define DMS_RETRY_SHUTDOWN_COUNT    ( 1000 )
-#define DMS_RETRY_SLEEP_TIME        ( 100 )
 
 namespace engine
 {
@@ -104,8 +100,6 @@ namespace engine
 
       _pDataSu->_attach( this ) ;
       _idxKeySizeMax = 0 ;
-
-      _mvccSupport = FALSE ;
    }
 
    _dmsStorageIndex::~_dmsStorageIndex()
@@ -239,7 +233,6 @@ namespace engine
                }
                ixmIndexCB indexCB( exID, this, NULL ) ;
                if ( !indexCB.isInitialized() )
-<<<<<<< HEAD
                {
                   PD_LOG( PDWARNING,
                           "Failed to initialize index[%u] for collection[%s]",
@@ -258,42 +251,15 @@ namespace engine
                if ( IXM_EXTENT_HAS_TYPE( IXM_EXTENT_TYPE_TEXT,
                                          indexCB.getIndexType() ) )
                {
-=======
-               {
-                  PD_LOG( PDWARNING,
-                          "Failed to initialize index[%u] for collection[%s]",
-                          j, _pDataSu->_dmsMME->_mbList[i]._collectionName ) ;
-                  // release index control block extent
-                  _releaseMetaExtent( exID ) ;
-                  // copy back
-                  ossMemmove( &_pDataSu->_dmsMME->_mbList[i]._indexExtent[j],
-                              &_pDataSu->_dmsMME->_mbList[i]._indexExtent[j+1],
-                              sizeof(dmsExtentID)*(DMS_COLLECTION_MAX_INDEX-j-1) ) ;
-                  _pDataSu->_dmsMME->_mbList[i]._indexExtent[
-                              DMS_COLLECTION_MAX_INDEX-1] = DMS_INVALID_EXTENT ;
-                  _pDataSu->_dmsMME->_mbList[i]._numIndexes -- ;
-                  continue ;
-               }
-               if ( IXM_EXTENT_HAS_TYPE( IXM_EXTENT_TYPE_TEXT,
-                                         indexCB.getIndexType() ) )
-               {
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                   _pDataSu->_mbStatInfo[i]._textIdxNum++ ;
                   // If there is any text indices, register the external
                   // data handler, and invoke the onOpenTextIdx method.
                   if ( !extHandler )
                   {
-<<<<<<< HEAD
                      SDB_ASSERT( _suDescriptor->getStorageInfo()._extDataHandler,
                                  "External data handler in storage info is "
                                  "NULL" ) ;
                      _pDataSu->regExtDataHandler( _suDescriptor->getStorageInfo()._extDataHandler ) ;
-=======
-                     SDB_ASSERT( _pStorageInfo->_extDataHandler,
-                                 "External data handler in storage info is "
-                                 "NULL" ) ;
-                     _pDataSu->regExtDataHandler( _pStorageInfo->_extDataHandler ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                      extHandler = _pDataSu->getExtDataHandler() ;
                   }
                   if ( extHandler )
@@ -313,7 +279,6 @@ namespace engine
                {
                   _pDataSu->_mbStatInfo[ i ]._globIdxNum ++ ;
                }
-<<<<<<< HEAD
                if ( collPtr )
                {
                   dmsIdxMetadata metadata( _suDescriptor,
@@ -323,8 +288,6 @@ namespace engine
                   std::shared_ptr<IIndex> idxPtr ;
                   collPtr->loadIndex( metadata, pmdGetThreadEDUCB(), idxPtr ) ;
                }
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                j++ ;
             }
          }
@@ -614,90 +577,6 @@ namespace engine
       goto done ;
    }
 
-<<<<<<< HEAD
-=======
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEINDEX__PRECRTIDX, "_dmsStorageIndex::_preCreateIndex" )
-   INT32 _dmsStorageIndex::_preCreateIndex( const BSONObj &indexDef,
-                                            BSONObj &indexMeta )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__DMSSTORAGEINDEX__PRECRTIDX ) ;
-
-      dpsTransCB *transCB = sdbGetTransCB() ;
-      stpAgent timeAgent ;
-      UINT64 createTimeUS = DPS_INVALID_TRANS_TIME ;
-      UINT64 rebuildTimeUS = DPS_INVALID_TRANS_TIME ;
-      stpLogicalTimeUS createTime ;
-
-      // get start value
-      if ( !transCB->isRRSupported() )
-      {
-         // global transaction is not enabled
-         // just set to minimum value ( 0 )
-         createTimeUS = DPS_MIN_TRANS_TIME ;
-         rebuildTimeUS = DPS_MIN_TRANS_TIME ;
-      }
-      else if ( SDB_OK == timeAgent.getLogicalTimeUS( createTime,
-                                                      OSS_ONE_SEC,
-                                                      FALSE ) )
-      {
-         createTimeUS = createTime.getTime() ;
-         rebuildTimeUS = DPS_MAX_TRANS_TIME ;
-      }
-      else
-      {
-         createTimeUS = DPS_MAX_TRANS_TIME ;
-         rebuildTimeUS = DPS_MAX_TRANS_TIME ;
-      }
-
-      try
-      {
-         BSONObjBuilder builder ;
-         BSONObjIterator iter( indexDef ) ;
-
-         // for secondary nodes to do full synchronize, the original index
-         // definition may already contains create time and rebuild time,
-         // we should replace with times from secondary nodes
-         while ( iter.more() )
-         {
-            BSONElement element = iter.next() ;
-            if ( 0 != ossStrcmp( element.fieldName(),
-                                 IXM_FIELD_NAME_CREATETIME ) &&
-                 0 != ossStrcmp( element.fieldName(),
-                                 IXM_FIELD_NAME_REBUILDTIME ) )
-            {
-               builder.append( element ) ;
-            }
-         }
-
-         // append create time
-         builder.append( IXM_FIELD_NAME_CREATETIME,
-                         (INT64)createTimeUS ) ;
-
-         // append preset rebuild time
-         builder.append( IXM_FIELD_NAME_REBUILDTIME,
-                         (INT64)rebuildTimeUS ) ;
-
-         indexMeta = builder.obj() ;
-      }
-      catch ( exception &e )
-      {
-         PD_LOG( PDERROR, "Failed to update index definite, error: %s",
-                 e.what() ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB__DMSSTORAGEINDEX__PRECRTIDX, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    INT32 _dmsStorageIndex::_releaseMetaExtent( dmsExtentID extentID )
    {
       INT32 rc                 = SDB_OK ;
@@ -720,15 +599,6 @@ namespace engine
          // May be releady released, DON'T release again
          goto done ;
       }
-<<<<<<< HEAD
-=======
-      if ( IXM_EXTENT_EYECATCHER0 == extAddr->_eyeCatcher[0] &&
-           IXM_EXTENT_EYECATCHER1 == extAddr->_eyeCatcher[1] )
-      {
-         // It is not my extent, DON'T release it
-         goto done ;
-      }
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       writeExtent = extRW.writePtr<dmsExtent>() ;
       writeExtent->_flag = DMS_EXTENT_FLAG_FREED ;
@@ -766,11 +636,7 @@ namespace engine
       dpsLogRecord &record = info.getMergeBlock().record() ;
       UINT32 logRecSize = 0 ;
       CHAR indexName[ IXM_INDEX_NAME_SIZE + 1 ] = { 0 } ;
-<<<<<<< HEAD
       utilCSUniqueID csUniqID = _suDescriptor->getCSUniqueID() ;
-=======
-      utilCSUniqueID csUniqID = _pStorageInfo->_csUniqueID ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       BSONObj option ;
       utilIdxUniqueID newIdxUniqID = UTIL_UNIQUEID_NULL ;
       utilIdxUniqueID oldIdxUniqID = UTIL_UNIQUEID_NULL ;
@@ -869,11 +735,7 @@ namespace engine
       if ( dpscb )
       {
          rc = _pDataSu->_logDPS( dpscb, info, cb, context, DMS_INVALID_EXTENT,
-<<<<<<< HEAD
                                  DMS_INVALID_OFFSET, TRUE, DMS_FILE_IDX ) ;
-=======
-                                 TRUE, DMS_FILE_IDX ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          if ( rc )
          {
             PD_LOG( PDERROR, "Failed to insert ixcrt into log, rc = %d", rc ) ;
@@ -885,12 +747,9 @@ namespace engine
          context->mbStat()->updateLastLSNWithComp( cb->getEndLsn(),
                                                    DMS_FILE_IDX,
                                                    cb->isDoRollback() ) ;
-<<<<<<< HEAD
 
          cb->setDataExInfo( fullName, _pDataSu->logicalID(), context->clLID(),
                             DMS_INVALID_EXTENT, DMS_INVALID_OFFSET ) ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       }
 
       PD_LOG( PDEVENT, "Change index[%s:%s] unique id from [%llu] to [%llu]",
@@ -922,13 +781,9 @@ namespace engine
       dmsExtentID rootExtentID     = DMS_INVALID_EXTENT ;
       BOOLEAN ready                = FALSE ;
       UINT16 indexType             = 0 ;
-      BSONObj indexMeta ;
 
-<<<<<<< HEAD
       dmsPersistGuard guard( _service, _pDataSu, context, cb, TRUE ) ;
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       rc = ixmIndexCB::checkIndexDef( index, isSys ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Index pattern[%s] is not valid, rc: %d",
@@ -940,13 +795,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to generate index type from obj[%s], rc: %d",
                    index.toString().c_str(), rc ) ;
-<<<<<<< HEAD
-=======
-
-      rc = _preCreateIndex( index, indexMeta ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to prepare create index, rc: %d",
-                   rc ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       // let's first reserve extent
       rc = reserveExtent ( context->mbID(), metaExtentID, context ) ;
@@ -979,17 +827,13 @@ namespace engine
 
       if ( IXM_EXTENT_HAS_TYPE( IXM_EXTENT_TYPE_TEXT, indexType ) )
       {
-<<<<<<< HEAD
          rc = _createTextIdx( context, index, metaExtentID, rootExtentID,
-=======
-         rc = _createTextIdx( context, indexMeta, metaExtentID, rootExtentID,
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                               cb, dpscb, pIdxStatus, addUIDIfNotExist ) ;
          PD_RC_CHECK( rc, PDERROR, "Create text index failed, rc: %d", rc ) ;
       }
       else
       {
-         rc = _createIndex( context, indexMeta, metaExtentID, rootExtentID,
+         rc = _createIndex( context, index, metaExtentID, rootExtentID,
                             indexType, cb, dpscb, isSys, sortBufferSize,
                             pResult, pIdxStatus,
                             forceTransCallback, addUIDIfNotExist ) ;
@@ -1044,7 +888,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEINDEX_DROPIDX1, "_dmsStorageIndex::dropIndex" )
-   INT32 _dmsStorageIndex::dropIndex( dmsMBContext *context, const OID &indexOID,
+   INT32 _dmsStorageIndex::dropIndex( dmsMBContext *context, OID &indexOID,
                                       pmdEDUCB *cb, SDB_DPSCB *dpscb,
                                       BOOLEAN isSys,
                                       dmsIdxTaskStatus *pIdxStatus,
@@ -1199,16 +1043,10 @@ namespace engine
                goto error ;
             }
 
-<<<<<<< HEAD
             if ( _pDataSu->isTransLockRequired( context ) &&
                  transCB->isTransOn() &&
                  NULL != cb &&
                  cb->getTransExecutor()->useTransLock() )
-=======
-            if ( _pDataSu->isTransSupport( context ) && NULL != cb
-                 && ( 0 == ossStrcmp( IXM_ID_KEY_NAME, indexName )
-                      || indexCB.isGlobal() ) )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             {
                if ( 0 == ossStrcmp( IXM_ID_KEY_NAME, indexName ) ||
                     indexCB.isGlobal() )
@@ -1259,13 +1097,10 @@ namespace engine
                                lockConflict._lockID.toString().c_str(),
                                lockModeToString( lockConflict._lockType ) ) ;
 
-<<<<<<< HEAD
                   lockedCL = TRUE ;
                }
             }
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             if ( _pDataSu->_pEventHolder )
             {
                dmsEventCLItem clItem( context->mb()->_collectionName,
@@ -1405,12 +1240,7 @@ namespace engine
 
          if ( pIdxStatus && DMS_TASK_STATUS_RUN == pIdxStatus->status() )
          {
-<<<<<<< HEAD
             pIdxStatus->setTotalRecNum( context->mbStat()->_totalRecords.fetch() ) ;
-=======
-            pIdxStatus->setTotalRecNum(
-               _pDataSu->getMBStatInfo( context->mbID() )->_totalRecords ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             pIdxStatus->resetPcsedRecNum() ;
             pIdxStatus->setIndexDef( indexCB.getDef() ) ;
          }
@@ -1599,13 +1429,6 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Occur exception drop index: %s", e.what() ) ;
       }
 
-      }
-      catch( std::exception &e )
-      {
-         rc = ossException2RC( &e ) ;
-         PD_RC_CHECK( rc, PDERROR, "Occur exception drop index: %s", e.what() ) ;
-      }
-
    done :
       if ( 0 != logRecSize )
       {
@@ -1639,11 +1462,7 @@ namespace engine
 
       // The different collections of the collection space can be creating index
       // at the same time. So we should use atomic operation.
-<<<<<<< HEAD
       inID = ossFetchAndIncrement32( &_pDataSu->_dmsHeader->_idxInnerHWM ) + 1 ;
-=======
-      inID = ossFetchAndIncrement32( &_pDataSu->_dmsHeader->_idxInnerHWM ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       if ( inID > UTIL_IDXINNERID_MAX )
       {
@@ -1699,11 +1518,8 @@ namespace engine
       IDmsOprHandler *pOprHandler = NULL ;
       BSONObj option, newIndex ;
       BSONObjBuilder builder ;
-<<<<<<< HEAD
       dmsIdxMetadataKey metadataKey ;
       dmsIndexBuildGuardPtr guardPtr ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       SDB_ASSERT( context->isMBLock(), "Caller should hold mb lock" ) ;
       SDB_ASSERT( DMS_INVALID_EXTENT != metaExtentID,
@@ -1773,20 +1589,12 @@ namespace engine
          indexDef = indexCB.getDef().getOwned() ;
          indexCB.getIndexID( indexOID ) ;
 
-<<<<<<< HEAD
          _pDataSu->_clFullName( context->mb()->_collectionName, fullName,
                                 sizeof(fullName) ) ;
 
          // calc the reserve size
          if ( dpscb )
          {
-=======
-         // calc the reserve size
-         if ( dpscb )
-         {
-            _pDataSu->_clFullName( context->mb()->_collectionName, fullName,
-                                   sizeof(fullName) ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             buildOption( option, pIdxStatus, &sortBufferSize ) ;
 
             rc = dpsIXCrt2Record( fullName, indexDef, option, record ) ;
@@ -1827,7 +1635,6 @@ namespace engine
             }
          }
 
-<<<<<<< HEAD
          dmsIdxMetadata metadata( _suDescriptor,
                                   context->mb(),
                                   context->mbStat(),
@@ -1835,9 +1642,6 @@ namespace engine
          dmsCreateIdxOptions options ;
          rc = context->getCollPtr()->createIndex( metadata, options, cb ) ;
          if ( rc )
-=======
-         // initialize the root extent
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          {
             PD_LOG( PDERROR, "Failed to create index [%s] on collection [%s] on "
                     "engine [%s], rc: %d", indexName, fullName,
@@ -1853,13 +1657,10 @@ namespace engine
          {
             context->mbStat()->_globIdxNum ++ ;
          }
-<<<<<<< HEAD
 
          metadataKey.init( context->mb(), &indexCB ) ;
          rc = _registerBuildGuard( metadataKey, dmsRecordID(), guardPtr ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to register build guard, rc: %d", rc ) ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       }
 
       // change mb metadata
@@ -1916,11 +1717,7 @@ namespace engine
       // As the mb lock has been released, the rebuild implementation should use
       // the context and indexLID to check if it's processing the right index.
       rc = _rebuildIndex( context, metaExtentID, indexLID,
-<<<<<<< HEAD
                           cb, sortBufferSize, indexType, guardPtr,
-=======
-                          cb, sortBufferSize, indexType,
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                           pOprHandler, pResult, NULL, pIdxStatus ) ;
       if ( rc )
       {
@@ -2064,11 +1861,7 @@ namespace engine
       dpsTransCB *pTransCB = pmdGetKRCB()->getTransCB() ;
       SDB_DPSCB *dropDps = NULL ;
       OID indexOID ;    // Used for dropping THIS index in case of error.
-<<<<<<< HEAD
       IDmsExtDataHandler *handler  = _suDescriptor->getStorageInfo()._extDataHandler ;
-=======
-      IDmsExtDataHandler *handler  = _pStorageInfo->_extDataHandler ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       BSONObj option ;
 
       SDB_ASSERT( handler, "External handler is NULL" ) ;
@@ -2123,11 +1916,6 @@ namespace engine
 
          if ( dpscb )
          {
-<<<<<<< HEAD
-=======
-            _pDataSu->_clFullName( context->mb()->_collectionName, fullName,
-                                   sizeof( fullName ) ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             buildOption( option, pIdxStatus ) ;
 
             rc = dpsIXCrt2Record( fullName, indexDef, option, record ) ;
@@ -2340,11 +2128,7 @@ namespace engine
       builder = dmsIndexBuilder::createInstance( _suDescriptor, context, cb,
                                                  indexExtentID, indexLID,
                                                  sortBufferSize, indexType,
-<<<<<<< HEAD
                                                  guardPtr, pOprHandle, pResult,
-=======
-                                                 pOprHandle, pResult,
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                                                  dkProcessor, pIdxStatus ) ;
       if ( NULL == builder )
       {
@@ -2454,7 +2238,6 @@ namespace engine
       shared_ptr<IIndex> idxPtr ;
       dmsTruncateIdxOptions options ;
 
-<<<<<<< HEAD
       // need to lock mb
       rc = context->mbLock( EXCLUSIVE ) ;
       PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
@@ -2466,15 +2249,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed truncate index [%s] on "
                    "collection [%s.%s], rc: %d", indexCB.getName(),
                    getSuName(), context->mb()->_collectionName, rc ) ;
-=======
-      // adjust allow duplicated flag
-      // - doing DPS log rollback: allow duplicated
-      // - doing transaction rollback on non-id index: allow duplicated
-      dupAllowed = ( NULL != cb &&
-                     ( cb->isDoRollback() ||
-                     ( cb->isInTransRollback() &&
-                           !indexCB->isIDIndex() ) ) ) ? TRUE : dupAllowed ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       {
          dmsIdxMetadataKey metadataKey( context->mb(), &indexCB ) ;
@@ -2493,14 +2267,6 @@ namespace engine
                      rc ) ;
             goto error ;
          }
-<<<<<<< HEAD
-=======
-
-         PD_LOG ( PDERROR, "Failed to insert index, key[%s], rid[%d:%d], rc: %d",
-                  PD_SECURE_STR(key.toString(FALSE, TRUE)), rid._extent,
-                  rid._offset, rc ) ;
-         goto error ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       }
 
    done :
@@ -2517,10 +2283,7 @@ namespace engine
                                          BOOLEAN dupAllowed,
                                          BOOLEAN dropDups,
                                          IDmsOprHandler *pOprHandle,
-<<<<<<< HEAD
                                          dmsWriteGuard &writeGuard,
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                                          utilWriteResult *pResult,
                                          dpsUnqIdxHashArray *pUnqIdxHashArray )
    {
@@ -2528,7 +2291,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       BSONObjSet keySet ;
       BOOLEAN allUndefined = FALSE ;
-<<<<<<< HEAD
 
       // adjust allow duplicated flag
       // - doing DPS log rollback: allow duplicated
@@ -2539,18 +2301,10 @@ namespace engine
                          !indexCB->isIDIndex() ) ) ) ? TRUE : dupAllowed ;
 
       rc = indexCB->getKeysFromObject ( inputObj, keySet, &allUndefined, TRUE, pResult ) ;
-=======
-
-      rc = indexCB->getKeysFromObject ( inputObj, keySet, &allUndefined, TRUE ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       PD_RC_CHECK ( rc, PDERROR, "Failed to get keys from object %s",
                     PD_SECURE_OBJ( inputObj ) ) ;
       {
          BSONObjSet::iterator it ;
-
-         // only save the first key of new inserted keys for unique
-         // index
-         BOOLEAN hashSaved = FALSE ;
 
          // only save the first key of new inserted keys for unique
          // index
@@ -2603,11 +2357,7 @@ namespace engine
                  !indexCB->isIDIndex() &&
                  ( !allUndefined || indexCB->enforced() ) )
             {
-<<<<<<< HEAD
                pUnqIdxHashArray->saveKey( ko.toHash() ) ;
-=======
-               pUnqIdxHashArray->saveKey( *it ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                hashSaved = TRUE ;
             }
          }
@@ -2795,14 +2545,10 @@ namespace engine
 
          ++ procIdxNum ;
 
-<<<<<<< HEAD
          BOOLEAN needProcess = FALSE ;
          rc = _needProcessIndex( context, indexCB, indexID, rid, writeGuard, needProcess ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to check index process, rc: %d", rc ) ;
          if ( !needProcess )
-=======
-         if ( !_needProcessIndex( indexCB, extLID ) )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          {
             continue ;
          }
@@ -2811,11 +2557,7 @@ namespace engine
             BSONObjSet::iterator it ;
             BSONObjSet keySet ;
 
-<<<<<<< HEAD
             rc = indexCB.getKeysFromObject ( inputObj, keySet, NULL, TRUE, pResult ) ;
-=======
-            rc = indexCB.getKeysFromObject ( inputObj, keySet, NULL, TRUE ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             PD_RC_CHECK ( rc, PDERROR, "Failed to get keys from object %s",
                           PD_SECURE_OBJ( inputObj ) ) ;
 
@@ -2846,10 +2588,7 @@ namespace engine
                                           const dmsRecordID &rid,
                                           pmdEDUCB * cb,
                                           IDmsOprHandler *pOprHandle,
-<<<<<<< HEAD
                                           dmsWriteGuard &writeGuard,
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                                           utilWriteResult *pResult,
                                           dpsUnqIdxHashArray *pUnqIdxHashArray )
    {
@@ -2906,11 +2645,7 @@ namespace engine
          else
          {
             rc = _indexInsert ( context, &indexCB, inputObj, rid, cb, !unique,
-<<<<<<< HEAD
                                 dropDups, pOprHandle, writeGuard, pResult, pUnqIdxHashArray ) ;
-=======
-                                dropDups, pOprHandle, pResult, pUnqIdxHashArray ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             PD_RC_CHECK ( rc, PDERROR, "Failed to insert object(%s) index(%s), "
                           "rc: %d", PD_SECURE_OBJ( inputObj ),
                           indexCB.getDef().toString().c_str(), rc ) ;
@@ -2947,7 +2682,6 @@ namespace engine
    // for a specific index.
    // Input:
    //    context:  DMS Meta data block information
-   //    indexID:  slot ID of index
    //    indexCB:  The index to update
    //    originalObj: original data
    //    newObj: new data value
@@ -2960,7 +2694,6 @@ namespace engine
    //
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEINDEX__INDEXUPDATE, "_dmsStorageIndex::_indexUpdate" )
    INT32 _dmsStorageIndex::_indexUpdate( dmsMBContext *context,
-                                         INT32 indexID,
                                          ixmIndexCB *indexCB,
                                          BSONObj &originalObj,
                                          BSONObj &newObj,
@@ -2968,10 +2701,7 @@ namespace engine
                                          pmdEDUCB *cb,
                                          BOOLEAN isRollback,
                                          IDmsOprHandler *pOprHandle,
-<<<<<<< HEAD
                                          dmsWriteGuard &writeGuard,
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                                          utilWriteResult *pResult,
                                          dpsUnqIdxHashArray *pNewUnqIdxHashArray,
                                          dpsUnqIdxHashArray *pOldUnqIdxHashArray )
@@ -2981,27 +2711,12 @@ namespace engine
       BSONObjSet keySetNew ;
       BOOLEAN unique       = FALSE ;
       BOOLEAN found        = FALSE ;
-<<<<<<< HEAD
       BOOLEAN oriAllUndefined = FALSE, newAllUndefined = FALSE ;
       BOOLEAN allowDuplicated = FALSE ;
-=======
-      BOOLEAN dupAllowed   = FALSE ;
-      monAppCB * pMonAppCB = cb ? cb->getMonAppCB() : NULL ;
-      BOOLEAN oriAllUndefined = FALSE, newAllUndefined = FALSE ;
-
-      BSONObjSet::iterator itori ;
-      BSONObjSet::iterator itnew ;
-      // only save the first key of new updated keys, and the first key of
-      // old updated keys for unique index
-      BOOLEAN oldHashSaved = FALSE, newHashSaved = FALSE ;
-      UINT32 phase = 0 ;
-      UINT32 retryCount = 0 ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       PD_TRACE_ENTRY( SDB__DMSSTORAGEINDEX__INDEXUPDATE );
       SDB_ASSERT ( indexCB, "indexCB can't be NULL" ) ;
 
-<<<<<<< HEAD
       rc = indexCB->getKeysFromObject( originalObj,
                                        keySetOri,
                                        &oriAllUndefined ) ;
@@ -3012,15 +2727,12 @@ namespace engine
          goto error ;
       }
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       unique = indexCB->unique() ;
 
       // adjust allow duplicated flag
       // - doing DPS log rollback: allow duplicated
       // - doing transaction rollback on non-id index: allow duplicated
       // - non-unique index: allow duplicated
-<<<<<<< HEAD
       allowDuplicated =
                   ( NULL != cb &&
                     ( cb->isDoRollback() ||
@@ -3032,30 +2744,6 @@ namespace engine
                                         &newAllUndefined,
                                         !isRollback,
                                         pResult ) ;
-=======
-      dupAllowed = ( NULL != cb &&
-                     ( cb->isDoRollback() ||
-                     ( cb->isInTransRollback() &&
-                           !indexCB->isIDIndex() ) ) ) ? TRUE : !unique ;
-
-   update_p0:
-      rc = indexCB->getKeysFromObject( originalObj,
-                                       keySetOri,
-                                       &oriAllUndefined ) ;
-      if ( rc )
-      {
-         PD_LOG ( PDERROR, "Failed to get keys from org object %s",
-                  PD_SECURE_OBJ( originalObj ) ) ;
-         goto error ;
-      }
-      phase = 1 ;
-
-   update_p1:
-      rc = indexCB->getKeysFromObject ( newObj,
-                                        keySetNew,
-                                        &newAllUndefined,
-                                        !isRollback ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       if ( rc )
       {
          if ( NULL != pResult &&
@@ -3067,21 +2755,15 @@ namespace engine
                   PD_SECURE_OBJ( newObj ) ) ;
          goto error ;
       }
-      phase = 2 ;
 
-   update_p2:
       if ( pOprHandle )
       {
-         rc = pOprHandle->onUpdateIndex( context, indexID, indexCB, unique,
+         rc = pOprHandle->onUpdateIndex( context, indexCB, unique,
                                          indexCB->enforced(), keySetOri,
                                          keySetNew, rid, isRollback, cb,
                                          pResult ) ;
          if ( rc )
          {
-            PD_LOG( PDERROR,
-                    "Failed on index update callback, origobj(%s), newobj(%s)",
-                    originalObj.toString().c_str(),
-                    newObj.toString().c_str() ) ;
             goto error ;
          }
       }
@@ -3093,15 +2775,10 @@ namespace engine
                newObj.toString().c_str() ) ;
 #endif
 
-      itori = keySetOri.begin() ;
-      itnew = keySetNew.begin() ;
-
-      phase = 3 ;
-
-   update_p3:
-      try
+      // do merge scan for two sets, unindex the keys if the one in keySetOri
+      // doesn't appear in keySetNew, and insert the one in keySetNew doesn't
+      // appear in keySetOri
       {
-<<<<<<< HEAD
          BSONObjSet::iterator itori ;
          BSONObjSet::iterator itnew ;
 
@@ -3111,12 +2788,6 @@ namespace engine
 
          itori = keySetOri.begin() ;
          itnew = keySetNew.begin() ;
-=======
-         // do merge scan for two sets, unindex the keys if the one in keySetOri
-         // doesn't appear in keySetNew, and insert the one in keySetNew doesn't
-         // appear in keySetOri
-         Ordering order = Ordering::make(indexCB->keyPattern()) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          while ( keySetOri.end() != itori && keySetNew.end() != itnew )
          {
 #if defined (_DEBUG)
@@ -3154,18 +2825,10 @@ namespace engine
                     !indexCB->isIDIndex() &&
                     ( !oriAllUndefined || indexCB->enforced() ) )
                {
-<<<<<<< HEAD
                   pOldUnqIdxHashArray->saveKey( ko.toHash() ) ;
                   oldHashSaved = TRUE ;
                }
 
-=======
-                  pOldUnqIdxHashArray->saveKey( *itori ) ;
-                  oldHashSaved = TRUE ;
-               }
-
-               DMS_MON_OP_COUNT_INC( pMonAppCB, MON_INDEX_WRITE, 1 ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                // during rollback, since the previous change may half-way
                // completed, there could be some keys that has not been
                // inserted. So if we found any rid+key that does not in the
@@ -3223,18 +2886,10 @@ namespace engine
                     !indexCB->isIDIndex() &&
                     ( !newAllUndefined || indexCB->enforced() ) )
                {
-<<<<<<< HEAD
                   pNewUnqIdxHashArray->saveKey( ko.toHash() ) ;
                   newHashSaved = TRUE ;
                }
 
-=======
-                  pNewUnqIdxHashArray->saveKey( *itnew ) ;
-                  newHashSaved = TRUE ;
-               }
-
-               DMS_MON_OP_COUNT_INC( pMonAppCB, MON_INDEX_WRITE, 1 ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                itnew++ ;
                continue ;
             }
@@ -3265,18 +2920,10 @@ namespace engine
                  !indexCB->isIDIndex() &&
                  ( !oriAllUndefined || indexCB->enforced() ) )
             {
-<<<<<<< HEAD
                pOldUnqIdxHashArray->saveKey( ko.toHash() ) ;
                oldHashSaved = TRUE ;
             }
 
-=======
-               pOldUnqIdxHashArray->saveKey( *itori ) ;
-               oldHashSaved = TRUE ;
-            }
-
-            DMS_MON_OP_COUNT_INC( pMonAppCB, MON_INDEX_WRITE, 1 ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             // during rollback, since the previous change may half-way
             // completed, there could be some keys that has not been
             // inserted. So if we found any rid+key that does not in the
@@ -3336,67 +2983,18 @@ namespace engine
                  !indexCB->isIDIndex() &&
                  ( !newAllUndefined || indexCB->enforced() ) )
             {
-<<<<<<< HEAD
                pNewUnqIdxHashArray->saveKey( ko.toHash() ) ;
                newHashSaved = TRUE ;
             }
 
-=======
-               pNewUnqIdxHashArray->saveKey( *itnew ) ;
-               newHashSaved = TRUE ;
-            }
-
-            DMS_MON_OP_COUNT_INC( pMonAppCB, MON_INDEX_WRITE, 1 ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             itnew++ ;
          }
-      }
-      catch ( exception &e )
-      {
-         PD_LOG( PDERROR, "Failed to update index key, occur exception %s",
-                 e.what() ) ;
-         rc = ossException2RC( &e ) ;
-         goto error ;
       }
 
    done :
       PD_TRACE_EXITRC ( SDB__DMSSTORAGEINDEX__INDEXUPDATE, rc ) ;
       return rc ;
    error :
-      if ( isRollback &&
-           SDB_OOM == rc )
-      {
-         // retry too many, restart the node
-         if ( ( retryCount > DMS_RETRY_SHUTDOWN_COUNT ) &&
-              ( !( PMD_IS_DB_DOWN() ) ) )
-         {
-            PD_LOG( PDSEVERE, "Failed to update index, rc: %d, "
-                    "timeout, restart DB" ) ;
-            PMD_RESTART_DB( rc ) ;
-         }
-         else if ( 0 == retryCount )
-         {
-            PD_LOG( PDWARNING, "Failed to update index, rc: %d, "
-                    "need retry", rc ) ;
-         }
-
-         ossSleep( DMS_RETRY_SLEEP_TIME ) ;
-         ++ retryCount ;
-
-         switch ( phase )
-         {
-            case 0:
-               goto update_p0 ;
-            case 1:
-               goto update_p1 ;
-            case 2:
-               goto update_p2 ;
-            case 3:
-               goto update_p3 ;
-            default:
-               SDB_ASSERT( FALSE, "invalid case" ) ;
-         }
-      }
       goto done ;
    }
 
@@ -3443,14 +3041,10 @@ namespace engine
 
          ++ procIdxNum ;
 
-<<<<<<< HEAD
          BOOLEAN needProcess = FALSE ;
          rc = _needProcessIndex( context, indexCB, indexID, rid, writeGuard, needProcess ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to check index process, rc: %d", rc ) ;
          if ( !needProcess ||
-=======
-         if ( !_needProcessIndex( indexCB, extLID ) ||
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
               !context->mbStat()->testIdxHash( indexID, idxHashBitmap ) )
          {
             continue ;
@@ -3463,7 +3057,6 @@ namespace engine
             PD_RC_CHECK( rc, PDERROR, "Failed to get keys from org object %s",
                          PD_SECURE_OBJ( originalObj ) ) ;
 
-<<<<<<< HEAD
             rc = indexCB.getKeysFromObject( newObj, keySetNew, NULL, !isRollback, pResult ) ;
             if ( SDB_OK != rc &&
                  NULL != pResult &&
@@ -3471,9 +3064,6 @@ namespace engine
             {
                pResult->setCurrentID( originalObj ) ;
             }
-=======
-            rc = indexCB.getKeysFromObject( newObj, keySetNew, NULL, !isRollback ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             PD_RC_CHECK( rc, PDERROR, "Failed to get keys from new object %s",
                          PD_SECURE_OBJ( newObj ) ) ;
 
@@ -3561,10 +3151,7 @@ namespace engine
                                           pmdEDUCB *cb,
                                           BOOLEAN isUndo,
                                           IDmsOprHandler *pOprHandle,
-<<<<<<< HEAD
                                           dmsWriteGuard &writeGuard,
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                                           const ixmIdxHashBitmap &idxHashBitmap,
                                           utilWriteResult *pResult,
                                           dpsUnqIdxHashArray *pNewUnqIdxHashArray,
@@ -3590,12 +3177,8 @@ namespace engine
       }
 
       // do global index first.
-<<<<<<< HEAD
       rc = _globalIndexesUpdate( context, rid, originalObj, newObj,
                                  writeGuard.getIndexWriteGuard(),
-=======
-      rc = _globalIndexesUpdate( context, extLID, originalObj, newObj,
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                                  cb, isUndo, idxHashBitmap, pResult ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to update global index, rc: %d",
                    rc ) ;
@@ -3617,15 +3200,11 @@ namespace engine
          PD_CHECK ( indexCB.isInitialized(), SDB_DMS_INIT_INDEX,
                     error, PDERROR, "Failed to init index" ) ;
 
-<<<<<<< HEAD
          BOOLEAN needProcess = FALSE ;
          rc = _needProcessIndex( context, indexCB, indexID, rid,
                                  writeGuard.getIndexWriteGuard(), needProcess ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to check index process, rc: %d", rc ) ;
          if ( !needProcess ||
-=======
-         if ( !_needProcessIndex( indexCB, extLID ) ||
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
               !context->mbStat()->testIdxHash( indexID, idxHashBitmap ) )
          {
             continue ;
@@ -3639,15 +3218,9 @@ namespace engine
          }
          else
          {
-<<<<<<< HEAD
             rc = _indexUpdate ( context, &indexCB, originalObj, newObj,
                                 rid, cb, isUndo, pOprHandle, writeGuard, pResult,
                                 pNewUnqIdxHashArray, pOldUnqIdxHashArray ) ;
-=======
-            rc = _indexUpdate( context, indexID, &indexCB, originalObj, newObj,
-                               rid, cb, isUndo, pOprHandle, pResult,
-                               pNewUnqIdxHashArray, pOldUnqIdxHashArray ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             PD_RC_CHECK ( rc, PDERROR, "Failed to update obj(%s) index(%s), "
                           "rc: %d", PD_SECURE_OBJ( newObj ),
                           indexCB.getDef().toString().c_str(), rc ) ;
@@ -3692,48 +3265,24 @@ namespace engine
                                          const dmsRecordID &rid,
                                          pmdEDUCB * cb,
                                          IDmsOprHandler *pOprHandle,
-<<<<<<< HEAD
                                          dmsWriteGuard &writeGuard,
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                                          dpsUnqIdxHashArray *pUnqIdxHashArray )
    {
       PD_TRACE_ENTRY ( SDB__DMSSTORAGEINDEX__INDEXDELETE ) ;
       INT32       rc          = SDB_OK ;
       BSONObjSet  keySet ;
-<<<<<<< HEAD
-=======
-      BOOLEAN     result      = FALSE ;
-      monAppCB   *pMonAppCB   = cb ? cb->getMonAppCB() : NULL ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       BOOLEAN     allUndefined = FALSE ;
 
       SDB_ASSERT ( indexCB, "indexCB can't be NULL" ) ;
 
-<<<<<<< HEAD
-=======
-      BSONObjSet::iterator it ;
-      // only save the first key of deleted keys for unique index
-      BOOLEAN hashSaved = FALSE ;
-      UINT32 phase = 0 ;
-      UINT32 retryCount = 0 ;
-
-   delete_p0:
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       rc = indexCB->getKeysFromObject ( inputObj, keySet, &allUndefined ) ;
       if ( rc )
       {
-         if ( SDB_IXM_MULTIPLE_ARRAY == rc )
-         {
-            goto done ;
-         }
          PD_LOG ( PDERROR, "Failed to get keys from object %s",
                   PD_SECURE_OBJ( inputObj ) ) ;
          goto error ;
       }
-      phase = 1 ;
 
-   delete_p1:
       if ( pOprHandle )
       {
          rc = pOprHandle->onDeleteIndex( context, indexCB,
@@ -3745,23 +3294,14 @@ namespace engine
          }
       }
 
-      it = keySet.begin() ;
-      phase = 2 ;
-
-   delete_p2:
-      try
       {
-<<<<<<< HEAD
          BSONObjSet::iterator it ;
 
          // only save the first key of deleted keys for unique index
          BOOLEAN hashSaved = FALSE ;
 
-=======
-         Ordering order = Ordering::make(indexCB->keyPattern()) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          // go through each index in the set
-         for ( ; it != keySet.end() ; it++ )
+         for ( it = keySet.begin() ; it != keySet.end() ; it++ )
          {
 #if defined (_DEBUG)
             PD_LOG ( PDDEBUG, "Delete key: %s", (*it).toString().c_str() ) ;
@@ -3786,62 +3326,16 @@ namespace engine
                  !indexCB->isIDIndex() &&
                  ( !allUndefined || indexCB->enforced() ) )
             {
-<<<<<<< HEAD
                pUnqIdxHashArray->saveKey( ko.toHash() ) ;
                hashSaved = TRUE ;
             }
-=======
-               pUnqIdxHashArray->saveKey( *it ) ;
-               hashSaved = TRUE ;
-            }
-
-            DMS_MON_OP_COUNT_INC( pMonAppCB, MON_INDEX_WRITE, 1 ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          }
-      }
-      catch ( exception &e )
-      {
-         PD_LOG( PDERROR, "Failed to delete index key, occur exception %s",
-                 e.what() ) ;
-         rc = ossException2RC( &e ) ;
-         goto error ;
       }
 
    done :
       PD_TRACE_EXITRC ( SDB__DMSSTORAGEINDEX__INDEXDELETE, rc ) ;
       return rc ;
-   error:
-      if ( SDB_OOM == rc )
-      {
-         // retry too many, restart the node
-         if ( ( retryCount > DMS_RETRY_SHUTDOWN_COUNT ) &&
-              ( !( PMD_IS_DB_DOWN() ) ) )
-         {
-            PD_LOG( PDSEVERE, "Failed to delete index, rc: %d, "
-                    "timeout, restart DB" ) ;
-            PMD_RESTART_DB( rc ) ;
-         }
-         else if ( 0 == retryCount )
-         {
-            PD_LOG( PDWARNING, "Failed to delete index, rc: %d, "
-                    "need retry", rc ) ;
-         }
-
-         ossSleep( DMS_RETRY_SLEEP_TIME ) ;
-         ++ retryCount ;
-
-         switch ( phase )
-         {
-            case 0:
-               goto delete_p0 ;
-            case 1:
-               goto delete_p1 ;
-            case 2:
-               goto delete_p2 ;
-            default:
-               SDB_ASSERT( FALSE, "invalid case" ) ;
-         }
-      }
+   error :
       PD_LOG ( PDERROR, "Failed to deleteindex, rc: %d", rc ) ;
       goto done ;
    }
@@ -3885,14 +3379,10 @@ namespace engine
 
          ++ procIdxNum ;
 
-<<<<<<< HEAD
          BOOLEAN needProcess = FALSE ;
          rc = _needProcessIndex( context, indexCB, indexID, rid, writeGuard, needProcess ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to check index process, rc: %d", rc ) ;
          if ( !needProcess )
-=======
-         if ( !_needProcessIndex( indexCB, extLID ) )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          {
             continue ;
          }
@@ -4042,57 +3532,6 @@ namespace engine
       return context->mbStat()->testIdxHash( idxHashBitmap ) ;
    }
 
-   BOOLEAN _dmsStorageIndex::_needUpdateIndexes( _dmsMBContext *context,
-                                                 const ixmIdxHashBitmap &idxHashBitmap )
-   {
-      SDB_ASSERT( context->isMBLock( EXCLUSIVE ),
-                  "should have exclusive lock on metadata block context" ) ;
-
-      // collections's index hash bitmap is empty, rebuild it
-      // NOTE: for update, we should have $id index at least
-      if ( !( context->mbStat()->isIdxHashReady() ) )
-      {
-         for ( INT32 indexID = 0 ;
-               indexID < DMS_COLLECTION_MAX_INDEX ;
-               ++ indexID )
-         {
-            if ( DMS_INVALID_EXTENT == context->mb()->_indexExtent[ indexID ] )
-            {
-               break ;
-            }
-            else if ( context->mbStat()->isIdxHashReady( indexID ) )
-            {
-               context->mbStat()->mergeIdxHash( indexID ) ;
-               continue ;
-            }
-
-            // we need re-calculate hash values for current index
-            // reset index bitmap fields first
-            context->mbStat()->resetIdxHashAt( indexID ) ;
-
-            ixmIndexCB indexCB( context->mb()->_indexExtent[ indexID ], this,
-                                context ) ;
-
-            // for each key in key pattern, initialize key fields
-            BSONObjIterator iter( indexCB.keyPattern() ) ;
-            while( iter.more() )
-            {
-               BSONElement e = iter.next() ;
-               context->mbStat()->setIdxHash( indexID, e.fieldName() ) ;
-            }
-            // for text index, we need to consider change of oid
-            // NOTE: oid will be stored in ES
-            if ( IXM_EXTENT_HAS_TYPE( indexCB.getIndexType(),
-                                      IXM_EXTENT_TYPE_TEXT ) )
-            {
-               context->mbStat()->setIdxHash( indexID, DMS_ID_KEY_NAME ) ;
-            }
-         }
-      }
-
-      return context->mbStat()->testIdxHash( idxHashBitmap ) ;
-   }
-
    // delete all indexes for an oject
    INT32 _dmsStorageIndex::indexesDelete( dmsMBContext *context,
                                           dmsExtentID extLID,
@@ -4100,10 +3539,7 @@ namespace engine
                                           const dmsRecordID &rid,
                                           pmdEDUCB * cb,
                                           IDmsOprHandler *pOprHandle,
-<<<<<<< HEAD
                                           dmsWriteGuard &writeGuard,
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                                           BOOLEAN isUndo,
                                           dpsUnqIdxHashArray *pUnqIdxHashArray )
    {
@@ -4177,12 +3613,8 @@ namespace engine
          else
          {
             rc = _indexDelete ( context, &indexCB, inputObj,
-<<<<<<< HEAD
                                 rid, cb, pOprHandle, writeGuard,
                                 pUnqIdxHashArray ) ;
-=======
-                                rid, cb, pOprHandle, pUnqIdxHashArray ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             if ( rc )
             {
                PD_LOG ( PDERROR, "Failed to delete object(%s) index(%s), "

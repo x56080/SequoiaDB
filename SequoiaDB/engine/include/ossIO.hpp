@@ -35,9 +35,9 @@
 *******************************************************************************/
 #ifndef OSSIO_HPP_
 #define OSSIO_HPP_
-#include "ossTypes.hpp"
 #include "core.hpp"
 #include "oss.hpp"
+#include "ossTypes.hpp"
 #include "ossLatch.hpp"
 
 #define  OSS_FILE_BLOCK    4096
@@ -471,9 +471,7 @@ INT32 ossMmapRead( OSSFILE  *pFile,
   * SDB_IO (IO error)
   * SDB_INVALIDARG (invalid file descriptor)
   */
-INT32 ossFsync(const OSSFILE* pFile);
-
-INT32 ossFdatasync(const OSSFILE* pFile);
+INT32 ossFsync(OSSFILE* pFile);
 
 enum SDB_OSS_FILETYPE
 {

@@ -54,7 +54,6 @@ namespace engine
          virtual SDB_SESSION_TYPE sessionType() const ;
 
          virtual INT32            run() ;
-<<<<<<< HEAD
 
          virtual INT32 checkPrivilegesForCmd( const CHAR *cmdName,
                                               const CHAR *pQuery,
@@ -72,8 +71,6 @@ namespace engine
             const authActionSet &actions );
 
          virtual INT32 getACL( boost::shared_ptr< const authAccessControlList > &acl ) ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       protected:
          INT32          _processMsg( MsgHeader *msg ) ;
@@ -117,11 +114,8 @@ namespace engine
 
          IMsgConvertor        *_inMsgConvertor ;   // For request from client.
          IMsgConvertor        *_outMsgConvertor ;  // For reply to client.
-<<<<<<< HEAD
 
          boost::shared_ptr<const authAccessControlList> _acl;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    } ;
    typedef _pmdLocalSession pmdLocalSession ;
 

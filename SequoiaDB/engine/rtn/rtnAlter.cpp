@@ -29,7 +29,6 @@
 
 *******************************************************************************/
 #include "rtnAlter.hpp"
-#include "clsMgr.hpp"
 #include "pd.hpp"
 #include "rtn.hpp"
 #include "rtnTrace.hpp"
@@ -86,9 +85,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to create id index on collection [%s], "
                    "rc: %d", collection, rc ) ;
 
-      sdbGetRTNCB()->getObjectStatCache()->removeCLStat( collection );
-      sdbGetRTNCB()->getAPM()->invalidateCLPlans( collection );
-
    done :
       PD_TRACE_EXITRC( SDB__RTNCREATEIDINDEX, rc ) ;
       return rc ;
@@ -129,12 +125,8 @@ namespace engine
             *pWriteDpsLog = FALSE ;
          }
       }
-
       PD_RC_CHECK( rc, PDERROR, "Failed to drop id index on collection [%s], "
                    "rc: %d", collection, rc ) ;
-
-      sdbGetRTNCB()->getObjectStatCache()->removeCLStat( collection );
-      sdbGetRTNCB()->getAPM()->invalidateCLPlans( collection );
 
    done :
       PD_TRACE_EXITRC( SDB__RTNDROPIDINDEX, rc ) ;
@@ -234,9 +226,6 @@ namespace engine
                       "collection [%s], rc: %d", IXM_SHARD_KEY_NAME,
                       collection, rc ) ;
       }
-
-      sdbGetRTNCB()->getObjectStatCache()->removeCLStat( collection );
-      sdbGetRTNCB()->getAPM()->invalidateCLPlans( collection );
 
    done :
       PD_TRACE_EXITRC( SDB__RTNSETSHARD, rc ) ;
@@ -1043,11 +1032,7 @@ namespace engine
             rc = _rtnCreateIDIndex( collection,
                                     alterInfo->getIdxUniqueID( collection, IXM_ID_KEY_NAME ),
                                     localTask->getSortBufferSize(),
-<<<<<<< HEAD
                                     cb, dpsCB, mbContext, su, pResult, &writeDpsLog ) ;
-=======
-                                    cb, dpsCB, mbContext, su, pResult ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             break ;
          }
          case RTN_ALTER_CL_DROP_ID_INDEX :

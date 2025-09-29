@@ -177,8 +177,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDMSGHND_HNDMSG, "_pmdAsyncMsgHandler::handleMsg" )
    INT32 _pmdAsyncMsgHandler::handleMsg( const NET_HANDLE & handle,
                                          const _MsgHeader *header,
-                                         const CHAR *msg,
-                                         UINT64 msgUserData )
+                                         const CHAR *msg )
    {
       //If TID not Zero, implicate external business require form client
       //or repl sync messages
@@ -214,9 +213,7 @@ namespace engine
          /// When _handleAdapterMsg failed, need call _handleSessionMsg
          if ( !_pTaskAdapter || rc )
          {
-            // in asynchronous message, use use data as global logical time
-            // to receive message
-            rc = _handleSessionMsg( handle, header, msg, msgUserData ) ;
+            rc = _handleSessionMsg ( handle, header, msg ) ;
          }
       }
       //Other msg will push to cb queue
@@ -263,40 +260,6 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDMSGHND_HNDCONNECT, "_pmdAsyncMsgHandler::handleConnect" )
-   INT32 _pmdAsyncMsgHandler::handleConnect( const NET_HANDLE &handle,
-                                             _MsgRouteID id,
-                                             BOOLEAN isPositive,
-                                             netUserDataHolder *userDataHolder )
-   {
-      PD_TRACE_ENTRY( SDB__PMDMSGHND_HNDCONNECT ) ;
-
-      if ( _needUserData() &&
-           NULL != userDataHolder &&
-           !( userDataHolder->hasUserData() ) )
-      {
-         INT32 rc = SDB_OK ;
-         rc = _allocUserData( handle, userDataHolder ) ;
-         if ( SDB_OK != rc )
-         {
-            PD_LOG( PDWARNING, "Failed to allocate user data for handle %u "
-                    "route ID %s", handle, routeID2String( id ).c_str(),
-                    rc ) ;
-         }
-      }
-
-   #if defined ( SDB_ENGINE )
-      if ( NULL != _pRemoteSessionMgr )
-      {
-         _pRemoteSessionMgr->handleConnect( handle, id, isPositive ) ;
-      }
-   #endif
-
-      PD_TRACE_EXIT( SDB__PMDMSGHND_HNDCONNECT ) ;
-
-      return SDB_OK ;
-   }
-
    // This function will not be used concurrently, so we don't need to latch it
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDMSGHND_HNDCLOSE, "_pmdAsyncMsgHandler::handleClose" )
    void _pmdAsyncMsgHandler::handleClose ( const NET_HANDLE & handle,
@@ -314,7 +277,6 @@ namespace engine
       PD_TRACE_EXIT ( SDB__PMDMSGHND_HNDCLOSE ) ;
    }
 
-<<<<<<< HEAD
    INT32 _pmdAsyncMsgHandler::handleConnect( const NET_HANDLE &handle,
                                             _MsgRouteID id,
                                             BOOLEAN isPositive )
@@ -331,11 +293,6 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDMSGHND_ONPREPARESTOP, "_pmdAsyncMsgHandler::onPrepareStop" )
    void _pmdAsyncMsgHandler::onPrepareStop()
    {
-=======
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDMSGHND_ONPREPARESTOP, "_pmdAsyncMsgHandler::onPrepareStop" )
-   void _pmdAsyncMsgHandler::onPrepareStop()
-   {
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       PD_TRACE_ENTRY ( SDB__PMDMSGHND_ONPREPARESTOP ) ;
       _pSessionMgr->handlePrepareStop() ;
       PD_TRACE_EXIT ( SDB__PMDMSGHND_ONPREPARESTOP ) ;
@@ -402,13 +359,10 @@ namespace engine
 
    INT32 _pmdAsyncMsgHandler::_handleSessionMsg ( const NET_HANDLE &handle,
                                                   const _MsgHeader *header,
-                                                  const CHAR *msg,
-                                                  UINT64 recvTime )
+                                                  const CHAR *msg )
    {
-      return _pSessionMgr->dispatchMsg( handle,
-                                        header,
+      return _pSessionMgr->dispatchMsg( handle, header,
                                         PMD_EDU_MEM_NONE,
-                                        recvTime,
                                         FALSE ) ;
    }
 

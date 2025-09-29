@@ -87,11 +87,7 @@ This function is used to create a data source to achieve cross-cluster data acce
 
     - InheritSessionAttr ( *boolean* ): Whether session between local coordinator and data source node inherits session attributes from local session on the coordinator, the default value is true.
 
-<<<<<<< HEAD
         The supported attributes include PreferredInstance, PreferredInstanceMode, PreferredStrict, PreferredPeriod and Timeout. 
-=======
-        The supported attributes include PreferredInstance，PreferredInstanceMode，PreferredStrict，PreferredPeriod and Timeout. 
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
         Format: `InheritSessionAttr: true`
 
@@ -113,11 +109,7 @@ When the exception happens, use [getLastErrMsg()][getLastErrMsg] to get the erro
 
 ##VERSION##
 
-<<<<<<< HEAD
 v3.4.3 and above
-=======
-v5.0.2 and above
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 ##EXAMPLES##
 

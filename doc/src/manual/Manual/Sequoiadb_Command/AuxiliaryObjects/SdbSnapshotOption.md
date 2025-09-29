@@ -223,11 +223,7 @@
 	Return 1 row(s).
 	```
 
-<<<<<<< HEAD
 - 查看历史查询记录
-=======
-* 查看历史查询记录
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    ```lang-javascript
    > db.snapshot(SDB_SNAP_QUERIES, new SdbSnapshotOption().options({"viewHistory":true}))

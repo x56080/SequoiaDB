@@ -47,20 +47,15 @@
 #include "pmdEDU.hpp"
 #include "ossRWMutex.hpp"
 #include "dms.hpp"
-<<<<<<< HEAD
 #include "utilReplSizePlan.hpp"
 #include "utilLocation.hpp"
 
 #include <map>
-=======
-#include "clsReplDef.hpp"
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 using namespace std ;
 
 namespace engine
 {
-<<<<<<< HEAD
    typedef UINT32 CLS_GROUP_VERSION ;
 
    const UINT32 CLS_VOTE_CS_TIME = 3000 ;
@@ -74,8 +69,6 @@ namespace engine
 
    #define CLS_BEATID_BEGIN                     ( 1 )
    #define CLS_BEATID_INVALID                   ( 0 )
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    //full sync node timeout
    #define CLS_FS_NORES_TIMEOUT                 (10000)  // 10 secs
@@ -84,7 +77,6 @@ namespace engine
 
    #define CLS_FS_MAX_BSON_SIZE                 ( 14 * 1024 * 1024 )
 
-<<<<<<< HEAD
    #define CLS_REELECT_COMMAND_TIMEOUT_DFT      30
 
    // Temporary weight, use for reelect / fault tolerant
@@ -942,8 +934,6 @@ namespace engine
       }
    } ;
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    /*
       _clsLSNNtyInfo define
    */
@@ -981,7 +971,6 @@ namespace engine
    } ;
    typedef _clsLSNNtyInfo clsLSNNtyInfo ;
 
-<<<<<<< HEAD
    /*
       _clsReplayEventHandler define
    */
@@ -1007,8 +996,7 @@ namespace engine
       CLS_REELECTION_LEVEL_MAX
    } ;
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 }
 
 #endif // CLSDEF_HPP_
+

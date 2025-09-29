@@ -114,11 +114,8 @@ public class IndexConsistent23939 extends SdbTestBase {
                 cl.createIndex( indexName, "{no:1,testa:1}", false, false );
             } catch ( BaseException e ) {
                 if ( e.getErrorType() != SDBError.SDB_DMS_NOTEXIST
-<<<<<<< HEAD
                         .getErrorType() &&
                      e.getErrorType() != SDBError.SDB_TASK_HAS_CANCELED
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                         .getErrorType() ) {
                     throw e;
                 }
@@ -186,8 +183,4 @@ public class IndexConsistent23939 extends SdbTestBase {
             times++;
         }
     }
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2

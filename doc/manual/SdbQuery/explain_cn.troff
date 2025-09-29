@@ -179,22 +179,14 @@ T{
 T}@T{
 T}@T{
 T}@T{
-<<<<<<< HEAD
 的上下文信息。
-=======
-的上下文信息。<
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-<<<<<<< HEAD
 Detail 选项为
-=======
-br>Detail 选项为
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}@T{
 T}
 T{
@@ -352,22 +344,14 @@ T{
 T}@T{
 T}@T{
 T}@T{
-<<<<<<< HEAD
 中的估算部分。
-=======
-中的估算部分。<
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-<<<<<<< HEAD
 如果 Estimate 选
-=======
-br>如果 Estimate 选
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}@T{
 T}
 T{
@@ -550,22 +534,14 @@ T{
 T}@T{
 T}@T{
 T}@T{
-<<<<<<< HEAD
 展开输出结果。
-=======
-展开输出结果。<
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-<<<<<<< HEAD
 Flatten 选项为
-=======
-br>Flatten 选项为
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}@T{
 T}
 T{
@@ -688,44 +664,28 @@ T{
 T}@T{
 T}@T{
 T}@T{
-<<<<<<< HEAD
 者其组合数组。
-=======
-者其组合数组。<
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-<<<<<<< HEAD
 Filter 选项为 []
-=======
-br>Filter 选项为 []
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-<<<<<<< HEAD
 或者 null 表示为
-=======
-或者 null 表示为 "
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-<<<<<<< HEAD
 "None"。1.
-=======
-None"。1.
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 "None"
 T}@T{
 T}
@@ -799,22 +759,14 @@ T{
 T}@T{
 T}@T{
 T}@T{
-<<<<<<< HEAD
 果的输出细节。
-=======
-果的输出细节。<
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-<<<<<<< HEAD
 5.
-=======
-br>5.
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 "All" 表示输
 T}@T{
 T}
@@ -863,11 +815,7 @@ T}
 T{
 7
 T}@T{
-<<<<<<< HEAD
 CMDLocation
-=======
-Location
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}@T{
 BSON 对象
 T}@T{
@@ -900,99 +848,63 @@ T{
 T}@T{
 T}@T{
 T}@T{
-<<<<<<< HEAD
 项。CMDLocation
-=======
-项。Location 选
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-<<<<<<< HEAD
 选项仅支持 "
-=======
-项仅支持 "GroupID"
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-<<<<<<< HEAD
 GroupID" 和 "GroupName
-=======
-和 "GroupName" 选项。
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-<<<<<<< HEAD
 " 选项。详细
-=======
-详细见 **命令
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-<<<<<<< HEAD
 见 **命令位置参
-=======
-位置参数**。
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-<<<<<<< HEAD
 数**。如果
-=======
-如果 Location 选项
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-<<<<<<< HEAD
 CMDLocation 选项显
-=======
-显式设置，Detail
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-<<<<<<< HEAD
 式设置，Detail 选
-=======
-选项自动设置为
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}@T{
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-<<<<<<< HEAD
 项自动设置为 true。
-=======
-true。
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}@T{
 T}
 T{
@@ -1658,21 +1570,13 @@ T{
 T}@T{
 T}@T{
 T}@T{
-<<<<<<< HEAD
 false 的情况有：
-=======
-false 的情况有：<
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-<<<<<<< HEAD
 1.
-=======
-br>1.
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 没有查询条
 T}
 T{
@@ -1713,21 +1617,13 @@ T{
 T}@T{
 T}@T{
 T}@T{
-<<<<<<< HEAD
 否被索引覆盖。
-=======
-否被索引覆盖。<
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-<<<<<<< HEAD
 被索引覆盖可
-=======
-br>被索引覆盖可
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}
 T{
 T}@T{
@@ -2154,21 +2050,13 @@ T{
 T}@T{
 T}@T{
 T}@T{
-<<<<<<< HEAD
 false 的情况有：
-=======
-false 的情况有：<
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-<<<<<<< HEAD
 1.
-=======
-br>1.
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 没有查询条
 T}
 T{
@@ -2209,21 +2097,13 @@ T{
 T}@T{
 T}@T{
 T}@T{
-<<<<<<< HEAD
 否被索引覆盖。
-=======
-否被索引覆盖。<
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-<<<<<<< HEAD
 被索引覆盖可
-=======
-br>被索引覆盖可
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}
 T{
 T}@T{
@@ -3155,22 +3035,13 @@ v2.0 及以上版本。
 .fi
 .RE
 .IP \[bu] 2
-<<<<<<< HEAD
 使用 Detail 选项查看查询的详细访问计划，并且使用 CMDLocation 选项查看查询在
 group1 上的访问计划
-=======
-使用 Detail 选项查看查询的详细访问计划，并且使用 Location 选项查看查询在 group1
-上的访问计划
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 .RS 2
 .IP
 .nf
 \f[C]
-<<<<<<< HEAD
 > db.sample.employee.find( { a : { $gt : 100 } } ).explain( { Detail : true, CMDLocation : { GroupName : \[aq]group1\[aq] } } )
-=======
-> db.sample.employee.find( { a : { $gt : 100 } } ).explain( { Detail : true, Location : { GroupName : \[aq]group1\[aq] } } )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 {
   "NodeName": "hostname:11800",
   "GroupName": "SYSCoord",
@@ -3594,7 +3465,6 @@ group1 上的访问计划
                   "$and": [
                     {
                       "a": {
-<<<<<<< HEAD
                         "$gt": 100
                       }
                     }
@@ -3699,6 +3569,3 @@ group1 上的访问计划
 \f[]
 .fi
 .RE
-=======
-    
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2

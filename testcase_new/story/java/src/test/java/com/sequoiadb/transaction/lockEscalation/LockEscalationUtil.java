@@ -51,18 +51,6 @@ public class LockEscalationUtil {
         }
     }
 
-<<<<<<< HEAD
-=======
-    public static void queryData( Sequoiadb db, String csName, String clName, BSONObject matcher ) {
-        DBCollection cl = db.getCollectionSpace( csName ).getCollection( clName );
-        try ( DBCursor cursor = cl.query( matcher, null, null, null ) ) {
-            while ( cursor.hasNext() ) {
-                cursor.getNext();
-            }
-        }
-    }
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     public static void checkCLLockType( Sequoiadb db, String lockMode ) {
         try ( DBCursor cursor = db.getSnapshot( Sequoiadb.SDB_SNAP_TRANSACTIONS_CURRENT, "", "", "" ) ) {
             Assert.assertTrue( cursor.hasNext() );

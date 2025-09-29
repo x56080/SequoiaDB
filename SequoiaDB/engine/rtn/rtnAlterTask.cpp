@@ -1579,10 +1579,7 @@ namespace engine
      _autoIndexID( TRUE ),
      _idIdxUniqID( UTIL_UNIQUEID_NULL ),
      _replSize( 1 ),
-<<<<<<< HEAD
      _consistencyStrategy( SDB_CONSISTENCY_PRY_LOC_MAJOR ),
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
      _strictDataMode( TRUE ),
      _noTrans( FALSE )
    {

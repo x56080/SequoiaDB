@@ -278,49 +278,9 @@ namespace engine
                           _dmsLobDataMapBlk &blk,
                           const dmsLobRecord *pRecord = NULL ) ;
 
-<<<<<<< HEAD
       INT32 _renameMetaOrDataFile( const CHAR* metaFilePath,
                                    const CHAR* dataFilePath ) ;
 
-=======
-      INT32 _find( const _dmsLobRecord &record,
-                   UINT32 clID,
-                   pmdEDUCB *cb,
-                   DMS_LOB_PAGEID &page,
-                   UINT32 *bucket = NULL ) ;
-
-      INT32 _allocatePage( const dmsLobRecord &record,
-                           dmsMBContext *mbContext,
-                           DMS_LOB_PAGEID &page ) ;
-
-      INT32 _fillPage( const dmsLobRecord &record,
-                       DMS_LOB_PAGEID page,
-                       pmdEDUCB *cb,
-                       dmsMBContext *mbContext ) ;
-
-      /// only release space of page. will not change other meta data.
-      INT32 _releasePage( DMS_LOB_PAGEID page, dmsMBContext *mbContext ) ;
-
-      /// release space of page and change other meta data.
-      INT32 _removePage( DMS_LOB_PAGEID page,
-                         _dmsLobDataMapBlk *blk,
-                         const UINT32 *bucket,
-                         pmdEDUCB *cb,
-                         dmsMBContext *mbContext,
-                         BOOLEAN hasLockBucket,
-                         BOOLEAN needRelease = TRUE,
-                         const dmsLobRecord *pRecord = NULL ) ;
-
-      INT32 _rollback( const dmsLobRecord &record,
-                       DMS_LOB_PAGEID page,
-                       pmdEDUCB *cb,
-                       dmsMBContext *mbContext,
-                       BOOLEAN pageFilled ) ;
-
-      INT32 _renameMetaOrDataFile( const CHAR* metaFilePath,
-                                   const CHAR* dataFilePath ) ;
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       INT32 _checkIfMetaOrDataFileExist( const CHAR* metaFilePath,
                                          const CHAR* dataFilePath,
                                          BOOLEAN &exist ) ;

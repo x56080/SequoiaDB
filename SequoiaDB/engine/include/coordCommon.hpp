@@ -61,8 +61,6 @@ namespace engine
 
    BOOLEAN  coordCataCheckFlag( INT32 flag ) ;
 
-   BOOLEAN  coordGlobTransCheckFlag( INT32 flag ) ;
-
    BOOLEAN  coordCheckNodeReplyFlag( INT32 flag ) ;
 
    /*

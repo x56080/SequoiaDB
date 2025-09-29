@@ -105,7 +105,7 @@ namespace seadapter
       {
          void *beginAddr = (void *)( (CHAR *)p - RTN_MEM_TYPE_SIZE ) ;
          // Only release memory allocted by SDB_OSS_MALLOC().
-         // Objects allocated by instances of _utilStackOnlyAllocator(allocator is not
+         // Objects allocated by instances of _utilAllocator(allocator is not
          // NULL in new) will not be released seperately, as they are allocated
          // in a stack. They space is released when the allocator is destroyed.
          if ( RTN_MEM_BY_DFT_ALLOCATOR == *(INT32 *)beginAddr )

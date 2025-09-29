@@ -263,7 +263,6 @@ namespace engine
                      // other rule like $unset $inc, then set shardingKeyChanged TRUE
                      shardingKeyChanged = TRUE ;
                   }
-<<<<<<< HEAD
                }
                else if ( 0 == ossStrcmp( beTmp.fieldName(),
                                          CMD_ADMIN_PREFIX CMD_VALUE_NAME_RENAME ) )
@@ -277,8 +276,6 @@ namespace engine
                   {
                      subBuilder.append( beField ) ;
                   }
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                }
                else
                {

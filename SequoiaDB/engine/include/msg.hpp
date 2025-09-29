@@ -39,7 +39,7 @@
 struct _MsgRouteIDComp
 {
    BOOLEAN operator()( const _MsgRouteID &id1,
-                       const _MsgRouteID &id2 ) const
+                       const _MsgRouteID &id2 )
    {
       return id1.value < id2.value ;
    }

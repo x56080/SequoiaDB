@@ -1,7 +1,6 @@
 package com.sequoiadb.snapshot;
 
 import com.sequoiadb.base.DBCollection;
-<<<<<<< HEAD
 import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.testcommon.SdbTestBase;
 import org.bson.BSONObject;
@@ -9,17 +8,11 @@ import org.bson.BasicBSONObject;
 import org.testng.Assert;
 
 import java.util.*;
-=======
-import com.sequoiadb.testcommon.SdbTestBase;
-import org.bson.BSONObject;
-import org.bson.BasicBSONObject;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 public class SnapshotUtil extends SdbTestBase {
 
     // 插入记录数，快照用例公用此变量
     public static final int INSERT_NUMS = 1000;
-<<<<<<< HEAD
     private static ArrayList< String > lobStats = new ArrayList<>();
     private static ArrayList< String > checkRangeKeys = new ArrayList<>();
     public static double lobdSize = 128 * 1024 * 1024;
@@ -69,21 +62,12 @@ public class SnapshotUtil extends SdbTestBase {
     }
 
     public static void insertData( DBCollection cl, int recordNum ) {
-=======
-
-    public static void insertData(DBCollection cl ) {
-        insertData( cl, INSERT_NUMS );
-    }
-
-    public static void insertData(DBCollection cl, int recordNum ) {
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
         if ( recordNum < 1 ) {
             recordNum = 1;
         }
         for ( int i = 0; i < recordNum; i++ ) {
             BSONObject record = new BasicBSONObject();
-<<<<<<< HEAD
             record.put( "a", i );
             cl.insert( record );
         }
@@ -336,10 +320,4 @@ public class SnapshotUtil extends SdbTestBase {
             return flag;
         }
     }
-=======
-            record.put( "a", i  );
-            cl.insert( record );
-        }
-    }
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 }

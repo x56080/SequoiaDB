@@ -93,8 +93,7 @@ namespace engine
       return EDU_TYPE_OMAAGENT ;
    }
 
-   void _omaSession::onRecieve( const NET_HANDLE netHandle,
-                                MsgHeader * msg )
+   void _omaSession::onRecieve( const NET_HANDLE netHandle, MsgHeader * msg )
    {
       ossGetCurrentTime( _lastRecvTime ) ;
       sdbGetOMAgentMgr()->resetNoMsgTimeCounter() ;

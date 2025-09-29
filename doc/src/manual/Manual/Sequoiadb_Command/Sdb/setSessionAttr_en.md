@@ -92,10 +92,6 @@ The attributes of the session can be set through the parameter "options":
     - 0: RU level
     - 1: RC level
     - 2: RS level
-<<<<<<< HEAD
-=======
-    - 3：RR level
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
     Format: `TransIsolation: 1`
 
@@ -164,11 +160,7 @@ When the exception happens, use [getLastErrMsg()][getLastErrMsg] to get the erro
 
 ##VERSION##
 
-<<<<<<< HEAD
 v3.4 and above
-=======
-v5.0 and above
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 ##EXAMPLES##
 
@@ -190,10 +182,6 @@ v5.0 and above
     > db.setSessionAttr({Timeout: 10000})
     ```
 
-<<<<<<< HEAD
-=======
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 [^_^]:
     links
 [getSessionAttr]:manual/Manual/Sequoiadb_Command/Sdb/getSessionAttr.md
@@ -202,8 +190,4 @@ v5.0 and above
 [faq]:manual/FAQ/faq_sdb.md
 [error_code]:manual/Manual/Sequoiadb_error_code.md
 [config]:manual/Manual/Database_Configuration/configuration_parameters.md
-<<<<<<< HEAD
 [instance]:manual/Distributed_Engine/Architecture/Data_Model/instance.md
-=======
-[instance]:manual/Distributed_Engine/Architecture/Data_Model/instance.md
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2

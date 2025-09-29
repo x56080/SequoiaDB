@@ -4,7 +4,6 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-<<<<<<< HEAD
     <name>SequoiaDB Flink Connector</name>
     <description>Flink Connector for SequoiaDB</description>
     <url>https://github.com/SequoiaDB/SequoiaDB</url>
@@ -35,11 +34,6 @@
         <developerConnection>scm:git:https://github.com/SequoiaDB/SequoiaDB.git</developerConnection>
         <url>https://github.com/SequoiaDB/SequoiaDB</url>
     </scm>
-=======
-    <groupId>com.sequoiadb.flink</groupId>
-    <artifactId>sdb-flink-connector</artifactId>
-    <version>1.0-SNAPSHOT</version>
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
     <properties>
         <maven.compiler.source>8</maven.compiler.source>
@@ -48,11 +42,7 @@
         <flink.version>1.14.0</flink.version>
         <scala.binary>2.12</scala.binary>
 
-<<<<<<< HEAD
         <sequoiadb.driver.version>3.4.8.jre8</sequoiadb.driver.version>
-=======
-        <sequoiadb.driver.version>3.4.7</sequoiadb.driver.version>
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
         <guava.version>31.0.1-jre</guava.version>
         <guava.retry.version>2.0.0</guava.retry.version>
@@ -99,22 +89,6 @@
             <scope>provided</scope>
         </dependency>
 
-<<<<<<< HEAD
-=======
-        <!-- retry util -->
-        <dependency>
-            <groupId>com.github.rholder</groupId>
-            <artifactId>guava-retrying</artifactId>
-            <version>${guava.retry.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-            <version>${guava.version}</version>
-        </dependency>
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         <!-- sequoiadb java driver -->
         <dependency>
             <groupId>com.sequoiadb</groupId>
@@ -151,7 +125,6 @@
         </dependency>
     </dependencies>
 
-<<<<<<< HEAD
     <distributionManagement>
         <snapshotRepository>
             <id>ossrh</id>
@@ -254,30 +227,5 @@
             </properties>
         </profile>
     </profiles>
-=======
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <version>3.0.0</version>
-                <configuration>
-                    <descriptorRefs>
-                        <descriptorRef>jar-with-dependencies</descriptorRef>
-                    </descriptorRefs>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>make-assembly</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>single</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-        </plugins>
-    </build>
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 </project>

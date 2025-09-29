@@ -45,11 +45,8 @@ abstract class SdbRDD[T: ClassTag](sc: SparkContext,
 
     logInfo(s"SdbRDD{config: $config, filter: $filter, selector: [${requiredColumns.mkString(", ")}]}")
 
-<<<<<<< HEAD
     protected val sourceInfo = SdbConnUtil.generateSourceInfo(sc)
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     @DeveloperApi
     override def compute(split: Partition, context: TaskContext): Iterator[T] = {
         val iterator = createIterator(split.asInstanceOf[SdbPartition])
@@ -100,11 +97,7 @@ class SdbRowRDD(sc: SparkContext,
     extends SdbRDD[Row](sc, config, requiredColumns, filter) {
 
     override def createIterator(sdbPartition: SdbPartition): SdbRDDIterator[Row] = {
-<<<<<<< HEAD
         new SdbRowRDDIterator(config, sourceInfo, sdbPartition, schema, requiredColumns)
-=======
-        new SdbRowRDDIterator(config, sdbPartition, schema, requiredColumns)
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     }
 }
 
@@ -146,11 +139,7 @@ class SdbBsonRDD(sc: SparkContext,
     extends SdbRDD[BSONObject](sc, sdbConfig, requiredColumns, filter) {
 
     override def createIterator(sdbPartition: SdbPartition): SdbRDDIterator[BSONObject] = {
-<<<<<<< HEAD
         new SdbBsonRDDIterator(sdbConfig, sourceInfo, sdbPartition, requiredColumns, numReturned)
-=======
-        new SdbBsonRDDIterator(sdbConfig, sdbPartition, requiredColumns, numReturned)
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     }
 }
 
@@ -162,18 +151,11 @@ class SdbBsonRDD(sc: SparkContext,
 class SdbBsonRDDFunctions(rdd: RDD[BSONObject]) {
 
     private def saveToSequoiadb(properties: Map[String, String]): Unit = {
-<<<<<<< HEAD
         val config = SdbConfig(rdd.sparkContext.getConf.getAll.toMap, properties)
         val sourceInfo = SdbConnUtil.generateSourceInfo(rdd.sparkContext)
 
         rdd.foreachPartition { it =>
             new SdbWriter(config, sourceInfo).write(it)
-=======
-        val config = SdbConfig(properties)
-
-        rdd.foreachPartition { it =>
-            new SdbWriter(config).write(it)
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         }
     }
 

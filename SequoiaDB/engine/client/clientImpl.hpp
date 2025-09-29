@@ -49,7 +49,6 @@ namespace sdbclient
 
    /*
       CLIENT_CLASS_TYPE define
-<<<<<<< HEAD
    */
    enum CLIENT_CLASS_TYPE
    {
@@ -72,30 +71,6 @@ namespace sdbclient
    */
    class _sdbBase
    {
-=======
-   */
-   enum CLIENT_CLASS_TYPE
-   {
-      CLIENT_CLASS_SDB         = 0,
-      CLIENT_CLASS_CS          = 1,
-      CLIENT_CLASS_CL          = 2,
-      CLIENT_CLASS_CURSOR      = 3,
-      CLIENT_CLASS_RG          = 4,
-      CLIENT_CLASS_NODE        = 5,
-      CLIENT_CLASS_LOB         = 6,
-      CLIENT_CLASS_DOMAIN      = 7,
-      CLIENT_CLASS_DC          = 8,  // data center
-      CLIENT_CLASS_SQ          = 9,  // sequeue
-      CLIENT_CLASS_DS          = 10, // datasource
-      CLIENT_CLASS_RB          = 11  // recycle bin
-   } ;
-
-   /*
-      _sdbBase define
-   */
-   class _sdbBase
-   {
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    public :
       _sdbBase(CLIENT_CLASS_TYPE type) ;
       virtual ~_sdbBase() {}
@@ -680,11 +655,8 @@ namespace sdbclient
          return getDetail ( &cursor.pCursor ) ;
       }
 
-<<<<<<< HEAD
       INT32 getCollectionStat ( bson::BSONObj &result ) ;
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       INT32 getIndexStat ( const CHAR *pIndexName, bson::BSONObj &result,
                            BOOLEAN detail = FALSE ) ;
 
@@ -858,7 +830,6 @@ namespace sdbclient
 
    private:
       virtual INT32 _setConnection( _sdbImpl *connection )
-<<<<<<< HEAD
       {
          return _regHandle( connection, (ossValuePtr)this ) ;
       }
@@ -866,15 +837,6 @@ namespace sdbclient
       {
          _unregHandle( (ossValuePtr)this ) ;
       }
-=======
-      {
-         return _regHandle( connection, (ossValuePtr)this ) ;
-      }
-      virtual void _dropConnection()
-      {
-         _unregHandle( (ossValuePtr)this ) ;
-      }
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    private:
       INT32 _stopStart ( BOOLEAN start ) ;
@@ -1228,26 +1190,13 @@ namespace sdbclient
 
    private:
       virtual INT32 _setConnection( _sdbImpl *connection )
-<<<<<<< HEAD
       {
          return _regHandle( connection, (ossValuePtr)this ) ;
       }
       virtual void _dropConnection()
       {
          _unregHandle( (ossValuePtr)this ) ;
-=======
-      {
-         return _regHandle( connection, (ossValuePtr)this ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       }
-      virtual void _dropConnection()
-      {
-         _unregHandle( (ossValuePtr)this ) ;
-      }
-
-   private:
-      INT32 _setName ( const CHAR *pClusterName,
-                       const CHAR *pBusinessName ) ;
 
    private:
       INT32 _setName ( const CHAR *pClusterName,
@@ -2207,15 +2156,6 @@ namespace sdbclient
       INT32 getLastResultObj( bson::BSONObj &result,
                               BOOLEAN getOwned = FALSE ) const ;
 
-<<<<<<< HEAD
-=======
-      INT32 restoreToTime( const bson::BSONObj &options = _sdbStaticObject ) ;
-      INT32 restoreCheck( bson::BSONObj &result,
-                          const bson::BSONObj &options = _sdbStaticObject ) ;
-      INT32 restoreAbort( const bson::BSONObj &options = _sdbStaticObject ) ;
-      INT32 restorePrepare( const bson::BSONObj &options = _sdbStaticObject ) ;
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       INT32 createSequence( const CHAR *pSequenceName,
                             const bson::BSONObj &options,
                             _sdbSequence **sequence ) ;
@@ -2264,7 +2204,6 @@ namespace sdbclient
                              const bson::BSONObj &selector = _sdbStaticObject,
                              const bson::BSONObj &orderBy = _sdbStaticObject,
                              const bson::BSONObj &hint = _sdbStaticObject ) ;
-<<<<<<< HEAD
 
       INT32 createRole( const bson::BSONObj &role );
 
@@ -2292,8 +2231,6 @@ namespace sdbclient
 
       INT32 invalidateUserCache( const CHAR *pUserName = NULL,
                                  const bson::BSONObj &options = _sdbStaticObject );
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    } ;
    typedef class _sdbImpl sdbImpl ;
 

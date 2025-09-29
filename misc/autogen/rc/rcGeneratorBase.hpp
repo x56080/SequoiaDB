@@ -34,7 +34,6 @@
 #define RC_GENERATOR_HPP
 
 #include "../generateInterface.hpp"
-#include <map>
 
 // xml file
 #define RC_FILENAME        "rclist.xml"
@@ -91,7 +90,6 @@ protected:
 
    vector<pair<string, int> > _conslist ;
    vector<RCInfo> _rcInfoList ;
-   map<string, int> _tags;
 } ;
 
 #endif

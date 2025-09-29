@@ -179,11 +179,7 @@ getLastError() to get the error code.
 For more details, refer to Troubleshooting.
 .SH VERSION
 .PP
-<<<<<<< HEAD
 v3.6 and above
-=======
-v5.0 and above
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 .SH EXAMPLES
 .IP \[bu] 2
 Delete the parameter "diaglevel" of the "online effective" type, and specify the

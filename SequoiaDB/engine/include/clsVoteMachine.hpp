@@ -39,7 +39,6 @@
 #include "oss.hpp"
 #include "clsVoteStatus.hpp"
 #include "ossLatch.hpp"
-#include "netRouteAgent.hpp"
 #include <vector>
 
 using namespace std ;
@@ -52,7 +51,8 @@ namespace engine
    class _clsVoteMachine : public SDBObject
    {
    public:
-      _clsVoteMachine( ICLSReplAgent *replAgent ) ;
+      _clsVoteMachine( _clsGroupInfo *info,
+                       _netRouteAgent *agent ) ;
       ~_clsVoteMachine() ;
 
    public:
@@ -78,7 +78,6 @@ namespace engine
          _shadowWeight = weight ;
          _shadowTimeout = timeout ;
          _shadowForReelect = shadowForReelect ;
-<<<<<<< HEAD
       }
 
       OSS_INLINE UINT8 getElectionWeight() const
@@ -105,8 +104,6 @@ namespace engine
          {
             OSS_BIT_CLEAR( _electionWeight, electionWeight ) ;
          }
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       }
 
       OSS_INLINE BOOLEAN isInStepUp() const
@@ -142,6 +139,8 @@ namespace engine
 
       void  handleTimeout( const UINT32 &millisec ) ;
 
+      INT32 active() ;
+
       void  force( const INT32 &id, UINT32 mills = 0 ) ;
       BOOLEAN  isStatus( const INT32 &id ) const ;
       BOOLEAN  isInit() const { return _current ? TRUE : FALSE ; }
@@ -152,19 +151,10 @@ namespace engine
                         const BOOLEAN &enforced = FALSE ) ;
 
    private:
-<<<<<<< HEAD
       vector<_clsVoteStatus *>   _status ;
       _netRouteAgent             *_agent ;
       _clsVoteStatus             *_current ;
       _clsGroupInfo              *_groupInfo ;
-=======
-      vector<clsVoteStatus *>    _status ;
-      ICLSReplAgent *            _replAgent ;
-      netRouteAgent *            _agent ;
-      clsVoteStatus *            _current ;
-      clsGroupInfo *             _groupInfo ;
-      UINT8                      _shadowWeight ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       UINT32                     _shadowTimeout ;  /// ms
       BOOLEAN                    _shadowForReelect ;
       UINT32                     _forceMillis ;

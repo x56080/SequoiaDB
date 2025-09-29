@@ -69,10 +69,7 @@ namespace engine
       _pData = NULL ;
       _dataLen = 0 ;
       _offset = 0 ;
-<<<<<<< HEAD
       _hasSubmitMetric = FALSE ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       _totalDeltaMonApp.reset() ;
    }
 
@@ -1278,24 +1275,6 @@ error:
 
       if ( _mbContext && _su )
       {
-<<<<<<< HEAD
-=======
-         // no matter error happen or not, we will still
-         // submit the change from session to others
-         if ( pMonAppCB && pMonAppCB->mondbcb )
-         {
-            pMonAppCB->mondbcb->incMetrics( _totalDeltaMonApp ) ;
-         }
-         if ( pMonAppCB && pMonAppCB->getSvcTaskInfo() )
-         {
-            pMonAppCB->getSvcTaskInfo()->incMetrics( _totalDeltaMonApp ) ;
-         }
-         if (  _mbContext->mbStat() )
-         {
-            _mbContext->mbStat()->_crudCB.incMetrics( _totalDeltaMonApp ) ;
-         }
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          // release mbContext
          _su->data()->releaseMBContext( _mbContext ) ;
          _mbContext = NULL ;

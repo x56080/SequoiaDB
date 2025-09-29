@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 /*******************************************************************************
 
    Copyright (C) 2011-Present SequoiaDB Ltd.
@@ -17,53 +16,6 @@
 
    
 *******************************************************************************/
-=======
-/******************************************************************************
- *
- * Name: index.cpp
- * Description: This program demostrates how to create index.
- *
- * Parameters:
- *              HostName: The hostname for database server
- *              ServiceName: The service name or port number for the database
- *                           service
- *              Username: The user name for database server
- *              Password: The password  for user
- * Auto Compile:
- *    Linux: ./buildApp.sh index
- *    Win: buildApp.bat index
- * Manual Compile:
- *    Dynamic Linking:
- *    Linux:
- *       if GCC version >= 5.1
- *          g++ index.cpp common.cpp -o index -I../../include -O0 -ggdb \
- *          -Wno-deprecated -L../../lib -lsdbcpp -lm -ldl -D_GLIBCXX_USE_CXX11_ABI=0
- *       if GCC version < 5.1
- *          g++ index.cpp common.cpp -o index -I../../include -O0 -ggdb \
- *          -Wno-deprecated -L../../lib -lsdbcpp -lm -ldl
- *    Win:
- *       cl /Foindex.obj /c index.cpp /I..\..\include /wd4047 /Od /MDd /RTC1 \ 
- *       /Z7 /TP
- *       cl /Focommon.obj /c common.cpp /I..\..\include /wd4047 /Od /MDd /RTC1 \ 
- *       /Z7 /TP
- *       link /OUT:index.exe /LIBPATH:..\..\lib\cpp\debug\dll sdbcppd.lib index.obj common.obj \
- *       /build
- *       copy ..\..\lib\cpp\debug\dll\sdbcpp.dll .
- *    Static Linking:
- *    Linux: 
- *       if GCC version >= 5.1
-  *          g++ index.cpp common.cpp -o index.static -I../../include -O0 \
- *          -ggdb -Wno-deprecated ../../lib/libstaticsdbcpp.a -lm -ldl -lpthread -D_GLIBCXX_USE_CXX11_ABI=0
- *       if GCC version < 5.1
- *          g++ index.cpp common.cpp -o index.static -I../../include -O0 \
- *          -ggdb -Wno-deprecated ../../lib/libstaticsdbcpp.a -lm -ldl -lpthread
- * Run:
- *    Linux: LD_LIBRARY_PATH=<path for libsdbcpp.so> ./index <hostname> \
- *           <servicename> <username> <password>
- *    Win: index.exe <hostname> <servicename> <username> <password>
- *
- ******************************************************************************/
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 #include <iostream>
 #include "common.hpp"
 

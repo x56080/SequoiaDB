@@ -37,7 +37,7 @@
 
 #include "core.hpp"
 #include "oss.hpp"
-#include "clsReplDef.hpp"
+#include "clsDef.hpp"
 #include "ossMem.hpp"
 #include "pd.hpp"
 #include "utilReplSizePlan.hpp"

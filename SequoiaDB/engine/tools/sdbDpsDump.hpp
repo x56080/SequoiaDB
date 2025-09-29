@@ -364,11 +364,7 @@ public:
    INT32    lastCount ;
    BOOLEAN  consolePrint ;
    UINT64   lsn ;
-<<<<<<< HEAD
    UINT64   _transID ;
-=======
-   DPS_TRANS_ID _transID ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    CHAR     name[ OSS_MAX_PATHSIZE + 1 ] ;
    CHAR     srcPath[ OSS_MAX_PATHSIZE + 1 ] ;
    CHAR     dstPath[ OSS_MAX_PATHSIZE + 1 ] ;

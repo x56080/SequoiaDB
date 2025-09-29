@@ -49,11 +49,7 @@ namespace engine
    class _netRouteAgent : public SDBObject
    {
       public:
-<<<<<<< HEAD
          _netRouteAgent( _netMsgHandler *handler,
-=======
-         _netRouteAgent( INetMsgHandler *handler,
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                          const NET_HANDLE &beginID = NET_MIN_HANDLE ) ;
 
          _netRoute* getRoute() { return &_route ; }
@@ -126,12 +122,6 @@ namespace engine
                                  _netRouteNode &node )
          {
             return _route.route( id, node ) ;
-         }
-
-         OSS_INLINE BOOLEAN isListening(
-                                    UINT32 protocolMask = NET_FRAME_MASK_TCP )
-         {
-            return _frame.isListening( protocolMask ) ;
          }
 
       public:

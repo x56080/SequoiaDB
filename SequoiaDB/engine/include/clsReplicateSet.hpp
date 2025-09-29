@@ -40,7 +40,7 @@
 #include "netRouteAgent.hpp"
 #include "msgReplicator.hpp"
 #include "msgCatalog.hpp"
-#include "clsReplAgent.hpp"
+#include "clsVoteMachine.hpp"
 #include "msg.hpp"
 #include "pmdObjBase.hpp"
 #include "clsCatalogCaller.hpp"
@@ -73,15 +73,8 @@ namespace engine
    /*
       _clsReplicateSet define
    */
-<<<<<<< HEAD
    class _clsReplicateSet : public _pmdObjBase, public _dpsEventHandler,
                             public _ICluster, public _clsReplayEventHandler
-=======
-   class _clsReplicateSet : public _pmdObjBase,
-                            public _dpsEventHandler,
-                            public _ICluster,
-                            public ICLSReplAgent
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
       DECLARE_OBJ_MSG_MAP()
 
@@ -103,7 +96,6 @@ namespace engine
          */
          virtual BOOLEAN   primaryLsn( UINT64 &lsn, UINT32 *pVer = NULL ) ;
 
-<<<<<<< HEAD
       public:
          OSS_INLINE BOOLEAN primaryIsMe()
          {
@@ -120,14 +112,11 @@ namespace engine
             return _vote.hasElectionWeight( CLS_ELECTION_WEIGHT_ACTIVE_LOCATION ) ;
          }
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          OSS_INLINE clsBucket* getBucket ()
          {
             return &_replBucket ;
          }
 
-<<<<<<< HEAD
          OSS_INLINE void setLocalID( const MsgRouteID &id )
          {
             _info.local = id ;
@@ -192,8 +181,6 @@ namespace engine
             return _info.grpMode.mode ;
          }
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          OSS_INLINE void getDetailInfo( UINT32 &nodeCnt, UINT32 &aliveCnt,
                                         UINT32 &falutCnt, UINT32 &ssCnt,
                                         INT32 &indoubtErr,
@@ -322,7 +309,6 @@ namespace engine
                locationInfo->affinitiveLocations = affinitiveLocations ;
             }
 
-<<<<<<< HEAD
             if ( !_remoteLocationConsistency && isActiveLocation() )
             {
                if ( CLS_GROUP_MODE_CRITICAL == _info.grpMode.mode )
@@ -363,8 +349,6 @@ namespace engine
             return bAlive ;
          }
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          OSS_INLINE _clsSyncManager *syncMgr()
          {
             return &_sync ;
@@ -394,11 +378,8 @@ namespace engine
                w = CLS_REPLSET_MAX_NODE_SIZE ;
             }
 
-<<<<<<< HEAD
             session.waitPlan = eduCB->getOperator()->getWaitplan() ;
             session.waitPlan.offset = offset ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             return _sync.sync( session, w, timeout,
                                FT_LEVEL_WHOLE == _pFTMgr->getFTLevel() ?
                                                              TRUE : FALSE ) ;
@@ -592,7 +573,6 @@ namespace engine
 
          INT32 callCatalog( MsgHeader *header, UINT32 times = 1 ) ;
 
-<<<<<<< HEAD
          const _clsCataCallerMeta* getCataCallerMeta( UINT32 key ) ;
 
          BOOLEAN getPrimaryInfo( _clsSharingStatus &primaryInfo ) ;
@@ -609,15 +589,12 @@ namespace engine
          MsgRouteID     getLocationPrimary () ;
          BOOLEAN        isSendNormal( UINT64 nodeID ) ;
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          ossEvent*      getFaultEvent() ;
          ossEvent*      getSyncEmptyEvent() ;
 
          INT64 netIn() ;
          INT64 netOut() ;
 
-<<<<<<< HEAD
          INT32 reelect( CLS_REELECTION_LEVEL lvl,
                         INT32 seconds,
                         pmdEDUCB *cb,
@@ -637,16 +614,15 @@ namespace engine
                        pmdEDUCB *cb ) ;
 
          INT32 primaryCheck( pmdEDUCB *cb ) ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          INT32 replSizeCheck( INT16 w, INT16 &finalW, _pmdEDUCB *cb,
                               BOOLEAN isAfterData = FALSE ) ;
+
+         INT32 aliveNode( const MsgRouteID &id ) ;
 
          UINT64   getLastConsultTick() const ;
          void     setLastConsultTick( UINT64 tick ) ;
 
       private:
-<<<<<<< HEAD
          INT32 _checkGroupInfo( const CLS_GROUP_VERSION &version,
                                 const map<UINT64, _netRouteNode> &nodes ) ;
 
@@ -675,74 +651,20 @@ namespace engine
          INT32 _handleSharingBeatRes( NET_HANDLE handle,
                                       const _MsgClsBeatRes *msg ) ;
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          INT32 _handleGroupRes( const MsgCatGroupRes *msg ) ;
+
+         void _sharingBeat() ;
+
+         INT32 _sendSharingBeat( _clsSharingStatus &status,
+                                 MsgClsBeat *message ) ;
+
+         void _checkBreak( const UINT32 &millisec ) ;
 
          UINT32 _getThresholdTime( UINT64 diffSize ) ;
 
-      public:
-         // vote agent implements
-         virtual BOOLEAN checkVoteLaunch() ;
-         virtual DPS_LSN getLocalExpectLSN() ;
-         virtual DPS_LSN getLocalCurrentLSN() ;
-         virtual void getLSNWindow( DPS_LSN &fileBeginLSN,
-                                    DPS_LSN &memBeginLSN,
-                                    DPS_LSN &endLSN,
-                                    DPS_LSN &expectLSN ) ;
-         virtual BOOLEAN isLocalOK() ;
-         virtual BOOLEAN isLocalSpare() ;
-         virtual UINT8 getVoteWeight() ;
-         virtual UINT32 getSharingBreakTime() ;
-         virtual BOOLEAN getDetectDisk() ;
-         virtual INT32 getSyncStrategy() ;
-         virtual INT32 onLocalNotFoundInGroup() ;
-         virtual void beforePrimaryActive() ;
-         virtual void onPrimaryActive( const MsgRouteID &newPrimaryRID,
-                                       const MsgRouteID &oldPrimaryRID ) ;
-         virtual void afterPrimaryActive( const MsgRouteID &newPrimaryRID,
-                                          const MsgRouteID &oldPrimaryRID ) ;
-         virtual void beforePrimaryDeactive() ;
-         virtual void onPrimaryDeactive( const MsgRouteID &newPrimaryRID,
-                                         const MsgRouteID &oldPrimaryRID ) ;
-         virtual void afterPrimaryDeactive( const MsgRouteID &newPrimaryRID,
-                                            const MsgRouteID &oldPrimaryRID ) ;
-         virtual void onLocalGroupExpired() ;
-         virtual void beforeFoundNewPrimary() ;
-         virtual void afterFoundNewPrimary( const MsgRouteID &newPrimaryRID ) ;
-         virtual void processBeatLSN( const MsgRouteID &remote,
-                                      const DPS_LSN &lsn ) ;
-
-      protected:
-         OSS_INLINE virtual UINT32 _getConfirmedStat() const
-         {
-            return _pFTMgr->getConfirmedStat() ;
-         }
-
-         OSS_INLINE virtual INT32 _getIndoubtErr() const
-         {
-            return _pFTMgr->getIndoubtErr() ;
-         }
-
-         OSS_INLINE virtual BOOLEAN _isStop()
-         {
-            return _pFTMgr->isStop() ;
-         }
-
-<<<<<<< HEAD
          INT32 _handleStepDown( BOOLEAN isLocation ) ;
-=======
-         OSS_INLINE virtual BOOLEAN _isCatchup()
-         {
-            return _pFTMgr->isCatchup() ;
-         }
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
-         OSS_INLINE virtual BOOLEAN _isFTWhole()
-         {
-            return ( ( FT_LEVEL_WHOLE == _pFTMgr->getFTLevel() ) ?
-                     TRUE : FALSE ) ;
-         }
+         INT32 _handleStepUp( UINT32 seconds ) ;
 
          INT32 _handleGroupModeUpdate( const clsGroupMode *pGrpMode ) ;
 
@@ -761,18 +683,15 @@ namespace engine
          INT32 _handleBallotRes( const MsgHeader *header ) ;
 
       private:
-<<<<<<< HEAD
          _netRouteAgent          *_agent ;
          _clsGroupInfo           _info ;
          _clsGroupInfo           _locationInfo ;
          _clsVoteMachine         _vote ;
          _clsVoteMachine         _locationVote ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          _dpsLogWrapper          *_logger ;
          _pmdFTMgr               *_pFTMgr ;
+         _clsSyncManager         _sync ;
          _clsCatalogCaller       _cata ;
-<<<<<<< HEAD
          _clsReelection          _reelection ;
          _clsReelection          _locationReelection ;
          clsBucket               _replBucket ;
@@ -781,11 +700,6 @@ namespace engine
          UINT32                  _beatTime ;
          BOOLEAN                 _active ;
          BOOLEAN                 _locationActive ;
-=======
-         clsBucket               _replBucket ;
-         _clsMgr                 *_clsCB ;
-         UINT64                  _timerID ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          UINT64                  _lastTimerTick ;
 
          UINT64                  _lastConsultTick ;
@@ -812,15 +726,12 @@ namespace engine
          UINT32                  _syncwaitTimeout ;
          UINT32                  _shutdownWaitTimeout ;
          UINT32                  _fusingTimeout ;
-<<<<<<< HEAD
 
          BOOLEAN                 _isAllNodeFatal ;
          ossEvent                _heartbeatEvent ;
 
          ossAtomic64             _lastLogMoveTick ;
          BOOLEAN                 _remoteLocationConsistency ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    } ;
 
    typedef class _clsReplicateSet clsReplicateSet ;

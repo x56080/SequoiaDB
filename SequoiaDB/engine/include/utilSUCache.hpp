@@ -59,6 +59,10 @@ namespace engine
    #define UTIL_SU_CACHE_UNIT_STATUS_EMPTY   ( 0 )
    #define UTIL_SU_CACHE_UNIT_STATUS_CACHED  ( 1 )
 
+   #define UTIL_SU_CACHE_UNIT_CLSTAT ( 1 )
+   #define UTIL_SU_CACHE_UNIT_IXSTAT ( 2 )
+   #define UTIL_SU_CACHE_UNIT_CLPLAN ( 3 )
+
    class _utilSUCacheUnit ;
    typedef class _utilSUCacheUnit utilSUCacheUnit ;
 

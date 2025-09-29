@@ -33,7 +33,7 @@
 
 *******************************************************************************/
 #include "clsVoteMachine.hpp"
-#include "clsReplAgent.hpp"
+#include "netRouteAgent.hpp"
 #include "clsVSSilence.hpp"
 #include "clsVSSecondary.hpp"
 #include "clsVSVote.hpp"
@@ -48,7 +48,8 @@ namespace engine
 {
    #define CLS_VOTE_REGISGER_STATUS( status, rc ) \
            do {\
-              _clsVoteStatus *s = SDB_OSS_NEW status( _replAgent ) ;\
+              _clsVoteStatus *s = SDB_OSS_NEW status( _groupInfo,\
+                                                      _agent ) ;\
               if ( NULL == s ) \
               {\
                  clear() ;\
@@ -102,7 +103,6 @@ namespace engine
               }\
            } while ( 0 )
 
-<<<<<<< HEAD
    _clsVoteMachine::_clsVoteMachine( _clsGroupInfo *info,
                                      _netRouteAgent *agent )
    :_agent( agent ),
@@ -114,17 +114,6 @@ namespace engine
     _electionWeight( CLS_ELECTION_WEIGHT_DFT ),
     _shadowWeight( CLS_ELECTION_WEIGHT_USR_MIN ),
     _grpModeShadowTime( 0 )
-=======
-   _clsVoteMachine::_clsVoteMachine( ICLSReplAgent *replAgent )
-   : _replAgent( replAgent ),
-     _agent( replAgent->getNetAgent() ),
-     _current( NULL ),
-     _groupInfo( replAgent->getGroupInfo() ),
-     _shadowWeight( CLS_ELECTION_WEIGHT_USR_MIN ),
-     _shadowTimeout( 0 ),
-     _shadowForReelect( TRUE ),
-     _forceMillis( 0 )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
    }
 
@@ -216,7 +205,6 @@ namespace engine
             _shadowWeight = CLS_ELECTION_WEIGHT_USR_MIN ;
             _shadowForReelect = TRUE ;
          }
-<<<<<<< HEAD
       }
 
       // Handle group mode shadow time
@@ -244,8 +232,6 @@ namespace engine
             }
             _grpModeShadowTime = 0 ;
          }
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       }
 
       if ( !_current )

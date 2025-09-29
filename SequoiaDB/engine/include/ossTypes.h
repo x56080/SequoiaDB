@@ -46,7 +46,6 @@
    #define SDB_INVALID_FH (-1)
 #endif
 
-
 #define SDB_UNUSED(x)      (x)=(x)
 
 // platform dependent data types
@@ -108,14 +107,7 @@
 #define OSS_SINT32_MIN_LL (-2147483648LL)
 #define OSS_SINT32_MAX_D  (2147483647.0)
 #define OSS_SINT32_MIN_D  (-2147483648.0)
-<<<<<<< HEAD
 #define OSS_UINT32_MAX    (0xFFFFFFFF)
-=======
-#define OSS_SINT16_MIN    (-32768)
-#define OSS_SINT16_MAX    (32767)
-#define OSS_UINT32_MAX    (0xFFFFFFFF)
-#define OSS_UINT16_MAX    (65535)
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 
 #if defined (_LINUX) || defined ( _AIX )
@@ -197,6 +189,7 @@ typedef UINT64 EDUID ;
 typedef UINT32 OBJIDX ;
 #define OSS_INVALID_OBJIDX    ( ( OBJIDX ) -1 )
 
+
 // return the minimum of two values
 #define OSS_MIN(a, b) (((a) < (b)) ? (a) : (b))
 //
@@ -204,11 +197,7 @@ typedef UINT32 OBJIDX ;
 #define OSS_MAX(a, b) (((a) > (b)) ? (a) : (b))
 
 #define OSS_ROUND(v) (((v) < (0) ) ? ( static_cast<FLOAT64>(ceil((v)-0.5f)) ) :\
-<<<<<<< HEAD
                      ( static_cast<FLOAT64>(floor((v)+0.5f))))
-=======
-                     ( static_cast<FLOAT64>(floor((v)-0.5f))))
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 #define ossRoundDownToMultipleX(x,y) (((x)/(y))*(y))
 #define ossRoundUpToMultipleX(x,y) (((x)+((y)-1))-(((x)+((y)-1))%(y)))
@@ -217,7 +206,6 @@ typedef UINT32 OBJIDX ;
 #define ossIsAlignedNative(x) (0==(((ossValuePtr)(x))&(sizeof(void*)-1)))
 #define ossIsAligned4(x) (0==(((ossValuePtr)(x))&(4-1)))
 #define ossIsAligned8(x) (0==(((ossValuePtr)(x))&(8-1)))
-#define ossIsAligned64(x) (0==(((ossValuePtr)(x))&(63)))
 
 #define ossEndianConvert1(in,out)        \
 do {                                     \

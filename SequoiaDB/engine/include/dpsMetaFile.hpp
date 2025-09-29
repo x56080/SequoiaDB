@@ -83,10 +83,6 @@ namespace engine
 
    #define DPS_INVALID_FILE_SN               ( (UINT32)~0 )
 
-   #define DPS_METAFILE_PADDING_SIZE         ( DPS_METAFILE_CONTENT_LEN - \
-                                               48 - \
-                                               sizeof( dpsLogSummary ) )
-
    /*
       _dpsMetaFileContent define
    */
@@ -101,12 +97,12 @@ namespace engine
       DPS_LSN_VER    _memBeginLsnVer ;
       UINT32         _reserved ;
       DPS_LSN_OFFSET _memBeginLsnOffset ;
-      dpsLogSummary  _summary ;
-      CHAR           _padding [ DPS_METAFILE_PADDING_SIZE ] ;
+      // 48 == sizeof(_dpsMetaFileContent)
+      CHAR           _padding [ DPS_METAFILE_CONTENT_LEN - 48 ] ;
 
       _dpsMetaFileContent ( DPS_LSN_OFFSET offset = DPS_INVALID_LSN_OFFSET )
       {
-         resetStatus( TRUE ) ;
+         resetStatus() ;
 
          _oldestLSNOffset = offset ;
          _reserved = 0 ;
@@ -116,7 +112,7 @@ namespace engine
                      "Dps meta file content size must be 4K" ) ;
       }
 
-      void  resetStatus( BOOLEAN resetSummary = FALSE )
+      void  resetStatus()
       {
          _beginFile        = DPS_INVALID_FILE_SN ;
          _workFile         = DPS_INVALID_FILE_SN ;
@@ -125,16 +121,12 @@ namespace engine
          _curLsnOffset     = DPS_INVALID_LSN_OFFSET ;
          _memBeginLsnVer   = DPS_INVALID_LSN_VERSION ;
          _memBeginLsnOffset= DPS_INVALID_LSN_OFFSET ;
-         if ( resetSummary )
-         {
-            _summary.reset() ;
-         }
       }
 
       void  reset()
       {
          _oldestLSNOffset  = DPS_INVALID_LSN_OFFSET ;
-         resetStatus( TRUE ) ;
+         resetStatus() ;
       }
 
       DPS_LSN_OFFSET getOldestLSNOffset() const
@@ -177,31 +169,15 @@ namespace engine
                   UINT32 workFile,
                   const DPS_LSN &curLSN,
                   UINT32 curLsnLength,
-                  const DPS_LSN &memBeginLSN,
-                  const dpsLogSummary &summary ) ;
+                  const DPS_LSN &memBeginLSN ) ;
 
-<<<<<<< HEAD
       INT32 invalidateStatus() ;
       INT32 writeOldestLSNOffset( DPS_LSN_OFFSET offset,
                                   BOOLEAN needSync = TRUE ) ;
-=======
-      INT32 invalidateStatus( BOOLEAN resetSummary ) ;
-      INT32 writeOldestLSNOffset( DPS_LSN_OFFSET offset ) ;
-      INT32 writeTransMeta( DPS_LSN_OFFSET offset,
-                            const dpsLogSummary &summary,
-                            BOOLEAN needSync = TRUE ) ;
-      INT32 writeSummary( const dpsLogSummary &summary,
-                          BOOLEAN needSync = TRUE ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       DPS_LSN_OFFSET getCacheLSN() const { return _content._oldestLSNOffset ; }
       BOOLEAN        isCacheLSNValid() const ;
       BOOLEAN        hasInvalidateStatus() const { return _invalidateStatus ; }
-
-      const dpsLogSummary &getCacheSummary() const
-      {
-         return _content._summary ;
-      }
 
       dpsMetaFileContent  getContent() const { return _content ; }
 

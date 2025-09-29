@@ -101,8 +101,6 @@ namespace engine
 
    _coordOperator::~_coordOperator()
    {
-      // Use finalize to avoid throwing exception in destructor.
-      _finalize() ;
    }
 
    INT64 _coordOperator::getTimeout() const
@@ -251,7 +249,6 @@ namespace engine
             {
                rc = rc ? rc : cb->getTransRC() ;
             }
-            pdSetLastError( rc ) ;
             PD_LOG( ( rc ? PDERROR : PDINFO ),
                     "Do trans command[%d] on data node[%s] "
                     "failed, rc: %d", inMsg.opCode(),
@@ -279,7 +276,6 @@ namespace engine
                      rc = rcTmp ;
                   }
                }
-               pdSetLastError( rc ) ;
                PD_LOG( ( rc ? PDERROR : PDINFO ),
                        "Failed to execute command[%u] on "
                        "node[%s], rc: %d", inMsg.opCode(),
@@ -575,18 +571,5 @@ namespace engine
       // do nothing
    }
 
-   void _coordOperator::_finalize()
-   {
-      INT32 rc = SDB_OK ;
-      try
-      {
-         _groupSession.finalize() ;
-      }
-      catch ( std::exception &e )
-      {
-         rc = ossException2RC( &e ) ;
-         PD_LOG( PDERROR, "Unexpected exception occurred: %s, rc: %d", e.what(), rc ) ;
-      }
-   }
 }
 

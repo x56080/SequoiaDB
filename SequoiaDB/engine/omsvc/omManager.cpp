@@ -2133,32 +2133,11 @@ namespace engine
       INT32 rc         = SDB_OK ;
       INT32 numToRead  = 0 ;
       BOOLEAN rtnDel   = TRUE ;
-      const CHAR *pHint = NULL ;
-      BSONObj hint ;
 
-      rc = msgExtractGetMore( (CHAR*)pMsg, &numToRead, &contextID, &pHint ) ;
+      rc = msgExtractGetMore ( (CHAR*)pMsg, &numToRead, &contextID ) ;
       PD_RC_CHECK( rc, PDERROR, "Extract get more msg failed(rc=%d)!", rc ) ;
 
-<<<<<<< HEAD
       rc = rtnGetMore( contextID, numToRead, buf, _pEDUCB, _pRtnCB ) ;
-=======
-      if ( pHint )
-      {
-         try
-         {
-            hint = BSONObj( pHint ) ;
-         }
-         catch ( std::exception &e )
-         {
-            rc = ossException2RC( &e ) ;
-            PD_LOG( PDERROR, "An exception occurred when building hint "
-                    "bsonobj: %s, rc: %d", e.what(), rc ) ;
-            goto error ;
-         }
-      }
-
-      rc = rtnGetMore( contextID, numToRead, buf, _pEDUCB, _pRtnCB, hint ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       if ( rc )
       {
          rtnDel = FALSE ;
@@ -2295,7 +2274,7 @@ namespace engine
 
       ++_inPacketLevel ;
 
-      pos += sizeof( MsgPacketReq ) ;
+      pos += sizeof( MsgHeader ) ;
       while( pos < header->messageLength )
       {
          pTmpMsg = ( MsgHeader* )( ( CHAR*)header + pos ) ;

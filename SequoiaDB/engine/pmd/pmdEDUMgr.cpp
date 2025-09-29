@@ -146,22 +146,6 @@ namespace engine
       }
    }
 
-   UINT64 _pmdEDUMgr::getMinRunningLSN()
-   {
-      UINT64 lsn = OSS_UINT64_MAX;
-      ossScopedLock lock( &_latch, SHARED ) ;
-      MAP_EDUCB::const_iterator itr = _mapRuns.begin();
-      for (; itr != _mapRuns.end(); ++itr)
-      {
-         UINT64 l = itr->second->getBeginLsn();
-         if (l < lsn)
-         {
-            lsn = l;
-         }
-      }
-      return lsn;
-   }
-
    INT32 _pmdEDUMgr::init( IResource *pResource )
    {
       INT32 rc = SDB_OK ;
@@ -379,7 +363,7 @@ namespace engine
             goto error ;
          }
 
-         if ( cb->getTransID().isInvalid() )
+         if ( DPS_INVALID_TRANS_ID == cb->getTransID() )
          {
             rc = SDB_DPS_TRANS_NO_TRANS ;
             goto error ;
@@ -1049,18 +1033,9 @@ namespace engine
                            cb->getCurProcessName(),
                            DMS_COLLECTION_FULL_NAME_SZ ) ;
                if ( 0 == processName[ 0 ] )
-<<<<<<< HEAD
-=======
                {
                   continue ;
                }
-               else if ( 0 != idThreshold && opID != cb->getWritingID() )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
-               {
-                  // if the writingID has been changed, just discard it
-                  continue ;
-               }
-<<<<<<< HEAD
                else if ( 0 != idThreshold && opID != cb->getWritingID() )
                {
                   // if the writingID has been changed, just discard it
@@ -1080,22 +1055,6 @@ namespace engine
                   rc = ossException2RC( &e ) ;
                   PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
                }
-=======
-
-               try
-               {
-                  pmdEDUProcessInfo info ;
-                  info._opID = opID ;
-                  info._eduID = cb->getID() ;
-                  info._processName.assign( processName ) ;
-                  writingEDUList.push_back( info ) ;
-               }
-               catch ( exception &e )
-               {
-                  rc = ossException2RC( &e ) ;
-                  PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
-               }
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             }
          }
       }
@@ -2575,15 +2534,12 @@ namespace engine
             *(cb->getMonConfigCB()) = *(krcb->getMonCB()) ;
             cb->initMonAppCB() ;
             cb->initConf() ;
-<<<<<<< HEAD
 
             if ( cb->getOperator()->getGlobalID().isInvalid() &&
                  0 != pmdGetNodeID().columns.nodeID )
             {
                cb->initOperator() ;
             }
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
             rc = pItem->_pFunc( cb, event._Data ) ;
             // copy name

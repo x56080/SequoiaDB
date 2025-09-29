@@ -57,7 +57,6 @@ This function is used to create a collection in the specified collection space. 
 
         Format: `ReplSize: 0`
 
-<<<<<<< HEAD
     - ConsistencyStrategy ( *number* ): [Synchronization consistency][consistency_strategy] strategy.
 
         This parameter is used to set the preferred node for data synchronization, the default value is 3.
@@ -71,9 +70,6 @@ This function is used to create a collection in the specified collection space. 
         Format：`ConsistencyStrategy: 3`
 
     - Compressed ( *boolean* ): Whether to enable the data compression function, and the default value is "true", which means that the data compression function is enable.
-=======
-    - Compressed ( *boolean* ): Whether to enable the data compression function, and the default value is "true", enable the data compression function.
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
         Format: `Compressed: false`
 
@@ -243,9 +239,5 @@ v1.0 and above
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [faq]:manual/FAQ/faq_sdb.md
-<<<<<<< HEAD
 [error_code]:manual/Manual/Sequoiadb_error_code.md
 [consistency_strategy]:manual/Distributed_Engine/Architecture/Location/consistency_strategy.md
-=======
-[error_code]:manual/Manual/Sequoiadb_error_code.md
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2

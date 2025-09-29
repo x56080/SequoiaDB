@@ -289,16 +289,6 @@ namespace engine
                          ele.toString().c_str() ) ;
             goto error ;
          }
-<<<<<<< HEAD
-=======
-
-         if ( ossStrcmp ( ele.valuestr(), ele.fieldName() ) == 0 )
-         {
-            PD_LOG_MSG ( PDERROR, "Can not rename a field to its original name"
-                         ", %s", ele.toString().c_str() ) ;
-            goto error ;
-         }
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       }
       else if ( ( PUSH_ALL == type || PULL_ALL == type ||
                   PULL_ALL_BY == type ) &&

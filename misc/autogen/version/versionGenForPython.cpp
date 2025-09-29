@@ -185,11 +185,7 @@ void versionGenForPython::_buildVersion( char *version, char *release,
    otm = localtime ( &tt ) ;
 
    utilSnprintf( time, VERSION_BUFFER_SIZE - 1,
-<<<<<<< HEAD
                  "%s\"" SDB_ENGINE_BUILD_FORMAT "\"",
-=======
-                 "%s\""SDB_ENGINE_BUILD_FORMAT"\"",
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                  REPLACE_BUILD_TIME,
                  otm->tm_year + 1900,
                  otm->tm_mon + 1,

@@ -232,11 +232,7 @@ elif guess_os == "linux":
     env.Append(CPPDEFINES=["HAVE_CONFIG_H", "PIC"])
     env['ENV']['HOME'] = os.environ['HOME']
     env['ENV']['TERM'] = os.environ['TERM']
-<<<<<<< HEAD
     env.Append(CPPFLAGS="-ggdb -pthread")
-=======
-    env.Append(CPPFLAGS="-ggdb -pthread -std=c++11")
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     env.Append(LIBS=['ssl'])
     env.Append(LIBS=['crypto'])
     env.Append(LINKFLAGS=" -pthread")

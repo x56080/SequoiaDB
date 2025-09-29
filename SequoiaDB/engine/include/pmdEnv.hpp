@@ -117,14 +117,11 @@ namespace engine
       /// system page size
       INT64                         _sysPageSize ;
 
-<<<<<<< HEAD
       /// Location info
       BOOLEAN                       _isLocationPrimary ;
       UINT32                        _locationID ;
       CHAR                          _locationName[ PMD_LOCATION_STR_LEN + 1 ] ;
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       _pmdSysInfo()
       :_isPrimary( 0 ), _globalID( 1 )
       {
@@ -138,11 +135,8 @@ namespace engine
          _tick          = 0 ;
          _validationTick = 0 ;
          _sysPageSize   = ossGetPageSize() ;
-<<<<<<< HEAD
          _isLocationPrimary = FALSE ;
          _locationID    = MSG_INVALID_LOCATIONID ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
          ossMemset( _doing, 0, sizeof( _doing ) ) ;
          ossMemset( _locationName, 0, sizeof( _locationName ) ) ;
@@ -205,8 +199,6 @@ namespace engine
    void           pmdCleanDoing() ;
    void           pmdGetDoing( CHAR *buff, UINT32 size ) ;
 
-   void pmdRenameProcess( INT32 argc, CHAR **argv, const CHAR *serviceName ) ;
-
    /*
       perf stat
    */
@@ -227,8 +219,6 @@ namespace engine
 #if defined (_LINUX)
    void     pmdSleepInstance( OSS_HANDPARMS ) ;
 #endif // _LINUX
-
-   INT64    pmdGetSysPageSize() ;
 
    INT64    pmdGetSysPageSize() ;
 

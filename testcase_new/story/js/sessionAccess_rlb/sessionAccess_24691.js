@@ -7,7 +7,6 @@
  ******************************************************************************/
 testConf.skipStandAlone = true;
 testConf.skipOneDuplicatePerGroup = true;
-<<<<<<< HEAD
 
 main( test )
 function test ()
@@ -20,16 +19,6 @@ function test ()
    var dbcl = commCreateCL( db, csName, clName );
    var groupName = commGetCLGroups( db, csName + "." + clName );
    var srcGroup = groupName[0];
-=======
-testConf.clName = COMMCLNAME + "_24691";
-testConf.useSrcGroup = true;
-
-main( test )
-function test ( args )
-{
-   var dbcl = args.testCL;
-   var srcGroup = args.srcGroupName;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    var docs = [];
    for( var i = 0; i < 1000; i++ )
@@ -41,10 +30,7 @@ function test ( args )
    // 获取CL所在的节点
    var nodes = db.getRG( srcGroup ).getSlave();
    var nodeName = nodes.getHostName() + ":" + nodes.getServiceName();
-<<<<<<< HEAD
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    try
    {
       // 节点配置instanceid
@@ -61,41 +47,25 @@ function test ( args )
       db.setSessionAttr( { "PreferedInstance": ["S", instanceid], "PreferedStrict": true } );
 
       // 查询访问计划并校验节点
-<<<<<<< HEAD
       var dbcl = db.getCS( csName ).getCL( clName );
-=======
-      var dbcl = db.getCS( COMMCSNAME ).getCL( testConf.clName );
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       var explain = dbcl.find().explain();
       var actNodeName = explain.current().toObj()["NodeName"];
       assert.equal( actNodeName, nodeName );
 
       var dropClDB = new Sdb( nodes.getHostName(), nodes.getServiceName() );
-<<<<<<< HEAD
       var cs = dropClDB.getCS( csName );
       cs.dropCL( clName );
       dropClDB.close();
-=======
-      var cs = dropClDB.getCS( COMMCSNAME );
-      cs.dropCL( testConf.clName );
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       assert.tryThrow( -338, function()
       {
          dbcl.find().toArray();
       } );
-<<<<<<< HEAD
 
    }
    finally
    {
       commDropCS( db, csName, true, "", options );
-=======
-   }
-   finally
-   {
-      dropClDB.close();
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       deleteConf( db, { instanceid: 1 }, { NodeName: nodeName }, SDB_RTN_CONF_NOT_TAKE_EFFECT );
       db.getRG( srcGroup ).getNode( nodeName ).stop();
       db.getRG( srcGroup ).getNode( nodeName ).start();

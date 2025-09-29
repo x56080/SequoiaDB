@@ -133,10 +133,7 @@ namespace engine
       _doRollback       = FALSE ;
 
       _curTransLSN      = DPS_INVALID_LSN_OFFSET ;
-<<<<<<< HEAD
       _curTransID       = DPS_INVALID_TRANS_ID ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 #if defined (_LINUX)
       _threadID         = 0 ;
@@ -152,10 +149,6 @@ namespace engine
 
       _pRemoteOperator  = NULL ;
 #endif // SDB_ENGINE
-
-#if defined ( SDB_ENGINE ) || defined ( SDB_STP )
-      _orgReplSize      = 1 ;
-#endif
 
       _pErrorBuff = (CHAR *)SDB_OSS_MALLOC( EDU_ERROR_BUFF_SIZE + 1 ) ;
       if ( _pErrorBuff )
@@ -175,10 +168,6 @@ namespace engine
 
       _isAffectGIndex = FALSE ;
 
-<<<<<<< HEAD
-=======
-      _curTransID.reset() ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       _doReplay = FALSE ;
    }
 
@@ -825,38 +814,23 @@ namespace engine
       _doRollback = isRollback ;
    }
 
-   void _pmdEDUCB::resetTransID()
-   {
-      DPS_TRANS_ID transID ;
-      setTransID( transID ) ;
-#if defined ( SDB_ENGINE )
-      _transExecutor.resetTransTime() ;
-#endif
-   }
-
-   void _pmdEDUCB::setTransID( const DPS_TRANS_ID &transID )
+   void _pmdEDUCB::setTransID( UINT64 transID )
    {
 #if defined ( SDB_ENGINE )
-      // FIXME: to be removed
-#ifdef _DEBUG
-      PD_LOG( PDDEBUG, "setting edu transID from %s to %s",
-              dpsTransIDToString( _curTransID ).c_str(),
-              dpsTransIDToString( transID ).c_str() ) ;
-#endif
-
-      if ( _curTransID.isInvalid() && transID.isValid() )
+      if ( DPS_INVALID_TRANS_ID == _curTransID &&
+           DPS_INVALID_TRANS_ID != transID )
       {
          /// begin trans
          _transStatus = DPS_TRANS_DOING ;
          _transRC = SDB_OK ;
       }
-      else if ( transID.isInvalid() )
+      else if ( DPS_INVALID_TRANS_ID == transID )
       {
          /// end trans
          _transStatus = DPS_TRANS_UNKNOWN ;
       }
 #endif //SDB_ENGINE
-      if ( transID.isInvalid() )
+      if ( DPS_INVALID_TRANS_ID == transID )
       {
          _curAutoTransCtxID = -1 ;
       }
@@ -976,43 +950,21 @@ namespace engine
 
    BOOLEAN _pmdEDUCB::isTransRBPending() const
    {
-      return _curTransID.isRBPending() ;
+      return DPS_TRANS_IS_RBPENDING( _curTransID ) ? TRUE : FALSE ;
    }
 
    void _pmdEDUCB::setTransRBPending()
    {
-      SDB_ASSERT( _curTransID.isRollback(),
+      SDB_ASSERT( DPS_TRANS_IS_ROLLBACK( _curTransID ),
                   "Current transaction is not rollback" ) ;
-      _curTransID.setRBPending() ;
+      DPS_TRANS_SET_RBPENDING( _curTransID ) ;
    }
 
    void _pmdEDUCB::clearTransRBPending()
    {
-      SDB_ASSERT( _curTransID.isRollback(),
+      SDB_ASSERT( DPS_TRANS_IS_ROLLBACK( _curTransID ),
                   "Current transaction is not rollback" ) ;
-      _curTransID.clearRBPending() ;
-   }
-
-   void _pmdEDUCB::setGlobTrans( const DPS_TRANS_ID &transID,
-                                 const stpLogicalTimeUS &beginTime )
-   {
-      setTransID( transID ) ;
-#if defined ( SDB_ENGINE )
-      setTransBeginTime( beginTime ) ;
-#endif
-   }
-
-   void _pmdEDUCB::_contextCopy( _pmdEDUCB::SET_CONTEXT &contextList )
-   {
-      try
-      {
-         contextList = _contextList ;
-      }
-      catch ( exception &e )
-      {
-         PD_LOG( PDWARNING, "Failed to copy context list, "
-                 "occur exception %s", e.what() ) ;
-      }
+      DPS_TRANS_CLEAR_RBPENDING( _curTransID ) ;
    }
 
    void _pmdEDUCB::_contextCopy( _pmdEDUCB::SET_CONTEXT &contextList )
@@ -1076,16 +1028,9 @@ namespace engine
          PD_LOG( PDWARNING, "transaction mb statistics is not empty" ) ;
          _transExecutor.clearMBStats() ;
       }
-
-      // clear records for transaction arbitration
-      _transExecutor.clearArbit() ;
-
-      // reset transaction times
-      _transExecutor.resetTransTime() ;
 #endif //SDB_ENGINE
    }
 
-<<<<<<< HEAD
    void _pmdEDUCB::initOperator()
    {
       MsgGlobalID globalID ;
@@ -1096,8 +1041,6 @@ namespace engine
       _operator.updateGlobalID( globalID ) ;
    }
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    void _pmdEDUCB::updateConf()
    {
 #if defined ( SDB_ENGINE )
@@ -1108,7 +1051,6 @@ namespace engine
       {
          BOOLEAN needUpdateChangeID = TRUE ;
          if ( optCB->transactionOn() )
-<<<<<<< HEAD
          {
             // update transaction config
             if ( !_transExecutor.updateTransConf(
@@ -1134,33 +1076,6 @@ namespace engine
                                       optCB->logWriteMod(),
                                       isTransaction() ) )
          {
-=======
-         {
-            // update transaction config
-            if ( !_transExecutor.updateTransConf(
-                                          optCB->transIsolation(),
-                                          optCB->transTimeout() * OSS_ONE_SEC,
-                                          optCB->transLockwait(),
-                                          optCB->transAutoCommit(),
-                                          optCB->transAutoRollback(),
-                                          optCB->transUseRBS(),
-                                          optCB->transRCCount(),
-                                          optCB->transAllowLockEscalation(),
-                                          optCB->transMaxLockNum(),
-                                          optCB->transMaxLogSpaceRatio(),
-                                          optCB->getTotalLogSpace() ) )
-            {
-               // failed to update, wait for next round
-               needUpdateChangeID = FALSE ;
-            }
-         }
-
-         // update DPS log config
-         if ( !_logConfig.updateConf( optCB->logTimeOn(),
-                                      optCB->logWriteMod(),
-                                      isTransaction() ) )
-         {
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             // failed to update, wait for next round
             needUpdateChangeID = FALSE ;
          }
@@ -1381,8 +1296,7 @@ namespace engine
 
    void _pmdEDUCB::clearTransInfo()
    {
-      _curTransID.reset() ;
-
+      _curTransID = DPS_INVALID_TRANS_ID ;
       _relatedTransLSN = DPS_INVALID_LSN_OFFSET ;
       _curTransLSN = DPS_INVALID_LSN_OFFSET ;
       _transRC = SDB_OK ;
@@ -1392,14 +1306,11 @@ namespace engine
       {
          pTransCB->transLockReleaseAll( this, NULL ) ;
       }
-
-      _transExecutor.clearArbit() ;
-      _transExecutor.resetTransTime() ;
    }
 
    BOOLEAN _pmdEDUCB::isTransaction() const
    {
-      return _curTransID.isValid() ;
+      return ( DPS_INVALID_TRANS_ID != _curTransID ) ? TRUE : FALSE ;
    }
 
    BOOLEAN _pmdEDUCB::isTransRU () const
@@ -1408,58 +1319,27 @@ namespace engine
              _transExecutor.getTransIsolation() == TRANS_ISOLATION_RU ;
    }
 
-   INT32 _pmdEDUCB::getTransIsolation() const
-   {
-      return _transExecutor.getTransIsolation() ;
-   }
-
    BOOLEAN _pmdEDUCB::isTransRC () const
    {
-      return isTransaction() && TRANS_ISOLATION_RC == getTransIsolation() ;
+      return isTransaction() &&
+             _transExecutor.getTransIsolation() == TRANS_ISOLATION_RC ;
    }
 
    BOOLEAN _pmdEDUCB::isTransRS () const
    {
-      return isTransaction() && TRANS_ISOLATION_RS == getTransIsolation() ;
-   }
-
-   BOOLEAN _pmdEDUCB::isTransRR () const
-   {
-      return isTransaction() && TRANS_ISOLATION_RR == getTransIsolation() ;
+      return isTransaction() &&
+             _transExecutor.getTransIsolation() == TRANS_ISOLATION_RS ;
    }
 
    BOOLEAN _pmdEDUCB::isAutoCommitTrans() const
    {
-      return _curTransID.isAutoCommit() ;
-   }
-
-   BOOLEAN _pmdEDUCB::isGlobTransOn() const
-   {
-      return sdbGetTransCB()->isGlobTransOn() ;
-   }
-
-   UINT32 _pmdEDUCB::getTransTimeout() const
-   {
-      return _transExecutor.getTransTimeout() ;
-   }
-
-   BOOLEAN _pmdEDUCB::isGlobTrans() const
-   {
-      return _curTransID.isGlobTrans() ;
-   }
-
-   UINT32 _pmdEDUCB::getTransTimeError() const
-   {
-      return _transExecutor.getTimeError() ;
+      return DPS_TRANS_IS_AUTOCOMMIT( _curTransID ) ? TRUE : FALSE ;
    }
 
    void _pmdEDUCB::dumpTransInfo( monTransInfo &transInfo )
    {
       transInfo._eduID        = _eduID ;
       transInfo._transID      = _curTransID ;
-      transInfo._transBeginTime = _transExecutor.getBeginTime() ;
-      transInfo._transPreCommitTime = _transExecutor.getPreCommitTime() ;
-      transInfo._transCommitTime = _transExecutor.getCommitTime() ;
       transInfo._curTransLsn  = _curTransLSN ;
       transInfo._lockEscalated =
             _transExecutor.isLockEscalated( LOCKMGR_TRANS_LOCK ) ;
@@ -1763,15 +1643,8 @@ namespace engine
          // request and send again. And when the reply is received, it also
          // needs to be converted.
          MsgOpReplyV1 *reply = (MsgOpReplyV1 *)pRecvBuf ;
-<<<<<<< HEAD
          CHAR *convertedMsg = NULL ;
          UINT32 finalSize = 0 ;
-=======
-         INT32 result = reply->flags ;
-         CHAR *convertedMsg = NULL ;
-         UINT32 finalSize = 0 ;
-         BOOLEAN newConvertor = FALSE ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
          if ( !msgConvertor )
          {
@@ -1784,7 +1657,6 @@ namespace engine
                        sizeof(msgConvertorImpl), rc ) ;
                goto error ;
             }
-<<<<<<< HEAD
 
             // Convert the request.
             rc = _pmdConvertMsg( msgConvertor, pMsg, convertedMsg, finalSize ) ;
@@ -1819,57 +1691,6 @@ namespace engine
             }
             ossMemcpy( pRecvBuf, convertedMsg, finalSize ) ;
          }
-=======
-            newConvertor = TRUE ;
-         }
-
-         // If the result is not unknown message, it failed for some other
-         // reason. No need to retry and just convert the reply.
-         if ( newConvertor && ( SDB_UNKNOWN_MESSAGE == result ||
-                                SDB_CLS_UNKNOW_MSG == result ) )
-         {
-            PD_LOG( PDDEBUG, "Node[%s] may be using old protocol version. Try "
-                    "to convert the request message[opCode: %d] and resend",
-                    routeID2String( pMsg->routeID ).c_str(), pMsg->opCode ) ;
-
-            rc = msgConvertor->push( (CHAR *)pMsg, pMsg->messageLength ) ;
-            PD_RC_CHECK( rc, PDERROR, "Push message[opCode: %d] into message "
-                         "convertor failed[%d]", pMsg->opCode, rc ) ;
-            rc = msgConvertor->output( convertedMsg, finalSize ) ;
-            PD_RC_CHECK( rc, PDERROR, "Get converted message[opCode: %d] "
-                         "from the message convertor failed[%d]",
-                         pMsg->opCode, rc ) ;
-            pMsg = (MsgHeader *)convertedMsg ;
-            reserveSize = sizeof(MsgOpReply) - sizeof(MsgOpReplyV1) ;
-
-            SDB_ASSERT( (UINT32)pMsg->messageLength == finalSize,
-                        "Message length is invalid") ;
-            goto reSend ;
-         }
-
-         msgConvertor->reset( FALSE ) ;
-         rc = msgConvertor->push( (CHAR *)reply, reply->header.messageLength ) ;
-         PD_RC_CHECK( rc, PDERROR, "Push reply message into message convertor "
-                      "failed[%d]", rc ) ;
-         rc = msgConvertor->output( convertedMsg, finalSize ) ;
-         PD_RC_CHECK( rc, PDERROR, "Get converted reply message from message "
-                      "convertor failed[%d]", rc ) ;
-
-         if ( finalSize > buffSize )
-         {
-            CHAR *newBuff = (CHAR *)SDB_THREAD_REALLOC( pRecvBuf, finalSize ) ;
-            if ( !newBuff )
-            {
-               rc = SDB_OOM ;
-               PD_LOG( PDERROR, "Allocate memory[size: %u] for converted "
-                       "message failed[%d]", finalSize, rc ) ;
-               goto error ;
-            }
-            pRecvBuf = newBuff ;
-            buffSize = finalSize ;
-         }
-         ossMemcpy( pRecvBuf, convertedMsg, finalSize ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       }
       else if ( msgLen < sizeof(MsgHeader) )
       {
@@ -1890,10 +1711,7 @@ namespace engine
       {
          SDB_OSS_DEL msgConvertor ;
       }
-<<<<<<< HEAD
       PD_TRACE_EXITRC( SDB_PMDSYNCSENDMSG, rc ) ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       return rc ;
    error:
       if ( pRecvBuf )

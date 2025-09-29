@@ -719,11 +719,7 @@ function replicaGroup ( db, name, id )
    this.name = name;
    this.id = id;
    this.nodeSet = [];
-<<<<<<< HEAD
    this.totalSleepDuration = 30000 ; 
-=======
-   this.totalSleepDuration = 30000;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 }
 
 replicaGroup.prototype.getSelf =
@@ -863,11 +859,7 @@ replicaGroup.prototype.checkResult =
             sleepDuration += sleepInteval;
             if ( sleepInteval > 1000 )
             {
-<<<<<<< HEAD
                sleepInteval /= 2 ;
-=======
-               sleepInteval /= 2;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             }
          }
          else
@@ -911,11 +903,7 @@ replicaGroup.prototype.checkLSN =
          }
          else if( prevLsn !== obj.CompleteLSN )
          {
-<<<<<<< HEAD
             if ( this.failedCound++ == 0 ) 
-=======
-            if ( this.failedCound++ == 0 )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             {
                println( prevSvc + "is LSN: " + prevLsn + obj.NodeName + " is LSN:" + obj.CompleteLSN );
             }

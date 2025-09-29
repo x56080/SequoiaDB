@@ -21,11 +21,7 @@ using namespace import ;
 int thread1Continue = 0 ;
 int thread2Continue = 0 ;
 
-<<<<<<< HEAD
 void wait_ctrl( int *control )  //用于控制两个线程中的删除操作在更新操作完成之后再发生
-=======
-void wait( int *control )  //用于控制两个线程中的删除操作在更新操作完成之后再发生
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 {
    clock_t start,end ;
    start = time( NULL ) ;
@@ -132,20 +128,12 @@ void func_thread ( ThreadArg* arg )
    if( updateCond == 0 ) 
    {
       thread1Continue = 1;
-<<<<<<< HEAD
       wait_ctrl( &thread2Continue ) ;
-=======
-      wait( &thread2Continue ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    }
    else 
    {
       thread2Continue = 1;
-<<<<<<< HEAD
       wait_ctrl( &thread1Continue ) ;
-=======
-      wait( &thread1Continue ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    }
    rc = sdbDelete( cl, &cond, NULL ) ;
    if ( (rc != SDB_OK) && (rc!= -13) )
@@ -198,13 +186,8 @@ TEST_F( snapshot25411, lockwaitANDdeadlock )
    workers[1] = new Worker( (WorkerRoutine)func_thread, &arg[1], false ) ;
    workers[0]->start() ;
    workers[1]->start() ;
-<<<<<<< HEAD
    wait_ctrl( &thread1Continue ) ;
    wait_ctrl( &thread2Continue ) ;
-=======
-   wait( &thread1Continue );
-   wait( &thread2Continue );
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    sdbCursorHandle cursor ;
    //获取死锁快照
    rc = sdbGetSnapshot( db, SDB_SNAP_TRANSDEADLOCK, NULL, NULL, NULL, &cursor ) ;

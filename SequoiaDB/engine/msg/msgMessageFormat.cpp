@@ -74,11 +74,7 @@ const CHAR *routeID2String( const MsgRouteID &routeID,
                             UINT32 bufferSize )
 {
    ossSnprintf( buffer, bufferSize,
-<<<<<<< HEAD
                 "{ GroupID:%u, NodeID:%hu, ServiceID:%hu(%s) }",
-=======
-                "{ GroupID:%u, NodeID:%u, ServiceID:%u(%s) }",
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                 routeID.columns.groupID,
                 routeID.columns.nodeID,
                 routeID.columns.serviceID,
@@ -89,7 +85,6 @@ const CHAR *routeID2String( const MsgRouteID &routeID,
 ossPoolString routeID2String( const MsgRouteID &routeID )
 {
    CHAR buffer[ MSG_ROUTEID_STRING_MAX_SIZE + 1 ] = { 0 } ;
-<<<<<<< HEAD
    try
    {
       return routeID2String( routeID, buffer, MSG_ROUTEID_STRING_MAX_SIZE ) ;
@@ -105,9 +100,6 @@ ossPoolString routeID2String( const MsgRouteID &routeID )
          return "Out-of-memory" ;
       }
    }
-=======
-   return routeID2String( routeID, buffer, MSG_ROUTEID_STRING_MAX_SIZE ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 }
 
 ossPoolString routeID2String( UINT64 nodeID )
@@ -180,7 +172,6 @@ const CHAR* msgType2String( MSG_TYPE msgType, BOOLEAN isCommand )
          return "LOB GETDETAIL" ;
       case MSG_BS_SEQUENCE_FETCH_REQ :
          return "SEQUENCE FETCH" ;
-<<<<<<< HEAD
       case MSG_CLS_SYNC_REQ :
          return "SYNC" ;
       case MSG_CLS_SYNC_NOTIFY :
@@ -211,8 +202,6 @@ const CHAR* msgType2String( MSG_TYPE msgType, BOOLEAN isCommand )
          return "TASK CLEAN UP" ;
       case MSG_CAT_SPLIT_FINISH_REQ :
          return "TASK FINISH" ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    } ;
    return "UNKNOWN" ;
 }

@@ -181,16 +181,6 @@ INT32 resolveArgument( INT32 argc, CHAR* argv[],
          {
             isNormalInput = TRUE ;
             tmpPasswd = passwdVec[0] ;
-<<<<<<< HEAD
-         }
-
-         if ( !isNormalInput )
-         {
-            rc = SDB_APP_INTERRUPT ;
-            std::cerr << getErrDesp( rc ) << ", rc: " << rc << std::endl ;
-            goto error ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          }
 
          if ( !isNormalInput )
@@ -199,12 +189,6 @@ INT32 resolveArgument( INT32 argc, CHAR* argv[],
             std::cerr << getErrDesp( rc ) << ", rc: " << rc << std::endl ;
             goto error ;
          }
-      }
-      else
-      {
-         rc = SDB_INVALIDARG ;
-         std::cerr << "You must input password, rc: " << rc << std::endl ;
-         goto error ;
       }
       else
       {

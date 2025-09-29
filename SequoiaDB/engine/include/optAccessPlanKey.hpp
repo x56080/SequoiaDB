@@ -53,11 +53,86 @@ using namespace bson ;
 
 namespace engine
 {
+
+   /*
+      _optCollectionInfo define
+    */
+   class _optCollectionInfo
+   {
+      public :
+         _optCollectionInfo ()
+         : _suID( DMS_INVALID_SUID ),
+           _suLID( DMS_INVALID_LOGICCSID ),
+           _clLID( DMS_INVALID_CLID ),
+           _mbID( DMS_INVALID_MBID )
+         {
+         }
+
+         _optCollectionInfo ( const _optCollectionInfo & info )
+         : _suID( info._suID ),
+           _suLID( info._suLID ),
+           _clLID( info._clLID ),
+           _mbID( info._mbID )
+         {
+         }
+
+         virtual ~_optCollectionInfo ()
+         {
+         }
+
+         OSS_INLINE virtual dmsStorageUnitID getSUID () const
+         {
+            return _suID ;
+         }
+
+         OSS_INLINE virtual UINT32 getSULID () const
+         {
+            return _suLID ;
+         }
+
+         OSS_INLINE virtual UINT16 getCLMBID () const
+         {
+            return _mbID ;
+         }
+
+         OSS_INLINE virtual UINT32 getCLLID () const
+         {
+            return _clLID ;
+         }
+
+         OSS_INLINE virtual void setCSInfo ( dmsStorageUnit *su )
+         {
+            if ( NULL != su )
+            {
+               _suID = su->CSID() ;
+               _suLID = su->LogicalCSID() ;
+            }
+         }
+
+         OSS_INLINE virtual void setCLInfo ( dmsMBContext *mbContext )
+         {
+            if ( NULL != mbContext )
+            {
+               _mbID = mbContext->mbID() ;
+               _clLID = mbContext->clLID() ;
+            }
+         }
+
+      protected :
+         dmsStorageUnitID        _suID ;
+         UINT32                  _suLID ;
+         UINT32                  _clLID ;
+         UINT16                  _mbID ;
+   } ;
+
+   typedef class _optCollectionInfo optCollectionInfo ;
+
    /*
       _optAccessPlanKey define
     */
    class _optAccessPlanKey : public _rtnQueryOptions,
-                             public _utilHashTableKey
+                             public _utilHashTableKey,
+                             public _optCollectionInfo
    {
       public :
          _optAccessPlanKey ( const rtnQueryOptions &options,
@@ -117,7 +192,6 @@ namespace engine
          }
 
          OSS_INLINE BOOLEAN isForceHint() const
-<<<<<<< HEAD
          {
             return ( !isHintEmpty() && testFlag( FLG_QUERY_FORCE_HINT ) ) ;
          }
@@ -129,14 +203,10 @@ namespace engine
 
          OSS_INLINE void setCollectionInfo ( dmsStorageUnit *su,
                                              dmsMBContext *mbContext )
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          {
-            return ( !isHintEmpty() && testFlag( FLG_QUERY_FORCE_HINT ) ) ;
-         }
+            setCSInfo( su ) ;
+            setCLInfo( mbContext ) ;
 
-         OSS_INLINE void generateKeyCodeAndValidate()
-         {
             if ( _cacheLevel > OPT_PLAN_NOCACHE )
             {
                // Key code is not needed for no-cache mode

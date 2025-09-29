@@ -53,10 +53,6 @@ namespace engine
    class _IOmProxy ;
    class _coordSequenceAgent ;
    class _coordDataSourceMgr ;
-<<<<<<< HEAD
-=======
-   class _coordGTSAgent ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    /*
       _coordResource define
@@ -98,11 +94,6 @@ namespace engine
                            _coordDataSourceMgr *pDSMgr = NULL ) ;
          void        fini() ;
 
-<<<<<<< HEAD
-=======
-         INT32       onRegistered() ;
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          void        invalidateCataInfo( const CHAR *clFullName = NULL ) ;
          void        invalidateGroupInfo( UINT64 identify = 0 ) ;
          void        invalidateStrategy() ;
@@ -116,14 +107,6 @@ namespace engine
             return _pSequenceAgent ;
          }
          _coordDataSourceMgr* getDSManager() { return _pDataSourceMgr ; }
-<<<<<<< HEAD
-=======
-
-         OSS_INLINE _coordGTSAgent *getGTSAgent()
-         {
-            return _pGTSAgent ;
-         }
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    public:
 
@@ -194,15 +177,9 @@ namespace engine
                                                  _pmdEDUCB *cb ) ;
 
          UINT64      getTotalCataInfoSize() const ;
-<<<<<<< HEAD
 
          INT32       active() ;
 
-=======
-
-         INT32       active() ;
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    public:
          void        addCataInfo( CoordCataInfoPtr &cataPtr ) ;
 
@@ -330,10 +307,6 @@ namespace engine
          _coordSequenceAgent              *_pSequenceAgent ;
 
          _coordDataSourceMgr              *_pDataSourceMgr ;
-<<<<<<< HEAD
-=======
-         _coordGTSAgent                   *_pGTSAgent ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    } ;
    typedef _coordResource coordResource ;
 

@@ -75,7 +75,6 @@ ReplSize（ \f[I]number\f[] ）：写操作需同步的副本数，默认值为
 格式：\f[C]ReplSize: 0\f[]
 .RE
 .IP \[bu] 2
-<<<<<<< HEAD
 ConsistencyStrategy（ \f[I]number\f[] ）：同步一致性策略
 .RS 2
 .PP
@@ -94,10 +93,6 @@ ConsistencyStrategy（ \f[I]number\f[] ）：同步一致性策略
 .IP \[bu] 2
 Compressed（ \f[I]boolean\f[] ）：是否开启数据压缩功能，默认值为
 true，表示开启数据压缩功能
-=======
-Compressed（ \f[I]boolean\f[] ）：是否开启数据压缩功能，默认值为
-true，开启数据压缩功能
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 .RS 2
 .PP
 格式：\f[C]Compressed: false\f[]
@@ -149,13 +144,8 @@ Group（ \f[I]string\f[] ）：所属复制组
 格式：\f[C]Group: "group1"\f[]
 .RE
 .IP \[bu] 2
-<<<<<<< HEAD
 AutoIndexId（ \f[I]boolean\f[] ）：是否根据字段 _id
 自动创建名为"$id"的唯一索引，默认值为 true，表示自动创建
-=======
-AutoIndexId（ \f[I]boolean\f[] ）：是否根据字段 _id 自动创建名为 "$id"
-的唯一索引，默认值为 true，自动创建
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 .RS 2
 .PP
 格式：\f[C]AutoIndexId: false\f[]

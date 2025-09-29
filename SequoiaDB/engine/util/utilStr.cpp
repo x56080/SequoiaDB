@@ -153,52 +153,39 @@ namespace engine
       return utilStrLtrim ( utilStrRtrim ( s ) ) ;
    }
 
-   INT32 utilStrToUpper( const CHAR *src, CHAR *dst, UINT32 dstSize )
+   INT32 utilStrToUpper( const CHAR *src, CHAR *&upper )
    {
       INT32 rc = SDB_OK ;
-      UINT32 len = 0 ;
-      if ( NULL == src || NULL == dst )
+      CHAR *tmp = NULL ;
+      UINT32 size = 0 ;
+      if ( NULL == src )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
-      }
-      len = ossStrlen( src ) + 1 ;
-      if ( len > dstSize )
-      {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-      /// '\0' is contained.
-      for ( UINT32 i = 0 ; i < len ; i++ )
-      {
-         dst[i] = ( src[i] >= 'a' && src[i] <= 'z' ) ? src[i] - 32 : src[i] ;
       }
 
+      size = ossStrlen( src) + 1 ;
+      tmp = (CHAR *)SDB_OSS_MALLOC(size) ;
+      if ( NULL == tmp )
+      {
+         rc = SDB_OOM ;
+         PD_LOG( PDERROR, "failed to allocate mem." ) ;
+         goto error ;
+      }
+
+      /// '\0' is contained.
+      for ( UINT32 i = 0; i < size ; i++ )
+      {
+         tmp[i] = ( src[i] >= 'a' && src[i] <= 'z' ) ?
+                    src[i] - 32 : src[i] ;
+      }
+
+      upper = tmp ;
    done:
       return rc ;
    error:
-      goto done ;
-   }
-
-   INT32 utilStrToLower( const CHAR *src, CHAR *dst, UINT32 dstSize )
-   {
-      INT32 rc = SDB_OK ;
-      UINT32 len = 0 ;
-      if ( NULL == src || NULL == dst )
+      if ( NULL != tmp )
       {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-      len = ossStrlen( src ) + 1 ;
-      if ( len > dstSize )
-      {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-      /// '\0' is contained.
-      for ( UINT32 i = 0; i < len ; i++ )
-      {
-<<<<<<< HEAD
          SDB_OSS_FREE( tmp ) ;
          tmp = NULL ;
       }
@@ -240,15 +227,7 @@ namespace engine
       {
          SDB_OSS_FREE( tmp ) ;
          tmp = NULL ;
-=======
-         dst[i] = ( src[i] >= 'A' && src[i] <= 'Z' ) ?
-                    src[i] + 32 : src[i] ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       }
-
-   done:
-      return rc ;
-   error:
       goto done ;
    }
 
@@ -707,11 +686,11 @@ namespace engine
 
    BOOLEAN utilIsValidOID( const CHAR * pStr )
    {
-      if ( NULL == pStr || UTIL_OID_LEN != ossStrlen( pStr ) )
+      if ( NULL == pStr || 24 > ossStrlen( pStr ) )
       {
          return FALSE ;
       }
-      for ( UINT32 i = 0; i < UTIL_OID_LEN; ++i )
+      for ( UINT32 i = 0; i < 24; ++i )
       {
          if ( ! ( ( pStr[i] >= '0' && pStr[i] <= '9' ) ||
                   ( pStr[i] >= 'a' && pStr[i] <= 'f' ) ||
@@ -903,29 +882,6 @@ namespace engine
 
    done:
       return r ;
-   }
-
-   UINT32 getCommonPrefix(const CHAR *l,
-                          const CHAR *r,
-                          INT32 n)
-   {
-      UINT32 prefixSize = 0;
-      SDB_ASSERT(NULL != l && NULL != r, "can not be null");
-
-      for (UINT32 i = 0; i < (UINT32)n; ++i)
-      {
-         if (l[i] == r[i] &&
-             l[i] != '\0')
-         {
-            ++prefixSize;
-         }
-         else
-         {
-            break;
-         }
-      }
-
-      return prefixSize;
    }
 }
 

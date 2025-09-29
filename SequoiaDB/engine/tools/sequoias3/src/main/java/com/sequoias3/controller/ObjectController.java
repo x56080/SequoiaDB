@@ -334,11 +334,7 @@ public class ObjectController {
             if (deleteObjects != null && deleteObjects.getObjects() != null)
             {
                 List<ObjectToDel> objects = deleteObjects.getObjects();
-<<<<<<< HEAD
                 for (ObjectToDel object : objects) {
-=======
-                for (ObjectToDel object : objects)
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                     try {
                         PutDeleteResult result = null;
                         if (object.getVersionId() != null) {
@@ -376,10 +372,7 @@ public class ObjectController {
                         }
                         deleteObjectsResult.getErrors().add(error);
                     }
-<<<<<<< HEAD
                 }
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             }
 
             return ResponseEntity.ok()

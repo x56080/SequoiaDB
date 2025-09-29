@@ -42,8 +42,6 @@
 #include "coordResource.hpp"
 #include "msgMessage.hpp"
 #include "coordRemoteSession.hpp"
-#include "coordTrace.hpp"
-#include "pdTrace.hpp"
 #include "../bson/bson.h"
 #include "IDataSource.hpp"
 
@@ -63,7 +61,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       UINT32 totalLen = 0 ;
-      BOOLEAN isNewGTType = FALSE, isOldGTType = FALSE ;
       UINT32 pos = 0 ;
       MsgHeader *pOldHeader = pSub->getReqMsg() ;
       CHAR *pBuff = NULL ;
@@ -76,21 +73,9 @@ namespace engine
 
       totalLen = pHeader->messageLength + pOldHeader->messageLength ;
 
-      // pass global time request to packet message
-      isNewGTType = IS_GLOBTIME_TYPE( pHeader->opCode ) ? TRUE : FALSE ;
-      if ( isNewGTType )
-      {
-         pHeader->opCode = CLEAR_GLOBTIME_TYPE( pHeader->opCode ) ;
-      }
-      isOldGTType = IS_GLOBTIME_TYPE( pOldHeader->opCode ) ? TRUE : FALSE ;
-      if ( isOldGTType )
-      {
-         pOldHeader->opCode = CLEAR_GLOBTIME_TYPE( pOldHeader->opCode ) ;
-      }
-
       if ( MSG_PACKET != pOldHeader->opCode )
       {
-         totalLen += sizeof( MsgPacketReq ) ;
+         totalLen += sizeof( MsgHeader ) ;
       }
 
       rc = cb->allocBuff( totalLen, &pBuff, NULL ) ;
@@ -102,10 +87,10 @@ namespace engine
       }
       else
       {
-         MsgPacketReq *pMsgPacket = NULL ;
+         MsgHeader *pMsgPacket = NULL ;
          /// packet
-         pMsgPacket = ( MsgPacketReq* )( pBuff + pos ) ;
-         pos += sizeof( MsgPacketReq ) ;
+         pMsgPacket = ( MsgHeader* )( pBuff + pos ) ;
+         pos += sizeof( MsgHeader ) ;
 
          /// new add
          ossMemcpy( pBuff + pos, (void*)pHeader, pHeader->messageLength ) ;
@@ -119,27 +104,17 @@ namespace engine
          if ( MSG_PACKET == pOldHeader->opCode )
          {
             ossMemcpy( (void*)pMsgPacket, (void*)pOldHeader,
-                       sizeof( MsgPacketReq ) ) ;
+                       sizeof( MsgHeader ) ) ;
          }
          else
          {
-<<<<<<< HEAD
             pMsgPacket->opCode = MSG_PACKET ;
             pMsgPacket->requestID = pOldHeader->requestID ;
             pMsgPacket->routeID.value = pOldHeader->routeID.value ;
             pMsgPacket->TID = pOldHeader->TID ;
             pMsgPacket->globalID = pOldHeader->globalID ;
-=======
-            pMsgPacket->header.requestID = pOldHeader->requestID ;
-            pMsgPacket->header.routeID.value = pOldHeader->routeID.value ;
-            pMsgPacket->header.TID = pOldHeader->TID ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          }
-         // set glob time type request if needed
-         pMsgPacket->header.opCode =
-               ( isNewGTType || isOldGTType ) ?
-                     ( MAKE_GLOBTIME_TYPE( MSG_PACKET ) ) : MSG_PACKET ;
-         pMsgPacket->header.messageLength = totalLen ;
+         pMsgPacket->messageLength = totalLen ;
 
          /// old
          if ( pSub->getIODatas()->size() > 0 )
@@ -166,8 +141,8 @@ namespace engine
 
             if ( MSG_PACKET == pOldHeader->opCode )
             {
-               pCopyData += sizeof( MsgPacketReq ) ;
-               copyLen -= sizeof( MsgPacketReq ) ;
+               pCopyData += sizeof( MsgHeader ) ;
+               copyLen -= sizeof( MsgHeader ) ;
             }
             ossMemcpy( pBuff + pos, pCopyData,copyLen ) ;
             pos += copyLen ;
@@ -694,26 +669,6 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__COORDREMOTEHANDLERBASE_ONTRANSBEGIN, "_coordRemoteHandlerBase::onTransBegin" )
-   INT32 _coordRemoteHandlerBase::onTransBegin( MsgOpTransBegin *request,
-                                                pmdEDUCB *cb )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__COORDREMOTEHANDLERBASE_ONTRANSBEGIN ) ;
-
-      if ( cb->isGlobTrans() && !isVersion0() )
-      {
-         // need synchronize global logical time for global transaction
-         request->header.opCode =
-               MAKE_GLOBTIME_TYPE( request->header.opCode ) ;
-      }
-
-      PD_TRACE_EXITRC( SDB__COORDREMOTEHANDLERBASE_ONTRANSBEGIN, rc ) ;
-
-      return rc ;
-   }
-
    INT32 _coordRemoteHandlerBase::_checkSessionTransaction( _pmdRemoteSession *pSession,
                                                             _pmdSubSession *pSub,
                                                             _pmdEDUCB *cb,
@@ -747,20 +702,8 @@ namespace engine
             msgReq.header.opCode = MSG_BS_TRANS_BEGIN_REQ ;
             msgReq.header.routeID.value = 0 ;
             msgReq.header.TID = cb->getTID() ;
-            msgReq.header.requestID = pSub->getReqMsg()->requestID ;
-            // for backward compatibility, transID field is global serial
-            // number
-            // NOTE: node ID of transaction ID is in routeID of message header
-            msgReq.transID = (UINT64)( cb->getTransID().getGlobSN() ) ;
-            // time error of logical time for global transaction
-            msgReq.transTimeError = cb->getTransTimeError() ;
-            msgReq.sendTime = 0LL ;
+            msgReq.transID = DPS_TRANS_GET_ID( cb->getTransID() ) ;
             ossMemset( msgReq.reserved, 0, sizeof( msgReq.reserved ) ) ;
-
-            // call on transaction begin event, fill current time of message
-            rc = onTransBegin( &msgReq, cb ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to call on transaction begin "
-                         "event, rc: %d", rc ) ;
 
             rc = coordBuildPacketMsg( pSession,pSub, &msgReq.header ) ;
             if ( rc )
@@ -769,22 +712,6 @@ namespace engine
             }
             pStatus->_initTrans = TRUE ;
             pPropSite->addTransNode( pSub->getNodeID(), isWriteMsg ) ;
-         }
-      }
-      else if ( cb->isGlobTrans() )
-      {
-         switch ( pSub->getOrgReqOpCode() )
-         {
-            case MSG_PACKET :
-            case MSG_BS_TRANS_BEGIN_REQ :
-            case MSG_BS_TRANS_COMMITPRE_REQ :
-            {
-               pSub->getReqMsg()->opCode =
-                     MAKE_GLOBTIME_TYPE( pSub->getReqMsg()->opCode ) ;
-               break ;
-            }
-            default :
-               break ;
          }
       }
 
@@ -878,7 +805,6 @@ namespace engine
       INT32 rc = SDB_OK ;
 
       if ( SDB_IS_DSID( pSub->getNodeID().columns.groupID ) )
-<<<<<<< HEAD
       {
          rc = _checkDSSessionAttr( pSub, cb, nodeSiteVer ) ;
          PD_RC_CHECK( rc, PDERROR, "Check data source session attribute "
@@ -946,75 +872,6 @@ namespace engine
             rc = _setSessionAttr( pSub, *property, cb ) ;
             if ( SDB_OK != rc && SDB_INVALIDARG != rc )
             {
-=======
-      {
-         rc = _checkDSSessionAttr( pSub, cb, nodeSiteVer ) ;
-         PD_RC_CHECK( rc, PDERROR, "Check data source session attribute "
-                      "failed[%d]", rc ) ;
-      }
-      else
-      {
-         UINT32 curAuditVersion = pdGetCurAuditVersion() ;
-         UINT32 curTransVer = cb->getTransExecutor()->getTransConfVer() ;
-         UINT32 curVersion = curAuditVersion + curTransVer ;
-
-         if ( 0 != curVersion && curVersion != nodeSiteVer )
-         {
-            /// when net handle is invalid, the info will
-            /// stored in session-init message
-            if ( NET_INVALID_HANDLE != pSub->getHandle() )
-            {
-               rc = _buildPacketWithSessionInit( pSession, pSub, TRUE ) ;
-               if ( rc )
-               {
-                  PD_LOG( PDERROR, "Build packet message with session-update "
-                          "failed, rc: %d", rc ) ;
-                  goto error ;
-               }
-            }
-
-            /// update version
-            nodeSiteVer = curVersion ;
-         }
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 _coordRemoteHandlerBase::_checkDSSessionAttr( _pmdSubSession *pSub,
-                                                       _pmdEDUCB *cb,
-                                                       UINT32 &nodeSiteVer )
-   {
-      INT32 rc = SDB_OK ;
-      const rtnSessionProperty *property = (rtnSessionProperty *)
-         ((pmdRemoteSessionSite *)cb->getRemoteSite())->getUserData() ;
-      UINT32 curVersion = property->getVersion() ;
-
-      if ( nodeSiteVer != curVersion )
-      {
-         CoordDataSourcePtr dsPtr ;
-         UINT32 groupID = pSub->getNodeID().columns.groupID ;
-         CoordCB *coordCB = pmdGetKRCB()->getCoordCB() ;
-         coordDataSourceMgr *dsMgr = coordCB->getDSManager() ;
-         rc = dsMgr->getOrUpdateDataSource( SDB_GROUPID_2_DSID( groupID ),
-                                            dsPtr, cb ) ;
-         PD_RC_CHECK( rc, PDERROR, "Get data source[%u] failed[%d]",
-                      SDB_GROUPID_2_DSID( groupID ), rc ) ;
-
-         if ( dsPtr->inheritSessionAttr() )
-         {
-#ifdef _DEBUG
-            PD_LOG( PDDEBUG, "Data source session attribute version[%u] is "
-                    "not the same with local[%u]. Set it to %s", nodeSiteVer,
-                    curVersion, property->toBSON().toString().c_str() ) ;
-#endif /* _DEBUG */
-            rc = _setSessionAttr( pSub, *property, cb ) ;
-            if ( SDB_OK != rc && SDB_INVALIDARG != rc )
-            {
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                PD_LOG( PDERROR, "Set data source session attribute for [%s] "
                        "failed[%d]",
                        routeID2String( pSub->getNodeID() ).c_str(), rc ) ;

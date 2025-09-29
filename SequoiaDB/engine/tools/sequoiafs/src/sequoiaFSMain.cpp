@@ -35,12 +35,6 @@
 #include "sequoiaFSMain.hpp"
 #include "ossSignal.hpp"
 
-<<<<<<< HEAD
-=======
-#include "sequoiaFSMain.hpp"
-#include "ossSignal.hpp"
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 using namespace engine;
 using namespace std;

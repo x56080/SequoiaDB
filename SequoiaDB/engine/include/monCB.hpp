@@ -89,17 +89,12 @@ namespace engine
       {                                                              \
          try {                                                       \
             _pMonAppCB_->setLastOpType( 0 ) ;                        \
-<<<<<<< HEAD
             _pMonAppCB_->setLastCmdType( CMD_UNKNOW ) ;              \
-=======
-            _pMonAppCB_->setUnknownCmdType() ;                       \
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             _pMonAppCB_->clearLastOpDetail() ;                       \
          } catch ( ...) {}                                           \
       }                                                              \
    }
 
-<<<<<<< HEAD
    #define MON_REPLACE_OP_DETAIL( _pMonAppCB_, opType, detail )      \
    {                                                                 \
       if ( NULL != _pMonAppCB_ )                                     \
@@ -112,8 +107,6 @@ namespace engine
       }                                                              \
    }
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    #define MON_SAVE_OP_OPTION( _pMonAppCB_, msg, options )           \
    {                                                                 \
       if ( NULL != _pMonAppCB_ )                                     \
@@ -1131,7 +1124,6 @@ namespace engine
                case MON_TRANS_COMMIT:
                   totalTransCommit += delta ;
                   break ;
-<<<<<<< HEAD
 
                case MON_TRANS_ROLLBACK:
                   totalTransRollback += delta ;
@@ -1141,17 +1133,6 @@ namespace engine
                   totalLobGet += delta ;
                   break ;
 
-=======
-
-               case MON_TRANS_ROLLBACK:
-                  totalTransRollback += delta ;
-                  break ;
-
-               case MON_LOB_GET :
-                  totalLobGet += delta ;
-                  break ;
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                case MON_LOB_PUT :
                   totalLobPut += delta ;
                   break ;
@@ -1257,19 +1238,11 @@ namespace engine
       void saveLastOpQuery( const MsgHeader *message,
                             const rtnQueryOptions &options ) ;
       void saveLastOpDetail( const CHAR *format, ... ) ;
-<<<<<<< HEAD
       void replaceLastOpDetail( const CHAR *detail ) ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       void clearLastOpDetail() ;
       void formatLastOpDetail( const rtnQueryOptions &options ) ;
       void formatLastOpDetail( const MsgHeader *message,
                                INT32 expectingOpType ) ;
-<<<<<<< HEAD
-=======
-
-      OSS_INLINE monCRUDCB * getCRUDCB()  { return _mbCRUDCB ; }
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       OSS_INLINE void setCRUDCB ( monCRUDCB * crudCB )
       {

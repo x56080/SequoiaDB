@@ -40,11 +40,7 @@
     <test name="index" parallel="classes" thread-count="2">
         <packages>
             <package name="com.sequoiadb.index"/>
-<<<<<<< HEAD
         </packages>
-=======
-        </packages>        
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     </test>
     
 </suite>

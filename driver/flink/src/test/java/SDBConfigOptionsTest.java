@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 /*******************************************************************************
 
    Copyright (C) 2011-Present SequoiaDB Ltd.
@@ -31,8 +30,6 @@
    Last Changed =
 
 *******************************************************************************/
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 import org.junit.Test;
 import org.junit.Assert;
 import org.apache.flink.configuration.ConfigOptions;

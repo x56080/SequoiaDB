@@ -4,20 +4,12 @@
  *                  seqDB-27801:创建多个admin和monitor用户
  * @Author        : Xu Mingxing
  * @CreateTime    : 2022.09.27
-<<<<<<< HEAD
  * @LastEditTime  : 2023.08.04
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
 // SEQUOIADBMAINSTREAM-9798
 // main( test );
-=======
- * @LastEditTime  : 2022.10.09
- * @LastEditors   : Xu Mingxing
- ******************************************************************************/
-testConf.skipStandAlone = true;
-main( test );
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 function test ()
 {

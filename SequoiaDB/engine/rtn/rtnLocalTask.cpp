@@ -216,7 +216,6 @@ namespace engine
    }
 
    BOOLEAN _rtnLTRename::_isSameLevel( const _rtnLocalTaskBase *pOther ) const
-<<<<<<< HEAD
    {
       BOOLEAN isSame = FALSE ;
 
@@ -245,36 +244,6 @@ namespace engine
 
    INT32 _rtnLTRename::_toBson( BSONObjBuilder &builder ) const
    {
-=======
-   {
-      BOOLEAN isSame = FALSE ;
-
-      switch ( getTaskType() )
-      {
-         case RTN_LOCAL_TASK_RENAMECS :
-         case RTN_LOCAL_TASK_RECYCLECS :
-         case RTN_LOCAL_TASK_RETURNCS :
-            isSame = ( RTN_LOCAL_TASK_RENAMECS == pOther->getTaskType() ||
-                       RTN_LOCAL_TASK_RECYCLECS == pOther->getTaskType() ||
-                       RTN_LOCAL_TASK_RETURNCS == pOther->getTaskType() ) ;
-            break ;
-         case RTN_LOCAL_TASK_RENAMECL :
-         case RTN_LOCAL_TASK_RECYCLECL :
-         case RTN_LOCAL_TASK_RETURNCL :
-            isSame = ( RTN_LOCAL_TASK_RENAMECL == pOther->getTaskType() ||
-                       RTN_LOCAL_TASK_RECYCLECL == pOther->getTaskType() ||
-                       RTN_LOCAL_TASK_RETURNCL == pOther->getTaskType() ) ;
-            break ;
-         default :
-            break ;
-      }
-
-      return isSame ;
-   }
-
-   INT32 _rtnLTRename::_toBson( BSONObjBuilder &builder ) const
-   {
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       INT32 rc = SDB_OK ;
 
       try
@@ -351,7 +320,6 @@ namespace engine
       _BASE::setInfo( from, to ) ;
       setRecycleItem( recycleItem ) ;
    }
-<<<<<<< HEAD
 
    INT32 _rtnLTRecycleBase::initFromBson( const BSONObj &obj )
    {
@@ -380,36 +348,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for rename task, "
                    "rc: %d", rc ) ;
 
-=======
-
-   INT32 _rtnLTRecycleBase::initFromBson( const BSONObj &obj )
-   {
-      INT32 rc = SDB_OK ;
-
-      rc = _BASE::initFromBson( obj ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to initialize rename task from BSON, "
-                   "rc: %d", rc ) ;
-
-      rc = _recycleItem.fromBSON( obj, FIELD_NAME_RECYCLE_ITEM ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to parse recycle item from BSON, "
-                   "rc: %d", rc ) ;
-
-   done:
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
-   INT32 _rtnLTRecycleBase::_toBson( BSONObjBuilder &builder ) const
-   {
-      INT32 rc = SDB_OK ;
-
-      rc = _BASE::_toBson( builder ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for rename task, "
-                   "rc: %d", rc ) ;
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       rc = _recycleItem.toBSON( builder, FIELD_NAME_RECYCLE_ITEM ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for recycle item, "
                    "rc: %d", rc ) ;

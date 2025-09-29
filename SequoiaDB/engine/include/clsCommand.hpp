@@ -513,7 +513,6 @@ namespace engine
 
    } ;
 
-<<<<<<< HEAD
    /* 
       _rtnAlterGroup define
     */
@@ -550,9 +549,6 @@ namespace engine
          BOOLEAN                _enforced ;
          clsGroupMode           _grpMode ;
    } ;
-=======
-   class _rtnContextDump;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 }
 

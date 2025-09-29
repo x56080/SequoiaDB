@@ -53,11 +53,7 @@
 #include "utilMemListPool.hpp"
 #include "ossMemPool.hpp"
 #include "monClass.hpp"
-<<<<<<< HEAD
 #include "pmdOperator.hpp"
-=======
-#include "stpLogicalTime.hpp"
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 #if defined ( SDB_ENGINE )
 #include "dpsLogDef.hpp"
@@ -182,17 +178,13 @@ namespace engine
          virtual UINT64    getEndLsn() const { return _endLsn ; }
          virtual UINT32    getLsnCount () const { return _lsnNumber ; }
          virtual BOOLEAN   isDoRollback () const { return _doRollback ; }
-         virtual const DPS_TRANS_ID &getTransID () const { return _curTransID ; }
+         virtual UINT64    getTransID () const { return _curTransID ; }
          virtual UINT64    getCurTransLsn () const { return _curTransLSN ; }
 
          virtual void      resetLsn() ;
          virtual void      insertLsn( UINT64 lsn,
                                       BOOLEAN isRollback = FALSE ) ;
-         // reset transaction ID to invalid transaction ID
-         // means no transaction
-         virtual void      resetTransID() ;
-         // set transaction ID with specified transaction ID
-         virtual void      setTransID( const DPS_TRANS_ID &transID ) ;
+         virtual void      setTransID( UINT64 transID ) ;
          virtual void      setCurTransLsn( UINT64 lsn ) ;
 
          /*
@@ -265,7 +257,6 @@ namespace engine
             }
          }
 
-<<<<<<< HEAD
          void setCurProcessName( const CHAR *csName, const CHAR *clName )
          {
             if ( NULL != csName && 0 != csName[0] &&
@@ -290,14 +281,11 @@ namespace engine
             }
          }
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          const CHAR *getCurProcessName() const
          {
             return _curProcessName ;
          }
 
-<<<<<<< HEAD
          void setDataExInfo( const CHAR *fullName, UINT32 csLID,
                              UINT32 clLID, UINT32 extLID, UINT32 extOffset )
          {
@@ -336,18 +324,12 @@ namespace engine
             return _dataExInfo ;
          }
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          void clearProcessInfo()
          {
             _curProcessName[ 0 ] = 0 ;
             _curMainCLName[ 0 ] = 0 ;
             _currentContextID = -1 ;
-<<<<<<< HEAD
             _dataExInfo.clear() ;
-=======
-            pdClearShieldRC() ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          }
 
          /*
@@ -362,10 +344,6 @@ namespace engine
          void              setTransRBPending() ;
          void              clearTransRBPending() ;
 
-         // set eduCB is handling global transaction
-         void     setGlobTrans( const DPS_TRANS_ID &transID,
-                                const stpLogicalTimeUS &beginTime ) ;
-
          void              setBlock( EDU_BLOCK_TYPE type,
                                      const CHAR *pBlockDesp ) ;
          void              unsetBlock() ;
@@ -378,14 +356,11 @@ namespace engine
          BOOLEAN           isDoReplay() const { return _doReplay ; }
          void              setDoReplay( BOOLEAN doReplay ) { _doReplay = doReplay ; }
 
-<<<<<<< HEAD
          /*
             IOperator related
          */
          pmdOperator*      getOperator() { return &_operator ; }
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    public:
       _pmdEDUCB( _pmdEDUMgr *mgr, INT32 type ) ;
       ~_pmdEDUCB() ;
@@ -684,24 +659,9 @@ namespace engine
          _monApplCB.setCRUDCB( NULL ) ;
       }
 
-      monCRUDCB * saveMonCRUDCB ( )
-      {
-         return _monApplCB.getCRUDCB() ;
-      }
-
-      void restoreMonCRUDCB ( monCRUDCB * monCRUDCB )
-      {
-         _monApplCB.setCRUDCB( monCRUDCB ) ;
-      }
-
-   #if defined ( SDB_ENGINE ) || defined ( SDB_STP )
-      ossEvent & getEvent () { return _event ; }
-      void     setOrgReplSize( INT16 replSize ) { _orgReplSize = replSize ; }
-      INT16    getOrgReplSize() const { return _orgReplSize ; }
-   #endif
    #if defined ( SDB_ENGINE )
-      void        updateTransConfByMask( const dpsTransConfItem &conf ) ;
-      void        copyTransConf( const dpsTransConfItem &conf ) ;
+
+      ossEvent & getEvent () { return _event ; }
 
       void        updateTransConfByMask( const dpsTransConfItem &conf ) ;
       void        copyTransConf( const dpsTransConfItem &conf ) ;
@@ -717,23 +677,10 @@ namespace engine
       }
       DPS_LSN_OFFSET getRelatedTransLSN() const { return _relatedTransLSN ; }
       BOOLEAN  isTransaction() const ;
-      virtual INT32 getTransIsolation() const ;
       BOOLEAN  isTransRU () const ;
       BOOLEAN  isTransRC () const ;
       BOOLEAN  isTransRS () const ;
-      BOOLEAN  isTransRR () const ;
       BOOLEAN  isAutoCommitTrans() const ;
-<<<<<<< HEAD
-=======
-      // check if global transaction is acquired
-      BOOLEAN  isGlobTransOn() const ;
-      // get transaction timeout
-      UINT32   getTransTimeout() const ;
-      // check if current transaction is global transaction
-      BOOLEAN  isGlobTrans() const ;
-      // get global transaction time error
-      UINT32   getTransTimeError() const ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       void     startTransRollback( BOOLEAN takeOver = FALSE )
       {
@@ -784,12 +731,9 @@ namespace engine
          _transExecutor.resetLogSpace();
       }
 
-<<<<<<< HEAD
       void     setOrgReplSize( INT16 replSize ) { _operator.setOrgReplSize( replSize ) ; }
       INT16    getOrgReplSize() const { return _operator.getOrgReplSize() ; }
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       INT32    checkLogSpace( UINT64 usedLen, UINT64 reservedLen ) const
       {
          return _transExecutor.checkLogSpace( usedLen, reservedLen ) ;
@@ -803,78 +747,6 @@ namespace engine
       IRemoteOperator*  getRemoteOperator() ;
       INT32             getOrCreateRemoteOperator(
                                      IRemoteOperator **ppOperator ) ;
-
-      // get begin time of transaction
-      OSS_INLINE const stpLogicalTimeUS &getTransBeginTime() const
-      {
-         return _transExecutor.getBeginTime() ;
-      }
-
-      // set begin time of transaction
-      OSS_INLINE void setTransBeginTime( const stpLogicalTimeUS &beginTime )
-      {
-         _transExecutor.setBeginTime( beginTime ) ;
-      }
-
-      // get pre-commit time of transaction
-      OSS_INLINE const stpLogicalTimeUS &getTransPreCommitTime() const
-      {
-         return _transExecutor.getPreCommitTime() ;
-      }
-
-      // set pre-commit time of transaction
-      OSS_INLINE void setTransPreCommitTime(
-                                 const stpLogicalTimeUS &preCommitTime )
-      {
-         _transExecutor.setPreCommitTime( preCommitTime ) ;
-      }
-
-      // get commit time of transaction
-      OSS_INLINE const stpLogicalTimeUS &getTransCommitTime() const
-      {
-         return _transExecutor.getCommitTime() ;
-      }
-
-      // set commit time of transaction
-      OSS_INLINE void setTransCommitTime( const stpLogicalTimeUS &commitTime )
-      {
-         _transExecutor.setCommitTime( commitTime ) ;
-      }
-
-      // set expireTran cache
-      OSS_INLINE void setExpireTranCache( DPS_TRANSID_SN expireTran )
-      {
-         return _transExecutor.setExpireTranCache( expireTran ) ;
-      }
-
-      // get expireTran cache
-      OSS_INLINE DPS_TRANSID_SN getExpireTranCache() const
-      {
-         return _transExecutor.getExpireTranCache() ;
-      }
-
-      // check if given transaction passed cached expireTran
-      OSS_INLINE BOOLEAN isVersionExpired( const DPS_TRANS_ID &transID ) const
-      {
-         return _transExecutor.isVersionExpired( transID ) ;
-      }
-
-      // check if transaction has passed doing arbitration time
-      // - before that time, current transaction needs arbitrate for all
-      //   records created or updated by doing transactions
-      // - after that time, the doing transactions could not be able to
-      //   commit by that time, so the records created or updated by them
-      //   won't be seen by this transaction
-      OSS_INLINE BOOLEAN isPassedDoingArbit() const
-      {
-         return _transExecutor.isPassedDoingArbit() ;
-      }
-
-      // set transaction passed doing arbitration time
-      OSS_INLINE void setPassedDoingArbit( BOOLEAN passed )
-      {
-         _transExecutor.setPassedDoingArbit( passed ) ;
-      }
    #endif // SDB_ENGINE
 
    protected:
@@ -900,11 +772,8 @@ namespace engine
       void        initMonAppCB() ;
 
       void        initConf() ;
-<<<<<<< HEAD
 
       void        initOperator() ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       /*
          Only for pmdEDUMgr call, and must under pmdEDUMgr::_latch protected
@@ -964,15 +833,9 @@ namespace engine
       monAppCB                _monApplCB ;
       monConfigCB             _monCfgCB ;
 
-   #if defined ( SDB_ENGINE ) || defined ( SDB_STP )
-      ossEvent                _event ;   // for cls replSet notify
-<<<<<<< HEAD
-
-=======
-      INT16                   _orgReplSize ;
-   #endif
    #if defined ( SDB_ENGINE )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
+      ossEvent                _event ;   // for cls replSet notify
+
       UINT64                  _curRequestID ;
 
       // transaction related variables
@@ -1041,12 +904,9 @@ namespace engine
       BOOLEAN                 _isAffectGIndex ;
 
       BOOLEAN                 _doReplay ;
-<<<<<<< HEAD
       pmdOperator             _operator ;
 
       pmdDataExInfo           _dataExInfo ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    };
    typedef class _pmdEDUCB pmdEDUCB ;
 

@@ -44,7 +44,6 @@
 #include "../bson/bson.hpp"
 #include "msg.hpp"
 #include "ossMemPool.hpp"
-#include "utilUniqueID.hpp"
 #include <string>
 
 using namespace bson ;
@@ -421,45 +420,12 @@ namespace engine
 
          void setMainCLQuery ( const CHAR *mainCLName, const CHAR *subCLName ) ;
 
-         // Collection unique id
-         OSS_INLINE void setCLUniqueID ( utilCLUniqueID clUID)
-         {
-            _clUID = clUID ;
-         }
-
-         OSS_INLINE utilCLUniqueID getCLUniqueID () const
-         {
-            return _clUID ;
-         }
-
-         OSS_INLINE BOOLEAN isUniqueIDFilled() const
-         {
-            return _clUID != UTIL_UNIQUEID_NULL ; 
-         }
-
          OSS_INLINE BOOLEAN canPrepareMore () const
          {
             return testFlag( FLG_QUERY_PREPARE_MORE )&&
                    !testFlag( FLG_QUERY_MODIFY ) ;
          }
 
-<<<<<<< HEAD
-=======
-         OSS_INLINE BOOLEAN isWriteOp() const
-         {
-            // set to write operator ( remove, update, etc )
-            // or query and modify, or select for update
-            return _writeOp ||
-                   testFlag( FLG_QUERY_MODIFY ) ||
-                   testFlag( FLG_QUERY_FOR_UPDATE ) ;
-         }
-
-         OSS_INLINE void setWriteOp( BOOLEAN writeOp )
-         {
-            _writeOp = writeOp ;
-         }
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          // WARNING: only used in explain
          BOOLEAN isQueryAndModify() const ;
 
@@ -471,8 +437,6 @@ namespace engine
          ossPoolString  _fullNameBuf ;
          const CHAR *   _mainCLName ;
          ossPoolString  _mainCLNameBuf ;
-         BOOLEAN        _writeOp ;
-         utilCLUniqueID _clUID ;
    } ;
 
    typedef class _rtnQueryOptions rtnQueryOptions ;

@@ -118,7 +118,6 @@ namespace engine
          UINT16   allocSystemNodeID() ;
          BOOLEAN  checkGroupActived( const CHAR *gpName, BOOLEAN &gpExist  ) ;
          BOOLEAN  checkGroupActived( UINT32 groupID, BOOLEAN &gpExist ) ;
-<<<<<<< HEAD
 
          INT32    insertLocID( const ossPoolString &locName,
                                       UINT32 locID,
@@ -137,8 +136,6 @@ namespace engine
          {
             _nodeInfoChanged = nodeInfoChanged ;
          }
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
          void        clearInfo() ;
          GRP_ID_MAP* getGroupMap( BOOLEAN isActive = TRUE ) ;
@@ -161,13 +158,10 @@ namespace engine
                                     const CAT_GROUP_SET &groups,
                                     BOOLEAN ignoreErr = FALSE,
                                     BOOLEAN ignoreNonExist = FALSE ) ;
-<<<<<<< HEAD
          INT32       makeFailedGroupsObj( BSONObjBuilder &builder,
                                           const CAT_GROUP_LIST &groups,
                                           BOOLEAN ignoreErr = FALSE,
                                           BOOLEAN ignoreNonExist = FALSE ) ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
          INT16    majoritySize( BOOLEAN needWaitSync = FALSE ) ;
          INT32    primaryCheck( _pmdEDUCB *cb, BOOLEAN canDelay,
@@ -242,12 +236,6 @@ namespace engine
          void fillErrReply ( const MsgOpReply *pReply, MsgOpReply *pErrReply,
                              INT32 rc ) ;
 
-<<<<<<< HEAD
-=======
-         // callback on create group, remove group, create node or remove node
-         void     onGroupChange() ;
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          void setNeedForceSecondary( BOOLEAN needForce )
          {
             _needForceSecondary = needForce ;
@@ -284,12 +272,9 @@ namespace engine
          MsgRouteID           _primaryID ;
          BOOLEAN              _isActived ;
          BOOLEAN              _needForceSecondary ;
-<<<<<<< HEAD
 
          // Use to record whether the node info has changed
          BOOLEAN              _nodeInfoChanged ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
          VEC_EVENT_HANDLER    _vecEventHandler ;
 

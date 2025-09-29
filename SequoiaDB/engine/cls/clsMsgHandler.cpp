@@ -29,9 +29,6 @@
 
 *******************************************************************************/
 #include "clsMsgHandler.hpp"
-#include "clsShardSession.hpp"
-#include "msgMessageFormat.hpp"
-#include "dpsUtil.hpp"
 #include "pdTrace.hpp"
 #include "clsTrace.hpp"
 
@@ -78,42 +75,6 @@ namespace engine
       }
    }
 
-   INT32 _shdMsgHandler::_allocUserData( NET_HANDLE handle,
-                                         netUserDataHolder *userDataHolder )
-   {
-      INT32 rc = SDB_OK ;
-
-      dpsTransCB *transCB = sdbGetTransCB() ;
-      clsShdNetData *netData = NULL ;
-
-      // if holder is empty, or already hold sharding message user data,
-      // or no RR feature is enabled (transaction, global transaction or MVCC )
-      // no need to allocate
-      if ( NULL == userDataHolder ||
-           userDataHolder->hasUserData( NET_USER_DATA_SHARD ) ||
-           !transCB->isRRSupported() )
-      {
-         goto done ;
-      }
-
-      // allocate new user data for sharding message
-      netData = SDB_OSS_NEW clsShdNetData() ;
-      PD_CHECK( NULL != netData, SDB_OOM, error, PDWARNING,
-                "Failed to allocate shard user data" ) ;
-
-      // set handle
-      netData->setHandle( handle ) ;
-
-      // set user data to given holder
-      userDataHolder->setUserDataPtr( netData ) ;
-
-   done:
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
    void _shdMsgHandler::handleClose( const NET_HANDLE &handle,
                                      _MsgRouteID id )
    {
@@ -146,85 +107,6 @@ namespace engine
                                                pMsg, (UINT64)handle ) ) ;
          }
       }
-   }
-
-   INT32 _shdMsgHandler::onReceiveMsg( const NET_HANDLE &handle,
-                                       const MsgRouteID &id,
-                                       MsgHeader *header,
-                                       UINT32 availableSize,
-                                       netUserDataHolder *userDataHolder )
-   {
-      INT32 rc = SDB_OK ;
-
-      clsShdNetData *netData = NULL ;
-
-#if defined (_DEBUG)
-      PD_LOG( PDDEBUG, "Connection [Handle:%d, Node:%s] on receive "
-              "message [%s], available size: %u",
-              handle, routeID2String( id ).c_str(),
-              msg2String( header, MSG_MASK_ALL, 0 ).c_str(),
-              availableSize ) ;
-#endif
-
-      if ( NULL == userDataHolder )
-      {
-         goto done ;
-      }
-
-      if ( NULL == userDataHolder->getUserDataPtr() )
-      {
-         rc = _allocUserData( handle, userDataHolder ) ;
-         PD_RC_CHECK( rc, PDERROR, "Connection [Handle:%d, Node:%s] failed "
-                      "to allocate user data, rc: %d",
-                      handle, routeID2String( id ).c_str(),
-                      msg2String( header, MSG_MASK_ALL, 0 ).c_str(), rc ) ;
-         if ( NULL == userDataHolder->getUserDataPtr() )
-         {
-            // still empty, it might not be RR supported, keep quiet
-            goto done ;
-         }
-      }
-
-      netData =
-            dynamic_cast<clsShdNetData *>( userDataHolder->getUserDataPtr() ) ;
-      PD_CHECK( NULL != netData, SDB_SYS, error, PDERROR,
-                "Connection [Handle:%d, Node:%s] failed to convert user data",
-                handle, routeID2String( id ).c_str(),
-                msg2String( header, MSG_MASK_ALL, 0 ).c_str() ) ;
-
-      if ( !IS_GLOBTIME_TYPE( header->opCode ) )
-      {
-         netData->onReceiveMsg( availableSize, header->messageLength ) ;
-         goto done ;
-      }
-
-      // set opcode
-      netData->setOpCode( header->opCode ) ;
-
-      // acquire global logical time as received time
-      rc = netData->acquireRecvTime( availableSize,
-                                     header->messageLength ) ;
-      PD_RC_CHECK( rc, PDERROR, "Connection [Handle:%d, Node:%s] failed to "
-                   "acquire receive time for message [%s], rc: %d",
-                   handle, routeID2String( id ).c_str(),
-                   msg2String( header, MSG_MASK_ALL, 0 ).c_str(),
-                   rc ) ;
-
-#if defined (_DEBUG)
-      PD_LOG( PDDEBUG, "Connection [Handle:%d, Node:%s] acquired "
-              "receive time for message [%s], received at %s",
-              handle, routeID2String( id ).c_str(),
-              msg2String( header, MSG_MASK_ALL, 0 ).c_str(),
-              dpsTransTimeToString( netData->getRecvTime() ).c_str() ) ;
-#endif
-
-   done:
-      // clear flags
-      header->opCode = CLEAR_GLOBTIME_TYPE( header->opCode ) ;
-      return rc ;
-
-   error:
-      goto done ;
    }
 
    /*

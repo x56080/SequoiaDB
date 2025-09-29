@@ -42,7 +42,6 @@
 #include "utilBsonHash.hpp"
 #include "pdTrace.hpp"
 #include "ixmTrace.hpp"
-#include "utilStr.hpp"
 
 using namespace bson ;
 
@@ -595,8 +594,6 @@ namespace engine
       _b.appendBuf ( obj.objdata(), obj.objsize() ) ;
       _keyData = (const UINT8 *)_b.buf() ;
    }
-
-
    // compare of two compact buffer
    static INT32 compare(const UINT8 *&l, const UINT8 *&r)
    {
@@ -872,7 +869,6 @@ namespace engine
       return p - _keyData ;
    }
 
-<<<<<<< HEAD
    UINT32 _ixmKey::_hashCompact() const
    {
       UINT32 hashValue = 5381 ;
@@ -1166,34 +1162,4 @@ namespace engine
 
       return hashValue ;
    }
-=======
-   UINT32 _ixmKey::getFieldCount()const
-   {
-      if (!isValid())
-      {
-         return 0;
-      }
-      else if(!isCompactFormat())
-      {
-         // bson length + 1 byte type
-         return _bson().nFields();
-      }
-      else
-      {
-         UINT32 cnt = 0;
-         BOOLEAN more = FALSE;
-         const UINT8 *p = _keyData;
-         do
-         {
-            more = ( *p & cHASMORE )!=0 ;
-            p += sizeOfElement(p) ;
-            ++cnt;
-         } while ( more );
-
-         return cnt;
-      }
-   }
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 }
-

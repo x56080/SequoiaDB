@@ -133,11 +133,7 @@ namespace engine
                    DMS_SYSLOCALTASK_CL_NAME, rc ) ;
 
       rc = rtnTestAndCreateCL( DMS_SYSLOCALRECYCLEITEM_CL_NAME, cb, _dmsCB,
-<<<<<<< HEAD
                                NULL, DMS_LOCAL_RECYCLEITEM_CLUID, TRUE ) ;
-=======
-                               NULL, TRUE ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       PD_RC_CHECK( rc, PDERROR, "Failed to create collection [%s], rc: %d",
                    DMS_SYSLOCALRECYCLEITEM_CL_NAME, rc ) ;
 

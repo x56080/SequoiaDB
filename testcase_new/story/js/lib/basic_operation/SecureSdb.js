@@ -37,14 +37,9 @@ var tmpSecureSdb = {
    getDataSource: SecureSdb.prototype.getDataSource,
    getDomain: SecureSdb.prototype.getDomain,
    getRG: SecureSdb.prototype.getRG,
-<<<<<<< HEAD
-=======
-   getRecycleBin: SecureSdb.prototype.getRecycleBin,
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    getSequence: SecureSdb.prototype.getSequence,
    getSessionAttr: SecureSdb.prototype.getSessionAttr,
    getSpareRG: SecureSdb.prototype.getSpareRG,
-   getTask: SecureSdb.prototype.getTask,
    help: SecureSdb.prototype.help,
    invalidateCache: SecureSdb.prototype.invalidateCache,
    list: SecureSdb.prototype.list,
@@ -70,10 +65,6 @@ var tmpSecureSdb = {
    renameCS: SecureSdb.prototype.renameCS,
    renameSequence: SecureSdb.prototype.renameSequence,
    resetSnapshot: SecureSdb.prototype.resetSnapshot,
-   restoreAbort: SecureSdb.prototype.restoreAbort,
-   restoreCheck: SecureSdb.prototype.restoreCheck,
-   restorePrepare: SecureSdb.prototype.restorePrepare,
-   restoreToTime: SecureSdb.prototype.restoreToTime,
    setPDLevel: SecureSdb.prototype.setPDLevel,
    setSessionAttr: SecureSdb.prototype.setSessionAttr,
    snapshot: SecureSdb.prototype.snapshot,
@@ -134,14 +125,9 @@ SecureSdb.prototype.getDC=function(){try{return tmpSecureSdb.getDC.apply(this,ar
 SecureSdb.prototype.getDataSource=function(){try{return tmpSecureSdb.getDataSource.apply(this,arguments);}catch(e){throw new Error(e);}};
 SecureSdb.prototype.getDomain=function(){try{return tmpSecureSdb.getDomain.apply(this,arguments);}catch(e){throw new Error(e);}};
 SecureSdb.prototype.getRG=function(){try{return tmpSecureSdb.getRG.apply(this,arguments);}catch(e){throw new Error(e);}};
-<<<<<<< HEAD
-=======
-SecureSdb.prototype.getRecycleBin=function(){try{return tmpSecureSdb.getRecycleBin.apply(this,arguments);}catch(e){throw new Error(e);}};
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 SecureSdb.prototype.getSequence=function(){try{return tmpSecureSdb.getSequence.apply(this,arguments);}catch(e){throw new Error(e);}};
 SecureSdb.prototype.getSessionAttr=function(){try{return tmpSecureSdb.getSessionAttr.apply(this,arguments);}catch(e){throw new Error(e);}};
 SecureSdb.prototype.getSpareRG=function(){try{return tmpSecureSdb.getSpareRG.apply(this,arguments);}catch(e){throw new Error(e);}};
-SecureSdb.prototype.getTask=function(){try{return tmpSecureSdb.getTask.apply(this,arguments);}catch(e){throw new Error(e);}};
 SecureSdb.prototype.help=function(){try{return tmpSecureSdb.help.apply(this,arguments);}catch(e){throw new Error(e);}};
 SecureSdb.prototype.invalidateCache=function(){try{return tmpSecureSdb.invalidateCache.apply(this,arguments);}catch(e){throw new Error(e);}};
 SecureSdb.prototype.list=function(){try{return tmpSecureSdb.list.apply(this,arguments);}catch(e){throw new Error(e);}};
@@ -167,10 +153,6 @@ SecureSdb.prototype.removeSpareRG=function(){try{return tmpSecureSdb.removeSpare
 SecureSdb.prototype.renameCS=function(){try{return tmpSecureSdb.renameCS.apply(this,arguments);}catch(e){throw new Error(e);}};
 SecureSdb.prototype.renameSequence=function(){try{return tmpSecureSdb.renameSequence.apply(this,arguments);}catch(e){throw new Error(e);}};
 SecureSdb.prototype.resetSnapshot=function(){try{return tmpSecureSdb.resetSnapshot.apply(this,arguments);}catch(e){throw new Error(e);}};
-SecureSdb.prototype.restoreAbort=function(){try{return tmpSecureSdb.restoreAbort.apply(this,arguments);}catch(e){throw new Error(e);}};
-SecureSdb.prototype.restoreCheck=function(){try{return tmpSecureSdb.restoreCheck.apply(this,arguments);}catch(e){throw new Error(e);}};
-SecureSdb.prototype.restorePrepare=function(){try{return tmpSecureSdb.restorePrepare.apply(this,arguments);}catch(e){throw new Error(e);}};
-SecureSdb.prototype.restoreToTime=function(){try{return tmpSecureSdb.restoreToTime.apply(this,arguments);}catch(e){throw new Error(e);}};
 SecureSdb.prototype.setPDLevel=function(){try{return tmpSecureSdb.setPDLevel.apply(this,arguments);}catch(e){throw new Error(e);}};
 SecureSdb.prototype.setSessionAttr=function(){try{return tmpSecureSdb.setSessionAttr.apply(this,arguments);}catch(e){throw new Error(e);}};
 SecureSdb.prototype.snapshot=function(){try{return tmpSecureSdb.snapshot.apply(this,arguments);}catch(e){throw new Error(e);}};

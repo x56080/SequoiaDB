@@ -41,7 +41,6 @@
 #include "rtn.hpp"
 #include "utilMemListPool.hpp"
 #include "dpsUtil.hpp"
-#include "msgMessage.hpp"
 #include "pdTrace.hpp"
 #include "coordTrace.hpp"
 #include "auth.hpp"
@@ -66,15 +65,6 @@ namespace engine
    error:
       goto done;
    }
-
-   // require time synchronize between COORD and DATA nodes
-   // increase retry in case it needs retry after synchronization
-   // with STP servers
-   #define COORD_GLOB_TRANS_MAX_RETRY ( 10 )
-
-   // if RR transaction message is too long, if will have network delay issue
-   // which may cause not synchronization problem
-   #define COORD_MAX_PACK_TRANS_MESSAGE ( 128 * 1024 )
 
    /*
       _coordTransOperator implement
@@ -111,9 +101,7 @@ namespace engine
             /// otherwise begin transaction
             if ( !_canPushDownAutoCommit( inMsg, options, cb ) )
             {
-               rc = _groupSession.getPropSite()->beginTrans( cb, TRUE ) ;
-               PD_RC_CHECK( rc, PDERROR, "Failed to begin transaction, "
-                            "rc: %d", rc ) ;
+               _groupSession.getPropSite()->beginTrans( cb, TRUE ) ;
             }
 
             /// transaction should access with primary
@@ -136,22 +124,10 @@ namespace engine
             /// transaction should access with primary
             options._primary = TRUE ;
          }
-
-         // set max retry times for global transaction which might need retry
-         // to synchronize with global logical time with STP
-         if ( cb->isGlobTrans() )
-         {
-            _groupSession.getGroupCtrl()->
-                  setMaxRetryTimes( COORD_GLOB_TRANS_MAX_RETRY ) ;
-         }
       }
 
-      /// in below cases we need to send transaction begin separately,
-      /// - when data is old version
-      /// - when input message is too long, which may cause network delay
-      if ( _isTrans( cb, inMsg.msg() ) &&
-           ( ( _remoteHandler.isVersion0() ) ||
-             ( inMsg.msg()->messageLength > COORD_MAX_PACK_TRANS_MESSAGE ) ) )
+      /// when data is old version
+      if ( _remoteHandler.isVersion0() && _isTrans( cb, inMsg.msg() ) )
       {
          ROUTE_RC_MAP newNodeMap ;
          // build trans session on new data groups
@@ -340,13 +316,7 @@ namespace engine
          msgReq.header.opCode = MSG_BS_TRANS_BEGIN_REQ ;
          msgReq.header.routeID.value = 0 ;
          msgReq.header.TID = cb->getTID() ;
-         // for backward compatibility, transID field is global serial
-         // number
-         // NOTE: node ID of transaction ID is in routeID of message header
-         msgReq.transID = (UINT64)( cb->getTransID().getGlobSN() ) ;
-         // time error of logical time for global transaction
-         msgReq.transTimeError = cb->getTransTimeError() ;
-         msgReq.sendTime = 0LL ;
+         msgReq.transID = DPS_TRANS_GET_ID( cb->getTransID() ) ;
          ossMemset( msgReq.reserved, 0, sizeof( msgReq.reserved ) ) ;
 
          iterGroup = groupLst.begin() ;
@@ -362,12 +332,6 @@ namespace engine
 
          newNodeMap.clear() ;
          result._pOkRC = &newNodeMap ;
-
-         // call on transaction begin event, fill current time of message
-         rc = _remoteHandler.onTransBegin( &msgReq, cb ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to call on transaction begin "
-                      "event on remote handler, rc: %d", rc ) ;
-
          rc = coordOperator::doOnGroups( inMsg, options, cb, result ) ;
          // add ok route id to trans node id
          if ( newNodeMap.size() > 0 )
@@ -414,45 +378,7 @@ namespace engine
 
    INT32 _coordTransBegin::beginTrans( pmdEDUCB *cb, BOOLEAN isAutoCommit )
    {
-      INT32 rc = SDB_OK ;
-
-      rc = _groupSession.getPropSite()->beginTrans( cb, isAutoCommit ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to begin transaction, rc: %d", rc ) ;
-
-      if ( cb->isGlobTrans() )
-      {
-         _groupSession.getGroupCtrl()->
-               setMaxRetryTimes( COORD_GLOB_TRANS_MAX_RETRY ) ;
-      }
-
-   done:
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
-   // Add all groups to the transaction map. Normal transaction operations only
-   // add nodes/groups when their data is touched. This function is for the
-   // special case where all nodes are included by default.
-   INT32 _coordTransBegin::addAllGroups( pmdEDUCB *cb, BOOLEAN isWrite )
-   {
-      INT32 rc = SDB_OK ;
-      CoordGroupList groups;
-      // Get the list of groups
-      if ((rc = _pResource->updateGroupList(groups, cb, NULL, TRUE, TRUE,
-                                            FALSE)))
-      {
-         return rc;
-      }
-      // Add the primary node from each group to the trans map
-      for (CoordGroupList::iterator it = groups.begin(); it != groups.end(); ++it)
-      {
-         CoordGroupInfoPtr groupPtr;
-         _pResource->getGroupInfo(it->first, groupPtr);
-         _groupSession.getPropSite()->addTransNode(groupPtr->primary(), TRUE);
-      }
-      return rc;
+      return _groupSession.getPropSite()->beginTrans( cb, isAutoCommit ) ;
    }
 
    INT32 _coordTransBegin::execute( MsgHeader *pMsg,
@@ -487,8 +413,6 @@ namespace engine
       _coord2PhaseCommit implement
    */
    _coord2PhaseCommit::_coord2PhaseCommit()
-   : _preCommitTimeUS( 0 ),
-     _commitTimeUS( 0 )
    {
    }
 
@@ -549,30 +473,6 @@ namespace engine
          }
       }
 
-      // NOTE: we have send commit message to data nodes in advance, but now
-      // we need to reply to client at a right time. Because client may issue
-      // another transaction immediately after the reply, if we don't wait
-      // the commit time to be passed, the next transaction from the same
-      // client may not see the changes of this transaction
-      if ( cb->isGlobTrans() && _commitTimeUS > _preCommitTimeUS )
-      {
-         dpsTransCB *transCB = sdbGetTransCB() ;
-         stpLogicalTimeUS tempTime ;
-         INT32 timeout = (INT32)(
-               STP_MICROSEC_TO_MILLISEC( _commitTimeUS - _preCommitTimeUS ) ) ;
-         timeout = OSS_MIN( (INT32)( cb->getTransTimeout() ), timeout ) ;
-         INT32 tmpRC = transCB->getGlobTransTime( cb,
-                                                  _commitTimeUS,
-                                                  tempTime,
-                                                  timeout ) ;
-         if ( SDB_OK != tmpRC )
-         {
-            PD_LOG( PDWARNING, "Failed to get global logical time for "
-                    "delayed commit transaction [%s], rc: %d",
-                    dpsTransIDToString( cb->getTransID() ).c_str(), tmpRC ) ;
-         }
-      }
-
    done:
       return rc ;
    error:
@@ -596,24 +496,6 @@ namespace engine
       INT32 rc = SDB_OK;
       CHAR *pMsgReq                    = NULL ;
       INT32 msgSize                    = 0 ;
-      UINT32 retryCount                = 0 ;
-      SET_NODEID retryNodes ;
-
-      // phase 1: send commit messages
-
-   retry:
-      // in retry, release previous message
-      if ( retryCount > 0 )
-      {
-         if ( NULL != pMsgReq )
-         {
-            releasePhase1Msg( pMsgReq, msgSize, cb ) ;
-         }
-         if ( NULL != buf )
-         {
-            buf->release() ;
-         }
-      }
 
       rc = buildPhase1Msg( (const CHAR*)pMsg, &pMsgReq, &msgSize, cb ) ;
       if ( rc )
@@ -624,32 +506,9 @@ namespace engine
       }
 
       // execute on data nodes
-      rc = executeOnDataGroup( (MsgHeader*)pMsgReq, cb, contextID, buf,
-                               &retryNodes ) ;
-      if ( SDB_OK != rc )
+      rc = executeOnDataGroup( (MsgHeader*)pMsgReq, cb, contextID, buf ) ;
+      if ( rc )
       {
-         // check retry
-         if ( retryCount < COORD_GLOB_TRANS_MAX_RETRY &&
-              coordGlobTransCheckFlag( rc ) )
-         {
-            // global logical time used for global transaction is not
-            // synchronized with remote node, notify STP to synchronize,
-            // and retry again
-            stpAgent agent ;
-            INT32 tmpRC = agent.notifySync() ;
-            if ( SDB_OK == tmpRC )
-            {
-               PD_LOG( PDDEBUG, "Execute on data group failed in operator[%s] "
-                       "phase1, rc: %d, go retry", getName(), rc ) ;
-               ++ retryCount ;
-               goto retry ;
-            }
-            else
-            {
-               PD_LOG( PDWARNING, "Failed to notify STP to synchronize with "
-                       "server, rc: %d", tmpRC ) ;
-            }
-         }
          PD_LOG( PDERROR, "Execute on data group failed in operator[%s] "
                  "phase1, rc: %d", getName(), rc ) ;
          goto error ;
@@ -677,9 +536,7 @@ namespace engine
       CHAR *pMsgReq                    = NULL ;
       INT32 msgSize                    = 0 ;
 
-      // phase 2: send commit messages
-
-      rc = buildPhase2Msg( (const CHAR*)pMsg, &pMsgReq, &msgSize, cb, FALSE ) ;
+      rc = buildPhase2Msg( (const CHAR*)pMsg, &pMsgReq, &msgSize, cb ) ;
       if ( rc )
       {
          PD_LOG( PDERROR, "Build message failed in operator[%s] phase2, "
@@ -688,8 +545,7 @@ namespace engine
       }
 
       // execute on data nodes
-      rc = executeOnDataGroup( (MsgHeader*)pMsgReq, cb, contextID, buf,
-                               NULL ) ;
+      rc = executeOnDataGroup( (MsgHeader*)pMsgReq, cb, contextID, buf ) ;
       if ( rc )
       {
          PD_LOG( PDERROR, "Execute on data group failed in operator[%s] "
@@ -715,24 +571,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       CHAR *pMsgReq = NULL ;
       INT32 msgSize = 0 ;
-      UINT32 retryCount = 0 ;
-
-      // compact phase: pre-commit and commit messages are sent together
-      // in this case, only one group is involved in transaction
-
-   retry:
-      // in retry, release previous message
-      if ( retryCount > 0 )
-      {
-         if ( NULL != pMsgReq )
-         {
-            releaseCompactMsg( pMsgReq, msgSize, cb ) ;
-         }
-         if ( NULL != buf )
-         {
-            buf->release() ;
-         }
-      }
 
       rc = buildCompactMsg( ( const CHAR *)pMsg, &pMsgReq, &msgSize, cb ) ;
       if ( rc )
@@ -742,32 +580,9 @@ namespace engine
          goto error ;
       }
 
-      rc = executeOnDataGroup( (MsgHeader*)pMsgReq, cb, contextID, buf,
-                               NULL ) ;
-      if ( SDB_OK != rc )
+      rc = executeOnDataGroup( (MsgHeader*)pMsgReq, cb, contextID, buf ) ;
+      if ( rc )
       {
-         // check retry
-         if ( retryCount < COORD_GLOB_TRANS_MAX_RETRY &&
-              coordGlobTransCheckFlag( rc ) )
-         {
-            // global logical time used for global transaction is not
-            // synchronized with remote node, notify STP to synchronize,
-            // and retry again
-            stpAgent agent ;
-            INT32 tmpRC = agent.notifySync() ;
-            if ( SDB_OK == tmpRC )
-            {
-               PD_LOG( PDDEBUG, "Execute on data group failed in operator[%s] "
-                       "compact phase, rc: %d, go retry", getName(), rc ) ;
-               ++ retryCount ;
-               goto retry ;
-            }
-            else
-            {
-               PD_LOG( PDWARNING, "Failed to notify STP to synchronize with "
-                       "server, rc: %d", tmpRC ) ;
-            }
-         }
          PD_LOG( PDERROR, "Execute on data group failed in operator[%s] "
                  "compact phase, rc: %d", getName(), rc ) ;
          goto error ;
@@ -811,8 +626,7 @@ namespace engine
    INT32 _coordTransCommit::executeOnDataGroup( MsgHeader *pMsg,
                                                 pmdEDUCB *cb,
                                                 INT64 &contextID,
-                                                rtnContextBuf *buf,
-                                                SET_NODEID *retryNodes )
+                                                rtnContextBuf *buf )
    {
       INT32 rc = SDB_OK ;
       INT32 rcTmp = SDB_OK ;
@@ -826,9 +640,6 @@ namespace engine
       _coordSessionPropSite::MAP_TRANS_NODES_CIT cit ;
       const _coordSessionPropSite::MAP_TRANS_NODES *pNodeMap = NULL ;
 
-      BOOLEAN inRetry = ( NULL != retryNodes &&
-                          ( !retryNodes->empty() ) ) ;
-
       pNodeMap = _groupSession.getPropSite()->getTransNodeMap() ;
       cit = pNodeMap->begin() ;
 
@@ -837,17 +648,6 @@ namespace engine
 
       while( cit != pNodeMap->end() )
       {
-         // when in retry, we only check retry nodes
-         if ( inRetry &&
-              NULL != retryNodes &&
-              retryNodes->end() ==
-                    retryNodes->find( cit->second._nodeID.value ) )
-         {
-            // not found in retry nodes, skip it
-            ++ cit ;
-            continue ;
-         }
-
          pSub = pSession->addSubSession( cit->second._nodeID.value ) ;
          pSub->setReqMsg( pMsg, PMD_EDU_MEM_NONE ) ;
 
@@ -880,33 +680,9 @@ namespace engine
          pReply = (MsgOpReply *)pSub->getRspMsg() ;
          rcTmp = pReply->flags ;
 
-         _onReply( cb, pReply ) ;
-
          if ( rcTmp )
          {
-            // check if we can retry, if so, add to retry nodes
-            if ( NULL != retryNodes &&
-                 coordGlobTransCheckFlag( rcTmp ) )
-            {
-               if ( SDB_OK == rc || coordGlobTransCheckFlag( rc ) )
-               {
-                  try
-                  {
-                     retryNodes->insert( pSub->getNodeIDUInt() ) ;
-                  }
-                  catch( exception &e )
-                  {
-                     PD_LOG( PDERROR, "Failed to save retry node, error: %s",
-                             e.what() ) ;
-                     rcTmp = SDB_SYS ;
-                  }
-                  rc = rcTmp ;
-               }
-            }
-            else
-            {
-               rc = rc ? rc : rcTmp ;
-            }
+            rc = rc ? rc : rcTmp ;
             PD_LOG( PDERROR, "Data node[%s] commit transaction failed, rc: %d",
                     routeID2String( pReply->header.routeID ).c_str(),
                     rcTmp ) ;
@@ -915,11 +691,6 @@ namespace engine
          else
          {
             ++sucNum ;
-            if ( NULL != retryNodes )
-            {
-               // it is OK for retry, remove from retry nodes
-               retryNodes->erase( pSub->getNodeIDUInt() ) ;
-            }
          }
       }
 
@@ -945,7 +716,6 @@ namespace engine
                                             pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
-      dpsTransCB *transCB = sdbGetTransCB() ;
       UINT32 msgLen = 0 ;
       MsgOpTransCommitPre *pCommitPreMsg = NULL ;
       UINT32 i = 0 ;
@@ -958,10 +728,8 @@ namespace engine
       pNodeMap = _groupSession.getPropSite()->getTransNodeMap() ;
       writeTransNodes = _groupSession.getPropSite()->getWriteTransNodeSize() ;
 
-      // message + node list + send time
       msgLen = sizeof( MsgOpTransCommitPre ) +
-               writeTransNodes * sizeof( UINT64 ) +
-               sizeof( UINT64 ) ;
+               writeTransNodes * sizeof( UINT64 ) ;
 
       pCommitPreMsg = ( MsgOpTransCommitPre* )SDB_THREAD_ALLOC( msgLen ) ;
       if ( !pCommitPreMsg )
@@ -975,12 +743,7 @@ namespace engine
       pCommitPreMsg->header.routeID.value = MSG_INVALID_ROUTEID ;
       pCommitPreMsg->header.requestID = 0 ;
       pCommitPreMsg->header.TID = cb->getTID() ;
-<<<<<<< HEAD
       ossMemset( &(pCommitPreMsg->header.globalID), 0, sizeof(pCommitPreMsg->header.globalID) ) ;
-=======
-
-      /// build node info
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       pCommitPreMsg->nodeNum = writeTransNodes ;
 
       /// set node id
@@ -997,40 +760,6 @@ namespace engine
          }
       }
       SDB_ASSERT( i == writeTransNodes, "Write transaction node is invalid" ) ;
-
-      // set send time set for global write transaction
-      // NOTE: read transaction does not care about pre-commit or commit time
-      //       only pre-commit or commit time of write transactions will affect
-      //       visibility to other transactions
-      if ( cb->isGlobTrans() && writeTransNodes > 0 )
-      {
-         // global transaction requires commit time
-         stpLogicalTimeUS preCommitTime ;
-
-         // if global transaction arbitration is enabled, the transaction
-         // should be committed after a time error interval
-         rc = transCB->getGlobPreCommitTime( cb, preCommitTime ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to get logical time of "
-                      "transaction pre-commit, rc: %d", rc ) ;
-
-         // NOTE: pre-commit time uses time error of transaction begin time
-         cb->setTransPreCommitTime( preCommitTime ) ;
-
-         // set global time flag
-         pCommitPreMsg->header.opCode =
-               MAKE_GLOBTIME_TYPE( MSG_BS_TRANS_COMMITPRE_REQ ) ;
-
-         // we set send time here in case that we fail to generate send time
-         // in send message callback
-         MSG_TRANS_COMMIT_PRE_SET_SEND_TIME( pCommitPreMsg,
-                                             preCommitTime.getTime() ) ;
-
-         _preCommitTimeUS = preCommitTime.getTime() ;
-      }
-      else
-      {
-         MSG_TRANS_COMMIT_PRE_SET_SEND_TIME( pCommitPreMsg, 0LL ) ;
-      }
 
       *pMsg = ( CHAR* )pCommitPreMsg ;
       *pMsgSize = msgLen ;
@@ -1051,53 +780,18 @@ namespace engine
    INT32 _coordTransCommit::buildPhase2Msg( const CHAR *pReceiveBuffer,
                                             CHAR **pMsg,
                                             INT32 *pMsgSize,
-                                            pmdEDUCB *cb,
-                                            BOOLEAN inCompact )
+                                            pmdEDUCB *cb )
    {
-      INT32 rc = SDB_OK ;
-
-      UINT32 writeTransNodes = _groupSession.getPropSite()->getWriteTransNodeSize() ;
-
       _phase2Msg.header.messageLength = sizeof( _phase2Msg ) ;
       _phase2Msg.header.opCode = MSG_BS_TRANS_COMMIT_REQ ;
       _phase2Msg.header.routeID.value = MSG_INVALID_ROUTEID ;
       _phase2Msg.header.requestID = 0 ;
       _phase2Msg.header.TID = cb->getTID() ;
 
-      // for global write transaction:
-      // - in compact means the pre-commit and commit messages are compacted in
-      //   packet message, and are sent to DATA node together
-      //   in this case, only one DATA group is involved in transaction, the
-      //   the commit time will be generated by DATA node itself
-      // - otherwise, the transaction is on several DATA groups, so we need to
-      //   generate commit time based on the maximum pre-commit time
-      // NOTE: read transaction does not care about pre-commit or commit time
-      //       only pre-commit or commit time of write transactions will affect
-      //       visibility to other transactions
-      if ( cb->isGlobTrans() && !inCompact && writeTransNodes > 0 )
-      {
-         // the transaction is involved
-         dpsTransCB *transCB = sdbGetTransCB() ;
-         stpLogicalTimeUS commitTime ;
-
-         // use the last pre-commit as commit time
-         transCB->getGlobCommitTime( cb, commitTime ) ;
-
-         // NOTE: commit time uses time error of transaction begin time
-         cb->setTransCommitTime( commitTime ) ;
-         _phase2Msg.commitTime = commitTime.getTime() ;
-
-         _commitTimeUS = commitTime.getTime() ;
-      }
-      else
-      {
-         _phase2Msg.commitTime = 0LL ;
-      }
-
       *pMsg = ( CHAR* )&_phase2Msg ;
       *pMsgSize = _phase2Msg.header.messageLength ;
 
-      return rc ;
+      return SDB_OK ;
    }
 
    void _coordTransCommit::releasePhase2Msg( CHAR *pMsg,
@@ -1143,19 +837,16 @@ namespace engine
          }
          catch ( std::exception &e )
          {
-            /*
-             * For old driver, TransCommit message use the wrong length
-             * which can cause the exception when we build the hint here.
-             */
-            PD_LOG( PDDEBUG, "Build transcommit hint occur exception: %s",
-                    e.what() ) ;
+            PD_RC_CHECK( SDB_INVALIDARG, PDERROR,
+                         "Commit failed, received unexpected error: %s",
+                         e.what() ) ;
          }
       }
 
       // add last op info
       MON_SAVE_OP_DETAIL( cb->getMonAppCB(), MSG_BS_TRANS_COMMIT_REQ,
-                          "TransactionID: %s",
-                          dpsTransIDToString( curTransID ).c_str() ) ;
+                          "TransactionID: 0x%016x(%llu)",
+                          curTransID, curTransID ) ;
 
       rc = _coord2PhaseCommit::execute( pMsg, cb, contextID, buf ) ;
       if ( rc )
@@ -1210,7 +901,7 @@ namespace engine
          goto error ;
       }
 
-      rc = buildPhase2Msg( pReceiveBuffer, &pBuf2, &bufSize2, cb, TRUE ) ;
+      rc = buildPhase2Msg( pReceiveBuffer, &pBuf2, &bufSize2, cb ) ;
       if ( rc )
       {
          goto error ;
@@ -1258,76 +949,6 @@ namespace engine
       return TRUE ;
    }
 
-   INT32 _coordTransCommit::_onReply( pmdEDUCB *cb,
-                                      MsgOpReply *reply )
-   {
-      INT32 rc = SDB_OK ;
-
-      SDB_ASSERT( NULL != cb, "edu cb is invalid" ) ;
-      SDB_ASSERT( NULL != reply, "reply is invalid" ) ;
-
-      if ( ( cb->isGlobTrans() ) &&
-           ( MSG_BS_TRANS_COMMITPRE_REQ ==
-                           GET_REQUEST_TYPE( reply->header.opCode ) ) &&
-           ( SDB_OK == reply->flags ) &&
-           ( 1 <= reply->numReturned ) )
-      {
-         // extract pre-commit time for pre-commit response
-         stpLogicalTimeUS preCommitTime = cb->getTransPreCommitTime() ;
-         BSONObj replyObject ;
-         UINT64 nodePreCommitTime = 0LL ;
-
-         PD_CHECK( (UINT32)( reply->header.messageLength ) >=
-                   sizeof( MsgOpReply ) + replyObject.objsize(),
-                   SDB_INVALIDARG, error, PDERROR,
-                   "Failed to parse reply message for pre-commit transaction "
-                   "[%s], message length is mismatched, given %u, "
-                   "expecting >= %u",
-                   dpsTransIDToString( cb->getTransID() ).c_str(),
-                   (UINT32)( reply->header.messageLength ),
-                   sizeof( MsgOpReply ) + replyObject.objsize() ) ;
-         try
-         {
-            BSONElement ele ;
-
-            replyObject = BSONObj( (CHAR *)reply + sizeof( MsgOpReply ) ) ;
-
-            // get pre-commit time field
-            ele = replyObject.getField( FIELD_NAME_PRECOMMITTIME ) ;
-            PD_CHECK( NumberLong == ele.type(), SDB_SYS, error, PDERROR,
-                      "Failed to get field [%s], it is not number type",
-                      FIELD_NAME_PRECOMMITTIME ) ;
-
-            nodePreCommitTime = (UINT64)( ele.numberLong() ) ;
-         }
-         catch ( exception &e )
-         {
-            PD_LOG( PDERROR, "Failed to perse reply object, error: %s",
-                    e.what() ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-
-         // check if pre-commit time is delayed by DATA node
-         if ( nodePreCommitTime > preCommitTime.getTime() )
-         {
-            PD_LOG( PDDEBUG, "Delay pre-commit of transaction [%s] "
-                    "from [%llu] to [%llu]",
-                    dpsTransIDToString( cb->getTransID() ).c_str(),
-                    preCommitTime.getTime(), nodePreCommitTime ) ;
-
-            preCommitTime.setTime( nodePreCommitTime ) ;
-            cb->setTransPreCommitTime( preCommitTime ) ;
-         }
-      }
-
-   done:
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
    /*
       _coordTransRollback implement
    */
@@ -1363,13 +984,9 @@ namespace engine
 
       // add last op info
       MON_SAVE_OP_DETAIL( cb->getMonAppCB(), MSG_BS_TRANS_ROLLBACK_REQ,
-                          "TransactionID: %s",
-                          dpsTransIDToString( cb->getTransID() ).c_str() ) ;
-
-      if ( _groupSession.getPropSite()->getTransNodeSize() )
-      {
-         DMS_MON_OP_COUNT_INC( cb->getMonAppCB(), MON_TRANS_ROLLBACK, 1 ) ;
-      }
+                          "TransactionID: 0x%016x(%llu)",
+                          cb->getTransID(),
+                          cb->getTransID() ) ;
 
       if ( _groupSession.getPropSite()->getTransNodeSize() )
       {
@@ -1399,77 +1016,5 @@ namespace engine
       return FALSE ;
    }
 
-   // coordTransHandler constructor begins a global transaction
-   // PD_TRACE_DECLARE_FUNCTION( COORD_TRANSHANDLER, "coordTransHandler::coordTransHandler" )
-   coordTransHandler::coordTransHandler(pmdEDUCB *cb, coordResource *pResource,
-                                        BOOLEAN allGroups)
-       : _cb(cb), _pResource(pResource), _rc(SDB_OK), _committed(FALSE)
-   {
-      PD_TRACER_BEGIN(COORD_TRANSHANDLER, &_rc);
-      INT64 contextID;
-      engine::rtnContextBuf buf;
-      MsgHeader msg;
-      coordTransBegin opr;
-      // Perform coordTransBegin()
-      if ((_rc = opr.init(_pResource, _cb)) ||
-          (_rc = opr.execute(&msg, _cb, contextID, &buf)))
-      {
-         PD_LOG(PDERROR, "Transaction begin operation failed [rc=%d]", _rc);
-         return;
-      }
-      // Add all groups to the trans map so they get included in subsequent
-      // commit/rollback operations
-      if (allGroups && (_rc = opr.addAllGroups(_cb, TRUE)))
-      {
-         return;
-      }
-   }
-
-   // coordTransHandler destructor rolls back a global transaction if
-   // uncommitted
-   // PD_TRACE_DECLARE_FUNCTION( COORD_TRANSHANDLER_DES, "coordTransHandler::~coordTransHandler" )
-   coordTransHandler::~coordTransHandler()
-   {
-      PD_TRACER_BEGIN(COORD_TRANSHANDLER_DES, &_rc);
-      if (!_committed)
-      {
-         INT64 contextID;
-         engine::rtnContextBuf buf;
-         MsgHeader msg;
-         coordTransRollback opr;
-         // Perform coordTransRollback()
-         if ((_rc = opr.init(_pResource, _cb)) ||
-             (_rc = opr.execute(&msg, _cb, contextID, &buf)))
-         {
-            PD_LOG(PDERROR, "Transaction rollback operation failed [rc=%d]",
-                   _rc);
-         }
-      }
-   }
-
-   // Commit a global transactions
-   // PD_TRACE_DECLARE_FUNCTION( COORD_TRANSHANDLER_COMMIT, "coordTransHandler::commit" )
-   INT32 coordTransHandler::commit()
-   {
-      PD_TRACER_BEGIN(COORD_TRANSHANDLER_COMMIT, &_rc);
-      if (_committed)
-      {
-         PD_LOG(PDERROR, "Commit has already been called");
-         return (_rc = SDB_SYS);
-      }
-      INT64 contextID;
-      engine::rtnContextBuf buf;
-      MsgHeader msg;
-      coordTransCommit opr;
-      // Perform coordTransCommit()
-      if ((_rc = opr.init(_pResource, _cb)) ||
-          (_rc = opr.execute(&msg, _cb, contextID, &buf)))
-      {
-         PD_LOG(PDERROR, "Transaction commit operation failed [rc=%d]", _rc);
-         return _rc;
-      }
-      _committed = TRUE;
-      return _rc;
-   }
 }
 

@@ -74,89 +74,37 @@ namespace engine
       goto done ;
    }
 
-   // warning: any valud can not be value-passed
-   // push transaction ID into record
-   static INT32 dpsPushTransID( const DPS_TRANS_ID &transID,
-                                dpsLogRecord &record )
-   {
-      INT32 rc = SDB_OK ;
-
-      // must use pointer here
-      const DPS_TRANSID_NODEID *transIDNodeID = transID.getNodeIDPtr() ;
-      const DPS_TRANSID_SN *transIDSN = transID.getSNPtr() ;
-
-      // node ID component of transaction ID of V2
-      rc = record.push( DPS_LOG_PUBLIC_TRANSID_NODEID,
-                        sizeof( DPS_TRANSID_NODEID ),
-                        (const CHAR *)( transIDNodeID ) ) ;
-      if ( SDB_OK != rc )
-      {
-         goto error ;
-      }
-
-      // serial number component of transaction ID of V1
-      rc = record.push( DPS_LOG_PUBLIC_TRANSID,
-                        sizeof( DPS_TRANSID_SN ),
-                        (const CHAR *)( transIDSN ) ) ;
-      if ( SDB_OK != rc )
-      {
-         goto error ;
-      }
-
-   done:
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
    /// warning: any value can not be value-passed.
-   static INT32 dpsPushTran( const dpsRecordTransInfo &transInfo,
+   static INT32 dpsPushTran( const DPS_TRANS_ID &transID,
+                             const DPS_LSN_OFFSET &preTransLsn,
+                             const DPS_LSN_OFFSET &relatedLSN,
                              dpsLogRecord &record )
    {
       INT32 rc = SDB_OK ;
-
-      // check if transaction ID is valid
-      if ( transInfo._transID.isValid() )
+      if ( DPS_INVALID_TRANS_ID != transID )
       {
-         // push transaction ID
-         rc = dpsPushTransID( transInfo._transID, record ) ;
+         rc = record.push( DPS_LOG_PUBLIC_TRANSID,
+                           sizeof( transID ), (CHAR *)(&transID)) ;
          if ( SDB_OK != rc )
          {
             goto error ;
          }
       }
-      // add previous transaction LSN
-      if ( DPS_INVALID_LSN_OFFSET != transInfo._preTransLSN )
+      if ( DPS_INVALID_LSN_OFFSET != preTransLsn )
       {
          rc = record.push( DPS_LOG_PUBLIC_PRETRANS,
-                           sizeof( transInfo._preTransLSN ),
-                           (CHAR *)( &( transInfo._preTransLSN ) ) ) ;
+                           sizeof( preTransLsn ),
+                           (CHAR *)(&preTransLsn) ) ;
          if ( SDB_OK != rc )
          {
             goto error ;
          }
       }
-      // add related transaction LSN
-      if ( DPS_INVALID_LSN_OFFSET != transInfo._relatedLSN )
+      if ( DPS_INVALID_LSN_OFFSET != relatedLSN )
       {
          rc = record.push( DPS_LOG_PUBLIC_RELATED_TRANS,
-                           sizeof( transInfo._relatedLSN ),
-                           (CHAR *)( &( transInfo._relatedLSN ) ) ) ;
-         if ( SDB_OK != rc )
-         {
-            goto error ;
-         }
-      }
-      // for first operator of transaction, add time error of transaction
-      // begin time
-      // NOTE: time component of transaction begin time is compacted in
-      //       transaction ID
-      if ( transInfo._transID.isFirstOp() )
-      {
-         rc = record.push( DPS_LOG_PUBLIC_TRANS_TIME_ERROR,
-                           sizeof( UINT32 ),
-                           (CHAR *)( &( transInfo._beginTimeError ) ) ) ;
+                           sizeof( relatedLSN ),
+                           (CHAR *)( &relatedLSN ) ) ;
          if ( SDB_OK != rc )
          {
             goto error ;
@@ -168,42 +116,6 @@ namespace engine
       goto done ;
    }
 
-   /*
-      _dpsUnqIdxHashArray implement
-    */
-   INT32 _dpsUnqIdxHashArray::prepare( UINT32 unqIdxNum,
-                                       BOOLEAN isNew )
-   {
-      INT32 rc = SDB_OK ;
-
-      if ( unqIdxNum > 0 )
-      {
-         rc = resize( unqIdxNum ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed resize array for hash values "
-                      "with %u, rc: %d", unqIdxNum, rc ) ;
-         // reserved 0 for all values
-         ossMemset( _dynamicBuf, DPS_UNQIDX_INVALID_HASH,
-                    unqIdxNum * sizeof( UINT16 ) ) ;
-         _eleSize = unqIdxNum ;
-         _curSize = 0 ;
-      }
-      else
-      {
-         // clear elements
-         _eleSize = 0 ;
-         _curSize = 0 ;
-      }
-
-      _isNew = isNew ;
-
-   done:
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
-<<<<<<< HEAD
    /*
       _dpsUnqIdxHashArray implement
     */
@@ -240,20 +152,12 @@ namespace engine
    }
 
    void _dpsUnqIdxHashArray::saveKey( UINT32 hashValue )
-=======
-   void _dpsUnqIdxHashArray::saveKey( const BSONObj &key )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
       if ( _curSize < _eleSize )
       {
          // value from 1 - 65535
          _dynamicBuf[ _curSize ++ ] =
-<<<<<<< HEAD
                (UINT16)( hashValue % DPS_UNQIDX_HASH_MODULE ) + 1 ;
-=======
-               (UINT16)( ossHash( key.objdata(), key.objsize() ) %
-                                  DPS_UNQIDX_HASH_MODULE ) + 1 ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       }
    }
 
@@ -347,13 +251,9 @@ namespace engine
    INT32 dpsInsert2Record( const CHAR *fullName,
                            const BSONObj &obj,
                            const dpsUnqIdxHashArray *pUnqIdxHashArray,
-<<<<<<< HEAD
                            const DPS_TRANS_ID &transID,
                            const DPS_LSN_OFFSET &preTransLsn,
                            const DPS_LSN_OFFSET &relatedLSN,
-=======
-                           const dpsRecordTransInfo &transInfo,
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                            dpsLogRecord &record )
    {
       INT32 rc = SDB_OK ;
@@ -378,7 +278,7 @@ namespace engine
          goto error ;
       }
 
-      rc = dpsPushTran( transInfo, record ) ;
+      rc = dpsPushTran( transID, preTransLsn, relatedLSN, record ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to push trans to record, rc: %d", rc ) ;
@@ -478,13 +378,9 @@ namespace engine
                            const BSONObj &newShardingKey,
                            const dpsUnqIdxHashArray *pNewUnqIdxHashArray,
                            const dpsUnqIdxHashArray *pOldUnqIdxHashArray,
-<<<<<<< HEAD
                            const DPS_TRANS_ID &transID,
                            const DPS_LSN_OFFSET &preTransLsn,
                            const DPS_LSN_OFFSET &relatedLSN,
-=======
-                           const dpsRecordTransInfo &transInfo,
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                            const UINT32 *writeMod,
                            dpsLogRecord &record )
    {
@@ -539,7 +435,7 @@ namespace engine
          goto error ;
       }
 
-      rc = dpsPushTran( transInfo, record ) ;
+      rc = dpsPushTran( transID, preTransLsn, relatedLSN, record ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to push trans to record, rc: %d", rc ) ;
@@ -764,13 +660,9 @@ namespace engine
                            const BSONObj &oldObj,
                            const dpsUnqIdxHashArray *pUnqIdxHashArray,
                            const INT64 *position,
-<<<<<<< HEAD
                            const DPS_TRANS_ID &transID,
                            const DPS_LSN_OFFSET &preTransLsn,
                            const DPS_LSN_OFFSET &relatedLSN,
-=======
-                           const dpsRecordTransInfo &transInfo,
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                            dpsLogRecord &record )
    {
       INT32 rc = SDB_OK ;
@@ -796,7 +688,7 @@ namespace engine
          goto error ;
       }
 
-      rc = dpsPushTran( transInfo, record ) ;
+      rc = dpsPushTran( transID, preTransLsn, relatedLSN, record ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to push trans to record, rc: %d", rc ) ;
@@ -2040,20 +1932,13 @@ namespace engine
          goto error ;
       }
 
-<<<<<<< HEAD
       {
          dpsLogRecord::iterator itr ;
 
          rc = dpsGetTransIDFromRecord( record, TRUE, transID ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get transaction ID, rc: %d", rc ) ;
-=======
-      rc = dpsGetTransIDFromRecord( record, transID ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get transaction ID from record, "
-                   "rc: %d", rc ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
-      {
-         dpsLogRecord::iterator itr = record.find( DPS_LOG_PUBLIC_PRETRANS ) ;
+         itr = record.find( DPS_LOG_PUBLIC_PRETRANS ) ;
          if ( itr.valid() )
          {
             preTransLsn = *(DPS_LSN_OFFSET*)itr.value() ;
@@ -2143,7 +2028,8 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION( SDB__DPS_TRANSCOMMIT2RECORD, "dpsTransCommit2Record" )
-   INT32 dpsTransCommit2Record( const dpsRecordTransInfo &transInfo,
+   INT32 dpsTransCommit2Record( const DPS_TRANS_ID &transID,
+                                const DPS_LSN_OFFSET &preTransLsn,
                                 const DPS_LSN_OFFSET &firstTransLsn,
                                 const UINT8  &attr,
                                 const UINT32 *pNodeNum,
@@ -2155,8 +2041,9 @@ namespace engine
       dpsLogRecordHeader &header = record.head() ;
       header._type = LOG_TYPE_TS_COMMIT ;
 
-      // push transaction ID
-      rc = dpsPushTransID( transInfo._transID, record ) ;
+      rc = record.push( DPS_LOG_PUBLIC_TRANSID,
+                        sizeof( transID),
+                        (CHAR *)(&transID)) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to push transid to record, rc: %d", rc ) ;
@@ -2164,8 +2051,8 @@ namespace engine
       }
 
       rc = record.push( DPS_LOG_PUBLIC_PRETRANS,
-                        sizeof( transInfo._preTransLSN ),
-                        ( CHAR* )&( transInfo._preTransLSN ) ) ;
+                        sizeof( preTransLsn ),
+                        ( CHAR* )&preTransLsn ) ;
       if ( rc )
       {
          goto error ;
@@ -2218,34 +2105,6 @@ namespace engine
          }
       }
 
-      // for global transaction, commit needs logical time in the record
-      if ( transInfo._transID.isGlobTrans() )
-      {
-         // add time component
-         // NOTE: time error for pre-commit or commit,
-         //       will reuse time error of transaction begin time
-         // - DPS_TS_COMMIT_ATTR_PRE means pre-commit transaction record,
-         //   it should add global logical time for pre-commit
-         // - DPS_TS_COMMIT_ATTR_SND or no attribute means commit transaction
-         //   record, it should add global logical tim for commit transaction
-         if ( DPS_TS_COMMIT_ATTR_PRE == attr )
-         {
-            rc = record.push( DPS_LOG_PUBLIC_TRANS_TIME,
-                              sizeof( transInfo._preCommitTime ),
-                              (const CHAR *)( &( transInfo._preCommitTime ) ) ) ;
-         }
-         else
-         {
-            rc = record.push( DPS_LOG_PUBLIC_TRANS_TIME,
-                              sizeof( transInfo._commitTime ),
-                              (const CHAR *)( &( transInfo._commitTime ) ) ) ;
-         }
-         if ( SDB_OK != rc )
-         {
-            goto error ;
-         }
-      }
-
       rc = checkAndAddTimeInfo( record ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to add time info, rc = %d", rc ) ;
 
@@ -2258,7 +2117,9 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION( SDB__DPS_TRANSROLLBACK2RECORD, "dpsTransRollback2Record" )
-   INT32 dpsTransRollback2Record( const dpsRecordTransInfo &transInfo,
+   INT32 dpsTransRollback2Record( const DPS_TRANS_ID &transID,
+                                  const DPS_LSN_OFFSET &preTransLSN,
+                                  const DPS_LSN_OFFSET &relatedLSN,
                                   dpsLogRecord &record )
    {
       INT32 rc = SDB_OK ;
@@ -2268,7 +2129,7 @@ namespace engine
       dpsLogRecordHeader &header = record.head() ;
       header._type = LOG_TYPE_TS_ROLLBACK ;
 
-      rc = dpsPushTran( transInfo, record ) ;
+      rc = dpsPushTran( transID, preTransLSN, relatedLSN, record ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to push transaction information, "
                    "rc: %d", rc ) ;
 
@@ -2420,7 +2281,9 @@ namespace engine
                          const CHAR *data,
                          const UINT32 &pageSize,
                          const DMS_LOB_PAGEID &pageID,
-                         const dpsRecordTransInfo &transInfo,
+                         const DPS_TRANS_ID &transID,
+                         const DPS_LSN_OFFSET &preTransLsn,
+                         const DPS_LSN_OFFSET &relatedLSN,
                          dpsLogRecord &record )
    {
       INT32 rc = SDB_OK ;
@@ -2508,7 +2371,7 @@ namespace engine
          goto error ;
       }
 
-      rc = dpsPushTran( transInfo, record ) ;
+      rc = dpsPushTran( transID, preTransLsn, relatedLSN, record ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to push trans to record, rc: %d", rc ) ;
@@ -2669,7 +2532,9 @@ namespace engine
                           const CHAR *oldData,
                           const UINT32 &pageSize,
                           const DMS_LOB_PAGEID &pageID,
-                          const dpsRecordTransInfo &transInfo,
+                          const DPS_TRANS_ID &transID,
+                          const DPS_LSN_OFFSET &preTransLsn,
+                          const DPS_LSN_OFFSET &relatedLSN,
                           dpsLogRecord &record )
    {
       INT32 rc = SDB_OK ;
@@ -2775,7 +2640,7 @@ namespace engine
          goto error ;
       }
 
-      rc = dpsPushTran( transInfo, record ) ;
+      rc = dpsPushTran( transID, preTransLsn, relatedLSN, record ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to push trans to record, rc: %d", rc ) ;
@@ -2956,7 +2821,9 @@ namespace engine
                           const CHAR *data,
                           const UINT32 &pageSize,
                           const DMS_LOB_PAGEID &page,
-                          const dpsRecordTransInfo &transInfo,
+                          const DPS_TRANS_ID &transID,
+                          const DPS_LSN_OFFSET &preTransLsn,
+                          const DPS_LSN_OFFSET &relatedLSN,
                           dpsLogRecord &record )
    {
       INT32 rc = SDB_OK ;
@@ -3044,7 +2911,7 @@ namespace engine
          goto error ;
       }
 
-      rc = dpsPushTran( transInfo, record ) ;
+      rc = dpsPushTran( transID, preTransLsn, relatedLSN, record ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to push trans to record, rc: %d", rc ) ;
@@ -3524,17 +3391,8 @@ namespace engine
       rc = record.load( logRecord ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to load record, rc: %d", rc ) ;
 
-<<<<<<< HEAD
       rc = dpsGetTransIDFromRecord( record, isRequired, transID ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get transaction ID, rc: %d", rc ) ;
-=======
-      rc = dpsGetTransIDFromRecord( record, transID ) ;
-      if ( SDB_OK != rc )
-      {
-         // keep quiet, caller should check error if needed
-         goto error ;
-      }
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    done:
       PD_TRACE_EXITRC( SDB__DPS_GETTRANSIDFROMEREC, rc ) ;
@@ -3553,20 +3411,9 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__DPS_GETTRANSIDFROMEREC_REC ) ;
 
-<<<<<<< HEAD
-=======
-      DPS_TRANSID_NODEID transIDNodeID = DPS_INVALID_TRANSID_NODEID ;
-      DPS_TRANSID_SN transIDSN = DPS_INVALID_TRANSID_SN ;
-
-      // transaction ID of V0 doesn't have node ID component, we need to
-      // test the existence of DPS_LOG_PUBLIC_TRANSID_NODEID tag to find
-      // out version of transaction ID
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       dpsLogRecord::iterator itr = record.find( DPS_LOG_PUBLIC_TRANSID ) ;
-      if ( !itr.valid() )
+      if ( itr.valid() )
       {
-<<<<<<< HEAD
          DPS_TRANS_ID tmpTransID = *( (DPS_TRANS_ID *)( itr.value() ) ) ;
          itr = record.find( DPS_LOG_PUBLIC_TRANSID_NODEID ) ;
          if ( itr.valid() )
@@ -3593,236 +3440,10 @@ namespace engine
 
    done:
       PD_TRACE_EXITRC( SDB__DPS_GETTRANSIDFROMEREC_REC, rc ) ;
-=======
-         // NOTE: not all DPS records have transaction ID, to avoid
-         //       misunderstanding, no need to print error message, let the
-         //       caller to check and print errors
-         rc = SDB_SYS ;
-         goto error ;
-      }
-
-      transIDSN = *( (DPS_TRANSID_SN *)itr.value() ) ;
-
-      itr = record.find( DPS_LOG_PUBLIC_TRANSID_NODEID ) ;
-      if ( !itr.valid() )
-      {
-         // has no node ID tag, it is a transaction ID of V0
-         // which only uses DPS_LOG_PUBLIC_TRANSID tag
-         // convert to V1
-         PD_LOG( PDDEBUG, "There is no tag transaction node ID in record "
-                 "[offset: %llu, ver: %u]", record.head()._lsn,
-                 record.head()._version ) ;
-         transID.convertFromV0( transIDSN ) ;
-      }
-      else
-      {
-         // has node ID tag, it is a transaction ID of V1
-         transIDNodeID = *( (DPS_TRANSID_NODEID *)itr.value() ) ;
-         transID.setNodeID( transIDNodeID ) ;
-         transID.setSN( transIDSN ) ;
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB__DPS_GETTRANSIDFROMEREC_REC, rc ) ;
       return rc ;
 
    error:
       goto done ;
    }
-
-   // PD_TRACE_DECLARE_FUNCTION( SDB__DPS_GETTRANSTIMEFROMEREC, "dpsGetTransTimeFromRecord" )
-   INT32 dpsGetTransTimeFromRecord( const dpsLogRecord &record,
-                                    const DPS_TRANS_ID &transID,
-                                    stpLogicalTimeUS &time )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__DPS_GETTRANSTIMEFROMEREC ) ;
-
-      // no transaction time for non-global transactions
-      if ( !transID.isGlobTrans() )
-      {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-
-      // for global transactions, there is two logical time for transaction
-      // - transaction begin time: which is in record of first operator of
-      //   transaction
-      // - transaction commit time: which is in record of transaction
-      //   pre-commit or commit
-      // NOTE: no time error for pre-commit and commit record, which will
-      //       reuse time error of transaction begin time
-      if ( LOG_TYPE_TS_COMMIT == record.head()._type )
-      {
-         // pre-commit or commit DPS record of global transaction has
-         // commit time of transaction
-
-         // get time component
-         dpsLogRecord::iterator itr =
-                                 record.find( DPS_LOG_PUBLIC_TRANS_TIME ) ;
-         if ( !itr.valid() )
-         {
-            // print debug log, it might have no commit time for commit record
-            // ( in second commit phase )
-            PD_LOG( PDDEBUG, "Failed to get transaction time for commit "
-                    "record" ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-         time.setTime( *( (UINT64 *)( itr.value() ) ) ) ;
-      }
-      else if ( transID.isFirstOp() )
-      {
-         // get time error component
-         // NOTE: DPS record of first operator of transaction has
-         //       transaction begin time
-         dpsLogRecord::iterator itr =
-                     record.find( DPS_LOG_PUBLIC_TRANS_TIME_ERROR ) ;
-         if ( !itr.valid() )
-         {
-            PD_LOG( PDERROR, "Failed to get transaction time error for "
-                    "first operator record" ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-         // transaction time is compacted in transID
-         time.setTime( transID.getLogicalTime() ) ;
-         time.setTimeError( *( (UINT32 *)( itr.value() ) ) ) ;
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB__DPS_GETTRANSTIMEFROMEREC, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
-#if defined (SDB_ENGINE)
-   // PD_TRACE_DECLARE_FUNCTION( SDB__DPS_GETTRANSIDFROMEREQ, "dpsGetTransIDFromRequest" )
-   INT32 dpsGetTransIDFromRequest( const dpsWriteRequest &req,
-                                   DPS_TRANS_ID &transID )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__DPS_GETTRANSIDFROMEREQ ) ;
-
-      DPS_TRANSID_NODEID transIDNodeID = DPS_INVALID_TRANSID_NODEID ;
-      DPS_TRANSID_SN transIDSN = DPS_INVALID_TRANSID_SN ;
-      utilSlice s ;
-      transID.reset() ;
-
-      // transaction ID of V0 doesn't have node ID component, we need to
-      // test the existence of DPS_LOG_PUBLIC_TRANSID_NODEID tag to find
-      // out version of transaction ID
-
-      if ( !req.seek( DPS_LOG_PUBLIC_TRANSID, s ) )
-      {
-         // NOTE: not all DPS records have transaction ID, to avoid
-         //       misunderstanding, no need to print error message, let the
-         //       caller to check and print errors
-         rc = SDB_SYS ;
-         goto error ;
-      }
-
-      transIDSN = *( s.castTo<DPS_TRANSID_SN>() ) ;
-
-      if ( !req.seek( DPS_LOG_PUBLIC_TRANSID_NODEID, s ) )
-      {
-         // has no node ID tag, it is a transaction ID of V0
-         // which only uses DPS_LOG_PUBLIC_TRANSID tag
-         // convert to V1
-         transID.convertFromV0( transIDSN ) ;
-      }
-      else
-      {
-         // has node ID tag, it is a transaction ID of V1
-         transIDNodeID = *( s.castTo<DPS_TRANSID_NODEID>() ) ;
-         transID.setNodeID( transIDNodeID ) ;
-         transID.setSN( transIDSN ) ;
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB__DPS_GETTRANSIDFROMEREQ, rc ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
-      return rc ;
-
-   error:
-      goto done ;
-<<<<<<< HEAD
-=======
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION( SDB__DPS_GETTRANSTIMEFROMECTX, "dpsGetTransTimeFromCtx" )
-   INT32 dpsGetTransTimeFromCtx( const dpsWriteContext &ctx,
-                                 const DPS_TRANS_ID &transID,
-                                 stpLogicalTimeUS &time )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__DPS_GETTRANSTIMEFROMECTX ) ;
-
-      // no transaction time for non-global transactions
-      if ( !transID.isGlobTrans() )
-      {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-
-      // for global transactions, there is two logical time for transaction
-      // - transaction begin time: which is in record of first operator of
-      //   transaction
-      // - transaction commit time: which is in record of transaction
-      //   pre-commit or commit
-      // NOTE: no time error for pre-commit and commit record, which will
-      //       reuse time error of transaction begin time
-      if ( LOG_TYPE_TS_COMMIT == ctx.getRecord()._type )
-      {
-         // pre-commit or commit DPS record of global transaction has
-         // commit time of transaction
-
-         // get time component
-         utilSlice s;
-         if ( !ctx.getReq()->seek( DPS_LOG_PUBLIC_TRANS_TIME, s ) )
-         {
-            // print debug log, it might have no commit time for commit record
-            // ( in second commit phase )
-            PD_LOG( PDDEBUG, "Failed to get transaction time for commit "
-                    "record" ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-
-         time.setTime( *( s.castTo<UINT64>() ) ) ;
-      }
-      else if ( transID.isFirstOp() )
-      {
-         // get time error component
-         // NOTE: DPS record of first operator of transaction has
-         //       transaction begin time
-         utilSlice s;
-         if ( !ctx.getReq()->seek( DPS_LOG_PUBLIC_TRANS_TIME_ERROR, s) )
-         {
-            PD_LOG( PDERROR, "Failed to get transaction time error for "
-                    "first operator record" ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-
-         // transaction time is compacted in transID
-         time.setTime( transID.getLogicalTime() ) ;
-         time.setTimeError( *( s.castTo<UINT32>() ) ) ;
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB__DPS_GETTRANSTIMEFROMECTX, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
-   }
-#endif//SDB_ENGINE
 
 }

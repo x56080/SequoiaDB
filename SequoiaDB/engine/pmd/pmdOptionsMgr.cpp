@@ -113,16 +113,10 @@ namespace engine
    #define PMD_DFT_PREFINST_PERIOD     ( PREFER_INSTANCE_DEF_PERIOD )
    #define PMD_DFT_MAX_CONN            (0)   // unlimited
    #define PMD_DFT_LOGWRITEMOD         ( PMD_OPTION_LOG_WRITEMOD_INCREMENT_STR )
-<<<<<<< HEAD
-=======
-   #define PMD_DFT_MVCCRBSNUM          ( 16 )
-   #define PMD_MAX_MVCCRBSNUM          ( 128 )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    #define PMD_DFT_METACACHE_EXPIRED   (30) // half an hour
    #define PMD_MAX_METACACHE_EXPIRED   (43200) // 30 days
    #define PMD_DFT_METACACHE_LWM       (512)
    #define PMD_MAX_METACACHE_LWM       (10240)
-<<<<<<< HEAD
    #define PMD_DFT_STAT_MCV_LIMIT      (200000)  // number of sample records
    #define PMD_MAX_STAT_MCV_LIMIT      (2000000)
 
@@ -133,8 +127,6 @@ namespace engine
    #define PMD_DFT_MEM_MMAP_THRESHOLD  (1024)
    #define PMD_DFT_MEM_MMAP_MAX        (4194304)
    #define PMD_DFT_MEM_TOP_PAD         (-1)
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    /*
       _pmdCfgExchange implement
@@ -1954,9 +1946,6 @@ done:
       _traceOn             = FALSE ;
       _traceBufSz          = TRACE_DFT_BUFFER_SIZE ;
       _transactionOn       = TRUE ;
-      _mvccOn              = FALSE ;
-      _globTransOn         = FALSE ;
-      _globTransMaxTimeError = DPS_DEF_GLOBTRANS_MAXTIMEERROR ;
       _transIsolation      = DPS_TRANS_ISOLATION_DFT ;
       _transLockwait       = DPS_TRANS_LOCKWAIT_DFT ;
       _transAutoCommit     = DPS_TRANS_AUTOCOMMIT_DFT ;
@@ -2047,16 +2036,12 @@ done:
       _transAllowLockEscalation = DPS_TRANS_ALLOWLOCKESCALATION_DFT ;
       _transMaxLockNum = DPS_TRANS_MAXLOCKNUM_DFT ;
       _transMaxLogSpaceRatio = DPS_TRANS_MAXLOGSPACERATIO_DFT ;
-<<<<<<< HEAD
       _transConsistencyStrategy = SDB_CONSISTENCY_PRY_LOC_MAJOR ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       _detectDisk = TRUE ;
       _diagSecureOn = TRUE ;
       _metacacheexpired = PMD_DFT_METACACHE_EXPIRED ;
       _metacachelwm = PMD_DFT_METACACHE_LWM ;
-<<<<<<< HEAD
 
       _statMCVLimit = PMD_DFT_STAT_MCV_LIMIT ;
 
@@ -2084,8 +2069,6 @@ done:
       _wtEvictThreadsMin = DMS_DFT_WT_EVICT_THREADS_MIN ;
       _wtEvictThreadsMax = DMS_DFT_WT_EVICT_THREADS_MAX ;
       _wtCheckPointInterval = DMS_DFT_WT_CHECK_POINT_INTERVAL ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 #ifdef SDB_ENTERPRISE
 
@@ -2099,8 +2082,6 @@ done:
       ossMemset( _krcbConfFile, 0, sizeof( _krcbConfFile ) ) ;
       ossMemset( _krcbCatFile, 0, sizeof( _krcbCatFile ) ) ;
       _krcbSvcPort    = OSS_DFT_SVCPORT ;
-      _mvccRBSNum     = PMD_DFT_MVCCRBSNUM ;
-
       _invalidConfNum = 0 ;
    }
 
@@ -2338,21 +2319,6 @@ done:
       // --transactionOn
       rdxBooleanS( pEX, PMD_OPTION_TRANSACTIONON, _transactionOn, FALSE,
                    PMD_CFG_CHANGE_REBOOT, TRUE ) ;
-      // --mvccOn
-      rdxBooleanS( pEX, PMD_OPTION_MVCCON, _mvccOn, FALSE,
-                   PMD_CFG_CHANGE_REBOOT, FALSE ) ;
-
-      // --globtranson
-      rdxBooleanS( pEX, PMD_OPTION_GLOBTRANSON, _globTransOn, FALSE,
-                   PMD_CFG_CHANGE_REBOOT, FALSE ) ;
-
-      // --globtransmaxtimeerror
-      rdxInt( pEX, PMD_OPTION_GLOBTRANSMAXTIMEERROR, _globTransMaxTimeError,
-              FALSE, PMD_CFG_CHANGE_REBOOT, DPS_DEF_GLOBTRANS_MAXTIMEERROR,
-              TRUE ) ;
-      rdvMinMax( pEX, _globTransMaxTimeError, -1,
-                 DPS_MAX_GLOBTRANS_MAXTIMEERROR, TRUE ) ;
-
       // --transactiontimeout
       rdxUInt( pEX, PMD_OPTION_TRANSTIMEOUT, _transTimeout, FALSE,
                PMD_CFG_CHANGE_RUN, DPS_TRANS_DFT_TIMEOUT, FALSE ) ;
@@ -2621,7 +2587,6 @@ done:
       rdvMinMax( pEX, _transMaxLogSpaceRatio, DPS_TRANS_MAXLOGSPACERATIO_MIN,
                  DPS_TRANS_MAXLOGSPACERATIO_MAX ) ;
 
-<<<<<<< HEAD
       // --transonsistencystrategy
       rdxInt( pEX, PMD_OPTION_TRANSCONSISTENCYSTRATEGY, (INT32&)_transConsistencyStrategy,
               FALSE, PMD_CFG_CHANGE_RUN,
@@ -2629,8 +2594,6 @@ done:
       rdvMinMax( pEX, (INT32&)_transConsistencyStrategy, (INT32)SDB_CONSISTENCY_NODE,
                  (INT32)SDB_CONSISTENCY_PRY_LOC_MAJOR ) ;
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       // --monslowquerythreshold
       rdxUInt( pEX, PMD_OPTION_MON_SLOWQUERY_THRESHOLD, _slowQueryThreshold, FALSE,
                PMD_CFG_CHANGE_RUN, 300, TRUE ) ;
@@ -2649,14 +2612,6 @@ done:
                  sizeof( _serviceMaskStr ), FALSE, PMD_CFG_CHANGE_REBOOT,
                  PMD_SVC_MASK_NONE_STR ) ;
 
-<<<<<<< HEAD
-=======
-      // --mvccrbsnum
-      rdxUInt( pEX, PMD_OPTION_MVCCRBSNUM, _mvccRBSNum, FALSE,
-               PMD_CFG_CHANGE_REBOOT, PMD_DFT_MVCCRBSNUM, TRUE ) ;
-      rdvMinMax( pEX, _mvccRBSNum, 1, PMD_MAX_MVCCRBSNUM, TRUE ) ;
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       // --maxcontextnum
       rdxInt( pEX, PMD_OPTION_MAXCONTEXTNUM, _maxContextNum, FALSE,
               PMD_CFG_CHANGE_RUN, RTN_MAX_CTX_NUM_DFT, FALSE ) ;
@@ -2692,7 +2647,6 @@ done:
                PMD_CFG_CHANGE_RUN, PMD_DFT_METACACHE_LWM, FALSE ) ;
       rdvMinMax( pEX, _metacachelwm, 0, PMD_MAX_METACACHE_LWM, TRUE ) ;
 
-<<<<<<< HEAD
       // --statmvclimit
       rdxUInt( pEX, PMD_OPTION_STAT_MCV_LIMIT, _statMCVLimit, FALSE,
                PMD_CFG_CHANGE_RUN, PMD_DFT_STAT_MCV_LIMIT, TRUE ) ;
@@ -2804,8 +2758,6 @@ done:
       rdvMinMax( pEX, _wtCheckPointInterval, DMS_MIN_WT_CHECK_POINT_INTERVAL,
                  DMS_MAX_WT_CHECK_POINT_INTERVAL, TRUE ) ;
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       // end map
 
       return getResult () ;
@@ -2903,36 +2855,6 @@ done:
          _invalidConfNum++ ;
       }
       _logWriteModStr[0] = 0 ;
-
-      // mvccon check, requires transactionOn
-      if ( !_transactionOn && _mvccOn )
-      {
-         std::cerr << PMD_OPTION_MVCCON << " value error, use default"
-                   << endl ;
-         _mvccOn = FALSE ;
-      }
-      // for catalog, om, coord, no need to use mvcc
-      if ( SDB_ROLE_CATALOG == dbRole ||
-           SDB_ROLE_OM == dbRole ||
-           SDB_ROLE_COORD == dbRole )
-      {
-         _mvccOn = FALSE ;
-      }
-      // number of MVCC RBS collection spaces should be power of 2
-      if ( !ossIsPowerOf2( _mvccRBSNum ) )
-      {
-         // cut to power or 2
-         UINT32 tmpNum = ossNextPowerOf2( _mvccRBSNum ) ;
-         _mvccRBSNum = tmpNum >> 1 ;
-      }
-
-      // globtranson check, requires transactionon
-      if ( !_transactionOn && _globTransOn )
-      {
-         std::cerr << PMD_OPTION_GLOBTRANSON << " value error, use default"
-                   << endl ;
-         _globTransOn = FALSE ;
-      }
 
       // audit mask check
       _auditMask = 0 ;
@@ -4087,122 +4009,6 @@ done:
       }
       str[ len -1 ] = 0 ;
       return rc ;
-   }
-
-   #define OPT_ERROR_OUTPUT_NUM ( 3 )
-
-   INT32 optBuildErrorReport( const BSONObj &returnObj,
-                              BOOLEAN &hasError,
-                              string &returnStr )
-   {
-      INT32 rc = SDB_OK ;
-
-      BOOLEAN rebootFirstEntry  = TRUE ;
-      BOOLEAN forbidFirstEntry  = TRUE ;
-      BSONElement rebootEle ;
-      BSONElement forbidEle ;
-      INT32 rebootCount = 0 ;
-      INT32 forbidCount = 0 ;
-
-      hasError = FALSE ;
-
-      try
-      {
-         rebootEle = returnObj.getField( "Reboot" ) ;
-         if ( Array == rebootEle.type() )
-         {
-            BSONObjIterator iter( rebootEle.embeddedObject() ) ;
-            while ( iter.more() )
-            {
-               BSONElement ele = iter.next() ;
-               if ( String == ele.type() )
-               {
-                  if ( TRUE == rebootFirstEntry )
-                  {
-                     returnStr += "Config '" ;
-                     returnStr +=  ele.valuestr() ;
-
-                     rebootFirstEntry = FALSE ;
-                  }
-                  else
-                  {
-                     returnStr += ", '" ;
-                     returnStr +=  ele.valuestr() ;
-                  }
-                  returnStr += "'" ;
-                  rebootCount++ ;
-               }
-               if ( OPT_ERROR_OUTPUT_NUM == rebootCount )
-               {
-                  break ;
-               }
-            }
-         }
-
-         if ( rebootCount > 0 && rebootCount < OPT_ERROR_OUTPUT_NUM )
-         {
-            returnStr += " require(s) restart to take effect." ;
-         }
-         else if ( rebootCount == OPT_ERROR_OUTPUT_NUM )
-         {
-            returnStr += ", etc. require(s) restart to take effect." ;
-         }
-
-         forbidEle = returnObj.getField( "Forbidden" ) ;
-         if ( Array == forbidEle.type() )
-         {
-            BSONObjIterator iter( forbidEle.embeddedObject() ) ;
-            while ( iter.more() )
-            {
-               BSONElement ele = iter.next() ;
-               if ( String == ele.type() )
-               {
-                  if ( TRUE == forbidFirstEntry )
-                  {
-                     returnStr += " Config '" ;
-                     returnStr +=  ele.valuestr() ;
-                     forbidFirstEntry = FALSE ;
-                  }
-                  else
-                  {
-                     returnStr += ", '" ;
-                     returnStr +=  ele.valuestr() ;
-                  }
-                  returnStr += "'" ;
-                  forbidCount++ ;
-               }
-               if ( OPT_ERROR_OUTPUT_NUM == forbidCount )
-               {
-                  break ;
-               }
-            }
-         }
-
-         if ( forbidCount > 0 && forbidCount < OPT_ERROR_OUTPUT_NUM )
-         {
-            returnStr += " cannot be changed." ;
-         }
-         else if ( forbidCount == OPT_ERROR_OUTPUT_NUM )
-         {
-            returnStr += ", etc. cannot be changed." ;
-         }
-
-         hasError = rebootCount > 0 || forbidCount > 0 ;
-      }
-      catch ( exception &e )
-      {
-         PD_LOG( PDWARNING, "Exception during updateConf/deleteConf "
-                 "info parsing: %s",
-                 e.what() ) ;
-         rc = ossException2RC( &e ) ;
-         goto error ;
-      }
-
-   done:
-      return rc ;
-
-   error:
-      goto done ;
    }
 
 }

@@ -40,21 +40,16 @@
 
 namespace engine
 {
-   enum DPS_LOG_PUBLIC : UINT8
+   enum DPS_LOG_PUBLIC
    {
       DPS_LOG_PUBLIC_INVALID = 0,
       DPS_LOG_PUBLIC_BEGIN = 200,
       DPS_LOG_PUBLIC_FULLNAME = 201,         // cl full name
-
-      // transaction ID
-      // V0: whole transaction ID
-      // V1: serial number with global transaction tag
       DPS_LOG_PUBLIC_TRANSID = 202,
       DPS_LOG_PUBLIC_PRETRANS = 203,
       DPS_LOG_PUBLIC_RELATED_TRANS = 204,    // only for rollback trans,
                                              // mapping to really trans lsn
       DPS_LOG_PUBLIC_FIRSTTRANS = 205,
-<<<<<<< HEAD
       DPS_LOG_PUBLIC_TIME = 206,
 
       // 207 - 209 reserved for global transaction
@@ -64,31 +59,6 @@ namespace engine
 
       DPS_LOG_PUBLIC_NEW_UNQIDX_HASH = 210,
       DPS_LOG_PUBLIC_OLD_UNQIDX_HASH = 211
-=======
-      // real time of record ( related to --logtimeon option )
-      DPS_LOG_PUBLIC_TIME = 206,
-
-      // global transaction components
-      // node ID component for transaction ID of V1
-      DPS_LOG_PUBLIC_TRANSID_NODEID = 207,
-      // time component of logical time for global transaction
-      DPS_LOG_PUBLIC_TRANS_TIME = 208,
-      // time error component of logical time for global transaction
-      DPS_LOG_PUBLIC_TRANS_TIME_ERROR = 209,
-
-      DPS_LOG_PUBLIC_NEW_UNQIDX_HASH = 210,
-      DPS_LOG_PUBLIC_OLD_UNQIDX_HASH = 211,
-	  
-	  ///vessel only
-      DPS_LOG_PUBLIC_VESSEL_GPID = 220,
-      DPS_LOG_PUBLIC_VESSEL_FULL_PAGE_DUMP = 221,
-
-
-      DPS_LOG_PUBLIC_CL_UNIQUE_ID = 230,
-      DPS_LOG_PUBLIC_PAGE_ADDR = 231,
-      DPS_LOG_PUBLIC_OPL_NODE = 232,
-      DPS_LOG_PUBLIC_OPL_ROLLBACK_INFO = 233,
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    } ;
 
 /// number in public can not be used in definition !
@@ -128,12 +98,7 @@ namespace engine
       DPS_LOG_CSCRT_PAGESIZE = 2,
       DPS_LOG_CSCRT_LOBPAGESZ = 3,
       DPS_LOG_CSCRT_CSTYPE = 4,
-      DPS_LOG_CSCRT_CSUNIQUEID = 5,
-
-      ///vessel format
-      DPS_LOG_CSCRT_VESSEL_SID = 100,
-      DPS_LOG_CSCRT_VESSEL_META = 101,
-      DPS_LOG_CSCRT_VESSEL_OPTIONS = 102,
+      DPS_LOG_CSCRT_CSUNIQUEID = 5
    } ;
 
    enum DPS_LOG_CSDEL
@@ -154,21 +119,7 @@ namespace engine
       DPS_LOG_CLCRT_COMPRESS_TYPE = 2,
       DPS_LOG_CLCRT_EXT_OPTIONS = 3,
       DPS_LOG_CLCRT_CLUNIQUEID = 4,
-<<<<<<< HEAD
       DPS_LOG_CLCRT_IDIDX_DEF = 5
-=======
-      DPS_LOG_CLCRT_IDIDX_DEF = 5,
-
-      ///vessel format
-      /// DPS_LOG_PUBLIC_FULLNAME
-      /// DPS_LOG_PUBLIC_VESSEL_GPID
-      DPS_LOG_CLCRT_VESSEL_MBID = 100,
-      DPS_LOG_CLCRT_VESSEL_INNER_ID = 101,
-      DPS_LOG_CLCRT_VESSEL_LOGICAL_ID = 102,
-      DPS_LOG_CLCRT_VESSEL_ADJUNCT = 103,
-      
-      
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    } ;
 
    enum DPS_LOG_CLDEL
@@ -181,28 +132,7 @@ namespace engine
       DPS_LOG_IXCRT_IX = 1,
       DPS_LOG_IXCRT_IX_MODE = 2,
       DPS_LOG_IXCRT_OPTION = 3,
-<<<<<<< HEAD
-=======
-
-      ///vessel format
-      /// DPS_LOG_PUBLIC_FULLNAME
-      DPS_LOG_IXCRT_IX_SLOT = 100,
-      DPS_LOG_IXCRT_IX_INDEX_ID = 101,
-      DPS_LOG_IXCRT_IX_DEF_OBJ = 102,
-      
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    } ;
-
-   enum DPS_LOG_IXCRT_END
-   {
-      ///vessel format
-      /// DPS_LOG_PUBLIC_FULLNAME
-
-      DPS_LOG_IXCRT_END_IX_SLOT = 100,
-      DPS_LOG_IXCRT_END_IX_INDEX_ID = 101,
-      DPS_LOG_IXCRT_END_IX_NAME = 102,
-      DPS_LOG_IXCRT_END_RC = 103
-   };
 
    enum DPS_LOG_IXDEL
    {
@@ -290,73 +220,6 @@ namespace engine
       DPS_LOG_RETURN_OPTIONS = 1
    } ;
 
-<<<<<<< HEAD
-=======
-   /// logical page space page management
-   enum DPS_LOG_VESSEL_LPS_PM
-   {
-      DPS_LOG_VESSEL_LPS_PM_SID_AND_TYPE = 1,
-      DPS_LOG_VESSEL_LPS_PM_DELTA_LOG = 2,
-   };
-
-   enum DPS_LOG_VESSEL_COPY_PAGE
-   {
-      //DPS_LOG_PUBLIC_VESSEL_GPID
-      //DPS_LOG_PUBLIC_VESSEL_FULL_PAGE_DUMP
-      DPS_LOG_VESSEL_COPY_PAGE_LPID = 1,
-   };
-
-   enum DPS_LOG_VESSEL_CL_RECORD_UPDATE
-   {
-      //DPS_LOG_PUBLIC_VESSEL_GPID
-      DPS_LOG_VESSEL_CL_RECORD_UPDATE_LPID = 1,
-      DPS_LOG_VESSEL_CL_RECORD_UPDATE_MASK = 2,
-      DPS_LOG_VESSEL_CL_RECORD_UPDATE_OLD = 3,
-      DPS_LOG_VESSEL_CL_RECORD_UPDATE_NEW = 4,
-   };
-
-   enum DPS_LOG_VESSEL_ROUTE_PAGE_INSERT
-   {
-      //DPS_LOG_PUBLIC_VESSEL_GPID.
-      DPS_LOG_VESSEL_ROUTE_PAGE_INSERT_LPID = 1,
-      DPS_LOG_VESSEL_ROUTE_PAGE_INSERT_OLD_CNT = 2,
-      DPS_LOG_VESSEL_ROUTE_PAGE_INSERT_PAGES = 3,
-   };
-
-   enum DPS_LOG_VESSEL_RDP_INSERT
-   {
-      ///DPS_LOG_PUBLIC_FULLNAME
-      ///DPS_LOG_PUBLIC_TRANSID
-      ///DPS_LOG_PUBLIC_NEW_UNQIDX_HASH
-
-      // DPS_LOG_PUBLIC_VESSEL_GPID
-      DPS_LOG_VESSEL_RDP_INSERT_RID = 1,
-      DPS_LOG_VESSEL_RDP_INSERT_PAGE_HEAD = 2,
-      DPS_LOG_VESSEL_RDP_INSERT_OLD_PAGE_HEAD = 3,
-      DPS_LOG_VESSEL_RDP_INSERT_SLOT = 4,
-      DPS_LOG_VESSEL_RDP_INSERT_RECORD_AND_HEAD = 5,
-      DPS_LOG_VESSEL_RDP_INSERT_UNCOMPRESSED_RECORD = 6,
-      DPS_LOG_VESESL_RDP_INSERT_STRIPING = 7,
-   } ;
-
-   enum DPS_LOG_VESSEL_PAGE_INIT
-   {
-      // DPS_LOG_PUBLIC_VESSEL_GPID
-      DPS_LOG_VESSEL_PAGE_INIT_LPID = 1,
-      DPS_LOG_VESSEL_PAGE_INIT_PSV = 2,
-      DPS_LOG_VESSEL_PAGE_INIT_PAGE_TYPE = 3,
-      DPS_LOG_VESSEL_PAGE_INIT_ADJUNCT = 4
-   };//enum DPS_LOG_VESSEL_PAGE_INIT
-
-   enum DPS_LOG_VESSEL_CSMB_UPDATE
-   {
-      // DPS_LOG_PUBLIC_VESSEL_GPID
-      DPS_LOG_VESSEL_CSMB_UPDATE_MASK = 1,
-      DPS_LOG_VESSEL_CSMB_UPDATE_OLD = 2,
-      DPS_LOG_VESSEL_CSMB_UPDATE_NEW = 3
-   }; // enum DPS_LOG_VESSEL_CSMB_UPDATE
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 }
 
 #endif

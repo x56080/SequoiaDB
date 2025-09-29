@@ -272,13 +272,10 @@ namespace engine
                           _sptReturnVal &rval,
                           bson::BSONObj &detail ) ;
 
-<<<<<<< HEAD
       INT32 memTrim( const _sptArguments &arg,
                      _sptReturnVal &rval,
                      bson::BSONObj &detail ) ;
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       INT32 createSequence( const _sptArguments &arg,
                             _sptReturnVal &rval,
                             bson::BSONObj &detail ) ;
@@ -311,7 +308,6 @@ namespace engine
                              _sptReturnVal &rval,
                              bson::BSONObj &detail ) ;
 
-<<<<<<< HEAD
       INT32 createRole( const _sptArguments &arg,
                         _sptReturnVal &rval,
                         bson::BSONObj &detail);
@@ -364,8 +360,6 @@ namespace engine
                                  _sptReturnVal &rval,
                                  bson::BSONObj &detail );
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       INT32 resolve( const _sptArguments &arg,
                      UINT32 opcode,
                      BOOLEAN &processed,
@@ -373,22 +367,6 @@ namespace engine
                      BOOLEAN &setIDProp,
                      _sptReturnVal &rval,
                      BSONObj &detail ) ;
-
-      INT32 restoreToTime( const _sptArguments &arg,
-                           _sptReturnVal &rval,
-                           bson::BSONObj &detail ) ;
-
-      INT32 restoreCheck( const _sptArguments &arg,
-                          _sptReturnVal &rval,
-                          bson::BSONObj &detail ) ;
-
-      INT32 restoreAbort( const _sptArguments &arg,
-                          _sptReturnVal &rval,
-                          bson::BSONObj &detail ) ;
-
-      INT32 restorePrepare( const _sptArguments &arg,
-                            _sptReturnVal &rval,
-                            bson::BSONObj &detail ) ;
 
       static INT32 cvtToBSON( const CHAR* key, const sptObject &value,
                               BOOLEAN isSpecialObj, BSONObjBuilder& builder,

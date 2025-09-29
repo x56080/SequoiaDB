@@ -111,15 +111,12 @@ namespace engine
       _info._info.setNice( SCHED_NICE_MIN ) ;
 
       _lastEndNtyOffset = DPS_INVALID_LSN_OFFSET ;
-<<<<<<< HEAD
       _clLSNOffset = DPS_INVALID_LSN_OFFSET ;
       _syncBeginTick = 0 ;
       _totalDataSync = 0 ;
       _totalTimeSpent = 0 ;
       _lastSyncNode.value = MSG_INVALID_ROUTEID ;
       _lastSyncDetail[0] = 0 ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    }
 
    _clsDataSrcBaseSession::~_clsDataSrcBaseSession ()
@@ -1011,15 +1008,9 @@ namespace engine
             if ( TBSCAN == _scanType() )
             {
                ossScopedLock _lock( &_LSNlatch ) ;
-<<<<<<< HEAD
                _curRID = _context->lastRID() ;
                PD_LOG ( PDDEBUG, "Session[%s]: scan logical extent id: %u, offset: %u",
                         sessionName(), _curRID._extent, _curRID._offset ) ;
-=======
-               _curExtID = _context->lastExtLID() ;
-               PD_LOG ( PDDEBUG, "Session[%s]: scan logical extent id: %d",
-                        sessionName(), _curExtID ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             }
             else
             {
@@ -1165,18 +1156,12 @@ namespace engine
 
       // we should make sure the DPS logs for this batch of records
       // will be send right after them
-<<<<<<< HEAD
       DPS_LSN_OFFSET replayLSN = sdbGetReplCB()->getNtyReplayOffset() ;
       DPS_LSN_OFFSET preparedLSN = sdbGetReplCB()->getNtyLastOffset() ;
       DPS_LSN_OFFSET lastNtyLSN = _lastEndNtyOffset ;
       DPS_LSN_OFFSET lastClLSNOffset = _clLSNOffset ;
       DPS_LSN_OFFSET tempLSN = DPS_INVALID_LSN_OFFSET ;
       DPS_LSN_OFFSET tempCLsLSN = DPS_INVALID_LSN_OFFSET ;
-=======
-      DPS_LSN_OFFSET preparedLSN = sdbGetReplCB()->getNtyLastOffset() ;
-      DPS_LSN_OFFSET lastNtyLSN = _lastEndNtyOffset ;
-      DPS_LSN_OFFSET tempLSN = DPS_INVALID_LSN_OFFSET ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       if ( DPS_INVALID_LSN_OFFSET == preparedLSN )
       {
@@ -1187,10 +1172,7 @@ namespace engine
       {
          // first time to update, use the LSN from log manager
          _lastEndNtyOffset = preparedLSN ;
-<<<<<<< HEAD
          _clLSNOffset = collectionLSN ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          goto done ;
       }
 
@@ -1205,26 +1187,17 @@ namespace engine
          //   LSN which means the collection has not been updated recently
          //   and it is safe
          tempLSN = OSS_MIN( preparedLSN, collectionLSN ) ;
-<<<<<<< HEAD
          tempCLsLSN = OSS_MIN( replayLSN, collectionLSN ) ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       }
       else
       {
          // LSN from log manager is valid
          tempLSN = preparedLSN ;
-<<<<<<< HEAD
          tempCLsLSN = preparedLSN ;
       }
 
       _lastEndNtyOffset = OSS_MAX( lastNtyLSN, tempLSN ) ;
       _clLSNOffset      = OSS_MAX( lastClLSNOffset, tempCLsLSN ) ;
-=======
-      }
-
-      _lastEndNtyOffset = OSS_MAX( lastNtyLSN, tempLSN ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    done:
       PD_LOG( PDDEBUG, "Session[%s]: update last notify LSN from "
@@ -1235,7 +1208,6 @@ namespace engine
       PD_TRACE_EXIT( SDB__CLSDSBS__UPDNTYLSN ) ;
    }
 
-<<<<<<< HEAD
    void _clsDataSrcBaseSession::_printLastSyncDetail( INT32 opCode )
    {
       _totalTimeSpent = pmdGetTickSpanTime( _syncBeginTick ) ;
@@ -1257,8 +1229,6 @@ namespace engine
       MON_REPLACE_OP_DETAIL( eduCB()->getMonAppCB(), opCode, _lastSyncDetail ) ;
    }
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSDSBS_HNDFSMETA, "_clsDataSrcBaseSession::handleFSMeta" )
    INT32 _clsDataSrcBaseSession::handleFSMeta( NET_HANDLE handle,
                                                MsgHeader* header )
@@ -1837,7 +1807,7 @@ namespace engine
          /// Notify fullsync, So will kick the node from sync control nodes.
          /// In _processValidCLs, need to get lock of collection, If has some
          /// operators hold the lock and in sync control, will occur dead wait
-         _pRepl->getSyncManager()->notifyFullSync( header->routeID ) ;
+         _pRepl->syncMgr()->notifyFullSync( header->routeID ) ;
 
          /// process valid collections
          rc = _processValidCLs( _validCLs ) ;
@@ -2067,16 +2037,12 @@ namespace engine
       _LSNlatch.get() ;
       needRelease = TRUE ;
 
-      _LSNlatch.get() ;
-      needRelease = TRUE ;
-
       if ( !_init || _quit || offset < _beginLSNOffset )
       {
          goto done ;
       }
 
       needSetBeginLSN = TRUE ;
-<<<<<<< HEAD
       curLobKey = _curLobFetched ;
       PD_LOG( PDINFO,
               "Session[%s]: dps notify[suLID:%d, clLID:%d, "
@@ -2084,12 +2050,6 @@ namespace engine
               "curScan recordID[extID:%u, extOffset:%u], curLob [oid:%s, sequence:%u]",
               sessionName(), suLID, clLID, extID, extOffset, offset, _curRID._extent,
               _curRID._offset, curLobKey.first.toString().data(), curLobKey.second ) ;
-=======
-
-      PD_LOG ( PDINFO, "Session[%s]: dps notify[suLID:%d, clLID:%d, "
-               "extLID:%d, offset:%lld], curScan extLID:%d", sessionName(),
-               suLID, clLID, extLID, offset, _curExtID ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       // already complete collection
       it = _mapOveredCLs.find ( fullCLLID ) ;
@@ -2183,7 +2143,6 @@ namespace engine
          return TRUE ;
       }
 
-<<<<<<< HEAD
       if ( DPS_INVALID_LSN_OFFSET == _clLSNOffset )
       {
          // no logs need to sync.
@@ -2204,18 +2163,12 @@ namespace engine
          return FALSE ;
       }
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       if ( _beginLSNOffset >= _lastEndNtyOffset )
       {
          // begin lsn is greater than the lsn when meta info is fetched.
          return TRUE ;
       }
 
-<<<<<<< HEAD
-=======
-      DPS_LSN_OFFSET processed = sdbGetReplCB()->getNtyProcessedOffset() ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       if ( DPS_INVALID_LSN_OFFSET != processed &&
            _lastEndNtyOffset <= processed )
       {
@@ -2251,13 +2204,8 @@ namespace engine
          PD_LOG( PDWARNING, "Session[%s] not ready: Self node is "
                  "not recoverd from crash", sessionName() ) ;
       }
-<<<<<<< HEAD
       /// 4. unique id upgrade is not finished
       else if ( pmdGetKRCB()->getDMSCB()->nullCSUniqueIDCnt() > 0 )
-=======
-      /// 5. unique id upgrade is not finished
-      else if ( pmdGetKRCB()->getDMSCB()->getNullCSUniqueIDCnt() > 0 )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       {
          rc = SDB_DMS_UNQIUEID_UPGRADE ;
          PD_LOG( PDWARNING, "Session[%s] not ready: Upgrade for unique id "
@@ -2352,14 +2300,7 @@ namespace engine
          MON_CS_LIST::iterator itCS = csList.begin() ;
          while( itCS != csList.end() )
          {
-            // Skip SYSRBS CS during sync because it's local to node
-            if ( 0 == ossStrncmp( itCS->_name, SDB_DMSRBS_NAME,
-                                  (sizeof(SDB_DMSRBS_NAME) -1) ) )
-            {
-               csList.erase( itCS++ ) ;
-               continue ;
-            }
-            else if ( 0 == itCS->_collections.size() )
+            if ( 0 == itCS->_collections.size() )
             {
                curLen = b.bb().len() ;
                curReserved = b.bb().getReserveBytes() ;
@@ -2400,14 +2341,6 @@ namespace engine
          MON_CL_LIST::const_iterator itrCL = clList.begin() ;
          while( itrCL != clList.end() )
          {
-            // Skip SYSRBS CLs
-            if ( 0 == ossStrncmp( itrCL->_name, SDB_DMSRBS_NAME, 
-                                  (sizeof(SDB_DMSRBS_NAME)-1) ) )
-            {
-               clList.erase( itrCL++ ) ;
-               continue ;
-            }
-
             curLen = b.bb().len() ;
             curReserved = b.bb().getReserveBytes() ;
 
@@ -2442,14 +2375,6 @@ namespace engine
          MAP_SU_STATUS::iterator itValid = validCLs.begin() ;
          while( itValid != validCLs.end() )
          {
-            // Skip SYSRBS CLs
-            if ( 0 == ossStrncmp( itValid->second._clName, SDB_DMSRBS_NAME,
-                                  (sizeof(SDB_DMSRBS_NAME) - 1) ) )
-            {
-               validCLs.erase( itValid++ ) ;
-               continue ;
-            }
-
             curLen = b.bb().len() ;
             curReserved = b.bb().getReserveBytes() ;
 
@@ -3255,7 +3180,6 @@ namespace engine
             // to avoid conflicts with main-collecton LOB contexts
             rc = checker.enableCtxCheck( eduCB() ) ;
             if ( SDB_OK != rc )
-<<<<<<< HEAD
             {
                PD_LOG( PDWARNING, "Session[%s]: Failed to enable context "
                        "check for collection [%s], rc: %d", sessionName(),
@@ -3286,38 +3210,6 @@ namespace engine
             }
             else if ( !( result._isPassed ) )
             {
-=======
-            {
-               PD_LOG( PDWARNING, "Session[%s]: Failed to enable context "
-                       "check for collection [%s], rc: %d", sessionName(),
-                       _curCollecitonName.c_str(), rc ) ;
-               return FALSE ;
-            }
-
-            // get white list of transactions, who had already acquired write
-            // locks on the same collection, they must be finished before split
-            // NOTE: use S lock to exclusive X, IX, Z locks
-            rc = checker.enableTransCheck( eduCB(), _curCSLID, _curMBID,
-                                           DPS_TRANSLOCK_S, TRUE ) ;
-            if ( SDB_OK != rc )
-            {
-               PD_LOG( PDWARNING, "Session[%s]: Failed to enable transaction "
-                       "check for collection [%s], rc: %d", sessionName(),
-                       _curCollecitonName.c_str(), rc ) ;
-               return FALSE ;
-            }
-
-            rc = checker.check( eduCB(), result ) ;
-            if ( SDB_OK != rc )
-            {
-               PD_LOG( PDWARNING, "Session[%s]: Failed to check freezing "
-                       "window for collection [%s], rc: %d", sessionName(),
-                       _curCollecitonName.c_str(), rc ) ;
-               return FALSE ;
-            }
-            else if ( !( result._isPassed ) )
-            {
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                if ( CLS_FREEZING_CHECKER_TRANS == result._step )
                {
                   PD_LOG( PDINFO, "Session[%s] operator ID [%llu] : "
@@ -3548,9 +3440,6 @@ namespace engine
          }
       }
 
-      // End of split, make it so that restoreToTime cannot go beyond this
-      sdbGetTransCB()->pushRestoreWindow() ;
-
    done:
       PD_TRACE_EXIT ( SDB__CLSSPLSS_HNDEND ) ;
       return SDB_OK ;
@@ -3684,7 +3573,7 @@ namespace engine
                  "not recovered from crash", sessionName() ) ;
       }
       /// 5. unique id upgrade is not finished
-      else if ( pmdGetKRCB()->getDMSCB()->getNullCSUniqueIDCnt() > 0 )
+      else if ( pmdGetKRCB()->getDMSCB()->nullCSUniqueIDCnt() > 0 )
       {
          rc = SDB_DMS_UNQIUEID_UPGRADE ;
          PD_LOG( PDWARNING, "Session[%s] not ready: Upgrade for unique id "

@@ -107,11 +107,6 @@ namespace engine
          _read = _start + offset;
       }
 
-      OSS_INLINE void moveReadPtr(UINT32 size)
-      {
-         _read += size;
-      }
-
       OSS_INLINE CHAR *offset( UINT32 offset )const
       {
          return _start + offset;
@@ -127,11 +122,6 @@ namespace engine
       OSS_INLINE const CHAR *startPtr() const
       {
          return _start ;
-      }
-
-      OSS_INLINE UINT32 getUnreadSize() const
-      {
-         return (UINT32)(_write - _read);
       }
 
       INT32 extend( UINT32 len );

@@ -1268,11 +1268,7 @@ namespace DriverTest
             caseDic.Add(value9, expected9);
 
             int n = 1;
-<<<<<<< HEAD
             foreach(KeyValuePair<BsonValue,BsonValue> caseObj in caseDic)
-=======
-            foreach (KeyValuePair<BsonValue, BsonValue> caseObj in caseDic)
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             {
                 useKey = ((n++) % 2 == 0) ? lowercaseKey : uppercaseKey;
                 BsonDocument attribute = new BsonDocument(useKey, caseObj.Key);
@@ -1280,12 +1276,7 @@ namespace DriverTest
                 BsonElement result = sdb.GetSessionAttr(false).GetElement(originalKey);
                 Assert.IsTrue(result.Value == caseObj.Value);
             }
-<<<<<<< HEAD
         }
-=======
-        }
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
         [TestMethod()]
         public void getSessionAttr_Test()

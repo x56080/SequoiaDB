@@ -5,7 +5,6 @@
 
 import unittest
 import datetime
-import time
 from pysequoiadb.error import SDBBaseError
 from lib import testlib
 
@@ -45,21 +44,10 @@ class TestListTransactions12504(testlib.SdbTestBase):
       doc = []
       for i in range(0, 10000):
          doc.append({"a": i})
-<<<<<<< HEAD
       try:
          self.cl.bulk_insert(0, doc)
       except SDBBaseError as e:
          self.fail('insert fail: ' + str(e))
-=======
-      for j in range(0,10):
-         try:
-            self.cl.bulk_insert(0, doc)
-            break
-         except SDBBaseError as e:
-            if(e.code != -355 or j > 8):
-               self.fail('insert fail: ' + str(e))
-            time.sleep(1)
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
              
    def check_list(self, expect_result, act_result):
       is_has_sessionid = False

@@ -91,14 +91,11 @@ namespace engine
                                       coordCtrlParam &ctrlParam,
                                       SET_RC &ignoreRCList ) ;
          virtual void _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) {}
-<<<<<<< HEAD
 
          virtual BOOLEAN _supportMaintenanceMode() const
          {
             return TRUE ;
          }
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    } ;
    typedef _coordCmdSnapshotReset coordCmdSnapshotReset ;
 
@@ -818,11 +815,7 @@ namespace engine
             return COORD_SHOWERROR_IGNORE ;
          }
    } ;
-<<<<<<< HEAD
    typedef _coordCMDSnapshotTransDeadlockIntr coordCMDSnapshotTransDeadlockIntr ;
-=======
-   typedef _coordCMDSnapshotTransDeadlockIntr coordCMDSnapshotTransDeadlockIntr;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    /*
       _coordCMDSnapshotRecycleBin define

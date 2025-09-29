@@ -1,6 +1,5 @@
 /*******************************************************************************
 
-<<<<<<< HEAD
    Copyright (C) 2011-Present SequoiaDB Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,23 +13,6 @@
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
-=======
-
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
-
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
-
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    Source File Name = clsIndexJob.cpp
 
@@ -62,10 +44,6 @@ namespace engine
    // normal thread use it
    _clsIndexJob::_clsIndexJob( RTN_JOB_TYPE type, UINT32 locationID,
                                clsIdxTask* pTask )
-<<<<<<< HEAD
-=======
-   : _session( TRUE )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
       _type = type ;
 
@@ -106,20 +84,13 @@ namespace engine
 
       _threadMode = CLS_INDEX_NORMAL ;
       _retryLater = FALSE ;
-<<<<<<< HEAD
       _checkTasks = FALSE ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    }
 
    // rollback thread use it
    _clsIndexJob::_clsIndexJob( RTN_JOB_TYPE type,
                                dmsIdxTaskStatusPtr idxStatPtr,
                                CLS_INDEX_THREAD_MODE threadMod )
-<<<<<<< HEAD
-=======
-   : _session( TRUE )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
       _type = type ;
 
@@ -159,20 +130,12 @@ namespace engine
 
       _threadMode = threadMod ;
       _retryLater = FALSE ;
-<<<<<<< HEAD
       _checkTasks = FALSE ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    }
 
    void _clsIndexJob::_onAttach()
    {
-<<<<<<< HEAD
       _rtnIndexJob::_onAttach() ;
-=======
-      // attach cb for dummy session
-      _session.attachCB( eduCB() ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       // switch status if it is a rollback thread
       if ( _taskStatusPtr.get() )
@@ -213,7 +176,6 @@ namespace engine
             PD_LOG( PDWARNING, "Failed to push task[%llu] to retry", _taskID ) ;
          }
       }
-<<<<<<< HEAD
       else if ( _checkTasks &&
                 NULL != _clFullName &&
                 0 == clsCB->getTaskMgr()->taskCountByCL( _clFullName ) )
@@ -226,18 +188,11 @@ namespace engine
                     "rc: %d", tmpRC ) ;
          }
       }
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       // update task status to FINISH in catalog
       clsCB->getTaskEvent()->signal() ;
 
-<<<<<<< HEAD
       _rtnIndexJob::_onDetach() ;
-=======
-      // detach cb for dummy session
-      _session.detachCB() ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    }
 
    // master node use the function
@@ -293,11 +248,7 @@ namespace engine
       if ( CLS_INDEX_NORMAL == _threadMode || CLS_INDEX_RESTART == _threadMode )
       {
          rc = _startCatalogTask( _taskStatusPtr->taskID() ) ;
-<<<<<<< HEAD
          if ( SDB_DMS_EOC == rc || SDB_CAT_TASK_NOTFOUND == rc )
-=======
-         if ( SDB_DMS_EOC == rc || SDB_CAT_TASK_NOTFOUND == rc  )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          {
             _taskStatusPtr->setStatus2Finish( rc ) ;
             PD_LOG( PDWARNING,
@@ -313,11 +264,8 @@ namespace engine
                     "No need to execute task[%llu], already finished on "
                     "catalog, rc: %d", _taskStatusPtr->taskID(), rc ) ;
             rc = SDB_OK ;
-<<<<<<< HEAD
             // trigger task check to launch conflict tasks
             _checkTasks = TRUE ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             goto done ;
          }
          else if ( SDB_TASK_HAS_CANCELED == rc || SDB_TASK_ROLLBACK == rc )
@@ -990,10 +938,7 @@ namespace engine
       pmdEDUMgr* pEduMgr = pmdGetKRCB()->getEDUMgr() ;
       ossEvent* event    = _pClsCB->getTaskEvent() ;
       INT16 cntEmpty     = 0 ;
-<<<<<<< HEAD
       BOOLEAN needStartTaskCheck = FALSE ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       PD_LOG( PDDEBUG, "Start job[%s]", name() ) ;
 
@@ -1005,10 +950,7 @@ namespace engine
          event->wait( CLS_REPORT_TASK_INFO_INTERVAL ) ;
          pEduMgr->activateEDU( cb ) ;
          event->reset() ;
-<<<<<<< HEAD
          needStartTaskCheck = FALSE ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
          if ( PMD_IS_DB_DOWN() || !pmdIsPrimary() || cb->isForced() )
          {
@@ -1032,10 +974,7 @@ namespace engine
          else
          {
             cntEmpty = 0 ;
-<<<<<<< HEAD
             needStartTaskCheck = TRUE ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          }
 
          /// loop every task and update task progress to catalog
@@ -1053,7 +992,6 @@ namespace engine
                        it->first, rc ) ;
             }
          }
-<<<<<<< HEAD
 
          if ( needStartTaskCheck &&
               !_pTaskStatMgr->hasTaskToReport() &&
@@ -1061,8 +999,6 @@ namespace engine
          {
             _pClsCB->startAllTaskCheck() ;
          }
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       }
 
       PD_TRACE_EXITRC ( SDB__CLSTASKUPDJOB_DOIT, rc ) ;

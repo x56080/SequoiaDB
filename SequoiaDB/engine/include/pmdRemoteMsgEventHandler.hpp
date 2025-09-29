@@ -33,7 +33,6 @@
 
 #include "netMsgHandler.hpp"
 #include "netTimer.hpp"
-#include "stpLogicalTime.hpp"
 
 namespace engine
 {
@@ -54,25 +53,15 @@ namespace engine
 
          virtual INT32 handleMsg( const NET_HANDLE &handle,
                                   const _MsgHeader *header,
-                                  const CHAR *msg,
-                                  UINT64 msgUserData ) ;
+                                  const CHAR *msg ) ;
          virtual void  handleClose( const NET_HANDLE &handle, _MsgRouteID id ) ;
          virtual INT32 handleConnect( const NET_HANDLE &handle,
                                       _MsgRouteID id,
-                                      BOOLEAN isPositive,
-                                      netUserDataHolder *userDataHolder ) ;
-
-         virtual INT32 onSendMsg( const NET_HANDLE &handle,
-                                  const MsgRouteID &id,
-                                  MsgHeader *header ) ;
-
+                                      BOOLEAN isPositive ) ;
       protected:
          INT32 _postMsg( const NET_HANDLE &handle,
                          const MsgHeader *header,
                          const CHAR *msg = NULL ) ;
-
-         BOOLEAN  _setSendTime( MsgHeader *header,
-                                const stpLogicalTimeUS &sendTime ) ;
 
       protected:
          _pmdRemoteSessionMgr                *_pRSManager ;

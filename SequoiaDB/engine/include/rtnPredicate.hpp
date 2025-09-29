@@ -44,7 +44,6 @@
 #include <string>
 #include "ossMemPool.hpp"
 #include "utilPooledObject.hpp"
-#include "inclusiveVec.h"
 
 using namespace bson ;
 using namespace std ;
@@ -367,10 +366,10 @@ namespace engine
 
    private:
       // _equalFlag == 1 means is equal operation
-      mutable INT8 _equalFlag ;
+      INT8 _equalFlag ;
 
       // _allEqualFlag == 1 means all start-stop key-pairs are equal operation
-      mutable INT8 _allEqualFlag ;
+      INT8 _allEqualFlag ;
 
       INT8 _paramIndex ;
       INT8 _fuzzyIndex ;
@@ -460,7 +459,7 @@ namespace engine
          }
          return FALSE ;
       }
-      BOOLEAN isEquality () const
+      BOOLEAN isEquality ()
       {
          if ( -1 == _equalFlag )
          {
@@ -469,12 +468,12 @@ namespace engine
          }
          return _equalFlag == 1 ;
       }
-      BOOLEAN isAllEqual ()const
+      BOOLEAN isAllEqual ()
       {
          if ( -1 == _allEqualFlag )
          {
             UINT32 equalCount = 0 ;
-            for ( RTN_SSKEY_LIST::const_iterator iterSSKey = _startStopKeys.begin() ;
+            for ( RTN_SSKEY_LIST::iterator iterSSKey = _startStopKeys.begin() ;
                   iterSSKey != _startStopKeys.end() ;
                   iterSSKey ++ )
             {
@@ -691,11 +690,6 @@ namespace engine
          BSONObj getBound( BOOLEAN needAbbrev ) const ;
          BSONObj getBound() const ;
          BOOLEAN isAllRange() const ;
-<<<<<<< HEAD
-=======
-         BOOLEAN isAllEqual() const ;
-         BOOLEAN isPointGet() const ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
          const RTN_PREDICATE_LIST* getPredicateList() const
          {
@@ -761,7 +755,7 @@ namespace engine
    private :
       const rtnPredicateList &_predList ;
       VEC_ELE_CMP       _cmp ;
-      inclusiveVec       _inc ;
+      VEC_BOOLEAN       _inc ;
       VEC_INT32         _currentKey ;
       VEC_INT32         _prevKey ;
       // this variable is passed to ixm. When this variable is TRUE, it means we
@@ -771,7 +765,7 @@ namespace engine
       _rtnPredicateListIterator ( const rtnPredicateList &predList ) ;
       INT32 advance ( const BSONObj &curr ) ;
       const VEC_ELE_CMP &cmp() const { return _cmp ; }
-      const inclusiveVec &inc() const { return _inc ; }
+      const VEC_BOOLEAN &inc() const { return _inc ; }
       void reset() ;
       BOOLEAN after() { return _after ; }
       INT32 syncState( const _rtnPredicateListIterator *source ) ;

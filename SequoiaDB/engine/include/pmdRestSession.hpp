@@ -376,15 +376,9 @@ namespace engine
                                           restRequest &request,
                                           MsgHeader **msg ) ;
 
-<<<<<<< HEAD
          INT32      _convertListRecycleBin( restAdaptor * pAdaptor,
                                             restRequest & request,
                                             MsgHeader ** msg) ;
-=======
-         INT32       _convertListRecycleBin( restAdaptor *pAdaptor,
-                                             restRequest &request,
-                                             MsgHeader **msg ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
          //snapshot
          INT32       _convertSnapshotBase( restAdaptor *pAdaptor,
@@ -449,15 +443,9 @@ namespace engine
          INT32       _convertSnapshotTransDeadlock( restAdaptor * pAdaptor,
                                                     restRequest &request,
                                                     MsgHeader ** msg ) ;
-<<<<<<< HEAD
          INT32      _convertSnapshotRecycleBin ( restAdaptor * pAdaptor,
                                                  restRequest & request,
                                                  MsgHeader ** msg) ;
-=======
-         INT32       _convertSnapshotRecycleBin( restAdaptor * pAdaptor,
-                                                 restRequest &request,
-                                                 MsgHeader ** msg ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          INT32       _buildExecMsg( CHAR **ppBuffer, INT32 *bufferSize,
                                     const CHAR *pSql, UINT64 reqID ) ;
          INT32       _convertExec( restAdaptor *pAdaptor, restRequest &request,

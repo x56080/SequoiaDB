@@ -136,11 +136,7 @@
 5. 添加实例名为 mysqld3306 的数据库实例
 
     ```lang-bash
-<<<<<<< HEAD
     # bin/sdb_mysql_ctl addinst mysqld3306 -P 3306 -D database/3306
-=======
-    # bin/sdb_mysql_ctl addinst mysqld3306 -p 3306 -D database/3306
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     ```
 
 6. 停止实例

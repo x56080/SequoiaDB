@@ -3042,30 +3042,6 @@ namespace engine
       return TRUE ;
    }
 
-<<<<<<< HEAD
-=======
-   BOOLEAN _rtnPredicateList::isAllEqual() const
-   {
-      for ( RTN_PREDICATE_LIST::const_iterator iter = _predicates.begin() ;
-            iter != _predicates.end() ;
-            ++ iter )
-      {
-         if ( !iter->isAllEqual() )
-         {
-            return FALSE;
-         }
-      }
-      return TRUE;
-   }
-
-   BOOLEAN _rtnPredicateList::isPointGet() const
-   {
-      return 1 == _predicates.size() &&
-             1 == _predicates.begin()->_startStopKeys.size() &&
-             _predicates.begin()->isAllEqual();
-   }
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    // whether an element matches the i'th column
    // even result means the element is contained within a valid range
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNPREDLIST_MATLOWELE, "_rtnPredicateList::matchingLowElement" )
@@ -3212,14 +3188,15 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__RTNPREDLISTITE_ADVTOLOBOU ) ;
       _cmp[i] = &_predList._predicates[i]._startStopKeys[_currentKey[i]
                                                         ]._startKey._bound ;
-      _inc.set(i, _predList._predicates[i]._startStopKeys[_currentKey[i]
-                                                       ]._startKey._inclusive );
+      _inc[i] = _predList._predicates[i]._startStopKeys[_currentKey[i]
+                                                       ]._startKey._inclusive ;
       // reset all other following fields
       for ( INT32 j = i+1; j < (INT32)_currentKey.size(); ++j )
       {
          _cmp[j] =
             &_predList._predicates[j]._startStopKeys.front()._startKey._bound ;
-         _inc.set(j, _predList._predicates[j]._startStopKeys.front()._startKey._inclusive);
+         _inc[j] =
+          _predList._predicates[j]._startStopKeys.front()._startKey._inclusive ;
          _currentKey[j] = 0 ;
       }
       _after = FALSE ;
@@ -3292,8 +3269,8 @@ namespace engine
       {
          _cmp[i] =
             &_predList._predicates[i]._startStopKeys.front()._startKey._bound ;
-         _inc.set(i,
-           _predList._predicates[i]._startStopKeys.front()._startKey._inclusive);
+         _inc[i] =
+           _predList._predicates[i]._startStopKeys.front()._startKey._inclusive;
          _currentKey[i] = 0 ;
       }
       PD_TRACE_EXIT ( SDB__RTNPREDLISTITE_RESET ) ;
@@ -3319,7 +3296,10 @@ namespace engine
          _cmp[i] = source->_cmp[i] ;
       }
 
-      _inc = source->_inc;
+      for ( i = 0; i < (INT32)_inc.size(); ++i )
+      {
+         _inc[i] = source->_inc[i] ;
+      }
 
       for ( i = 0; i < (INT32)_currentKey.size(); ++i )
       {

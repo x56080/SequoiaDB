@@ -70,11 +70,7 @@ public class SysInfoResponse extends SysInfoHeader implements Response {
     }
 
     public SdbAuthVersion getAuthVersion() {
-<<<<<<< HEAD
         if ( authVersion == 1 ) {
-=======
-        if (authVersion == 1) {
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             return SdbAuthVersion.SDB_AUTH_SCRAM_SHA256;
         } else {
             return SdbAuthVersion.SDB_AUTH_MD5;

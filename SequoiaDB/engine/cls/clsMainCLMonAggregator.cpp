@@ -46,7 +46,7 @@ namespace engine
       mode = SHOW_MODE_SUB ;
       try
       {
-         BSONElement beOpt = hint.getField( "$" FIELD_NAME_OPTIONS ) ;
+         BSONElement beOpt = hint.getField( "$"FIELD_NAME_OPTIONS ) ;
          if ( Object == beOpt.type() )
          {
             BSONObjIterator itr ( beOpt.embeddedObject() ) ;

@@ -174,22 +174,17 @@ namespace exprt
    vector<string> passwdVec ;
 
    #define EXP_GENERAL_OPTIONS \
-      ( OPTION_HELP ",h",               /* no arg */      EXPLAIN_HELP ) \
+      ( OPTION_HELP",h",               /* no arg */      EXPLAIN_HELP ) \
       ( OPTION_VERSION,                /* no arg */      EXPLAIN_VERSION ) \
-      ( OPTION_HOSTNAME ",s",           _TYPE(string),    EXPLAIN_HOSTNAME ) \
-      ( OPTION_SVCNAME ",p",            _TYPE(string),    EXPLAIN_SVCNAME ) \
+      ( OPTION_HOSTNAME",s",           _TYPE(string),    EXPLAIN_HOSTNAME ) \
+      ( OPTION_SVCNAME",p",            _TYPE(string),    EXPLAIN_SVCNAME ) \
       ( OPTION_HOSTS,                  _TYPE(string),    EXPLAIN_HOSTS ) \
-<<<<<<< HEAD
       ( OPTION_USER",u",               _TYPE(string),    EXPLAIN_USER ) \
       ( OPTION_PASSWORD",w",           po::value< vector<string> >(&passwdVec)->multitoken()->zero_tokens(), EXPLAIN_PASSWORD ) \
-=======
-      ( OPTION_USER ",u",               _TYPE(string),    EXPLAIN_USER ) \
-      ( OPTION_PASSWORD ",w",           po::value< vector<string> >(&passwdVec)->multitoken()->zero_tokens(), EXPLAIN_PASSWORD ) \
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       ( OPTION_CIPHER,                 _TYPE(bool),      EXPLAIN_CIPHER ) \
       ( OPTION_TOKEN,                  _TYPE(string),    EXPLAIN_TOKEN ) \
       ( OPTION_CIPHERFILE,             _TYPE(string),    EXPLAIN_CIPHERFILE ) \
-      ( OPTION_DELRECORD ",r",          _TYPE(string),    EXPLAIN_DELRECORD ) \
+      ( OPTION_DELRECORD",r",          _TYPE(string),    EXPLAIN_DELRECORD ) \
       ( OPTION_FILELIMIT,              _TYPE(string),    EXPLAIN_FILELIMIT ) \
       ( OPTION_TYPE,                   _TYPE(string),    EXPLAIN_TYPE ) \
       ( OPTION_WITHID,                 _TYPE(bool),      EXPLAIN_WITHID ) \
@@ -199,8 +194,8 @@ namespace exprt
       ( OPTION_REPLACE,                /* no arg */      EXPLAIN_REPLACE )
 
    #define EXP_SINGLE_COLLECTION_OPTIONS \
-      ( OPTION_COLLECTSPACE ",c",       _TYPE(string),    EXPLAIN_COLLECTSPACE )\
-      ( OPTION_COLLECTION ",l",         _TYPE(string),    EXPLAIN_COLLECTION ) \
+      ( OPTION_COLLECTSPACE",c",       _TYPE(string),    EXPLAIN_COLLECTSPACE )\
+      ( OPTION_COLLECTION",l",         _TYPE(string),    EXPLAIN_COLLECTION ) \
       ( OPTION_SELECT,                 _TYPE(string),    EXPLAIN_SELECT ) \
       ( OPTION_FILTER,                 _TYPE(string),    EXPLAIN_FILTER ) \
       ( OPTION_SORT,                   _TYPE(string),    EXPLAIN_SORT ) \
@@ -217,8 +212,8 @@ namespace exprt
       ( OPTION_STRICT,                 _TYPE(bool),      EXPLAIN_STRICT )
 
    #define EXP_CSV_OPTIONS \
-      ( OPTION_DELCHAR ",a",            _TYPE(string),    EXPLAIN_DELCHAR ) \
-      ( OPTION_DELFIELD ",e",           _TYPE(string),    EXPLAIN_DELFIELD ) \
+      ( OPTION_DELCHAR",a",            _TYPE(string),    EXPLAIN_DELCHAR ) \
+      ( OPTION_DELFIELD",e",           _TYPE(string),    EXPLAIN_DELFIELD ) \
       ( OPTION_INCLUDE,                _TYPE(bool),      EXPLAIN_INCLUDE ) \
       ( OPTION_INCLUDEBINARY,          _TYPE(bool),      EXPLAIN_INCLUDEBINARY)\
       ( OPTION_INCLUDEREGEX,           _TYPE(bool),      EXPLAIN_INCLUDEREGEX )\

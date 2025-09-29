@@ -62,11 +62,7 @@ public class IdIndex10208 extends SdbTestBase {
 
     @Test
     public void test() throws Exception {
-<<<<<<< HEAD
         ThreadExecutor te = new ThreadExecutor( 180000 );
-=======
-        ThreadExecutor te = new ThreadExecutor();
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         for ( int i = 0; i < 10; i++ ) {
             te.addWorker( new DropIndex() );
         }

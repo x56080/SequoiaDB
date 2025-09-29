@@ -141,7 +141,6 @@ namespace engine
                                    utilWriteResult *pResult ) = 0 ;
 
       virtual INT32 onUpdateIndex( _dmsMBContext *context,
-                                   INT32 indexID,
                                    const ixmIndexCB *indexCB,
                                    BOOLEAN isUnique,
                                    BOOLEAN isEnforce,

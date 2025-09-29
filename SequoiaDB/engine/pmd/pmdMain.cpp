@@ -177,13 +177,11 @@ namespace engine
 
          if ( SDB_ROLE_STANDALONE == pmdGetDBRole() )
          {
-            dpsTransCB * transCB = pmdGetKRCB()->getTransCB() ;
             MsgRouteID standAloneID ;
             standAloneID.value             = MSG_INVALID_ROUTEID ;
             standAloneID.columns.groupID   = INVALID_GROUPID ;
             standAloneID.columns.nodeID    = DATA_NODE_ID_BEGIN ;
             pmdSetNodeID( standAloneID ) ;
-            transCB->onRegistered( standAloneID ) ;
          }
       }
 

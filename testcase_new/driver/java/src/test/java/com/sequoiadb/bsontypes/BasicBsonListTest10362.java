@@ -137,10 +137,6 @@ public class BasicBsonListTest10362 extends SdbTestBase {
             expected.put( "1", 1 );
             expected.put( "0", "test" );
             Assert.assertEquals( rmap, expected );
-<<<<<<< HEAD
-=======
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             Set< String > keySet = subResult1.keySet();
             System.out.println( "keySet=" + keySet.toString() );
 

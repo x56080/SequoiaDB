@@ -368,15 +368,8 @@ public class TestIndex {
         cl.createIndex(indexName, new BasicBSONObject(indexName, 1), null);
         sdb.analyze();
         BSONObject obj = cl.getIndexStat(indexName);
-<<<<<<< HEAD
         Assert.assertEquals(indexName, obj.get("Index"));
         Assert.assertEquals(cl.getFullName(), obj.get("Collection"));
-=======
-        BSONObject objDetail = cl.getIndexStat(indexName, true);
-        Assert.assertEquals(indexName, obj.get("Index"));
-        Assert.assertEquals(cl.getFullName(), obj.get("Collection"));
-        Assert.assertNotNull(objDetail.get("MCV"));
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
         // case 2, index no exist
         try {

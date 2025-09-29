@@ -1,5 +1,4 @@
 /*******************************************************************************
-<<<<<<< HEAD
 
    Copyright (C) 2011-Present SequoiaDB Ltd.
 
@@ -17,13 +16,6 @@
 
    
 *******************************************************************************/
-=======
-*@Description : Test connection pool of C++ driver, include _maxIdleCountTest
-*@Modify List :
-*               2021-10-14   QinCheng Yang
-*******************************************************************************/
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 #include <stdio.h>
 #include <gtest/gtest.h>
 #include "client.hpp"

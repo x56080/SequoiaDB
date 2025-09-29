@@ -46,10 +46,6 @@
 #include "catCommon.hpp"
 #include "clsCatalogAgent.hpp"
 #include "rtnAlterJob.hpp"
-<<<<<<< HEAD
-=======
-#include "utilDataSource.hpp"
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 #include "catTask.hpp"
 #include "catCommand.hpp"
 #include "authDef.hpp"
@@ -288,31 +284,7 @@ namespace engine
       {
          rc = ossException2RC( &e ) ;
          PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
-<<<<<<< HEAD
-=======
       }
-
-      rc = rtnGetIntElement( boQuery, CAT_CS_UNIQUEID,
-                             (INT32&)csUniqueID ) ;
-      if ( SDB_FIELD_NOT_EXIST == rc )
-      {
-         rc = rtnGetStringElement( boQuery, CAT_COLLECTION_SPACE_NAME,
-                                   &csName ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
-      }
-      PD_RC_CHECK( rc, PDERROR, "Failed to get field[%s] or field[%s], "
-                   "rc: %d", CAT_COLLECTION_SPACE_NAME,
-                    CAT_CS_UNIQUEID, rc ) ;
-
-      rc = rtnGetBooleanElement( boQuery, CAT_INCLUDE_SUBCL,
-                                 includeSubCLGroup ) ;
-      if ( SDB_FIELD_NOT_EXIST == rc )
-      {
-         includeSubCLGroup = TRUE ; // default is true
-         rc = SDB_OK ;
-      }
-      PD_RC_CHECK( rc, PDERROR, "Failed to get field[%s], rc: %d",
-                   CAT_INCLUDE_SUBCL, rc ) ;
 
       rc = rtnGetIntElement( boQuery, CAT_CS_UNIQUEID,
                              (INT32&)csUniqueID ) ;
@@ -376,19 +348,11 @@ namespace engine
          rc = catGetCSSubCLGroups( csName, _pEduCB, groupSet ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get groups for sub-collections "
                       "in collection space [%s], rc: %d", csName, rc ) ;
-<<<<<<< HEAD
 
          rc = catSaveToGroupIDList( groupSet, groups ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to save group list, rc: %d", rc ) ;
       }
 
-=======
-
-         rc = catSaveToGroupIDList( groupSet, groups ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to save group list, rc: %d", rc ) ;
-      }
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       try
       {
          BSONObjBuilder builder ;
@@ -1552,11 +1516,7 @@ namespace engine
             rc = processCmdDropDomain ( pQuery ) ;
             break ;
          case MSG_CAT_ALTER_DOMAIN_REQ :
-<<<<<<< HEAD
             rc = processCmdAlterDomain ( pQuery, ctxBuff ) ;
-=======
-            rc = processCmdAlterDomain ( pQuery ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             break ;
          default :
             rc = SDB_INVALIDARG ;
@@ -1932,7 +1892,6 @@ namespace engine
                          "domain [%s], rc: %d", task->getActionName(), domain,
                          rc ) ;
 
-<<<<<<< HEAD
             try
             {
                // Build return error group obj
@@ -1958,8 +1917,6 @@ namespace engine
          }
       }
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    done :
       PD_TRACE_EXITRC( SDB_CATALOGMGR_ALTERDOMAIN, rc ) ;
       return rc ;

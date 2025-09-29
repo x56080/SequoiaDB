@@ -338,7 +338,6 @@
 + 作用范围：Global
 + 是否支持在线修改生效：否
 
-<<<<<<< HEAD
 ###配置 TCP 探活###
 
 MySQL 实例组件基于 TCP 协议中的 KeepAlive 机制，以发送探测包的方式检测服务端与客户端间的连接状态。当客户端与服务端长时间未交互时，服务端将向客户端发送探测包以确认连接是否存活。
@@ -370,8 +369,6 @@ MySQL 实例组件基于 TCP 协议中的 KeepAlive 机制，以发送探测包�
 + 作用范围：global
 + 是否支持在线修改：是
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 ###其它配置###
 
 **sequoiadb_alter_table_overhead_threshold**
@@ -389,7 +386,6 @@ MySQL 实例组件基于 TCP 协议中的 KeepAlive 机制，以发送探测包�
 
 + 类型：boolean
 + 默认值：OFF
-<<<<<<< HEAD
 + 作用范围：Session
 + 是否支持在线修改生效：是
 
@@ -401,9 +397,6 @@ MySQL 实例组件基于 TCP 协议中的 KeepAlive 机制，以发送探测包�
 + 默认值：0
 + 取值范围：[0, 2]
 + 作用范围：Session
-=======
-+ 作用范围：Global,Session
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 + 是否支持在线修改生效：是
 
 **sequoiadb_debug_log**
@@ -435,7 +428,6 @@ MySQL 实例组件基于 TCP 协议中的 KeepAlive 机制，以发送探测包�
 + 作用范围： Global,Session
 + 是否支持在线修改生效：是
 
-<<<<<<< HEAD
 **sql_select_result_limit**
 
 该参数可以配置 select 语句执行后，期望返回的最大记录数。当查询到的记录数大于或等于该参数指定的值时，系统将依据参数 sql_select_result_limit_exceed_handling 的配置，做出相应的行为。
@@ -482,26 +474,10 @@ MySQL 实例组件基于 TCP 协议中的 KeepAlive 机制，以发送探测包�
 | character_set_server   | string | Yes | Global,Session  | utf8mb4 | 默认字符集 |
 | collation_server       | string | Yes | Global,Session  | utf8mb4_bin | 默认校对集 |
 | default_storage_engine | string | Yes | Global,Session  | SequoiaDB | 默认存储引擎 |
-=======
-##MySQL 常用系统配置##
-
-| 参数名                 | 类型   | 动态生效 | 动态范围   | 默认值  | 说明 |
-| ---------------------- | ----   | -------- | ---------- | ------- | ---- |
-| max_connections        | int32  | Yes | Global          | 1024    | 客户端最大连接数 |
-| max_prepared_stmt_count| int32  | Yes | Global          | 128000  | 最大预编译语句数 |
-| sql_mode               | set    | Yes | Global,Session | STRICT_TRANS_TABLES,<br>ERROR_FOR_DIVISION_BY_ZERO,<br>NO_AUTO_CREATE_USER,<br>NO_ENGINE_SUBSTITUTION | SQL 模式，取值意义可参考 [MySQL SQL 模式][sql_mode] |
-| character_set_server   | string | Yes | Global,Session | utf8mb4 | 默认字符集 |
-| collation_server       | string | Yes | Global,Session | utf8mb4_bin | 默认校对集 |
-| default_storage_engine | string | Yes | Global,Session | SequoiaDB | 默认存储引擎 |
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 | lower_case_table_names | int32  | No  | Global          | 1       | 表名大小写策略，取值如下：<br>0：表名以原格式存储，比较时区分大小写<br>1：表名以小写格式存储，比较时不区分大小写<br>2：表名以原格式存储，以小写进行比较|
 | optimizer_switch       | flagset| Yes | Global,Session | index_merge_intersection=off | 优化器开关，取值意义可参考 [MySQL 优化器开关][optimizer_switch] |
 | transaction_isolation  | enum   | Yes | Global,Session  | REPEATABLE-READ | 事务隔离级别，取值可参考 [MySQL 事务隔离级别配置][trans_isolation]<br>SequoiaDB v3.2.x/v3.4.x 版本不支持 RR 隔离级别，因此将 MySQL 实例的隔离级别配置为 REPEATABLE-READ 并连接至 SequoiaDB 时，隔离级别会自动降级为 READ-COMMITTED |
 
-<<<<<<< HEAD
-=======
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 > **Note:**
 >
 > * 在系统最大文件句柄数不足时，max_connections 可能被自动调整。如果发现修改该配置没有生效，可检查系统 limit 设置和 MySQL 日志。

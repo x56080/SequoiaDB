@@ -44,7 +44,6 @@ using namespace bson ;
 namespace engine
 {
    _clsDiskDetector::_clsDiskDetector()
-<<<<<<< HEAD
    {
       _isMonitoredRole = TRUE ;
       _lastTick = 0 ;
@@ -57,20 +56,6 @@ namespace engine
 
    INT32 _clsDiskDetector::detect()
    {
-=======
-   {
-      _isMonitoredRole = TRUE ;
-      _lastTick = 0 ;
-      _hasInit = FALSE ;
-   }
-
-   _clsDiskDetector::~_clsDiskDetector()
-   {
-   }
-
-   INT32 _clsDiskDetector::detect()
-   {
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       INT32  rc = SDB_OK ;
 
       if ( !_hasInit )

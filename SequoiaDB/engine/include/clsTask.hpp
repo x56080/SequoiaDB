@@ -192,14 +192,11 @@ namespace engine
                                                 BSONObj& matcher ) ;
 
          virtual INT32       toErrInfo( BSONObjBuilder& builder ) ;
-<<<<<<< HEAD
 
          virtual CLS_TASK_STATUS getTaskStatusByGroup( const CHAR* groupName )
          {
             return _status ;
          }
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       protected:
          UINT64                  _taskID ;
@@ -553,11 +550,8 @@ namespace engine
                                              BSONObj& updator,
                                              BSONObj& matcher ) ;
 
-<<<<<<< HEAD
          virtual CLS_TASK_STATUS getTaskStatusByGroup( const CHAR* groupName ) ;
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       protected:
          virtual INT32 _init( const CHAR *objdata ) = 0 ;
          virtual void  _toBson( BSONObjBuilder &builder ) = 0 ;

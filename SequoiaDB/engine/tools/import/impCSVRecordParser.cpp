@@ -4995,22 +4995,14 @@ namespace import
                                     BOOLEAN ignoreNull,
                                     BOOLEAN forceNotUTF8,
                                     BOOLEAN strictFieldNum,
-<<<<<<< HEAD
                                     BOOLEAN autoAddStrDel,
                                     BOOLEAN mustHasIDField)
-=======
-                                    BOOLEAN autoAddStrDel)
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    : RecordParser(fieldDelimiter,
                   stringDelimiter,
                   autoAddField,
                   autoAddValue,
-<<<<<<< HEAD
                   autoAddStrDel,
                   mustHasIDField),
-=======
-                  autoAddStrDel),
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
      _hasHeaderLine(hasHeaderLine)
    {
       _hasId = FALSE;

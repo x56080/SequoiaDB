@@ -80,8 +80,8 @@ namespace engine
 
          if ( bPop )
          {
-            _pSessionMgr->dispatchMsg( handle, pHeader, memType, 0LL,
-                                       TRUE, &hasDispatched ) ;
+            _pSessionMgr->dispatchMsg( handle, pHeader,memType,
+                                       TRUE,&hasDispatched ) ;
             if ( !hasDispatched )
             {
                SDB_OSS_FREE( ( CHAR* )pHeader ) ;

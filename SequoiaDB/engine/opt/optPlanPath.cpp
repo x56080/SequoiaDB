@@ -188,6 +188,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTSCANPATH_CRTIXSCAN, "_optScanPath::createIxScan" )
    INT32 _optScanPath::createIxScan ( const CHAR * pCollection,
+                                      const ixmIndexCB & indexCB,
                                       const rtnQueryOptions & queryOptions,
                                       optAccessPlanHelper & planHelper,
                                       OPT_PLAN_PATH_PRIORITY priority,
@@ -198,23 +199,21 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_OPTSCANPATH_CRTIXSCAN ) ;
 
+      SDB_ASSERT( pCollection, "pCollection is invalid" ) ;
+      SDB_ASSERT( collectionStat, "collectionStat is invalid" ) ;
+      SDB_ASSERT( indexStat, "indexStat is invalid" ) ;
+
       optIxScanNode *pIdxScan = NULL ;
-      CONST_INDEX_META_INFO_PTR pIndexInfo = indexStat->getIndexMeta();
-      SDB_ASSERT( pIndexInfo, "can not be nullptr" );
+
       if ( _pScanNode )
       {
          _deleteNodes() ;
          _pScanNode = NULL ;
       }
 
-<<<<<<< HEAD
       pIdxScan = SDB_OSS_NEW
                         optIxScanNode( pCollection, indexCB,
                                        planHelper.getOptCostThreshold() ) ;
-=======
-      pIdxScan = SDB_OSS_NEW optIxScanNode( queryOptions.getCLFullName(), pIndexInfo,
-                                            planHelper.getOptCostThreshold() );
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       PD_CHECK( pIdxScan, SDB_OOM, error, PDWARNING,
                 "Failed to allocate optIxScanNode" ) ;
 

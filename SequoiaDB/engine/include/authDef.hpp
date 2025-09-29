@@ -42,10 +42,7 @@ namespace engine
    #define AUTH_ROLE_COLLECTION           AUTH_SPACE ".SYSROLES"
 
    #define AUTH_USR_INDEX_NAME            "usrindex"
-<<<<<<< HEAD
    #define AUTH_ROLE_INDEX_NAME           "roleindex"
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    #define AUTH_INVALID_ROLE_ID           0xFFFFFFFF
 
@@ -59,7 +56,6 @@ namespace engine
    // Builtin role ids
    // Note: NEVER change the value of existing enum item, as they are used as
    //       the ids of builtin roles.
-<<<<<<< HEAD
    namespace oldRole {
       enum _authBuiltinRoleID
       {
@@ -89,14 +85,6 @@ namespace engine
    #define AUTH_ROLE_CS_READ "read"
    #define AUTH_ROLE_CS_READ_WRITE "readWrite"
    #define AUTH_ROLE_CS_ADMIN "admin"
-=======
-   enum _authBuiltinRoleID
-   {
-      AUTH_ROLE_ADMIN   = 0,           // can do everything
-      AUTH_ROLE_MONITOR = 1            // can do nothing except snapshot and list
-   } ;
-   typedef _authBuiltinRoleID authBuiltinRoleID ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 }
 
 #endif

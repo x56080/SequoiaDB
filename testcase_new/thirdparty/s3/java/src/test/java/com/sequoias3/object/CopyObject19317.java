@@ -68,15 +68,16 @@ public class CopyObject19317 extends S3TestBase {
         s3Client.putObject( bucketName, keyNameB, new File( filePath ) );
     }
 
-    // init keyNameB after copy
-    @AfterMethod
-    private void afterMethod() {
-        s3Client.deleteObject( bucketName, keyNameB );
-        s3Client.putObject( bucketName, keyNameB, new File( filePath ) );
-    }
-
     // a.setMetadataDirective is "COPY", object A copy to object B
     @Test
+    private void test() throws Exception {
+        testCopyObject_A();
+        testCopyObject_B();
+        testCopyObject_C();
+        testCopyObject_D();
+
+    }
+
     private void testCopyObject_A() throws Exception {
         CopyObjectRequest request = new CopyObjectRequest( bucketName, keyNameA,
                 bucketName, keyNameB );
@@ -84,11 +85,12 @@ public class CopyObject19317 extends S3TestBase {
         s3Client.copyObject( request );
         checkObjectAttribute( keyNameB, xMeta );
         checkObjectContent( keyNameB );
+        s3Client.deleteObject( bucketName, keyNameB );
+        s3Client.putObject( bucketName, keyNameB, new File( filePath ) );
         runSuccessNum++;
     }
 
     // b.setMetadataDirective is "REPLACE", object A copy to object B
-    @Test
     private void testCopyObject_B() throws Exception {
         CopyObjectRequest request = new CopyObjectRequest( bucketName, keyNameA,
                 bucketName, keyNameB );
@@ -96,11 +98,13 @@ public class CopyObject19317 extends S3TestBase {
         s3Client.copyObject( request );
         checkObjectAttribute( keyNameB, new HashMap< String, String >() );
         checkObjectContent( keyNameB );
+        // init keyNameB after copy
+        s3Client.deleteObject( bucketName, keyNameB );
+        s3Client.putObject( bucketName, keyNameB, new File( filePath ) );
         runSuccessNum++;
     }
 
     // c.setMetadataDirective is "COPY", srcObj and dstObj are objB
-    @Test
     private void testCopyObject_C() throws Exception {
         CopyObjectRequest request = new CopyObjectRequest( bucketName, keyNameB,
                 bucketName, keyNameB );
@@ -113,12 +117,13 @@ public class CopyObject19317 extends S3TestBase {
         }
         checkObjectAttribute( keyNameB, new HashMap< String, String >() );
         checkObjectContent( keyNameB );
+        s3Client.deleteObject( bucketName, keyNameB );
+        s3Client.putObject( bucketName, keyNameB, new File( filePath ) );
         runSuccessNum++;
     }
 
     // d.setMetadataDirective is "REPLACE", srcObj and dstObj are objB, and not
     // set metadata
-    @Test
     private void testCopyObject_D() throws Exception {
         CopyObjectRequest request = new CopyObjectRequest( bucketName, keyNameB,
                 bucketName, keyNameB );
@@ -126,6 +131,8 @@ public class CopyObject19317 extends S3TestBase {
         s3Client.copyObject( request );
         checkObjectAttribute( keyNameB, new HashMap< String, String >() );
         checkObjectContent( keyNameB );
+        s3Client.deleteObject( bucketName, keyNameB );
+        s3Client.putObject( bucketName, keyNameB, new File( filePath ) );
         runSuccessNum++;
     }
 

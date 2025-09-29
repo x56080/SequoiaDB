@@ -2,13 +2,8 @@
  * @Description   : 数据压缩公共方法
  * @Author        : XiaoNi Huang
  * @CreateTime    : 2016.03.23
-<<<<<<< HEAD
  * @LastEditTime  : 2023.02.08
  * @LastEditors   : liuli
-=======
- * @LastEditTime  : 2021.02.23
- * @LastEditors   : XiaoNi Huang
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
  ******************************************************************************/
 import( "../lib/basic_operation/commlib.js" );
 import( "../lib/main.js" );
@@ -50,7 +45,6 @@ function checkLzwAttributeByDataNode ( rgName, csName, clName, isCheckCompRatio 
       var nodeName = rc.current().toObj()["NodeName"];
       var nodeDB = null;
       try
-<<<<<<< HEAD
       {
          nodeDB = new Sdb( nodeName );
          var clInfo = nodeDB.snapshot( 4, { Name: csName + "." + clName } ).toArray();
@@ -96,28 +90,6 @@ function waitDictionary ( db, csName, clName )
       if( doTime >= timeOut )
       {
          throw new Error( "check timeout, dictionaryCreated is " + dictionaryCreated + ", detailed information:" + JSON.stringify( clInfo ) );
-=======
-      {
-         nodeDB = new Sdb( nodeName );
-         var clInfo = nodeDB.snapshot( 4, { Name: csName + "." + clName } ).toArray();
-         var details = JSON.parse( clInfo[0] ).Details[0];
-         assert.equal( details.Attribute, "Compressed", "clInfo = " + JSON.stringify( clInfo ) );
-         assert.equal( details.CompressionType, "lzw", "clInfo = " + JSON.stringify( clInfo ) );
-         assert.equal( details.DictionaryCreated, true, "clInfo = " + JSON.stringify( clInfo ) );
-         // 数据有压缩时检查压缩率 < 1
-         if( isCheckCompRatio )
-         {
-            if( details.CurrentCompressionRatio >= 1 )
-            {
-               throw new Error( "Expected compression ratio < 1, actually = " + details.CurrentCompressionRatio
-                  + ", clInfo = " + JSON.stringify( clInfo ) );
-            }
-         }
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
-      }
-      finally 
-      {
-         if( nodeDB != null ) nodeDB.close();
       }
    }
 }

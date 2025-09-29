@@ -109,16 +109,11 @@ TEST(logWrapperTest, recordInsert_1)
    CRE_OBJ(obj)
 
    dpsMergeInfo mergeInfo ;
-   dpsLogRecord &record = mergeInfo.getMergeBlock().record() ;
-   dpsRecordTransInfo transInfo ;
+   dpsLogRecord &record = mergeInfo.getMergeBlock().record();
    rc = dpsInsert2Record( name.c_str(),
-<<<<<<< HEAD
                           obj, unqIdxHashArray, DPS_INVALID_TRANS_ID,
                           DPS_INVALID_LSN_OFFSET,
                           DPS_INVALID_LSN_OFFSET,
-=======
-                          obj, unqIdxHashArray, transInfo,
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                           record ) ;
    ASSERT_TRUE( SDB_OK == rc ) ;
 

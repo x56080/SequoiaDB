@@ -225,7 +225,7 @@ namespace engine
     */
    _optStatListKey::_optStatListKey ()
    : ossPoolList<const rtnKeyBoundary *> (),
-     _rtnStatKey( TRUE )
+     _dmsStatKey( TRUE )
    {
    }
 
@@ -389,7 +389,7 @@ namespace engine
    _optStatElementKey::_optStatElementKey ( const BSONElement &element,
                                             BOOLEAN included )
    : BSONElement( element ),
-     _rtnStatKey( included )
+     _dmsStatKey( included )
    {
    }
 
@@ -540,7 +540,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__OPTSTATUNIT__EVALKEYPAIR, "_optStatUnit::_evalKeyPair" )
-   INT32 _optStatUnit::_evalKeyPair ( const CONST_INDEX_STAT_INFO_PTR &pIndexStat,
+   INT32 _optStatUnit::_evalKeyPair ( const dmsIndexStat *pIndexStat,
                                       rtnStatPredList::iterator &predIter,
                                       rtnStatPredList::iterator &endIter,
                                       optStatListKey &startKeys,
@@ -566,7 +566,6 @@ namespace engine
       {
          if ( isEqual && startKeys.size() == pIndexStat->getNumKeys() )
          {
-<<<<<<< HEAD
             rc = pIndexStat->evalETOperator( startKeys, curPredSelectivity, curScanSelectivity,
                                              predSelectivity, scanSelectivity ) ;
          }
@@ -578,14 +577,6 @@ namespace engine
                                                 curScanSelectivity,
                                                 predSelectivity,
                                                 scanSelectivity ) ;
-=======
-            rc = pIndexStat->evalETOperator( startKeys, predSelectivity, scanSelectivity );
-         }
-         else
-         {
-            rc = pIndexStat->evalRangeOperator( startKeys, stopKeys, predSelectivity,
-                                                scanSelectivity );
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          }
       }
       else
@@ -707,7 +698,6 @@ namespace engine
    /*
       _optIndexStat implement
     */
-<<<<<<< HEAD
    _optIndexStat::_optIndexStat ( const optCollectionStat &collectionStat,
                                   const ixmIndexCB &indexCB )
    : _optStatUnit( collectionStat.getTotalRecords( TRUE ) ),
@@ -715,16 +705,8 @@ namespace engine
      _pIndexStat( collectionStat.getIndexStat( indexCB.getLogicalID() ) ),
      _keyPattern( indexCB.keyPattern() ),
      _isUnique( indexCB.unique() )
-=======
-   _optIndexStat::_optIndexStat( const optCollectionStat &collectionStat,
-                                 const CONST_INDEX_META_INFO_PTR &pIndexMeta,
-                                 const CONST_INDEX_STAT_INFO_PTR &pIndexStat )
-   : _optStatUnit( collectionStat.getTotalRecords( TRUE ) )
-   , _collectionStat( collectionStat )
-   , _pIndexMeta( pIndexMeta )
-   , _pIndexStat( pIndexStat )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
+      _keyPattern = _keyPattern.getOwned() ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__OPTIDXSTAT_EVALPREDLIST, "_optIndexStat::evalPredicateList" )
@@ -780,8 +762,8 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__OPTIDXSTAT_EVALKEYPAIR, "_optIndexStat::evalKeyPair" )
    double _optIndexStat::evalKeyPair ( const CHAR *pFieldName,
-                                       rtnStatKey &startKey,
-                                       rtnStatKey &stopKey,
+                                       dmsStatKey &startKey,
+                                       dmsStatKey &stopKey,
                                        BOOLEAN isEqual,
                                        INT32 majorType,
                                        BOOLEAN mixCmp,
@@ -794,9 +776,8 @@ namespace engine
 
       if ( isValid() )
       {
-         if ( isEqual && startKey.size() == _pIndexMeta->getNumKeys() )
+         if ( isEqual && startKey.size() == _pIndexStat->getNumKeys() )
          {
-<<<<<<< HEAD
             FLOAT64 curSelectivity = _optStatGetEQSel( startKey.size() ) ;
             rc = _pIndexStat->evalETOperator( startKey,
                                               curSelectivity,
@@ -822,14 +803,6 @@ namespace engine
                                                  OPT_ROUND_SELECTIVITY( curSelectivity * curScanFanOut ),
                                                  predSelectivity,
                                                  scanSelectivity ) ;
-=======
-            rc = _pIndexStat->evalETOperator( startKey, predSelectivity, scanSelectivity );
-         }
-         else
-         {
-            rc = _pIndexStat->evalRangeOperator( startKey, stopKey, predSelectivity,
-                                                 scanSelectivity );
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          }
       }
 
@@ -851,68 +824,52 @@ namespace engine
    /*
       _optCollectionStat implement
     */
-   _optCollectionStat::_optCollectionStat ( const _optAccessPlanHelper & helper )
-   : _optStatUnit( RTN_STAT_DEF_TOTAL_RECORDS ),
-     _pageSizeLog2( 0 ),
-     _totalDataPages( RTN_STAT_DEF_TOTAL_PAGES ),
-     _totalDataSize( RTN_STAT_DEF_DATA_SIZE ),
+   _optCollectionStat::_optCollectionStat ( UINT32 pageSizeLog2,
+                                            _dmsMBContext * mbContext,
+                                            const _optAccessPlanHelper & helper,
+                                            const dmsStatCache * statCache )
+   : _optStatUnit( 0 ),
+     _pageSizeLog2( pageSizeLog2 ),
+     _totalDataPages( 0 ),
+     _totalDataSize( 0 ),
      _numIndexes( 0 ),
      _totalIndexPages( 0 ),
+     _totalIndexSize( 0 ),
      _avgIndexPages( 0 ),
-     _pCollectionMeta( helper.getCLMeta()),
-     _pCollectionStat( helper.getCLStat() ),
+     _avgIndexSize( 0 ),
+     _pCollectionStat( NULL ),
      _bestIndexStat( NULL )
    {
-      SDB_ASSERT( _pCollectionMeta, "can not be nullptr" );
-      // temporarily use the field from metadata to accommodate older version tests
-      _totalDataPages = _pCollectionMeta->getTotalDataPages();
-      _numIndexes = _pCollectionMeta->getIndexNum();
-      _pageSizeLog2 = _pCollectionMeta->getPageSizeLog2();
-
-      _initCurrentStat() ;
-
-      if ( _pCollectionMeta->getTotalDataPages() <=
-           static_cast< UINT32 >( helper.getOptCostThreshold() ) )
-      {
-         _pCollectionStat = nullptr;
-      }
+      SDB_ASSERT( NULL != mbContext, "mbContext is invalid" ) ;
+      _initCurrentStat( mbContext ) ;
+      _initHistoryStat( mbContext, helper, statCache ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTCLSTAT__INITCURSTAT, "_optCollectionStat::_initCurrentStat" )
-   void _optCollectionStat::_initCurrentStat()
+   void _optCollectionStat::_initCurrentStat( _dmsMBContext *mbContext )
    {
       PD_TRACE_ENTRY( SDB_OPTCLSTAT__INITCURSTAT ) ;
 
-<<<<<<< HEAD
       _totalRecords = mbContext->mbStat()->_totalRecords.fetch() ;
       _totalDataPages = mbContext->mbStat()->_totalDataPages ;
       _totalDataSize = mbContext->mbStat()->_totalOrgDataLen.fetch() ;
-=======
-      // others use from statistics
-      if ( _pCollectionStat )
-      {
-         _totalRecords = _pCollectionStat->getTotalRecords();
-         _totalDataSize = _pCollectionStat->getTotalDataSize();
-         
-         for ( UINT32 i = 0; i < _pCollectionMeta->getIndexNum(); ++i )
-         {
-            const CHAR * indexName = _pCollectionMeta->at( i )->getIndexName();
-            CONST_INDEX_STAT_INFO_PTR indexStat = _pCollectionStat->seek( indexName );
-            _totalIndexPages += indexStat ? indexStat->getIndexPages() : RTN_STAT_DEF_TOTAL_PAGES;
-         }
-      }
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
+      _numIndexes = mbContext->mb()->_numIndexes ;
       if ( _numIndexes > 0 )
       {
+         _totalIndexPages = mbContext->mbStat()->_totalIndexPages ;
+         _totalIndexSize = ( (UINT64)_totalIndexPages << _pageSizeLog2 ) -
+                           mbContext->mbStat()->_totalIndexFreeSpace ;
          _avgIndexPages =
                (UINT32)ceil( (double)_totalIndexPages / (double)_numIndexes ) ;
+         _avgIndexSize =
+               OPT_ROUND_NUM( (UINT64)ceil( (double)_totalIndexSize /
+                                            (double)_numIndexes ) ) ;
       }
 
       PD_TRACE_EXIT( SDB_OPTCLSTAT__INITCURSTAT ) ;
    }
 
-<<<<<<< HEAD
    void _optCollectionStat::_initHistoryStat (
                                     _dmsMBContext * mbContext,
                                     const _optAccessPlanHelper & planHelper,
@@ -946,8 +903,6 @@ namespace engine
          _pCollectionStat = NULL ;
       }
    }
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__OPTCLSTAT_EVALPREDSET, "_optCollectionStat::evalPredicateSet" )
    double _optCollectionStat::evalPredicateSet ( rtnPredicateSet &predicateSet,
@@ -960,7 +915,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB__OPTCLSTAT_EVALPREDSET ) ;
 
       RTN_PREDICATE_MAP predicates = predicateSet.predicates() ;
-      CONST_INDEX_STAT_INFO_PTR pIndexStat = nullptr ;
+      const dmsIndexStat *pIndexStat = NULL ;
 
       if ( predicates.size() == 0 )
       {
@@ -1037,8 +992,8 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__OPTCLSTAT_EVALKEYPAIR, "_optCollectionStat::evalKeyPair" )
    double _optCollectionStat::evalKeyPair ( const CHAR *pFieldName,
-                                            rtnStatKey &startKey,
-                                            rtnStatKey &stopKey,
+                                            dmsStatKey &startKey,
+                                            dmsStatKey &stopKey,
                                             BOOLEAN isEqual,
                                             INT32 majorType,
                                             BOOLEAN mixCmp,
@@ -1056,35 +1011,26 @@ namespace engine
       BOOLEAN stopIncluded = stopKey.isIncluded() ;
 
       // Try to use the field statistics first
-      CONST_INDEX_STAT_INFO_PTR pIndexStat = getIndexStat( pFieldName ) ;
+      const dmsIndexStat *pIndexStat = getFieldStat( pFieldName ) ;
       if ( pIndexStat )
       {
          if ( isEqual && pIndexStat->getNumKeys() == 1 )
          {
             optStatElementKey eleKey( beStart, TRUE ) ;
-<<<<<<< HEAD
             rc = pIndexStat->evalETOperator( eleKey,
                                              OPT_PRED_EQ_DEF_SELECTIVITY,
                                              OPT_PRED_EQ_DEF_SELECTIVITY,
                                              predSelectivity, scanSelectivity ) ;
-=======
-            rc = pIndexStat->evalETOperator( eleKey, predSelectivity, scanSelectivity );
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          }
          else
          {
             // First key only
             optStatElementKey startEleKey( beStart, startIncluded ) ;
             optStatElementKey stopEleKey( beStop, stopIncluded ) ;
-<<<<<<< HEAD
             double tmpSel = isEqual ? OPT_PRED_EQ_DEF_SELECTIVITY : OPT_PRED_RANGE_DEF_SELECTIVITY ;
             rc = pIndexStat->evalRangeOperator( startEleKey, stopEleKey,
                                                 isEqual ? 1 : 0, tmpSel, tmpSel,
                                                 predSelectivity, scanSelectivity ) ;
-=======
-            rc = pIndexStat->evalRangeOperator( startEleKey, stopEleKey, predSelectivity,
-                                                scanSelectivity );
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          }
       }
 
@@ -1119,13 +1065,12 @@ namespace engine
       PD_TRACE_ENTRY( SDB__OPTCLSTAT_EVALETOPTR ) ;
 
       // Try to use the field statistics first
-      CONST_INDEX_STAT_INFO_PTR pIndexMeta = getIndexStat( pFieldName ) ;
-      if ( pIndexMeta && pIndexMeta->isValidForEstimate() )
+      const dmsIndexStat *pIndexStat = getFieldStat( pFieldName ) ;
+      if ( pIndexStat && pIndexStat->isValidForEstimate() )
       {
          optStatElementKey statKey( beValue, TRUE ) ;
-         if ( pIndexMeta->getNumKeys() == 1 )
+         if ( pIndexStat->getNumKeys() == 1 )
          {
-<<<<<<< HEAD
             rc = pIndexStat->evalETOperator( statKey, OPT_PRED_EQ_DEF_SELECTIVITY,
                                              OPT_PRED_EQ_DEF_SELECTIVITY,
                                              selectivity, dummy ) ;
@@ -1136,13 +1081,6 @@ namespace engine
                                                 OPT_PRED_EQ_DEF_SELECTIVITY,
                                                 OPT_PRED_EQ_DEF_SELECTIVITY,
                                                 selectivity, dummy ) ;
-=======
-            rc = pIndexMeta->evalETOperator( statKey, selectivity, dummy );
-         }
-         else
-         {
-            rc = pIndexMeta->evalRangeOperator( statKey, statKey, selectivity, dummy );
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          }
       }
 
@@ -1167,7 +1105,7 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__OPTCLSTAT_EVALGTOPTR ) ;
 
-      CONST_INDEX_STAT_INFO_PTR pIndexStat = getIndexStat( pFieldName ) ;
+      const dmsIndexStat *pIndexStat = getFieldStat( pFieldName ) ;
       if ( pIndexStat && pIndexStat->isValidForEstimate() )
       {
          optStatElementKey statKey( beValue, included ) ;
@@ -1195,7 +1133,7 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__OPTCLSTAT_EVALLTOPTR ) ;
 
-      CONST_INDEX_STAT_INFO_PTR pIndexStat = getIndexStat( pFieldName ) ;
+      const dmsIndexStat *pIndexStat = getFieldStat( pFieldName ) ;
       if ( pIndexStat && pIndexStat->isValidForEstimate() )
       {
          optStatElementKey statKey( beValue, included ) ;
@@ -1613,33 +1551,35 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTCLSTAT_GETMATCHEDIDX, "_optCollectionStat::_getMatchedIndex" )
-   CONST_INDEX_STAT_INFO_PTR _optCollectionStat::_getMatchedIndex ( rtnPredicateSet &predicateSet ) const
+   const dmsIndexStat * _optCollectionStat::_getMatchedIndex ( rtnPredicateSet &predicateSet ) const
    {
       PD_TRACE_ENTRY( SDB_OPTCLSTAT_GETMATCHEDIDX ) ;
 
       if ( !isValid() )
       {
-         return nullptr ;
+         return NULL ;
       }
 
       RTN_PREDICATE_MAP &predicates = predicateSet.predicates() ;
 
       if ( predicates.size() == 0 )
       {
-         return nullptr ;
+         return NULL ;
       }
       else if ( predicates.size() == 1 )
       {
          RTN_PREDICATE_MAP::const_iterator iterPred = predicates.begin() ;
-         return getIndexStat( iterPred->first.c_str() ) ;
+         return getFieldStat( iterPred->first.c_str() ) ;
       }
 
-      CONST_INDEX_STAT_INFO_PTR pBestIndexStat = nullptr ;
-      const UINT32 numKeys = _pCollectionStat->getIndexNum() ;
+      const dmsIndexStat *pBestIndexStat = NULL ;
+      const INDEX_STAT_MAP &indexStats = _pCollectionStat->getIndexStats() ;
 
-      for ( UINT32 i = 0; i < numKeys; ++i )
+      for ( INDEX_STAT_CONST_ITERATOR iter = indexStats.begin() ;
+            iter != indexStats.end() ;
+            ++ iter )
       {
-         const CONST_INDEX_STAT_INFO_PTR &pIndexStat = _pCollectionStat->at(i);
+         const dmsIndexStat *pIndexStat = iter->second ;
 
          if ( pIndexStat->getNumKeys() < predicates.size() )
          {
@@ -1778,8 +1718,8 @@ namespace engine
       // CASE 4.2
       return ( currentPages > statPages +
                               ( OPT_EXPIRED_LARGE_STEP >> pageSizeLog2 ) ) ;
+   }
 
-<<<<<<< HEAD
    BOOLEAN optCheckStatExpiredBySize( UINT32 currentDataSize,
                                       UINT32 statDataSize,
                                       UINT32 costThreshold,
@@ -1804,7 +1744,4 @@ namespace engine
       return optCheckStatExpiredByPage( currentPages, statPages, costThreshold, pageSizeLog2 ) ;
    }
 
-=======
-   }
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 }

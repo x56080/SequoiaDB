@@ -96,7 +96,6 @@ namespace engine
                         UINT32 replyDataLen = 0 ) ;
          INT32 _sendRegisterMsg () ;
          INT32 _onCatRegisterRes ( NET_HANDLE handle, MsgHeader *pMsg ) ;
-         INT32 _onGTSArbitReq( NET_HANDLE handle, MsgHeader *message ) ;
          INT32 _defaultMsgFunc( NET_HANDLE handle, MsgHeader *pMsg ) ;
          void _onMsgBegin( MsgHeader *pMsg ) ;
          void _onMsgEnd() ;

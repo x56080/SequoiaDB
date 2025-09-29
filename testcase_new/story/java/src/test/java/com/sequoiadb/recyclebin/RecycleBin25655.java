@@ -138,11 +138,8 @@ public class RecycleBin25655 extends SdbTestBase {
                         && e.getErrorCode() != SDBError.SDB_DMS_CS_RENAMING
                                 .getErrorCode()
                         && e.getErrorCode() != SDBError.SDB_DMS_CS_NOTEXIST
-<<<<<<< HEAD
                                 .getErrorCode()
                         && e.getErrorCode() != SDBError.SDB_RECYCLE_ITEM_NOTEXIST
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                                 .getErrorCode() ) {
                     throw e;
                 }
@@ -169,11 +166,8 @@ public class RecycleBin25655 extends SdbTestBase {
             } catch ( BaseException e ) {
                 if ( e.getErrorCode() != SDBError.SDB_LOCK_FAILED.getErrorCode()
                         && e.getErrorCode() != SDBError.SDB_DMS_CS_NOTEXIST
-<<<<<<< HEAD
                                 .getErrorCode()
                         && e.getErrorCode() != SDBError.SDB_RECYCLE_ITEM_NOTEXIST
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                                 .getErrorCode() ) {
                     throw e;
                 }

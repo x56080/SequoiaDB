@@ -68,9 +68,9 @@ SequoiaDB 巨杉数据库的异步会话机制是基于 boost ASIO 库实现的�
 
 [^_^]:
     本文使用到的所有链接及引用
-[thread_model]:images/Distributed_Engine/Architecture/Thread_Model/thread_model.png
+[thread_model]: images/Distributed_Engine/Architecture/Thread_Model/thread_model.png
 [session]:manual/Distributed_Engine/Architecture/Thread_Model/session.md
-[sessionPic]:images/Distributed_Engine/Architecture/Thread_Model/session.png
+[sessionPic]: images/Distributed_Engine/Architecture/Thread_Model/session.png
 [edu]:manual/Distributed_Engine/Architecture/Thread_Model/edu.md
 [sync_session]:images/Distributed_Engine/Architecture/Thread_Model/sync_session.png
 [async_session]:images/Distributed_Engine/Architecture/Thread_Model/async_session.png

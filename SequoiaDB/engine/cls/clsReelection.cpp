@@ -32,9 +32,9 @@
 #include "pd.hpp"
 #include "clsTrace.hpp"
 #include "pdTrace.hpp"
-#include "clsReplAgent.hpp"
+#include "clsSyncManager.hpp"
+#include "clsVoteMachine.hpp"
 #include "pmd.hpp"
-<<<<<<< HEAD
 #include "dpsLogWrapper.hpp"
 #include "clsMgr.hpp"
 
@@ -48,16 +48,6 @@ namespace engine
     _info( info ),
     _level( CLS_REELECTION_LEVEL_NONE ),
     _blockSync( FALSE )
-=======
-
-namespace engine
-{
-   _clsReelection::_clsReelection( ICLSReplAgent *replAgent )
-   : _replAgent( replAgent ),
-     _vote( replAgent->getVoteMachine() ),
-     _syncMgr( replAgent->getSyncManager() ),
-     _level( CLS_REELECTION_LEVEL_NONE )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
       SDB_ASSERT( NULL != _vote &&
                   NULL != _syncMgr &&
@@ -67,14 +57,11 @@ namespace engine
 
    _clsReelection::~_clsReelection()
    {
-<<<<<<< HEAD
       if ( _blockSync )
       {
          _syncMgr->enableSync() ;
          _blockSync = FALSE ;
       }
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    }
 
    // PD_TRACE_DECLARE_FUNCTION (SDB__CLSREELECTION_WAIT, "_clsReelection::wait" )
@@ -110,7 +97,7 @@ namespace engine
    INT32 _clsReelection::run( CLS_REELECTION_LEVEL lvl,
                               INT32 seconds,
                               pmdEDUCB *cb,
-                              const MsgRouteID &destRID )
+                              UINT16 destID )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CLSREELECTION_RUN ) ;
@@ -148,7 +135,6 @@ namespace engine
          PD_LOG( PDERROR, "only primary node can reelect" ) ;
          goto error ;
       }
-<<<<<<< HEAD
       // If location primary is replica group primary, do nothing
       else if ( isLocation && pmdIsPrimary() )
       {
@@ -159,12 +145,6 @@ namespace engine
       }
       // is self
       else if ( 0 != destID && destID == pmdGetNodeID().columns.nodeID )
-=======
-      /// is self
-      else if ( MSG_INVALID_ROUTEID != destRID.value &&
-                destRID.columns.groupID == pmdGetNodeID().columns.groupID &&
-                destRID.columns.nodeID == pmdGetNodeID().columns.nodeID )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       {
          // restore
          _vote->setShadowWeight( CLS_ELECTION_WEIGHT_USR_MIN ) ;
@@ -207,7 +187,6 @@ namespace engine
       /// WARNING: do not compare with _level.
       if ( CLS_REELECTION_LEVEL_1 < lvl )
       {
-<<<<<<< HEAD
          if ( isLocation )
          {
             rc = _wait4ReplicaByBeat( timePassed, seconds, destID ) ;
@@ -216,9 +195,6 @@ namespace engine
          {
             rc = _wait4Replica( timePassed, seconds, cb, destID ) ;
          }
-=======
-         rc = _wait4Replica( timePassed, seconds, cb, destRID ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "reelection is out of time" ) ;
@@ -313,11 +289,11 @@ namespace engine
    INT32 _clsReelection::_wait4Replica( UINT32 &timePassed,
                                         UINT32 timeout,
                                         pmdEDUCB *cb,
-                                        const MsgRouteID &destRID )
+                                        UINT16 destID )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CLSREELECTION__WAIT4REPLICA ) ;
-      DPS_LSN lsn = _replAgent->getLocalCurrentLSN() ;
+      DPS_LSN lsn = pmdGetKRCB()->getDPSCB()->getCurrentLsn() ;
       while ( timePassed < timeout )
       {
          if ( cb->isInterrupted() )
@@ -326,7 +302,7 @@ namespace engine
             goto error ;
          }
 
-         if ( _syncMgr->atLeastOne( lsn.offset, destRID.value ) )
+         if ( _syncMgr->atLeastOne( lsn.offset, destID ) )
          {
             break ;
          }
@@ -409,15 +385,10 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CLSREELECTION__STEPDOWN ) ;
       pmdEDUMgr *eduMgr = pmdGetKRCB()->getEDUMgr() ;
-<<<<<<< HEAD
       EDUID eduID = eduMgr->getSystemEDU( EDU_TYPE_CLUSTER ) ;
 
       rc = eduMgr->postEDUPost( eduID, PMD_EDU_EVENT_STEP_DOWN,
                                 PMD_EDU_MEM_NONE, NULL, isLocation ) ;
-=======
-      EDUID eduID = _replAgent->getMainEDUID() ;
-      rc = eduMgr->postEDUPost( eduID, PMD_EDU_EVENT_STEP_DOWN ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to post event to repl cb:%d", rc ) ;

@@ -1,20 +1,16 @@
 package com.sequoiadb.driveconnection;
 
-<<<<<<< HEAD
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import com.sequoiadb.base.ConfigOptions;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.datasource.SequoiadbDatasource;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.testcommon.SdbTestBase;
-<<<<<<< HEAD
 
 /**
  * @author xumingxing
@@ -22,19 +18,6 @@ import com.sequoiadb.testcommon.SdbTestBase;
  * @Description seqDB-27521:SequoiadbDatasource.builder()方式设置serverAddress(String
  *              address)
  * @Date 2022.09.14
-=======
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
-
-/**
- * @Description seqDB-27521:SequoiadbDatasource.builder()方式设置serverAddress(String
- *              address)
- * @author xumingxing
- * @Date 2022.09.14
- * @version 1.0
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
  */
 
 public class Connection27521 extends SdbTestBase {
@@ -48,13 +31,10 @@ public class Connection27521 extends SdbTestBase {
 
     @Test
     public void test() throws Exception {
-<<<<<<< HEAD
         ConfigOptions netOpt = new ConfigOptions();
         netOpt.setConnectTimeout( 2 * 1000 );
         netOpt.setMaxAutoConnectRetryTime( 2 * 1000 );
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         // test a：指定可用地址
         ds = SequoiadbDatasource.builder().serverAddress( SdbTestBase.coordUrl )
                 .build();
@@ -110,20 +90,12 @@ public class Connection27521 extends SdbTestBase {
         wrongUrl = SdbTestBase.hostName + ":" + "30";
         try {
             ds = SequoiadbDatasource.builder().serverAddress( wrongUrl )
-<<<<<<< HEAD
                     .configOptions( netOpt ).build();
             sdb = ds.getConnection();
             Assert.fail( "unexpect result" );
         } catch ( BaseException e ) {
             if ( e.getErrorCode() != SDBError.SDB_NETWORK.getErrorCode() && e
                     .getErrorCode() != SDBError.SDB_TIMEOUT.getErrorCode() ) {
-=======
-                    .build();
-            sdb = ds.getConnection();
-            Assert.fail( "unexpect result" );
-        } catch ( BaseException e ) {
-            if ( e.getErrorCode() != SDBError.SDB_NETWORK.getErrorCode() ) {
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                 throw e;
             }
         }
@@ -132,20 +104,12 @@ public class Connection27521 extends SdbTestBase {
         try {
             ds = SequoiadbDatasource.builder()
                     .serverAddress( SdbTestBase.coordUrl )
-<<<<<<< HEAD
                     .serverAddress( wrongUrl ).configOptions( netOpt ).build();
             sdb = ds.getConnection();
             Assert.fail( "unexpect result" );
         } catch ( BaseException e ) {
             if ( e.getErrorCode() != SDBError.SDB_NETWORK.getErrorCode() && e
                     .getErrorCode() != SDBError.SDB_TIMEOUT.getErrorCode() ) {
-=======
-                    .serverAddress( wrongUrl ).build();
-            sdb = ds.getConnection();
-            Assert.fail( "unexpect result" );
-        } catch ( BaseException e ) {
-            if ( e.getErrorCode() != SDBError.SDB_NETWORK.getErrorCode() ) {
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                 throw e;
             }
         }

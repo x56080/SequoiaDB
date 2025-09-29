@@ -149,6 +149,7 @@ namespace engine
                               optCollectionStat * collectionStat ) ;
 
          INT32 createIxScan ( const CHAR * pCollection,
+                              const ixmIndexCB & indexCB,
                               const rtnQueryOptions & queryOptions,
                               optAccessPlanHelper & planHelper,
                               OPT_PLAN_PATH_PRIORITY priority,
@@ -261,20 +262,6 @@ namespace engine
          OSS_INLINE BOOLEAN isEstimatedFromStat () const
          {
             return NULL != _pScanNode && _pScanNode->isEstimatedFromStat() ;
-         }
-
-         OSS_INLINE UINT64 getIxRebuildTime()
-         {
-            return ( NULL != _pScanNode ) ? _pScanNode->getIxRebuildTime() :
-                                            DPS_INVALID_TRANS_TIME ;
-         }
-
-         OSS_INLINE void setIxRebuildTime( UINT64 rebuildTime )
-         {
-            if ( NULL != _pScanNode )
-            {
-               _pScanNode->setIxRebuildTime( rebuildTime ) ;
-            }
          }
 
          INT32 evaluate ( const rtnQueryOptions & options,

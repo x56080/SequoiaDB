@@ -32,7 +32,6 @@ When the function fails, an exception will be thrown and an error message will b
 
 ##ERRORS##
 
-<<<<<<< HEAD
 Frequent exceptions of `getIndex()`：
 
 |Error Code|Error Name|Causes|Solution|
@@ -40,15 +39,6 @@ Frequent exceptions of `getIndex()`：
 |-47       |SDB_IXM_NOTEXIST |Index doesn't exist | Check if the index exists|
 
 When the exception happens, use [getLastErrMsg()][getLastErrMsg] to get the error message or use [getLastError()][getLastError] to get the error code. For more details, refer to [Troubleshooting][faq].
-=======
-The common exceptions of `getIndex()` function are as follows:
-
-| Error Code | Error Type | Description | Solution |
-| ------ | --- | ------------ | ----------- |
-|-47       |SDB_IXM_NOTEXIST |Index doesn't exist | Check if the index exists|
-
-When the exception happens, use [getLastErrMsg()][getLastErrMsg] to get the error message or use [getLastError()][getLastError] to get the [error code][error_code]. For more details, refer to [Troubleshooting][faq].
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 ##VERSION##
 
@@ -87,7 +77,6 @@ Get the index named "$id" from the sample.employee collection.
 }
 ```
 
-<<<<<<< HEAD
 
 [^_^]:
     links
@@ -95,11 +84,3 @@ Get the index named "$id" from the sample.employee collection.
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [faq]:manual/FAQ/faq_sdb.md
 [SYSINDEXES]:manual/Manual/Catalog_Table/SYSINDEXES.md
-=======
-[^_^]:
-    links
-[getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
-[faq]:manual/FAQ/faq_sdb.md
-[error_code]:manual/Manual/Sequoiadb_error_code.md
-[SYSINDEXES]:manual/Manual/Catalog_Table/SYSINDEXES.md
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2

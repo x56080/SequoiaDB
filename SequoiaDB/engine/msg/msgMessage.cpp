@@ -206,10 +206,7 @@ INT32 msgBuildUpdateMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    pUpdate->header.flags         = 0 ;
    pUpdate->header.routeID.value = 0 ;
    pUpdate->header.TID           = ossGetCurrentThreadID() ;
-<<<<<<< HEAD
    ossMemset( &(pUpdate->header.globalID), 0, sizeof(pUpdate->header.globalID) ) ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    ossMemset( pUpdate->header.reserve, 0, sizeof(pUpdate->header.reserve) ) ;
    // copy collection name
    ossStrncpy ( pUpdate->name, CollectionName, pUpdate->nameLength ) ;
@@ -243,30 +240,18 @@ INT32 msgExtractTransCommit ( const CHAR *pBuffer, const CHAR **ppHint )
    INT32 rc = SDB_OK ;
    INT32 offset = 0 ;
    INT32 length = 0 ;
-   MsgOpTransCommitInt *pCommit = (MsgOpTransCommitInt*)pBuffer ;
+   MsgOpTransCommit *pCommit = (MsgOpTransCommit*)pBuffer ;
 
    //old driver use MsgOpTransBegin as messageLength and old driver does not have hint
-   if ( NULL != ppHint &&
-        pCommit->header.messageLength != sizeof( MsgOpTransBegin_V1 ) )
+   if ( pCommit->header.messageLength != sizeof (MsgOpTransBegin) )
    {
-      if ( ( pCommit->header.messageLength >=
-                 (INT32)( sizeof( MsgOpTransCommitInt ) ) ) &&
-           ( 0LL == pCommit->commitTime ) )
-      {
-         // version 1: fill commit time with zero by client
-         offset = ossRoundUpToMultipleX( sizeof( MsgOpTransCommitInt ), 4 ) ;
-      }
-      else
-      {
-         // version 0: no commit time field, this place is head of BSON hint
-         offset = ossRoundUpToMultipleX( sizeof( MsgOpTransCommit ), 4 ) ;
-      }
+      offset = ossRoundUpToMultipleX( sizeof( MsgOpTransCommit ), 4 );
 
-      if ( offset  < pCommit->header.messageLength )
+      if ( offset  < pCommit->header.messageLength && ppHint )
       {
          *ppHint  = &pBuffer[offset] ;
          length = *((SINT32*)(&pBuffer[offset])) ;
-
+         MSG_CHECK_BSON_LENGTH( length ) ;
          // the result may not exactly match because messageLength is 4 bytes aligned
          if ( offset + length > pCommit->header.messageLength )
          {
@@ -275,7 +260,6 @@ INT32 msgExtractTransCommit ( const CHAR *pBuffer, const CHAR **ppHint )
          }
       }
    }
-
 done :
    return rc ;
 error :
@@ -422,10 +406,7 @@ INT32 msgBuildInsertMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    pInsert->header.flags         = 0 ;
    pInsert->header.routeID.value = 0 ;
    pInsert->header.TID           = ossGetCurrentThreadID() ;
-<<<<<<< HEAD
    ossMemset( &(pInsert->header.globalID), 0, sizeof(pInsert->header.globalID) ) ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    ossMemset( pInsert->header.reserve, 0, sizeof(pInsert->header.reserve) ) ;
    // copy collection name
    ossStrncpy ( pInsert->name, CollectionName, pInsert->nameLength ) ;
@@ -527,10 +508,7 @@ INT32 msgBuildInsertMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    pInsert->header.flags         = 0 ;
    pInsert->header.routeID.value = 0 ;
    pInsert->header.TID           = ossGetCurrentThreadID() ;
-<<<<<<< HEAD
    ossMemset( &(pInsert->header.globalID), 0, sizeof(pInsert->header.globalID) ) ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    ossMemset( pInsert->header.reserve, 0, sizeof(pInsert->header.reserve) ) ;
    // copy collection name
    ossStrncpy ( pInsert->name, CollectionName, pInsert->nameLength ) ;
@@ -626,11 +604,7 @@ INT32 msgExtractInsert ( const CHAR *pBuffer, INT32 *pflag,
                             "Invalid name length" ) ;
 
    hasHint = OSS_BIT_TEST( *pflag, FLG_INSERT_HASHINT ) ? TRUE : FALSE ;
-<<<<<<< HEAD
    if ( !hasHint && NULL != ppHint )
-=======
-   if ( !hasHint )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
       *ppHint = NULL ;
    }
@@ -676,14 +650,10 @@ INT32 msgExtractInsert ( const CHAR *pBuffer, INT32 *pflag,
             }
             else
             {
-<<<<<<< HEAD
                if ( NULL != ppHint )
                {
                   *ppHint = &pBuffer[offset] ;
                }
-=======
-               *ppHint = &pBuffer[offset] ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                goto done ;
             }
          }
@@ -796,10 +766,7 @@ INT32 msgBuildQueryMsg  ( CHAR **ppBuffer, INT32 *bufferSize,
    pQuery->header.flags          = FLAG_RESULT_DETAIL | FLAG_PROCESS_DETAIL ;
    pQuery->header.routeID.value  = 0 ;
    pQuery->header.TID            = ossGetCurrentThreadID() ;
-<<<<<<< HEAD
    ossMemset( &(pQuery->header.globalID), 0, sizeof(pQuery->header.globalID) ) ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    ossMemset( pQuery->header.reserve, 0, sizeof(pQuery->header.reserve) ) ;
    // copy collection name
    ossStrncpy ( pQuery->name, CollectionName, pQuery->nameLength ) ;
@@ -960,8 +927,7 @@ error :
 INT32 msgBuildGetMoreMsg ( CHAR **ppBuffer, INT32 *bufferSize,
                            SINT32 numToReturn,
                            SINT64 contextID, UINT64 reqID,
-                           IExecutor *cb,
-                           const BSONObj *pHint )
+                           IExecutor *cb )
 {
    SDB_ASSERT ( ppBuffer && bufferSize, "Invalid input" ) ;
    INT32 rc               = SDB_OK ;
@@ -969,15 +935,8 @@ INT32 msgBuildGetMoreMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    PD_TRACE2 ( SDB_MSGBLDGETMOREMSG, PD_PACK_INT(numToReturn),
                                      PD_PACK_LONG(contextID) );
    MsgOpGetMore *pGetMore = NULL ;
-   INT32 packetLength = ossAlign4( sizeof(MsgOpGetMore) ) ;
-   INT32 offset = 0 ;
+   INT32 packetLength = sizeof(MsgOpGetMore);
    PD_TRACE1 ( SDB_MSGBLDGETMOREMSG, PD_PACK_INT(packetLength) );
-
-   if ( pHint )
-   {
-      packetLength += ossAlign4( pHint->objsize() ) ;
-   }
-
    if ( packetLength < 0 )
    {
       PD_LOG ( PDERROR, "Packet size overflow" ) ;
@@ -990,7 +949,6 @@ INT32 msgBuildGetMoreMsg ( CHAR **ppBuffer, INT32 *bufferSize,
       PD_LOG ( PDERROR, "Failed to check buffer" ) ;
       goto error ;
    }
-
    // now the buffer is large enough
    pGetMore                       = (MsgOpGetMore*)(*ppBuffer) ;
    // nameLength does NOT include '\0'
@@ -1004,31 +962,8 @@ INT32 msgBuildGetMoreMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    pGetMore->header.flags         = 0 ;
    pGetMore->header.routeID.value = 0 ;
    pGetMore->header.TID           = ossGetCurrentThreadID() ;
-<<<<<<< HEAD
    ossMemset( &(pGetMore->header.globalID), 0, sizeof(pGetMore->header.globalID) ) ;
    ossMemset( pGetMore->header.reserve, 0, sizeof(pGetMore->header.reserve) ) ;
-=======
-   ossMemset( pGetMore->header.reserve, 0, sizeof(pGetMore->header.reserve) ) ;
-
-   if ( pHint )
-   {
-      // get the offset of the first bson obj
-      offset = ossAlign4( sizeof(MsgOpGetMore) ) ;
-      // write optimizer hint
-      ossMemcpy ( &((*ppBuffer)[offset]), pHint->objdata(),
-                  pHint->objsize() ) ;
-      offset += ossAlign4( pHint->objsize() ) ;
-
-      // sanity test
-      if ( offset != packetLength )
-      {
-         PD_LOG ( PDERROR, "Invalid packet length" ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
-   }
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 done :
    PD_TRACE_EXITRC ( SDB_MSGBLDGETMOREMSG, rc );
    return rc ;
@@ -1039,49 +974,17 @@ error :
 // PD_TRACE_DECLARE_FUNCTION ( SDB_MSGEXTRACTGETMORE, "msgExtractGetMore" )
 INT32 msgExtractGetMore  ( const CHAR *pBuffer,
                            SINT32 *numToReturn,
-<<<<<<< HEAD
                            SINT64 *contextID )
-=======
-                           SINT64 *contextID,
-                           const CHAR **ppHint )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 {
    SDB_ASSERT ( pBuffer &&
                 numToReturn && contextID ,
                 "Invalid input" ) ;
    PD_TRACE_ENTRY ( SDB_MSGEXTRACTGETMORE );
-   INT32 rc = SDB_OK ;
    MsgOpGetMore *pGetMore = (MsgOpGetMore*)pBuffer ;
-   const static INT32 _minSize = ossAlign4( sizeof(MsgOpGetMore) ) ;
-   INT32 offset = 0 ;
-   INT32 length = 0 ;
-
    *numToReturn = pGetMore->numToReturn ;
    *contextID = pGetMore->contextID ;
-
-   if ( pGetMore->header.messageLength > _minSize && ppHint )
-   {
-      // get the offset for the first BSONObj
-      offset = _minSize ;
-
-      *ppHint = &pBuffer[offset] ;
-
-      length = *((SINT32*)(&pBuffer[offset])) ;
-      MSG_CHECK_BSON_LENGTH( length ) ;
-
-      // the result should exactly match messageLength
-      if ( pGetMore->header.messageLength < offset + length )
-      {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-   }
-
-done :
    PD_TRACE_EXIT ( SDB_MSGEXTRACTGETMORE );
-   return rc ;
-error :
-   goto done ;
+   return SDB_OK ;
 }
 
 // PD_TRACE_DECLARE_FUNCTION ( SDB_MSGFILLGETMOREMSG, "msgFillGetMoreMsg" )
@@ -1098,10 +1001,7 @@ void msgFillGetMoreMsg ( MsgOpGetMore &getMoreMsg, const UINT32 tid,
    getMoreMsg.header.TID = tid;
    getMoreMsg.header.routeID.value = 0;
    getMoreMsg.header.requestID = reqID;
-<<<<<<< HEAD
    ossMemset( &(getMoreMsg.header.globalID), 0, sizeof(getMoreMsg.header.globalID) ) ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    ossMemset( getMoreMsg.header.reserve, 0, sizeof(getMoreMsg.header.reserve) ) ;
    getMoreMsg.contextID = contextID;
    getMoreMsg.numToReturn = numToReturn;
@@ -1224,10 +1124,7 @@ INT32 msgBuildAdvanceMsg( CHAR **ppBuffer, INT32 *bufferSize,
    pAdvance->header.messageLength= packetLength ;
    pAdvance->header.routeID.value= 0 ;
    pAdvance->header.TID          = ossGetCurrentThreadID() ;
-<<<<<<< HEAD
    ossMemset( &(pAdvance->header.globalID), 0, sizeof(pAdvance->header.globalID) ) ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    // get the offset of the first bson obj
    offset = ossAlign4( sizeof( MsgOpAdvance ) ) ;
@@ -1311,10 +1208,7 @@ INT32 msgBuildDeleteMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    pDelete->header.flags         = 0 ;
    pDelete->header.routeID.value = 0 ;
    pDelete->header.TID           = ossGetCurrentThreadID() ;
-<<<<<<< HEAD
    ossMemset( &(pDelete->header.globalID), 0, sizeof(pDelete->header.globalID) ) ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    ossMemset( pDelete->header.reserve, 0, sizeof(pDelete->header.reserve) ) ;
    // copy collection name
    ossStrncpy ( pDelete->name, CollectionName, pDelete->nameLength ) ;
@@ -1454,10 +1348,7 @@ INT32 msgBuildKillContextsMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    pKC->numContexts          = numContexts ;
    pKC->header.routeID.value = 0 ;
    pKC->header.TID           = ossGetCurrentThreadID() ;
-<<<<<<< HEAD
    ossMemset( &(pKC->header.globalID), 0, sizeof(pKC->header.globalID) ) ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    ossMemset( pKC->header.reserve, 0, sizeof(pKC->header.reserve) ) ;
    // copy collection name
    ossMemcpy ( (CHAR*)(&pKC->contextIDs[0]), (CHAR*)pContextIDs,
@@ -1541,10 +1432,7 @@ INT32 msgBuildMsgMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    pMsg->header.flags         = 0 ;
    pMsg->header.routeID.value = 0 ;
    pMsg->header.TID           = ossGetCurrentThreadID() ;
-<<<<<<< HEAD
    ossMemset( &(pMsg->header.globalID), 0, sizeof(pMsg->header.globalID) ) ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    ossMemset( pMsg->header.reserve, 0, sizeof(pMsg->header.reserve) ) ;
    // copy collection name
    ossStrncpy ( pMsg->msg, pMsgStr, msgLen ) ;
@@ -1637,10 +1525,7 @@ INT32 msgBuildReplyMsg ( CHAR **ppBuffer, INT32 *bufferSize, INT32 opCode,
    pReply->header.flags         = 0 ;
    pReply->header.routeID.value = 0 ;
    pReply->header.TID           = ossGetCurrentThreadID() ;
-<<<<<<< HEAD
    ossMemset( &(pReply->header.globalID), 0, sizeof(pReply->header.globalID) ) ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    ossMemset( pReply->header.reserve, 0, sizeof(pReply->header.reserve) ) ;
 done :
    PD_TRACE_EXITRC ( SDB_MSGBLDREPLYMSG, rc );
@@ -1692,10 +1577,7 @@ INT32 msgBuildReplyMsg ( CHAR **ppBuffer, INT32 *bufferSize, INT32 opCode,
    pReply->header.flags         = 0 ;
    pReply->header.routeID.value = 0 ;
    pReply->header.TID           = ossGetCurrentThreadID() ;
-<<<<<<< HEAD
    ossMemset( &(pReply->header.globalID), 0, sizeof(pReply->header.globalID) ) ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    ossMemset( pReply->header.reserve, 0, sizeof(pReply->header.reserve) ) ;
    if ( numReturned != 0 )
    {
@@ -1807,11 +1689,8 @@ INT32 msgBuildDisconnectMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    pDisconnect->header.flags         = 0 ;
    pDisconnect->header.routeID.value = 0 ;
    pDisconnect->header.TID           = ossGetCurrentThreadID() ;
-<<<<<<< HEAD
    ossMemset( &(pDisconnect->header.globalID), 0,
               sizeof(pDisconnect->header.globalID) ) ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    ossMemset( pDisconnect->header.reserve, 0,
               sizeof(pDisconnect->header.reserve) ) ;
 done :
@@ -1841,11 +1720,8 @@ void msgBuildReplyMsgHeader ( MsgOpReply &replyHeader, SINT32 packetLength,
    replyHeader.header.version       = SDB_PROTOCOL_VER_2 ;
    replyHeader.header.flags         = 0 ;
    replyHeader.header.TID           = ossGetCurrentThreadID() ;
-<<<<<<< HEAD
    ossMemset( &(replyHeader.header.globalID), 0,
               sizeof(replyHeader.header.globalID) ) ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    ossMemset( replyHeader.header.reserve, 0,
               sizeof(replyHeader.header.reserve) ) ;
    PD_TRACE_EXIT ( SDB_MSGBLDREPLYMSGHD );
@@ -1864,11 +1740,8 @@ void msgBuildDisconnectMsg ( MsgOpDisconnect &disconnectHeader,
    disconnectHeader.header.version       = SDB_PROTOCOL_VER_2 ;
    disconnectHeader.header.flags         = 0 ;
    disconnectHeader.header.TID           = ossGetCurrentThreadID() ;
-<<<<<<< HEAD
    ossMemset( &(disconnectHeader.header.globalID), 0,
               sizeof(disconnectHeader.header.globalID) ) ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    ossMemset( disconnectHeader.header.reserve, 0,
               sizeof(disconnectHeader.header.reserve) ) ;
    PD_TRACE_EXIT ( SDB_MSGBLDDISCONNMSG2 );
@@ -2007,11 +1880,8 @@ INT32 msgBuildCMRequest ( CHAR **ppBuffer, INT32 *pBufferSize,
    pCMRequest->header.opCode        = MSG_CM_REMOTE ;
    pCMRequest->header.routeID.value = 0 ;
    pCMRequest->header.TID           = ossGetCurrentThreadID() ;
-<<<<<<< HEAD
    ossMemset( &(pCMRequest->header.globalID), 0,
               sizeof(pCMRequest->header.globalID) ) ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    ossMemset( pCMRequest->header.reserve, 0,
               sizeof(pCMRequest->header.reserve) ) ;
    pCMRequest->remoCode             = remoCode ;
@@ -2178,10 +2048,7 @@ INT32 msgBuildQueryCMDMsg ( CHAR ** ppBuffer,
    pQuery->header.flags          = 0 ;
    pQuery->header.routeID.value  = 0 ;
    pQuery->header.TID            = ossGetCurrentThreadID() ;
-<<<<<<< HEAD
    ossMemset( &(pQuery->header.globalID), 0, sizeof(pQuery->header.globalID) ) ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    ossMemset( pQuery->header.reserve, 0, sizeof(pQuery->header.reserve) ) ;
 
    // copy collection name
@@ -2948,10 +2815,7 @@ INT32 msgBuildTransCommitPreMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    pMsg->header.flags = 0 ;
    pMsg->header.opCode = MSG_BS_TRANS_COMMITPRE_REQ;
    pMsg->header.routeID.value = 0;
-<<<<<<< HEAD
    ossMemset( &(pMsg->header.globalID), 0, sizeof(pMsg->header.globalID) ) ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    ossMemset( pMsg->header.reserve, 0, sizeof(pMsg->header.reserve) ) ;
 
 done:
@@ -2965,31 +2829,21 @@ INT32 msgBuildTransCommitMsg ( CHAR **ppBuffer, INT32 *bufferSize,
 {
    SDB_ASSERT( ppBuffer, "invalid input" ) ;
    INT32 rc = SDB_OK;
-<<<<<<< HEAD
    MsgOpTransCommit *pMsg = NULL;
    INT32 packetLength = ossAlign4( sizeof( MsgOpTransCommit ) );
-=======
-   MsgOpTransCommitInt *pMsg = NULL;
-   INT32 packetLength = ossAlign4( sizeof( MsgOpTransCommitInt ) );
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    PD_CHECK( (packetLength > 0), SDB_INVALIDARG, error, PDERROR,
             "Packet size overflow" );
    rc = msgCheckBuffer( ppBuffer, bufferSize, packetLength, cb ) ;
    PD_RC_CHECK( rc, PDERROR, "failed to check buffer" );
-   pMsg = (MsgOpTransCommitInt *)(*ppBuffer);
+   pMsg = (MsgOpTransCommit *)(*ppBuffer);
    pMsg->header.messageLength = packetLength;
    pMsg->header.eye = MSG_COMM_EYE_DEFAULT ;
    pMsg->header.version = SDB_PROTOCOL_VER_2 ;
    pMsg->header.flags = 0 ;
    pMsg->header.opCode = MSG_BS_TRANS_COMMIT_REQ;
    pMsg->header.routeID.value = 0;
-<<<<<<< HEAD
    ossMemset( &(pMsg->header.globalID), 0, sizeof(pMsg->header.globalID) ) ;
    ossMemset( pMsg->header.reserve, 0, sizeof(pMsg->header.reserve) ) ;
-=======
-   ossMemset( pMsg->header.reserve, 0, sizeof(pMsg->header.reserve) ) ;
-   pMsg->commitTime = 0LL ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 done:
    return rc;
@@ -3015,10 +2869,7 @@ INT32 msgBuildTransRollbackMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    pMsg->header.flags = 0 ;
    pMsg->header.opCode = MSG_BS_TRANS_ROLLBACK_REQ;
    pMsg->header.routeID.value = 0;
-<<<<<<< HEAD
    ossMemset( &(pMsg->header.globalID), 0, sizeof(pMsg->header.globalID) ) ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    ossMemset( pMsg->header.reserve, 0, sizeof(pMsg->header.reserve) ) ;
 
 done:

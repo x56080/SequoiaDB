@@ -48,4 +48,3 @@ SequoiaDB 的节点可以以多种角色运行，其中[数据节点][data]与[�
 [replica_set]:manual/Distributed_Engine/Architecture/Replication/replica_set.md
 [monitor]:manual/Distributed_Engine/Architecture/Replication/monitoring.md
 
-

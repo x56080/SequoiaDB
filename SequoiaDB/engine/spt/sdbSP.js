@@ -703,33 +703,6 @@ Oma.prototype.reloadConfigs = function()
 {
    this._runCommand( "reload config" ) ;
 }
-
-Oma.prototype.createStp = function( configs )
-{
-   var options = {} ;
-   if ( undefined != configs )
-   {
-      options = configs ;
-   }
-   this._runCommand( "stp create", options ) ;
-   return this.getStp()
-}
-
-Oma.prototype.removeStp = function()
-{
-   this._runCommand( "stp remove" )
-}
-
-Oma.prototype.startStp = function()
-{
-   this._runCommand( "stp start" )
-}
-
-Oma.prototype.stopStp = function()
-{
-   this._runCommand( "stp stop" )
-}
-
 // end Oma
 
 // Remote member function
@@ -865,125 +838,6 @@ Remote.prototype._runCommand = function( command, optionObj,
    return bsonObj ;
 }
 // end Remote
-
-// Stp member function
-Stp.prototype.getTime = function() {
-   return this._runCommand( "stp get time" ) ;
-}
-
-Stp.prototype.getTimeUS = function() {
-   var options = { "Type" : "logicalTimeUS" } ;
-   return this._runCommand( "stp get time", options ) ;
-}
-
-Stp.prototype.getMeta = function() {
-   return this._runCommand( "stp get meta" ) ;
-}
-
-Stp.prototype.getServers = function() {
-   return this._runCommand( "stp get servers" ) ;
-}
-
-Stp.prototype.getSyncClients = function() {
-   return this._runCommand( "stp get sync clients" ) ;
-}
-
-Stp.prototype.getSyncStatus = function() {
-   return this._runCommand( "stp get sync status" ) ;
-}
-
-Stp.prototype.getSyncHistory = function() {
-   return this._runCommand( "stp get sync history" ) ;
-}
-
-Stp.prototype.getConf = function() {
-   return this._runCommand( "stp get config" ) ;
-}
-
-Stp.prototype.updateConf = function( configs ) {
-   if ( undefined === configs )
-   {
-      setLastErrMsg( "configs is not given" ) ;
-      throw SDB_INVALIDARG ;
-   }
-   this._runCommand( "stp update config", configs ) ;
-}
-
-Stp.prototype.setPDLevel = function( diagLevel ) {
-   if ( undefined === diagLevel )
-   {
-      setLastErrMsg( "diagLevel is not given" ) ;
-      throw SDB_INVALIDARG ;
-   }
-   else if ( 'number' != typeof( diagLevel ) )
-   {
-      setLastErrMsg( "diagLevel should be a number" ) ;
-      throw SDB_INVALIDARG ;
-   }
-   var configs = { "diaglevel" : diagLevel } ;
-   this._runCommand( "stp update config", configs ) ;
-}
-
-Stp.prototype.stop = function() {
-   this._runCommand( "stp stop" ) ;
-}
-
-Stp.prototype.reelect = function( option ) {
-   if ( undefined === option )
-   {
-      option = {} ;
-   }
-   this._runCommand( "stp reelect", option ) ;
-}
-
-// example
-// stp.convRealTimeToLogicalTime( Timestamp("2020-11-06-17.53.14.000969") )
-Stp.prototype.convRealTimeToLogicalTime = function( realTime ) {
-   if ( undefined === realTime )
-   {
-      setLastErrMsg( "real time is not given" ) ;
-      throw SDB_INVALIDARG ;
-   }
-   var option = { "RealTime" : realTime } ;
-   return this._runCommand( "stp conv time", option ) ;
-}
-
-// example
-// stp.convLogicalTimeToRealTime( 1604716394334961 )
-Stp.prototype.convLogicalTimeToRealTime = function( logicalTime ) {
-   if ( undefined === logicalTime )
-   {
-      setLastErrMsg( "logical time is not given" ) ;
-      throw SDB_INVALIDARG ;
-   }
-   var option = { "LogicalTime" : logicalTime } ;
-   return this._runCommand( "stp conv time", option ) ;
-}
-
-Stp.prototype.getTimeMap = function( option ) {
-   if ( undefined === option )
-   {
-      option = {} ;
-   }
-   return this._runCommand( "stp get time map", option ) ;
-}
-
-Stp.prototype.msg = function( message ) {
-   if ( undefined === message )
-   {
-      setLastErrMsg( "message is not given" ) ;
-      throw SDB_INVALIDARG ;
-   }
-   else if ( "string" != typeof( message ) )
-   {
-      setLastErrMsg( "message should be string" ) ;
-      throw SDB_INVALIDARG ;
-   }
-   var option = { "Message" : message } ;
-   this._runCommand( "stp msg", option ) ;
-}
-
-// end Stp
 
 // _Filter member function
 _Filter.prototype.match = function( BSONArrObj ) {
@@ -3977,3 +3831,16 @@ IniFile.prototype.save = function() {
 }
 
 // end IniFile
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -195,16 +195,6 @@ namespace engine
          goto error ;
       }
 
-      if ( !_authorized && eduCB->getSession() &&
-           eduCB->getSession()->getClient() &&
-           eduCB->getSession()->getClient()->privCheckEnabled() )
-      {
-         rc = _checkPrivilege( eduCB ) ;
-         PD_RC_CHECK( rc, PDERROR, "Checking privilege failed for the "
-                      "operation, rc: %d", rc ) ;
-         _authorized = TRUE ;
-      }
-
       rc = _execute( eduCB ) ;
       if ( SDB_OK != rc )
       {
@@ -287,7 +277,7 @@ namespace engine
             rc = _checkTransOperator( dpsValid, TRUE ) ;
             if ( SDB_OK == rc )
             {
-               rc = rtnTransBegin( eduCB, TRUE, eduCB->isGlobTransOn() ) ;
+               rc = rtnTransBegin( eduCB, TRUE ) ;
             }
             else
             {

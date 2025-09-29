@@ -276,9 +276,6 @@ namespace engine
 
       _pCatCB->activeGroup( _groupID ) ;
 
-      // callback on active (create) group
-      _pCatCB->onGroupChange() ;
-
    done :
       PD_TRACE_EXITRC ( SDB_CATCTXACTIVEGRP_EXECUTE_INT, rc ) ;
       return rc ;
@@ -550,9 +547,6 @@ namespace engine
                    "rc: %d",
                    _targetName.c_str(), CAT_NODE_INFO_COLLECTION, rc ) ;
 
-      // callback on remove group
-      _pCatCB->onGroupChange() ;
-
    done :
       PD_TRACE_EXITRC ( SDB_CATCTXRMGRP_EXECUTE_INT, rc ) ;
       return rc ;
@@ -564,7 +558,6 @@ namespace engine
       goto done ;
    }
 
-<<<<<<< HEAD
    /*
     * _catCtxAlterGrp implement
     */
@@ -1198,8 +1191,6 @@ namespace engine
       goto done ;
    }
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    /*
     * _catCtxCreateNode implement
     */
@@ -1494,9 +1485,6 @@ namespace engine
                     "Failed to create node [%s] on group [%s], rc: %d",
                     _targetName.c_str(), _nodeName.c_str(), rc ) ;
 
-      // callback on create node
-      _pCatCB->onGroupChange() ;
-
    done :
       PD_TRACE_EXITRC ( SDB_CATCTXCREATENODE_EXECUTE_INT, rc ) ;
       return rc ;
@@ -1520,9 +1508,6 @@ namespace engine
                     "Failed to rollback create node [%s] on group [%s], rc: %d",
                     _targetName.c_str(), _nodeName.c_str(), rc ) ;
 
-      // callback on remove node
-      _pCatCB->onGroupChange() ;
-
    done :
       PD_TRACE_EXITRC ( SDB_CATCTXCREATENODE_ROLLBACK_INT, rc ) ;
       if ( CAT_INVALID_NODEID != _nodeID )
@@ -1535,7 +1520,6 @@ namespace engine
       goto done ;
    }
 
-<<<<<<< HEAD
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXCREATENODE__BUILDP2REPLY, "_catCtxCreateNode::_buildP2Reply" )
    INT32 _catCtxCreateNode::_buildP2Reply( bson::BSONObjBuilder &builder )
    {
@@ -1548,8 +1532,6 @@ namespace engine
       return rc ;
    }
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXCREATENODE_CHECKLOCALHOST, "_catCtxCreateNode::_checkLocalHost" )
    INT32 _catCtxCreateNode::_checkLocalHost( BOOLEAN isLocalHost,
                                              BOOLEAN &isValid,
@@ -1789,11 +1771,7 @@ namespace engine
          PD_CHECK( nodeNum == 0,
                    SDB_CATA_RM_NODE_FORBIDDEN, error, PDERROR,
                    "Unable to remove the last node or primary with data in a group" ) ;
-<<<<<<< HEAD
 
-=======
-                   
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          /// confirm that no there is no task.
          try
          {
@@ -1907,9 +1885,6 @@ namespace engine
 
       // release node and location
       _pCatCB->releaseNode( _nodeID, _location ) ;
-
-      // callback on remove node
-      _pCatCB->onGroupChange() ;
 
       if ( _needDeactive )
       {

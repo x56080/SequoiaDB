@@ -69,15 +69,9 @@ namespace engine
    }
 
    #define PMD_REST_SESSION_SNIFF_TIMEOUT    ( 10 * OSS_ONE_SEC )
-<<<<<<< HEAD
    #define PMD_REST_CS_NAME_SZ               127
    #define PMD_REST_SQL_COMMON_LEN           127
    #define PMD_REST_SQL_MAX_LEN              ( PMD_REST_SQL_COMMON_LEN + PMD_REST_CS_NAME_SZ )
-=======
-   #define PMD_REST_CS_NAME_SZ               127 
-   #define PMD_REST_SQL_COMMON_LEN           127
-   #define PMD_REST_SQL_MAX_LEN              ( PMD_REST_SQL_COMMON_LEN + PMD_REST_CS_NAME_SZ )            
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    /*
       util
    */
@@ -448,10 +442,7 @@ namespace engine
       SDB_ASSERT( NULL != msg, "msg can't be null" ) ;
 
       INT32 rc = SDB_OK ;
-<<<<<<< HEAD
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       rc = _restTransfer->trans( pAdaptor, request, msg ) ;
       if ( SDB_OK != rc )
       {
@@ -602,14 +593,6 @@ namespace engine
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "check auth failed:rc=%d", rc ) ;
-         _sendOpError2Web( rc, pAdaptor, response, this, eduCB() ) ;
-         goto error ;
-      }
-
-      rc = getClient()->checkPrivilege( msg ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "operation authorization failed:rc=%d", rc ) ;
          _sendOpError2Web( rc, pAdaptor, response, this, eduCB() ) ;
          goto error ;
       }
@@ -961,17 +944,10 @@ namespace engine
                               &RestToMSGTransfer::_convertDropAutoIncrement },
 
          { CMD_NAME_GET_COUNT,   &RestToMSGTransfer::_convertGetCount },
-<<<<<<< HEAD
 
          { CMD_NAME_GET_DOMAIN_NAME,
                                  &RestToMSGTransfer::_convertGetDomainName },
 
-=======
-         
-         { CMD_NAME_GET_DOMAIN_NAME,
-                                 &RestToMSGTransfer::_convertGetDomainName },
-                     
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          { CMD_NAME_LIST_GROUPS, &RestToMSGTransfer::_convertListGroups },
          { REST_CMD_NAME_START_GROUP,
                                  &RestToMSGTransfer::_convertStartGroup },
@@ -1016,11 +992,7 @@ namespace engine
          { REST_CMD_NAME_LISTINDEXES,
                                  &RestToMSGTransfer::_convertListIndexes },
 //         { CMD_NAME_LIST_CL_IN_DOMAIN, &RestToMSGTransfer::_convertQuery },
-<<<<<<< HEAD
          { CMD_NAME_LIST_CL_IN_COLLECTIONSPACE,
-=======
-         { CMD_NAME_LIST_CL_IN_COLLECTIONSPACE, 
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                                &RestToMSGTransfer::_convertListCLInCollectionsSpace },
          { CMD_NAME_SNAPSHOT_CONTEXTS,
                                  &RestToMSGTransfer::_convertSnapshotContext },
@@ -1810,10 +1782,7 @@ namespace engine
          }
       }
       flag |= FLG_INSERT_RETURNNUM ;
-<<<<<<< HEAD
       flag |= FLG_INSERT_HAS_ID_FIELD;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       rc = msgBuildInsertMsg( &pBuff, &buffSize, collectionName.c_str(), flag,
                               0, &insertor );
       if ( SDB_OK != rc )
@@ -3664,15 +3633,9 @@ namespace engine
       return _convertListBase( pAdaptor, request, pCommand, msg ) ;
    }
 
-<<<<<<< HEAD
    INT32 RestToMSGTransfer::_convertListRecycleBin ( restAdaptor *pAdaptor,
                                                      restRequest &request,
                                                      MsgHeader **msg )
-=======
-   INT32 RestToMSGTransfer::_convertListRecycleBin( restAdaptor * pAdaptor,
-                                                    restRequest & request,
-                                                    MsgHeader ** msg )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
       const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_LIST_RECYCLEBIN ;
 
@@ -3755,11 +3718,7 @@ namespace engine
       try
       {
          BSONObjBuilder builder ;
-<<<<<<< HEAD
          BSONObjBuilder subBuilder ( builder.subobjStart( FIELD_NAME_NAME ) ) ;
-=======
-         BSONObjBuilder subBuilder ( builder.subobjStart( FIELD_NAME_NAME ) ) ; 
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          subBuilder.append( "$gt", lowBound ) ;
          subBuilder.append( "$lt", upBound ) ;
          subBuilder.doneFast() ;
@@ -4175,11 +4134,7 @@ namespace engine
 
    INT32 RestToMSGTransfer::_convertSnapshotTransDeadlock ( restAdaptor * pAdaptor,
                                                             restRequest &request,
-<<<<<<< HEAD
                                                              MsgHeader ** msg )
-=======
-                                                            MsgHeader ** msg )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
       const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_TRANSDEADLOCK ;
 
@@ -4187,21 +4142,12 @@ namespace engine
    }
 
    INT32 RestToMSGTransfer::_convertSnapshotRecycleBin ( restAdaptor * pAdaptor,
-<<<<<<< HEAD
                                                          restRequest &request,
                                                          MsgHeader ** msg )
    {
       const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_RECYCLEBIN ;
 
       return  _convertSnapshotBase( pAdaptor, request, pCommand, msg ) ;
-=======
-                                                         restRequest & request,
-                                                         MsgHeader ** msg )
-   {
-      const CHAR *pCommand = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_RECYCLEBIN;
-
-      return _convertSnapshotBase( pAdaptor, request, pCommand, msg ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    }
 
    INT32 RestToMSGTransfer::_buildExecMsg( CHAR **ppBuffer, INT32 *bufferSize,
@@ -4241,11 +4187,8 @@ namespace engine
          sqlMsg->header.flags         = 0 ;
          sqlMsg->header.routeID.value = 0 ;
          sqlMsg->header.TID           = ossGetCurrentThreadID() ;
-<<<<<<< HEAD
          ossMemset( &(sqlMsg->header.globalID), 0,
                     sizeof(sqlMsg->header.globalID) ) ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          ossMemset( sqlMsg->header.reserve, 0,
                     sizeof(sqlMsg->header.reserve) ) ;
          ossMemcpy( *ppBuffer + sizeof( MsgOpSql ),

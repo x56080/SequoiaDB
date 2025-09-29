@@ -42,12 +42,7 @@
 #include "pdTrace.hpp"
 #include "clsTrace.hpp"
 #include "clsAdapterJob.hpp"
-<<<<<<< HEAD
 #include "clsResourceContainer.hpp"
-=======
-#include "rtnExtDataHandler.hpp"
-#include "dpsUtil.hpp"
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 using namespace bson ;
 
@@ -287,26 +282,6 @@ namespace engine
            SDB_ROLE_DATA == pmdGetKRCB()->getDBRole() )
       {
          pmdGetKRCB()->getTransCB()->setEventHandler( _pGTSAgent ) ;
-         pmdGetKRCB()->getTransCB()->registerGTSAgent( _pGTSAgent ) ;
-      }
-
-      // set maximum acceptable time error
-      if ( NULL != _pGTSAgent )
-      {
-         if ( pmdGetOptionCB()->globTransMaxTimeError() >= 0 )
-         {
-            _pGTSAgent->setMaxNodeTimeError(
-                  (UINT32)( STP_MICROSEC_TO_NANOSEC(
-                        pmdGetOptionCB()->globTransMaxTimeError() ) ) ) ;
-         }
-         else
-         {
-            // if --globtransmaxtimeerror < 0, means no need to check global time
-            // synchronization between SequoiaDB nodes, set max node time error
-            // to invalid value ( maximum value in UINT32 )
-            _pGTSAgent->setMaxNodeTimeError(
-                        DPS_INVALID_GLOBTRANS_MAXTIMEERROR ) ;
-         }
       }
 
    done:
@@ -318,24 +293,7 @@ namespace engine
 
    INT32 _clsShardMgr::active ()
    {
-      INT32 rc = SDB_OK ;
-
-      // only start GTS lowTran job for DATA node
-      // NOTE: CATALOG has cls module as well
-      if ( SDB_ROLE_DATA == pmdGetDBRole() )
-      {
-         EDUID eduID = 0 ;
-
-         rc = dpsStartGTSLowTranJob( _pGTSAgent, &eduID ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to start GTS lowTran job, "
-                      "rc: %d", rc ) ;
-      }
-
-   done:
-      return rc ;
-
-   error:
-      goto done ;
+      return SDB_OK ;
    }
 
    INT32 _clsShardMgr::deactive ()
@@ -361,14 +319,13 @@ namespace engine
 
    void _clsShardMgr::onConfigChange ()
    {
-      pmdOptionsCB *optionCB = pmdGetOptionCB() ;
       if ( _pNetRtAgent )
       {
          _netFrame *pNetFrame = _pNetRtAgent->getFrame() ;
-         pNetFrame->setBeatInfo( optionCB->getOprTimeout() ) ;
-         pNetFrame->setMaxSockPerNode( optionCB->maxSockPerNode() ) ;
-         pNetFrame->setMaxSockPerThread( optionCB->maxSockPerThread() ) ;
-         pNetFrame->setMaxThreadNum( optionCB->maxSockThread() ) ;
+         pNetFrame->setBeatInfo( pmdGetOptionCB()->getOprTimeout() ) ;
+         pNetFrame->setMaxSockPerNode( pmdGetOptionCB()->maxSockPerNode() ) ;
+         pNetFrame->setMaxSockPerThread( pmdGetOptionCB()->maxSockPerThread() ) ;
+         pNetFrame->setMaxThreadNum( pmdGetOptionCB()->maxSockThread() ) ;
       }
    }
 
@@ -384,9 +341,6 @@ namespace engine
 
          // Clear statistics
          pmdGetKRCB()->getDMSCB()->clearSUCaches( DMS_EVENT_MASK_ALL ) ;
-
-         // reset node time error
-         _pGTSAgent->resetNodeTimeError() ;
       }
       else if ( primary && SDB_EVT_OCCUR_AFTER == type )
       {
@@ -461,9 +415,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDMGR_SYNCSND, "_clsShardMgr::syncSend" )
    INT32 _clsShardMgr::syncSend( MsgHeader * msg, UINT32 groupID,
                                  BOOLEAN primary, MsgHeader **ppRecvMsg,
-                                 INT64 millisec,
-                                 const CHAR *buffer,
-                                 UINT32 bufferSize )
+                                 INT64 millisec )
    {
       PD_TRACE_ENTRY ( SDB__CLSSHDMGR_SYNCSND ) ;
       INT32 rc = SDB_OK ;
@@ -552,42 +504,14 @@ namespace engine
    reSend:
             // send msg, if we can connect to the node but failed to send
             // let's skip and retry
-            if ( NULL != buffer && bufferSize > 0 )
+            rc = tmpSocket.send( (const CHAR *)msg, msg->messageLength,
+                                 sentLen, millisec ) ;
+            if ( rc )
             {
-               // send with buffer
-               rc = tmpSocket.send( (const CHAR *)msg,
-                                    msg->messageLength - bufferSize,
-                                    sentLen,
-                                    millisec ) ;
-               if ( rc )
-               {
-                  PD_LOG( PDWARNING, "Send message to %s:%d failed, rc: %d",
-                          tmpInfo._host.c_str(), port, rc ) ;
-                  tmpInfo._result = rc ;
-                  continue ;
-               }
-
-               rc = tmpSocket.send( buffer, bufferSize, sentLen, millisec ) ;
-               if ( rc )
-               {
-                  PD_LOG( PDWARNING, "Send message buffer to %s:%d failed, "
-                          "rc: %d", tmpInfo._host.c_str(), port, rc ) ;
-                  tmpInfo._result = rc ;
-                  continue ;
-               }
-            }
-            else
-            {
-               // send message only
-               rc = tmpSocket.send( (const CHAR *)msg, msg->messageLength,
-                                    sentLen, millisec ) ;
-               if ( rc )
-               {
-                  PD_LOG( PDWARNING, "Send message to %s:%d failed, rc: %d",
-                          tmpInfo._host.c_str(), port, rc ) ;
-                  tmpInfo._result = rc ;
-                  continue ;
-               }
+               PD_LOG( PDWARNING, "Send messge to %s:%d failed, rc:%d",
+                       tmpInfo._host.c_str(), port, rc ) ;
+               tmpInfo._result = rc ;
+               continue ;
             }
 
             // recieve msg, do not loop and retry
@@ -776,54 +700,6 @@ namespace engine
                  groupID, rc ) ;
       }
       goto error ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDMGR_SYNCSND_ROUTEID, "_clsShardMgr::syncSend" )
-   INT32 _clsShardMgr::syncSend( MsgHeader *message,
-                                 const MsgRouteID &routeID,
-                                 MsgHeader **recvMessage,
-                                 INT64 millisec,
-                                 const CHAR *buffer,
-                                 UINT32 bufferSize )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__CLSSHDMGR_SYNCSND_ROUTEID ) ;
-
-      string hostName ;
-      string serviceName ;
-      UINT16 port = 0 ;
-
-      SDB_ASSERT( NULL != message, "message is invalid" ) ;
-
-      rc = getNodeInfo( routeID, hostName, serviceName, TRUE, millisec ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get node info for route ID %s, "
-                   "rc: %d", routeID2String( routeID ).c_str(), rc ) ;
-
-      PD_CHECK( !hostName.empty(), SDB_INVALID_ROUTEID, error, PDERROR,
-                "Failed to get host name for route ID %s",
-                routeID2String( routeID ).c_str() ) ;
-
-      PD_CHECK( !serviceName.empty(), SDB_INVALID_ROUTEID, error, PDERROR,
-                "Failed to get service name for route ID %s",
-                routeID2String( routeID ).c_str() ) ;
-
-      rc = ossGetPort( serviceName.c_str(), port ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to parse service name [%s], rc: %d",
-                   serviceName.c_str(), rc ) ;
-
-      rc = _sendAndRecv( hostName.c_str(), port, message,
-                         recvMessage, millisec, buffer, bufferSize ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to send and receive message from "
-                   "%s [%s:%s], rc: %d", routeID2String( routeID ).c_str(),
-                   hostName.c_str(), serviceName.c_str(), rc ) ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__CLSSHDMGR_SYNCSND_ROUTEID, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDMGR_SND2CAT, "_clsShardMgr::sendToCatlog" )
@@ -1614,175 +1490,6 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDMGR__SENDANDRECV, "_clsShardMgr::_sendAndRecv" )
-   INT32 _clsShardMgr::_sendAndRecv( const CHAR *hostName,
-                                     UINT16 port,
-                                     MsgHeader *message,
-                                     MsgHeader **receiveMessage,
-                                     INT64 millisec,
-                                     const CHAR *buffer,
-                                     UINT32 bufferSize )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__CLSSHDMGR__SENDANDRECV ) ;
-
-      // use millisecond
-      // establish a socket connection, will be closed by end of the scope
-      ossSocket tmpSocket( hostName, port, millisec ) ;
-      INT32 sentLen = 0, receivedLen = 0 ;
-      INT32 replyLength = 0 ;
-      CHAR *replyBuffer = NULL ;
-      BOOLEAN tryInCompatibleMode = FALSE ;
-      msgConvertorImpl *msgConvertor = NULL ;
-      UINT16 reserveSize = 0 ;
-      UINT32 recvBuffSize = 0 ;
-
-      // initialize socket
-      rc = tmpSocket.initSocket() ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to initialize socket %s:%d, rc: %d",
-                   hostName, port, rc ) ;
-
-      // connect to remote
-      rc = tmpSocket.connect() ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to connect to remote %s:%d, rc: %d",
-                   hostName, port, rc ) ;
-
-      // send msg, if we can connect to the node but failed to send
-      // let's skip and retry
-      if ( NULL != buffer && bufferSize > 0 )
-      {
-         // send with buffer
-         rc = tmpSocket.send( (const CHAR *)message,
-                              message->messageLength - bufferSize,
-                              sentLen,
-                              millisec ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to send message header to %s:%d, "
-                      "rc: %d", hostName, port, rc ) ;
-
-         rc = tmpSocket.send( buffer, bufferSize, sentLen, millisec ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to send message body to %s:%d, "
-                      "rc: %d", hostName, port, rc ) ;
-      }
-      else
-      {
-         // send message only
-         rc = tmpSocket.send( (const CHAR *)message,
-                              message->messageLength,
-                              sentLen, millisec ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to send message to %s:%d, "
-                      "rc: %d", hostName, port, rc ) ;
-      }
-
-   try_recv:
-      // receive message
-      rc = tmpSocket.recv( (CHAR *)( &replyLength ), sizeof( INT32 ),
-                           receivedLen, millisec ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to receive length of reply from %s:%d, "
-                   "rc: %d", hostName, port, rc ) ;
-
-      PD_CHECK( replyLength >= (INT32)( sizeof( INT32 ) ) &&
-                replyLength <= SDB_MAX_MSG_LENGTH,
-                SDB_SYS, error, PDERROR,
-                "Failed to check length of reply [%d]", replyLength ) ;
-
-      if ( recvBuffSize < (UINT32)(replyLength + reserveSize) )
-      {
-         CHAR *newBuff = (CHAR *)
-               SDB_OSS_REALLOC( replyBuffer, replyLength + reserveSize ) ;
-         if ( !newBuff )
-         {
-            rc = SDB_OOM ;
-            PD_LOG( PDERROR, "Allocate memory[size: %u] failed[%d]",
-                    replyLength + reserveSize, rc ) ;
-            goto error ;
-         }
-         replyBuffer = newBuff ;
-         recvBuffSize = replyLength + reserveSize ;
-      }
-      ossMemset( replyBuffer, 0, recvBuffSize ) ;
-      *(INT32 *)replyBuffer = replyLength ;
-
-      rc = tmpSocket.recv( &replyBuffer[ sizeof( INT32 ) ],
-                           replyLength - sizeof( INT32 ),
-                           receivedLen,
-                           millisec ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to receive reply message, rc: %d",
-                   rc ) ;
-
-      if ( MSG_COMM_EYE_DEFAULT != ((MsgHeader *)replyBuffer)->eye )
-      {
-         CHAR *convertedMsg = NULL ;
-         UINT32 convertedMsgLen = 0 ;
-         if ( tryInCompatibleMode )
-         {
-            rc = msgConvertor->push( replyBuffer, replyLength ) ;
-            PD_RC_CHECK( rc, PDERROR, "Push reply message into message "
-                         "convertor failed[%d]", rc ) ;
-            rc = msgConvertor->output( convertedMsg, convertedMsgLen ) ;
-            PD_RC_CHECK( rc, PDERROR, "Get message from message convertor "
-                                      "failed[%d]", rc ) ;
-            SDB_ASSERT( recvBuffSize >= convertedMsgLen,
-                        "Converted message length is not as expected" ) ;
-            ossMemcpy( replyBuffer, convertedMsg, convertedMsgLen ) ;
-         }
-         else
-         {
-            msgConvertor = SDB_OSS_NEW msgConvertorImpl ;
-            if ( !msgConvertor )
-            {
-               rc = SDB_OOM ;
-               PD_LOG( PDERROR, "Allocate memory for message convertor "
-                       "failed[%d]", rc ) ;
-               goto error ;
-            }
-
-            if ( buffer && bufferSize > 0 )
-            {
-               rc = msgConvertor->push( (const CHAR *)message,
-                                        message->messageLength - bufferSize ) ;
-               PD_RC_CHECK( rc, PDERROR, "Push message into message convertor "
-                            "failed[%d]", rc ) ;
-               rc = msgConvertor->push( buffer, bufferSize ) ;
-               PD_RC_CHECK( rc, PDERROR, "Push message into message convertor "
-                            "failed[%d]", rc ) ;
-            }
-            else
-            {
-               rc = msgConvertor->push( (const CHAR *)message,
-                                        message->messageLength ) ;
-               PD_RC_CHECK( rc, PDERROR, "Push message into message convertor "
-                                         "failed[%d]", rc ) ;
-            }
-
-            rc = msgConvertor->output( convertedMsg, convertedMsgLen ) ;
-            PD_RC_CHECK( rc, PDERROR, "Get message from message convertor "
-                         "failed[%d]", rc ) ;
-            rc = tmpSocket.send( convertedMsg, convertedMsgLen,
-                                 sentLen, millisec ) ;
-            PD_RC_CHECK( rc, PDERROR, "Send message to %s:%d failed[%d]",
-                         hostName, port, rc ) ;
-
-            tryInCompatibleMode = TRUE ;
-            reserveSize = sizeof(MsgOpReply) - sizeof(MsgOpReplyV1) ;
-            goto try_recv ;
-         }
-      }
-
-      // buffer will be freed outside the function
-      *receiveMessage = (MsgHeader *)replyBuffer ;
-      replyBuffer = NULL ;
-
-   done:
-      SAFE_OSS_FREE( replyBuffer ) ;
-      SAFE_OSS_DELETE( msgConvertor ) ;
-      PD_TRACE_EXITRC( SDB__CLSSHDMGR__SENDANDRECV, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
    // get catalog group response information
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDMGR__ONCATGPRES, "_clsShardMgr::_onCatCatGroupRes" )
    INT32 _clsShardMgr::_onCatCatGroupRes ( NET_HANDLE handle, MsgHeader * msg )
@@ -1793,9 +1500,8 @@ namespace engine
       MsgRouteID primaryNode ;
       UINT32 primary = 0 ;
       std::string groupName ;
-      NET_ROUTE_MAP mapNodes ;
+      map<UINT64, _netRouteNode> mapNodes ;
       MsgCatCatGroupRes *res = (MsgCatCatGroupRes*)msg ;
-      BOOLEAN businessOk = pmdGetKRCB()->isBusinessOK() ;
 
       // sanity check, make sure the response is OKAY
       if ( SDB_OK != MSG_GET_INNER_REPLY_RC(msg) )
@@ -1820,10 +1526,17 @@ namespace engine
       {
          _shardLatch.get () ;
 
-         NET_ROUTE_MAP oldCatNodes = _mapNodes ;
+         pmdOptionsCB *optCB = pmdGetOptionCB() ;
+         string oldCfg, newCfg ;
+         // remember the old info
+         optCB->toString( oldCfg ) ;
+         MAP_ROUTE_NODE oldCatNodes = _mapNodes ;
          NodeID oldID ;
+
+         _catVerion = version ;
          _mapNodes.clear() ;
-         NET_ROUTE_MAP::iterator it = mapNodes.begin() ;
+         optCB->clearCatAddr() ;
+         map<UINT64, _netRouteNode>::iterator it = mapNodes.begin() ;
          // iterate for each nodes in catalog list
          while ( it != mapNodes.end() )
          {
@@ -1831,6 +1544,9 @@ namespace engine
             setCatlogInfo( nodeItem._id,
                            nodeItem._host,
                            nodeItem._service[MSG_ROUTE_CAT_SERVICE] ) ;
+            optCB->setCatAddr( nodeItem._host,
+                               nodeItem._service[
+                               MSG_ROUTE_CAT_SERVICE].c_str() ) ;
             ++it ;
          }
 
@@ -1877,37 +1593,13 @@ namespace engine
             // total refresh must be done by restarting database
             ++it ;
          }
-
-         // the node is register successfully
-         if ( businessOk )
+         // convert new optcb to string
+         optCB->toString( newCfg ) ;
+         // if old and new are different, let's flush
+         if ( oldCfg != newCfg )
          {
-            pmdOptionsCB *optCB = pmdGetOptionCB() ;
-            string oldCfg, newCfg ;
-
-            // remember the old info
-            optCB->toString( oldCfg ) ;
-            // unchange the catversion when businessOk is flase, avoid retry fail
-            _catVerion = version ;
-            optCB->clearCatAddr() ;
-
-            it = mapNodes.begin() ;
-            // iterate for each nodes in catalog list
-            while ( it != mapNodes.end() )
-            {
-               clsNodeItem &nodeItem = it->second ;
-               optCB->setCatAddr( nodeItem._host,
-                                  nodeItem._service[
-                                  MSG_ROUTE_CAT_SERVICE].c_str() ) ;
-               ++it ;
-            }
-            // convert new optcb to string
-            optCB->toString( newCfg ) ;
-            // if old and new are different, let's flush
-            if ( oldCfg != newCfg )
-            {
-               // refresh to config file
-               optCB->reflush2File() ;
-            }
+            // refresh to config file
+            optCB->reflush2File() ;
          }
 
          _shardLatch.release () ;
@@ -1940,14 +1632,6 @@ namespace engine
       PD_TRACE_EXITRC ( SDB__CLSSHDMGR__ONCATGPRES, rc );
       return rc ;
    error:
-      // if the information is pulled from the standby node that
-      // has not been syncchronized, it will cause the problem
-      // that the group does no exist
-      // in this case , we need to retry
-      if ( SDB_CLS_GRP_NOT_EXIST == rc )
-      {
-         updateCatGroup() ;
-      }
       goto done ;
    }
 
@@ -2273,7 +1957,6 @@ namespace engine
          }
 
          try
-<<<<<<< HEAD
          {
             pEventInfo->name = pCollectionName ;
             pEventInfo->clUniqueID = clUniqueID ;
@@ -2288,22 +1971,6 @@ namespace engine
          }
          catch ( std::exception &e )
          {
-=======
-         {
-            pEventInfo->name = pCollectionName ;
-            pEventInfo->clUniqueID = clUniqueID ;
-            if ( UTIL_IS_VALID_CLUNIQUEID( clUniqueID) )
-            {
-               _mapSyncCLIDEvent[ clUniqueID ] = pEventInfo ;
-            }
-            else
-            {
-               _mapSyncCatEvent[ pCollectionName ] = pEventInfo ;
-            }
-         }
-         catch ( std::exception &e )
-         {
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             PD_LOG( PDERROR, "Occur exception: %s, rc: %d", e.what(),
                     ossException2RC( &e ) ) ;
             goto error ;
@@ -2430,14 +2097,14 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDMGR__FNDCATNODEID, "_clsShardMgr::_findCatNodeID" )
-   INT32 _clsShardMgr::_findCatNodeID ( NET_ROUTE_MAP &catNodes,
+   INT32 _clsShardMgr::_findCatNodeID ( MAP_ROUTE_NODE &catNodes,
                                         const CHAR *hostName,
                                         const std::string & service,
                                         NodeID & id )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSSHDMGR__FNDCATNODEID );
-      NET_ROUTE_MAP::iterator it = catNodes.begin() ;
+      MAP_ROUTE_NODE_IT it = catNodes.begin() ;
       while ( it != catNodes.end() )
       {
          const clsNodeItem &nodeItem = it->second ;
@@ -2587,91 +2254,6 @@ namespace engine
          _pNodeMgrAgent->release_r() ;
       }
       return SDB_OK ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDMGR_GETNODEINFO, "_clsShardMgr::getNodeInfo" )
-   INT32 _clsShardMgr::getNodeInfo( const MsgRouteID &routeID,
-                                    string &hostName,
-                                    string &serviceName,
-                                    BOOLEAN noWithUpdate,
-                                    INT64 waitMillSec,
-                                    BOOLEAN *updated )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__CLSSHDMGR_GETNODEINFO ) ;
-
-      UINT32 groupID = routeID.columns.groupID ;
-      UINT32 nodeID = routeID.columns.nodeID ;
-      BOOLEAN groupUpdated = FALSE ;
-      clsGroupItem *groupItem = NULL ;
-
-   retry:
-      rc = getAndLockGroupItem( groupID, &groupItem, noWithUpdate, waitMillSec,
-                                &groupUpdated ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get group item for route ID %s, "
-                   "rc: %d", routeID2String( routeID ).c_str(), rc ) ;
-      PD_CHECK( NULL != groupItem, SDB_CLS_NO_GROUP_INFO, error, PDERROR,
-                "Failed to get group item for route ID %s, group is invalid",
-                routeID2String( routeID ).c_str() ) ;
-
-      rc = groupItem->getNodeInfo( routeID, hostName, serviceName ) ;
-      if ( SDB_OK != rc )
-      {
-         // check if we could retry, we only update once here, or indicate no
-         // update when not found, in those cases, we won't update group info
-         PD_CHECK( !groupUpdated || !noWithUpdate,
-                   SDB_CLS_NODE_NOT_EXIST, error, PDERROR,
-                   "Failed to get node info for route ID %s, "
-                   "node [%u] is not found in group [%u]",
-                   routeID2String( routeID ).c_str(), nodeID, groupID ) ;
-
-         unlockGroupItem( groupItem ) ;
-         groupItem = NULL ;
-
-         rc = syncUpdateGroupInfo( groupID, waitMillSec ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to update group info [%u], rc: %d",
-                      groupID, rc ) ;
-
-         // mark group updated
-         groupUpdated = TRUE ;
-         // only update it once
-         noWithUpdate = FALSE ;
-         // go retry
-         goto retry ;
-      }
-
-      // check host name
-      PD_CHECK( !hostName.empty(),
-                SDB_CLS_NODE_NOT_EXIST, error, PDERROR,
-                "Failed to get node info for route ID %s,"
-                "host name is invalid",
-                routeID2String( routeID ).c_str() ) ;
-      // check service name
-      PD_CHECK( !serviceName.empty(),
-                SDB_CLS_NODE_NOT_EXIST, error, PDERROR,
-                "Failed to get node info for route ID %s,"
-                "service name is invalid",
-                routeID2String( routeID ).c_str() ) ;
-
-   done:
-      // release group item
-      if ( NULL != groupItem )
-      {
-         unlockGroupItem( groupItem ) ;\
-         groupItem = NULL ;
-      }
-      // copy updated flag to output
-      if ( NULL != updated )
-      {
-         *updated = groupUpdated ;
-      }
-
-      PD_TRACE_EXITRC( SDB__CLSSHDMGR_GETNODEINFO, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
    }
 
    /*
@@ -2879,11 +2461,7 @@ namespace engine
                rc = buf.nextObj( obj ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to get object from result, "
                             "rc: %d", rc ) ;
-<<<<<<< HEAD
                objList.push_back( obj.getOwned() ) ;
-=======
-               objList.push_back( obj ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             }
             catch ( exception &e )
             {
@@ -3390,78 +2968,50 @@ namespace engine
       else
       {
          INT32 checkRC = SDB_OK ;
+         DPS_LSN_OFFSET lsn = DPS_INVALID_LSN_OFFSET ;
 
          MsgClsTransCheckReq *pReq = ( MsgClsTransCheckReq* )msg ;
-
-         // extract transaction ID
-         DPS_TRANS_ID transID ;
-         dpsTransBackInfo transInfo ;
-         transID.setNodeID( pReq->transIDNodeID ) ;
-         transID.setSN( pReq->transID ) ;
-
-         // will return unknown status if not found
-         transCB->getTransInfo( transID, transInfo ) ;
+         INT32 status = transCB->checkTransStatus( pReq->transID, lsn ) ;
 
          // for wait-commit status, we need to make sure pre-commit log
          // is replicated to at least one other replicate node ( group with
          // multiple nodes )
-         if ( DPS_TRANS_WAIT_COMMIT == transInfo._status &&
-              DPS_INVALID_LSN_OFFSET != transInfo._lsn &&
+         if ( DPS_TRANS_WAIT_COMMIT == status &&
+              DPS_INVALID_LSN_OFFSET != lsn &&
               pReplCB->groupSize() > 1 )
          {
             pmdEDUCB *cb = pmdGetThreadEDUCB() ;
             INT16 finalReplSize = 0 ;
             INT16 replSize = pmdGetOptionCB()->transReplSize() ;
             replSize = ( 1 == replSize ) ? 2 : replSize ;
-<<<<<<< HEAD
             cb->getOperator()->setReplStrategy( pmdGetOptionCB()->
                                                    transConsistencyStrategy() ) ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             checkRC = pReplCB->replSizeCheck( replSize, finalReplSize, cb ) ;
             if ( SDB_OK != checkRC )
             {
                PD_LOG( PDWARNING, "Failed to check repl size for transaction "
-<<<<<<< HEAD
                        "[%llu], given repl size [%d], rc: %d",
                        pReq->transID, replSize, checkRC ) ;
-=======
-                       "[%s], given repl size [%d], rc: %d",
-                       dpsTransIDToString( transID ).c_str(), replSize,
-                       checkRC ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                checkRC = SDB_CLS_WAIT_SYNC_FAILED ;
             }
             else
             {
                // just wait for one replica node in this special case
-<<<<<<< HEAD
                checkRC = pReplCB->sync( lsn, cb, finalReplSize, 10 ) ;
                if ( SDB_OK != checkRC )
                {
                   PD_LOG( PDWARNING, "Failed to check sync for transaction "
                           "[%llu] lsn [%llu], rc: %d",
                           pReq->transID, lsn, checkRC ) ;
-=======
-               checkRC = pReplCB->sync( transInfo._lsn, cb, finalReplSize,
-                                        10 ) ;
-               if ( SDB_OK != checkRC )
-               {
-                  PD_LOG( PDWARNING, "Failed to check sync for transaction "
-                          "[%s] lsn [%llu], rc: %d",
-                          dpsTransIDToString( transID ).c_str(),
-                          transInfo._lsn, checkRC ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                   checkRC = SDB_CLS_WAIT_SYNC_FAILED ;
                }
             }
             reply.flags = checkRC ;
          }
-         else if ( DPS_TRANS_DOING == transInfo._status ||
-                   DPS_TRANS_PRE_WAIT_COMMIT == transInfo._status )
+         else if ( DPS_TRANS_DOING == status )
          {
-            // the status is still DOING/PRE-WAIT-COMMIT
-            // it might be processing pre-commit/rollback messages
+            // the status is still doing, it might be processing
+            // pre-commit/rollback messages
             // tell the requester to wait
             reply.flags = SDB_RTN_EXIST_INDOUBT_TRANS ;
          }
@@ -3470,15 +3020,8 @@ namespace engine
             reply.flags = SDB_OK ;
          }
 
-         retObj = BSON( FIELD_NAME_TRANSACTION_ID_SN <<
-                        (INT64)( pReq->transID ) <<
-                        FIELD_NAME_TRANSACTION_ID_NODEID <<
-                        (INT32)( pReq->transIDNodeID ) <<
-                        FIELD_NAME_STATUS << transInfo._status <<
-                        FIELD_NAME_PRECOMMITTIME <<
-                        (INT64)( transInfo._preCommitTime.getTime() ) <<
-                        FIELD_NAME_COMMITTIME <<
-                        (INT64)( transInfo._commitTime.getTime() ) ) ;
+         retObj = BSON( FIELD_NAME_TRANSACTION_ID << (INT64)pReq->transID <<
+                        FIELD_NAME_STATUS << status ) ;
       }
 
       reply.header.messageLength += retObj.objsize() ;

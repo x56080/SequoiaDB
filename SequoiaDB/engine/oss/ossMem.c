@@ -37,13 +37,7 @@
 #include "ossUtil.h"
 #if defined (_LINUX) || defined (_AIX)
 #include <stdlib.h>
-<<<<<<< HEAD
 #include <malloc.h>
-=======
-#include <sys/syscall.h>
-#include <linux/futex.h>
-#include <sys/time.h>
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 #elif defined (_WINDOWS)
 #include <malloc.h>
 #endif
@@ -721,32 +715,3 @@ error:
 #endif   
 }
 
-INT32 ossMemWatch( INT32 *address, INT32 oldValue, INT64 timeout )
-{
-#if defined (_LINUX)
-   struct timespec *pt = NULL ;
-   struct timespec t ;
-   if ( timeout >= 0 )
-   {
-      t.tv_sec = (int)( timeout / 1000 ) ;
-      t.tv_nsec = 1000000 * ( timeout % 1000 ) ;
-      pt = &t ;
-   }
-   syscall( SYS_futex, address, FUTEX_WAIT, oldValue, pt, NULL, 0 ) ;
-   return SDB_OK ;
-#else
-   // WaitForAddress() requires Windows SDK 8 or above
-   return SDB_OK ;
-#endif
-}
-
-INT32 ossMemWakeUpWatchers( INT32 *address )
-{
-#if defined (_LINUX)
-   syscall( SYS_futex, address, FUTEX_WAKE, OSS_SINT32_MAX, NULL, NULL, 0 ) ;
-   return SDB_OK ;
-#else
-   // WakeByAddressAll() requires Windows SDK 8 or above
-   return SDB_OK ;
-#endif
-}

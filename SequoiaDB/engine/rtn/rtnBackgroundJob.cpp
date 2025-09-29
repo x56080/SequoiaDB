@@ -56,10 +56,7 @@ namespace engine
                                 UINT64 lsnOffset, BOOLEAN isRollBackLog,
                                 INT32 sortBufSize, UINT64 taskID,
                                 UINT64 mainTaskID )
-<<<<<<< HEAD
    : _session( TRUE )
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
       PD_TRACE_ENTRY ( SDB__RTNINDEXJOB__RTNINDEXJOB ) ;
       _type = type ;
@@ -84,10 +81,7 @@ namespace engine
    }
 
    _rtnIndexJob::_rtnIndexJob ()
-<<<<<<< HEAD
    : _session( TRUE )
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
       _type = RTN_JOB_CREATE_INDEX ;
       ossMemset( _clFullName, 0, sizeof( _clFullName ) ) ;
@@ -279,10 +273,7 @@ namespace engine
       dmsTaskStatusMgr* taskStatMgr = sdbGetRTNCB()->getTaskStatusMgr() ;
       DMS_TASK_TYPE taskType = DMS_TASK_UNKNOWN ;
 
-<<<<<<< HEAD
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       // build index name, index element
       try
       {
@@ -344,11 +335,6 @@ namespace engine
                   mbContext->mbStat()->_globIdxNum ++ ;
                   _hasAddGlobal = TRUE ;
                }
-<<<<<<< HEAD
-=======
-               _csLID = su->LogicalCSID() ;
-               _clLID = mbContext->clLID() ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             }
             else
             {
@@ -404,16 +390,6 @@ namespace engine
                }
             }
 
-<<<<<<< HEAD
-=======
-            // register drop index job to prevent other operators to be
-            // executed before drop index is finished ( e.g. truncate )
-            rc = rtnGetIndexJobHolder()->regCLJob( _clFullName ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to register drop index job "
-                         "for collection [%s], rc: %d", _clFullName, rc ) ;
-            _regCLJob = TRUE ;
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             taskType = DMS_TASK_DROP_IDX ;
             break ;
          }
@@ -425,20 +401,16 @@ namespace engine
          }
       }
 
-<<<<<<< HEAD
       // get cs id and cl id ;
       _csLID = su->LogicalCSID() ;
       _clLID = mbContext->clLID() ;
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       // get collection unique id
       _clUniqID = mbContext->mb()->_clUniqueID ;
 
       // build job name after we get the collection unique id
       rc = _buildJobName() ;
       if ( rc )
-<<<<<<< HEAD
       {
          goto error ;
       }
@@ -452,21 +424,6 @@ namespace engine
       // create task status
       if ( _taskID != DMS_INVALID_TASKID )
       {
-=======
-      {
-         goto error ;
-      }
-
-      // unlock mb and su
-      su->data()->releaseMBContext( mbContext ) ;
-      mbContext = NULL ;
-      _dmsCB->suUnlock( suID ) ;
-      suID = DMS_INVALID_SUID ;
-
-      // create task status
-      if ( _taskID != DMS_INVALID_TASKID )
-      {
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          rc = taskStatMgr->createIdxItem( taskType, _taskStatusPtr,
                                           _taskID, _locationID, _mainTaskID ) ;
          PD_RC_CHECK( rc, PDERROR,
@@ -478,7 +435,6 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to initialize task status, rc: %d",
                       rc ) ;
-<<<<<<< HEAD
       }
 
       if ( UTIL_IS_VALID_CLUNIQUEID( _clUniqID ) )
@@ -489,8 +445,6 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to register drop index job "
                      "for collection [%s], rc: %d", _clFullName, rc ) ;
          _regCLJob = TRUE ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       }
 
    done:
@@ -647,11 +601,6 @@ namespace engine
                rc = rtnDropIndexCommand( _clUniqID, _indexEle,
                                          cb, _dmsCB, _dpsCB, TRUE,
                                          _taskStatusPtr.get() ) ;
-<<<<<<< HEAD
-=======
-               sdbGetRTNCB()->getObjectStatCache()->removeCLStat( _clFullName );
-               sdbGetRTNCB()->getAPM()->invalidateCLPlans( _clFullName );
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             }
             else
             {
@@ -661,11 +610,6 @@ namespace engine
             }
          }
 
-<<<<<<< HEAD
-=======
-         
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          INT32 rcTmp = _onDoit( rc ) ;
          if ( SDB_OK == rc )
          {
@@ -703,109 +647,6 @@ namespace engine
    }
 
    BOOLEAN _rtnIndexJob::_needRetry( INT32 rc, BOOLEAN &retryLater )
-<<<<<<< HEAD
-=======
-   {
-      BOOLEAN needRetry = FALSE ;
-
-      retryLater = FALSE ;
-
-      // if the collection is truncated when creating index, we can retry
-      // if the scanner is interrupted when creating index, we can retry
-      if ( SDB_DMS_TRUNCATED == rc ||
-           SDB_DMS_SCANNER_INTERRUPT == rc )
-      {
-         needRetry = TRUE ;
-         goto done ;
-      }
-
-      // Primary node should throw error immediately, so that user can intervene
-      // as soon as possible. During split, target group's primary node will
-      // replay source group's dps log.
-      if ( _lsn != DPS_INVALID_LSN_OFFSET )
-      {
-         if ( SDB_OOM == rc ||
-              SDB_NOSPC == rc ||
-              SDB_TOO_MANY_OPEN_FD == rc )
-         {
-            needRetry = TRUE ;
-            goto done ;
-         }
-      }
-
-   done:
-      if ( needRetry )
-      {
-         if ( _taskStatusPtr.get() )
-         {
-            _taskStatusPtr->incRetryCnt() ;
-         }
-      }
-      return needRetry ;
-   }
-
-   /*
-      _rtnCleanupIdxStatusJob implement
-   */
-
-   #define RTN_CLEAN_IDXSTAT_INTERVAL ( 3600 * 1000000L ) // us, 1 hours
-
-   const CHAR* _rtnCleanupIdxStatusJob::name () const
-   {
-      return "Cleanup_Expired_IndexStatus" ;
-   }
-
-   INT32 _rtnCleanupIdxStatusJob::doit( IExecutor *pExe,
-                                        UTIL_LJOB_DO_RESULT &result,
-                                        UINT64 &sleepTime )
-   {
-      if ( PMD_IS_DB_DOWN() || ((pmdEDUCB*)pExe)->isForced() )
-      {
-         result = UTIL_LJOB_DO_FINISH ;
-      }
-      else
-      {
-         sleepTime = RTN_CLEAN_IDXSTAT_INTERVAL ;
-         result = UTIL_LJOB_DO_CONT ;
-
-         PD_LOG( PDDEBUG, "Start job[%s]", name() ) ;
-
-         sdbGetRTNCB()->getTaskStatusMgr()->cleanOutOfDate( pmdIsPrimary() ) ;
-      }
-
-      return SDB_OK ;
-   }
-
-   INT32 rtnStartCleanupIdxStatusJob()
-   {
-      INT32 rc = SDB_OK ;
-
-      _rtnCleanupIdxStatusJob *job = SDB_OSS_NEW _rtnCleanupIdxStatusJob() ;
-      PD_CHECK( job, SDB_OOM, error, PDERROR,
-                "Failed to allocate rtnCleanupIdxStatusJob" ) ;
-
-      rc = job->submit( TRUE ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDWARNING, "Failed to submit job[%s], rc: %d",
-                 job->name(), rc ) ;
-      }
-      else
-      {
-         PD_LOG( PDINFO, "Submit job[%s] done", job->name() ) ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   /*
-      _rtnIndexJobHolder implement
-    */
-   _rtnIndexJobHolder::_rtnIndexJobHolder()
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
       BOOLEAN needRetry = FALSE ;
 

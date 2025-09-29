@@ -303,15 +303,12 @@ namespace engine
                              CLS_TASK_TYPE type,
                              pmdEDUCB *cb,
                              ossPoolSet< UINT64 > &tasks ) ;
-<<<<<<< HEAD
    INT32 catGetCLTasks( const CHAR *clName,
                         pmdEDUCB *cb,
                         ossPoolSet< UINT64 > &tasks ) ;
    INT32 catGetCSTasks( const CHAR *csName,
                         pmdEDUCB *cb,
                         ossPoolSet< UINT64 > &tasks ) ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    INT32 catGetTaskStatus( UINT64 taskID, INT32 &status, pmdEDUCB *cb ) ;
    INT32 catUpdateTask( UINT64 taskID, const BSONObj *pSetInfo,
                         const BSONObj *pUnsetInfo, pmdEDUCB *cb, INT16 w ) ;

@@ -43,7 +43,6 @@
 #include "pdTrace.hpp"
 #include "netTrace.hpp"
 #include <boost/bind.hpp>
-#include "msgConvertorImpl.hpp"
 
 using namespace boost::asio::ip ;
 
@@ -547,23 +546,6 @@ namespace engine
          routeID = message->routeID ;
       }
 
-<<<<<<< HEAD
-=======
-      if ( MSG_COMM_EYE_DEFAULT != message->eye )
-      {
-         MsgHeader tmpHeader ;
-         msgConvertorImpl::msgHeaderUpgrade( (const MsgHeaderV1 *)message,
-                                             tmpHeader ) ;
-         _frame->onReceiveMsg( eh, message->routeID, &tmpHeader,
-                               message->messageLength ) ;
-      }
-      else
-      {
-         _frame->onReceiveMsg( eh, message->routeID, message,
-                               message->messageLength ) ;
-      }
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       // The _remoteEndPoint is used to get the eh, not the route id.
       if ( SDB_OK == getEH( _remoteEndPoint, routeID, eh ) )
       {

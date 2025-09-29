@@ -322,22 +322,13 @@ namespace engine
 
          INT32    getMore( INT32 maxNumToReturn,
                            rtnContextBuf &buffObj,
-                           _pmdEDUCB *cb,
-                           const BSONObj &hint = BSONObj() ) ;
+                           _pmdEDUCB *cb ) ;
 
          INT32    advance( const BSONObj &arg,
                            const CHAR *pBackData ,
                            INT32 backDataSize,
                            _pmdEDUCB *cb ) ;
 
-<<<<<<< HEAD
-         INT32    advance( const BSONObj &arg,
-                           const CHAR *pBackData ,
-                           INT32 backDataSize,
-                           _pmdEDUCB *cb ) ;
-
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          INT32    locate( const BSONObj &arg,
                           _pmdEDUCB *cb ) ;
 
@@ -552,16 +543,7 @@ namespace engine
 
          virtual INT32 _prepareDoAdvance ( _pmdEDUCB *cb )
          {
-<<<<<<< HEAD
             return SDB_OPTION_NOT_SUPPORT;
-=======
-            return SDB_OPTION_NOT_SUPPORT ;
-         }
-
-         virtual INT32 _processGetMoreHint( const BSONObj &hint )
-         {
-            return SDB_OK ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          }
 
       protected:
@@ -666,11 +648,8 @@ namespace engine
          BOOLEAN                 _needTimeout ;
          // indicates whether to close when EOF
          BOOLEAN                 _needCloseOnEOF ;
-<<<<<<< HEAD
 
          MsgGlobalID             _globalID ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    } ;
    typedef _rtnContextBase rtnContextBase ;
    typedef _rtnContextBase rtnContext ;

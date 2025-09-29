@@ -672,7 +672,6 @@ namespace engine
       goto done ;
    }
 
-<<<<<<< HEAD
 
    INT32 coordRemoveFailedGroup( CoordGroupList &groupLst,
                                  BOOLEAN &hasFailedGroup,
@@ -729,7 +728,5 @@ namespace engine
       goto done ;
    }
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 }
 

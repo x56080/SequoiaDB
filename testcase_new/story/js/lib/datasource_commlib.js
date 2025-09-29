@@ -29,11 +29,7 @@ var datasrcUrl = datasrcIp + ":" + datasrcPort;
 // var otherDSUrl2 = other_datasrcIp2 + ":" + datasrcPort;
 
 
-<<<<<<< HEAD
 // var datasrcDB = new Sdb( datasrcIp, datasrcPort, userName, passwd );  CI-1687 数据源用例下线
-=======
-var datasrcDB = new Sdb( datasrcIp, datasrcPort, userName, passwd );
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 // var datasrcDB1 = new Sdb( datasrcIp1, datasrcPort, userName, passwd );
 
 function clearDataSource ( csName, dataSrcName )

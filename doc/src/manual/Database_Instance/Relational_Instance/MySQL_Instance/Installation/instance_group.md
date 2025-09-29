@@ -38,13 +38,8 @@ MySQL 实例组是由若干 MySQL 实例组成的一个无状态的集群，集�
 3. 创建两个 MySQL 实例并加入到实例组 mysql
 
    ```lang-bash
-<<<<<<< HEAD
    $ bin/sdb_mysql_ctl addinst myinst_01 -D database/3306 -P 3306 -g mysql -k test
    $ bin/sdb_mysql_ctl addinst myinst_02 -D database/3307 -P 3307 -g mysql -k test
-=======
-   $ bin/sdb_mysql_ctl addinst myinst_01 -D database/3306 -p 3306 -g mysql -k test
-   $ bin/sdb_mysql_ctl addinst myinst_02 -D database/3307 -p 3307 -g mysql -k test
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    ```
 
    > **Note：**
@@ -123,11 +118,7 @@ MySQL 实例组是由若干 MySQL 实例组成的一个无状态的集群，集�
 9. 新增实例 myinst_03 并加入实例组
  
    ```lang-bash
-<<<<<<< HEAD
    $ bin/sdb_mysql_ctl addinst myinst_03 -D database/3308 -P 3308 -g mysql -k test
-=======
-   $ bin/sdb_mysql_ctl addinst myinst_03 -D database/3308 -p 3308 -g mysql -k test
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    ```
  
 10. 使用 mysql 命令连接到实例 myinst_03
@@ -222,10 +213,7 @@ MySQL 实例组是由若干 MySQL 实例组成的一个无状态的集群，集�
    | -t, --token | 指定解密 SequoiaDB 用户密码令牌 | 否 |
    | --file | 指定 SequoiaDB 用户密码文件 | 否 |
    | --data-group | 指定 SequoiaDB 复制组，该复制组用于存储实例组中的数据 | 否 |
-<<<<<<< HEAD
    | --domain | 指定实例组集合空间所属的[数据域][domain] | 否 |
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    | --verbose | 输出工具的日志信息 | 否 |
    | -?, --help | 返回详细的帮助说明 | 否 |
    | --usage | 返回简要的帮助说明 | 否 |
@@ -236,7 +224,6 @@ MySQL 实例组是由若干 MySQL 实例组成的一个无状态的集群，集�
    ha_inst_group_init [-?] [-u USER] [-p[PASSWORD]] [-t TOKEN]
             [--host=HOST] [--user=USER] [--password[=PASSWORD]] [--key=KEY]
             [--token=TOKEN] [--file=FILE] [--verbose] [--data-group=NAME]
-<<<<<<< HEAD
             [--domain=DOMAIN] [--help] [--usage] inst_group_name
    ```
  
@@ -244,15 +231,6 @@ MySQL 实例组是由若干 MySQL 实例组成的一个无状态的集群，集�
  
    ```lang-bash
    $ ha_inst_group_init sql_group --domain=domain1
-=======
-            [--help] [--usage] inst_group_name
-   ```
- 
-   初始化一个名为“sql_group”的实例组
- 
-   ```lang-bash
-   $ ha_inst_group_init sql_group
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    ```
 
 ###配置查看工具###
@@ -462,9 +440,5 @@ ha_inst_group_chpass 工具用于修改配置表中的密码信息。实例组�
     本文使用到的所有连接及引用
 [instance_group]:images/Database_Instance/Relational_Instance/MySQL_Instance/Installation/instance_group.png
 [sdb_mysql_ctl]:manual/Database_Instance/Relational_Instance/MySQL_Instance/Maintainance/sdb_mysql_ctl.md
-<<<<<<< HEAD
 [sdb_snap_configs]:manual/Manual/Snapshot/SDB_SNAP_CONFIGS.md
 [domain]:manual/Distributed_Engine/Architecture/domain.md
-=======
-[sdb_snap_configs]:manual/Manual/Snapshot/SDB_SNAP_CONFIGS.md
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2

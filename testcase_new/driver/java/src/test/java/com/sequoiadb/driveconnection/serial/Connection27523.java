@@ -69,7 +69,6 @@ public class Connection27523 extends SdbTestBase {
         sdb.createCollectionSpace( csName );
         sdb.dropCollectionSpace( csName );
 
-<<<<<<< HEAD
         // 问题单SEQUOIADBMAINSTREAM-6568未合入7.0
         /*
          * // 使用用户名、密码文件创建 String toolsPath = Util.getSdbInstallDir() + "/bin/";
@@ -90,32 +89,6 @@ public class Connection27523 extends SdbTestBase {
          * sdb.createCollectionSpace( csName ); sdb.dropCollectionSpace( csName
          * );
          */
-=======
-        // 使用用户名、密码文件创建
-        String toolsPath = Util.getSdbInstallDir() + "/bin/";
-        Util.createPasswdFile( userName, password, passwdFileName );
-        Util.downLoadFileToLocal( SdbTestBase.workDir,
-                toolsPath + passwdFileName );
-        passwordFilePath = SdbTestBase.workDir + passwdFileName;
-        userConfig = new UserConfig( userName, new File( passwordFilePath ) );
-        ds = SequoiadbDatasource.builder().serverAddress( SdbTestBase.coordUrl )
-                .userConfig( userConfig ).build();
-        sdb = ds.getConnection();
-        sdb.createCollectionSpace( csName );
-        sdb.dropCollectionSpace( csName );
-
-        // 使用用户名、密码文件、token创建
-        Util.createPasswdFile( userName, password, passwdFileName, token );
-        Util.downLoadFileToLocal( SdbTestBase.workDir,
-                toolsPath + passwdFileName );
-        userConfig = new UserConfig( userName, new File( passwordFilePath ),
-                token );
-        ds = SequoiadbDatasource.builder().serverAddress( SdbTestBase.coordUrl )
-                .userConfig( userConfig ).build();
-        sdb = ds.getConnection();
-        sdb.createCollectionSpace( csName );
-        sdb.dropCollectionSpace( csName );
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
         // test d：存在鉴权用户,用户配置信息不正确
         userConfig = new UserConfig( userName, "" );
@@ -135,15 +108,9 @@ public class Connection27523 extends SdbTestBase {
 
     @AfterClass
     public void tearDown() throws Exception {
-<<<<<<< HEAD
         // new File( passwordFilePath ).deleteOnExit();
         // Util.removePasswdFile(
         // Util.getSdbInstallDir() + "/bin" + passwdFileName );
-=======
-        new File( passwordFilePath ).deleteOnExit();
-        Util.removePasswdFile(
-                Util.getSdbInstallDir() + "/bin" + passwdFileName );
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         db.removeUser( userName, password );
         if ( ds != null ) {
             ds.close();

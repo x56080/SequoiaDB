@@ -33,19 +33,13 @@
 
 *******************************************************************************/
 #include "clsVSAnnounce.hpp"
-#include "clsReplAgent.hpp"
 #include "pdTrace.hpp"
 #include "clsTrace.hpp"
 
 namespace engine
 {
-<<<<<<< HEAD
    _clsVSAnnounce::_clsVSAnnounce( _clsGroupInfo *info, _netRouteAgent *agent )
    :_clsVoteStatus( info, agent, CLS_ELECTION_STATUS_ANNOUNCE )
-=======
-   _clsVSAnnounce::_clsVSAnnounce( ICLSReplAgent *replAgent )
-   : _clsVoteStatus( replAgent, CLS_ELECTION_STATUS_ANNOUNCE )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
 
    }

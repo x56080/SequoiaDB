@@ -254,35 +254,9 @@ namespace engine
                         prefInst, PMD_PREFER_INSTANCE_TYPE_MIN + 1,
                         PMD_PREFER_INSTANCE_TYPE_MAX - 1 ) ;
 
-<<<<<<< HEAD
       // Remove duplicate instance id.
       _instanceList.remove( (UINT8)prefInst );
       _instanceList.push_back( (UINT8)prefInst ) ;
-=======
-      try
-      {
-         // Remove duplicate instance id.
-         ossPoolList<UINT8>::const_iterator itr = _instanceList.begin() ;
-         while ( itr != _instanceList.end() )
-         {
-            if ( prefInst  == *itr )
-            {
-               break ;
-            }
-            ++itr ;
-         }
-         if ( itr == _instanceList.end() )
-         {
-            _instanceList.push_back( ( UINT8 )prefInst  ) ;
-         }
-      }
-      catch( std::exception &e )
-      {
-         rc = ossException2RC( &e ) ;
-         PD_LOG( PDERROR, "Exception occurred: %s", e.what() ) ;
-         goto error ;
-      }
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    done :
       PD_TRACE_EXITRC( SDB__RTNINST__PARSEINTPREFINST, rc ) ;
@@ -577,15 +551,9 @@ namespace engine
       {
          // Invalid options, use the default one
          builder.append( FIELD_NAME_PREFERRED_INSTANCE_LEGACY,
-<<<<<<< HEAD
                          PREFER_INSTANCE_MASTER_STR ) ;
          builder.append( FIELD_NAME_PREFERRED_INSTANCE,
                          PREFER_INSTANCE_MASTER_STR ) ;
-=======
-                         PREFER_INSTANCE_MASTER_STR ) ;
-         builder.append( FIELD_NAME_PREFERRED_INSTANCE,
-                         PREFER_INSTANCE_MASTER_STR ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          builder.append( FIELD_NAME_PREFERRED_INSTANCE_MODE_LEGACY,
                          PREFER_INSTANCE_RANDOM_STR ) ;
          builder.append( FIELD_NAME_PREFERRED_INSTANCE_MODE,

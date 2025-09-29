@@ -65,7 +65,6 @@ $SNAPSHOT_DB
 | ReplInsert            | int64  | 复制插入记录数量                                                                |
 | TotalSelect           | int64  | 总选择记录数量                                                                  |
 | TotalRead             | int64  | 总读取记录数量                                                                  |
-<<<<<<< HEAD
 | TotalLobGet           | int64     | 客户端获取大对象文件的总次数（仅在 v3.6.1 及以上版本生效） |
 | TotalLobPut           | int64     | 客户端上传大对象文件的总次数（仅在 v3.6.1 及以上版本生效） |
 | TotalLobDelete        | int64     | 客户端删除大对象文件的总次数（仅在 v3.6.1 及以上版本生效） |
@@ -76,18 +75,6 @@ $SNAPSHOT_DB
 | TotalLobWrite     | int64     | 服务端中 LOB 分片的写次数（仅在 v3.6.1 及以上版本生效） |
 | TotalLobTruncate    | int64     | 服务端中 LOB 分片的截断次数（仅在 v3.6.1 及以上版本生效） |
 | TotalLobAddressing     | int64     | 服务端中 LOB 分片的寻址总次数（仅在 v3.6.1 及以上版本生效） |
-=======
-| TotalLobGet           | int64     | 客户端获取大对象文件的总次数（仅在 v5.0.4 及以上版本生效） |
-| TotalLobPut           | int64     | 客户端上传大对象文件的总次数（仅在 v5.0.4 及以上版本生效） |
-| TotalLobDelete        | int64     | 客户端删除大对象文件的总次数（仅在 v5.0.4 及以上版本生效） |
-| TotalLobList          | int64     | 客户端列举大对象文件的总次数（仅在 v5.0.4 及以上版本生效） |
-| TotalLobReadSize      | int64     | 客户端读大对象文件的总字节数（仅在 v5.0.4 及以上版本生效） |
-| TotalLobWriteSize     | int64     | 客户端写大对象文件的总字节数（仅在 v5.0.4 及以上版本生效） |
-| TotalLobRead     | int64     | 服务端中 LOB 分片的读次数（仅在 v5.0.4 及以上版本生效） |
-| TotalLobWrite     | int64     | 服务端中 LOB 分片的写次数（仅在 v5.0.4 及以上版本生效） |
-| TotalLobTruncate    | int64     | 服务端中 LOB 分片的截断次数（仅在 v5.0.4 及以上版本生效） |
-| TotalLobAddressing     | int64     | 服务端中 LOB 分片的寻址总次数（仅在 v5.0.4 及以上版本生效） |
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 | TotalReadTime         | int64  | 总读取时间，单位为毫秒                                                        |
 | TotalWriteTime        | int64  | 总写入时间，单位为毫秒                                                        |
 | ActivateTimestamp     | timestamp | 数据库节点启动时间                                                         |

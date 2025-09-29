@@ -138,11 +138,13 @@ public class Constants {
     public static String data2MB = data1MB + data1MB;
 
     public static boolean isCluster() {
-        try ( Sequoiadb sdb = new Sequoiadb(HOST + ":" + PORT, "", "") ) {
+        Sequoiadb sdb = new Sequoiadb(HOST + ":" + PORT, "", "");
+        try {
             BSONObject empty = new BasicBSONObject();
             sdb.getList(7, empty, empty, empty);
         } catch (BaseException e) {
-            return !e.getErrorType().equals("SDB_RTN_COORD_ONLY");
+            if (e.getErrorType().equals("SDB_RTN_COORD_ONLY")) ;
+            return false;
         }
         return true;
     }

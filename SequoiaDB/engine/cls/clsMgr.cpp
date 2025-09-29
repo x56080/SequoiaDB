@@ -836,11 +836,7 @@ namespace engine
 
       if ( SDB_ROLE_DATA == pmdGetDBRole() )
       {
-<<<<<<< HEAD
          rc = pmdGetKRCB()->getDMSCB()->regHandler( &_recycleBinMgr ) ;
-=======
-         rc = pmdGetKRCB()->getDMSCB()->regHandler( DMS_ENGINE_MMAP, &_recycleBinMgr ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          PD_RC_CHECK( rc, PDERROR, "Failed to register event handler of "
                       "recycle bin manager to DMS, rc: %d", rc ) ;
       }
@@ -1037,11 +1033,7 @@ namespace engine
 
       if ( SDB_ROLE_DATA == pmdGetDBRole() )
       {
-<<<<<<< HEAD
          pmdGetKRCB()->getDMSCB()->unregHandler( &_recycleBinMgr ) ;
-=======
-         pmdGetKRCB()->getDMSCB()->unregHandler( DMS_ENGINE_MMAP, &_recycleBinMgr ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       }
 
       return SDB_OK ;
@@ -1132,8 +1124,6 @@ namespace engine
          //Set TimerHandler EDU
          _shdTimerHandler->attach ( pMainCB ) ;
          _replTimerHandler->attach ( pMainCB ) ;
-
-         _replObj->setMainEDUID( pMainCB->getID() ) ;
       }
       else if ( EDU_TYPE_CLUSTERSHARD == pMainCB->getType() )
       {
@@ -1265,18 +1255,13 @@ namespace engine
          {
             if ( SDB_ROLE_DATA == pmdGetDBRole() )
             {
-<<<<<<< HEAD
                if ( pDmsCB->nullCSUniqueIDCnt() > 0 )
-=======
-               if ( pDmsCB->getNullCSUniqueIDCnt() > 0 )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                {
                   startUniqueIDCheckJob() ;
                }
                // set configure invalid, so the recycle bin manager
                // will update configure from CATALOG later
                _recycleBinMgr.setConfInvalid() ;
-<<<<<<< HEAD
 
                // start query task
                startAllTaskCheck() ;
@@ -1292,11 +1277,6 @@ namespace engine
             else if ( CLS_GROUP_MODE_MAINTENANCE == getReplCB()->getGrpMode() )
             {
                vote->startMaintenanceModeMonitor() ;
-=======
-
-               // start query task
-               startAllTaskCheck() ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             }
          }
          else
@@ -1802,7 +1782,6 @@ namespace engine
       return rc ;
    }
 
-<<<<<<< HEAD
    INT32 _clsMgr::startAllIdxTaskCheck()
    {
       INT32 rc = SDB_OK ;
@@ -1827,8 +1806,6 @@ namespace engine
       goto done ;
    }
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    INT32 _clsMgr::startAllTaskCheck()
    {
       // pull all tasks related to this node from catalog
@@ -2051,7 +2028,6 @@ namespace engine
    }
 
    void _clsMgr::_postTimeoutEvent( UINT64 timerID )
-<<<<<<< HEAD
    {
       UINT32 type = 0 ;
       UINT32 netTimerID = 0 ;
@@ -2105,52 +2081,6 @@ namespace engine
       {
          PD_LOG( PDINFO, "Task[%llu] on group[%s] has been finished, "
                  "do not start thread", taskID, groupName ) ;
-=======
-   {
-      UINT32 type = 0 ;
-      UINT32 netTimerID = 0 ;
-
-      ossUnpack32From64( timerID, type, netTimerID ) ;
-
-      if ( CLS_SHARD == type )
-      {
-         _shdTimerHandler->handleTimeout( 0, netTimerID ) ;
-      }
-      else if ( CLS_REPL == type )
-      {
-         _replTimerHandler->handleTimeout( 0, netTimerID ) ;
-      }
-      else
-      {
-         SDB_ASSERT( FALSE, "Invalid timerID" ) ;
-      }
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSMGR_STARTTSKTH, "_clsMgr::startTaskThread" )
-   INT32 _clsMgr::startTaskThread ( const BSONObj &taskObj, UINT64 &taskID )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB__CLSMGR_STARTTSKTH ) ;
-
-      _clsTask *pTask = NULL ;
-      BOOLEAN alreadyExist = FALSE ;
-      UINT32 locationID = CLS_INVALID_LOCATIONID ;
-      BOOLEAN addTaskDone1 = FALSE ;
-      BOOLEAN addTaskDone2 = FALSE ;
-
-      // new clsTask
-      rc = clsNewTask( taskObj, pTask ) ;
-      PD_RC_CHECK( rc, PDERROR,
-                   "Failed to new task, rc: %d",
-                   rc ) ;
-      taskID = pTask->taskID() ;
-
-      if ( CLS_TASK_STATUS_FINISH == pTask->status() )
-      {
-         PD_LOG( PDINFO,
-                 "Task[%llu] has been finished, do not start thread",
-                 taskID ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          // release memory in goto error
          goto error ;
       }
@@ -2311,7 +2241,6 @@ namespace engine
                 "Invalid task type[%d]", statusPtr->taskType() ) ;
       taskType = CLS_TASK_DROP_IDX ;
 
-<<<<<<< HEAD
       {
       dmsIdxTaskStatusPtr idxStatPtr =
                      boost::dynamic_pointer_cast<dmsIdxTaskStatus>(statusPtr) ;
@@ -2346,42 +2275,6 @@ namespace engine
 
       if ( alreadyExist )
       {
-=======
-      {
-      dmsIdxTaskStatusPtr idxStatPtr =
-                     boost::dynamic_pointer_cast<dmsIdxTaskStatus>(statusPtr) ;
-      PD_CHECK( idxStatPtr, SDB_SYS, error, PDERROR,
-                "Failed to convert task status pointer" ) ;
-
-      // new task
-      while( !idxStatPtr->isInitialized() )
-      {
-         if ( cb && cb->isInterrupted() )
-         {
-            rc = SDB_APP_INTERRUPT ;
-            goto error ;
-         }
-         ossSleep( OSS_ONE_SEC ) ;
-      }
-      taskObj = idxStatPtr->toBSON() ;
-
-      rc = clsNewTask( taskType, taskObj, pTask ) ;
-      PD_RC_CHECK( rc, PDERROR,
-                   "Failed to new task[type: %d], rc: %d",
-                   taskType, rc ) ;
-
-      // add to taskMgr, NOT need to add to _mapTaskID
-      locationID = idxStatPtr->locationID() ;
-
-      rc = _taskMgr.addTask( pTask, locationID, &alreadyExist ) ;
-      PD_RC_CHECK( rc, PDERROR,
-                   "Failed to add task[%llu] to manager, location ID: %u, "
-                   "rc: %d", taskID, locationID, rc ) ;
-      addTaskDone = TRUE ;
-
-      if ( alreadyExist )
-      {
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          // pTask is NOT added to map, it is useless, so release it
          clsReleaseTask( pTask ) ;
       }
@@ -2415,7 +2308,6 @@ namespace engine
       }
       goto done ;
    }
-<<<<<<< HEAD
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSMGR_RESTRTH, "_clsMgr::restartTaskThread" )
    INT32 _clsMgr::restartTaskThread ( UINT64 taskID )
@@ -2496,88 +2388,6 @@ namespace engine
          clsReleaseTask( pTask ) ;
       }
 
-=======
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSMGR_RESTRTH, "_clsMgr::restartTaskThread" )
-   INT32 _clsMgr::restartTaskThread ( UINT64 taskID )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB__CLSMGR_RESTRTH );
-
-      CLS_TASK_TYPE taskType = CLS_TASK_UNKNOWN ;
-      _clsTask *pTask = NULL ;
-      BOOLEAN alreadyExist = FALSE ;
-      BSONObj taskObj ;
-      BOOLEAN addTaskDone = FALSE ;
-      UINT32 locationID = CLS_INVALID_LOCATIONID ;
-      pmdEDUCB *cb = pmdGetThreadEDUCB() ;
-      BOOLEAN foundOut = FALSE ;
-      dmsTaskStatusMgr *pStatMgr = sdbGetRTNCB()->getTaskStatusMgr() ;
-      RTN_JOB_TYPE jobType = RTN_JOB_MAX ;
-
-      PD_LOG( PDINFO, "Restart thread for task[%llu]", taskID ) ;
-
-      // find out idxTaskStatus
-      dmsTaskStatusPtr statusPtr ;
-      foundOut = pStatMgr->findItem( taskID, statusPtr ) ;
-      PD_CHECK( foundOut, SDB_SYS, error, PDERROR,
-                "Failed to find task status[%llu]", taskID ) ;
-
-      PD_CHECK( statusPtr->taskType() == DMS_TASK_CREATE_IDX ||
-                statusPtr->taskType() == DMS_TASK_DROP_IDX,
-                SDB_SYS, error, PDERROR,
-                "Invalid task type[%d]", statusPtr->taskType() ) ;
-
-      if ( DMS_TASK_CREATE_IDX == statusPtr->taskType() )
-      {
-         jobType = RTN_JOB_CREATE_INDEX ;
-         taskType = CLS_TASK_CREATE_IDX ;
-      }
-      else if ( DMS_TASK_DROP_IDX == statusPtr->taskType() )
-      {
-         jobType = RTN_JOB_DROP_INDEX ;
-         taskType = CLS_TASK_DROP_IDX ; ;
-      }
-
-      {
-      dmsIdxTaskStatusPtr idxStatPtr =
-                     boost::dynamic_pointer_cast<dmsIdxTaskStatus>(statusPtr) ;
-      PD_CHECK( idxStatPtr, SDB_SYS, error, PDERROR,
-                "Failed to convert task status pointer" ) ;
-
-      // new task
-      while( !idxStatPtr->isInitialized() )
-      {
-         if ( cb && cb->isInterrupted() )
-         {
-            rc = SDB_APP_INTERRUPT ;
-            goto error ;
-         }
-         ossSleep( OSS_ONE_SEC ) ;
-      }
-      taskObj = idxStatPtr->toBSON() ;
-
-      rc = clsNewTask( taskType, taskObj, pTask ) ;
-      PD_RC_CHECK( rc, PDERROR,
-                   "Failed to new task[type: %d], rc: %d",
-                   taskType, rc ) ;
-
-      // add to taskMgr, NOT need to add to _mapTaskID
-      locationID = idxStatPtr->locationID() ;
-
-      rc = _taskMgr.addTask( pTask, locationID, &alreadyExist ) ;
-      PD_RC_CHECK( rc, PDERROR,
-                   "Failed to add task[%llu] to manager, location ID: %u, "
-                   "rc: %d", taskID, locationID, rc ) ;
-      addTaskDone = TRUE ;
-
-      if ( alreadyExist )
-      {
-         // pTask is NOT added to map, it is useless, so release it
-         clsReleaseTask( pTask ) ;
-      }
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       // start session
       rc = clsRestartIndexJob( jobType, idxStatPtr ) ;
       if ( rc )
@@ -2780,10 +2590,6 @@ namespace engine
 
                pmdGetKRCB()->setDBReadonly( pInfo->isReadonly() ) ;
                pmdGetKRCB()->setDBDeactivated( !pInfo->isActivated() ) ;
-<<<<<<< HEAD
-=======
-               pmdGetKRCB()->setDBRestoring( pInfo->isRestoring() ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             }
          }
       }
@@ -2815,10 +2621,6 @@ namespace engine
       NodeID routeID ;
       clsRegAssit regAssit ;
       MsgCatRegisterRsp *rsp = (MsgCatRegisterRsp *)msg ;
-<<<<<<< HEAD
-=======
-      BOOLEAN hasSendUpdateCatGroup = FALSE ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       // have register succeed
       if ( _regTimerID == CLS_INVALID_TIMERID )
@@ -2870,10 +2672,6 @@ namespace engine
             if ( SDB_OK != _shdObj->updatePrimary( msg->routeID, TRUE ) )
             {
                _shdObj->updateCatGroup () ;
-<<<<<<< HEAD
-=======
-               hasSendUpdateCatGroup = TRUE ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             }
          }
          else if ( -1 != rsp->startFrom )
@@ -2881,25 +2679,12 @@ namespace engine
             if ( SDB_OK != _shdObj->updatePrimaryByReply( msg ) )
             {
                _shdObj->updateCatGroup() ;
-<<<<<<< HEAD
-=======
-               hasSendUpdateCatGroup = TRUE ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             }
          }
          else
          {
             // primary is unknown
             _shdObj->updateCatGroup() ;
-<<<<<<< HEAD
-=======
-            hasSendUpdateCatGroup = TRUE ;
-         }
-
-         if ( !hasSendUpdateCatGroup )
-         {
-            _shdObj->updateCatGroup() ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          }
 
          goto done ;
@@ -2953,10 +2738,6 @@ namespace engine
          if ( SDB_OK != _shdObj->updatePrimary( msg->routeID, TRUE ) )
          {
             _shdObj->updateCatGroup () ;
-<<<<<<< HEAD
-=======
-            hasSendUpdateCatGroup = TRUE ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          }
       }
       else if ( -1 != rsp->startFrom )
@@ -2964,25 +2745,12 @@ namespace engine
          if ( SDB_OK != _shdObj->updatePrimaryByReply( msg ) )
          {
             _shdObj->updateCatGroup() ;
-<<<<<<< HEAD
-=======
-            hasSendUpdateCatGroup = TRUE ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          }
       }
       else
       {
          // primary is unknown
          _shdObj->updateCatGroup() ;
-<<<<<<< HEAD
-=======
-         hasSendUpdateCatGroup = TRUE ;
-      }
-
-      if ( !hasSendUpdateCatGroup )
-      {
-         _shdObj->updateCatGroup() ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       }
 
       //Active the shard and repl CBs

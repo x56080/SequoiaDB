@@ -74,15 +74,9 @@ public class BsonMatcher {
     public static BSONObject orMatcher(BSONObject matcher1, BSONObject matcher2) {
         BSONObject result = new BasicBSONObject();
         //has an or expression
-<<<<<<< HEAD
         if (matcher1.get(SDBConstant.OR) != null || matcher2.get(SDBConstant.OR) != null) {
             result = appendOrMatcher(matcher1, matcher2);
         } else {
-=======
-        if(matcher1.get(SDBConstant.OR) != null || matcher2.get(SDBConstant.OR) != null){
-            result = appendOrMatcher(matcher1, matcher2);
-        }else {
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             // merge bson matcher
             BasicBSONList orList = new BasicBSONList();
             orList.add(matcher1);
@@ -136,11 +130,7 @@ public class BsonMatcher {
         return result;
     }
 
-<<<<<<< HEAD
     public static BSONObject appendNotMatcher(BSONObject orMatcher, BSONObject matcher) {
-=======
-    public static BSONObject appendNot(BSONObject orMatcher, BSONObject matcher) {
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         BasicBSONList orList = (BasicBSONList) orMatcher.get(SDBConstant.OR);
         if (orList == null) {
             orList = new BasicBSONList();
@@ -217,11 +207,7 @@ public class BsonMatcher {
      * get key of expression
      *
      * @param expression expression
-<<<<<<< HEAD
      * @return key, column name
-=======
-     * @return key,column name
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
      */
     private static String getKey(BSONObject expression) {
         Object[] keySet = expression.keySet().toArray();
@@ -245,15 +231,9 @@ public class BsonMatcher {
      * @param orBson orBson
      * @return bson result
      */
-<<<<<<< HEAD
     private static BSONObject convertIn(BSONObject orBson) {
         Map<String, List<Object>> inMap = new HashMap<>();
         Map<String, List<Object>> ninMap = new HashMap<>();
-=======
-    private static BSONObject convertIn(BSONObject orBson){
-        Map<String,List<Object>> inMap = new HashMap<>();
-        Map<String,List<Object>> ninMap = new HashMap<>();
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         BSONObject result = new BasicBSONObject();
 
         try {
@@ -304,19 +284,11 @@ public class BsonMatcher {
      * @param valueKey key
      * @return in : SDBConstant.INMERGE, nin : SDBConstant.NINMERGE , not IN operator : null
      */
-<<<<<<< HEAD
     private static String determineIn(String valueKey) {
         if (SDBConstant.ET.equals(valueKey) || SDBConstant.IN.equals(valueKey)) {
             //IN merge
             return SDBConstant.IN_MERGE;
         } else if (SDBConstant.NE.equals(valueKey) || SDBConstant.NIN.equals(valueKey)) {
-=======
-    private static String determineIn(String valueKey){
-        if(SDBConstant.ET.equals(valueKey) || SDBConstant.IN.equals(valueKey)){
-            //IN merge
-            return SDBConstant.IN_MERGE;
-        }else if(SDBConstant.NE.equals(valueKey) || SDBConstant.NIN.equals(valueKey)){
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             //NOT IN merge
             return SDBConstant.NIN_MERGE;
         }
@@ -327,7 +299,6 @@ public class BsonMatcher {
     /**
      * store in map according to key
      *
-<<<<<<< HEAD
      * @param map      data of can be in
      * @param key      key
      * @param valueKey value key
@@ -351,31 +322,6 @@ public class BsonMatcher {
                 literals.add(val);
             }
             map.put(key, literals);
-=======
-     * @param map data of can be in
-     * @param key key
-     * @param valueKey value key
-     */
-    private static void processValue(Map<String, List<Object>> map , String key , String valueKey , BSONObject value){
-        List<Object> literals;
-        Object val = value.get(valueKey);
-
-        if(map.containsKey(key)){
-            literals = map.get(key);
-            if(val instanceof Collection){
-                literals.addAll((Collection<?>) val);
-            }else {
-                literals.add(val);
-            }
-        }else {
-            literals = new ArrayList<>();
-            if(val instanceof Collection){
-                literals.addAll((Collection<?>) val);
-            }else {
-                literals.add(val);
-            }
-            map.put(key,literals);
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         }
     }
 
@@ -383,25 +329,16 @@ public class BsonMatcher {
      * merge as IN expression and add result to orList
      *
      * @param orList result list
-<<<<<<< HEAD
      * @param map    IN data
      * @param flag   in / nin processing
      */
     private static void processMap(BasicBSONList orList, Map<String, List<Object>> map, String flag) {
         for (Map.Entry<String, List<Object>> entry : map.entrySet()) {
-=======
-     * @param map IN data
-     * @param flag in / nin processing
-     */
-    private static void processMap(BasicBSONList orList , Map<String,List<Object>> map , String flag){
-        for(Map.Entry<String,List<Object>> entry : map.entrySet()){
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             String key = entry.getKey();
             List<Object> literals = entry.getValue();
 
             BSONObject result = new BasicBSONObject();
 
-<<<<<<< HEAD
             if (literals.size() >= 2) {
                 if (SDBConstant.IN_MERGE.equals(flag)) {
                     result = inMatcher(key, (Serializable) literals);
@@ -416,22 +353,6 @@ public class BsonMatcher {
                     value.put(SDBConstant.NE, literals.get(0));
                 }
                 result.put(key, value);
-=======
-            if(literals.size() >= 2){
-                if(SDBConstant.IN_MERGE.equals(flag)){
-                    result = inMatcher(key, (Serializable) literals);
-                }else {
-                    result = ninMatcher(key, (Serializable) literals);
-                }
-            }else {
-                BSONObject value = new BasicBSONObject();
-                if(SDBConstant.IN_MERGE.equals(flag)){
-                    value.put(SDBConstant.ET,literals.get(0));
-                }else {
-                    value.put(SDBConstant.NE,literals.get(0));
-                }
-                result.put(key,value);
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             }
 
             orList.add(result);

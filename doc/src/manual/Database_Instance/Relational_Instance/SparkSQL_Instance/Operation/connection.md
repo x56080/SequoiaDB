@@ -40,19 +40,11 @@
     > 如果不设置--master，将在启动 spark-sql 的机器以 local 方式运行。
 
 2. 关联 SequoiaDB 的集合空间和集合
-<<<<<<< HEAD
  
     假设 SequoiaDB 中集合名为 test.test，协调节点在 sdbserver1 和 sdbserver2 上，通过 spark-sql 创建一个表 test 来对应 SequoiaDB 的集合
 
     ```lang-sql
     spark-sql> CREATE TABLE test( c1 int, c2 string, c3 int ) USING com.sequoiadb.spark OPTIONS ( host 'sdbserver1:11810,sdbserver2:11810', collectionspace 'test', collection 'test')；
-=======
-
-    假设 SequoiaDB 中集合名为 test.test，协调节点在 sdbserver1 和 sdbserver2 上，通过 spark-sql 创建一个表 test 来对应 SequoiaDB 的集合
-
-    ```lang-sql
-    spark-sql> CREATE TABLE test( c1 int, c2 string, c3 int ) USING com.sequoiadb.spark OPTIONS ( host 'sdbserver1:11810,sdbserver2:11810', collectionspace 'test', collection 'test');
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     ```
 
 3. 创建表或视图之后就可以在表上执行 SQL 语句，以查询操作为例：
@@ -113,11 +105,7 @@
 5. 在 beeline 命令行窗口执行创表语句
 
     ```lang-sql
-<<<<<<< HEAD
     0: jdbc:hive2://localhost:10000> create table test ( c1 int, c2 string, c3 int) using com.sequoiadb.spark options(host 'sdbserver1:11810,sdbserver2:11810', collectionspace 'test', collection 'test', username 'sdbadmin', password '/opt/spark/conf/sdb.passwd', passwordtype='file'); 
-=======
-    0: jdbc:hive2://localhost:10000> create table test ( c1 int, c2 string, c3 int) using com.sequoiadb.spark options(host 'sdbserver1:11810,sdbserver2:11810', collectionspace 'test', collection 'test', username 'sdbadmin', password '/opt/spark/conf/sdb.passwd', passwordtype='file');
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     ```
 
 6. 连接 SequoiaDB 数据库访问映射表数据

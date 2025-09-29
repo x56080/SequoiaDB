@@ -773,7 +773,6 @@ TEST(sdb,getCollection)
    // case 6 :
    // get a nonexistent cl when checkExist is false
    rc = connection.getCollection( NOT_EXIST_CL_FULL_NAME, cl_6_1, FALSE) ;
-<<<<<<< HEAD
    ASSERT_EQ( SDB_OK, rc ) ;
    // get the nonexistent cl when checkExist is true
    rc = connection.getCollection( NOT_EXIST_CL_FULL_NAME, cl_6_2, TRUE) ;
@@ -783,17 +782,6 @@ TEST(sdb,getCollection)
    // get a existent cl when checkExist is TRUE
    rc = connection.getCollection( COLLECTION_FULL_NAME, cl_7_1, TRUE) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-=======
-   ASSERT_EQ( SDB_OK, rc ) ;
-   // get the nonexistent cl when checkExist is true
-   rc = connection.getCollection( NOT_EXIST_CL_FULL_NAME, cl_6_2, TRUE) ;
-   ASSERT_EQ( SDB_DMS_NOTEXIST, rc ) ;
-
-   // case 7 :
-   // get a existent cl when checkExist is TRUE
-   rc = connection.getCollection( COLLECTION_FULL_NAME, cl_7_1, TRUE) ;
-   ASSERT_EQ( SDB_OK, rc ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    // get the existent cl when checkExist is FALSE
    rc = connection.getCollection( COLLECTION_FULL_NAME, cl_7_2, FALSE) ;
    ASSERT_EQ( SDB_OK, rc ) ;
@@ -1313,7 +1301,6 @@ TEST(sdb, getAddressTest)
 
    conn.disconnect() ;
 }
-<<<<<<< HEAD
 
 TEST(sdb, createUserOutOfRange)
 {
@@ -1371,5 +1358,3 @@ TEST(sdb, createUserWithMaxSize)
    freeMemory( maxCharSize ) ;
    connection.disconnect() ;
 }
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2

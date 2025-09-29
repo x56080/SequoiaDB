@@ -539,17 +539,6 @@ namespace engine
             return _clFromStat ;
          }
 
-         OSS_INLINE virtual UINT64 getIxRebuildTime()
-         {
-            // for tbscan, always available
-            return DPS_MIN_TRANS_TIME ;
-         }
-
-         OSS_INLINE virtual void setIxRebuildTime( UINT64 rebuildTime )
-         {
-            // do nothing
-         }
-
       protected :
          void _preEvaluate ( const rtnQueryOptions & queryOptions,
                              optAccessPlanHelper & planHelper,
@@ -755,7 +744,7 @@ namespace engine
          _optIxScanNode () ;
 
          _optIxScanNode ( const CHAR * pCollection,
-                          const CONST_INDEX_META_INFO_PTR &idxMeta,
+                          const ixmIndexCB & indexCB,
                           INT32 estCacheSize ) ;
 
          _optIxScanNode ( const optIxScanNode & node,
@@ -763,32 +752,32 @@ namespace engine
 
          virtual ~_optIxScanNode () ;
 
-         OSS_INLINE virtual OPT_PLAN_NODE_TYPE getType () const override
+         OSS_INLINE virtual OPT_PLAN_NODE_TYPE getType () const
          {
             return OPT_PLAN_IX_SCAN ;
          }
 
-         OSS_INLINE virtual const CHAR * getName () const override
+         OSS_INLINE virtual const CHAR * getName () const
          {
             return OPT_PLAN_NODE_NAME_IXSCAN ;
          }
 
-         OSS_INLINE virtual const CHAR * getIndexName () const override
+         OSS_INLINE virtual const CHAR * getIndexName () const
          {
             return _pIndexName.str() ;
          }
 
-         OSS_INLINE virtual INT32 getDirection () const override
+         OSS_INLINE virtual INT32 getDirection () const
          {
             return _direction ;
          }
 
-         OSS_INLINE virtual BOOLEAN isMatchAll () const override
+         OSS_INLINE virtual BOOLEAN isMatchAll () const
          {
             return _matchAll ;
          }
 
-         OSS_INLINE virtual dmsExtentID getIndexExtID () const override
+         OSS_INLINE virtual dmsExtentID getIndexExtID () const
          {
             return _indexExtID ;
          }
@@ -798,7 +787,7 @@ namespace engine
             _indexExtID = indexExtID ;
          }
 
-         OSS_INLINE virtual dmsExtentID getIndexLID () const override
+         OSS_INLINE virtual dmsExtentID getIndexLID () const
          {
             return _indexLID ;
          }
@@ -808,47 +797,46 @@ namespace engine
             _indexLID = indexLID ;
          }
 
-         OSS_INLINE virtual BSONObj getKeyPattern () const override
+         OSS_INLINE virtual BSONObj getKeyPattern () const
          {
             return _keyPattern ;
          }
 
-         OSS_INLINE virtual BSONObj getIXBound () const override
+         OSS_INLINE virtual BSONObj getIXBound () const
          {
             return _runtimeIXBound ;
          }
 
-         OSS_INLINE virtual void setIXBound ( const BSONObj & ixBound ) override
+         OSS_INLINE virtual void setIXBound ( const BSONObj & ixBound )
          {
             _runtimeIXBound = ixBound ;
          }
 
-         OSS_INLINE virtual optScanType getScanType () const override
+         OSS_INLINE virtual optScanType getScanType () const
          {
             return IXSCAN ;
          }
 
-         OSS_INLINE virtual double getScanSelectivity () const override
+         OSS_INLINE virtual double getScanSelectivity () const
          {
             return _scanSelectivity ;
          }
 
-         OSS_INLINE virtual double getPredSelectivity () const override
+         OSS_INLINE virtual double getPredSelectivity () const
          {
             return _predSelectivity ;
          }
 
-         OSS_INLINE virtual UINT32 getMatchedFields () const override
+         OSS_INLINE virtual UINT32 getMatchedFields () const
          {
             return _matchedFields ;
          }
 
-         OSS_INLINE virtual BOOLEAN isEstimatedFromStat () const override
+         OSS_INLINE virtual BOOLEAN isEstimatedFromStat () const
          {
             return _ixFromStat ;
          }
 
-<<<<<<< HEAD
          // indicates the plan is a good candidate in default priority
          OSS_INLINE virtual BOOLEAN isGoodCandidate() const
          {
@@ -860,24 +848,6 @@ namespace engine
                    ( ( _readIndexOnly && _matchedFields > 0 ) ||
                      ( _scanSelectivity <= OPT_PRED_THRESHOLD_SELECTIVITY ) ||
                      ( _sorted ) ) ;
-=======
-         OSS_INLINE virtual UINT64 getIxRebuildTime() override
-         {
-            return _ixRebuildTime.fetch() ;
-         }
-
-         OSS_INLINE virtual void setIxRebuildTime( UINT64 rebuildTime ) override
-         {
-            if ( DPS_INVALID_TRANS_TIME != rebuildTime &&
-                 DPS_MAX_TRANS_TIME != rebuildTime )
-            {
-               if ( !_ixRebuildTime.compareAndSwap( DPS_MAX_TRANS_TIME,
-                                                    rebuildTime ) )
-               {
-                  _ixRebuildTime.swapLesserThan( rebuildTime ) ;
-               }
-            }
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          }
 
       public :
@@ -887,10 +857,7 @@ namespace engine
                             optCollectionStat * collectionStat,
                             optIndexStat * indexStat ) ;
 
-         virtual void evaluate () override;
-
-         BOOLEAN isIndexCover() const override { return _indexCover ; }
-         BOOLEAN notArray() const override { return _notArray ; }
+         virtual void evaluate () ;
 
          BOOLEAN isIndexCover() const { return _indexCover ; }
          BOOLEAN notArray() const { return _notArray ; }
@@ -910,25 +877,21 @@ namespace engine
                                        UINT64 returnSkipRecords ) ;
 
       public :
-         virtual INT32 toBSONEvaluation ( BSONObjBuilder & builder ) const override;
+         virtual INT32 toBSONEvaluation ( BSONObjBuilder & builder ) const ;
 
-         virtual INT32 toBSONIXStatInfo ( BSONObjBuilder & builder ) const override;
+         virtual INT32 toBSONIXStatInfo ( BSONObjBuilder & builder ) const ;
 
       protected :
          virtual INT32 _toBSONBasic ( BSONObjBuilder & builder,
-<<<<<<< HEAD
                                       const rtnExplainOptions &expOptions ) const ;
-=======
-                                      const rtnExplainOptions &expOptions ) const override;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
-         virtual INT32 _fromBSONBasic ( const BSONObj & object ) override;
+         virtual INT32 _fromBSONBasic ( const BSONObj & object ) ;
 
-         virtual INT32 _toBSONEstimateInput ( BSONObjBuilder & builder ) const override;
+         virtual INT32 _toBSONEstimateInput ( BSONObjBuilder & builder ) const ;
 
-         virtual INT32 _toBSONEstimateFilter ( BSONObjBuilder & builder ) const override;
+         virtual INT32 _toBSONEstimateFilter ( BSONObjBuilder & builder ) const ;
 
-         virtual INT32 _toBSONRunImpl ( BSONObjBuilder & builder ) const override;
+         virtual INT32 _toBSONRunImpl ( BSONObjBuilder & builder ) const ;
 
          INT32 _toBSONIOCostEval ( BSONObjBuilder & builder ) const ;
 
@@ -940,10 +903,7 @@ namespace engine
 
       private:
          void _evalIndexCover( const BSONObj &keyPattern,
-<<<<<<< HEAD
                                BOOLEAN canReadIndexOnly,
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                                BSONObjIterator &restOrder,
                                mthMatchTree *matcher ) ;
 
@@ -956,7 +916,6 @@ namespace engine
          // Operators in matchers are covered by predicates
          BOOLEAN           _matchAll ;
 
-<<<<<<< HEAD
          // indicates this plan supports index cover
          // 1.plan   : index cover matcher orderby
          //            need calculate with selector in runtime
@@ -966,13 +925,6 @@ namespace engine
          BOOLEAN           _notArray ;
          // indicates can read index only
          BOOLEAN           _readIndexOnly ;
-=======
-         // 1.plan   : index cover matcher orderby
-         // 2.explain: index cover matcher orderby and selector
-         BOOLEAN           _indexCover ;
-
-         BOOLEAN           _notArray ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
          // Number of matched fields in index
          UINT32            _matchedFields ;
@@ -1012,8 +964,6 @@ namespace engine
          UINT64            _ixStatTime ;
 
          BSONObj           _runtimeIXBound ;
-
-         ossAtomic64       _ixRebuildTime ;
    } ;
 
    /*

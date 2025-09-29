@@ -154,7 +154,6 @@ namespace engine
                                        _clsDCMgr *pDCMgr,
                                        const BSONObj &objQuery,
                                        BSONObjBuilder &retObjBuilder ) ;
-<<<<<<< HEAD
       INT32 processCmdSetActiveLocation( const NET_HANDLE &handle,
                                          _clsDCMgr *pDCMgr,
                                          const BSONObj &objQuery,
@@ -168,19 +167,8 @@ namespace engine
                                             const BSONObj &objQuery,
                                             BSONObjBuilder &retObjBuilder,
                                             const BOOLEAN &isStartMode ) ;
-=======
-      INT32 processCmdEnableRestoring(const NET_HANDLE &handle,
-                                      _clsDCMgr *pDCMgr,
-                                      const BSONObj &objQuery,
-                                      BSONObjBuilder &retObjBuilder);
-      INT32 processCmdDisableRestoring(const NET_HANDLE &handle,
-                                       _clsDCMgr *pDCMgr,
-                                       const BSONObj &objQuery,
-                                       BSONObjBuilder &retObjBuilder);
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
-
-     protected:
+   protected:
       void  _fillRspHeader( MsgHeader *rspMsg, const MsgHeader *reqMsg ) ;
 
       INT32 _mapData2DCMgr( _clsDCMgr *pDCMgr ) ;

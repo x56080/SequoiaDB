@@ -292,8 +292,4 @@ Flink 支持的 table formats 可参考 [Flink 官网][format]。
 [connection]:manual/Database_Instance/Relational_Instance/FlinkSQL_Connector/Operation/connection.md
 [flink]:https://nightlies.apache.org/flink/flink-docs-release-1.15/docs/connectors/table/formats/ogg/#format-options
 [format]:https://nightlies.apache.org/flink/flink-docs-release-1.15/docs/connectors/table/formats/overview/
-<<<<<<< HEAD
 [connection]:manual/Database_Instance/Relational_Instance/FlinkSQL_Connector/Operation/connection.md#保证精确一次性
-=======
-[connection]:manual/Database_Instance/Relational_Instance/FlinkSQL_Connector/Operation/connection.md#保证精确一次性
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2

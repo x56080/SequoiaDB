@@ -235,11 +235,6 @@ namespace engine
       return ( SDB_DB_MODE_DEACTIVATED & _dbMode ) ? TRUE : FALSE ;
    }
 
-   BOOLEAN _SDB_KRCB::isDBRestoring() const
-   {
-      return ( SDB_DB_MODE_RESTORING & _dbMode ) ? TRUE : FALSE ;
-   }
-
    BOOLEAN _SDB_KRCB::isInFlowControl() const
    {
       return _flowControl ;
@@ -577,7 +572,6 @@ namespace engine
             PD_LOG( PDERROR, "Fini cb[Type: %d, Name: %s] failed, rc: %d",
                     pCB->cbType(), pCB->cbName(), rc ) ;
          }
-         _arrayCBs[ index - 1 ] = NULL ;
       }
 
       /// fini cache manager

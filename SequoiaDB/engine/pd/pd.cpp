@@ -49,47 +49,11 @@
 #include "utilStr.hpp"
 #include "ossIO.hpp"
 
-#if defined ( SDB_ENGINE ) || defined ( SDB_FMP ) || defined ( SDB_TOOL ) || defined ( SDB_STP )
+#if defined ( SDB_ENGINE ) || defined ( SDB_FMP ) || defined ( SDB_TOOL )
 #include "ossPath.hpp"
-#endif //SDB_ENGINE || SDB_FMP || SDB_TOOL || SDB_STP
+#endif //SDB_ENGINE || SDB_FMP || SDB_TOOL
 
 #include "pdTrace.hpp"
-
-/*
-   _pdLogNestedShield define
- */
-// to avoid nested logging
-class _pdLogNestedShield
-{
-public:
-   _pdLogNestedShield( BOOLEAN &amIInPD )
-   : _amIInPD( NULL )
-   {
-      if ( !amIInPD )
-      {
-         amIInPD = TRUE ;
-         _amIInPD = &amIInPD ;
-      }
-   }
-
-   ~_pdLogNestedShield()
-   {
-      if ( NULL != _amIInPD )
-      {
-         *_amIInPD = FALSE ;
-      }
-   }
-
-   BOOLEAN isInNestedLog() const
-   {
-      return NULL == _amIInPD ;
-   }
-
-protected:
-   BOOLEAN * _amIInPD ;
-} ;
-
-typedef class _pdLogNestedShield pdLogNestedShield ;
 
 PDLEVEL& getPDLevel()
 {
@@ -286,7 +250,7 @@ OSS_NEWLINE "File:%s" OSS_NEWLINE "Message:" OSS_NEWLINE "%s" OSS_NEWLINE OSS_NE
 /* extern variables */
 
 // driver don't use the code
-#if defined ( SDB_ENGINE ) || defined ( SDB_FMP ) || defined ( SDB_TOOL ) || defined ( SDB_STP )
+#if defined ( SDB_ENGINE ) || defined ( SDB_FMP ) || defined ( SDB_TOOL )
 
 static void _pdRemoveOutOfDataFiles( pdCfgInfo &info )
 {
@@ -365,7 +329,7 @@ static INT32 _pdLogArchive( pdCfgInfo &info )
    return rc ;
 }
 
-#endif //SDB_ENGINE || SDB_FMP || SDB_TOOL || SDB_STP
+#endif //SDB_ENGINE || SDB_FMP || SDB_TOOL
 
 // PD_TRACE_DECLARE_FUNCTION ( SDB_PDLOGFILEWRITE, "pdLogFileWrite" )
 // return code is errno
@@ -379,7 +343,7 @@ static INT32 pdLogFileWrite ( _pdLogType type, const CHAR *pData )
    pdCfgInfo &info = _getPDCfgInfo( type ) ;
 
    // lock file first
-   ossScopedLock lock( &( logFile._mutex ) ) ;
+   logFile._mutex.get() ;
 
    // if file not exist, need open
    //if ( SDB_OK != ossAccess( info._pdLogFile ) )
@@ -387,9 +351,9 @@ static INT32 pdLogFileWrite ( _pdLogType type, const CHAR *pData )
    //   logFile._logFile.Close() ;
    //}
 
-#if defined ( SDB_ENGINE ) || defined ( SDB_FMP ) || defined ( SDB_TOOL ) || defined ( SDB_STP )
+#if defined ( SDB_ENGINE ) || defined ( SDB_FMP ) || defined ( SDB_TOOL )
 open:
-#endif //SDB_ENGINE || SDB_FMP || SDB_TOOL || SDB_STP
+#endif //SDB_ENGINE || SDB_FMP || SDB_TOOL
 
    /// check file whether exist
    if ( !logFile._logFile.isExist() )
@@ -423,7 +387,7 @@ open:
       logFile._logFile.seekToEnd () ;
    }
 
-#if defined ( SDB_ENGINE ) || defined ( SDB_FMP ) || defined ( SDB_TOOL ) || defined ( SDB_STP )
+#if defined ( SDB_ENGINE ) || defined ( SDB_FMP ) || defined ( SDB_TOOL )
    // if file size up the limit
    if ( logFile._fileSize + dataSize > info._pdFileMaxSize )
    {
@@ -431,7 +395,7 @@ open:
       _pdLogArchive( info ) ;
       goto open ;
    }
-#endif //SDB_ENGINE || SDB_FMP || SDB_TOOL || SDB_STP
+#endif //SDB_ENGINE || SDB_FMP || SDB_TOOL
 
    PD_TRACE1 ( SDB_PDLOGFILEWRITE, PD_PACK_RAW ( pData, dataSize ) ) ;
    rc = logFile._logFile.Write ( pData, dataSize ) ;
@@ -445,6 +409,7 @@ open:
    logFile._fileSize += dataSize ;
 
 done :
+   logFile._mutex.release() ;
    PD_TRACE_EXITRC ( SDB_PDLOGFILEWRITE, rc ) ;
    return rc ;
 error :
@@ -551,11 +516,11 @@ void pdLogRaw( PDLEVEL level, const CHAR *pData )
    // calling pdLog in signal handler when the thread is already in pdLog
    // function will not proceed)
    static OSS_THREAD_LOCAL BOOLEAN amIInPD = FALSE ;
-   pdLogNestedShield shield( amIInPD ) ;
-   if ( shield.isInNestedLog() )
+   if ( amIInPD )
    {
       goto done ;
    }
+   amIInPD = TRUE ;
 
    /* We write into log file if the string is not empty */
    if ( _getPDCfgInfo( PD_DIAGLOG ).isEnabled() )
@@ -567,6 +532,9 @@ void pdLogRaw( PDLEVEL level, const CHAR *pData )
          ossPrintf ( "%s" OSS_NEWLINE, pData ) ;
       }
    }
+
+   // make sure to reset this before leaving
+   amIInPD = FALSE ;
 
 done:
    return ;
@@ -591,12 +559,7 @@ static _pdRCMaskItem s_rcMaskMap[] =
 {
    { SDB_IXM_DUP_KEY, TRUE, LOG_MASK_IXM_DUP_KEY },
    { SDB_IXM_ADVANCE_EOC, FALSE, LOG_MASK_IXM_ADVANCE_EOC },
-<<<<<<< HEAD
    { SDB_RTN_INVALID_HINT, FALSE, LOG_MASK_RTN_INVALID_HINT }
-=======
-   { SDB_DMS_CS_NOTEXIST, FALSE, LOG_MASK_DMS_CS_NOTEXIST },
-   { SDB_DMS_NOTEXIST, FALSE, LOG_MASK_DMS_NOTEXIST }
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 } ;
 
 static UINT64 _pdRC2Mask( INT32 rc )
@@ -733,51 +696,21 @@ INT32 pdError( INT32 rc )
    return rc ;
 }
 
-<<<<<<< HEAD
 pdLogShield::pdLogShield() : _addRCMask( 0 )
 {
 }
 
 pdLogShield::~pdLogShield()
-=======
-void pdSetShieldRC( INT32 rc )
-{
-   UINT64 mask = _pdRC2Mask( rc ) ;
-   if ( 0 != mask && !pdTestShieldLogMask( mask ) )
-   {
-      pdEnableShieldLogMask( mask ) ;
-   }
-}
-
-void pdClearShieldRC()
-{
-   pdDisableShieldLogMask( 0xFFFFFFFFFFFFFFFF ) ;
-}
-
-pdLogRCShield::pdLogRCShield() : _addRCMask( 0 )
-{
-}
-
-pdLogRCShield::~pdLogRCShield()
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 {
    clearRC() ;
 }
 
-<<<<<<< HEAD
 void pdLogShield::clearRC()
-=======
-void pdLogRCShield::clearRC()
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 {
    pdDisableShieldLogMask( _addRCMask ) ;
 }
 
-<<<<<<< HEAD
 void pdLogShield::addRC( INT32 rc )
-=======
-void pdLogRCShield::addRC( INT32 rc )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 {
    UINT64 mask = _pdRC2Mask( rc ) ;
    if ( mask != 0 && !pdTestShieldLogMask( mask ) )
@@ -964,12 +897,8 @@ const CHAR* pdAuditObjType2String( AUDIT_OBJ_TYPE objtype )
       "SESSION",
       "USER",
       "SEQUENCE",
-<<<<<<< HEAD
       "RECYCLEBIN",
       "ROLE"
-=======
-      "RECYCLEBIN"
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       } ;
    if ( (UINT32)objtype >= 0 &&
         (UINT32)objtype < sizeof(s_objtypeString) / sizeof(const CHAR*) )
@@ -1347,12 +1276,11 @@ void pdAuditRaw( AUDIT_TYPE type, const CHAR *pData )
    // calling pdLog in signal handler when the thread is already in pdLog
    // function will not proceed)
    static OSS_THREAD_LOCAL BOOLEAN amIInPD = FALSE ;
-
-   pdLogNestedShield shield( amIInPD ) ;
-   if ( shield.isInNestedLog() )
+   if ( amIInPD )
    {
       goto done ;
    }
+   amIInPD = TRUE ;
 
    /* We write into log file if the string is not empty */
    if ( _getPDCfgInfo( PD_AUDIT ).isEnabled() )
@@ -1365,6 +1293,9 @@ void pdAuditRaw( AUDIT_TYPE type, const CHAR *pData )
          ossPrintf ( "%s" OSS_NEWLINE, pData ) ;
       }
    }
+
+   // make sure to reset this before leaving
+   amIInPD = FALSE ;
 
 done:
    return ;

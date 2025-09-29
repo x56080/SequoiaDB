@@ -60,7 +60,6 @@ namespace bson {
       BOOLEAN        isZero() const ;
 
       void           setMin() ;
-<<<<<<< HEAD
       BOOLEAN        isMin() const ;
 
       void           setMax() ;
@@ -68,12 +67,6 @@ namespace bson {
 
       void           setNan() ;
       BOOLEAN        isNan() const ;
-=======
-      BOOLEAN        isMin() const;
-
-      void           setMax() ;
-      BOOLEAN        isMax() const;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       INT32          fromInt( INT32 value ) ;
       INT32          toInt( INT32 *value ) const ;

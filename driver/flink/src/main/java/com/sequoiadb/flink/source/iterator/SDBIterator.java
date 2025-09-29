@@ -23,18 +23,11 @@ import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.flink.common.exception.SDBException;
-<<<<<<< HEAD
 import com.sequoiadb.flink.common.util.SDBInfoUtil;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 import com.sequoiadb.flink.config.SDBSourceOptions;
 import com.sequoiadb.flink.config.SplitMode;
 import com.sequoiadb.flink.source.split.SDBSplit;
 
-<<<<<<< HEAD
-=======
-import org.bson.BSON;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BasicBSONList;
@@ -68,13 +61,10 @@ public class SDBIterator implements Iterator<byte[]>, Closeable {
                 new ConfigOptions()
         );
 
-<<<<<<< HEAD
         // set up source info in session attr, ignore failure and just
         // print warning log when throws exception.
         SDBInfoUtil.setupSourceSessionAttrIgnoreFailures(sdb, sourceOptions.getSourceInfo());
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         DBCollection cl = null;
         try {
             cl = sdb.getCollectionSpace(split.getCsName())

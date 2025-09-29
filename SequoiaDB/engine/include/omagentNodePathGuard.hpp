@@ -38,8 +38,6 @@
 
 namespace engine {
 
-   // _omaNodePathGuard is used to monitor paths of sdb nodes
-   // NOTE: will watch paths for data, index, replica logs of sdb nodes
    class _omaNodePathGuard : public SDBObject
    {
    public:
@@ -47,7 +45,6 @@ namespace engine {
       ~_omaNodePathGuard() ;
 
       void  init( const CHAR *nodeName, pmdOptionsCB *options ) ;
-      void  initStp( const CHAR *nodeName, const CHAR *cfgFileName ) ;
 
       const CHAR* name() const { return _nodeName ; }
       std::vector< std::string > *getPaths() { return &_nodePaths ; }
@@ -63,7 +60,7 @@ namespace engine {
    private:
       CHAR _nodeName[ OSS_MAX_SERVICENAME + 1 ] ;
       std::vector<std::string> _nodePaths ;
-      SDB_TYPE _type ;
+
    };
 
    typedef _omaNodePathGuard omaNodePathGuard ;

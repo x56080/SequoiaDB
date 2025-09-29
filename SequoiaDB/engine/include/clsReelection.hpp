@@ -31,31 +31,27 @@
 #ifndef CLS_REELECTION_HPP_
 #define CLS_REELECTION_HPP_
 
-#include "clsReplDef.hpp"
+#include "clsDef.hpp"
 #include "ossEvent.hpp"
-#include "clsVoteMachine.hpp"
-#include "clsSyncManager.hpp"
 
 namespace engine
 {
+   class _clsVoteMachine ;
+   class _clsSyncManager ;
 
    class _clsReelection : public SDBObject
    {
    public:
-<<<<<<< HEAD
       _clsReelection( _clsVoteMachine *vote,
                       _clsSyncManager *syncMgr,
                       _clsGroupInfo *info ) ;
-=======
-      _clsReelection( ICLSReplAgent *replAgent ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       ~_clsReelection() ;
 
    public:
       INT32 run( CLS_REELECTION_LEVEL lvl,
                  INT32 seconds,
                  pmdEDUCB *cb,
-                 const MsgRouteID &destRID ) ;
+                 UINT16 destID = 0 ) ;
 
       INT32 wait( pmdEDUCB *cb ) ;
 
@@ -72,7 +68,7 @@ namespace engine
       INT32 _wait4Replica( UINT32 &timePassed,
                            UINT32 timeout,
                            pmdEDUCB *cb,
-                           const MsgRouteID &destRID ) ;
+                           UINT16 destID ) ;
 
       INT32 _wait4ReplicaByBeat( UINT32 &timePassed,
                                  UINT32 timeout,
@@ -88,19 +84,12 @@ namespace engine
                    pmdEDUCB *cb,
                    BOOLEAN canSetBlock ) ;
 
-<<<<<<< HEAD
       OSS_INLINE BOOLEAN _isLocation() const ;
 
    private:
       _clsVoteMachine *_vote ;
       _clsSyncManager *_syncMgr ;
       _clsGroupInfo   *_info ;
-=======
-   protected:
-      ICLSReplAgent *   _replAgent ;
-      clsVoteMachine *  _vote ;
-      clsSyncManager *  _syncMgr ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       volatile UINT32 _level ;
       ossEvent _event ;
 

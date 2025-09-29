@@ -33,15 +33,17 @@
 
 *******************************************************************************/
 #include "clsVSSecondary.hpp"
-#include "clsReplAgent.hpp"
 #include "pdTrace.hpp"
 #include "clsTrace.hpp"
 
 namespace engine
 {
 
-   _clsVSSecondary::_clsVSSecondary( ICLSReplAgent *replAgent )
-   :_clsVoteStatus( replAgent, CLS_ELECTION_STATUS_SEC )
+   INT32 g_startShiftTime = 0 ;
+
+   _clsVSSecondary::_clsVSSecondary( _clsGroupInfo *info,
+                                     _netRouteAgent *agent )
+   :_clsVoteStatus( info, agent, CLS_ELECTION_STATUS_SEC )
    {
       _hasPrint = FALSE ;
    }
@@ -64,7 +66,7 @@ namespace engine
       }
       else if ( MSG_CLS_BALLOT == header->opCode )
       {
-         _replAgent->setStartShiftTime( -1 ) ; // some node begin vote
+         g_startShiftTime = -1 ; // some node begin vote
 
          const _MsgClsElectionBallot *msg = ( const _MsgClsElectionBallot * ) header ;
          if ( CLS_ELECTION_ROUND_STAGE_ONE == msg->round )
@@ -101,20 +103,19 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__CLSVSSD_HDTMOUT ) ;
       _timeout() += millisec ;
 
-      if ( _replAgent->getStartShiftTime() > 0 && _info()->isAllNodeBeat() )
+      if ( g_startShiftTime > 0 && _info()->isAllNodeBeat() )
       {
-         _replAgent->setStartShiftTime( -1 ) ; // recieve all node sharing-beat
+         g_startShiftTime = -1 ; // recieve all node sharing-beat
       }
 
-      if ( ( _replAgent->getStartShiftTime() < 0 ||
-             _replAgent->getStartShiftTime() <= (INT32)_timeout() ) &&
+      if ( ( g_startShiftTime < 0 || g_startShiftTime <= (INT32)_timeout() ) &&
            CLS_VOTE_CS_TIME <= _timeout() )
       {
          if ( _hasPrint )
          {
             PD_LOG( PDEVENT, "%s Vote: begin to vote...", getScopeName() ) ;
          }
-         _replAgent->setStartShiftTime( -1 ) ;
+         g_startShiftTime = -1 ;
          next = CLS_ELECTION_STATUS_VOTE ;
       }
       else
@@ -122,16 +123,9 @@ namespace engine
          if ( !_hasPrint && CLS_VOTE_CS_TIME <= _timeout() )
          {
             _hasPrint = TRUE ;
-<<<<<<< HEAD
             PD_LOG( PDEVENT, "%s Vote: with waiting %u seconds or when all nodes beat "
                     "here, then begin to vote", getScopeName(),
                     ( g_startShiftTime - (INT32)_timeout() ) / 1000 ) ;
-=======
-            PD_LOG( PDEVENT, "With waiting %u seconds or when all nodes beat "
-                    "here, then begin to vote",
-                    ( _replAgent->getStartShiftTime() - (INT32)_timeout() ) /
-                      1000 ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          }
          next = id() ;
       }
@@ -148,7 +142,7 @@ namespace engine
 
       if ( _info()->groupSize() == 1 )
       {
-         _replAgent->setStartShiftTime( -1 ) ;
+         g_startShiftTime = -1 ;
          next = CLS_ELECTION_STATUS_VOTE ;
       }
       else

@@ -69,7 +69,7 @@ namespace engine
    {
       PD_TRACE_ENTRY ( SDB__CLSDSTREPSN__CLSDSTREPSN );
       _logger = pmdGetKRCB()->getDPSCB() ;
-      _sync = sdbGetReplCB()->getSyncManager() ;
+      _sync = sdbGetReplCB()->syncMgr() ;
       _repl = sdbGetReplCB() ;
       _pReplBucket = _repl->getBucket() ;
       _replayer.regEventHandler( _repl ) ;
@@ -467,9 +467,7 @@ namespace engine
       {
          if ( sdbGetTransCB()->isNeedSyncTrans() )
          {
-            sdbGetTransCB()->resetRestoreWindow() ;
-            sdbGetTransCB()->syncTransInfoFromLocal( msg->oldestTransLsn,
-                                                     TRUE ) ;
+            sdbGetTransCB()->syncTransInfoFromLocal( msg->oldestTransLsn ) ;
             sdbGetTransCB()->setIsNeedSyncTrans( FALSE ) ;
          }
       }
@@ -734,8 +732,7 @@ namespace engine
            sdbGetTransCB()->isNeedSyncTrans() )
       {
          DPS_LSN beginLsn = _logger->getStartLsn() ;
-         sdbGetTransCB()->resetRestoreWindow() ;
-         sdbGetTransCB()->syncTransInfoFromLocal( beginLsn.offset, TRUE ) ;
+         sdbGetTransCB()->syncTransInfoFromLocal( beginLsn.offset ) ;
          sdbGetTransCB()->setIsNeedSyncTrans( FALSE ) ;
       }
 
@@ -837,7 +834,7 @@ namespace engine
          _status = CLS_SESSION_STATUS_SYNC ;
          ++_requestID ;
          // force to secondary
-         pClsCB->getReplCB()->getVoteMachine()->force( CLS_ELECTION_STATUS_SEC ) ;
+         pClsCB->getReplCB()->voteMachine()->force( CLS_ELECTION_STATUS_SEC ) ;
       }
       else
       {
@@ -846,12 +843,12 @@ namespace engine
          if ( _addFSSession.compareAndSwap( 0, 1 ) )
          {
             // check unique id has been upgrade before full sync
-            if ( sdbGetDMSCB()->getNullCSUniqueIDCnt() > 0 )
+            if ( sdbGetDMSCB()->nullCSUniqueIDCnt() > 0 )
             {
                clsUniqueIDCheckJob job( FALSE ) ;
                job.doit() ;
 
-               UINT32 csCnt = sdbGetDMSCB()->getNullCSUniqueIDCnt() ;
+               UINT32 csCnt = sdbGetDMSCB()->nullCSUniqueIDCnt() ;
                if ( csCnt > 0 )
                {
                   PD_LOG( PDWARNING, "There are still %u collection spaces "
@@ -1230,7 +1227,6 @@ namespace engine
             rc = SDB_DPS_CORRUPTED_LOG ;
             goto error ;
          }
-<<<<<<< HEAD
 
          rc = _logger->checkSeondarySyncControl( recordHeader->_length, eduCB() ) ;
          if ( rc )
@@ -1238,8 +1234,6 @@ namespace engine
             PD_LOG( PDERROR, "Check sync control failed, rc: %d", rc ) ;
             goto error ;
          }
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
          PD_LOG( PDDEBUG, "Session[%s]: Replay record [lsn offset: %lld, "
                  "version: %d, len:%d, preLsn:%lld]", sessionName(),
@@ -1257,12 +1251,8 @@ namespace engine
             SDB_ASSERT( SDB_OOM == rc ||
                         SDB_NOSPC == rc ||
                         SDB_IXM_DUP_KEY == rc ||
-<<<<<<< HEAD
                         SDB_APP_INTERRUPT == rc ||
                         SDB_CLS_FULL_SYNC == rc,
-=======
-                        SDB_APP_INTERRUPT == rc,
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                         "Unexpect error occured" ) ;
             PD_LOG( PDERROR, "Session[%s]: Failed to replay log, rc: %d",
                     sessionName(), rc ) ;
@@ -1381,7 +1371,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__CLSSRCREPSN__CLSREPSN );
 
       _logger = pmdGetKRCB()->getDPSCB() ;
-      _sync = sdbGetReplCB()->getSyncManager() ;
+      _sync = sdbGetReplCB()->syncMgr() ;
       _repl = sdbGetReplCB() ;
 
       _lastProcRequestID = 0 ;

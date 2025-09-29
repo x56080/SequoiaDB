@@ -23,7 +23,6 @@ import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.Objects;
 
 /**
  * this is used for storing timestamp.
@@ -127,11 +126,6 @@ public class BSONTimestamp implements Serializable {
     	if(_time == null)
     		return null;
     	return _time;
-    }
-
-    @Override
-    public int hashCode(){
-        return Objects.hash(_inc, getTime());
     }
 
     @Override

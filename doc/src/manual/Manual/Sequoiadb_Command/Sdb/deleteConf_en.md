@@ -21,10 +21,7 @@ This function is used to delete the specified node configuration from the config
 | config | object |[Node configuration parameters][parameter], contains configuration names and placeholders.<br>For example: {preferedinstance: 1, diaglevel: 1}, where 1 has no special meaning and only appears as a placeholder.| required  |
 | options| object |[Command positional parameters][location]<br>If this parameter is not specified, the delete operation will take effect on all nodes by default.| not |
 
-<<<<<<< HEAD
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 ##RETURN VALUE##
 
 When the function executes successfully, there is no return value.
@@ -37,11 +34,7 @@ When the exception happens, use [getLastErrMsg()][getLastErrMsg] to get the erro
 
 ##VERSION##
 
-<<<<<<< HEAD
 v3.6 and above
-=======
-v5.0 and above
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 ##EXAMPLES##
 

@@ -730,223 +730,6 @@ namespace engine
          goto done ;
       }
 
-      // avoid recursively calling
-      dmsCallbackShield shield ;
-      if ( shield.isRecursive() )
-      {
-         goto done ;
-      }
-
-      // Event could not be handled in main thread
-      if ( !cb || cb->getType() == EDU_TYPE_MAIN )
-      {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-      else if ( NULL == _handlers )
-      {
-         goto done ;
-      }
-
-      for ( DMS_HANDLER_LIST::iterator iter = _handlers->begin() ;
-            iter != _handlers->end() ;
-            ++ iter )
-      {
-         _IDmsEventHandler *pHandler = (*iter) ;
-         if ( pHandler && ( pHandler->getMask() & mask ) )
-         {
-            INT32 tmprc = pHandler->onRenameCL( this, _pCacheHolder, clItem,
-                                                pNewCLName, cb, dpsCB ) ;
-            if ( SDB_OK != tmprc )
-            {
-               rc = tmprc ;
-            }
-         }
-      }
-
-   done :
-      PD_TRACE_EXITRC( SDB__DMSEVTHLD_ONRENAMECL, rc ) ;
-      return rc ;
-   error :
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSEVTHLD_ONCHECKTRUNCCL, "_dmsEventHolder::onCheckTruncCL" )
-   INT32 _dmsEventHolder::onCheckTruncCL( UINT32 mask,
-                                          const dmsEventCLItem &clItem,
-                                          dmsTruncCLOptions *options,
-                                          pmdEDUCB *cb,
-                                          SDB_DPSCB *dpsCB )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__DMSEVTHLD_ONCHECKTRUNCCL ) ;
-
-      // avoid recursively calling
-      dmsCallbackShield shield ;
-      if ( shield.isRecursive() )
-      {
-         goto done ;
-      }
-
-      // Event could not be handled in main thread
-      if ( !cb || cb->getType() == EDU_TYPE_MAIN )
-      {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-      else if ( NULL == _handlers )
-      {
-         goto done ;
-      }
-
-      for ( DMS_HANDLER_LIST::iterator iter = _handlers->begin() ;
-            iter != _handlers->end() ;
-            ++ iter )
-      {
-         _IDmsEventHandler *pHandler = (*iter) ;
-         if ( pHandler && ( pHandler->getMask() & mask ) )
-         {
-            rc = pHandler->onCheckTruncCL( this, _pCacheHolder, clItem,
-                                           options, cb, dpsCB ) ;
-            PD_RC_CHECK( rc,  PDERROR, "Failed to call check truncate "
-                         "collection event in handle [%s],rc: %d",
-                         pHandler->getName(), rc ) ;
-         }
-      }
-
-   done :
-      PD_TRACE_EXITRC( SDB__DMSEVTHLD_ONCHECKTRUNCCL, rc ) ;
-      return rc ;
-   error :
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSEVTHLD_ONTRUNCCL, "_dmsEventHolder::onTruncateCL" )
-   INT32 _dmsEventHolder::onTruncateCL ( UINT32 mask,
-                                         SDB_EVENT_OCCUR_TYPE type,
-                                         const dmsEventCLItem &clItem,
-                                         dmsTruncCLOptions *options,
-                                         pmdEDUCB *cb,
-                                         SDB_DPSCB *dpsCB )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__DMSEVTHLD_ONTRUNCCL ) ;
-
-      // avoid recursively calling
-      dmsCallbackShield shield ;
-      if ( shield.isRecursive() )
-      {
-         goto done ;
-      }
-
-      // Event could not be handled in main thread
-      if ( !cb || cb->getType() == EDU_TYPE_MAIN )
-      {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-      else if ( NULL == _handlers )
-      {
-         goto done ;
-      }
-
-      for ( DMS_HANDLER_LIST::iterator iter = _handlers->begin() ;
-            iter != _handlers->end() ;
-            ++ iter )
-      {
-         _IDmsEventHandler *pHandler = (*iter) ;
-         if ( pHandler && ( pHandler->getMask() & mask ) )
-         {
-            rc = pHandler->onTruncateCL( type, this, _pCacheHolder, clItem,
-                                         options, cb, dpsCB ) ;
-            PD_RC_CHECK( rc,  PDERROR, "Failed to call [%s] truncate "
-                         "collection event in handle [%s], rc: %d",
-                         SDB_EVT_OCCUR_BEFORE == type ? "before" : "after",
-                         pHandler->getName(), rc ) ;
-         }
-      }
-
-   done :
-      PD_TRACE_EXITRC( SDB__DMSEVTHLD_ONTRUNCCL, rc ) ;
-      return rc ;
-   error :
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSEVTHLD_ONCLEANTRUNCCL, "_dmsEventHolder::onCleanTruncCL" )
-   INT32 _dmsEventHolder::onCleanTruncCL( UINT32 mask,
-                                          const dmsEventCLItem &clItem,
-                                          dmsTruncCLOptions *options,
-                                          pmdEDUCB *cb,
-                                          SDB_DPSCB *dpsCB )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__DMSEVTHLD_ONCLEANTRUNCCL ) ;
-
-      // avoid recursively calling
-      dmsCallbackShield shield ;
-      if ( shield.isRecursive() )
-      {
-         goto done ;
-      }
-
-      // Event could not be handled in main thread
-      if ( !cb || cb->getType() == EDU_TYPE_MAIN )
-      {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-      else if ( NULL == _handlers )
-      {
-         goto done ;
-      }
-
-      for ( DMS_HANDLER_LIST::iterator iter = _handlers->begin() ;
-            iter != _handlers->end() ;
-            ++ iter )
-      {
-         _IDmsEventHandler *pHandler = (*iter) ;
-         if ( pHandler && ( pHandler->getMask() & mask ) )
-         {
-            INT32 tmpRC = pHandler->onCleanTruncCL( this, _pCacheHolder, clItem,
-                                                    options, cb, dpsCB ) ;
-            if ( SDB_OK != tmpRC )
-            {
-               PD_LOG( PDWARNING, "Failed to call clean truncate collection "
-                       "event in handle [%s],rc: %d",
-                       pHandler->getName(), tmpRC ) ;
-            }
-         }
-      }
-
-   done :
-      PD_TRACE_EXITRC( SDB__DMSEVTHLD_ONCLEANTRUNCCL, rc ) ;
-      return rc ;
-   error :
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSEVTHLD_ONCHECKDROPCL, "_dmsEventHolder::onCheckDropCL" )
-   INT32 _dmsEventHolder::onCheckDropCL( UINT32 mask,
-                                         const dmsEventCLItem &clItem,
-                                         dmsDropCLOptions *options,
-                                         pmdEDUCB *cb,
-                                         SDB_DPSCB *dpsCB )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__DMSEVTHLD_ONCHECKDROPCL ) ;
-
-      // avoid recursively calling
-      dmsCallbackShield shield ;
-      if ( shield.isRecursive() )
-      {
-         goto done ;
-      }
-
       // Event could not be handled in main thread
       if ( !cb || cb->getType() == EDU_TYPE_MAIN )
       {
@@ -1528,12 +1311,38 @@ namespace engine
 
       switch ( pCacheUnit->getUnitType() )
       {
+         case UTIL_SU_CACHE_UNIT_CLSTAT :
+         {
+            if ( SDB_OK != _checkCollectionStat( (dmsCollectionStat *)pCacheUnit ) )
+            {
+               PD_LOG( PDWARNING, "Failed to check collection statistics" ) ;
+               goto error ;
+            }
+            exists = TRUE ;
+            break ;
+         }
+         case UTIL_SU_CACHE_UNIT_IXSTAT :
+         {
+            if ( SDB_OK != _checkIndexStat( (dmsIndexStat *)pCacheUnit , NULL ) )
+            {
+               PD_LOG( PDWARNING, "Failed to check index statistics" ) ;
+               goto error ;
+            }
+            exists = TRUE ;
+            break ;
+         }
+         case UTIL_SU_CACHE_UNIT_CLPLAN :
+            exists = TRUE ;
+            break ;
          default :
             break ;
       }
 
+   done :
       PD_TRACE_EXIT( SDB__DMSCACHEHOLDER_CHKUNIT ) ;
       return exists ;
+   error :
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSCACHEHOLDER_CRTCACHE, "_dmsCacheHolder::createSUCache" )
@@ -1549,7 +1358,6 @@ namespace engine
          BOOLEAN needCreate = TRUE ;
          switch ( type )
          {
-<<<<<<< HEAD
             case DMS_CACHE_TYPE_STAT :
             {
                if ( !isSysSU() )
@@ -1568,8 +1376,6 @@ namespace engine
                _pSUCaches[ type ] = SDB_OSS_NEW dmsCachedPlanMgr( this ) ;
                break ;
             }
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             default :
             {
                SDB_ASSERT( FALSE, "Invalid switch branch" ) ;
@@ -1633,6 +1439,172 @@ namespace engine
       PD_TRACE_EXIT( SDB__DMSCACHEHOLDER_DELALLCACHES ) ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSCACHEHOLDER_CHKCLSTAT, "_dmsCacheHolder::_checkCollectionStat" )
+   INT32 _dmsCacheHolder::_checkCollectionStat( dmsCollectionStat *pCollectionStat )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSCACHEHOLDER_CHKCLSTAT ) ;
+
+      SDB_ASSERT( pCollectionStat, "pCollectionStat is invalid" ) ;
+
+      dmsMBContext *mbContext = NULL ;
+      const CHAR *pCSName = pCollectionStat->getCSName() ;
+      const CHAR *pCLName = pCollectionStat->getCLName() ;
+      INDEX_STAT_MAP &indexStats = pCollectionStat->getIndexStats() ;
+      INDEX_STAT_ITERATOR iterIdx ;
+
+      BOOLEAN needCheck =
+            ( pCollectionStat->getMBID() != UTIL_SU_INVALID_UNITID ) ;
+
+      if ( needCheck )
+      {
+         PD_CHECK( _su->LogicalCSID() == pCollectionStat->getSULogicalID(),
+                   SDB_DMS_CS_NOTEXIST, error, PDWARNING, "Failed to get "
+                   "collection space [%s] for statistics", pCSName ) ;
+      }
+      else
+      {
+         pCollectionStat->setSULogicalID( _su->LogicalCSID() ) ;
+      }
+
+      rc = _su->data()->getMBContext( &mbContext, pCLName, SHARED ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Failed to get collection [%s], rc: %d",
+                   pCLName, rc ) ;
+
+      if ( needCheck )
+      {
+         PD_CHECK( mbContext->mbID() == pCollectionStat->getMBID() &&
+                   mbContext->clLID() == pCollectionStat->getCLLogicalID(),
+                   SDB_DMS_NOTEXIST, error, PDWARNING, "Failed to get "
+                   "collection [%s.%s] for statistics", pCSName, pCLName ) ;
+      }
+      else
+      {
+         pCollectionStat->setMBID( mbContext->mbID() ) ;
+         pCollectionStat->setCLLogicalID( mbContext->clLID() ) ;
+      }
+
+      iterIdx = indexStats.begin() ;
+      while ( iterIdx != indexStats.end() )
+      {
+         dmsIndexStat *pIndexStat = iterIdx->second ;
+         if ( SDB_OK != _checkIndexStat( pIndexStat, mbContext ) )
+         {
+            // Remove field statistics reference
+            pCollectionStat->removeFieldStat( pIndexStat->getFirstField(),
+                                              TRUE ) ;
+            // Remove index statistics reference
+            iterIdx = indexStats.erase( iterIdx ) ;
+            // Delete the index statistics
+            SAFE_OSS_DELETE( pIndexStat ) ;
+         }
+         else
+         {
+            ++ iterIdx ;
+         }
+      }
+
+   done :
+      if ( mbContext )
+      {
+         _su->data()->releaseMBContext( mbContext ) ;
+      }
+      PD_TRACE_EXITRC( SDB__DMSCACHEHOLDER_CHKCLSTAT, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSCACHEHOLDER_CHKIDXSTAT, "_dmsCacheHolder::_checkIndexStat" )
+   INT32 _dmsCacheHolder::_checkIndexStat ( dmsIndexStat *pIndexStat,
+                                            dmsMBContext *mbContext )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__DMSCACHEHOLDER_CHKIDXSTAT ) ;
+
+      BOOLEAN needAllocate = !mbContext ;
+      dmsExtentID indexCBExtent = DMS_INVALID_EXTENT ;
+      const CHAR *pCSName = pIndexStat->getCSName() ;
+      const CHAR *pCLName = pIndexStat->getCLName() ;
+      const CHAR *pIndexName = pIndexStat->getIndexName() ;
+
+      BOOLEAN needCheck = ( pIndexStat->getMBID() != UTIL_SU_INVALID_UNITID ) ;
+
+      if ( needCheck )
+      {
+         PD_CHECK( _su->LogicalCSID() == pIndexStat->getSULogicalID(),
+                   SDB_DMS_CS_NOTEXIST, error, PDWARNING, "Failed to get "
+                   "collection space [%s] for statistics", pCSName ) ;
+      }
+      else
+      {
+         pIndexStat->setSULogicalID( _su->LogicalCSID() ) ;
+      }
+
+      if ( !mbContext )
+      {
+         rc = _su->data()->getMBContext( &mbContext, pCLName, SHARED ) ;
+         PD_RC_CHECK( rc, PDWARNING, "Failed to get collection [%s], rc: %d",
+                      pCLName, rc ) ;
+      }
+
+      if ( needCheck )
+      {
+         PD_CHECK( mbContext->mbID() == pIndexStat->getMBID() &&
+                   mbContext->clLID() == pIndexStat->getCLLogicalID(),
+                   SDB_DMS_NOTEXIST, error, PDWARNING, "Failed to get "
+                   "collection [%s.%s] for statistics", pCSName, pCLName ) ;
+      }
+      else
+      {
+         pIndexStat->setMBID( mbContext->mbID() ) ;
+         pIndexStat->setCLLogicalID( mbContext->clLID() ) ;
+      }
+
+      rc = _su->index()->getIndexCBExtent( mbContext, pIndexName, indexCBExtent ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Failed to get index [%s], rc: %d",
+                   pIndexName, rc ) ;
+
+      {
+         ixmIndexCB indexCB ( indexCBExtent, _su->index(), NULL ) ;
+
+         PD_CHECK( indexCB.isInitialized(),
+                   SDB_DMS_INIT_INDEX, error, PDWARNING,
+                   "Index [%s] is invalid", pIndexName ) ;
+         PD_CHECK( indexCB.getFlag() == IXM_INDEX_FLAG_NORMAL,
+                   SDB_IXM_UNEXPECTED_STATUS, error, PDDEBUG,
+                   "Index [%s] is not normal status",pIndexName ) ;
+
+         if ( needCheck )
+         {
+            PD_CHECK( pIndexStat->getIndexLogicalID() == indexCB.getLogicalID(),
+                      SDB_IXM_NOTEXIST, error, PDWARNING,
+                      "Logical ID of index [%s] are not matched", pIndexName ) ;
+         }
+         else
+         {
+            pIndexStat->setIndexLogicalID( indexCB.getLogicalID() ) ;
+         }
+
+         PD_CHECK( 0 == pIndexStat->getKeyPattern().woCompare(
+                               indexCB.keyPattern(), BSONObj(), TRUE ),
+                   SDB_IXM_NOTEXIST, error, PDWARNING,
+                   "Keys of index [%s] are not matched", pIndexName ) ;
+      }
+
+   done :
+      if ( needAllocate && mbContext )
+      {
+         _su->data()->releaseMBContext( mbContext ) ;
+      }
+      PD_TRACE_EXITRC( SDB__DMSCACHEHOLDER_CHKIDXSTAT, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU, "_dmsStorageUnit::_dmsStorageUnit" )
    _dmsStorageUnit::_dmsStorageUnit ( IStorageService *storageService,
                                       const CHAR *pSUName,
@@ -1668,44 +1640,10 @@ namespace engine
     _cacheHolder ( this )
    {
       PD_TRACE_ENTRY ( SDB__DMSSU ) ;
-<<<<<<< HEAD
-=======
-      SDB_ASSERT ( pSUName, "name can't be null" ) ;
-
-      pmdOptionsCB *options = pmdGetOptionCB() ;
-
-      if ( 0 == pageSize )
-      {
-         pageSize = DMS_PAGE_SIZE_DFT ;
-      }
-
-      if ( 0 == lobPageSize )
-      {
-         lobPageSize = DMS_DEFAULT_LOB_PAGE_SZ ;
-      }
-
-      _storageInfo._pageSize = pageSize ;
-      _storageInfo._lobdPageSize = lobPageSize ;
-      ossStrncpy( _storageInfo._suName, pSUName, DMS_SU_NAME_SZ ) ;
-      _storageInfo._suName[DMS_SU_NAME_SZ] = 0 ;
-      _storageInfo._csUniqueID = csUniqueID ;
-      _storageInfo._sequence = sequence ;
-      _storageInfo._overflowRatio = options->getOverFlowRatio() ;
-      _storageInfo._extentThreshold = options->getExtendThreshold() << 20 ;
-      _storageInfo._enableSparse = options->sparseFile() ;
-      _storageInfo._directIO = options->useDirectIOInLob() ;
-      _storageInfo._cacheMergeSize = options->getCacheMergeSize() ;
-      _storageInfo._pageAllocTimeout = options->getPageAllocTimeout() ;
-      _storageInfo._dataIsOK = pmdGetStartup().isOK() ;
-      _storageInfo._curLSNOnStart = pmdGetSyncMgr()->getCompleteLSN() ;
-      // make secret value
-      _storageInfo._secretValue = ossPack32To64( (UINT32)time(NULL),
-                                                 (UINT32)(ossRand()*239641) ) ;
-      _storageInfo._type = type ;
-      _storageInfo._extDataHandler = extDataHandler ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       // Create caches
+      _cacheHolder.createSUCache( DMS_CACHE_TYPE_STAT ) ;
+      _cacheHolder.createSUCache( DMS_CACHE_TYPE_PLAN ) ;
       _eventHolder.setCacheHolder( &_cacheHolder ) ;
 
       PD_TRACE_EXIT ( SDB__DMSSU ) ;
@@ -2060,7 +1998,6 @@ namespace engine
    {
       INT32 rc                     = SDB_OK ;
       BOOLEAN getContext           = FALSE ;
-      monCRUDCB  * savedMonCRUDCB  = NULL ;
       PD_TRACE_ENTRY ( SDB__DMSSU_INSERTRECORD ) ;
       if ( NULL == context )
       {
@@ -2072,11 +2009,8 @@ namespace engine
          getContext = TRUE ;
       }
 
-      // there are cases where caller like rtnUpdate might invoke insertRecord,
-      // we must save the crudCB, otherwise the counters will be lost
       if ( NULL != cb )
       {
-         savedMonCRUDCB = cb->saveMonCRUDCB() ;
          cb->registerMonCRUDCB( &( context->mbStat()->_crudCB ) ) ;
       }
 
@@ -2091,7 +2025,6 @@ namespace engine
       if ( NULL != cb )
       {
          cb->unregisterMonCRUDCB() ;
-         cb->restoreMonCRUDCB( savedMonCRUDCB ) ;
       }
       if ( getContext && context )
       {
@@ -2103,21 +2036,8 @@ namespace engine
       goto done ;
    }
 
-<<<<<<< HEAD
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU_RECYCS, "_dmsStorageUnit::recycleCollectionSpace" )
    INT32 _dmsStorageUnit::recycleCollectionSpace( _pmdEDUCB *cb )
-=======
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU_UPDATERECORDS, "_dmsStorageUnit::updateRecords" )
-   INT32 _dmsStorageUnit::updateRecords ( const CHAR *pName,
-                                          pmdEDUCB *cb,
-                                          SDB_DPSCB *dpscb,
-                                          mthMatchRuntime *matchRuntime,
-                                          mthModifier &modifier,
-                                          SINT64 maxUpdate,
-                                          dmsMBContext *context,
-                                          IDmsOprHandler *opHandler,
-                                          utilUpdateResult *pResult )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
       INT32 rc = SDB_OK ;
 
@@ -2125,7 +2045,6 @@ namespace engine
 
       for ( UINT16 mbID = 0 ; mbID < DMS_MME_SLOTS ; ++mbID )
       {
-<<<<<<< HEAD
          if ( DMS_IS_MB_INUSE ( _pDataSu->_dmsMME->_mbList[ mbID ]._flag ) )
          {
             INT32 tmpRC = SDB_OK ;
@@ -2163,25 +2082,6 @@ namespace engine
             }
 
             _pDataSu->releaseMBContext( mbContext ) ;
-=======
-         _mthRecordGenerator generator ;
-         dmsRecordID recordID ;
-         ossValuePtr recordDataPtr = 0 ;
-         dmsTBScanner tbScanner( _pDataSu, context, matchRuntime,
-                                 DMS_ACCESS_TYPE_UPDATE, maxUpdate,
-                                 0, 0, opHandler ) ;
-         while ( SDB_OK == ( rc = tbScanner.advance( recordID, generator,
-                                                     cb ) ) )
-         {
-            generator.getDataPtr( recordDataPtr ) ;
-            rc = _pDataSu->updateRecord( context, recordID, recordDataPtr, cb,
-                                         dpscb, modifier, NULL,
-                                         tbScanner.callbackHandler(),
-                                         pResult,
-                                         tbScanner.recordInfo() ) ;
-            PD_RC_CHECK( rc, PDERROR, "Update record failed, rc: %d", rc ) ;
-         }
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
          }
       }
@@ -2220,7 +2120,6 @@ namespace engine
       {
          _pDataSu->releaseMBContext( context ) ;
       }
-<<<<<<< HEAD
       PD_TRACE_EXITRC ( SDB__DMSSU_REBUILDINDEXES, rc ) ;
       return rc ;
    error :
@@ -2236,73 +2135,6 @@ namespace engine
                                        dmsIdxTaskStatus *pIdxStatus,
                                        BOOLEAN forceTransCallback,
                                        BOOLEAN addUIDIfNotExist )
-=======
-      PD_TRACE_EXITRC ( SDB__DMSSU_DELETERECORDS, rc ) ;
-      return rc ;
-   error :
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU_RECYCS, "_dmsStorageUnit::recycleCollectionSpace" )
-   INT32 _dmsStorageUnit::recycleCollectionSpace( _pmdEDUCB *cb )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__DMSSU_RECYCS ) ;
-
-      for ( UINT16 mbID = 0 ; mbID < DMS_MME_SLOTS ; ++mbID )
-      {
-         if ( DMS_IS_MB_INUSE ( _pDataSu->_dmsMME->_mbList[ mbID ]._flag ) )
-         {
-            INT32 tmpRC = SDB_OK ;
-
-            dmsMBContext *mbContext = NULL ;
-
-            tmpRC = _pDataSu->getMBContext( &mbContext, mbID,
-                                            DMS_INVALID_CLID, DMS_INVALID_CLID ) ;
-            if ( SDB_OK != tmpRC )
-            {
-               PD_LOG( PDWARNING, "Failed to get metablock context for "
-                       "collection on slot [%u], rc: %d", mbID, tmpRC ) ;
-               continue ;
-            }
-
-            tmpRC = mbContext->mbTryLock( EXCLUSIVE ) ;
-            if ( SDB_OK != tmpRC )
-            {
-               PD_LOG( PDWARNING, "Failed to lock collection on slot [%u], "
-                       "rc: %d", mbID, tmpRC ) ;
-               _pDataSu->releaseMBContext( mbContext ) ;
-               continue ;
-            }
-
-            // drop all indexes with external data
-            // ( text index and global index )
-            tmpRC = _pDataSu->_dropIndexesWithTypes( mbContext, cb,
-                                                     ( IXM_EXTENT_TYPE_TEXT |
-                                                       IXM_EXTENT_TYPE_GLOBAL ) ) ;
-            if ( SDB_OK != tmpRC )
-            {
-               PD_LOG( PDWARNING, "Failed to drop indexes with external data "
-                       "from collection [%s], rc: %d",
-                       mbContext->mb()->_collectionName, tmpRC ) ;
-            }
-
-            _pDataSu->releaseMBContext( mbContext ) ;
-
-         }
-      }
-
-      PD_TRACE_EXITRC( SDB__DMSSU_RECYCS, rc ) ;
-
-      return rc ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU_REBUILDINDEXES, "_dmsStorageUnit::rebuildIndexes" )
-   INT32 _dmsStorageUnit::rebuildIndexes( const CHAR *pName,
-                                          pmdEDUCB * cb,
-                                          dmsMBContext *context )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
       INT32 rc                     = SDB_OK ;
       BOOLEAN getContext           = FALSE ;
@@ -2332,50 +2164,6 @@ namespace engine
          _pDataSu->releaseMBContext( context ) ;
       }
       PD_TRACE_EXITRC ( SDB__DMSSU_CREATEINDEX, rc ) ;
-      return rc ;
-   error :
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU_CREATEINDEX1, "_dmsStorageUnit::createIndex" )
-   INT32 _dmsStorageUnit::createIndex( utilCLUniqueID clUniqID,
-                                       const BSONObj &index,
-                                       pmdEDUCB *cb, SDB_DPSCB *dpscb,
-                                       BOOLEAN isSys, dmsMBContext * context,
-                                       INT32 sortBufferSize,
-                                       utilWriteResult *pResult,
-                                       dmsIdxTaskStatus *pIdxStatus,
-                                       BOOLEAN forceTransCallback,
-                                       BOOLEAN addUIDIfNotExist )
-   {
-      INT32 rc = SDB_OK ;
-      BOOLEAN getContext = FALSE ;
-      PD_TRACE_ENTRY ( SDB__DMSSU_CREATEINDEX1 ) ;
-
-      if ( NULL == context )
-      {
-         rc = _pDataSu->getMBContextByID( &context, clUniqID, -1 ) ;
-         PD_RC_CHECK( rc, PDERROR,
-                      "Get collection[%llu] mb context failed, rc: %d",
-                      clUniqID, rc ) ;
-         getContext = TRUE ;
-      }
-
-      rc = _pIndexSu->createIndex( context, index, cb, dpscb,
-                                   isSys, sortBufferSize,
-                                   pResult, pIdxStatus,
-                                   forceTransCallback, addUIDIfNotExist ) ;
-      if ( rc )
-      {
-         goto error ;
-      }
-
-   done :
-      if ( context && getContext )
-      {
-         _pDataSu->releaseMBContext( context ) ;
-      }
-      PD_TRACE_EXITRC ( SDB__DMSSU_CREATEINDEX1, rc ) ;
       return rc ;
    error :
       goto done ;
@@ -2466,7 +2254,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU_DROPINDEX1, "_dmsStorageUnit::dropIndex" )
-   INT32 _dmsStorageUnit::dropIndex( const CHAR *pName, const OID &indexOID,
+   INT32 _dmsStorageUnit::dropIndex( const CHAR *pName, OID &indexOID,
                                      pmdEDUCB *cb, SDB_DPSCB *dpscb,
                                      BOOLEAN isSys, dmsMBContext *context,
                                      dmsIdxTaskStatus *pIdxStatus,
@@ -2545,11 +2333,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU_DROPINDEX3, "_dmsStorageUnit::dropIndex" )
-<<<<<<< HEAD
    INT32 _dmsStorageUnit::dropIndex( utilCLUniqueID clUniqID, OID &indexOID,
-=======
-   INT32 _dmsStorageUnit::dropIndex( utilCLUniqueID clUniqID, const OID &indexOID,
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                                      pmdEDUCB *cb, SDB_DPSCB *dpscb,
                                      BOOLEAN isSys, dmsMBContext *context,
                                      dmsIdxTaskStatus *pIdxStatus,
@@ -2614,7 +2398,7 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to lock dms mb context[%s], rc: %d",
                       context->toString().c_str(), rc ) ;
       }
-      if ( ( cb->isTransRC() || cb->isTransRS() || cb->isTransRR() ) &&
+      if ( ( cb->isTransRC() || cb->isTransRS() ) &&
            cb->getTransExecutor()->isTransRCCount() )
       {
          // NOTE: actually for RC only
@@ -2982,11 +2766,7 @@ namespace engine
       SDB_ASSERT( NULL != context, "context should be valid" ) ;
 
       // NOTE: if the context is no-trans now, it can ignore transaction lock
-<<<<<<< HEAD
       if ( data()->isTransLockRequired( context ) &&
-=======
-      if ( data()->isTransSupport( context ) &&
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
            NULL != cb &&
            cb->getTransExecutor()->useTransLock() )
       {
@@ -3763,11 +3543,7 @@ namespace engine
                                    statInfo._totalDataFreeSpace ;
       INT64 totalIndexFreeSize   = totalFreeSize( DMS_SU_INDEX ) +
                                    statInfo._totalIndexFreeSpace ;
-<<<<<<< HEAD
       INT64 totalLobFreeSpace    = totalFreeSize( DMS_SU_LOB ) ;
-=======
-      INT64 totalLobFreeSpace     = totalFreeSize( DMS_SU_LOB ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       ossMemset( collectionSpace._name, 0, sizeof(collectionSpace._name) ) ;
       ossStrncpy( collectionSpace._name, CSName(), DMS_COLLECTION_SPACE_NAME_SZ );
@@ -3785,12 +3561,9 @@ namespace engine
       collectionSpace._freeDataSize  = totalDataFreeSize ;
       collectionSpace._totalIndexSize = totalSize( DMS_SU_INDEX ) ;
       collectionSpace._freeIndexSize = totalIndexFreeSize ;
-<<<<<<< HEAD
       collectionSpace._recycleDataSize = statInfo._recycleDataSize ;
       collectionSpace._recycleIndexSize = statInfo._recycleIndexSize ;
       collectionSpace._recycleLobSize = statInfo._recycleLobSize ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       collectionSpace._lobCapacity = totalSize( DMS_SU_LOB ) ;
       collectionSpace._lobMetaCapacity = totalSize( DMS_SU_LOB_META ) ;
@@ -4042,7 +3815,6 @@ namespace engine
          while ( it != _pDataSu->_collectionNameMap.end() )
          {
             mbStat = &_pDataSu->_mbStatInfo[it->second] ;
-<<<<<<< HEAD
 
             if ( dmsIsSysRecycleName( it->first ) )
             {
@@ -4079,32 +3851,6 @@ namespace engine
                statInfo._totalLobAddressing += mbStat->_crudCB._totalLobAddressing ;
             }
 
-=======
-
-            ++statInfo._clNum ;
-            statInfo._totalCount += mbStat->_totalRecords ;
-            statInfo._totalDataPages += mbStat->_totalDataPages ;
-            statInfo._totalIndexPages += mbStat->_totalIndexPages ;
-            statInfo._totalLobPages += mbStat->_totalLobPages ;
-            statInfo._totalDataFreeSpace += mbStat->_totalDataFreeSpace ;
-            statInfo._totalIndexFreeSpace += mbStat->_totalIndexFreeSpace ;
-
-            statInfo._totalLobs += mbStat->_totalLobs ;
-            statInfo._totalValidLobSize += mbStat->_totalValidLobSize ;
-            statInfo._totalLobSize += mbStat->_totalLobSize ;
-
-            statInfo._totalLobGet += mbStat->_crudCB._totalLobGet ;
-            statInfo._totalLobPut += mbStat->_crudCB._totalLobPut ;
-            statInfo._totalLobDelete += mbStat->_crudCB._totalLobDelete ;
-            statInfo._totalLobList += mbStat->_crudCB._totalLobList ;
-            statInfo._totalLobReadSize += mbStat->_crudCB._totalLobReadSize ;
-            statInfo._totalLobWriteSize += mbStat->_crudCB._totalLobWriteSize ;
-            statInfo._totalLobRead += mbStat->_crudCB._totalLobRead ;
-            statInfo._totalLobWrite += mbStat->_crudCB._totalLobWrite ;
-            statInfo._totalLobTruncate += mbStat->_crudCB._totalLobTruncate ;
-            statInfo._totalLobAddressing += mbStat->_crudCB._totalLobAddressing ;
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             ++it ;
          }
       }
@@ -4154,19 +3900,11 @@ namespace engine
          info._compressType = mb->_compressorType ;
          info._dictVersion = mb->_dictVersion ;
 
-<<<<<<< HEAD
          info._totalLobs = mbStat->_totalLobs.fetch() ;
          info._totalUsedLobSpace = (INT64)mbStat->_totalLobPages.fetch() * getLobPageSize() ;
          info._usedLobSpaceRatio = utilPercentage( info._totalUsedLobSpace, lobCapacity ) ;
          info._totalLobSize = mbStat->_totalLobSize.fetch() ;
          info._totalValidLobSize = mbStat->_totalValidLobSize.fetch() ;
-=======
-         info._totalLobs = mbStat->_totalLobs ;
-         info._totalUsedLobSpace = (INT64)mbStat->_totalLobPages * getLobPageSize() ;
-         info._usedLobSpaceRatio = utilPercentage( info._totalUsedLobSpace, lobCapacity ) ;
-         info._totalLobSize = mbStat->_totalLobSize ;
-         info._totalValidLobSize = mbStat->_totalValidLobSize ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          /// Because lob page 0 is unevenly distributed on data nodes, the
          /// _totalValidLobSize may be larger than the _totalUsedLobSpace,
          /// so use _totalLobSize / _totalUsedLobSpace in data nodes.
@@ -4188,7 +3926,6 @@ namespace engine
          info._dataCommitLSN = mb->_commitLSN ;
          info._idxCommitLSN = mb->_idxCommitLSN ;
          info._lobCommitLSN = mb->_lobCommitLSN ;
-         info._maxGlobTransID = mbStat->_maxGlobTransID ;
          info._dataIsValid = mbStat->_commitFlag.peek() ? TRUE : FALSE ;
          info._idxIsValid = mbStat->_idxCommitFlag.peek() ? TRUE : FALSE ;
          info._lobIsValid = mbStat->_lobCommitFlag.peek() ? TRUE : FALSE ;
@@ -4284,7 +4021,6 @@ namespace engine
             indexItem._indexFlag = indexCB.getFlag () ;
             indexItem._scanRID = indexCB.getScanRID() ;
             indexItem._indexLID = indexCB.getLogicalID () ;
-            indexItem._indexCBExtentID = indexCB.getExtentID() ;
             indexItem._version = indexCB.version () ;
             // copy the index def to it's owned buffer
             indexItem._indexDef = indexCB.getDef().copy () ;
@@ -4415,11 +4151,7 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__DMSSU__DUMPRECYCLEINFO_CL ) ;
 
-<<<<<<< HEAD
       dmsMBStatInfo *mbStat = NULL ;
-=======
-      const dmsMBStatInfo *mbStat = NULL ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       PD_CHECK( mbID < DMS_MME_SLOTS, SDB_INVALIDARG, error, PDERROR,
                 "Invalid mbID [%u]", mbID ) ;
@@ -4430,25 +4162,15 @@ namespace engine
       item._pageSize = getPageSize() ;
       item._lobPageSize = getLobPageSize() ;
 
-<<<<<<< HEAD
       item._totalRecords = mbStat->_totalRecords.fetch() ;
       item._totalLobs = mbStat->_totalLobs.fetch() ;
-=======
-      item._totalRecords = mbStat->_totalRecords ;
-      item._totalLobs = mbStat->_totalLobs ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       item._totalDataSize = mbStat->_totalDataPages <<
                                         _pDataSu->pageSizeSquareRoot() ;
       item._totalIndexSize = mbStat->_totalIndexPages <<
                                         _pIndexSu->pageSizeSquareRoot() ;
-<<<<<<< HEAD
       item._totalLobSize = mbStat->_totalLobPages.fetch() *
                                         _pLobSu->getLobdPageSize() ;
-=======
-      item._totalLobSize = mbStat->_totalLobPages <<
-                                        _pLobSu->pageSizeSquareRoot() ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    done:
       PD_TRACE_EXITRC( SDB__DMSSU__DUMPRECYCLEINFO_CL, rc ) ;
@@ -4520,14 +4242,6 @@ namespace engine
       if ( _pDataSu )
       {
          _pDataSu->setSyncDeep( syncDeep ) ;
-      }
-   }
-
-   void _dmsStorageUnit::setMVCCSupport( BOOLEAN mvccSupport )
-   {
-      if ( NULL != _pDataSu )
-      {
-         _pDataSu->setMVCCSupport( mvccSupport ) ;
       }
    }
 
@@ -4653,21 +4367,12 @@ namespace engine
    }
 
    void _dmsStorageUnit::setEventHandlers ( DMS_HANDLER_LIST *handlers )
-<<<<<<< HEAD
    {
       _eventHolder.setHandlers( handlers ) ;
    }
 
    void _dmsStorageUnit::unsetEventHandlers ()
    {
-=======
-   {
-      _eventHolder.setHandlers( handlers ) ;
-   }
-
-   void _dmsStorageUnit::unsetEventHandlers ()
-   {
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       _eventHolder.unsetHandlers() ;
    }
 
@@ -4676,7 +4381,6 @@ namespace engine
       return _cacheHolder.getSUCache( type ) ;
    }
 
-<<<<<<< HEAD
    dmsStatCache *_dmsStorageUnit::getStatCache ()
    {
       return (dmsStatCache *)getSUCache( DMS_CACHE_TYPE_STAT ) ;
@@ -4687,8 +4391,6 @@ namespace engine
       return (dmsCachedPlanMgr *)getSUCache( DMS_CACHE_TYPE_PLAN ) ;
    }
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSU_CLEARMBCRUDCB, "_dmsStorageUnit::clearMBCRUDCB" )
    void _dmsStorageUnit::clearMBCRUDCB ()
    {
@@ -4697,7 +4399,7 @@ namespace engine
       if ( NULL == _pDataSu )
       {
          PD_LOG( PDINFO, "storage data unit for [%s] is empty", CSName() ) ;
-         goto done ;
+         return ;
       }
 
       for ( UINT32 i = 0 ; i < DMS_MME_SLOTS ; i++ )
@@ -4708,7 +4410,6 @@ namespace engine
          }
       }
 
-   done:
       PD_TRACE_EXIT( SDB__DMSSU_CLEARMBCRUDCB ) ;
    }
 

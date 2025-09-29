@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 /*******************************************************************************
 
    Copyright (C) 2011-Present SequoiaDB Ltd.
@@ -31,8 +30,6 @@
    Last Changed =
 
 *******************************************************************************/
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 package com.s3.client.javas3client;
 
 import com.amazonaws.AmazonServiceException;
@@ -313,11 +310,7 @@ public class S3Client {
     }
 
     public void copyObject(String sourceBucket, String sourceObject, String destBucket, String destObject) {
-<<<<<<< HEAD
         logger.info("copyObject enter. destBucket:" + destBucket + ", destObject:" + destObject);
-=======
-        logger.debug("copyObject enter. destBucket:" + destBucket + ", destObject:" + destObject);
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         try {
             CopyObjectRequest request = new CopyObjectRequest(sourceBucket, sourceObject, destBucket, destObject);
             CopyObjectResult result = awsS3.copyObject(request);
@@ -331,11 +324,7 @@ public class S3Client {
         } catch (Exception e) {
             logger.error("status code:" + e.getMessage());
         } finally {
-<<<<<<< HEAD
             logger.info("copyObject exit");
-=======
-            logger.debug("copyObject exit");
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         }
     }
 
@@ -349,10 +338,6 @@ public class S3Client {
             logger.error("error message:" + e.getErrorMessage());
         } catch (Exception e) {
             logger.error("error message:" + e.getMessage());
-<<<<<<< HEAD
-=======
-//            throw e;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         } finally {
             logger.debug("deleteObject exit");
         }

@@ -665,11 +665,7 @@ static void* readThread( const CHAR* bpf2dCtlName, const CHAR* bpd2fCtlName )
          if ( rc )
          {
             ossPrintf( "Open pipe[%s] failed, rc: %d" OSS_NEWLINE,
-<<<<<<< HEAD
                        bpd2fCtlName, rc ) ;
-=======
-                       bpf2dCtlName, rc ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             goto error ;
          }
 
@@ -752,11 +748,7 @@ static void* readThread( const CHAR* bpf2dCtlName, const CHAR* bpd2fCtlName )
          if ( rc )
          {
             ossPrintf( "Open pipe[%s] failed, rc: %d" OSS_NEWLINE,
-<<<<<<< HEAD
                        bpd2fCtlName, rc ) ;
-=======
-                       bpf2dCtlName, rc ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             goto error ;
          }
 

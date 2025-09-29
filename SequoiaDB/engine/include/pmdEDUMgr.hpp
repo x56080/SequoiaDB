@@ -107,8 +107,6 @@ namespace engine
          virtual void      addIOService( IIOService *pIOService ) ;
          virtual void      delIOSerivce( IIOService *pIOService ) ;
 
-         virtual UINT64    getMinRunningLSN();
-
       public:
          INT32             init( IResource *pResource ) ;
          BOOLEAN           reset( INT64 timeout = PMD_STOP_TIMEOUT ) ;
@@ -259,11 +257,7 @@ namespace engine
 
       private:
          VEC_IOSERVICE              _vecIOServices ;
-<<<<<<< HEAD
          ossSpinSLatchPOSIX         _latch ;
-=======
-         ossSpinSLatch              _latch ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
          EDUID                      _EDUIDBase ;
 

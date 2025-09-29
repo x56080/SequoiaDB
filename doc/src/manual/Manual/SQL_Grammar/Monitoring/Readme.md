@@ -45,10 +45,7 @@
 | [$LIST_CS][LIST_CS] | [SDB_LIST_COLLECTIONSPACES][SDB_LIST_COLLECTIONSPACES] | 集合空间列表 | 集合空间列表列出当前数据库节点或集群中所有集合空间（编目集合空间除外） |
 | [$LIST_SU][LIST_SU] | [SDB_LIST_STORAGEUNITS][SDB_LIST_STORAGEUNITS]  | 存储单元列表 | 存储单元列表列出当前数据库节点的全部存储单元信息 |
 | [$LIST_GROUP][LIST_GROUP]  | [SDB_LIST_GROUPS][SDB_LIST_GROUPS] | 复制组列表 | 复制组列表列出当前集群中的所有数据分区信息 |
-<<<<<<< HEAD
 | [$LIST_GROUPMODES][LIST_GROUPMODES]  | [SDB_LIST_GROUPMODES][SDB_LIST_GROUPMODES] | 复制组运行模式列表 | 复制组运行模式列表列出当前集群中的所有复制组的运行模式 |
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 | [$LIST_TRANS][LIST_TRANS] | [SDB_LIST_TRANSACTIONS][SDB_LIST_TRANSACTIONS] | 事务列表 | 事务列表列出数据库中正在进行的事务信息 |
 | [$LIST_TRANS_CUR][LIST_TRANS_CUR] | [SDB_LIST_TRANSACTIONS_CURRENT][SDB_LIST_TRANSACTIONS_CURRENT] | 当前事务列表 | 当前事务列表列出当前会话正在进行的事务信息 |
 | [$LIST_SEQUENCES][LIST_SEQUENCES]  | [SDB_LIST_SEQUENCES][SDB_LIST_SEQUENCES] | 序列列表 | 序列列表列出当前数据库中所有的序列信息 |
@@ -253,11 +250,8 @@ SdbSnapshotOption[.cond(<cond>)]
 [SDB_LIST_STORAGEUNITS]:manual/Manual/List/SDB_LIST_STORAGEUNITS.md
 [LIST_GROUP]:manual/Manual/SQL_Grammar/Monitoring/LIST_GROUP.md
 [SDB_LIST_GROUPS]:manual/Manual/List/SDB_LIST_GROUPS.md
-<<<<<<< HEAD
 [LIST_GROUPMODES]:manual/Manual/SQL_Grammar/Monitoring/LIST_GROUPMODES.md
 [SDB_LIST_GROUPMODES]:manual/Manual/List/SDB_LIST_GROUPMODES.md
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 [LIST_TRANS]:manual/Manual/SQL_Grammar/Monitoring/LIST_TRANS.md
 [SDB_LIST_TRANSACTIONS]:manual/Manual/List/SDB_LIST_TRANSACTIONS.md
 [LIST_TRANS_CUR]:manual/Manual/SQL_Grammar/Monitoring/LIST_TRANS_CUR.md

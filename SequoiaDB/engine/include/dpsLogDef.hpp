@@ -58,9 +58,6 @@ namespace engine
          version = DPS_INVALID_LSN_VERSION ;
       }
 
-      explicit DPS_LSN(DPS_LSN_OFFSET o, DPS_LSN_VER v):
-      offset(o), version(v){}
-
       DPS_LSN( const DPS_LSN &lsn )
       {
          offset = lsn.offset ;
@@ -74,26 +71,10 @@ namespace engine
          return *this ;
       }
 
-      BOOLEAN operator==( const DPS_LSN &lsn ) const
-      {
-         return offset == lsn.offset && version == lsn.version ;
-      }
-
-      BOOLEAN operator!=( const DPS_LSN &lsn ) const
-      {
-         return offset != lsn.offset || version != lsn.version ;
-      }
-
       BOOLEAN invalid() const
       {
          return ( DPS_INVALID_LSN_OFFSET == offset ) ||
                 ( DPS_INVALID_LSN_VERSION == version ) ;
-      }
-
-      OSS_INLINE BOOLEAN isValid() const
-      {
-         return DPS_INVALID_LSN_OFFSET != offset &&
-                DPS_INVALID_LSN_VERSION != version ;
       }
 
       void set( DPS_LSN_OFFSET offset, DPS_LSN_VER  version )
@@ -209,51 +190,6 @@ namespace engine
          return rc ;
       }
    } ;
-
-   /*
-      _dpsLogSummary define
-    */
-   // log summary for previous log files including transaction information
-   // for restore PIT (point-in-time) window
-   typedef struct _dpsLogSummary
-   {
-      _dpsLogSummary()
-      : _minRecoverableTime( DPS_INVALID_TRANS_TIME ),
-        _maxTransCommitTime( DPS_INVALID_TRANS_TIME ),
-        _restorePointTime( DPS_INVALID_TRANS_TIME )
-      {
-      }
-
-      _dpsLogSummary( const _dpsLogSummary &summary )
-      : _minRecoverableTime( summary._minRecoverableTime ),
-        _maxTransCommitTime( summary._maxTransCommitTime ),
-        _restorePointTime( summary._restorePointTime )
-      {
-      }
-
-      _dpsLogSummary &operator =( const _dpsLogSummary &summary )
-      {
-         _minRecoverableTime = summary._minRecoverableTime ;
-         _maxTransCommitTime = summary._maxTransCommitTime ;
-         _restorePointTime = summary._restorePointTime ;
-         return ( *this ) ;
-      }
-
-      void reset()
-      {
-         _minRecoverableTime = DPS_INVALID_TRANS_TIME ;
-         _maxTransCommitTime = DPS_INVALID_TRANS_TIME ;
-      }
-
-      // minimum recoverable time
-      UINT64   _minRecoverableTime ;
-      // maximum transaction commit time
-      UINT64   _maxTransCommitTime ;
-      // time of restore point (either backup time of image used in the most
-      // recent sdbrestore or the time of the latest restorePrepare)
-      UINT64   _restorePointTime ;
-   } dpsLogSummary ;
-
 }
 
 #endif

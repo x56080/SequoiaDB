@@ -43,8 +43,7 @@
 #include "../bson/bson.h"
 #include "pd.hpp"
 #include <string>
-#include "vessel/slice.h"
-
+#include <vector>
 using namespace bson ;
 using namespace std ;
 namespace engine
@@ -139,8 +138,6 @@ namespace engine
       {
          return *_keyData != IsBSON ;
       }
-      
-      UINT32 getFieldCount()const;
    } ;
    typedef class _ixmKey ixmKey ;
 
@@ -155,7 +152,6 @@ namespace engine
       _ixmKeyOwned ( const _ixmKey &r ) ;
       // make empty key
       _ixmKeyOwned () {_keyData = NULL; }
-
    private:
       StackBufBuilder _b ;
       // create standard BSON object as key

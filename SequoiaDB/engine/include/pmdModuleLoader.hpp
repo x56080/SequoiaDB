@@ -36,9 +36,9 @@
 #ifndef _SDB_MODULE_LOADER_HPP_
 #define _SDB_MODULE_LOADER_HPP_
 
-#include "ossTypes.h"
 #include "oss.hpp"
 #include "ossDynamicLoad.hpp"
+#include "ossTypes.h"
 #include "pmdAccessProtocolBase.hpp"
 
 #define OSS_FAP_CREATE  ( IPmdAccessProtocol*(*)() )

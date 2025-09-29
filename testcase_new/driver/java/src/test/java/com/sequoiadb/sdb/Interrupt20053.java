@@ -50,8 +50,7 @@ public class Interrupt20053 extends SdbTestBase {
         cl.insert( insertor );
     }
 
-    // 问题单SEQUOIADBMAINSTREAM-8175，屏蔽该用例
-    @Test(enabled = false)
+    @Test
     public void test() {
         DBCursor cursor = cl.query();
 

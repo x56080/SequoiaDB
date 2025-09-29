@@ -57,14 +57,8 @@ public class SubCL10186 extends SdbTestBase {
     @AfterClass
     public void tearDown() {
         try {
-<<<<<<< HEAD
             MetaDataUtils.clearCL( sdb, csName, clName );
             MetaDataUtils.clearCS( sdb, csName );
-=======
-            if ( sdb.isCollectionSpaceExist( csName ) ) {
-                sdb.dropCollectionSpace( csName );
-            }
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         } finally {
             if ( sdb != null ) {
                 sdb.close();

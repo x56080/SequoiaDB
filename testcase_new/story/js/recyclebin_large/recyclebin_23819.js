@@ -2,11 +2,7 @@
  * @Description   : seqDB-23819:truncate后修改CL压缩属性，恢复truncate
  * @Author        : liuli
  * @CreateTime    : 2021.04.20
-<<<<<<< HEAD
  * @LastEditTime  : 2023.08.14
-=======
- * @LastEditTime  : 2022.08.18
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
  * @LastEditors   : liuli
  ******************************************************************************/
 testConf.skipStandAlone = true;
@@ -47,10 +43,7 @@ function test ()
 
    // 强制恢复truncate项目，检查结果正确性
    db.getRecycleBin().returnItem( recycleName, { Enforced: true } );
-<<<<<<< HEAD
    commCheckLSN( db );
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    checkLzwAttributeByDataNode( rgName, csName, clName );
    checkRecsByDataNode( csName, clName, number1, insertRecsNum, checkRecsNum );
 
@@ -66,10 +59,7 @@ function test ()
    } );
    // 强制恢复truncate项目，检查结果正确性
    db.getRecycleBin().returnItem( recycleName, { Enforced: true } );
-<<<<<<< HEAD
    commCheckLSN( db );
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    checkLzwAttributeByDataNode( rgName, csName, clName );
    checkRecsByDataNode( csName, clName, number1, insertRecsNum, checkRecsNum );
 
@@ -85,10 +75,7 @@ function test ()
    } );
    // 强制恢复truncate项目，检查结果正确性
    db.getRecycleBin().returnItem( recycleName, { Enforced: true } );
-<<<<<<< HEAD
    commCheckLSN( db );
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    checkLzwAttributeByDataNode( rgName, csName, clName );
    checkRecsByDataNode( csName, clName, number1, insertRecsNum, checkRecsNum );
 

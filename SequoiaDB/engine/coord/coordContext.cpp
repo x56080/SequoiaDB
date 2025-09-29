@@ -905,13 +905,10 @@ namespace engine
 
          if ( pSubContext != NULL )
          {
-<<<<<<< HEAD
             if ( setInvalidContext )
             {
                pSubContext->setContextID( -1 ) ;
             }
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             _releaseSubContext( pSubContext ) ;
          }
          _prepareContextMap.erase ( iter ) ;

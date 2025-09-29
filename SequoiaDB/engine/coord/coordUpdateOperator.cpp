@@ -48,10 +48,7 @@
 #include "coordTrace.hpp"
 #include "ossUtil.hpp"
 #include "pdSecure.hpp"
-<<<<<<< HEAD
 #include "auth.hpp"
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 using namespace bson;
 
@@ -148,11 +145,8 @@ namespace engine
       BSONObj boHint ;
       BSONObj boUpdator ;
 
-<<<<<<< HEAD
       UINT32 upsertRetryTime           = 0 ;
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       rc = msgExtractUpdate( (const CHAR*)pMsg, &flag, &pCollectionName,
                              &pSelector, &pUpdator, &pHint ) ;
       if ( rc )
@@ -199,7 +193,6 @@ namespace engine
          }
 
          options.setUpdator( boUpdator ) ;
-         options.setWriteOp( TRUE ) ;
 
          // add last op info
          MON_SAVE_OP_OPTION( cb->getMonAppCB(), pMsg, options ) ;
@@ -377,7 +370,6 @@ namespace engine
             strictDataMode = TRUE ;
          }
          rc = _upsert( pCollectionName, boSelector, boUpdator, boHint,
-<<<<<<< HEAD
                        strictDataMode, cb, contextID, buf, clientVer, needRetry ) ;
          if ( SDB_IXM_DUP_KEY == rc )
          {
@@ -392,10 +384,6 @@ namespace engine
             goto error ;
          }
          else if ( SDB_OK != rc )
-=======
-                       strictDataMode, cb, contextID, buf, clientVer ) ;
-         if ( rc )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          {
             goto error ;
          }
@@ -459,12 +447,8 @@ namespace engine
                                         pmdEDUCB *cb,
                                         INT64 &contextID,
                                         rtnContextBuf *buf,
-<<<<<<< HEAD
                                         INT32 clientVer,
                                         BOOLEAN &needRetry )
-=======
-                                        INT32 clientVer )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
       INT32 rc = SDB_OK ;
 
@@ -553,7 +537,6 @@ namespace engine
                PD_LOG( PDWARNING, "Insert record[%s] failed because of "
                        "the record is already exist when upsert",
                        PD_SECURE_OBJ( target ) ) ;
-<<<<<<< HEAD
                
                BSONObj resultObj = insertOpr.getResultObj() ;
                if ( !source.isEmpty() && !resultObj.isEmpty() )
@@ -577,8 +560,6 @@ namespace engine
 
                   rc = SDB_IXM_DUP_KEY ;
                }
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             }
             else
             {

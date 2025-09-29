@@ -1218,7 +1218,6 @@ namespace engine
       }
 
       len = ossSnprintf( pBuff, buffLen,
-<<<<<<< HEAD
                          "         Max Size : %llu" OSS_NEWLINE
                          "      Cur OOLSize : %llu" OSS_NEWLINE
                          "      Max OOLSize : %llu" OSS_NEWLINE
@@ -1229,11 +1228,6 @@ namespace engine
                          "        Free Size : %llu" OSS_NEWLINE
                          "   Alloc Threshold: %u" OSS_NEWLINE
                          "      Shrink Type : %s" OSS_NEWLINE,
-=======
-                         "      Max Size : %llu" OSS_NEWLINE
-                         "    Total Size : %llu" OSS_NEWLINE
-                         "Alloc Threshold: %u" OSS_NEWLINE,
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                          _maxSize,
                          curOOLSize,
                          maxOOLSize,
@@ -1261,21 +1255,12 @@ namespace engine
       len += ossSnprintf( pBuff + len, buffLen - len,
                           OSS_NEWLINE
                           "Pool Memory Stat" OSS_NEWLINE
-<<<<<<< HEAD
                           "    Acquire Times : %llu (Inc: %lld )" OSS_NEWLINE
                           "    Release Times : %llu (Inc: %lld )" OSS_NEWLINE
                           "        OOM Times : %llu (Inc: %lld )" OSS_NEWLINE
                           "        OOL Times : %llu (Inc: %lld )" OSS_NEWLINE
                           "        OOR Times : %llu (Inc: %lld )" OSS_NEWLINE
                           "      Shrink Size : %llu (Inc: %lld )" OSS_NEWLINE,
-=======
-                          " Acquire Times : %llu (Inc: %lld )" OSS_NEWLINE
-                          " Release Times : %llu (Inc: %lld )" OSS_NEWLINE
-                          "     OOM Times : %llu (Inc: %lld )" OSS_NEWLINE
-                          "     OOL Times : %llu (Inc: %lld )" OSS_NEWLINE
-                          "     OOR Times : %llu (Inc: %lld )" OSS_NEWLINE
-                          "   Shrink Size : %llu (Inc: %lld )" OSS_NEWLINE,
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                           acquireTimes,
                           acquireTimes - _acquireTimes,
                           releaseTimes,

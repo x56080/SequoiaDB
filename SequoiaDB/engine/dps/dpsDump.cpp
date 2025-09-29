@@ -99,12 +99,6 @@ namespace engine
          len += ossSnprintf ( outBuf + len, outSize - len,
                               " LogID  : %d" OSS_NEWLINE,
                               logHead->_logID ) ;
-         len += ossSnprintf( outBuf + len, outSize - len,
-                             " MinRecoverableTime : %llu" OSS_NEWLINE,
-                             logHead->_summary._minRecoverableTime ) ;
-         len += ossSnprintf( outBuf + len, outSize - len,
-                             " MaxTransCommitTime : %llu" OSS_NEWLINE,
-                             logHead->_summary._maxTransCommitTime ) ;
       }
 
    exit :

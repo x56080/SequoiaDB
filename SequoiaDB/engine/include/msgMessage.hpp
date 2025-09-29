@@ -172,7 +172,6 @@ OSS_INLINE BOOLEAN msgIsInsertFlagValid( INT32 flags )
    // Only one action for index duplication can be specified.
    INT32 dupFlag = flags & ( FLG_INSERT_CONTONDUP |
                              FLG_INSERT_REPLACEONDUP |
-<<<<<<< HEAD
                              FLG_INSERT_UPDATEONDUP |
                              FLG_INSERT_CONTONDUP_ID |
                              FLG_INSERT_REPLACEONDUP_ID ) ;
@@ -182,13 +181,6 @@ OSS_INLINE BOOLEAN msgIsInsertFlagValid( INT32 flags )
         ( FLG_INSERT_UPDATEONDUP != dupFlag ) &&
         ( FLG_INSERT_CONTONDUP_ID != dupFlag ) &&
         ( FLG_INSERT_REPLACEONDUP_ID != dupFlag ) )
-=======
-                             FLG_INSERT_UPDATEONDUP ) ;
-   if ( ( 0 != dupFlag ) &&
-        ( FLG_INSERT_CONTONDUP != dupFlag ) &&
-        ( FLG_INSERT_REPLACEONDUP != dupFlag ) &&
-        ( FLG_INSERT_UPDATEONDUP != dupFlag ) )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
       result = FALSE ;
    }
@@ -292,21 +284,11 @@ INT32 msgExtractQuery  ( const CHAR *pBuffer, INT32 *pflag,
 INT32 msgBuildGetMoreMsg ( CHAR **ppBuffer, INT32 *bufferSize,
                            SINT32 numToReturn,
                            SINT64 contextID, UINT64 reqID,
-<<<<<<< HEAD
                            engine::IExecutor *cb = NULL ) ;
 
 INT32 msgExtractGetMore  ( const CHAR *pBuffer,
                            SINT32 *numToReturn,
                            SINT64 *contextID ) ;
-=======
-                           engine::IExecutor *cb = NULL,
-                           const BSONObj *pHint = NULL ) ;
-
-INT32 msgExtractGetMore  ( const CHAR *pBuffer,
-                           SINT32 *numToReturn,
-                           SINT64 *contextID,
-                           const CHAR **ppHint = NULL ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 void  msgFillGetMoreMsg ( MsgOpGetMore &getMoreMsg, const UINT32 tid,
                           const SINT64 contextID, const SINT32 numToReturn,

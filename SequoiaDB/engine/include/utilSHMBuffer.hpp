@@ -188,7 +188,7 @@ protected:
 #if defined (_LINUX)
       _shmKey = ossAtoi( _shmKeyString.c_str() ) ;
 #elif defined (_WINDOWS)
-      _shmKey = (ossSHMKey)( _shmKeyString.c_str() ) ;
+      _shmKey = _shmKeyString.c_str() ;
 #endif
       _size = size ;
 

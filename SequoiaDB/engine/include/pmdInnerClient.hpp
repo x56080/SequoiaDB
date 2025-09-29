@@ -126,19 +126,6 @@ namespace engine
             return _roleID ;
          }
 
-<<<<<<< HEAD
-=======
-         virtual INT32 checkPrivilege( const MsgHeader *msg )
-         {
-            return SDB_OK ;
-         }
-
-         virtual INT32 checkCmdPrivilege( const CHAR *cmdName )
-         {
-            return SDB_OK ;
-         }
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    public:
       _netRouteAgent*      getNetAgent() { return _pRTAgent ; }
 

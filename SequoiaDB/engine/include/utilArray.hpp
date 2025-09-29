@@ -150,23 +150,6 @@ namespace engine
          goto done ;
       }
 
-<<<<<<< HEAD
-=======
-      OSS_INLINE BOOLEAN popBack(T *t = NULL)
-      {
-         if (!empty())
-         {
-            --_eleSize;
-            if (NULL != t)
-            {
-               *t = _dynamicBuf[_eleSize];
-            }
-            return TRUE;
-         }
-         return FALSE;
-      }
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       INT32 resize( UINT32 size, BOOLEAN copyData = TRUE )
       {
          INT32 rc = SDB_OK ;

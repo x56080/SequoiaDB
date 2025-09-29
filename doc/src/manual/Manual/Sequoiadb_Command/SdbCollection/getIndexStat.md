@@ -25,11 +25,7 @@ SdbCollection
     是否获取索引的详细信息，默认值为 false，表示不获取
 
     - 详细信息将返回索引的频繁数值集合（Most Common Values，MCV）统计信息
-<<<<<<< HEAD
     - 仅在 SequoiaDB v3.6.1 及以上版本中生效
-=======
-    - 仅在 SequoiaDB v5.0.4 及以上版本中生效
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 ##返回值##
 
@@ -91,16 +87,9 @@ v3.4.2 及以上版本
 
 [^_^]:
     本文使用的引用及链接
-<<<<<<< HEAD
 [INDEXSTATS]:manual/Manual/Snapshot/SDB_SNAP_INDEXSTATS.md
-=======
-[SDB_SNAP_INDEXSTATS]:manual/Manual/Snapshot/SDB_SNAP_INDEXSTATS.md
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 [analyze]:manual/Manual/Sequoiadb_Command/Sdb/analyze.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [faq]:manual/FAQ/faq_sdb.md
-<<<<<<< HEAD
 [SDB_SNAP_INDEXSTATS]:manual/Manual/Snapshot/SDB_SNAP_INDEXSTATS.md
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2

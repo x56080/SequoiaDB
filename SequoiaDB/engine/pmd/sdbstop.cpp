@@ -319,7 +319,7 @@ namespace engine
 
       // list all nodes
       utilListNodes( listNodes, typeFilter, NULL, OSS_INVALID_PID,
-                     roleFilter, FALSE, FALSE ) ;
+                     roleFilter ) ;
 
       itrNode = listNodes.begin() ;
       while( itrNode != listNodes.end() )
@@ -327,8 +327,7 @@ namespace engine
          utilNodeInfo &info = *itrNode ;
 
          // can't stop oma
-         if ( SDB_TYPE_OMA == info._type ||
-              SDB_TYPE_STP == info._type )
+         if ( SDB_TYPE_OMA == info._type )
          {
             itrNode = listNodes.erase( itrNode ) ;
             continue ;

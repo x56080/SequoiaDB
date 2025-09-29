@@ -75,10 +75,7 @@ Sdb 类主要用于连接和操作 SequoiaDB 巨杉数据库，包含的函数�
 | [transRollback()][transRollback] | 事务回滚 |
 | [updateConf()][updateConf] | 更新节点配置 |
 | [waitTasks()][waitTasks] | 同步等待指定任务结束或取消 |
-<<<<<<< HEAD
 | [memTrim()][memTrim] | 空闲内存回收 |
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 [^_^]:
      本文使用的所有引用及链接
@@ -154,9 +151,5 @@ Sdb 类主要用于连接和操作 SequoiaDB 巨杉数据库，包含的函数�
 [transCommit]:manual/Manual/Sequoiadb_Command/Sdb/transCommit.md
 [transRollback]:manual/Manual/Sequoiadb_Command/Sdb/transRollback.md
 [updateConf]:manual/Manual/Sequoiadb_Command/Sdb/updateConf.md
-<<<<<<< HEAD
 [waitTasks]:manual/Manual/Sequoiadb_Command/Sdb/waitTasks.md
 [memTrim]:manual/Manual/Sequoiadb_Command/Sdb/memTrim.md
-=======
-[waitTasks]:manual/Manual/Sequoiadb_Command/Sdb/waitTasks.md
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2

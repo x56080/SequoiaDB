@@ -36,7 +36,6 @@
 *******************************************************************************/
 #include "rtnIXScanner.hpp"
 #include "dmsStorageUnit.hpp"
-#include "optAccessPlanRuntime.hpp"
 
 using namespace bson ;
 
@@ -48,7 +47,6 @@ namespace engine
       _rtnScannerSharedInfo define
    */
    _rtnScannerSharedInfo::_rtnScannerSharedInfo()
-   : _setDuplicate ( )
    {
    }
 
@@ -92,17 +90,13 @@ namespace engine
       _rtnIXScanner implement
    */
    _rtnIXScanner::_rtnIXScanner( ixmIndexCB *pIndexCB,
-                                 optAccessPlanRuntime * planRuntime,
+                                 rtnPredicateList *predList,
                                  _dmsStorageUnit *su,
                                  _dmsMBContext *mbContext,
                                  BOOLEAN isAsync,
                                  _pmdEDUCB *cb,
                                  BOOLEAN indexCBOwned )
-<<<<<<< HEAD
    :_rtnScanner( su, mbContext, predList->getDirection(), isAsync, cb ),
-=======
-   :_direction( planRuntime->getPredList()->getDirection() ),
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     _indexLID( pIndexCB->getLogicalID() ),
     _indexCBExtent( pIndexCB->getExtentID() ),
     _order( Ordering::make( pIndexCB->keyPattern() ) ),
@@ -110,18 +104,8 @@ namespace engine
    {
       _indexCB = NULL ;
       _owned = FALSE ;
-<<<<<<< HEAD
       _pPredList = predList ;
       _isReadonly = TRUE ;
-=======
-      _planRuntime = planRuntime;
-      _pPredList = planRuntime->getPredList() ;
-      _su = su ;
-      _cb = cb ;
-      _isReadonly = TRUE ;
-      _eof = FALSE ;
-      _transIsolation = cb->getTransExecutor()->getTransIsolation() ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       _indexCover = FALSE ;
 
       /// set shared info pointer
@@ -202,22 +186,6 @@ namespace engine
          return _pInfo->remove( rid ) ;
       }
       return FALSE ;
-   }
-
-   INT64 _rtnIXScanner::getExpReturn () const
-   {
-      INT64 expReturn = 0 ;
-      if ( _planRuntime )
-      {
-         double score = _planRuntime->getPlan()->getScore();
-         INT64 numRecord = _planRuntime->getPlan()->getInputRecords();
-         expReturn = score * numRecord ;
-#ifdef _DEBUG
-         PD_LOG( PDDEBUG, "Plan score=%f, numRecord=%lld, expectReturn=%lld",
-                 score, numRecord, expReturn ) ;
-#endif
-      }
-      return expReturn ;
    }
 
    dmsExtentID _rtnIXScanner::getIdxLID() const

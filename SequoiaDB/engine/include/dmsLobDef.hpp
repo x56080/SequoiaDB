@@ -320,29 +320,6 @@ namespace engine
       bson::OID _oid ;
    } ;
    typedef struct _dmsLobInfoOnPage dmsLobInfoOnPage ;
-
-   constexpr UINT32 MAX_LOB_CHUNK_SIZE = 4 << 20;
-
-   struct dmsLobChunkProfile
-   {
-      static constexpr UINT32 FLAG_ABNORMAL = 0x01;
-
-      void setAbnormal()
-      {
-         OSS_BIT_SET(flags, FLAG_ABNORMAL);
-      }
-
-      UINT32 chunkSize = 0;
-      UINT32 chainSize = 0;
-      UINT32 flags = 0;
-   };//struct lobChunkProfile
-
-   struct dmsLobChunkInfo
-   {
-      bson::OID oid;
-      UINT32 chunkId = 0;
-      dmsLobChunkProfile profile;
-   };//
 }
 
 #endif // DMS_LOBDEF_HPP_

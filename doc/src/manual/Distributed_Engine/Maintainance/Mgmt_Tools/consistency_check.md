@@ -268,7 +268,7 @@ sdbinspect [--coord | -d arg] [--output | -o arg] [--collectionspace | -c arg] [
          Node ServiceName : 13910
          Node State       : Normal
      
-       # Node state 1 means node has the record, or 0 means not, and x means node invalid
+       # Node state 1 means node has the record, or 0 means not, and x means node invliad
        # The order is ascended by node index.
          There is [1] piece of records that haven't been synchronized.
      

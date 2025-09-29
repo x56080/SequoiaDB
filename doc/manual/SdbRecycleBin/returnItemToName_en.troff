@@ -91,11 +91,7 @@ getLastError() to get the error code.
 For more details, refer to Troubleshooting.
 .SH VERSION
 .PP
-<<<<<<< HEAD
 v3.6 and above
-=======
-v5.0.3 and above
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 .SH EXAMPLES
 .IP "1." 3
 List currently existing recycle bin items.
@@ -109,13 +105,7 @@ List currently existing recycle bin items.
   "OriginID": 21474836481,
   "Type": "Collection",
   "OpType": "Drop",
-<<<<<<< HEAD
   "RecycleTime": "2022\-01\-24\-12.04.12.000000"
-=======
-  "RecycleTime": {
-    "$timestamp": "2022\-01\-24\-12.04.12.000000"
-  }
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 }
 \f[]
 .fi
@@ -123,7 +113,6 @@ List currently existing recycle bin items.
 .IP "2." 3
 Return recycle bin item named "SYSRECYCLE_9_21474836481", and rename the
 restored collection to "test".
-<<<<<<< HEAD
 .nf
 \f[C]
 > db.getRecycleBin().returnItemToName( "SYSRECYCLE_9_21474836481", "sample.test" )
@@ -132,10 +121,4 @@ restored collection to "test".
 }
 \f[]
 .fi
-=======
-.RS 4
-.PP
-```lang\-javascript > db.getRecycleBin().returnItemToName(
-"SYSRECYCLE_9_21474836481", "sample.test" ) { "ReturnName": "sample.test" }
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 .RE

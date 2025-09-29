@@ -378,7 +378,6 @@ namespace engine
 
          OSS_INLINE BOOLEAN         isValid() const ;
          OSS_INLINE UINT32          lockIdHash() const ;
-         OSS_INLINE UINT32          hash() const {return lockIdHash();}
          OSS_INLINE BOOLEAN         isLeafLevel() const ;
          OSS_INLINE BOOLEAN         isRootLevel() const ;
          OSS_INLINE BOOLEAN         isSupportEscalation() const ;

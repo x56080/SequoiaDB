@@ -264,10 +264,7 @@ public class GetConnectionTest7565_7603 extends DataSourceTestBase {
             }
         }
         // 修改连接池配置，调整maxCount=100、checkInterval=100
-<<<<<<< HEAD
         int usedConnNum = datasource.getUsedConnNum();
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         option.setCheckInterval( 100 );
         option.setMaxCount( oldPoolSize - 100 );
         datasource.updateDatasourceOptions( option );
@@ -278,11 +275,7 @@ public class GetConnectionTest7565_7603 extends DataSourceTestBase {
             Sequoiadb db = dbs.get( k );
             Assert.assertTrue( db.isValid() );
         }
-<<<<<<< HEAD
         Assert.assertEquals( datasource.getUsedConnNum(), usedConnNum );
-=======
-        Assert.assertEquals( datasource.getUsedConnNum(), oldPoolSize );
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
         // 检查是否可以再分配连接，预期报错
         try {
@@ -297,18 +290,11 @@ public class GetConnectionTest7565_7603 extends DataSourceTestBase {
         }
         // 申请一个连接，验证当前连接池统计连接正确性
         datasource.getConnection();
-<<<<<<< HEAD
         Assert.assertTrue( usedConnNum - 109 + 1 <= datasource.getIdleConnNum()
                 + datasource.getUsedConnNum() );
         // 释放剩余91个连接，剩余1个
 
         for ( int k = 109; k < usedConnNum; ++k ) {
-=======
-        Assert.assertTrue( oldPoolSize - 109 + 1 <= datasource.getIdleConnNum()
-                + datasource.getUsedConnNum() );
-        // 释放剩余91个连接，剩余1个
-        for ( int k = 109; k < dbs.size(); ++k ) {
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             datasource.releaseConnection( dbs.get( k ) );
         }
         Assert.assertEquals( dbs.size(), oldPoolSize );
@@ -465,15 +451,11 @@ public class GetConnectionTest7565_7603 extends DataSourceTestBase {
             Sequoiadb sdb = datasource.getConnection();
             Assert.assertEquals( sdb.isValid(), true,
                     "getConnection is inValid" );
-<<<<<<< HEAD
             int localAddrNum = datasource.getLocalAddrNum();
             if ( localAddrNum != 1 && localAddrNum != 2 ) {
                 Assert.fail( "getLocalAddrNum is not 1 or 2, getLocalAddrNum : "
                         + localAddrNum );
             }
-=======
-            Assert.assertEquals( datasource.getLocalAddrNum(), 2 );
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
             for ( int i = 0; i < 10; ++i ) {
                 sdb = datasource.getConnection();

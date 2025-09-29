@@ -105,12 +105,8 @@ namespace engine
                            pmdEDUCB *cb,
                            INT64 &contextID,
                            rtnContextBuf *buf,
-<<<<<<< HEAD
                            INT32 clientVer,
                            BOOLEAN &needRetry ) ;
-=======
-                           INT32 clientVer ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
          void     _clearBlock( pmdEDUCB *cb ) ;
 

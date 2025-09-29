@@ -725,14 +725,6 @@ namespace engine
          sigSet.sigDel ( SIGHUP ) ;
       }
 
-      if ( tcgetpgrp( STDOUT_FILENO ) != getpgrp() )
-      {
-         // It means that the program is started in the backgroup.
-         // We need to ignore the SIGHUP signal.
-         signal( SIGHUP, SIG_IGN ) ;
-         sigSet.sigDel ( SIGHUP ) ;
-      }
-
       if ( pDelSig )
       {
          UINT32 i = 0 ;
@@ -909,7 +901,6 @@ namespace engine
       return FALSE ;
    }
 
-<<<<<<< HEAD
    OSS_THREAD_LOCAL IExecutor * __executor = NULL ;
 
    IExecutor *sdbGetThreadExecutor()
@@ -917,26 +908,6 @@ namespace engine
       return __executor ;
    }
 
-=======
-   void pmdRenameProcess( INT32 argc, CHAR **argv, const CHAR *serviceName )
-   {
-#if defined (_LINUX)
-      CHAR processName[ OSS_RENAME_PROCESS_BUFFER_LEN + 1 ] = { 0 } ;
-      ossSnprintf( processName, OSS_RENAME_PROCESS_BUFFER_LEN, "%s(%s)",
-                   utilDBTypeStr( pmdGetDBType() ), serviceName ) ;
-      ossEnableNameChanges( argc, argv ) ;
-      ossRenameProcess( processName ) ;
-#endif // _LINUX
-   }
-
-   OSS_THREAD_LOCAL IExecutor * __executor = NULL ;
-
-   IExecutor *sdbGetThreadExecutor()
-   {
-      return __executor ;
-   }
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    INT64 pmdGetSysPageSize()
    {
       return pmdGetSysInfo()->_sysPageSize ;

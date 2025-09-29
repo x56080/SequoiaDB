@@ -35,7 +35,6 @@
 
 *******************************************************************************/
 #include "clsRemoteOperator.hpp"
-#include "clsBase.hpp"
 #include "pmdProcessor.hpp"
 #include "ossUtil.hpp"
 #include "dpsUtil.hpp"
@@ -511,7 +510,6 @@ namespace engine
       goto done ;
    }
 
-<<<<<<< HEAD
    INT32 _clsRemoteOperator::stopCriticalMode( const UINT32 &groupID )
    {
       INT32 rc = SDB_OK ;
@@ -618,8 +616,6 @@ namespace engine
    }
 
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    UINT64 _clsRemoteOperator::getSucCount()
    {
       return _sucCount ;

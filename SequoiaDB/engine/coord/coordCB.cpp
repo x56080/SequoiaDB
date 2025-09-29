@@ -38,7 +38,6 @@
 #include "pmdController.hpp"
 #include "pmdStartup.hpp"
 #include "coordOmStrategyJob.hpp"
-#include "msgReplicator.hpp"
 #include "pdTrace.hpp"
 #include "coordTrace.hpp"
 #include "clsResourceContainer.hpp"
@@ -55,7 +54,6 @@ namespace engine
    */
    BEGIN_OBJ_MSG_MAP( _CoordCB, _pmdObjBase )
       ON_MSG ( MSG_CAT_REG_RES, _onCatRegisterRes )
-      ON_MSG ( MSG_CLS_GTS_ARBIT_REQ, _onGTSArbitReq )
    END_OBJ_MSG_MAP()
 
    _CoordCB::_CoordCB()
@@ -64,7 +62,6 @@ namespace engine
     _pAgent( NULL ),
     _shardServiceID ( MSG_ROUTE_SHARD_SERVCIE ),
     _regTimerID ( COORD_INVALID_TIMERID ),
-    _pCollectionName( NULL ),
     _pDmsCB( NULL ),
     _pDpsCB( NULL ),
     _pRtnCB( NULL ),
@@ -668,99 +665,10 @@ retry :
       pmdSetNodeID( _selfNodeID ) ;
       pmdGetKRCB()->callRegisterEventHandler( _selfNodeID ) ;
 
-      // Get the BSON object within the message body,
-      // retrieve and update the RB Pending state
-      {
-      BSONObj msgObject ( MSG_GET_INNER_REPLY_DATA( pMsg ) ) ;
-      if ( msgIsInnerOpReply( pMsg ) &&
-           pMsg->messageLength > (INT32)sizeof( MsgOpReply ) +
-           msgObject.objsize() + 5 )
-      {
-         MsgOpReply *pReply = ( MsgOpReply* )pMsg ;
-         if ( pReply->numReturned > 1 )
-         {
-            BSONObj objDCInfo( ( const CHAR* )pMsg + sizeof( MsgOpReply ) +
-                               ossAlign4( (UINT32)msgObject.objsize() ) ) ;
-            BOOLEAN restoring = FALSE ;
-            BSONElement rbEle = objDCInfo.getField( FIELD_NAME_RESTORE ) ;
-            if ( !rbEle.eoo() )
-            {
-               restoring = rbEle.Bool() ;
-            }
-            pmdGetKRCB()->setDBRestoring( restoring ) ;
-         }
-      }
-      }
-
-      rc = _resource.active() ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to active resource, rc: %d", rc ) ;
-
    done:
       PD_TRACE_EXITRC ( SDB__COORDCB__ONCATREGRES, rc );
       return rc ;
    error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__COORDCB__ONGTSARBITREQ, "_CoordCB::_onGTSArbitReq" )
-   INT32 _CoordCB::_onGTSArbitReq( NET_HANDLE handle, MsgHeader *message )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__COORDCB__ONGTSARBITREQ ) ;
-
-      SDB_ASSERT( NULL != message, "message is invalid" ) ;
-
-      // process GTS arbitrate request
-
-      MsgClsGTSArbitReq *request = (MsgClsGTSArbitReq *)message ;
-      MsgClsGTSArbitRsp response ;
-      dpsTransCB *transCB = sdbGetTransCB() ;
-      DPS_TRANS_ID readTransID, writeTransID ;
-      DPS_TRANS_STATUS writeTransStatus = DPS_TRANS_UNKNOWN ;
-      BOOLEAN visible = FALSE ;
-
-      // extract read transaction from request
-      readTransID.setNodeID(
-            (DPS_TRANSID_NODEID)( request->readTransNodeID ) ) ;
-      readTransID.setSN( (DPS_TRANSID_SN)( request->readTransID ) ) ;
-
-      // extract write transaction from request
-      writeTransID.setNodeID(
-            (DPS_TRANSID_NODEID)( request->writeTransNodeID ) ) ;
-      writeTransID.setSN( (DPS_TRANSID_SN)( request->writeTransID ) ) ;
-
-      writeTransStatus = (DPS_TRANS_STATUS)( request->writeTransStatus ) ;
-
-      // do arbitrate on transCB
-      rc = transCB->onArbitGlobTrans( readTransID,
-                                      writeTransID,
-                                      writeTransStatus,
-                                      visible ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to arbitrate global transaction, "
-                   "rc: %d", rc ) ;
-
-      // fill response
-      response.header.res = SDB_OK ;
-      response.visible = (UINT8)visible ;
-
-      // send response
-      rc = _pAgent->syncSend( handle, (MsgHeader *)( &response )) ;
-      if ( SDB_OK != rc )
-      {
-         // no need to goto error
-         PD_LOG( PDERROR, "Failed to send arbitrate response, "
-                 "rc: %d", rc ) ;
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB__COORDCB__ONGTSARBITREQ, rc ) ;
-      return rc ;
-
-   error:
-      // fill response with error code
-      response.header.res = rc ;
-      _pAgent->syncSend( handle, (MsgHeader *)( &response ) ) ;
       goto done ;
    }
 
@@ -940,11 +848,9 @@ retry :
       INT32 rc         = SDB_OK ;
       INT32 numToRead  = 0 ;
       BOOLEAN rtnDel   = TRUE ;
-      const CHAR *pHint = NULL ;
-      BSONObj hint ;
 
       /// extract msg
-      rc = msgExtractGetMore( (CHAR*)pMsg, &numToRead, &contextID, &pHint ) ;
+      rc = msgExtractGetMore( (CHAR*)pMsg, &numToRead, &contextID ) ;
       PD_RC_CHECK ( rc, PDERROR, "Extract GETMORE msg failed[rc:%d]", rc ) ;
 
       /// execute get more
@@ -952,26 +858,7 @@ retry :
                           "ContextID:%lld, NumToRead:%d",
                           contextID, numToRead ) ;
 
-<<<<<<< HEAD
       rc = rtnGetMore( contextID, numToRead, buffObj, _pEDUCB, _pRtnCB ) ;
-=======
-      if ( pHint )
-      {
-         try
-         {
-            hint = BSONObj( pHint ) ;
-         }
-         catch ( std::exception &e )
-         {
-            rc = ossException2RC( &e ) ;
-            PD_LOG( PDERROR, "An exception occurred when building hint "
-                    "bsonobj: %s, rc: %d", e.what(), rc ) ;
-            goto error ;
-         }
-      }
-
-      rc = rtnGetMore( contextID, numToRead, buffObj, _pEDUCB, _pRtnCB, hint ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       if ( rc )
       {
          rtnDel = FALSE ;
@@ -1352,7 +1239,7 @@ retry :
 
       ++_inPacketLevel ;
 
-      pos += sizeof( MsgPacketReq ) ;
+      pos += sizeof( MsgHeader ) ;
       while( pos < header->messageLength )
       {
          pTmpMsg = ( MsgHeader* )( ( CHAR*)header + pos ) ;

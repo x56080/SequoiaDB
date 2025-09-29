@@ -106,14 +106,11 @@ namespace engine
       virtual INT32           listCSIndexes( INT64 &contextID,
                                              utilCSUniqueID csUniqID ) ;
 
-<<<<<<< HEAD
       virtual INT32           stopCriticalMode( const UINT32 &groupID ) ;
 
       virtual INT32           stopMaintenanceMode( const UINT32 &groupID,
                                                    const CHAR *pNodeName ) ;
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       virtual UINT64          getSucCount() ;
 
       virtual UINT64          getFailureCount() ;

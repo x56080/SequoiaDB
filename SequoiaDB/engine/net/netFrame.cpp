@@ -258,12 +258,8 @@ namespace engine
    /*
       _netFrame implement
    */
-<<<<<<< HEAD
    _netFrame::_netFrame( _netMsgHandler *handler,
                          _netRoute *pRoute,
-=======
-   _netFrame::_netFrame( INetMsgHandler *handler, _netRoute *pRoute,
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                          const NET_HANDLE &beginID )
    : _protocolMask( NET_FRAME_MASK_EMPTY ),
      _pRoute( pRoute ),
@@ -346,16 +342,12 @@ namespace engine
       {
          ossScopedLock lock( &_suiteMtx, EXCLUSIVE ) ;
          _eraseSuit_i( evSuitPtr ) ;
-<<<<<<< HEAD
          evSuitPtr->setStopped() ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       }
 
       _netEventSuit::SET_HANDLE setHandles ;
 
       if ( SDB_OK == evSuitPtr->getHandles( setHandles ) )
-<<<<<<< HEAD
       {
          // copy set of handles succeed, just iterate each handle
          _netEventSuit::SET_HANDLE_IT itr = setHandles.begin() ;
@@ -371,23 +363,6 @@ namespace engine
          NET_HANDLE curHandle = NET_INVALID_HANDLE ;
          while ( TRUE )
          {
-=======
-      {
-         // copy set of handles succeed, just iterate each handle
-         _netEventSuit::SET_HANDLE_IT itr = setHandles.begin() ;
-         while( itr != setHandles.end() )
-         {
-            _closeHandle( *itr ) ;
-            ++itr ;
-         }
-      }
-      else
-      {
-         // copy set of handles failed, get handle one by one
-         NET_HANDLE curHandle = NET_INVALID_HANDLE ;
-         while ( TRUE )
-         {
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             curHandle = evSuitPtr->getNextHandle( curHandle ) ;
             if ( NET_INVALID_HANDLE == curHandle )
             {
@@ -521,7 +496,6 @@ namespace engine
                  e.what() ) ;
          rc = ossException2RC( &e ) ;
       }
-<<<<<<< HEAD
 
       // close listen
       closeListen( NET_FRAME_MASK_ALL ) ;
@@ -531,16 +505,6 @@ namespace engine
       /// to make sure each step can tell related sessions and net suits to
       /// stop
 
-=======
-
-      // close listen
-      closeListen( NET_FRAME_MASK_ALL ) ;
-
-      /// WARNING: try catch each exceptions of each steps during stop
-      /// to make sure each step can tell related sessions and net suits to
-      /// stop
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       // prepare to stop message handler
       try
       {
@@ -557,7 +521,6 @@ namespace engine
 
       // stop handles related to this suit
       try
-<<<<<<< HEAD
       {
          onRunSuitStop( _mainSuitPtr ) ;
       }
@@ -570,20 +533,6 @@ namespace engine
       // stop all sub event suits
       try
       {
-=======
-      {
-         onRunSuitStop( _mainSuitPtr ) ;
-      }
-      catch ( exception &e )
-      {
-         PD_LOG( PDERROR, "Failed to call on stop suit event, "
-                 "occur exception %s", e.what() ) ;
-      }
-
-      // stop all sub event suits
-      try
-      {
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          _stopAllEvSuit() ;
          close() ;
 
@@ -1150,7 +1099,6 @@ namespace engine
          {
             goto error ;
          }
-<<<<<<< HEAD
 
          eh->id( id ) ;
 
@@ -1178,46 +1126,13 @@ namespace engine
             *pHandle = eh->handle() ;
          }
 
-=======
-
-         eh->id( id ) ;
-
-         /// add to map
-         // addRoute will take latch inside the function
-         rc = _addRoute( eh ) ;
-         if ( SDB_OK != rc )
-         {
-            eh->close() ;
-            PD_LOG( PDERROR, "Failed to save route, rc: %d", rc ) ;
-            goto error ;
-         }
-
-         rc = _addOpposite( eh ) ;
-         if ( SDB_OK != rc )
-         {
-            _eraseRoute( eh ) ;
-            eh->close() ;
-            PD_LOG( PDERROR, "Failed to save handle, rc: %d", rc ) ;
-            goto error ;
-         }
-
-         if ( pHandle )
-         {
-            *pHandle = eh->handle() ;
-         }
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          // Keep eh->asyncRead after handleConnect callback. As for data source
          // connection, the system information check and authentication is done
          // in the callback. They are done in sync way. So async read should be
          // started after that, otherwise, sysinfo/auth reply message will be
          // caught by the async read, and the sync waiting will get nothing.
          // Refer to _coordDataSourceMsgHandler::_authenticate.
-<<<<<<< HEAD
          rc = _handler->handleConnect( eh->handle(), id, TRUE ) ;
-=======
-         rc = _handler->handleConnect( eh->handle(), id, TRUE, eh.get() ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          if ( rc )
          {
             _erase( eh->handle() ) ;
@@ -1316,7 +1231,7 @@ namespace engine
       if ( hasConnect )
       {
          // callback: handleConnect
-         _handler->handleConnect( eh->handle(), eh->id(), TRUE, eh.get() ) ;
+         _handler->handleConnect( eh->handle(), eh->id(), TRUE ) ;
       }
 
    done:
@@ -1431,7 +1346,6 @@ namespace engine
       }
 
       if ( MSG_INVALID_ROUTEID == header->routeID.value )
-<<<<<<< HEAD
       {
          header->routeID = _local ;
       }
@@ -1442,25 +1356,6 @@ namespace engine
 
       {
       ossScopedLock lock( &( eh->mtx() ) ) ;
-=======
-      {
-         header->routeID = _local ;
-      }
-
-      header->eye = MSG_COMM_EYE_DEFAULT ;
-      header->version = SDB_PROTOCOL_VER_2 ;
-      ossMemset( header->reserve, 0, sizeof(header->reserve) ) ;
-
-      {
-      ossScopedLock lock( &( eh->mtx() ) ) ;
-
-      rc = onSendMsg( eh, eh->id(), header ) ;
-      if ( SDB_OK != rc )
-      {
-         goto error ;
-      }
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       if ( pHandle )
       {
          *pHandle = eh->handle() ;
@@ -1507,7 +1402,6 @@ namespace engine
       ossScopedLock lock( &_mtx, SHARED ) ;
       itr = _opposite.find( handle ) ;
       if ( _opposite.end() == itr )
-<<<<<<< HEAD
       {
          rc = SDB_NET_INVALID_HANDLE ;
          goto error ;
@@ -1518,23 +1412,8 @@ namespace engine
       if ( MSG_INVALID_ROUTEID == header->routeID.value )
       {
          header->routeID = _local ;
-=======
-      {
-         rc = SDB_NET_INVALID_HANDLE ;
-         goto error ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
-      }
-      eh = itr->second ;
       }
 
-<<<<<<< HEAD
-=======
-      if ( MSG_INVALID_ROUTEID == header->routeID.value )
-      {
-         header->routeID = _local ;
-      }
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       header->eye = MSG_COMM_EYE_DEFAULT ;
       header->version = SDB_PROTOCOL_VER_2 ;
       ossMemset( header->reserve, 0, sizeof(header->reserve) ) ;
@@ -1654,7 +1533,6 @@ namespace engine
       header->version = SDB_PROTOCOL_VER_2 ;
       ossMemset( header->reserve, 0, sizeof(header->reserve) ) ;
 
-<<<<<<< HEAD
       {
       ossScopedLock lock( &( eh->mtx() ) ) ;
       convertor = eh->getOutMsgConvertor() ;
@@ -1711,69 +1589,6 @@ namespace engine
          }
       }
       }
-=======
-      {
-      ossScopedLock lock( &( eh->mtx() ) ) ;
-      rc = onSendMsg( eh, eh->id(), header ) ;
-      if ( SDB_OK != rc )
-      {
-         goto error ;
-      }
-
-      convertor = eh->getOutMsgConvertor() ;
-      // If message convertor is enabled, the peer version is 1. Message should
-      // be converted before sending.
-      if ( convertor )
-      {
-         PD_LOG( PDDEBUG, "Message convertor is enabled. Convert the message "
-                 "for sending. Message: %s", msg2String( header ).c_str() ) ;
-         convertor->reset( FALSE ) ;
-         rc = convertor->push( (const CHAR *)header, headLen ) ;
-         if ( SDB_OK != rc )
-         {
-            PD_LOG( PDERROR, "Push message into message convertor failed[%d]",
-                    rc ) ;
-            goto error ;
-         }
-         if ( body && bodyLen > 0 )
-         {
-            rc = convertor->push( (const CHAR *)body, bodyLen ) ;
-            if ( SDB_OK != rc )
-            {
-               PD_LOG( PDERROR, "Push message into message convertor failed[%d]",
-                       rc ) ;
-               goto error ;
-            }
-         }
-
-         rc = _msgConvertAndSend( convertor, eh ) ;
-         if ( rc )
-         {
-            goto error ;
-         }
-      }
-      else
-      {
-         /// header len should be computed. can not get sizeof(MsgHeader)
-         rc = eh->syncSendRaw( header, headLen ) ;
-         if ( SDB_OK != rc )
-         {
-            goto error ;
-         }
-         netOut += headLen ;
-
-         if ( NULL != body )
-         {
-            rc = eh->syncSendRaw( body, bodyLen ) ;
-            if ( SDB_OK != rc )
-            {
-               goto error ;
-            }
-            netOut += bodyLen ;
-         }
-      }
-      }
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    done:
       if ( netOut > 0 )
@@ -1834,7 +1649,6 @@ namespace engine
       SDB_ASSERT( NET_EVENT_HANDLER_TCP == eh->getHandlerType(),
                   "Should not use UDP socket to send multiple packets" ) ;
 
-<<<<<<< HEAD
       {
       ossScopedLock lock( &( eh->mtx() ) ) ;
       convertor = eh->getOutMsgConvertor() ;
@@ -1884,64 +1698,6 @@ namespace engine
 
             if ( itr->iovBase )
             {
-=======
-      {
-      ossScopedLock lock( &( eh->mtx() ) ) ;
-
-      rc = onSendMsg( eh, eh->id(), header ) ;
-      if ( SDB_OK != rc )
-      {
-         goto error ;
-      }
-
-      convertor = eh->getOutMsgConvertor() ;
-      if ( convertor )
-      {
-         PD_LOG( PDDEBUG, "Message convertor is enabled. Convert the message "
-                 "for sending. Message: %s", msg2String( header ).c_str() ) ;
-         convertor->reset( FALSE ) ;
-         rc = convertor->push( (const CHAR *)header, sizeof(MsgHeader) ) ;
-         if ( rc )
-         {
-            goto error ;
-         }
-
-         for ( netIOVec::const_iterator itr = iov.begin(); itr != iov.end();
-               ++itr )
-         {
-            if ( itr->iovBase && itr->iovLen > 0 )
-            {
-               rc = convertor->push( (const CHAR *)itr->iovBase, itr->iovLen ) ;
-               if ( rc )
-               {
-                  goto error ;
-               }
-            }
-         }
-
-         rc = _msgConvertAndSend( convertor, eh ) ;
-         if ( rc )
-         {
-            goto error ;
-         }
-      }
-      else
-      {
-         rc = eh->syncSendRaw( header, sizeof( MsgHeader ) ) ;
-         if ( SDB_OK != rc )
-         {
-            goto error ;
-         }
-         netOut += sizeof(MsgHeader) ;
-
-         for ( netIOVec::const_iterator itr = iov.begin() ; itr != iov.end();
-               ++itr )
-         {
-            SDB_ASSERT( NULL != itr->iovBase, "should not be NULL" ) ;
-
-            if ( itr->iovBase )
-            {
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                rc = eh->syncSendRaw( itr->iovBase, itr->iovLen ) ;
                if ( SDB_OK != rc )
                {
@@ -2011,16 +1767,6 @@ namespace engine
 
       {
       ossScopedLock lock( &( eh->mtx() ) ) ;
-<<<<<<< HEAD
-=======
-
-      rc = onSendMsg( eh, eh->id(), header ) ;
-      if ( SDB_OK != rc )
-      {
-         goto error ;
-      }
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       if ( pHandle )
       {
          *pHandle = eh->handle() ;
@@ -2068,13 +1814,8 @@ namespace engine
             }
             netOut += bodyLen ;
          }
-<<<<<<< HEAD
       }
       }
-=======
-      }
-      }
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    done:
       if ( netOut > 0 )
@@ -2144,7 +1885,6 @@ namespace engine
       {
          *pHandle = eh->handle() ;
       }
-<<<<<<< HEAD
       convertor = eh->getOutMsgConvertor() ;
       if ( convertor )
       {
@@ -2188,58 +1928,6 @@ namespace engine
          for ( netIOVec::const_iterator itr = iov.begin() ; itr != iov.end() ;
                ++itr )
          {
-=======
-
-      rc = onSendMsg( eh, eh->id(), header ) ;
-      if ( SDB_OK != rc )
-      {
-         goto error ;
-      }
-
-      convertor = eh->getOutMsgConvertor() ;
-      if ( convertor )
-      {
-         PD_LOG( PDDEBUG, "Message convertor is enabled. Convert the message "
-                 "for sending. Message: %s", msg2String( header ).c_str() ) ;
-         convertor->reset( FALSE ) ;
-         rc = convertor->push( (const CHAR *)header, sizeof(MsgHeader) ) ;
-         if ( rc )
-         {
-            goto error ;
-         }
-         for ( netIOVec::const_iterator itr = iov.begin(); itr != iov.end();
-               ++itr )
-         {
-            if ( itr->iovBase && itr->iovLen > 0 )
-            {
-               rc = convertor->push( (const CHAR *)itr->iovBase, itr->iovLen ) ;
-               if ( rc )
-               {
-                  goto error ;
-               }
-            }
-         }
-
-         rc = _msgConvertAndSend( convertor, eh ) ;
-         if ( rc )
-         {
-            goto error ;
-         }
-      }
-      else
-      {
-         rc = eh->syncSendRaw( header, sizeof( MsgHeader ) ) ;
-         if ( SDB_OK != rc )
-         {
-            goto error ;
-         }
-
-         netOut += sizeof(MsgHeader) ;
-
-         for ( netIOVec::const_iterator itr = iov.begin() ; itr != iov.end() ;
-               ++itr )
-         {
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             SDB_ASSERT( NULL != itr->iovBase, "should not be NULL" ) ;
 
             if ( itr->iovBase && itr->iovLen > 0 )
@@ -2579,18 +2267,9 @@ namespace engine
       BOOLEAN isNotSysInfoMsg =
          ( (INT32)MSG_SYSTEM_INFO_LEN != pMsg->messageLength ) ;
 
-<<<<<<< HEAD
       convertor = eh->getInMsgConvertor() ;
       if ( isNotSysInfoMsg && ( NULL != convertor ) )
       {
-=======
-      if ( isNotSysInfoMsg && ( MSG_COMM_EYE_DEFAULT != pMsg->eye ) )
-      {
-         // The convertor should have been enabled in the net event handler, if
-         // any non sysinfo message has been received.
-         convertor = eh->getInMsgConvertor() ;
-         SDB_ASSERT( convertor, "In message is invalid" ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          convertor->reset( FALSE ) ;
          rc = convertor->push( (const CHAR *)pMsg, pMsg->messageLength ) ;
          if ( SDB_OK != rc )
@@ -2627,12 +2306,7 @@ namespace engine
       }
       else
       {
-<<<<<<< HEAD
          rc = _handler->handleMsg( eh->handle(), pMsg, (const CHAR *)pMsg ) ;
-=======
-         rc = _handler->handleMsg( eh->handle(), pMsg, (const CHAR *)pMsg,
-                                   eh->getUserData() ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          _netIn.add( pMsg->messageLength ) ;
          if ( SDB_NET_BROKEN_MSG == rc )
          {
@@ -2650,65 +2324,6 @@ namespace engine
    void _netFrame::handleClose( NET_EH eh, _MsgRouteID id )
    {
       _handler->handleClose( eh->handle(), id ) ;
-   }
-
-   INT32 _netFrame::onSendMsg( NET_EH eh,
-                               const MsgRouteID &id,
-                               MsgHeader *header )
-   {
-      return _handler->onSendMsg( eh->handle(), id, header ) ;
-   }
-
-   INT32 _netFrame::onReceiveMsg( NET_EH eh,
-                                  const MsgRouteID &id,
-                                  MsgHeader *header,
-                                  UINT32 receivedSize )
-   {
-      NET_HANDLE handle =
-            ( NULL == eh.get() ) ? NET_INVALID_HANDLE : eh->handle() ;
-      UINT32 availableSize =
-            ( NULL == eh.get() ) ? 0 : eh->getAvailableSize() ;
-      return _handler->onReceiveMsg( handle, id, header,
-                                     availableSize + receivedSize,
-                                     eh.get() ) ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__NETFRAME_ISLISTENING, "_netFrame::isListening" )
-   BOOLEAN _netFrame::isListening( UINT32 protocolMask )
-   {
-      BOOLEAN result = FALSE ;
-
-      PD_TRACE_ENTRY( SDB__NETFRAME_ISLISTENING ) ;
-
-      if ( OSS_BIT_TEST( protocolMask, NET_FRAME_MASK_TCP ) )
-      {
-         if ( _acceptor.is_open() )
-         {
-            result = TRUE ;
-         }
-         else
-         {
-            result = FALSE ;
-            goto done ;
-         }
-      }
-      if ( OSS_BIT_TEST( protocolMask, NET_FRAME_MASK_UDP ) )
-      {
-         if ( NULL != _udpMainSuit.get() &&
-              _udpMainSuit->isOpened() )
-         {
-            result = TRUE ;
-         }
-         else
-         {
-            result = FALSE ;
-            goto done ;
-         }
-      }
-
-   done:
-      PD_TRACE_EXIT( SDB__NETFRAME_ISLISTENING ) ;
-      return result ;
    }
 
    //TODO rewrite it later
@@ -2846,7 +2461,6 @@ namespace engine
       try
       {
          ossScopedLock _lock( &_mtx, EXCLUSIVE ) ;
-<<<<<<< HEAD
          if ( !eh->isSuitStopped() )
          {
             _opposite.insert( make_pair( eh->handle(), eh ) ) ;
@@ -2856,9 +2470,6 @@ namespace engine
             // suit is stopped
             rc = SDB_NETWORK_CLOSE ;
          }
-=======
-         _opposite.insert( make_pair( eh->handle(), eh ) ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       }
       catch ( exception &e )
       {
@@ -3032,11 +2643,7 @@ namespace engine
       if ( SDB_OK == _addOpposite( eh ) )
       {
          // callback: handleConnect
-<<<<<<< HEAD
          _handler->handleConnect( eh->handle(), eh->id(), FALSE ) ;
-=======
-         _handler->handleConnect( eh->handle(), eh->id(), FALSE, eh.get() ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          eh->asyncRead() ;
       }
       else

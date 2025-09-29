@@ -43,8 +43,6 @@
 #include "pmdDef.hpp"
 #include "utilNodeOpr.hpp"
 #include "sptUsrOmaCommon.hpp"
-#include "sptUsrStp.hpp"
-#include "sptDBNode.hpp"
 
 using namespace bson ;
 
@@ -68,7 +66,6 @@ namespace engine
    JS_MEMBER_FUNC_DEFINE(_sptUsrOma, stopNode)
    JS_MEMBER_FUNC_DEFINE(_sptUsrOma, runCommand)
    JS_MEMBER_FUNC_DEFINE(_sptUsrOma, close)
-   JS_MEMBER_FUNC_DEFINE(_sptUsrOma, getStp)
    JS_STATIC_FUNC_DEFINE(_sptUsrOma, getOmaInstallInfo)
    JS_STATIC_FUNC_DEFINE(_sptUsrOma, getOmaInstallFile)
    JS_STATIC_FUNC_DEFINE(_sptUsrOma, getOmaConfigFile)
@@ -98,7 +95,6 @@ namespace engine
       JS_ADD_MEMBER_FUNC("stopNode", stopNode)
       JS_ADD_MEMBER_FUNC_WITHATTR("_runCommand", runCommand, 0)
       JS_ADD_MEMBER_FUNC("close", close)
-      JS_ADD_MEMBER_FUNC("getStp", getStp)
       JS_ADD_STATIC_FUNC("getOmaInstallInfo", getOmaInstallInfo)
       JS_ADD_STATIC_FUNC("getOmaInstallFile", getOmaInstallFile)
       JS_ADD_STATIC_FUNC("getOmaConfigFile", getOmaConfigFile)
@@ -1285,103 +1281,6 @@ namespace engine
    done:
       return rc ;
    error:
-      goto done ;
-   }
-
-   INT32 _sptUsrOma::getStp( const _sptArguments &arg,
-                             _sptReturnVal &rval,
-                             bson::BSONObj &detail )
-   {
-      INT32 rc = SDB_OK ;
-
-      CHAR *returnBuffer = NULL ;
-      INT32 retCode = SDB_OK ;
-      BSONObj dummy ;
-
-      string tpServiceName ;
-      sptUsrStp *sptStp = NULL ;
-
-      if ( arg.argc() != 0 )
-      {
-         rc = SDB_INVALIDARG ;
-         detail = BSON( SPT_ERR << "Wrong arguments" ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to check argument, should have no "
-                      "arguments, rc: %d", rc ) ;
-      }
-
-      rc = _assit.runCommand( CMD_NAME_STP_GET, dummy.objdata(),
-                              &returnBuffer, retCode, TRUE ) ;
-      if ( SDB_OK != rc )
-      {
-         detail = BSON( SPT_ERR << "Failed to get STP node" ) ;
-      }
-      PD_RC_CHECK( rc, PDERROR, "Failed to get STP node, rc: %d", rc ) ;
-
-      try
-      {
-         BSONObj object( returnBuffer ) ;
-         BSONElement element ;
-
-         if ( SDB_OK != retCode )
-         {
-            detail = BSON( SPT_ERR << object.getStringField( OP_ERR_DETAIL ) ) ;
-            PD_LOG( PDERROR, "Failed to get STP node from remote sdbcm, "
-                    "rc: %d", retCode ) ;
-            rc = retCode ;
-            goto error ;
-         }
-
-
-         element = object.getField( FIELD_NAME_SERVICE ) ;
-         if ( String != element.type() )
-         {
-            rc = SDB_SYS ;
-            detail = BSON( SPT_ERR << "Failed to extract service name from "
-                           "STP node" ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to get STP node, failed to get "
-                         "service name from [%s], rc: %d",
-                         object.toString().c_str(), rc ) ;
-         }
-         tpServiceName = element.String() ;
-      }
-      catch ( exception &e )
-      {
-         rc = SDB_SYS ;
-         detail = BSON( SPT_ERR << "Failed to extract information of "
-                        "STP node" ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to get STP node, occurred error: %s",
-                      e.what() ) ;
-      }
-
-      sptStp = SDB_OSS_NEW sptUsrStp( _hostname, tpServiceName, _svcname ) ;
-      if ( NULL == sptStp )
-      {
-         rc = SDB_OOM ;
-         detail = BSON( SPT_ERR << "Failed to allocate memory for STP node" ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to allocate memory for STP node, "
-                      "rc: %d", rc ) ;
-      }
-
-      rc = rval.setUsrObjectVal< sptUsrStp >( sptStp ) ;
-      if( SDB_OK != rc )
-      {
-         detail = BSON( SPT_ERR << "Failed to set return object" ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to set return object, rc: %d",
-                      rc ) ;
-      }
-      sptStp = NULL ;
-
-      rval.getReturnVal().setAttr( SPT_PROP_READONLY ) ;
-      rval.addReturnValProperty( SPT_NODE_HOSTNAME_FIELD )->
-            setValue( _hostname.c_str() ) ;
-      rval.addReturnValProperty( SPT_NODE_SVCNAME_FIELD )->
-            setValue( tpServiceName.c_str() ) ;
-
-   done:
-      return rc ;
-
-   error:
-      SAFE_OSS_DELETE( sptStp ) ;
       goto done ;
    }
 

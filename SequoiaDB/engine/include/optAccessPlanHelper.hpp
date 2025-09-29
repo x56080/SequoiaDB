@@ -41,26 +41,12 @@
 #include "oss.hpp"
 #include "ossUtil.hpp"
 #include "optCommon.hpp"
-#include "dmsStorageUnit.hpp"
 #include "mthMatchRuntime.hpp"
-<<<<<<< HEAD
-=======
-#include "pmdEDU.hpp"
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 #include "rtnQueryOptions.hpp"
 
 namespace engine
 {
 
-<<<<<<< HEAD
-=======
-   // pre-declare of access plan class
-   class _optAccessPlan ;
-
-   // set of index
-   typedef ossPoolSet< bson::OID > OPT_INDEX_SET ;
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    /*
       _optAccessPlanConfig define
     */
@@ -158,25 +144,14 @@ namespace engine
                                 public _mthMatchConfigHolder
    {
       public :
-         _optAccessPlanHelper ( IExecutor *eduCB,
-                                OPT_PLAN_CACHE_LEVEL cacheLevel,
+         _optAccessPlanHelper ( OPT_PLAN_CACHE_LEVEL cacheLevel,
                                 const optAccessPlanConfig &planConfig,
                                 const mthNodeConfig &mthConfig,
-<<<<<<< HEAD
-=======
-                                CONST_CL_META_INFO_PTR clMetaPtr,
-                                CONST_CL_STAT_INFO_PTR clStatPtr,
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                                 const rtnExplainOptions *expOptions ) ;
 
          virtual ~_optAccessPlanHelper () ;
 
          void clear () ;
-
-         OSS_INLINE IExecutor *getEDUCB()
-         {
-            return _eduCB ;
-         }
 
          OSS_INLINE BSONObj getQuery ()
          {
@@ -241,7 +216,6 @@ namespace engine
          }
 
          OSS_INLINE const rtnExplainOptions *getExplainOptions() const
-<<<<<<< HEAD
          {
             return _expOptions ;
          }
@@ -249,61 +223,6 @@ namespace engine
          OSS_INLINE BOOLEAN isKeepPaths () const
          {
             return NULL != _expOptions && _expOptions->isNeedSearch() ;
-=======
-         {
-            return _expOptions ;
-         }
-
-         OSS_INLINE CONST_CL_META_INFO_PTR getCLMeta() const
-         {
-            return _clMetaPtr ;
-         }
-
-         OSS_INLINE CONST_CL_STAT_INFO_PTR getCLStat() const
-         {
-            return _clStatPtr ;
-         }
-
-         OSS_INLINE BOOLEAN isKeepPaths () const
-         {
-            return NULL != _expOptions && _expOptions->isNeedSearch() ;
-         }
-
-         // check if index is available for global transaction
-         // NOTE:
-         // - if global transaction is started before index rebuild (creation)
-         //   finished, this index is not available for this transaction
-         // - will return SDB_DMS_INVALID_INDEXCB for unavailable index
-         // - storage unit, meta-block context and index control block
-         //   should be valid
-         INT32 checkGlobTrans( const rtnQueryOptions &options,
-                               const CONST_INDEX_META_INFO_PTR &pIndex );
-
-         // check if index used by plan is available for global transaction
-         // NOTE:
-         // - if global transaction is started before index rebuild (creation)
-         //   finished, this index is not available for this transaction
-         // - will return SDB_DMS_INVALID_INDEXCB for unavailable index
-         // - storage unit, meta-block context and plan should be valid
-         INT32 checkGlobTrans( const rtnQueryOptions &options, _optAccessPlan *plan ) ;
-
-         // try to update rebuild time for indexes without rebuild time
-         // NOTE:
-         // - after setting rebuild time, index could be used for global
-         //   transaction stated after rebuild time ( not this time, but for
-         //   later global transactions )
-         // - storage unit, meta-block context should be valid
-         INT32 updateIxRebuildTime() ;
-
-         OSS_INLINE BOOLEAN hasNonGTIndex() const
-         {
-            return _hasNonGTIndex ;
-         }
-
-         OSS_INLINE BOOLEAN validForCache() const
-         {
-            return !isKeepPaths() && !hasNonGTIndex() ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          }
 
          INT32 saveSelectivityToCache( const ossPoolString &indexPath,
@@ -317,7 +236,6 @@ namespace engine
          void _evalEstimation ( optCollectionStat *pCollectionStat ) ;
 
       protected :
-         IExecutor *          _eduCB ;
          BSONObj              _query ;
          OPT_PLAN_CACHE_LEVEL _cacheLevel ;
          mthMatchNormalizer   _normalizer ;
@@ -338,26 +256,11 @@ namespace engine
          // The CPU cost of the matcher
          UINT32            _estCPUCost ;
 
-<<<<<<< HEAD
          // explain options
          const rtnExplainOptions * _expOptions ;
 
          // cache of selectivity
          optPlanSelectivityCache _selectivityCache ;
-=======
-         // has index created behind current transaction
-         BOOLEAN           _hasNonGTIndex ;
-
-         // indexes need to set rebuild time which are invalid for global
-         // transactions
-         OPT_INDEX_SET     _invalidGTIndexes ;
-
-         CONST_CL_META_INFO_PTR _clMetaPtr ;
-         CONST_CL_STAT_INFO_PTR _clStatPtr ;
-
-         // explain options
-         const rtnExplainOptions * _expOptions ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    } ;
 
    typedef class _optAccessPlanHelper optAccessPlanHelper ;

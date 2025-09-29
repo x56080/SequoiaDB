@@ -85,10 +85,7 @@ final class AdminCommand {
     final static String LIST_CL_IN_DOMAIN = PREFIX + "list collections in domain";
     final static String LIST_CS_IN_DOMAIN = PREFIX + "list collectionspaces in domain";
     final static String LIST_RECYCLEBIN = PREFIX + "list recyclebin";
-<<<<<<< HEAD
     final static String LIST_GROUPMODES = PREFIX + "list group modes";
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
     final static String SNAP_CONTEXTS = PREFIX + "snapshot contexts";
     final static String SNAP_CONTEXTS_CURRENT = PREFIX + "snapshot contexts current";
@@ -165,7 +162,6 @@ final class AdminCommand {
     final static String RETURN_RECYCLEBIN_ITEM_TO_NAME = PREFIX + "return recyclebin item to name";
     final static String DROP_RECYCLEBIN_ITEM = PREFIX + "drop recyclebin item";
     final static String DROP_RECYCLEBIN_ALL = PREFIX + "drop recyclebin all";
-<<<<<<< HEAD
 
     final static String ALTER_NODE = PREFIX + "alter node";
 
@@ -183,6 +179,4 @@ final class AdminCommand {
     final static String GRANT_ROLES_TO_USER = PREFIX + "grant roles to user";
     final static String REVOKE_ROLES_FROM_USER = PREFIX + "revoke roles from user";
     final static String INVALIDATE_USER_CACHE = PREFIX + "invalidate user cache";
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 }

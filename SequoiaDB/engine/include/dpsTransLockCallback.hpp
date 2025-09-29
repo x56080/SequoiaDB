@@ -65,27 +65,18 @@ namespace engine
                                      DPS_TRANSLOCK_TYPE requestLockMode,
                                      UINT32 refCounter,
                                      DPS_TRANSLOCK_OP_MODE_TYPE opMode,
+                                     const dpsTransLRBHeader *pLRBHeader,
                                      dpsLRBExtData *pExtData ) = 0 ;
-
-      virtual void afterLockAcquirePostAction( const dpsTransLockId &lockId )
-                                     = 0 ;
 
       virtual void beforeLockRelease( const dpsTransLockId &lockId,
                                       DPS_TRANSLOCK_TYPE lockMode,
                                       UINT32 refCounter,
+                                      const dpsTransLRBHeader *pLRBHeader,
                                       dpsLRBExtData *pExtData ) = 0 ;
 
-<<<<<<< HEAD
       virtual INT32 afterLockEscalated( const dpsTransLockId &lockId,
                                         DPS_TRANSLOCK_OP_MODE_TYPE opMode ) = 0 ;
 
-=======
-      virtual void afterLockEscalated( const dpsTransLockId &lockId,
-                                       DPS_TRANSLOCK_OP_MODE_TYPE opMode ) = 0 ;
-
-      virtual INT32 getResult()  = 0 ;
-      virtual BOOLEAN hasError() = 0 ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    } ;
 
 }

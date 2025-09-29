@@ -266,10 +266,7 @@ namespace engine
          INT32  startIdxTaskCheckByCL( utilCLUniqueID clUniqID ) ;
          INT32  startIdxTaskCheckByCS( utilCSUniqueID csUniqueID ) ;
          INT32  startAllSplitTaskCheck() ;
-<<<<<<< HEAD
          INT32  startAllIdxTaskCheck() ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          INT32  startAllTaskCheck() ;
 
          INT32  stopTask ( UINT64 taskID ) ;
@@ -327,10 +324,7 @@ namespace engine
          INT32 _onCatQueryTaskRes ( NET_HANDLE handle, MsgHeader* msg ) ;
          INT32 _onStepDown( pmdEDUEvent *event ) ;
          INT32 _onStepUp( pmdEDUEvent *event ) ;
-<<<<<<< HEAD
          INT32 _onGroupModeUpdate( pmdEDUEvent *event ) ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          BOOLEAN _findAndCheckTaskStatus( UINT64 taskID,
                                           dmsTaskStatusPtr &statusPtr,
                                           BOOLEAN &needRollback ) ;

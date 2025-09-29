@@ -186,17 +186,12 @@ namespace engine
       _reqID = cb->incCurRequestID() ;
       _pReqMsg->requestID = getReqID() ;
       _pReqMsg->TID = cb->getTID() ;
-<<<<<<< HEAD
       _reqOpCode = _pReqMsg->opCode ;
       _pReqMsg->routeID.value = MSG_INVALID_ROUTEID ;
       if ( _pReqMsg->globalID.isInvalid() )
       {
          _pReqMsg->globalID = cb->getOperator()->getGlobalID() ;
       }
-=======
-      _reqOpCode = GET_REQUEST_TYPE( _pReqMsg->opCode ) ;
-      _pReqMsg->routeID.value = MSG_INVALID_ROUTEID ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       isIgnored = FALSE ;
 
@@ -1751,10 +1746,7 @@ namespace engine
             pMsg->header.requestID = eduCB()->getCurRequestID() ;
             pMsg->header.TID = eduCB()->getTID() ;
             pMsg->header.routeID.value = id.value ;
-<<<<<<< HEAD
             ossMemset( &(pMsg->header.globalID), 0, sizeof(pMsg->header.globalID) ) ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             ossMemset( pMsg->header.reserve, 0, sizeof(pMsg->header.reserve) ) ;
             pMsg->contextID = -1 ;
             pMsg->flags = SDB_COORD_REMOTE_DISC ;
@@ -1918,7 +1910,6 @@ namespace engine
       MAP_SUB_SESSIONPTR_IT itPtr ;
       MsgHeader *pReply = NULL ;
       UINT64 nodeID = 0 ;
-      UINT64 requestID = 0 ;
       pmdSubSession *pSubSession = NULL ;
       NET_HANDLE handle = (NET_HANDLE)event._userData ;
 
@@ -1934,7 +1925,6 @@ namespace engine
 
       pReply = ( MsgHeader* )event._Data ;
       nodeID = pReply->routeID.value ;
-      requestID = pReply->requestID ;
 
       // if is MSG_BS_DISCONNECT, the reeventmote node is disconnect
       if ( MSG_BS_DISCONNECT == pReply->opCode )
@@ -1949,7 +1939,7 @@ namespace engine
          // can not switch connection.
          while ( itPtr != _mapReq2SubSession.end() )
          {
-            if ( requestID < itPtr->first )
+            if ( pReply->requestID < itPtr->first )
             {
                break ;
             }
@@ -2027,11 +2017,7 @@ namespace engine
       {
          // By the request ID in the message that we know which subsession the
          // reply belongs to.
-<<<<<<< HEAD
          itPtr = _mapReq2SubSession.find( pReply->requestID ) ;
-=======
-         itPtr = _mapReq2SubSession.find( requestID ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          if ( itPtr != _mapReq2SubSession.end() )
          {
             pSubSession = itPtr->second ;
@@ -2074,7 +2060,7 @@ namespace engine
             PD_LOG( PDWARNING, "Session[%s] recv expired msg[opCode: (%d)%u, "
                     "ReqID: %lld, Len: %d, NodeID: %s]",
                     _pEDUCB->toString().c_str(), IS_REPLY_TYPE(pReply->opCode),
-                    GET_REQUEST_TYPE(pReply->opCode), requestID,
+                    GET_REQUEST_TYPE(pReply->opCode), pReply->requestID,
                     pReply->messageLength,
                     routeID2String(pReply->routeID).c_str() ) ;
 

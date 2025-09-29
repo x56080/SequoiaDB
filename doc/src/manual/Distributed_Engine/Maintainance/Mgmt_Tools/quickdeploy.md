@@ -1,33 +1,65 @@
 
-quickDeploy.sh 是 SequoiaDB 巨杉数据库的快速部署工具，用于部署 SequoiaDB 集群和 SQL 实例。其中，SequoiaDB 集群支持部署在单台或多台机器，SQL 实例仅支持部署在单台机器。
+quickDeploy.sh 是 SequoiaDB 巨杉数据库的快速部署工具，可以通过命令行的方式快速部署 SequoiaDB/SequoiaSQL-MySQL/SequoiaSQL-PostgreSQL。
 
-##语法规则##
+SequoiaDB 集群支持部署在多台主机上，SequoiaSQL-MySQ/SequoiaSQL-PostgreSQL 仅支持部署在单台主机。
+ 
+运行需求
+----
 
-**quickDeploy.sh [--sdb] [--mysql] [--pg] [--cm=Number] [--mysqlPath=String] [--pgPath=String]**
+运行 quickDeploy.sh 命令的用户必须是安装 SequoiaDB/SequoiaSQL-MySQL/SequoiaSQL-PostgreSQL 时指定的用户。
 
-##参数说明##
+语法规则
+----
 
-|参数名  |缩写     | 描述   |
-|--------|---------|--------|
-|--help  |    -h   | 获取帮助信息 |
-|--sdb   |    -    | 部署 SequoiaDB 集群 |
-|--mysql |    -    | 部署 MySQL 实例 |
-|--pg    |    -    | 部署 PostgreSQL 实例 |
-|--cm    |    -    | 指定 sdbcm 端口号，默认值为 11790 <br>在多台机器上部署集群时，需确保所有机器的 sdbcm 端口一致 |
-|--mysqlPath| -    | 指定 MySQL 实例组件的安装路径 |
-|--pgPath|    -    | 指定 PostgreSQL 实例组件的安装路径 |
+```lang-text
+quickDeploy.sh [ options ] ...
+```
+
+参数说明
+----
+
+- **--help, -h**  
+
+ 返回帮助信息
+
+- **--sdb**  
+
+ 部署 SequoiaDB
+
+- **--mysql**  
+
+ 部署 SequoiaSQL-MySQL
+  
+- **--pg**  
+
+ 部署 SequoiaSQL-PostgreSQL
+  
+- **--cm \<sdbcm port\>**  
+
+ 指定 sdbcm 端口号，默认为11790。当 sdbcm 为非默认端口号时，要求所有安装了 SequoiaDB 的主机 sdbcm 端口必须一致
+  
+- **--mysqlPath \<mysql installation path\>**  
+
+ quickDeploy.sh 只支持部署一个 SequoiaSQL-MySQL。当机器上装有多个 SequoiaSQL-MySQL 时，指定一个 SequoiaSQL-MySQL 的安装路径。
+
+  需要配合 --mysql 使用
+  
+- **--pgPath \<pg installation path\>**  
+
+ quickDeploy.sh 只支持部署一个 SequoiaSQL-PostgreSQL。当机器上装有多个 SequoiaSQL-PostgreSQL 时，指定一个 SequoiaSQL-PostgreSQL 的安装路径。
+
+  需要配合 --pg 使用。
 
 > **Note:**
 > 
-> - 当不指定参数 --sdb、--mysql 和 --pg 时，快速部署工具将根据本机的安装情况自动部署 SequoiaDB 集群和 SQL 实例。
-> - 快速部署工具不支持同时部署多个 MySQL 或 PostgreSQL 实例组件。如果本机安装了多个 MySQL 或 PostgreSQL 实例组件，需指定参数 --mysqlPath 或 --pgPath。
+> 当不指定 --sdb/--mysql/--pg 参数时，quickDeploy.sh 会自动确认本机是否安装了 SequoiaDB/SequoiaSQL-MySQL/SequoiaSQL-PostgreSQL，已安装了的会自动部署。
 
 默认部署
 ----
 
 - **SequoiaDB** 
 
-   SequoiaDB 默认部署一个协调节点、一个编目节点、一个时间序列协议节点和三个数据组到本机上，数据组都为单副本。
+   SequoiaDB 默认部署一个协调节点、一个编目节点和三个数据组到本机上，数据组都为单副本。
 
    ```lang-bash
    $ cd /opt/sequoiadb
@@ -45,28 +77,24 @@ quickDeploy.sh 是 SequoiaDB 巨杉数据库的快速部署工具，用于部署
    Create data:    ubuntu-200-091:11820
    Create data:    ubuntu-200-091:11830
    Create data:    ubuntu-200-091:11840
-   Create stp server: ubuntu-200-091:9622
    ```
 
    可以使用如下语句查看当前集群部署情况：
 
    ```lang-bash
-   $ ./bin/sdblist -l -t all
+   $ ./bin/sdblist -l
    ```
 
    输出结果如下：
 
    ```lang-text
    Name       SvcName       Role        PID       GID    NID    PRY  GroupName            StartTime            DBPath
-
-   sdbcm      11790         cm          24402     -      -      Y    -                    2020-10-28-14.13.42  -
-   sequoiadb  11800         catalog     26329     1      1      Y    SYSCatalogGroup      2020-10-28-14.14.56  /opt/sequoiadb/database/catalog/11800/
-   sequoiadb  11810         coord       26416     2      2      Y    SYSCoord             2020-10-28-14.14.58  /opt/sequoiadb/database/coord/11810/
-   sequoiadb  11820         data        26480     1000   1000   Y    group1               2020-10-28-14.14.59  /opt/sequoiadb/database/data/11820/
-   sequoiadb  11830         data        26597     1001   1001   Y    group2               2020-10-28-14.15.02  /opt/sequoiadb/database/data/11830/
-   sequoiadb  11840         data        26703     1002   1002   Y    group3               2020-10-28-14.15.05  /opt/sequoiadb/database/data/11840/
-   stp        9622          stp         26822     -      -      Y    -                    2020-10-28-14.15.08  -
-   sdbcmd     -             -           24400     -      -      -    -                    -                    -
+   sequoiadb  11800         catalog     9180      1      1      Y    SYSCatalogGroup      2019-05-13-10.43.43  /opt/sequoiadb/database/catalog/11800/
+   sequoiadb  11810         coord       9571      2      2      Y    SYSCoord             2019-05-13-10.43.52  /opt/sequoiadb/database/coord/11810/
+   sequoiadb  11820         data        9646      1000   1000   Y    group1               2019-05-13-10.43.53  /opt/sequoiadb/database/data/11820/
+   sequoiadb  11830         data        9833      1001   1001   Y    group2               2019-05-13-10.43.57  /opt/sequoiadb/database/data/11830/
+   sequoiadb  11840         data        10061     1002   1002   Y    group3               2019-05-13-10.44.03  /opt/sequoiadb/database/data/11840/
+   Total: 5
    ```
 
 - **SequoiaSQL-MySQL**
@@ -109,7 +137,6 @@ quickDeploy.sh 是 SequoiaDB 巨杉数据库的快速部署工具，用于部署
 以部署三机三组三节点的 SequoiaDB 集群为例：
 
 + 部署到三台机器上，主机名分别为 sdbserver1/sdbserver2/sdbserver3，请确保这三台主机都安装了 SequoiaDB
-+ 每个机器分别部署一个时间序列协议节点
 + 一个协调节点组，每台机器上有一个协调节点
 + 一个编目节点组，每台机器上有一个编目节点
 + 三个数据节点组，组名分别为 group1/group2/group3，每个数据组有三个数据节点
@@ -144,10 +171,6 @@ quickDeploy.sh 是 SequoiaDB 巨杉数据库的快速部署工具，用于部署
   data,group3,sdbserver1,11840,[installPath]/database/data/11840
   data,group3,sdbserver2,11840,[installPath]/database/data/11840
   data,group3,sdbserver3,11840,[installPath]/database/data/11840
-
-  server,stp,sdbserver1,9622,-
-  server,stp,sdbserver2,9622,-
-  server,stp,sdbserver3,9622,-
   ```
 
 2.  部署 SequoiaDB

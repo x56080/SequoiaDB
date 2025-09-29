@@ -38,15 +38,12 @@
 #ifndef UTIL_SEGMENT_HPP__
 #define UTIL_SEGMENT_HPP__
 
+#include <vector>
 #include "ossLatch.hpp"
 #include "ossMem.hpp"
 #include "ossUtil.hpp"
 #include "ossAtomic.hpp"
-<<<<<<< HEAD
 #include "utilInPlaceRBTree.hpp"
-=======
-#include <vector>
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 typedef UINT32 UTIL_OBJIDX ;
 #define UTIL_INVALID_OBJ_INDEX   (( UTIL_OBJIDX )( -1 ))
@@ -605,7 +602,6 @@ namespace engine
 
          len = ossSnprintf( pBuff, buffLen,
                             OSS_NEWLINE
-<<<<<<< HEAD
                             "          Pool ID : %u" OSS_NEWLINE
                             "      Max Objects : %u" OSS_NEWLINE
                             "   Ballon Objects : %u" OSS_NEWLINE
@@ -626,20 +622,6 @@ namespace engine
                             "        OOL Times : %llu" OSS_NEWLINE
                             "     Ballon Times : %llu" OSS_NEWLINE
                             "      Shrink Size : %llu" OSS_NEWLINE,
-=======
-                            "       Pool ID : %u" OSS_NEWLINE
-                            "   Max Objects : %u" OSS_NEWLINE
-                            "         Delta : %u" OSS_NEWLINE
-                            "   Objects Num : %u" OSS_NEWLINE
-                            "   Segment Num : %u" OSS_NEWLINE
-                            "     Begin Pos : %u" OSS_NEWLINE
-                            " High Watermark: %u" OSS_NEWLINE
-                            " Acquire Times : %llu" OSS_NEWLINE
-                            " Release Times : %llu" OSS_NEWLINE
-                            "     OOM Times : %llu" OSS_NEWLINE
-                            "     OOL Times : %llu" OSS_NEWLINE
-                            "   Shrink Size : %llu" OSS_NEWLINE,
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                             _poolId,
                             getRealMaxNumOfObjs(),
                             _ballonNumOfObjs,
@@ -904,7 +886,6 @@ namespace engine
          {
 /*
 #ifdef _DEBUG
-<<<<<<< HEAD
             SDB_ASSERT( _search( pSegment, header ), "Not found" ) ;
 #endif // _DEBUG
 */
@@ -920,35 +901,6 @@ namespace engine
          if ( pNum )
          {
             --(*pNum) ;
-=======
-         {
-            // WARNING: getIndexByAddr should not hold _latch
-            // acquire lock for _segList access
-            ossScopedLock lock( &_latch ) ;
-
-            // verify the index
-            UINT32  packedPoolID = _GET_PACKED_POOLID( _poolId ) ;
-            UTIL_OBJIDX index = UTIL_INVALID_OBJ_INDEX ;
-            UINT32 segs       = _segList.size() ;
-            _objX  * pSegList = NULL ;
-
-            for ( UTIL_OBJIDX i = 0; i < segs ; i++ )
-            {
-               pSegList = _segList[ i ]._pBuff ;
-               if (    pSegList
-                    && ( pT >= &( pSegList[ 0 ]._obj ) )
-                    && ( pT <= &( pSegList[ _delta - 1 ]._obj ) ) )
-               {
-                  index = i * _delta +
-                        ((CHAR*)pT - (CHAR*)&(pSegList[0]._obj)) / sizeof( _objX );
-                  index = ( ( index & _SEGMENT_OBJ_INDEX_MASK ) | packedPoolID ) ;
-
-                  SDB_ASSERT( ( index == idx ),
-                              "Verification failed, invalid address." ) ;
-                  break ;
-               }
-            }
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          }
 
          return pNext ;
@@ -1058,32 +1010,9 @@ namespace engine
          }
          else
          {
-<<<<<<< HEAD
             // exceed the lock resorce limitation
             rc = SDB_OSS_UP_TO_LIMIT ;
             goto error ;
-=======
-            SAFE_OSS_FREE( pListTmp ) ;
-            if ( NULL != pSegTmp )
-            {
-               SDB_OSS_DEL [] pSegTmp ;
-            }
-            rc = SDB_OOM ;
-#ifdef _DEBUG
-            PD_LOG( PDERROR,
-                    "Out of memory when expand : %d" OSS_NEWLINE
-                    " Delta         : %u" OSS_NEWLINE
-                    " MaxNumOfObjs  : %u" OSS_NEWLINE
-                    " NewSize       : %u" OSS_NEWLINE
-                    " ObjT Size     : %u" OSS_NEWLINE
-                    " ObjX Size     : %u" OSS_NEWLINE,
-                    rc,
-                    _maxNumOfObjs,
-                    newSize,
-                    sizeof( T ),
-                    sizeof( _objX ) ) ;
-#endif
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          }
 
       done:
@@ -1523,31 +1452,11 @@ namespace engine
       //
       INT32 acquire( void *&pT, UTIL_OBJIDX *pIndex = NULL )
       {
-<<<<<<< HEAD
          INT32   rc                = SDB_OK ;
          BOOLEAN bLatched          = FALSE ;
          _objX * pObjX             = NULL ;
          _blockX *pSegBlock        = NULL ;
          BOOLEAN hasBallonUp       = FALSE ;
-=======
-         rc = SDB_INVALIDARG ;
-         PD_LOG( PDERROR,
-                 "Failed initialize due to invalid arguments, rc:%d" OSS_NEWLINE
-                 "   PoolID          : %d" OSS_NEWLINE
-                 "   NumberOfObjs    : %u" OSS_NEWLINE
-                 "   MaxNumberOfObjs : %u" OSS_NEWLINE
-                 "   ObjT Size       : %u" OSS_NEWLINE
-                 "   ObjX Size       : %u" OSS_NEWLINE,
-                 rc,
-                 poolId,
-                 numberOfObjs,
-                 maxNumberOfObjs,
-                 sizeof( T ),
-                 sizeof( _objX ) ) ;
-         SDB_ASSERT( ( SDB_OK == rc ), "Invalid arguments" ) ;
-         goto error ;
-      }
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
          _latch.get() ;
          bLatched = TRUE ;
@@ -1598,7 +1507,6 @@ namespace engine
                      }
                   }
 
-<<<<<<< HEAD
                   if ( !hasBallonUp )
                   {
                      // exceed limitation
@@ -1631,74 +1539,10 @@ namespace engine
                      goto error ;
                   }
                }
-=======
-   // acquire a free object, upon successfully return,
-   //   idx -- the index of the object
-   //   pT  -- the address of the object
-   template < class T >
-   OSS_INLINE INT32 _utilSegmentPool< T >::acquire( UTIL_OBJIDX & idx, T * &pT )
-   {
-      INT32   rc                = SDB_OK ;
-      BOOLEAN bLatched          = FALSE ;
-      _objX * pObjX             = NULL ;
-      _blockX *pSegBlock        = NULL ;
-      const UINT32 packedPoolID = _GET_PACKED_POOLID( _poolId ) ;
-
-      //         *       .
-      // -       -       -       -      -
-      //         ^
-      //         |  ==>
-      //         begin
-      // when _begin is equal to '_numOfObjs - 1',
-      // means lack of free objects and we will
-      // add a new segment and expand the _list
-      _latch.get() ;
-      bLatched = TRUE ;
-      if ( _isInitialized )
-      {
-         if ( !_list || _needExpand() ) // need to expand
-         {
-            if ( _isUpToLimit() )
-            {
-               // exceed limitation
-               ++_oolTimes ;
-               rc = SDB_OSS_UP_TO_LIMIT ;
-               PD_LOG( PDINFO,
-                       "Exceed resource limitation "
-                       "when attempt to expand: %d" OSS_NEWLINE
-                       "  PoolID        : %u" OSS_NEWLINE
-                       "  Delta         : %u" OSS_NEWLINE
-                       "  MaxNumOfObjs  : %u" OSS_NEWLINE
-                       "  NumOfObjs     : %u" OSS_NEWLINE
-                       "  BeginPos      : %u" OSS_NEWLINE
-                       "  ObjT Size     : %u" OSS_NEWLINE
-                       "  ObjX Size     : %u" OSS_NEWLINE,
-                       rc,
-                       _poolId,
-                       _delta,
-                       _maxNumOfObjs,
-                       _numOfObjs,
-                       _begin,
-                       sizeof( T ),
-                       sizeof( _objX ) ) ;
-               goto error ;
-            }
-            else if ( _pHandler &&
-                      !_pHandler->canAllocSegment( (UINT64)_delta *
-                                                   sizeof( _objX ) ) )
-            {
-               ++_oolTimes ;
-               rc = SDB_OSS_UP_TO_LIMIT ;
-               PD_LOG( PDINFO, "Can't alloc segment[%u * %u(ObjT Size: %u)] "
-                       "by handler", _delta, sizeof( _objX ), sizeof( T ) ) ;
-               goto error ;
-            }
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
                rc = _expandList() ;
                if ( rc )
                {
-<<<<<<< HEAD
                   if ( hasBallonUp )
                   {
                      _ballonNumOfObjs -= _delta ;
@@ -1715,24 +1559,15 @@ namespace engine
                   }
 
                   PD_LOG( ( SDB_OSS_UP_TO_LIMIT == rc ? PDINFO : PDWARNING ),
-=======
-                  ++_oomTimes ;
-                  PD_LOG( PDWARNING,
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                           "Failed to expand : %d" OSS_NEWLINE
                           "  PoolID         : %u" OSS_NEWLINE
                           "  Delta          : %u" OSS_NEWLINE
                           "  MaxNumOfObjs   : %u" OSS_NEWLINE
-<<<<<<< HEAD
                           "BallonNumOfObjs  : %u" OSS_NEWLINE
                           "  NumOfObjs      : %u" OSS_NEWLINE
                           "  Allocated Num  : %u" OSS_NEWLINE
                           " Pending SegNum  : %u" OSS_NEWLINE
                           " Compact SegNum  : %u" OSS_NEWLINE
-=======
-                          "  NumOfObjs      : %u" OSS_NEWLINE
-                          "  BeginPos       : %u" OSS_NEWLINE
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                           "  ObjT Size      : %u" OSS_NEWLINE
                           "  ObjX Size      : %u" OSS_NEWLINE,
                           rc,
@@ -1902,37 +1737,13 @@ namespace engine
                   }
                }
 
-<<<<<<< HEAD
                ++_releaseTimes ;
-=======
-            if ( pObjX )
-            {
-               PD_LOG( PDSEVERE,
-                       "Sanity check failed: " OSS_NEWLINE
-                       "  PoolID    : %u" OSS_NEWLINE
-                       "  Obj Idx   : %u" OSS_NEWLINE
-                       "  EyeCatcher: %x" OSS_NEWLINE
-                       "  Flag      : %x" OSS_NEWLINE
-                       "  ObjX addr : %p" OSS_NEWLINE
-                       "  ObjT addr : %p" OSS_NEWLINE
-                       "  ObjT Size : %u" OSS_NEWLINE
-                       "  ObjX Size : %u" OSS_NEWLINE,
-                       _poolId,
-                       _list[ _begin ],
-                       pObjX->_eyeCatcher,
-                       pObjX->_flag,
-                       pObjX,
-                       &( pObjX->_obj ),
-                       sizeof( T ),
-                       sizeof( _objX ) ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             }
             else
             {
                rc = SDB_SYS ;
                PD_LOG( PDSEVERE,
                        "Sanity check failed: " OSS_NEWLINE
-<<<<<<< HEAD
                        "  PoolID        : %u" OSS_NEWLINE
                        "  Segment Size  : %u" OSS_NEWLINE
                        "  Obj EyeCatcher: %x" OSS_NEWLINE
@@ -1943,13 +1754,6 @@ namespace engine
                        "  ObjT addr     : %p" OSS_NEWLINE
                        "  ObjT Size     : %u" OSS_NEWLINE
                        "  ObjX Size     : %u" OSS_NEWLINE,
-=======
-                       "  PoolID    : %u" OSS_NEWLINE
-                       "  Obj Idx   : %u" OSS_NEWLINE
-                       "  ObjX addr : %p" OSS_NEWLINE
-                       "  ObjT Size : %u" OSS_NEWLINE
-                       "  ObjX Size : %u" OSS_NEWLINE,
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                        _poolId,
                        (UINT32)_segList.size(),
                        pObjX->_eyeCatcher,
@@ -2065,7 +1869,6 @@ namespace engine
             }
          }
 
-<<<<<<< HEAD
          numOfObjects = _numOfObjs ;
 
          if ( _emptyNum > freeSegToKeep )
@@ -2081,43 +1884,6 @@ namespace engine
                if ( !_pHandler->canShrink( getObjXSize(), numOfObjects, _allocatedNum ) )
                {
                   goto done ;
-=======
-               if ( NULL != pObjX  )
-               {
-                  PD_LOG( PDSEVERE,
-                          "Sanity check failed: " OSS_NEWLINE
-                          "  PoolID    : %u" OSS_NEWLINE
-                          "  Obj Idx   : %u" OSS_NEWLINE
-                          "  EyeCatcher: %x" OSS_NEWLINE
-                          "  Flag      : %x" OSS_NEWLINE
-                          "  ObjX addr : %p" OSS_NEWLINE
-                          "  ObjT addr : %p" OSS_NEWLINE
-                          "  ObjT Size : %u" OSS_NEWLINE
-                          "  ObjX Size : %u" OSS_NEWLINE,
-                          _poolId,
-                          idx,
-                          pObjX->_eyeCatcher,
-                          pObjX->_flag,
-                          pObjX,
-                          &( pObjX->_obj ),
-                          sizeof( T ),
-                          sizeof( _objX ) ) ;
-               }
-               else
-               {
-                  PD_LOG( PDSEVERE,
-                          "Sanity check failed: " OSS_NEWLINE
-                          "  PoolID    : %u" OSS_NEWLINE
-                          "  Obj Idx   : %u" OSS_NEWLINE
-                          "  ObjX addr : %p" OSS_NEWLINE
-                          "  ObjT Size : %u" OSS_NEWLINE
-                          "  ObjX Size : %u" OSS_NEWLINE,
-                          _poolId,
-                          idx,
-                          pObjX,
-                          sizeof( T ),
-                          sizeof( _objX ) ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                }
             }
             else if ( ratio >= UTIL_SEGMENT_OBJ_IN_USE_RATIO_THRESHOLD )
@@ -2649,15 +2415,10 @@ namespace engine
             len = ossSnprintf( pBuff, buffLen,
                                OSS_NEWLINE
                                "---- Segment Name( %s ) ----" OSS_NEWLINE
-<<<<<<< HEAD
                                "         Pool Num : %u" OSS_NEWLINE
                                "       Total Size : %llu" OSS_NEWLINE
                                "        Used Size : %llu" OSS_NEWLINE
                                "        Free Size : %llu" OSS_NEWLINE,
-=======
-                               "      Pool Num : %u" OSS_NEWLINE
-                               "    Total Size : %llu" OSS_NEWLINE,
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                                _name,
                                _poolNum,
                                totalSize,
@@ -2699,20 +2460,12 @@ namespace engine
             len += ossSnprintf( pBuff + len, buffLen - len,
                                 OSS_NEWLINE
                                 "Segment Stat" OSS_NEWLINE
-<<<<<<< HEAD
                                 "    Acquire Times : %llu (Inc: %lld )" OSS_NEWLINE
                                 "    Release Times : %llu (Inc: %lld )" OSS_NEWLINE
                                 "        OOM Times : %llu (Inc: %lld )" OSS_NEWLINE
                                 "        OOL Times : %llu (Inc: %lld )" OSS_NEWLINE
                                 "     Ballon Times : %llu (Inc: %lld )" OSS_NEWLINE
                                 "      Shrink Size : %llu (Inc: %lld )" OSS_NEWLINE,
-=======
-                                " Acquire Times : %llu (Inc: %lld )" OSS_NEWLINE
-                                " Release Times : %llu (Inc: %lld )" OSS_NEWLINE
-                                "     OOM Times : %llu (Inc: %lld )" OSS_NEWLINE
-                                "     OOL Times : %llu (Inc: %lld )" OSS_NEWLINE
-                                "   Shrink Size : %llu (Inc: %lld )" OSS_NEWLINE,
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                                 acquireTimes,
                                 acquireTimes - _acquireTimes,
                                 releaseTimes,

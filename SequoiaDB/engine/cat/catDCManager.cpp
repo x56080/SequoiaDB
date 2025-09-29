@@ -568,18 +568,6 @@ namespace engine
             rc = processCmdAlterMaintenanceMode( handle, &dcMgr,
                                                  objQuery, retObjBuilder, FALSE ) ;
          }
-         else if ( 0 == ossStrcasecmp( pAction,
-                                       CMD_VALUE_NAME_ENABLE_RESTORING ) )
-         {
-            rc = processCmdEnableRestoring(handle, &dcMgr, objQuery,
-                                           retObjBuilder);
-         }
-         else if ( 0 == ossStrcasecmp( pAction,
-                                       CMD_VALUE_NAME_DISABLE_RESTORING ) )
-         {
-            rc = processCmdDisableRestoring(handle, &dcMgr, objQuery,
-                                            retObjBuilder);
-         }
          else
          {
             PD_LOG( PDERROR, "The value[%s] of field[%s] is not valid "
@@ -1277,7 +1265,6 @@ namespace engine
       // active works did not finish in read-only mode
       _pCatCB->setNeedForceSecondary( TRUE ) ;
 
-<<<<<<< HEAD
    done:
       return rc ;
    error:
@@ -1655,87 +1642,10 @@ namespace engine
          goto error ;
       }
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    done:
       return rc ;
    error:
       goto done ;
-   }
-
-   // Sets the RestoreInProgress state to true
-   INT32 _catDCManager::processCmdEnableRestoring( const NET_HANDLE &handle,
-                                                   _clsDCMgr *pDCMgr,
-                                                   const BSONObj &objQuery,
-                                                   BSONObjBuilder &retObjBuilder )
-   {
-      INT32 rc = SDB_OK ;
-      clsDCBaseInfo *pBaseInfo = pDCMgr->getDCBaseInfo() ;
-      vector< string > vecGroups ;
-
-      _pCatCB->getGroupsName( vecGroups ) ;
-      vecGroups.push_back( CATALOG_GROUPNAME ) ;
-
-      // make return obj
-      if (( rc = _pCatCB->makeGroupsObj( retObjBuilder, vecGroups )))
-      {
-         PD_LOG( PDERROR, "Make return groups object failed, rc: %d", rc );
-         return rc;
-      }
-
-      // If prepare has already been run and this is to be set a second time,
-      // nothing should happen. We want to set the value in the DC to true but
-      // it is already true.
-      if ( !pBaseInfo->isRestoring() )
-      {
-         // update to collection
-         if (( rc = catUpdateDCStatus( FIELD_NAME_RESTORE, TRUE,
-                                      _pEduCB, _majoritySize(), _pDmsCB,
-                                      _pDpsCB )))
-         {
-            // update failed, undo the change
-            catUpdateDCStatus( FIELD_NAME_RESTORE, FALSE, _pEduCB, 1,
-                               _pDmsCB, _pDpsCB ) ;
-            return rc;
-         }
-      }
-      return rc ;
-   }
-
-   // Sets the RestoreInProgress state to false
-   INT32 _catDCManager::processCmdDisableRestoring( const NET_HANDLE &handle,
-                                                    _clsDCMgr *pDCMgr,
-                                                    const BSONObj &objQuery,
-                                                    BSONObjBuilder &retObjBuilder )
-   {
-      INT32 rc = SDB_OK ;
-      clsDCBaseInfo *pBaseInfo = pDCMgr->getDCBaseInfo() ;
-      vector< string > vecGroups ;
-
-      _pCatCB->getGroupsName( vecGroups ) ;
-      vecGroups.push_back( CATALOG_GROUPNAME ) ;
-
-      // make return obj
-      if (( rc = _pCatCB->makeGroupsObj( retObjBuilder, vecGroups )))
-      {
-         PD_LOG( PDERROR, "Make return groups object failed, rc: %d", rc );
-         return rc;
-      }
-
-      if ( pBaseInfo->isRestoring() )
-      {
-         // update to collection
-         if (( rc = catUpdateDCStatus( FIELD_NAME_RESTORE, FALSE,
-                                      _pEduCB, _majoritySize(), _pDmsCB,
-                                      _pDpsCB )))
-         {
-            // update failed, undo the change
-            catUpdateDCStatus( FIELD_NAME_RESTORE, TRUE, _pEduCB, 1,
-                               _pDmsCB, _pDpsCB ) ;
-            return rc;
-         }
-      }
-      return rc ;
    }
 
    void _catDCManager::_fillRspHeader( MsgHeader * rspMsg,
@@ -1885,10 +1795,6 @@ namespace engine
                            FIELD_NAME_ADDRESS << option->getCatAddr() ) <<
                          FIELD_NAME_ACTIVATED << true <<
                          FIELD_NAME_READONLY << false <<
-<<<<<<< HEAD
-=======
-                         FIELD_NAME_RESTORE << false <<
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                          FIELD_NAME_CSUNIQUEHWM << 0 <<
                          FIELD_NAME_TASKHWM << 0 <<
                          FIELD_NAME_CAT_VERSION << CATALOG_VERSION_CUR <<
@@ -1928,7 +1834,6 @@ namespace engine
             tmpBusName = dcBaseInfo.getBusinessName() ;
 
             if ( clusterName != tmpClsName || businessName != tmpBusName )
-<<<<<<< HEAD
             {
                PD_LOG( PDEVENT, "Cluster name[%s] or business name[%s] has "
                        "changed to %s:%s", tmpClsName.c_str(), tmpBusName.c_str(),
@@ -1956,35 +1861,6 @@ namespace engine
             // add recycle bin if not exists
             if ( !infoObj.hasField( FIELD_NAME_RECYCLEBIN ) )
             {
-=======
-            {
-               PD_LOG( PDEVENT, "Cluster name[%s] or business name[%s] has "
-                       "changed to %s:%s", tmpClsName.c_str(), tmpBusName.c_str(),
-                       clusterName.c_str(), businessName.c_str() ) ;
-               BSONObj updator = BSON( "$set" << BSON(
-                 FIELD_NAME_DATACENTER "." FIELD_NAME_CLUSTERNAME << clusterName <<
-                 FIELD_NAME_DATACENTER "." FIELD_NAME_BUSINESSNAME << businessName )
-                                      ) ;
-               BSONObj matcher = BSON( FIELD_NAME_TYPE <<
-                                       CAT_BASE_TYPE_GLOBAL_STR ) ;
-               rc = rtnUpdate( CAT_SYSDCBASE_COLLECTION_NAME, matcher, updator,
-                               BSONObj(), 0, _pEduCB, _pDmsCB, _pDpsCB, 1,
-                               &upResult ) ;
-               PD_RC_CHECK( rc, PDERROR, "Update global info[%s] failed, rc: %d",
-                            updator.toString().c_str(), rc ) ;
-               if ( upResult.updateNum() <= 0 )
-               {
-                  PD_LOG( PDERROR, "Not found global info, matcher: %s",
-                          matcher.toString().c_str() ) ;
-                  rc = SDB_SYS ;
-                  goto error ;
-               }
-            }
-
-            // add recycle bin if not exists
-            if ( !infoObj.hasField( FIELD_NAME_RECYCLEBIN ) )
-            {
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                BSONObj updator =
                      BSON( "$set" <<
                            BSON( FIELD_NAME_RECYCLEBIN <<
@@ -2099,7 +1975,6 @@ namespace engine
    error:
       goto done ;
    }
-<<<<<<< HEAD
 
    INT32 _catDCManager::_checkMaintenanceMode( const BSONObj &option,
                                                const BSONObj &groupObj,
@@ -2269,6 +2144,4 @@ namespace engine
    }
 
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 }

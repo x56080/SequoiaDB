@@ -269,11 +269,7 @@ namespace engine
                                        _pmdEDUCB *cb ) ;
 
          virtual INT32     _getAdvanceOrderby( BSONObj &orderby,
-<<<<<<< HEAD
                                        BOOLEAN isRange = FALSE ) const ;
-=======
-                                               BOOLEAN isRange = FALSE ) const ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
          virtual INT32     _prepareDoAdvance ( _pmdEDUCB *cb ) ;
 
@@ -354,13 +350,7 @@ namespace engine
          _rtnScanner               *_scanner ;
 
          // TBSCAN
-<<<<<<< HEAD
          dmsRecordID                _recordID ;
-=======
-         dmsExtentID                _extentID ;
-         dmsExtentID                _lastExtentID ;
-         dmsExtentID                _lastExtLID ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          BOOLEAN                    _segmentScan ;
          SEGMENT_VEC                _segments ;
          // Index scan

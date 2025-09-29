@@ -210,10 +210,7 @@ namespace engine
       BOOLEAN              _reopened ;
       BOOLEAN              _isMetaWrote ; // used in CREATEONLY mode
       INT32                _opType ;
-<<<<<<< HEAD
       BOOLEAN              _hasSubmitMetric ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       _monAppCB            _totalDeltaMonApp ; // keep the changes of the session
    } ;
    typedef class _rtnContextShdOfLob rtnContextShdOfLob ;

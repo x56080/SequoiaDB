@@ -95,9 +95,9 @@ namespace seadapter
    #define SEADPT_INVALID_LID            -1
 
    #define SEADPT_EXE_FILE_NAME          "sdbseadapter"
-   #define SEADPT_CFG_FILE_NAME          SEADPT_EXE_FILE_NAME ".conf"
+   #define SEADPT_CFG_FILE_NAME          SEADPT_EXE_FILE_NAME".conf"
    #define SEADPT_LOG_DIR                "sdbseadapterlog"
-   #define SEADPT_LOG_FILE_NAME          SEADPT_EXE_FILE_NAME ".log"
+   #define SEADPT_LOG_FILE_NAME          SEADPT_EXE_FILE_NAME".log"
    #define SEADPT_LOCK_FILE_NAME         ".sdbseadapter.lock"
 }
 

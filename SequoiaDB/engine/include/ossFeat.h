@@ -132,11 +132,11 @@
    #include <linux/posix_types.h>
 
    // must not include select.h before the file
-   #if defined (SDB_ENGINE) || defined (SDB_CLIENT) || defined (SDB_STP)
+   #if defined (SDB_ENGINE) || defined (SDB_CLIENT)
       #ifdef _SYS_SELECT_H
       # error "Can't include <sys/select.h> before the file"
       #endif //_SYS_SELECT_H
-   #endif //SDB_ENGINE || SDB_CLIENT || SDB_STP
+   #endif //SDB_ENGINE || SDB_CLIENT
 
    // __FD_SETSIZE is only for Linux and HPUX
    #undef __FD_SETSIZE
@@ -163,10 +163,6 @@
    #define OSS_FD_SETSIZE  FD_SETSIZE
    #include <sys/types.h>
 #endif
-
-#if defined (SDB_ENGINE)
-#define BOOST_THREAD_VERSION 3
-#endif//SDB_ENGINE
 
 #endif /* OSSFEAT_H_ */
 

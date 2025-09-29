@@ -2,13 +2,8 @@
  * @Description   : 备份恢复固定集合 seqDB-11833
  * @Author        : liuxiaoxuan
  * @CreateTime    : 2019.07.17
-<<<<<<< HEAD
  * @LastEditTime  : 2023.08.18
  * @LastEditors   : liuli
-=======
- * @LastEditTime  : 2022.01.20
- * @LastEditors   : 钟子明
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
  ******************************************************************************/
 
 main( test );
@@ -34,11 +29,7 @@ function test ()
    bakBackup( db, { "Name": backupName, GroupName: groupNames } );
 
    var nodeinfo;
-<<<<<<< HEAD
    var cmd = new Remote( COORDHOSTNAME, CMSVCNAME ).getCmd();
-=======
-   var cmd = new Remote().getCmd();
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    try
    {
       checkBackupInfo( db, "check default backup failed", backupName );

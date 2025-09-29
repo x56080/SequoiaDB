@@ -43,10 +43,7 @@
 #include "qgmParamTable.hpp"
 #include "qgmPlanContainer.hpp"
 #include "sdbInterface.hpp"
-<<<<<<< HEAD
 #include "mthCommon.hpp"
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 #include "rtnFetchBase.hpp"
 #include <map>
 #include <vector>

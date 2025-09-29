@@ -38,29 +38,20 @@ SDB_INSERT_RETURN_ID：插入成功后返回记录中字段 _id 的内容。
 SDB_INSERT_CONTONDUP：发生索引键冲突时，忽略该条新记录并继续插入其他记录。
 .IP \[bu] 2
 SDB_INSERT_REPLACEONDUP：发生索引键冲突时，新记录将覆盖原有记录，并继续插入其他记录。
-<<<<<<< HEAD
 .IP \[bu] 2
 SDB_INSERT_CONTONDUP_ID：发生 $id
 索引键冲突时，忽略该条新记录并继续插入其他记录。
 .IP \[bu] 2
 SDB_INSERT_REPLACEONDUP_ID：发生 $id
 索引键冲突时，新记录将覆盖原有记录，并继续插入其他记录。
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 .RS
 .PP
 \f[B]Note：\f[]
 .IP \[bu] 2
-<<<<<<< HEAD
 SDB_INSERT_RETURN_ID 支持与其他标志位同时指定，多个取值间用“|”分隔。
 .IP \[bu] 2
 对于 SDB_INSERT_CONTONDUP、SDB_INSERT_REPLACEONDUP、SDB_INSERT_CONTONDUP_ID 和
 SDB_INSERT_REPLACEONDUP_ID，不支持同时指定多项。
-=======
-如果需要指定多个取值，可用 "|" 分隔。
-.IP \[bu] 2
-SDB_INSERT_CONTONDUP 和 SDB_INSERT_REPLACEONDUP 不能同时指定。
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 .RE
 .RE
 .IP \[bu] 2
@@ -87,7 +78,6 @@ ReplaceOnDup（ \f[I]boolean\f[] ）：与参数 flag 中的 SDB_INSERT_REPLACEO
 .PP
 格式：\f[C]ReplaceOnDup: true\f[]
 .RE
-<<<<<<< HEAD
 .IP \[bu] 2
 ContOnDupID（ \f[I]boolean\f[] ）：与参数 flag 中的 SDB_INSERT_CONTONDUP_ID
 行为一致
@@ -102,8 +92,6 @@ SDB_INSERT_REPLACEONDUP_ID 行为一致
 .PP
 格式：\f[C]ReplaceOnDupID: true\f[]
 .RE
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 .RS
 .PP
 \f[B]Note:\f[]
@@ -111,12 +99,8 @@ SDB_INSERT_REPLACEONDUP_ID 行为一致
 如果不指定参数 options，插入操作默认不返回字段 _id
 的内容，且发生索引键冲突时将报错。
 .IP \[bu] 2
-<<<<<<< HEAD
 对于参数 ContOnDup、ReplaceOnDup、ContOnDupID 和
 ReplaceOnDupID，不支持同时指定多项为 true。
-=======
-参数 ContOnDup 和 ReplaceOnDup 不能同时指定。
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 .RE
 .RE
 .SH 返回值
@@ -204,21 +188,13 @@ T{
 T}@T{
 T}@T{
 T}@T{
-<<<<<<< HEAD
 返回情况如下：
-=======
-返回情况如下：<
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-<<<<<<< HEAD
  \- 当插入单条
-=======
-br> \- 当插入单条
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}
 T{
 T}@T{
@@ -284,21 +260,13 @@ T{
 T}@T{
 T}@T{
 T}@T{
-<<<<<<< HEAD
 字段中的最大值
-=======
-字段中的最大值 <
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-<<<<<<< HEAD
  \- 当存在多个
-=======
-br> \- 当存在多个
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}
 T{
 T}@T{
@@ -475,11 +443,7 @@ T}
 获取错误码。更多错误处理可以参考常见错误处理指南。
 .SH 版本
 .PP
-<<<<<<< HEAD
 v3.4 及以上版本
-=======
-v5.0 及以上版本
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 .SH 示例
 .IP \[bu] 2
 在集合 sample.employee 中插入一条记录

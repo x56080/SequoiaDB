@@ -25,7 +25,7 @@ sdblobtool 是 SequoiaDB 巨杉数据库的[大对象][lob]管理工具，可以
 | --dstcollection |      | 目标数据库的集合全名，--operation 参数值为 migration 该值有效          |
 | --dsthost       |      | 目标数据库的协调节点地址，--operation 参数值为 migration 该值有效      |
 | --dstpasswd     |      | 目标数据库的密码，--operation 参数值为 migration 该值有效              |
-| --dstservice    |      | 目标数据库的协调节点服务名，--operation 参数值为 migration 该值有效              |
+| --dstservice    |      | 目标数据库的密码，--operation 参数值为 migration 该值有效              |
 | --dstusrname    |      | 目标数据库的用户名，--operation 参数值为 migration 该值有效            |
 | --ignorefe      |      | 是否导入目标集合中已存在的大对象，--operation 参数值为 import 或 migration 该值有效，默认值为 false，不导入目标集合中已存在的大对象                                                        |
 | --prefer        |      | 优先选择的实例，--operation 参数值为 export 该值有效，默认值为 M；取值 m 或 M 指 master，s 或 S 表示 slave，a 或 A 表示 anyone，1~7 表示 node1~node7                                         |

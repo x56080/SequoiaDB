@@ -258,12 +258,8 @@ namespace import
                       BOOLEAN ignoreNull,
                       BOOLEAN forceNotUTF8,
                       BOOLEAN strictFieldNum,
-<<<<<<< HEAD
                       BOOLEAN autoAddStrDel,
                       BOOLEAN mustHasIDField);
-=======
-                      BOOLEAN autoAddStrDel);
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       ~CSVRecordParser();
       INT32 parseRecord(const CHAR* data, INT32 length, bson& obj);
       INT32 parseFields( const CHAR* data, INT32 length, BOOLEAN isHeaderline );

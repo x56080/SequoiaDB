@@ -272,11 +272,7 @@ public class MetaDataUtils extends SdbTestBase {
                     while ( cursor.hasNext() ) {
                         BSONObject clList = ( BSONObject ) cursor.getNext();
                         String name = clList.get( "Name" ).toString() ;
-<<<<<<< HEAD
                         if ( name.indexOf("SYSRECYCLE") == -1 &&name.indexOf( clName ) >= 0 ){ 
-=======
-                        if ( name.indexOf("SYSRECYCLE") == -1 && name.indexOf( clName ) >= 0 ) {
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                             oneNodeData.add( clList );
                         }
                     }

@@ -681,119 +681,103 @@ namespace replay
       PD_LOG(PDEVENT, "Replay from LSN[%lld] to LSN[%lld]",
              currentLSN, endLSN);
 
-      try
+      while (currentLSN < endLSN)
       {
-         while (currentLSN < endLSN)
+         i++;
+
+         if (!_isRunning)
          {
-            i++;
+            rc = SDB_INTERRUPT;
+            PD_LOG(PDINFO, "Replay is interrupted");
+            goto done;
+         }
 
-            if (!_isRunning)
-            {
-               rc = SDB_INTERRUPT;
-               PD_LOG(PDINFO, "Replay is interrupted");
-               goto done;
-            }
+         rc = logFile.read(currentLSN,
+                           sizeof(dpsLogRecordHeader),
+                           (CHAR*)&logHeader);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "Failed to read log file[%s], lsn[%lld], rc:%d",
+                   logFile.path().c_str(), currentLSN, rc);
+            goto error;
+         }
 
-            rc = logFile.read(currentLSN,
-                              sizeof(dpsLogRecordHeader),
-                              (CHAR*)&logHeader);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "Failed to read log file[%s], lsn[%lld], rc:%d",
-                      logFile.path().c_str(), currentLSN, rc);
-               goto error;
-            }
+         if (logHeader._lsn != currentLSN)
+         {
+            rc = SDB_DPS_INVALID_LSN;
+            PD_LOG(PDERROR, "Invalid LSN, expect[%lld], real[%lld]",
+                   currentLSN, logHeader._lsn);
+            goto error;
+         }
 
-            if (logHeader._lsn != currentLSN)
-            {
-               rc = SDB_DPS_INVALID_LSN;
-               PD_LOG(PDERROR, "Invalid LSN, expect[%lld], real[%lld]",
-                      currentLSN, logHeader._lsn);
-               goto error;
-            }
+         rc = _ensureBufSize(logHeader._length);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "Failed to ensure buf size, rc=%d", rc);
+            goto error;
+         }
 
-            rc = _ensureBufSize(logHeader._length);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "Failed to ensure buf size, rc=%d", rc);
-               goto error;
-            }
+         rc = logFile.read(currentLSN, logHeader._length, _buf);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "Failed to read log file[%s], lsn[%lld], rc=%d",
+                   logFile.path().c_str(), currentLSN, rc);
+            goto error;
+         }
 
-            rc = logFile.read(currentLSN, logHeader._length, _buf);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "Failed to read log file[%s], lsn[%lld], rc=%d",
-                      logFile.path().c_str(), currentLSN, rc);
-               goto error;
-            }
+         log.clear();
+         rc = log.load(_buf);
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "Failed to load log, lsn[%lld], rc=%d",
+                   currentLSN, rc);
+            goto error;
+         }
 
-            log.clear();
-            rc = log.load(_buf);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "Failed to load log, lsn[%lld], rc=%d",
-                      currentLSN, rc);
-               goto error;
-            }
-
-            if (_filter.isFiltered(log, _options->dump()))
-            {
-               _monitor.setLastLSN(currentLSN);
-               currentLSN += logHeader._length;
-               _monitor.setNextLSN(currentLSN);
-               if (_filter.largerThanMaxLSN(logHeader._lsn))
-               {
-                  PD_LOG(PDINFO, "Current LSN[%lld] is larger than max LSN",
-                         logHeader._lsn);
-                  goto done;
-               }
-               continue;
-            }
-
-            if (_options->dump())
-            {
-               _dumpLog(log);
-            }
-            else
-            {
-               rc = _replayLog(_buf);
-               if (SDB_OK != rc)
-               {
-                  PD_LOG(PDERROR, "Failed to replay log, lsn[%lld], rc=%d",
-                         logHeader._lsn, rc);
-                  goto error;
-               }
-            }
-
-            doReplayCount++;
+         if (_filter.isFiltered(log, _options->dump()))
+         {
             _monitor.setLastLSN(currentLSN);
             currentLSN += logHeader._length;
-            _monitor.opCount(logHeader._type);
             _monitor.setNextLSN(currentLSN);
-
-            if (0 == doReplayCount%_options->intervalNum())
+            if (_filter.largerThanMaxLSN(logHeader._lsn))
             {
-               rc = _monitorStore->flushAndSave() ;
-               PD_RC_CHECK( rc, PDERROR, 
-                            "Failed to save monitor, rc=%d", rc ) ;
+               PD_LOG(PDINFO, "Current LSN[%lld] is larger than max LSN",
+                      logHeader._lsn);
+               goto done;
+            }
+            continue;
+         }
 
-               rc = _checkSubmit() ;
-               PD_RC_CHECK( rc, PDERROR, 
-                            "Failed to check submit, rc = %d", rc ) ;
+         if (_options->dump())
+         {
+            _dumpLog(log);
+         }
+         else
+         {
+            rc = _replayLog(_buf);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "Failed to replay log, lsn[%lld], rc=%d",
+                      logHeader._lsn, rc);
+               goto error;
             }
          }
-      } // end of try
-      catch(std::exception &e)
-      {
-         rc = SDB_SYS ;
-         PD_LOG(PDERROR, 
-                "With LSN(%llu) unexpected error happened:%s",
-                currentLSN, e.what());
-         std::cerr << "unexpected error happened: "
-                   << e.what()
-                   << std::endl;
-      }
 
+         doReplayCount++;
+         _monitor.setLastLSN(currentLSN);
+         currentLSN += logHeader._length;
+         _monitor.opCount(logHeader._type);
+         _monitor.setNextLSN(currentLSN);
+
+         if (0 == doReplayCount%_options->intervalNum())
+         {
+            rc = _monitorStore->flushAndSave() ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to save monitor, rc=%d", rc ) ;
+
+            rc = _checkSubmit() ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to check submit, rc = %d", rc ) ;
+         }
+      }
 
    done:
       return rc;

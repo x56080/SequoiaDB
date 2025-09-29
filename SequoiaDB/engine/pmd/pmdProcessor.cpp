@@ -58,11 +58,6 @@
 #include "pdTrace.hpp"
 #include "pmdTrace.hpp"
 #include "clsResourceContainer.hpp"
-<<<<<<< HEAD
-=======
-#include "ossMemPool.hpp"
-#include "utilStr.hpp"
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 #include "pdSecure.hpp"
 #include "rtnInsertModifier.hpp"
 #include "monCB.hpp"
@@ -497,7 +492,7 @@ namespace engine
             rc = _checkTransOperator( checkDps, TRUE ) ;
             if ( SDB_OK == rc )
             {
-               rc = rtnTransBegin( eduCB(), TRUE, eduCB()->isGlobTransOn() ) ;
+               rc = rtnTransBegin( eduCB(), TRUE ) ;
             }
             else
             {
@@ -583,7 +578,6 @@ namespace engine
                   "hint: %s\nFlag: 0x%08x(%u)", getSession()->sessionName(),
                   PD_SECURE_OBJ( selector ), PD_SECURE_OBJ( updator ),
                   hint.toPoolString().c_str(), flags, flags ) ;
-<<<<<<< HEAD
 
          if ( getSession()->privilegeCheckEnabled() )
          {
@@ -592,8 +586,6 @@ namespace engine
             rc = getSession()->checkPrivilegesForActionsOnExact( pCollectionName, actions );
             PD_RC_CHECK( rc, PDERROR, "Failed to check privileges, rc: %d" );
          }
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
          rc = rtnUpdate( pCollectionName, selector, updator, hint,
                          flags, eduCB(), _pDMSCB, dpsCB, 1, &upResult ) ;
@@ -1127,7 +1119,7 @@ namespace engine
 
    INT32 _pmdDataProcessor::_beginTrans( BOOLEAN isAutoCommit )
    {
-      return rtnTransBegin( eduCB(), isAutoCommit, eduCB()->isGlobTransOn() ) ;
+      return rtnTransBegin( eduCB(), isAutoCommit ) ;
    }
 
    INT32 _pmdDataProcessor::_onGetMoreReqMsg( MsgHeader * msg,
@@ -1138,13 +1130,8 @@ namespace engine
       INT32 rc         = SDB_OK ;
       INT32 numToRead  = 0 ;
       rtnContextPtr pContext ;
-<<<<<<< HEAD
-=======
-      const CHAR *pHint = NULL ;
-      BSONObj hint ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
-      rc = msgExtractGetMore( (CHAR*)msg, &numToRead, &contextID, &pHint ) ;
+      rc = msgExtractGetMore ( (CHAR*)msg, &numToRead, &contextID ) ;
       PD_RC_CHECK( rc, PDERROR, "Session[%s] extract get more msg failed, "
                    "rc: %d", getSession()->sessionName(), rc ) ;
 
@@ -1170,22 +1157,7 @@ namespace engine
       eduCB()->setMonQueryCB( pContext->getMonQueryCB() ) ;
       needRollback = pContext->needRollback() ;
 
-      if ( pHint )
-      {
-         try
-         {
-            hint = BSONObj( pHint ) ;
-         }
-         catch ( std::exception &e )
-         {
-            rc = ossException2RC( &e ) ;
-            PD_LOG( PDERROR, "An exception occurred when building hint "
-                    "bsonobj: %s, rc: %d", e.what(), rc ) ;
-            goto error ;
-         }
-      }
-
-      rc = rtnGetMore ( pContext, numToRead, buffObj, eduCB(), _pRTNCB, hint ) ;
+      rc = rtnGetMore ( pContext, numToRead, buffObj, eduCB(), _pRTNCB ) ;
       if ( rc )
       {
          contextID = -1 ;
@@ -1355,7 +1327,6 @@ namespace engine
          }
          else
          {
-<<<<<<< HEAD
             if ( getSession()->privilegeCheckEnabled() )
             {
                authActionSet actions;
@@ -1365,9 +1336,6 @@ namespace engine
             }
             rc = rtnTransBegin( eduCB() ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to begin transaction, rc: %d", rc );
-=======
-            rc = rtnTransBegin( eduCB(), FALSE, eduCB()->isGlobTransOn() ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          }
       }
    done:
@@ -1389,10 +1357,10 @@ namespace engine
                            eduCB()->getTransRC() ) ;
 
          // add last op info
-         MON_SAVE_OP_DETAIL(
-               eduCB()->getMonAppCB(), MSG_BS_TRANS_COMMIT_REQ,
-               "TransactionID: %s",
-               dpsTransIDToString( eduCB()->getTransID() ).c_str() ) ;
+         MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), MSG_BS_TRANS_COMMIT_REQ,
+                             "TransactionID: 0x%016x(%llu)",
+                             eduCB()->getTransID(),
+                             eduCB()->getTransID() ) ;
 
          if ( getSession()->privilegeCheckEnabled() )
          {
@@ -1420,10 +1388,10 @@ namespace engine
       if ( eduCB()->isTransaction() )
       {
          // add last op info
-         MON_SAVE_OP_DETAIL(
-               eduCB()->getMonAppCB(), MSG_BS_TRANS_ROLLBACK_REQ,
-               "TransactionID: %s",
-               dpsTransIDToString( eduCB()->getTransID() ).c_str() ) ;
+         MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), MSG_BS_TRANS_ROLLBACK_REQ,
+                             "TransactionID: 0x%016x(%llu)",
+                             eduCB()->getTransID(),
+                             eduCB()->getTransID() ) ;
 
          if ( getSession()->privilegeCheckEnabled() )
          {
@@ -1887,7 +1855,7 @@ namespace engine
    void _pmdDataProcessor::_onDetach()
    {
       // rollback transaction
-      if ( eduCB()->getTransID().isValid() )
+      if ( DPS_INVALID_TRANS_ID != eduCB()->getTransID() )
       {
          INT32 rc = doRollback() ;
          if ( rc )
@@ -1982,7 +1950,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       INT32 opCode = msg->opCode ;
       coordResource *pResource = sdbGetResourceContainer()->getResource() ;
-      //pmdRestorePendingChecker restorePendingChecker( msg ) ;
 
       PD_TRACE_ENTRY ( SDB_PMDCOORDPROC_PROCOORDMSG ) ;
 
@@ -1990,16 +1957,6 @@ namespace engine
       // communicating messages with other nodes
       pmdUrgentEventShield _shield( eduCB() ) ;
 
-<<<<<<< HEAD
-=======
-      //if ( !restorePendingChecker.isOpAllowed() )
-      if ( FALSE )
-      {
-         rc = SDB_RESTORE_IN_PROGRESS ;
-         goto error ;
-      }
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       if ( MSG_AUTH_VERIFY_REQ == opCode || MSG_AUTH_VERIFY1_REQ == opCode )
       {
          rc = SDB_COORD_UNKNOWN_OP_REQ ;
@@ -2303,15 +2260,9 @@ namespace engine
       const CHAR *pSelector            = NULL ;
       const CHAR *pOrderby             = NULL ;
       const CHAR *pHint                = NULL ;
-<<<<<<< HEAD
 
       rtnContextPtr pContext ;
 
-=======
-
-      rtnContextPtr pContext ;
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       rc = msgExtractQuery( (const CHAR*)msg, &flag, &pCollectionName,
                             &numToSkip, &numToReturn, &pQuery, &pSelector,
                             &pOrderby, &pHint ) ;
@@ -2635,58 +2586,5 @@ namespace engine
       goto done ;
    }
 
-   BOOLEAN pmdRestorePendingChecker::_isOpAllowed()
-   {
-      switch ( _msg->opCode )
-      {
-      case MSG_AUTH_VERIFY_REQ: /// connect
-      case MSG_AUTH_VERIFY1_REQ: /// connect
-      case MSG_COM_REMOTE_DISC: /// disconnect
-      case MSG_COM_SESSION_INIT_REQ:  /// init session
-      case MSG_BS_GETMORE_REQ:  // get more for list
-      case MSG_BS_DISCONNECT:   ////// disconnect session
-      case MSG_BS_INTERRUPTE:   ////// interrupt session
-      case MSG_BS_KILL_CONTEXT_REQ:  //// kill context in session
-         {
-            return TRUE ;
-         }
-      case MSG_BS_QUERY_REQ:
-         {
-            // only the whitelisted commands are allowed
-            const CHAR *pCollectionName = NULL ;
-            // ignore error, only want the collection name
-            msgExtractQuery ( (const CHAR *)_msg, NULL, &pCollectionName,
-                              NULL, NULL, NULL, NULL, NULL, NULL ) ;
-            if (rtnIsCommand(pCollectionName))
-            {
-               // trim the leading $ from the collection name
-               const CHAR *pCmdName = pCollectionName + 1;
-               if (utilStrStartsWith(pCmdName, CMD_NAME_PREFIX_RESTORE) ||
-                   utilStrStartsWith(pCmdName, CMD_NAME_PREFIX_GET) ||
-                   utilStrStartsWith(pCmdName, CMD_NAME_PREFIX_LIST) ||
-                   utilStrStartsWith(pCmdName, CMD_NAME_PREFIX_SNAPSHOT) ||
-                   utilStrStartsWith(pCmdName, CMD_NAME_PREFIX_TEST) ||
-                   utilStrStartsWith(pCmdName, CMD_NAME_PREFIX_TRACE) ||
-                   utilStrStartsWith(pCmdName, CMD_NAME_STP_PREFIX))
-               {
-                  return TRUE;
-               }
-            }
-            break ;
-         }
-      default:
-         break ;
-      }
-      return FALSE ;
-   }
-
-   BOOLEAN pmdRestorePendingChecker::isOpAllowed()
-   {
-      if ( pmdGetKRCB()->isDBRestoring() )
-      {
-         return _isOpAllowed() ;
-      }
-      return TRUE;
-   }
 }
 

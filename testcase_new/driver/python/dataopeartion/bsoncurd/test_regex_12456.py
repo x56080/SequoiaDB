@@ -34,14 +34,10 @@ class TestRegex12456(testlib.SdbTestBase):
       data1 = Regex('^a', 'i')
       r1 = Regex('^b', 'i')
       self.assertFalse(data1 == r1)
-<<<<<<< HEAD
       if( sys.version_info[:2] <= (3, 5) ):
          data2 = Regex('^b',4)
       else:
          data2 = Regex('^b', re.RegexFlag.DOTALL | re.RegexFlag.UNICODE)
-=======
-      data2 = Regex('^b', 4)
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       data3 = Regex.from_native(re.compile(b'.c', 0))
       data4 = '{"$regex": "^d", "$options": "x"}'
       record = [{"a": data1}, {"a": data2}, {"a": data3}, {"a": loads(data4, compile_re=False)}]
@@ -54,7 +50,6 @@ class TestRegex12456(testlib.SdbTestBase):
                          dumps({'a': data2}),
                          dumps({'a': data3}),
                          dumps({'a': loads(data4, compile_re=False)})]
-<<<<<<< HEAD
       elif( sys.version_info[:2] <= (3, 5) ):
          expect_record = [dumps({"a": bson.SON([("$regex", "^a"), ("$options", "iu")])}),
                           dumps({"a": bson.SON([("$regex", "^b"), ("$options", "lu")])}),
@@ -63,11 +58,6 @@ class TestRegex12456(testlib.SdbTestBase):
       else:
          expect_record = [dumps({"a": bson.SON([("$regex", "^a"), ("$options", "iu")])}),
                           dumps({"a": bson.SON([("$regex", "^b"), ("$options", "su")])}),
-=======
-      else:
-         expect_record = [dumps({"a": bson.SON([("$regex", "^a"), ("$options", "iu")])}),
-                          dumps({"a": bson.SON([("$regex", "^b"), ("$options", "lu")])}),
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                           dumps({"a": bson.SON([("$regex", ".c"), ("$options", "u")])}),
                           dumps({"a": bson.SON([("$regex", "^d"), ("$options", "ux")])})]
       expect_type = [{"a": "regex"}, {"a": "regex"}, {"a": "regex"}, {"a": "regex"}]

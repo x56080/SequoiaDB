@@ -21,11 +21,7 @@
 
 > **Note:**
 >
-<<<<<<< HEAD
 > 创建集合空间的详细参数说明可参考 [createCL()][createCL]。
-=======
-> 创建集合的详细参数说明可参考 [createCL()][createCL]。
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 ##CRUD 操作##
 
@@ -143,11 +139,7 @@ Return 3 row(s).
 删除集合空间 sample 下的集合 employee
 
 ```lang-javascript
-<<<<<<< HEAD
 > db.sample.dropCL({"employee"})
-=======
-> db.sample.dropCL("employee")
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 ```
 
 > **Note:**
@@ -156,11 +148,7 @@ Return 3 row(s).
 
 ##参考##
 
-<<<<<<< HEAD
 更多集合空间操作可参考 [SdbCollection][cl]。
-=======
-更多集合操作可参考 [SdbCollection][cl]。
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 
 

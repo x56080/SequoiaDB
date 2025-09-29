@@ -23,10 +23,7 @@ import com.sequoiadb.flink.source.reader.SDBReader;
 import com.sequoiadb.flink.source.split.SDBSplit;
 import com.sequoiadb.flink.source.split.SDBSplitListSerializer;
 import com.sequoiadb.flink.source.split.SDBSplitSerializer;
-<<<<<<< HEAD
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 import org.apache.flink.api.connector.source.Boundedness;
 import org.apache.flink.api.connector.source.Source;
 import org.apache.flink.api.connector.source.SourceReader;

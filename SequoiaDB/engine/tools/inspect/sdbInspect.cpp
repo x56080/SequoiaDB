@@ -403,7 +403,6 @@ INT32 archiveCiRecord( ciLinkList< ciNode > &nodes,
 
    if ( link.count() > 0 )
    {
-<<<<<<< HEAD
       rc = rBuffer->writeBuffer( "  # Node state 1 means node has the record,"
                                  " or 0 means not, and x means node invalid"
                                  OSS_NEWLINE
@@ -419,46 +418,17 @@ INT32 archiveCiRecord( ciLinkList< ciNode > &nodes,
       rc = rBuffer->writeBuffer( "   There is no record different"
                                  OSS_NEWLINE "" OSS_NEWLINE ) ;
       CHECK_VALUE( ( SDB_OK != rc ), error ) ;
-=======
-      len += ossSnprintf( buffer + len, bufferSize - len,
-                          "  # Node state 1 means node has the record,"
-                          " or 0 means not, and x means node invalid"
-                          OSS_NEWLINE
-                          "  # The order is ascended by node index."
-                          OSS_NEWLINE
-                          "    There is [%d] piece of records that haven't been"
-                          " synchronized."
-                          OSS_NEWLINE "" OSS_NEWLINE, link.count() ) ;
-      CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
-   }
-   else
-   {
-      len += ossSnprintf( buffer + len, bufferSize - len,
-                          "   There is no record different"
-                          OSS_NEWLINE "" OSS_NEWLINE ) ;
-      CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    }
 
    link.resetCurrentNode() ;
    rd = link.getHead() ;
    while ( NULL != rd )
    {
-<<<<<<< HEAD
       rc = rBuffer->writeBuffer( "  -record     : %s" OSS_NEWLINE,
                                  rd->_bson.toString().c_str() ) ;
       CHECK_VALUE( ( SDB_OK != rc ), error ) ;
       rc = rBuffer->writeBuffer(  "  -Node State : " ) ;
       CHECK_VALUE( ( SDB_OK != rc ), error ) ;
-=======
-      len += ossSnprintf( buffer + len, bufferSize - len,
-                          "  -record     : %s" OSS_NEWLINE,
-                          rd->_bson.toString().c_str() ) ;
-      CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
-      len += ossSnprintf( buffer + len, bufferSize - len,
-                          "  -Node State : " ) ;
-      CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       nodes.resetCurrentNode() ;
       node = nodes.getHead() ;
@@ -2499,7 +2469,6 @@ INT32 getCiCollection( ciNode *master, const CHAR *csName,
          BOOLEAN csMatch     = FALSE ;
          BOOLEAN allMatch    = FALSE ;
          BOOLEAN inMainSubCl = FALSE ;
-         BOOLEAN skipSYSRBS  = FALSE ;
          std::string name    = collection.getField( "Name" ).String() ;
          std::size_t dot     = name.find( '.' ) ;
          if ( std::string::npos == dot )
@@ -2522,12 +2491,7 @@ INT32 getCiCollection( ciNode *master, const CHAR *csName,
                                          CI_CL_NAME_SIZE ) ) ) ;
          inMainSubCl = ( hasCs && hasCollection &&
                          isInMainSubCl( fullName, name.c_str(), mainCls ) ) ;
-         // skip SYSRBS if it is not specified
-         skipSYSRBS = ( !hasCs  &&
-                        ( 0 == ossStrncmp( SYSRBS_NAME, cs.c_str(),
-                                           (sizeof(SYSRBS_NAME) - 1) ) ) ) ;
-
-         if ( ( !hasCs && !skipSYSRBS ) || csMatch || allMatch || inMainSubCl )
+         if ( !hasCs || csMatch || allMatch || inMainSubCl )
          {
             ciCollection *cl = collections.createNode() ;
             if ( NULL == cl )

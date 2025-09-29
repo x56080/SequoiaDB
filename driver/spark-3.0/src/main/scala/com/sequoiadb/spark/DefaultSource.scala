@@ -17,10 +17,7 @@
 package com.sequoiadb.spark
 
 import com.sequoiadb.base.{DBCollection, Sequoiadb}
-<<<<<<< HEAD
 import com.sequoiadb.spark.SdbConfig.mergeGlobalConfs
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 import org.apache.spark.sql.sources._
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{DataFrame, Row, SQLContext, SaveMode}
@@ -48,11 +45,7 @@ class DefaultSource extends DataSourceRegister
       */
     override def createRelation(sqlContext: SQLContext,
                                 parameters: Map[String, String]): BaseRelation = {
-<<<<<<< HEAD
         SdbRelation(sqlContext, parameters)
-=======
-        SdbRelation(sqlContext, SdbConfig(parameters))
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     }
 
     /**
@@ -61,11 +54,7 @@ class DefaultSource extends DataSourceRegister
     override def createRelation(sqlContext: SQLContext,
                                 parameters: Map[String, String],
                                 schema: StructType): BaseRelation = {
-<<<<<<< HEAD
         SdbRelation(sqlContext, parameters, Option(schema))
-=======
-        SdbRelation(sqlContext, SdbConfig(parameters), Option(schema))
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     }
 
     /**
@@ -75,17 +64,12 @@ class DefaultSource extends DataSourceRegister
                                 mode: SaveMode,
                                 parameters: Map[String, String],
                                 data: DataFrame): BaseRelation = {
-<<<<<<< HEAD
         val config = SdbConfig(sqlContext.getAllConfs, parameters)
-=======
-        val config = SdbConfig(parameters)
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
         // if it return true, that means we should write the data into collection
         if (isCollectionWritable(config, mode)) {
             // get schema for execution
             val schema = data.schema
-<<<<<<< HEAD
             val sourceInfo = SdbConnUtil.generateSourceInfo(sqlContext.sparkContext)
 
             data.foreachPartition((it: Iterator[Row]) => {
@@ -95,15 +79,6 @@ class DefaultSource extends DataSourceRegister
         }
 
         SdbRelation(sqlContext, parameters, Option(data.schema))
-=======
-            data.foreachPartition((it: Iterator[Row]) => {
-                // always write through coord node which specified in config
-                new SdbWriter(config).write(it, schema)
-            })
-        }
-
-        SdbRelation(sqlContext, config, Option(data.schema))
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     }
 
     // Check whether a collection is writable for the given mode

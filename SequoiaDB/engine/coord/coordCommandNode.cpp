@@ -2477,33 +2477,6 @@ namespace engine
       return SDB_OK ;
    }
 
-<<<<<<< HEAD
-=======
-   void _coordCMDRemoveNode::_notify2GroupNodes( pmdEDUCB *cb,
-                                                 coordCMDArguments *pArgs )
-   {
-      CoordGroupInfoPtr groupPtr ;
-      _netRouteAgent *pAgent = _pResource->getRouteAgent() ;
-
-      if ( SDB_OK == _pResource->updateGroupInfo( pArgs->_targetName.c_str(),
-                                                  groupPtr,
-                                                  cb ) )
-      {
-         _MsgClsGInfoUpdated updated ;
-         updated.groupID = groupPtr->groupID() ;
-
-         MsgRouteID routeID ;
-         UINT32 index = 0 ;
-
-         while ( SDB_OK == groupPtr->getNodeID( index++, routeID,
-                                                MSG_ROUTE_SHARD_SERVCIE ) )
-         {
-            pAgent->syncSend( routeID, (MsgHeader *)&updated ) ;
-         }
-      }
-   }
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    AUDIT_OBJ_TYPE _coordCMDRemoveNode::_getAuditObjectType() const
    {
       return AUDIT_OBJ_NODE ;
@@ -2824,15 +2797,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( COORD_REELECT_EXE ) ;
-<<<<<<< HEAD
-=======
-      const CHAR *pQuery = NULL ;
-      const CHAR *gpName = NULL ;
-      CoordGroupInfoPtr gpInfo ;
-      CoordGroupList gpLst ;
-      CHAR *pBuffer = NULL ;
-      INT32 buffSize = 0 ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       const CHAR *cmdName = NULL ;
       const CHAR *pQuery = NULL ;
@@ -2848,11 +2812,7 @@ namespace engine
 
       contextID = -1 ;
 
-<<<<<<< HEAD
       rc = msgExtractQuery( (const CHAR*)pMsg, NULL, &cmdName,
-=======
-      rc = msgExtractQuery( (const CHAR*)pMsg, NULL, NULL,
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                             NULL, NULL, &pQuery,
                             NULL, NULL, NULL ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to parse the message, rc: %d", rc ) ;

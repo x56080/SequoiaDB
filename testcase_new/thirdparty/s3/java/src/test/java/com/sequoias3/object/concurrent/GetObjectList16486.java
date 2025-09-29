@@ -37,9 +37,9 @@ public class GetObjectList16486 extends S3TestBase {
     private String keyName = "/dir/dir";
     private String prefix = "/dir";
     private String delimiter = "/";
-    private List< String > expresultList1 = new ArrayList< String >();
-    private List< String > expresultList2 = new ArrayList< String >();
-    private List< String > expresultList3 = new ArrayList< String >();
+    private List< String > expresultList1 = Collections.synchronizedList(new ArrayList<String>());
+    private List< String > expresultList2 = Collections.synchronizedList(new ArrayList<String>());
+    private List< String > expresultList3 = Collections.synchronizedList(new ArrayList<String>());
     private int objectTotalNum = 100;
     private AmazonS3 s3Client = null;
     private String[] acessKeys = null;

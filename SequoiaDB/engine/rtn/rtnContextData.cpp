@@ -128,19 +128,12 @@ namespace engine
       _numToReturn      = -1 ;
       _numToSkip        = 0 ;
 
-<<<<<<< HEAD
-=======
-      _extentID         = DMS_INVALID_EXTENT ;
-      _lastExtentID     = DMS_INVALID_EXTENT ;
-      _lastExtLID       = DMS_INVALID_EXTENT ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       _segmentScan      = FALSE ;
       _indexBlockScan   = FALSE ;
       _scanner          = NULL ;
       _direction        = 0 ;
       _queryModifier    = NULL ;
       _indexCover       = FALSE ;
-<<<<<<< HEAD
 
       // Save query activity
       _enableMonContext = TRUE ;
@@ -155,20 +148,6 @@ namespace engine
       rtnScannerFactory f ;
       f.releaseScanner( _scanner ) ;
       _scanner = NULL ;
-=======
-
-      // Save query activity
-      _enableMonContext = TRUE ;
-      _enableQueryActivity = TRUE ;
-      _rsFilter         = NULL ;
-      _appendRIDFilter  = FALSE ;
-      _isPrevSec        = FALSE ;
-   }
-
-   _rtnContextData::~_rtnContextData ()
-   {
-      rtnScannerFactory f ;
-      f.releaseScanner( _scanner ) ;
 
       // first release plan
       setQueryActivity( _hitEnd ) ;
@@ -192,6 +171,16 @@ namespace engine
          _dmsCB->writeDown( pmdGetThreadEDUCB() ) ;
       }
       _isPrevSec = FALSE ;
+   }
+
+   _rtnTBScanner* _rtnContextData::getTBScanner ()
+   {
+      return dynamic_cast<_rtnTBScanner *>( _scanner ) ;
+   }
+
+   _rtnIXScanner* _rtnContextData::getIXScanner ()
+   {
+      return dynamic_cast<_rtnIXScanner *>( _scanner ) ;
    }
 
    const CHAR* _rtnContextData::name() const
@@ -219,951 +208,6 @@ namespace engine
    {
       _rsFilter = rsFilter ;
       _appendRIDFilter = appendMode ;
-   }
-
-   INT32 _rtnContextData::_getAdvanceOrderby( BSONObj &orderby,
-                                              BOOLEAN isRange ) const
-   {
-      INT32 rc = SDB_OK ;
-
-      /// not ixscan
-      if ( IXSCAN != scanType() )
-      {
-         PD_LOG_MSG( PDERROR, "Table scan does not support advance" ) ;
-         rc = SDB_OPTION_NOT_SUPPORT ;
-      }
-      else if ( !isRange && _planRuntime.getPlan()->sortRequired() )
-      {
-         PD_LOG_MSG( PDERROR, "Orderby is not the same with index" ) ;
-         rc = SDB_OPTION_NOT_SUPPORT ;
-      }
-      else
-      {
-         orderby = _planRuntime.getPlan()->getKey().getOrderBy() ;
-
-         if ( orderby.isEmpty() )
-         {
-            if ( isRange )
-            {
-               orderby = _planRuntime.getPlan()->getKeyPattern() ;
-               SDB_ASSERT( !orderby.isEmpty(), "orderby should not be empty!" ) ;
-               if ( -1 == _planRuntime.getPlan()->getDirection() )
-               {
-                  try
-                  {
-                     BSONObjBuilder ob ;
-                     BSONObjIterator it( orderby ) ;
-                     INT32 value = 0 ;
-                     while ( it.more() )
-                     {
-                        BSONElement ele = it.next() ;
-                        value = - ele.Int() ;
-                        ob.append( ele.fieldName(), value ) ;
-                     }
-                     orderby = ob.obj() ;
-                  }
-                  catch( std::exception &e )
-                  {
-                     rc = ossException2RC( &e ) ;
-                     PD_LOG ( PDERROR, "Failed to generate orderby bson, occur "
-                              "exception: %s, rc: %d", e.what(), rc ) ;
-                  }
-               }
-            }
-            else
-            {
-               PD_LOG_MSG( PDERROR, "Context does not support advance without "
-                           "orderby" ) ;
-               rc = SDB_OPTION_NOT_SUPPORT ;
-            }
-         }
-      }
-
-      return rc ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCTXDATA__PREPRAREDOADVANCE, "_rtnContextData::_prepareDoAdvance" )
-   INT32 _rtnContextData::_prepareDoAdvance ( _pmdEDUCB *cb )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB__RTNCTXDATA__PREPRAREDOADVANCE ) ;
-
-      rtnAdvanceSection sec ;
-      INT32 type = MSG_ADVANCE_TO_FIRST_IN_VALUE ;
-
-      if ( _nextAdvanceSecIt == _advanceSectionList.end() )
-      {
-         _hitEnd = TRUE ;
-         rc = SDB_DMS_EOC ;
-         goto done ;
-      }
-
-      sec = *_nextAdvanceSecIt ;
-      if ( !sec.startIncluded )
-      {
-         type = MSG_ADVANCE_TO_NEXT_OUT_VALUE ;
-      }
-
-      rc = _doAdvance( type, sec.prefixNum, sec.startKey, _orderBy,
-                       sec.startKey, TRUE, cb ) ;
-      if ( rc )
-      {
-         goto error ;
-      }
-
-   done:
-      PD_TRACE_EXITRC ( SDB__RTNCTXDATA__PREPRAREDOADVANCE, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCTXDATA__EXTRACTALLEQUALSEC, "_rtnContextData::_extractAllEqualSec" )
-   INT32 _rtnContextData::_extractAllEqualSec( INT32 indexFieldNum,
-                                               const BSONElement &eNum,
-                                               const BSONElement &eVal )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB__RTNCTXDATA__EXTRACTALLEQUALSEC ) ;
-
-      INT32 prefixNum = 0 ;
-      BSONObj indexValue ;
-      BSONObjIterator indexIt ;
-
-      try
-      {
-         if ( NumberInt != eNum.type() )
-         {
-            PD_LOG_MSG( PDERROR, "Field[%s] must be Int",
-                        FIELD_NAME_PREFIX_NUM ) ;
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
-         else if ( Array != eVal.type() )
-         {
-            PD_LOG_MSG( PDERROR, "Field[%s] must be Array",
-                        FIELD_NAME_INDEXVALUE ) ;
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
-
-         prefixNum = eNum.numberInt() ;
-         if ( prefixNum <= 0 )
-         {
-            PD_LOG_MSG( PDERROR, "Field[%s] is invalid",
-                        FIELD_NAME_PREFIX_NUM ) ;
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
-         else if ( prefixNum > indexFieldNum )
-         {
-            PD_LOG ( PDWARNING, "PrefixNum[%d] is too long, truncate to "
-                     "the same as the number of order by field", prefixNum ) ;
-            prefixNum = indexFieldNum ;
-         }
-
-         indexValue = eVal.embeddedObject() ;
-         indexIt = BSONObjIterator( indexValue ) ;
-
-         while ( indexIt.more() )
-         {
-            BSONObj keyObj ;
-            BSONObjBuilder startBuilder ;
-            BSONObjBuilder endBuilder ;
-            rtnAdvanceSection section ;
-            BSONObjIterator orderIt( _orderBy ) ;
-            BSONObjIterator keyObjIt ;
-            BSONElement elem = indexIt.next() ;
-
-            if ( Object != elem.type() )
-            {
-               PD_LOG_MSG( PDERROR, "The section of Field[%s] must be Array",
-                           FIELD_NAME_INDEXVALUE ) ;
-               rc = SDB_INVALIDARG ;
-               goto error ;
-            }
-
-            keyObj = elem.embeddedObject() ;
-            keyObjIt = BSONObjIterator ( keyObj ) ;
-            for ( INT32 i = 0 ; i < prefixNum && orderIt.more() ; ++ i )
-            {
-
-               BSONElement eField = orderIt.next() ;
-               if ( keyObjIt.more() )
-               {
-                  BSONElement eVal = keyObjIt.next() ;
-                  startBuilder.appendAs ( eVal, "" ) ;
-                  endBuilder.appendAs ( eVal, "" ) ;
-               }
-               else
-               {
-                  if ( eField.numberInt() > 0 )
-                  {
-                     startBuilder.appendMinKey( "" ) ;
-                     endBuilder.appendMaxKey( "" ) ;
-                  }
-                  else
-                  {
-                     startBuilder.appendMaxKey( "" ) ;
-                     endBuilder.appendMinKey( "" ) ;
-                  }
-               }
-            }
-
-            section.prefixNum = prefixNum ;
-            section.startIncluded = TRUE ;
-            section.endIncluded = TRUE ;
-            section.startKey = startBuilder.obj() ;
-            section.endKey = endBuilder.obj() ;
-            _advanceSectionList.push_back ( section ) ;
-         }
-      }
-      catch( std::exception &e )
-      {
-         rc = ossException2RC( &e ) ;
-         PD_LOG( PDERROR, "Failed to extract all equal section, rc: %d, "
-                 "Occur exception: %s", rc, e.what() ) ;
-         goto error ;
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB__RTNCTXDATA__EXTRACTALLEQUALSEC, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCTXDATA__EXTRACTRANGESEC, "_rtnContextData::_extractRangeSec" )
-   INT32 _rtnContextData::_extractRangeSec( INT32 indexFieldNum,
-                                            const BSONElement &eNum,
-                                            const BSONElement &eVal,
-                                            const BSONElement &eIndexValueInc )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB__RTNCTXDATA__EXTRACTRANGESEC ) ;
-
-      BSONObj keyVal ;
-      BSONObj objValueInc ;
-      BSONObj objPrefixNum ;
-      BSONObj objValue ;
-      BSONObjIterator objValueIt ;
-      BSONObjIterator objValueIncIt ;
-      BSONObjIterator objPrefixNumIt ;
-
-      try
-      {
-         if ( Array != eIndexValueInc.type() )
-         {
-            PD_LOG_MSG( PDERROR, "Field[%s] must be Array",
-                        FIELD_NAME_INDEXVALUE_INCLUDED );
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
-         else if ( Array != eNum.type() )
-         {
-            PD_LOG_MSG( PDERROR, "Field[%s] must be Array",
-                        FIELD_NAME_PREFIX_NUM ) ;
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
-         else if ( Array != eVal.type() )
-         {
-            PD_LOG_MSG( PDERROR, "Field[%s] must be Array",
-                        FIELD_NAME_INDEXVALUE ) ;
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
-
-         objValueInc = eIndexValueInc.embeddedObject() ;
-         objPrefixNum = eNum.embeddedObject() ;
-         objValue = eVal.embeddedObject() ;
-
-         if ( objValueInc.nFields() != objValue.nFields() )
-         {
-            PD_LOG_MSG( PDERROR, "The number of Field[%s] must be equal "
-                        "to Field[%s]", FIELD_NAME_INDEXVALUE_INCLUDED,
-                        FIELD_NAME_INDEXVALUE ) ;
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
-         else if( objPrefixNum.nFields() != objValue.nFields() )
-         {
-            PD_LOG_MSG( PDERROR, "The number of Field[%s] must be equal "
-                        "to Field[%s]", FIELD_NAME_PREFIX_NUM,
-                        FIELD_NAME_INDEXVALUE ) ;
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
-
-         objValueIt = BSONObjIterator( objValue ) ;
-         objValueIncIt = BSONObjIterator( objValueInc ) ;
-         objPrefixNumIt = BSONObjIterator( objPrefixNum ) ;
-
-         while ( objValueIt.more() )
-         {
-            INT32 prefixNum ;
-            BOOLEAN start = TRUE ;
-            BSONObj indexValue ;
-            BSONObj indexValueInc ;
-            BSONObjIterator indexValueIt ;
-            BSONObjIterator indexValueIncIt ;
-            rtnAdvanceSection section ;
-
-            BSONElement eValue = objValueIt.next() ;
-            BSONElement eValueInc = objValueIncIt.next() ;
-            BSONElement ePrefixNum = objPrefixNumIt.next() ;
-
-            if ( eValue.type() != Array )
-            {
-               PD_LOG_MSG( PDERROR, "The section of Field[%s] must be Array",
-                           FIELD_NAME_INDEXVALUE ) ;
-               rc = SDB_INVALIDARG ;
-               goto error ;
-            }
-            else if ( eValueInc.type() != Array )
-            {
-               PD_LOG_MSG( PDERROR, "The section of Field[%s] must be Array",
-                           FIELD_NAME_INDEXVALUE_INCLUDED ) ;
-               rc = SDB_INVALIDARG ;
-               goto error ;
-            }
-            else if ( ePrefixNum.type() != NumberInt )
-            {
-               PD_LOG_MSG( PDERROR, "The value of Field[%s] must be "
-                           "Int", FIELD_NAME_PREFIX_NUM ) ;
-               rc = SDB_INVALIDARG ;
-               goto error ;
-            }
-
-            prefixNum = ePrefixNum.numberInt() ;
-            if ( prefixNum <= 0 )
-            {
-               PD_LOG_MSG( PDERROR, "Field[%s] is invalid",
-                           FIELD_NAME_PREFIX_NUM ) ;
-               rc = SDB_INVALIDARG ;
-               goto error ;
-            }
-            else if ( prefixNum > indexFieldNum )
-            {
-               PD_LOG ( PDWARNING, "PrefixNum[%d] is too long, truncate to "
-                        "the same as the number of order by field", prefixNum ) ;
-               prefixNum = indexFieldNum ;
-            }
-
-            indexValue = eValue.embeddedObject() ;
-            indexValueInc = eValueInc.embeddedObject() ;
-            indexValueIt = BSONObjIterator( indexValue ) ;
-            indexValueIncIt = BSONObjIterator( indexValueInc ) ;
-
-            while ( indexValueIt.more() )
-            {
-               BSONObj keyObj ;
-               BSONObjBuilder builder ;
-               BSONObjIterator orderIt( _orderBy ) ;
-               BSONObjIterator keyObjIt ;
-               BSONElement eIndexValue = indexValueIt.next() ;
-               BSONElement eIndexValueInc = indexValueIncIt.next() ;
-
-               if ( eIndexValue.type() != Object )
-               {
-                  PD_LOG_MSG( PDERROR, "The single index value of "
-                              "section '%s' of Field[%s] must be Object",
-                              eIndexValue.toString().c_str(),
-                              FIELD_NAME_INDEXVALUE ) ;
-                  rc = SDB_INVALIDARG ;
-                  goto error ;
-               }
-               else if ( eIndexValueInc.type() != Bool )
-               {
-                  PD_LOG_MSG( PDERROR, "The single index include value of "
-                              "section '%s' of Field[%s] must be Bool",
-                              eIndexValueInc.toString().c_str(),
-                              FIELD_NAME_INDEXVALUE_INCLUDED ) ;
-                  rc = SDB_INVALIDARG ;
-                  goto error ;
-               }
-
-               keyObj = eIndexValue.embeddedObject() ;
-               keyObjIt = BSONObjIterator ( keyObj ) ;
-               for ( INT32 i = 0 ; i < prefixNum && orderIt.more() ; ++i )
-               {
-                  BSONElement eField = orderIt.next() ;
-                  if ( keyObjIt.more() )
-                  {
-                     builder.appendAs( keyObjIt.next(), "" ) ;
-                  }
-                  else
-                  {
-                     BOOLEAN isPositive = eField.numberInt() > 0 ;
-                     if ( isPositive == start )
-                     {
-                        builder.appendMinKey( "" ) ;
-                     }
-                     else
-                     {
-                        builder.appendMaxKey( "" ) ;
-                     }
-                  }
-               }
-               keyVal = builder.obj() ;
-
-               if ( start )
-               {
-                  start = FALSE;
-                  section.prefixNum = prefixNum ;
-                  section.startIncluded = eIndexValueInc.Bool() ;
-                  section.startKey = keyVal ;
-               }
-               else
-               {
-                  INT32 cmp = 0 ;
-
-                  section.endIncluded = eIndexValueInc.Bool() ;
-                  section.endKey = keyVal ;
-
-                  cmp = _woNCompare( section.startKey, section.endKey,
-                                     FALSE, section.prefixNum, _orderBy ) ;
-                  if ( cmp > 0 )
-                  {
-                     rc = SDB_INVALIDARG ;
-                     PD_LOG_MSG( PDERROR, "The start and end values of section "
-                                 "[%s, %s] don't meet the index scan order",
-                                 section.startKey.toString().c_str(),
-                                 section.endKey.toString().c_str() ) ;
-                     goto error ;
-                  }
-                  _advanceSectionList.push_back ( section ) ;
-                  break ;
-               }
-            }
-         }
-      }
-      catch( std::exception &e )
-      {
-         rc = ossException2RC( &e ) ;
-         PD_LOG( PDERROR, "Failed to extract range section, rc: %d, "
-                 "Occur exception: %s", rc, e.what() ) ;
-         goto error ;
-      }
-
-   done:
-      PD_TRACE_EXITRC ( SDB__RTNCTXDATA__EXTRACTRANGESEC, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCTXDATA__SETADVANCESECTION, "_rtnContextData::setAdvanceSection" )
-   INT32 _rtnContextData::setAdvanceSection ( const BSONObj &arg )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB__RTNCTXDATA__SETADVANCESECTION ) ;
-
-      BSONElement eNum ;
-      BSONElement eVal ;
-      BSONElement eValueInc ;
-      BSONElement eIsAllEqual ;
-      INT32 indexFieldNum = 0 ;
-      BOOLEAN isAllEqual = FALSE ;
-      ixmIndexCB *pIndexCB = NULL ;
-
-      rc = _getAdvanceOrderby( _orderBy, TRUE ) ;
-      if ( rc )
-      {
-         goto error ;
-      }
-
-      // check index
-      pIndexCB = _scanner->getIndexCB() ;
-      if ( !pIndexCB )
-      {
-         PD_LOG ( PDERROR, "Failed to allocate memory for indexCB" ) ;
-         rc = SDB_OOM ;
-         goto error ;
-      }
-      if ( !pIndexCB->isInitialized() )
-      {
-         rc = SDB_DMS_INIT_INDEX ;
-         goto done ;
-      }
-
-      if ( pIndexCB->getFlag() != IXM_INDEX_FLAG_NORMAL )
-      {
-         rc = SDB_IXM_UNEXPECTED_STATUS ;
-         goto done ;
-      }
-
-      // compare the historical index OID with the current index oid, to make
-      // sure the index is not changed during the time
-      if ( !pIndexCB->isStillValid ( _scanner->getIdxOID() ) ||
-           _scanner->getIdxLID() != pIndexCB->getLogicalID() )
-      {
-         rc = SDB_DMS_INVALID_INDEXCB ;
-         goto done ;
-      }
-
-      try
-      {
-         eIsAllEqual = arg.getField( FIELD_NAME_IS_ALL_EQUAL ) ;
-         eValueInc = arg.getField( FIELD_NAME_INDEXVALUE_INCLUDED ) ;
-         eNum = arg.getField( FIELD_NAME_PREFIX_NUM ) ;
-         eVal = arg.getField( FIELD_NAME_INDEXVALUE ) ;
-
-         if ( Bool != eIsAllEqual.type() )
-         {
-            PD_LOG_MSG( PDERROR, "Field[%s] must be Bool",
-                        FIELD_NAME_IS_ALL_EQUAL ) ;
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
-
-         indexFieldNum = pIndexCB->keyPattern().nFields() ;
-         isAllEqual = eIsAllEqual.Bool() ;
-
-         if ( isAllEqual )
-         {
-            rc = _extractAllEqualSec (indexFieldNum, eNum, eVal ) ;
-            if ( rc )
-            {
-               goto error ;
-            }
-         }
-         else
-         {
-            rc = _extractRangeSec(indexFieldNum, eNum, eVal, eValueInc) ;
-            if ( rc )
-            {
-               goto error ;
-            }
-         }
-
-         _advanceSectionList.sort( rtnCmpSection(_orderBy) ) ;
-         _nextAdvanceSecIt = _advanceSectionList.begin() ;
-      }
-      catch( std::exception &e )
-      {
-         rc = ossException2RC( &e ) ;
-         PD_LOG( PDERROR, "Failed to set advance section [%s], rc: %d, Occur "
-                 "exception: %s", arg.toString().c_str(), rc, e.what() ) ;
-         goto error ;
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB__RTNCTXDATA__SETADVANCESECTION, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCTXDATA_VALIDATE, "_rtnContextData::validate" )
-   INT32 _rtnContextData::validate ( const BSONObj &record )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB_RTNCTXDATA_VALIDATE ) ;
-
-      INT32 cmp = 0 ;
-      BOOLEAN matched = FALSE ;
-      BSONObj curKeyObj ;
-      rtnAdvanceSection sec ;
-      INT32 prefixNum = -1 ;
-
-      if ( _needValidate() &&
-           _nextAdvanceSecIt == _advanceSectionList.end() )
-      {
-         rc = pdError( SDB_IXM_ADVANCE_EOC ) ;
-         goto error ;
-      }
-      else if ( !_needValidate() )
-      {
-         goto done ;
-      }
-
-      sec = *_nextAdvanceSecIt ;
-
-      /// generate keyVal
-      if ( !_keyGen.isInit() )
-      {
-         rc = _keyGen.setKeyPattern( _orderBy ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Set index generate pattern failed, rc: %d", rc ) ;
-            goto error ;
-         }
-      }
-
-      rc = _keyGen.getKeys( record, curKeyObj ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "Generate key from obj(%s) failed, rc: %d",
-                          record.toPoolString().c_str(), rc ) ;
-         goto error ;
-      }
-
-      try
-      {
-         while ( _nextAdvanceSecIt != _advanceSectionList.end() )
-         {
-            sec = *_nextAdvanceSecIt ;
-            prefixNum = sec.prefixNum ;
-
-            if ( _isPrevSec )
-            {
-               cmp = _woNCompare( curKeyObj, sec.endKey, FALSE,
-                                  prefixNum, _orderBy ) ;
-               if ( 0 == cmp )
-               {
-                  if ( sec.endIncluded )
-                  {
-                     matched = TRUE ;
-                     break ;
-                  }
-                  else
-                  {
-                     _nextAdvanceSecIt++ ;
-                     _isPrevSec = FALSE ;
-                  }
-               }
-               else if ( cmp < 0 )
-               {
-                  matched = TRUE ;
-                  break ;
-               }
-               else
-               {
-                  _nextAdvanceSecIt++ ;
-                  _isPrevSec = FALSE ;
-               }
-
-            }
-            else
-            {
-               cmp = _woNCompare( sec.startKey, curKeyObj,
-                                  FALSE, prefixNum, _orderBy ) ;
-               if ( 0 == cmp )
-               {
-                  if ( !sec.startIncluded )
-                  {
-                     rc = pdError( SDB_IXM_ADVANCE_EOC ) ;
-                     PD_LOG( PDINFO, "Advance to the next section for scanning "
-                                     "record, rc: %d", rc ) ;
-                     goto error ;
-                  }
-                  else
-                  {
-                     matched = TRUE ;
-                     _isPrevSec = TRUE ;
-                     break ;
-                  }
-               }
-               else if ( cmp < 0 )
-               {
-                  cmp = _woNCompare( curKeyObj, sec.endKey, FALSE,
-                                     prefixNum, _orderBy ) ;
-                  if ( 0 == cmp )
-                  {
-                     if ( sec.endIncluded )
-                     {
-                        matched = TRUE ;
-                        _isPrevSec = TRUE ;
-                        break ;
-                     }
-                     else
-                     {
-                        _nextAdvanceSecIt++ ;
-                     }
-                  }
-                  else if ( cmp < 0 )
-                  {
-                     matched = TRUE ;
-                     _isPrevSec = TRUE ;
-                     break ;
-                  }
-                  else
-                  {
-                     _nextAdvanceSecIt++ ;
-                  }
-               }
-               else
-               {
-                  rc = pdError( SDB_IXM_ADVANCE_EOC ) ;
-                  PD_LOG( PDINFO, "Advance to the next section for scanning "
-                                  "record, rc: %d", rc ) ;
-                  goto error ;
-               }
-            }
-         }
-      }
-      catch( std::exception &e )
-      {
-         rc = ossException2RC( &e ) ;
-         PD_LOG( PDERROR, "Failed to validate reccord, rc: %d, "
-                 "Occur exception: %s", rc, e.what() ) ;
-         goto error ;
-      }
-
-      if ( !matched )
-      {
-         rc = pdError( SDB_IXM_ADVANCE_EOC ) ;
-         goto error ;
-      }
-
-   done:
-      PD_TRACE_EXITRC ( SDB_RTNCTXDATA_VALIDATE, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCTXDATA__DOADVANCE, "_rtnContextData::_doAdvance" )
-   INT32 _rtnContextData::_doAdvance( INT32 type,
-                                      INT32 prefixNum,
-                                      const BSONObj &keyVal,
-                                      const BSONObj &orderby,
-                                      const BSONObj &arg,
-                                      BOOLEAN isLocate,
-                                      _pmdEDUCB *cb )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB_RTNCTXDATA__DOADVANCE ) ;
-
-      BOOLEAN doLock = FALSE ;
-      const BSONObj *pSaveObj = NULL ;
-      ixmIndexCB *pIndexCB = NULL ;
-      dmsRecordID rid ;
-
-      if ( IXSCAN != _scanType )
-      {
-         PD_LOG( PDWARNING, "Table scan does not support advance" ) ;
-         rc = SDB_OPTION_NOT_SUPPORT ;
-         goto error ;
-      }
-
-      // lock
-      if ( !_mbContext->isMBLock() )
-      {
-         rc = _mbContext->mbLock( SHARED ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Lock collection failed, rc: %d", rc ) ;
-            goto error ;
-         }
-         doLock = TRUE ;
-      }
-
-      // check index
-      pIndexCB = _scanner->getIndexCB() ;
-      if ( !pIndexCB )
-      {
-         PD_LOG ( PDERROR, "Failed to allocate memory for indexCB" ) ;
-         rc = SDB_OOM ;
-         goto error ;
-      }
-      if ( !pIndexCB->isInitialized() )
-      {
-         rc = SDB_DMS_INIT_INDEX ;
-         goto done ;
-      }
-
-      if ( pIndexCB->getFlag() != IXM_INDEX_FLAG_NORMAL )
-      {
-         rc = SDB_IXM_UNEXPECTED_STATUS ;
-         goto done ;
-      }
-
-      // compare the historical index OID with the current index oid, to make
-      // sure the index is not changed during the time
-      if ( !pIndexCB->isStillValid ( _scanner->getIdxOID() ) ||
-           _scanner->getIdxLID() != pIndexCB->getLogicalID() )
-      {
-         rc = SDB_DMS_INVALID_INDEXCB ;
-         goto done ;
-      }
-
-      // check key and index def
-      try
-      {
-         // build located object
-         BSONObj objLocate ;
-         BSONObj keyPattern = pIndexCB->keyPattern() ;
-         INT32 keyPatternNum = keyPattern.nFields() ;
-         INT32 cmp = 0 ;
-
-         if ( _scanner->eof() )
-         {
-            goto done ;
-         }
-
-         if ( prefixNum > keyPatternNum )
-         {
-            PD_LOG ( PDWARNING, "PrefixNum[%s] is too long, truncate to "
-                     "the same as the number of order by field", prefixNum ) ;
-            prefixNum = keyPatternNum ;
-         }
-
-         if ( !_compareFieldName( orderby, keyPattern, prefixNum ) )
-         {
-            PD_LOG_MSG( PDERROR, "Orderby is not the prefix of key pattern" ) ;
-            rc = SDB_OPTION_NOT_SUPPORT ;
-            goto error ;
-         }
-
-         pSaveObj = _scanner->getSavedObj() ;
-         cmp = _woNCompare( keyVal, *pSaveObj, FALSE, prefixNum, orderby ) ;
-         if ( cmp < 0 )
-         {
-            goto done ;
-         }
-         else if ( MSG_ADVANCE_TO_FIRST_IN_VALUE == type && 0 == cmp )
-         {
-            goto done ;
-         }
-
-         /// build next value
-         if ( prefixNum == keyPatternNum && 0 == cmp )
-         {
-            objLocate = *pSaveObj ;
-         }
-         else
-         {
-            objLocate = _buildNextValueObj( keyPattern, keyVal,
-                                            prefixNum, type ) ;
-         }
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
-
-         /// build next rid
-         _buildNextRID( type, rid ) ;
-
-         /// relocate
-         rc = _scanner->relocateRID( objLocate, rid ) ;
-         if ( rc )
-         {
-            PD_LOG_MSG( PDERROR, "Relocate failed, rc: %d", rc ) ;
-            goto error ;
-         }
-      }
-      catch( std::exception &e )
-      {
-         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
-         rc = ossException2RC( &e ) ;
-         goto error ;
-      }
-
-   done:
-      if ( doLock )
-      {
-         _mbContext->mbUnlock() ;
-      }
-<<<<<<< HEAD
-      _isPrevSec = FALSE ;
-   }
-
-   _rtnTBScanner* _rtnContextData::getTBScanner ()
-   {
-      return dynamic_cast<_rtnTBScanner *>( _scanner ) ;
-   }
-
-   _rtnIXScanner* _rtnContextData::getIXScanner ()
-   {
-      return dynamic_cast<_rtnIXScanner *>( _scanner ) ;
-=======
-      PD_TRACE_EXITRC( SDB_RTNCTXDATA__DOADVANCE, rc ) ;
-      return rc ;
-   error:
-      goto done ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
-   }
-
-   BSONObj _rtnContextData::_buildNextValueObj( const BSONObj &keyPattern,
-                                                const BSONObj &srcVal,
-                                                UINT32 keepNum,
-                                                INT32 type ) const
-   {
-      BSONObjBuilder builder ;
-      BSONObjIterator itrKey( keyPattern ) ;
-      BSONObjIterator itrVal( srcVal ) ;
-
-      for ( UINT32 i = 0 ; i < keepNum && itrKey.more() && itrVal.more() ; ++i )
-      {
-         itrKey.next() ;
-         builder.appendAs( itrVal.next(), "" ) ;
-      }
-
-      while( itrKey.more() )
-      {
-         BSONElement e = itrKey.next() ;
-
-         if ( _direction * e.numberInt() > 0 )
-         {
-            if ( MSG_ADVANCE_TO_FIRST_IN_VALUE == type )
-            {
-               builder.appendMinKey( "" ) ;
-            }
-            else
-            {
-               builder.appendMaxKey( "" ) ;
-            }
-         }
-         else
-         {
-            if ( MSG_ADVANCE_TO_FIRST_IN_VALUE == type )
-            {
-               builder.appendMaxKey( "" ) ;
-            }
-            else
-            {
-               builder.appendMinKey( "" ) ;
-            }
-         }
-      }
-
-      return builder.obj() ;
-   }
-
-   void _rtnContextData::_buildNextRID( INT32 type,
-                                        dmsRecordID &rid ) const
-   {
-      if ( _direction > 0 )
-      {
-         if ( MSG_ADVANCE_TO_FIRST_IN_VALUE == type )
-         {
-            rid.resetMin() ;
-         }
-         else
-         {
-            rid.resetMax() ;
-         }
-      }
-      else
-      {
-         if ( MSG_ADVANCE_TO_FIRST_IN_VALUE == type )
-         {
-            rid.resetMax() ;
-         }
-         else
-         {
-            rid.resetMin() ;
-         }
-      }
-   }
-
-   BOOLEAN _rtnContextData::_compareFieldName( const BSONObj &orderby,
-                                               const BSONObj &keyPattern,
-                                               UINT32 prefixNum ) const
-   {
-      BSONObjIterator itO( orderby ) ;
-      BSONObjIterator itK( keyPattern ) ;
-      UINT32 i = 0 ;
-
-      for ( ; i < prefixNum && itO.more() && itK.more() ; ++i )
-      {
-         if ( 0 != ossStrcmp( itO.next().fieldName(),
-                              itK.next().fieldName() ) )
-         {
-            return FALSE ;
-         }
-      }
-
-      return i == prefixNum ? TRUE : FALSE ;
    }
 
    INT32 _rtnContextData::_getAdvanceOrderby( BSONObj &orderby,
@@ -2135,25 +1179,18 @@ namespace engine
       PD_TRACE_ENTRY ( SDB_RTNCONTEXTDATA_OPIXSC );
 
       rtnScannerFactory f ;
-<<<<<<< HEAD
       rtnIXScanner *tmp = NULL ;
       rtnScannerType scanType = ( DPS_INVALID_TRANS_ID != cb->getTransID() ) ?
                                SCANNER_TYPE_MERGE : SCANNER_TYPE_DISK ;
       BOOLEAN isAsync = ( DPS_INVALID_TRANS_ID == cb->getTransID() ) &&
                         ( !_queryModifier ) &&
                         ( pmdGetKRCB()->getBPSCB()->isPrefetchEnabled() ) ;
-=======
-      // use merge scaner if in transaction
-      IXScannerType scanType = cb->isTransaction() ? SCANNER_TYPE_MERGE :
-                                                     SCANNER_TYPE_DISK ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       rtnPredicateList *predList = NULL ;
 
       // for index scan, we maintain context by runtime instead of by DMS
       ixmIndexCB indexCB ( _planRuntime.getIndexCBExtent(),
                            su->index(), NULL ) ;
 
-<<<<<<< HEAD
       // index block scan
       if ( blockObj )
       {
@@ -2162,8 +1199,6 @@ namespace engine
          goto error ;
       }
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       rc = rtnIsIndexCBValid( &indexCB, _planRuntime.getIndexCBExtent(),
                               _planRuntime.getIndexName(),
                               _planRuntime.getIndexLID(), su, mbContext ) ;
@@ -2186,40 +1221,12 @@ namespace engine
          _scanner = NULL ;
       }
 
-<<<<<<< HEAD
       rc = f.createIXScanner( scanType, &indexCB, predList, su, mbContext, isAsync, cb, tmp ) ;
-=======
-      rc = f.createScanner( scanType, &indexCB, &_planRuntime, su, cb, _scanner ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       if ( rc )
       {
          goto error ;
       }
-<<<<<<< HEAD
       _scanner = tmp ;
-=======
-      // index block scan
-      if ( blockObj )
-      {
-         SDB_ASSERT( direction == 1 || direction == -1,
-                     "direction must be 1 or -1" ) ;
-         if ( _direction != direction )
-         {
-            PD_LOG( PDERROR, "Direction is not the same with access plan" ) ;
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
-
-         rc = _parseIndexBlocks( *blockObj, _indexBlocks, _indexRIDs ) ;
-         PD_RC_CHECK( rc, PDERROR, "Parse index blocks failed, rc: %d", rc ) ;
-         _indexBlockScan = TRUE ;
-
-         if ( _indexBlocks.size() < 2 )
-         {
-            _hitEnd = TRUE ;
-         }
-      }
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    done :
       PD_TRACE_EXITRC ( SDB_RTNCONTEXTDATA_OPIXSC , rc );
@@ -2248,40 +1255,9 @@ namespace engine
 
       if ( blockObj )
       {
-<<<<<<< HEAD
          PD_LOG( PDERROR, "Block scan is not supported for table scan" ) ;
          rc = SDB_ENGINE_NOT_SUPPORT ;
          goto error ;
-=======
-         SEGMENT_VEC segExtents ;
-         rc = _parseSegments( *blockObj, _segments ) ;
-         PD_RC_CHECK( rc, PDERROR, "Parse segments[%s] failed, rc: %d",
-                      blockObj->toString().c_str(), rc ) ;
-
-         // Check once again if the block ids given by the user are still valid.
-         rc = su->getSegExtents( mbContext->mb()->_collectionName,
-                                 segExtents, mbContext ) ;
-         PD_RC_CHECK( rc, PDERROR, "Get segment extents of collection %s "
-                      "failed, rc: %d", mbContext->mb()->_collectionName, rc ) ;
-
-         for ( SEGMENT_VEC_CITR cItr = _segments.begin();
-               cItr != _segments.end(); ++cItr )
-         {
-            if ( segExtents.end() ==
-                 std::find( segExtents.begin(), segExtents.end(), *cItr ) )
-            {
-               rc = SDB_INVALIDARG ;
-               PD_LOG_MSG( PDERROR, "The specified datablock [%d] does not "
-                           "belong to collection %s, rc: %d",
-                           *cItr, mbContext->mb()->_collectionName, rc ) ;
-               goto error ;
-            }
-         }
-
-         _segmentScan = TRUE ;
-         _extentID = _segments.size() > 0 ? *_segments.begin() :
-                     DMS_INVALID_EXTENT ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       }
 
       // create scanner
@@ -2423,16 +1399,10 @@ namespace engine
 
          _evalIndexCover( selectSet ) ;
 
-<<<<<<< HEAD
          rtnIXScanner *ixScanner = getIXScanner() ;
          if ( ixScanner )
          {
             ixScanner->setIndexCover( _indexCover ) ;
-=======
-         if ( _scanner )
-         {
-            _scanner->setIndexCover( _indexCover ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          }
       }
 
@@ -2454,9 +1424,6 @@ namespace engine
       {
          _hitEnd = TRUE ;
       }
-
-      // register read transaction
-      sdbGetTransCB()->regReadTran( cb ) ;
 
    done:
       mbContext->mbUnlock() ;
@@ -2612,7 +1579,7 @@ namespace engine
          rc = _su->data()->updateRecord( _mbContext, recordID,
                                          recordDataPtr, eduCB, getDPSCB(),
                                          _queryModifier->getModifier(),
-                                         newObjPtr, pHandler, NULL, pInfo ) ;
+                                         newObjPtr, pHandler ) ;
          PD_RC_CHECK( rc, PDERROR, "Update record failed, rc: %d", rc ) ;
          _queryModifier->getDollarList()->clear() ;
       }
@@ -2687,50 +1654,6 @@ namespace engine
       {
          cb->unregisterMonCRUDCB() ;
       }
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCONTEXTDATA__EVALCOVER, "_rtnContextData::_evalIndexCover" )
-   INT32 _rtnContextData::_evalIndexCover( IXM_FIELD_NAME_SET &selectSet )
-   {
-      INT32 rc = SDB_OK ;
-      IXM_FIELD_NAME_SET::iterator it ;
-      PD_TRACE_ENTRY ( SDB__RTNCONTEXTDATA__EVALCOVER );
-
-      _indexCover = FALSE ;
-      if ( !_planRuntime.isIndexCover() )
-      {
-         goto done ;
-      }
-
-      try
-      {
-         if( selectSet.size() > 0 )
-         {
-            ixmIndexCover index( _planRuntime.getPlan()->getKeyPattern() ) ;
-            it = selectSet.begin() ;
-            while( it != selectSet.end() )
-            {
-               if( FALSE == index.cover( (*it) ) )
-               {
-                  goto done ;
-               }
-               ++ it ;
-            }
-            _indexCover = TRUE ;
-         }
-      }
-      catch( std::exception &e )
-      {
-         rc = ossException2RC( &e ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to eval IndexCover, exception: %s, rc=%d",
-                      e.what(), rc ) ;
-      }
-
-   done:
-      PD_TRACE_EXITRC ( SDB__RTNCONTEXTDATA__EVALCOVER, rc );
       return rc ;
    error:
       goto done ;
@@ -2861,7 +1784,6 @@ namespace engine
          generator.setQueryModify( TRUE ) ;
       }
 
-<<<<<<< HEAD
       while ( numRecords() == startNumRecords )
       {
          dmsDataScanner scanner( _su->data(),
@@ -2872,21 +1794,6 @@ namespace engine
                                  _numToReturn,
                                  _numToSkip,
                                  _returnOptions.getFlag() ) ;
-=======
-      extScanner = extFactory->create( _su->data(), _mbContext, matchRuntime,
-                                       _extentID, _lastExtentID, accessType,
-                                       _numToReturn, _numToSkip,
-                                       _returnOptions.getFlag() ) ;
-      if ( !extScanner )
-      {
-         rc = SDB_OOM ;
-         PD_LOG( PDERROR, "Failed to create extent scanner" ) ;
-         goto error ;
-      }
-
-      while ( numRecords() == startNumRecords )
-      {
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          _mthMatchTreeContext mthContext( NULL ) ;
          if ( NULL != dollarList )
          {
@@ -2979,22 +1886,7 @@ namespace engine
          }
          else
          {
-<<<<<<< HEAD
             _recordID = scanner.getCurRID() ;
-=======
-            _lastExtentID = extScanner->curExtentID() ;
-            _extentID = extScanner->nextExtentID() ;
-         }
-         _lastExtLID = extScanner->curExtent()->_logicID ;
-
-         // If the next extent is valid, let's step to it. Otherwise, the end
-         // is hit.
-         if ( DMS_INVALID_EXTENT == _extentID ||
-              SDB_DMS_EOC == extScanner->stepToNextExtent() )
-         {
-            _hitEnd = TRUE ;
-            break ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          }
 
          if ( !hasLocked )
@@ -3462,108 +2354,7 @@ namespace engine
                                     const BSONObj *blockObj,
                                     INT32 direction )
    {
-<<<<<<< HEAD
       return SDB_ENGINE_NOT_SUPPORT ;
-=======
-      INT32 rc = SDB_OK ;
-      rtnReturnOptions subReturnOptions( returnOptions ) ;
-
-      _step = pmdGetKRCB()->getOptionCB()->maxSubQuery() ;
-      if ( 0 == _step )
-      {
-         _step = 1 ;
-      }
-
-      rc = _rtnContextData::open( su, mbContext, cb, returnOptions, blockObj,
-                                  direction ) ;
-      if ( rc )
-      {
-         goto error ;
-      }
-
-      if ( eof() )
-      {
-         goto done ;
-      }
-
-      if ( TBSCAN == _scanType && FALSE == _segmentScan )
-      {
-         rc = _su->getSegExtents( NULL, _segments, mbContext ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to get segment extent, rc: %d",
-                      rc ) ;
-         if ( _segments.size() <= 1 )
-         {
-            _segments.clear() ;
-            goto done ;
-         }
-         _segmentScan = TRUE ;
-      }
-      else if ( IXSCAN == _scanType && FALSE == _indexBlockScan )
-      {
-         if ( !_planRuntime.getPlan()->getKey().getOrderBy().isEmpty() &&
-              !_planRuntime.getPlan()->sortRequired() )
-         {
-            goto done ;
-         }
-
-         rc = rtnGetIndexSeps( &_planRuntime, su, mbContext, cb, _indexBlocks,
-                               _indexRIDs ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to get index seperations, rc: %d",
-                      rc ) ;
-         if ( _indexBlocks.size() <= 2 )
-         {
-            _indexBlocks.clear() ;
-            _indexRIDs.clear() ;
-            goto done ;
-         }
-         _indexBlockScan = TRUE ;
-         _direction = 1 ;
-      }
-
-      if ( ( _segmentScan && _segments.size() <= 1 ) ||
-           ( _indexBlockScan && _indexBlocks.size() <= 2 ) )
-      {
-         goto done ;
-      }
-
-      _isParalled = TRUE ;
-      mbContext->mbUnlock() ;
-
-      if ( returnOptions.getLimit() > 0 &&
-           returnOptions.getSkip() > 0 )
-      {
-         subReturnOptions.setLimit( returnOptions.getLimit() +
-                                    returnOptions.getSkip() ) ;
-      }
-      subReturnOptions.setSkip( 0 ) ;
-      subReturnOptions.clearFlag( FLG_QUERY_PARALLED ) ;
-
-      while ( NULL != ( blockObj = _nextBlockObj() ) )
-      {
-         rc = _openSubContext( cb, subReturnOptions, blockObj ) ;
-         if ( rc )
-         {
-            goto error ;
-         }
-      }
-
-      _checkAndPrefetch () ;
-
-   done:
-      mbContext->mbUnlock() ;
-      return rc ;
-   error:
-      if ( NULL != _mbContext )
-      {
-         _mbContext = NULL ;
-      }
-      if ( NULL != _su )
-      {
-         _su = NULL ;
-      }
-      _isOpened = FALSE ;
-      goto done ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    }
 
    void _rtnContextParaData::_removeSubContext( rtnContextData *pContext )
@@ -3591,9 +2382,10 @@ namespace engine
       dmsMBContext *mbContext = NULL ;
       rtnContextData *dataContext = NULL ;
 
-      rc = _su->data()->getMBContextByID( &mbContext, _planRuntime.getCLUniqueID(), -1 );
+      rc = _su->data()->getMBContext( &mbContext, _planRuntime.getCLMBID(),
+                                      DMS_INVALID_CLID, DMS_INVALID_CLID, -1 ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get dms mb context, rc: %d", rc ) ;
-      PD_CHECK( _planRuntime.getCLUniqueID() == mbContext->mb()->_clUniqueID, SDB_DMS_NOTEXIST,
+      PD_CHECK( _planRuntime.getCLLID() == mbContext->clLID(), SDB_DMS_NOTEXIST,
                 error, PDERROR, "Failed to get dms mb context, rc: %d",
                 SDB_DMS_NOTEXIST ) ;
 

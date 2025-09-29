@@ -45,10 +45,6 @@
 
 namespace engine
 {
-
-// Use this to force smaller Capped CL size for testing purpose
-#define SMALL_CAP  0
-
 #define DMS_COLLECTION_SPACE_NAME_SZ      127
 // page length can be 4/8/16/32/64K
 // Note that windows memory allocation granulartiy is 64K, so we need to make
@@ -137,36 +133,27 @@ namespace engine
 #define DMS_TEMP_NAME_PATTERN       "%s%04d"
 
 #define SDB_DMSRBS_NAME            "SYSRBS"
-#define SDB_DMSRBS_NAME_SIZE       ( sizeof( SDB_DMSRBS_NAME ) - 1 )
+#define SDB_DMSRBS_FULLNAME        "SYSRBS.SYSRBS"
 #define DMS_RBS_NAME_PATTERN       "%s%04d"
-// Range of RBS CL is 0000-4095, with 0000 for meta
-#define DMS_MAX_RBS_CL             DMS_MME_SLOTS 
-#define DMS_FIRST_RBS_CL           0 
+#define DMS_MAX_RBS_CL             DMS_MME_SLOTS
+#define DMS_FIRST_RBS_CL           1
+#define DMS_META_RBS_CL            0
 
 #define DMS_INDEX_SORT_BUFFER_MIN_SIZE     32
 
-// set to smaller number for test
-#if SMALL_CAP
-   #define DMS_CAP_EXTENT_SZ           (8 *  1024)
-   #define DMS_MAX_CL_SIZE_ALIGN_SIZE  ( 8 * 1024 )
-   // Default size of Rollback Segment collection 
-   #define DMS_DFT_RBSCL_SIZE          ( 2 * DMS_CAP_EXTENT_SZ )
-#else
-   // default extent size is 32MB
-   #define DMS_CAP_EXTENT_SZ           (32 * 1024 * 1024)
-   #define DMS_MAX_CL_SIZE_ALIGN_SIZE  ( 32 * 1024 * 1024 )
-   // Default size of Rollback Segment collection is 128MB each.
-   #define DMS_DFT_RBSCL_SIZE          ( 4 * DMS_CAP_EXTENT_SZ )
-#endif
-
+#define DMS_CAP_EXTENT_SZ           (32 * 1024 * 1024)
 #define DMS_CAP_EXTENT_BODY_SZ      ( DMS_CAP_EXTENT_SZ - DMS_EXTENT_METADATA_SZ )
 
 // Unit is MB. This is the upper limit. It should be smaller than the maximum
 // size of the storage unit.
 #define DMS_CAP_CL_SIZE             ( OSS_SINT64_MAX >> 20 )
 
+#define DMS_MAX_CL_SIZE_ALIGN_SIZE  ( 32 * 1024 * 1024 )
+
 #define DMS_MAX_EXT_NAME_SIZE       DMS_COLLECTION_SPACE_NAME_SZ
 
+// Default size of Rollback Segment collection is 128MB each.
+#define DMS_DFT_RBSCL_SIZE          ( 128 * 1024 * 1024 )
 
 // Default size threshold of capped collection is 30GB.
 // Default record number threshold is set to 0, which means no limit on that.
@@ -449,14 +436,6 @@ namespace engine
       DMS_STORAGE_DUMMY
    } ;
 
-   enum DMS_ENGINE_TYPE
-   {
-      DMS_ENGINE_MMAP = 0,
-      DMS_ENGINE_VESSEL = 1,
-      DMS_ENGINE_MAX = DMS_ENGINE_VESSEL,
-      DMS_ENGINE_INVALID = DMS_ENGINE_MAX + 1,
-   };
-
    /*
       DMS Other define
    */
@@ -512,15 +491,12 @@ namespace engine
 
    INT32 dmsRenameInvalidFile( const CHAR* pSrcPath,
                                const CHAR* pDesPath = NULL ) ;
-<<<<<<< HEAD
 
    BOOLEAN  dmsIsSysRecycleName ( const CHAR *collectionName ) ;
 
    #define DMS_INVALID_SNAPSHOT_ID ( 0xFFFFFFFFFFFFFFFF )
    #define DMS_UNIVERSAL_SNAPSHOT_ID ( 0x0 )
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 }
 
 #endif /* DMS_HPP_ */

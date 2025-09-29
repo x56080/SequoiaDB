@@ -66,71 +66,6 @@ namespace engine
 
 #pragma pack(4)
    /*
-<<<<<<< HEAD
-=======
-      _dmsStorageInfo defined
-   */
-   struct _dmsStorageInfo
-   {
-      UINT32      _pageSize ;
-      CHAR        _suName [ DMS_SU_NAME_SZ + 1 ] ; // storage unit file name is
-                                                   // foo.0 / foo.1, where foo
-                                                   // is suName, and 0/1 are
-                                                   // _sequence
-      UINT32      _sequence ;
-      UINT64      _secretValue ;
-      UINT32      _lobdPageSize ;
-
-      UINT32      _overflowRatio ;
-      UINT32      _extentThreshold ;
-
-      BOOLEAN     _enableSparse ;
-      BOOLEAN     _directIO ;
-      UINT32      _cacheMergeSize ;
-      UINT32      _pageAllocTimeout ;
-
-      /// Data is OK
-      BOOLEAN     _dataIsOK ;
-      UINT64      _curLSNOnStart ;
-
-      DMS_STORAGE_TYPE _type ;
-      IDmsExtDataHandler *_extDataHandler ;
-
-      utilCSUniqueID _csUniqueID ;
-
-      UINT64      _createTime ;
-      UINT64      _updateTime ;
-
-      _dmsStorageInfo ()
-      {
-         _pageSize      = DMS_PAGE_SIZE_DFT ;
-         ossMemset( _suName, 0, sizeof( _suName ) ) ;
-         _sequence      = 0 ;
-         _secretValue   = 0 ;
-         _lobdPageSize  = DMS_DO_NOT_CREATE_LOB ;
-
-         _overflowRatio = 0 ;
-         _extentThreshold = 0 ;
-         _enableSparse = FALSE ;
-         _directIO = FALSE ;
-         _cacheMergeSize = 0 ;
-         _pageAllocTimeout = 0 ;
-
-         _dataIsOK       = FALSE ;
-         _curLSNOnStart  = ~0 ;
-         _type = DMS_STORAGE_NORMAL ;
-         _extDataHandler = NULL ;
-
-         _csUniqueID     = UTIL_UNIQUEID_NULL ;
-
-         _createTime     = 0 ;
-         _updateTime     = 0 ;
-      }
-   };
-   typedef _dmsStorageInfo dmsStorageInfo ;
-
-   /*
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       Storage Unit Header : 65536(64K)
    */
    struct _dmsStorageUnitHeader : public SDBObject
@@ -156,12 +91,8 @@ namespace engine
       utilIdxInnerID _idxInnerHWM ;                      // index InnerID hwm
       UINT64 _createTime ;                               // create time
       UINT64 _updateTime ;                               // update time
-<<<<<<< HEAD
       utilCLInnerID _clInnderHWM ;
       CHAR   _pad [ 65304 ] ;
-=======
-      CHAR   _pad [ 65308 ] ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       _dmsStorageUnitHeader()
       {
@@ -482,13 +413,6 @@ namespace engine
 
          void                  setTransSupport( BOOLEAN supported ) ;
 
-         void                  setMVCCSupport( BOOLEAN supported ) ;
-
-         OSS_INLINE BOOLEAN isMVCCSupport() const
-         {
-            return _mvccSupport ;
-         }
-
       private:
          /*
             Make these function internal
@@ -656,10 +580,6 @@ namespace engine
          UINT32                        _segmentSize ; // cache, not use header
 
          BOOLEAN                       _transSupport ;
-         // support MVCC feature
-         BOOLEAN                       _mvccSupport ;
-         // Storage Unit Header upgraded to MVCC version
-         BOOLEAN                       _mvccUpgraded ;
 
       /// for persistence
       private:

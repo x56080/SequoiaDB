@@ -39,11 +39,7 @@
 
 namespace engine
 {
-<<<<<<< HEAD
    _netRouteAgent::_netRouteAgent( _netMsgHandler *handler,
-=======
-   _netRouteAgent::_netRouteAgent( INetMsgHandler *handler,
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                                    const NET_HANDLE &beginID )
    :_frame( handler, &_route, beginID )
    {
@@ -263,10 +259,6 @@ namespace engine
                                    MsgHeader *header, void *body,
                                    UINT32 bodyLen )
    {
-<<<<<<< HEAD
-=======
-      //SDB_ASSERT( NULL != header && NULL != body, "should not be NULL" ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       SDB_ASSERT( NULL != header, "should not be NULL" ) ;
 
       INT32 rc = SDB_OK ;

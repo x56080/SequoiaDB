@@ -38,7 +38,6 @@ import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.test.common.Constants;
 import org.junit.*;
 
-import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -121,18 +120,12 @@ public class SdbConnect {
         // case 1: default value
         try {
             Sequoiadb db1 = Sequoiadb.builder().build();
-<<<<<<< HEAD
         } catch ( BaseException e ) {
             Assert.assertEquals( SDBError.SDB_INVALIDARG.getErrorCode(), e.getErrorCode() );
-=======
-        } catch (BaseException e) {
-            Assert.assertEquals(SDBError.SDB_INVALIDARG.getErrorCode(), e.getErrorCode());
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         }
 
         // case 2: ""
         try {
-<<<<<<< HEAD
             Sequoiadb db2 = Sequoiadb.builder().serverAddress( "" ).build();
         } catch ( BaseException e ) {
             Assert.assertEquals( SDBError.SDB_INVALIDARG.getErrorCode(), e.getErrorCode() );
@@ -141,21 +134,10 @@ public class SdbConnect {
         // case 3: normal
         try ( Sequoiadb db3 = Sequoiadb.builder().serverAddress( Constants.COOR_NODE_CONN ).build() ) {
             Assert.assertTrue( db3.isValid() );
-=======
-            Sequoiadb db2 = Sequoiadb.builder().serverAddress("").build();
-        } catch (BaseException e) {
-            Assert.assertEquals(SDBError.SDB_INVALIDARG.getErrorCode(), e.getErrorCode());
-        }
-
-        // case 3: normal
-        try (Sequoiadb db3 = Sequoiadb.builder().serverAddress(Constants.COOR_NODE_CONN).build()) {
-            Assert.assertTrue(db3.isValid());
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         }
 
         // case 4: address list
         List<String> addressList = new ArrayList<>();
-<<<<<<< HEAD
         addressList.add( ERROR_ADDRESS_CONN );
         addressList.add( Constants.COOR_NODE_CONN );
         try ( Sequoiadb db4 = Sequoiadb.builder().serverAddress( addressList ).build() ) {
@@ -202,64 +184,6 @@ public class SdbConnect {
             }
         } finally {
             sdb.removeUser( Constants.TEST_USER_NAME, Constants.TEST_USER_PASSWORD );
-=======
-        addressList.add(ERROR_ADDRESS_CONN);
-        addressList.add(Constants.COOR_NODE_CONN);
-        try (Sequoiadb db4 = Sequoiadb.builder().serverAddress(addressList).build()) {
-            Assert.assertTrue(db4.isValid());
-        }
-    }
-
-    @Test
-    public void sdbBuilderConfTest() {
-        long start = System.currentTimeMillis();
-        try {
-            ConfigOptions conf = new ConfigOptions();
-            conf.setConnectTimeout(2000);  // 2s
-            conf.setMaxAutoConnectRetryTime(0);
-
-            Sequoiadb db = Sequoiadb.builder()
-                    .serverAddress(ERROR_ADDRESS_CONN)  // invalid address
-                    .configOptions(conf)
-                    .build();
-        } catch (BaseException e) {
-            Assert.assertEquals(SDBError.SDB_NET_CANNOT_CONNECT.getErrorCode(), e.getErrorCode());
-            long time = System.currentTimeMillis() - start;
-            if (time >= 3000) {
-                Assert.fail("The elapsed time dose no match the settings, the elapsed time: " + time + "ms");
-            }
-        }
-    }
-
-    @Test
-    public void sdbBuilderUserTest() {
-        // case 1: default username and password
-        UserConfig userConfig = new UserConfig();
-        Assert.assertEquals("", userConfig.getUserName());
-        Assert.assertEquals("", userConfig.getPassword());
-
-        try {
-            // case 2: connect by username and password
-            sdb.createUser(Constants.TEST_USER_NAME, Constants.TEST_USER_PASSWORD);
-            try (Sequoiadb db = Sequoiadb.builder()
-                    .serverAddress(Constants.COOR_NODE_CONN)
-                    .userConfig(new UserConfig(Constants.TEST_USER_NAME, Constants.TEST_USER_PASSWORD))
-                    .build()) {
-                Assert.assertTrue(db.isValid());
-            }
-
-            // case 3: connect by cipher file
-            UserConfig userConfig3 = new UserConfig(Constants.TEST_USER_NAME,
-                    new File(Constants.TEST_USER_CIPHER_FILE), Constants.TEST_USER_TOKEN);
-            try (Sequoiadb db = Sequoiadb.builder()
-                    .serverAddress(Constants.COOR_NODE_CONN)
-                    .userConfig(userConfig3)
-                    .build()) {
-                Assert.assertTrue(db.isValid());
-            }
-        } finally {
-            sdb.removeUser(Constants.TEST_USER_NAME, Constants.TEST_USER_PASSWORD);
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         }
     }
 
@@ -269,7 +193,6 @@ public class SdbConnect {
         String password = "123";
 
         // case 1: no user
-<<<<<<< HEAD
         try ( Sequoiadb db = new Sequoiadb( Constants.COOR_NODE_CONN, "", "" ) ) {
             assertTrue( db.isValid() );
         }
@@ -304,42 +227,6 @@ public class SdbConnect {
             }
         } finally {
             sdb.removeUser( userName, password );
-=======
-        try (Sequoiadb db = new Sequoiadb(Constants.COOR_NODE_CONN, "", "")) {
-            assertTrue(db.isValid());
-        }
-        try (Sequoiadb db = new Sequoiadb(Constants.COOR_NODE_CONN, userName, password)) {
-            assertTrue(db.isValid());
-        }
-        try (Sequoiadb db = new Sequoiadb(Constants.COOR_NODE_CONN, null, null)) {
-            assertTrue(db.isValid());
-        }
-
-        try {
-            sdb.createUser(userName, password);
-
-            // case 2: error password
-            try (Sequoiadb db = new Sequoiadb(Constants.COOR_NODE_CONN, userName, "errorPassword")) {
-                Assert.fail("Connect sdb with error password should be failed");
-            } catch (BaseException e) {
-                Assert.assertEquals(e.getErrorCode(), SDBError.SDB_AUTH_AUTHORITY_FORBIDDEN.getErrorCode());
-            }
-            try (Sequoiadb db = new Sequoiadb(Constants.COOR_NODE_CONN, userName, null)) {
-                Assert.fail("Connect sdb with error password should be failed");
-            } catch (BaseException e) {
-                Assert.assertEquals(e.getErrorCode(), SDBError.SDB_INVALIDARG.getErrorCode());
-            }
-
-            // case 3: no exist user
-            try (Sequoiadb db = new Sequoiadb(Constants.COOR_NODE_CONN, "notExistUser",
-                    "123")) {
-                Assert.fail("Connect sdb with not exist user should be failed");
-            } catch (BaseException e) {
-                Assert.assertEquals(e.getErrorCode(), SDBError.SDB_AUTH_AUTHORITY_FORBIDDEN.getErrorCode());
-            }
-        } finally {
-            sdb.removeUser(userName, password);
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         }
     }
 
@@ -347,7 +234,6 @@ public class SdbConnect {
     public void sdbAuthSHA256Test() {
         String userName = "authSHA256TestUser";
         String password;
-<<<<<<< HEAD
         for ( int i = 0; i < 100; i++ ) {
             password = generatePassword();
             try {
@@ -361,53 +247,24 @@ public class SdbConnect {
                 }
             } finally {
                 sdb.removeUser( userName, password );
-=======
-        for (int i = 0; i < 100; i++) {
-            password = generatePassword();
-            try {
-                sdb.createUser(userName, password);
-
-                try (Sequoiadb db = new Sequoiadb(Constants.COOR_NODE_CONN, userName, password)) {
-                    assertTrue(db.isValid());
-                } catch (BaseException e) {
-                    System.out.println("userName: " + userName + "  password: " + password);
-                    throw e;
-                }
-            } finally {
-                sdb.removeUser(userName, password);
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             }
         }
     }
 
     private String generatePassword() {
         String text = new StringBuffer()
-<<<<<<< HEAD
                 .append( "abcdefghijklmnopqrstuvwxyz" )
                 .append( "ABCDEFGHIJKLMNOPQRSTUVWXYZ" )
                 .append( "1234567890" )
                 .append( "!@#$%^&*()-_=+[{]}\\|;:'\",<.>/? " )
-=======
-                .append("abcdefghijklmnopqrstuvwxyz")
-                .append("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
-                .append("1234567890")
-                .append("!@#$%^&*()-_=+[{]}\\|;:'\",<.>/? ")
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                 .toString();
         StringBuffer password = new StringBuffer();
 
         Random random = new Random();
-<<<<<<< HEAD
         int len = random.nextInt( text.length() );
         for ( int i = 0; i < len; i++ ) {
             int post = random.nextInt( text.length() );
             password.append( text.charAt( post ) );
-=======
-        int len = random.nextInt(text.length());
-        for (int i = 0; i < len; i++) {
-            int post = random.nextInt(text.length());
-            password.append(text.charAt(post));
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         }
         return password.toString();
     }

@@ -193,24 +193,6 @@ namespace engine
    } ;
 
    typedef _pmdCoordProcessor pmdCoordProcessor ;
-
-   /*
-    * Check if the database is in restore pending state, and
-    * whether a msg is allowed to be processed. Only used in
-    * the coord right now.
-    */
-   class pmdRestorePendingChecker
-   {
-      public:
-         pmdRestorePendingChecker( MsgHeader *msg ) : _msg(msg) {}
-         ~pmdRestorePendingChecker() {}
-
-         // check if the operation is allowed to be processed
-         BOOLEAN isOpAllowed() ;
-      private:
-         BOOLEAN _isOpAllowed() ;
-         MsgHeader *_msg ;
-   } ;
 }
 
 #endif  /*PMD_PROCESSOR_HPP_*/

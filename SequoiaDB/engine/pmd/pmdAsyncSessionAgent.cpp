@@ -144,15 +144,9 @@ namespace engine
                           pMsg->TID, pMsg->messageLength, timeDiff ) ;
                }
 
-<<<<<<< HEAD
                ((pmdOperator*)pSdbOp)->setMsg( pMsg ) ;
 
                pSession->onDispatchMsgBegin( netHandle, pMsg ) ;
-=======
-               pSession->onDispatchMsgBegin( netHandle,
-                                             pMsg,
-                                             event._recvTime ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                pSession->dispatchMsg ( netHandle, pMsg, &timeDiff ) ;
                pSession->onDispatchMsgEnd( timeDiff ) ;
 
@@ -217,12 +211,6 @@ namespace engine
    PMD_DEFINE_ENTRYPOINT( EDU_TYPE_SE_AGENT, FALSE,
                           pmdAsyncSessionAgentEntryPoint,
                           "SeAgent" ) ;
-
-#if defined ( SDB_STP )
-   PMD_DEFINE_ENTRYPOINT( EDU_TYPE_STP_SERVICE_SESSION, FALSE,
-                          pmdAsyncSessionAgentEntryPoint,
-                          "STPServiceSession" ) ;
-#endif
 
 }
 

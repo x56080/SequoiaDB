@@ -74,13 +74,11 @@ namespace engine
 
          virtual INT32 handleMsg( const NET_HANDLE &handle,
                                   const _MsgHeader *header,
-                                  const CHAR *msg,
-                                  UINT64 msgUserData ) ;
+                                  const CHAR *msg ) ;
          virtual void  handleClose( const NET_HANDLE &handle, _MsgRouteID id ) ;
          virtual INT32 handleConnect( const NET_HANDLE &handle,
                                       _MsgRouteID id,
-                                      BOOLEAN isPositive,
-                                      netUserDataHolder *userDataHolder ) ;
+                                      BOOLEAN isPositive ) ;
 
       protected:
          _pmdRemoteSessionMgr    *_pRSManager ;

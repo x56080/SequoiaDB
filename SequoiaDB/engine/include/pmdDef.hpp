@@ -41,10 +41,7 @@
 #include "oss.hpp"
 #include "utilCircularQueue.hpp"
 #include "ossQueue.hpp"
-<<<<<<< HEAD
 #include "../bson/oid.h"
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 namespace engine
 {
@@ -66,10 +63,7 @@ namespace engine
       PMD_EDU_EVENT_STEP_DOWN,    // step down
       PMD_EDU_EVENT_STEP_UP,      // step up
       PMD_EDU_EVENT_KILLCONTEXT,  // kill specified context
-<<<<<<< HEAD
       PMD_EDU_EVENT_UPDATE_GRPMODE, // update group mode
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       PMD_EDU_EVENT_MAX
    } ;
@@ -110,29 +104,22 @@ namespace engine
       pmdEDUEventTypes  _eventType ;
       pmdEDUMemTypes    _dataMemType ;
       UINT64            _userData ;
-<<<<<<< HEAD
-=======
-      UINT64            _recvTime ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       void              *_Data ;
 
       _pmdEDUEvent ( pmdEDUEventTypes type = PMD_EDU_EVENT_NONE,
                      pmdEDUMemTypes dataMemType = PMD_EDU_MEM_NONE,
                      void *data = NULL,
-                     UINT64 userData = 0LL,
-                     UINT64 recvTime = 0LL )
+                     UINT64 userData = 0 )
       {
-         _reset ( type, dataMemType, data, userData, recvTime ) ;
+         _reset ( type, dataMemType, data, userData ) ;
       }
       _pmdEDUEvent( const _pmdEDUEvent &rhs )
       {
-         _reset ( rhs._eventType, rhs._dataMemType, rhs._Data, rhs._userData,
-                  rhs._recvTime ) ;
+         _reset ( rhs._eventType, rhs._dataMemType, rhs._Data, rhs._userData ) ;
       }
       _pmdEDUEvent& operator=( const _pmdEDUEvent &rhs )
       {
-         _reset( rhs._eventType, rhs._dataMemType, rhs._Data, rhs._userData,
-                 rhs._recvTime ) ;
+         _reset( rhs._eventType, rhs._dataMemType, rhs._Data, rhs._userData ) ;
          return *this ;
       }
       void reset ()
@@ -144,14 +131,12 @@ namespace engine
       void _reset ( pmdEDUEventTypes type = PMD_EDU_EVENT_NONE,
                     pmdEDUMemTypes dataMemType = PMD_EDU_MEM_NONE,
                     void *data = NULL,
-                    UINT64 userData = 0LL,
-                    UINT64 recvTime = 0LL )
+                    UINT64 userData = 0 )
       {
          _eventType  = type ;
          _dataMemType= dataMemType ;
          _Data       = data ;
          _userData   = userData ;
-         _recvTime   = recvTime ;
       }
 
    } ;
@@ -186,7 +171,6 @@ namespace engine
    } ;
 
    typedef class _pmdEDUEventQueue pmdEDUEventQueue ;
-<<<<<<< HEAD
 
    /*
       _pmdDataExInfo define
@@ -238,8 +222,6 @@ namespace engine
 
    typedef struct _pmdDataExInfo pmdDataExInfo ;
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    #define PMD_INVALID_EDUID              ( 0 )
 
@@ -271,7 +253,6 @@ namespace engine
       EDU_TYPE_FAPLISTENER,
       EDU_TYPE_DBMONITOR,
       EDU_TYPE_RTNNETWORK,
-
 #if defined (_LINUX)
       EDU_TYPE_SIGNALTEST,
 #endif // _LINUX
@@ -306,27 +287,8 @@ namespace engine
 
       EDU_TYPE_SUB_NET_AGENT,
 
-<<<<<<< HEAD
       EDU_TYPE_FS_MCS_NET_SERVICE,
       EDU_TYPE_FS_MCS_NET_AGENT,
-=======
-      // edu for SequoiaDB Time Protocol
-      EDU_TYPE_STP_NET_AGENT,
-      // system session to STP CB modules
-      EDU_TYPE_STP_SYSTEM_SESSION,
-      // service session to STP client
-      EDU_TYPE_STP_SERVICE_SESSION,
-
-      EDU_TYPE_FS_MCS_NET_SERVICE,
-      EDU_TYPE_FS_MCS_NET_AGENT,
-      
-      /// vessel begin
-      EDU_TYPE_VESSEL_LITE_BUFFER_POOL_WATCHER,
-      EDU_TYPE_VESSEL_LOBC_BUFFER_POOL_WATCHER,
-      EDU_TYPE_VESSEL_WORKER,
-      EDU_TYPE_VESSEL_HIT_MANAGER,
-      /// vessel end
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       EDU_TYPE_UNKNOWN,
       EDU_TYPE_MAXIMUM = EDU_TYPE_UNKNOWN
@@ -381,7 +343,6 @@ namespace engine
    #define SDB_TYPE_DB_STR             "sequoiadb"
    #define SDB_TYPE_OM_STR             "sdbom"
    #define SDB_TYPE_OMA_STR            "sdbcm"
-   #define SDB_TYPE_STP_STR            "stp"
 
    /*
       SDB_DB_STATUS_STR DEFINE
@@ -443,10 +404,6 @@ namespace engine
    #define PMD_OPTION_ALIVE_TIME       "alivetime"       // for om
    #define PMD_OPTION_FORCE            "force"
 
-   #define PMD_OPTION_SERVERLIST       "serverlist"      // for stp
-   #define PMD_OPTION_SYNCINTERVAL     "syncinterval"    // for stp
-   #define PMD_OPTION_MAXTIMEERROR     "maxtimeerror"    // for stp
-
    /*
       SDB_RUN_MODE_TYPE_STR DEFINE
    */
@@ -459,7 +416,6 @@ namespace engine
    #define SDBLIST_TYPE_OMA_STR    "cm"
    #define SDBLIST_TYPE_OM_STR     "om"
    #define SDBLIST_TYPE_DB_STR     "db"
-   #define SDBLIST_TYPE_STP_STR    "stp"
    #define SDBLIST_TYPE_ALL_STR    "all"
 
    /*
@@ -516,7 +472,6 @@ namespace engine
       SDB_TYPE_DB  = 1,    // sequoiadb: data, standalone, coord, catalog
       SDB_TYPE_OM,         // om
       SDB_TYPE_OMA,        // omagent
-      SDB_TYPE_STP,        // stp
 
       SDB_TYPE_MAX
    } ;

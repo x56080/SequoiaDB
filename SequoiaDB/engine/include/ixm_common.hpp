@@ -58,29 +58,8 @@ using namespace bson ;
 #define IXM_2DRANGE_FIELD           IXM_FIELD_NAME_2DRANGE
 #define IXM_NOTARRAY_FIELD          IXM_FIELD_NAME_NOTARRAY
 #define IXM_UNIQUEID_FIELD          IXM_FIELD_NAME_UNIQUEID
-<<<<<<< HEAD
 #define IXM_CREATETIME_FIELD        IXM_FIELD_NAME_CREATETIME
 #define IXM_REBUILDTIME_FIELD       IXM_FIELD_NAME_REBUILDTIME
-=======
-#define IXM_INNERID_FIELD           IXM_FIELD_NAME_INNERID
-#define IXM_LOGICALID_FIELD         FIELD_NAME_LOGICAL_ID
-
-#define IXM_TYPE_FIELD              IXM_FIELD_NAME_TYPE    
-
-#define IXM_CREATED_TIME            "CreatedTime"
-#define IXM_ALTERED_TIME            "AlteredTime"
-
-#define IXM_STATUS_FIELD            FIELD_NAME_STATUS
-#define IXM_REBORN_LSN              "RebornLSN"
-#define IXM_PROPERTIES              "Properties"
-#define IXM_MAX_LOGICAL_ID          "MaxLogicalID"
-#define IXM_HYBRID_TREE             "HybridTree"
-#define IXM_BTREE                   "Btree"
-#define IXM_LSM_TREE                "LsmTree"
-#define IXM_BTREE_ENTRY             "BtreeEntry"
-#define IXM_COMPRESSION             "Compression"
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 #define IXM_GLOBAL_CS_PREFIX        "GIDX_"
 #define IXM_GLOBAL_CL_PREFIX        "CL_"

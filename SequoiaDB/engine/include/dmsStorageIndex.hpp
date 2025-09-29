@@ -46,10 +46,7 @@
 #include "utilList.hpp"
 #include "dmsOprHandler.hpp"
 #include "dmsTaskStatus.hpp"
-<<<<<<< HEAD
 #include "dmsWriteGuard.hpp"
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 using namespace bson ;
 
@@ -174,11 +171,7 @@ namespace engine
                                 BOOLEAN forceTransCallback = FALSE,
                                 BOOLEAN addUIDIfNotExist = TRUE ) ;
 
-<<<<<<< HEAD
          INT32    dropIndex ( _dmsMBContext *context, OID &indexOID,
-=======
-         INT32    dropIndex ( _dmsMBContext *context, const OID &indexOID,
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                               _pmdEDUCB *cb, SDB_DPSCB *dpscb,
                               BOOLEAN isSys = FALSE,
                               dmsIdxTaskStatus *pIdxStatus = NULL,
@@ -211,10 +204,7 @@ namespace engine
                                   BSONObj &inputObj, const dmsRecordID &rid,
                                   _pmdEDUCB *cb,
                                   IDmsOprHandler *pOprHandle,
-<<<<<<< HEAD
                                   dmsWriteGuard &writeGuard,
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                                   utilWriteResult *pResult = NULL,
                                   dpsUnqIdxHashArray *pUnqIdxHashArray = NULL ) ;
 
@@ -225,10 +215,7 @@ namespace engine
                                   _pmdEDUCB *cb,
                                   BOOLEAN isUndo,
                                   IDmsOprHandler *pOprHandle,
-<<<<<<< HEAD
                                   dmsWriteGuard &writeGuard,
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                                   const ixmIdxHashBitmap &idxHashBitmap,
                                   utilWriteResult *pResult = NULL,
                                   dpsUnqIdxHashArray *pNewUnqIdxHashArray = NULL,
@@ -239,10 +226,7 @@ namespace engine
                                   BSONObj &inputObj, const dmsRecordID &rid,
                                   _pmdEDUCB *cb,
                                   IDmsOprHandler *pOprHandle,
-<<<<<<< HEAD
                                   dmsWriteGuard &writeGuard,
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                                   BOOLEAN isUndo = FALSE,
                                   dpsUnqIdxHashArray *pUnqIdxHashArray = NULL ) ;
 
@@ -319,39 +303,22 @@ namespace engine
                                  utilWriteResult *pResult = NULL,
                                  _dmsDupKeyProcessor *dkProcessor = NULL,
                                  dmsIdxTaskStatus* pIdxStatus = NULL ) ;
-<<<<<<< HEAD
-=======
-
-         INT32    _indexInsert( _ixmIndexCB *indexCB,
-                                 const _ixmKey &key, const dmsRecordID &rid,
-                                 const Ordering& order,
-                                 _pmdEDUCB *cb, BOOLEAN dupAllowed,
-                                 BOOLEAN dropDups,
-                                 utilWriteResult *pResult = NULL ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
          INT32    _indexInsert ( _dmsMBContext *context, _ixmIndexCB *indexCB,
                                  BSONObj &inputObj, const dmsRecordID &rid,
                                  _pmdEDUCB *cb, BOOLEAN dupAllowed,
                                  BOOLEAN dropDups,
                                  IDmsOprHandler *pOprHandle,
-<<<<<<< HEAD
                                  dmsWriteGuard &writeGuard,
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                                  utilWriteResult *pResult = NULL,
                                  dpsUnqIdxHashArray *pUnqIdxHashArray = NULL ) ;
 
-         INT32    _indexUpdate ( _dmsMBContext *context, INT32 indexID,
-                                 _ixmIndexCB *indexCB,
+         INT32    _indexUpdate ( _dmsMBContext *context, _ixmIndexCB *indexCB,
                                  BSONObj &originalObj, BSONObj &newObj,
                                  const dmsRecordID &rid, _pmdEDUCB *cb,
                                  BOOLEAN isRollback,
                                  IDmsOprHandler *pOprHandle,
-<<<<<<< HEAD
                                  dmsWriteGuard &writeGuard,
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                                  utilWriteResult *pResult = NULL,
                                  dpsUnqIdxHashArray *pUnqIdxHashArray = NULL,
                                  dpsUnqIdxHashArray *pOldUnqIdxHashArray = NULL ) ;
@@ -360,7 +327,6 @@ namespace engine
                                  BSONObj &inputObj, const dmsRecordID &rid,
                                  _pmdEDUCB *cb,
                                  IDmsOprHandler *pOprHandle,
-<<<<<<< HEAD
                                  dmsWriteGuard &writeGuard,
                                  dpsUnqIdxHashArray *pUnqIdxHashArray = NULL ) ;
 
@@ -377,9 +343,6 @@ namespace engine
                                 const dmsRecordID &rid,
                                 dmsWriteGuard &writeGuard,
                                 _pmdEDUCB *cb ) ;
-=======
-                                 dpsUnqIdxHashArray *pUnqIdxHashArray = NULL ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
          INT32    _builderIndexRecord( ixmIndexCB *indexCB, const _ixmKey &key,
                                        BSONObj &record ) ;
@@ -427,12 +390,6 @@ namespace engine
          BOOLEAN  _needUpdateIndexes( _dmsMBContext *context,
                                       const ixmIdxHashBitmap &idxHashBitmap ) ;
 
-<<<<<<< HEAD
-=======
-         INT32    _preCreateIndex( const BSONObj &indexDef,
-                                   BSONObj &indexMeta ) ;
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          INT32    _buildIndexUniqueID( utilIdxUniqueID& uniqID ) ;
 
          INT32    _checkAndChangeUniqueID( _dmsMBContext *context,

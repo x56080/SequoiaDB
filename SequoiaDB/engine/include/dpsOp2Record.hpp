@@ -39,84 +39,17 @@
 #include "dpsLogRecord.hpp"
 #include "../bson/bson.h"
 #include "dmsLobDef.hpp"
-<<<<<<< HEAD
-=======
-#include "stpLogicalTime.hpp"
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 #include "dmsEventHandler.hpp"
 #include "utilCompressor.hpp"
 #include "utilBitmap.hpp"
 #include "utilArray.hpp"
 #include "utilRecycleItem.hpp"
-<<<<<<< HEAD
-=======
-#include "dpsWriteContext.hpp"
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 using namespace bson ;
 
 namespace engine
 {
-<<<<<<< HEAD
 
-=======
-   /*
-      dpsRecordTransInfo define
-    */
-   typedef struct _dpsRecordTransInfo
-   {
-      _dpsRecordTransInfo()
-      : _transID(),
-        _preTransLSN( DPS_INVALID_LSN_OFFSET ),
-        _relatedLSN( DPS_INVALID_LSN_OFFSET ),
-        _beginTime( 0LL ),
-        _beginTimeError( 0 ),
-        _preCommitTime( 0LL ),
-        _commitTime( 0LL )
-      {
-      }
-
-      _dpsRecordTransInfo( const DPS_TRANS_ID &transID,
-                           const DPS_LSN_OFFSET &preTransLSN,
-                           const DPS_LSN_OFFSET &relatedLSN,
-                           const stpLogicalTimeUS &beginTime,
-                           const stpLogicalTimeUS &preCommitTime,
-                           const stpLogicalTimeUS &commitTime )
-      : _transID( transID ),
-        _preTransLSN( preTransLSN ),
-        _relatedLSN( relatedLSN ),
-        _beginTime( beginTime.getTime() ),
-        _beginTimeError( beginTime.getTimeError() ),
-        _preCommitTime( preCommitTime.getTime() ),
-        _commitTime( commitTime.getTime() )
-      {
-      }
-
-      void reset()
-      {
-         _transID.reset() ;
-         _preTransLSN = DPS_INVALID_LSN_OFFSET ;
-         _relatedLSN = DPS_INVALID_LSN_OFFSET ;
-         _beginTime = 0LL ;
-         _beginTimeError = 0 ;
-         _preCommitTime = 0LL ;
-         _commitTime = 0LL ;
-      }
-
-      DPS_TRANS_ID      _transID ;
-      DPS_LSN_OFFSET    _preTransLSN ;
-      DPS_LSN_OFFSET    _relatedLSN ;
-      // DPS record use values, split logical time into POD
-      UINT64            _beginTime ;
-      UINT32            _beginTimeError ;
-      // NOTE: no time error of pre-commit time
-      //       will reuse time error of transaction begin time
-      UINT64            _preCommitTime ;
-      // NOTE: no time error of commit time
-      //       will reuse time error of transaction begin time
-      UINT64            _commitTime ;
-   } dpsRecordTransInfo ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    /*
       _dpsUnqIdxHashArray define
@@ -151,11 +84,7 @@ namespace engine
       }
 
       INT32 prepare( UINT32 unqIdxNum, BOOLEAN isNew ) ;
-<<<<<<< HEAD
       void saveKey( UINT32 hashValue ) ;
-=======
-      void saveKey( const bson::BSONObj &key ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       INT32 pushToRecord( dpsLogRecord &record ) const ;
       INT32 parseFromRecord( const dpsLogRecord &record, BOOLEAN isNew ) ;
 
@@ -190,13 +119,9 @@ namespace engine
    INT32 dpsInsert2Record( const CHAR *fullName,
                            const BSONObj &obj,
                            const dpsUnqIdxHashArray *pUnqIdxHashArray,
-<<<<<<< HEAD
                            const DPS_TRANS_ID &transID,
                            const DPS_LSN_OFFSET &preTransLsn,
                            const DPS_LSN_OFFSET &relatedLSN,
-=======
-                           const dpsRecordTransInfo &transInfo,
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                            dpsLogRecord &record ) ;
 
    INT32 dpsRecord2Insert( const CHAR *logRecord,
@@ -214,13 +139,9 @@ namespace engine
                            const BSONObj &newShardingKey,
                            const dpsUnqIdxHashArray *pNewUnqIdxHashArray,
                            const dpsUnqIdxHashArray *pOldUnqIdxHashArray,
-<<<<<<< HEAD
                            const DPS_TRANS_ID &transID,
                            const DPS_LSN_OFFSET &preTransLsn,
                            const DPS_LSN_OFFSET &relatedLSN,
-=======
-                           const dpsRecordTransInfo &transInfo,
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                            const UINT32 *writeMod,
                            dpsLogRecord &record ) ;
 
@@ -241,13 +162,9 @@ namespace engine
                            const BSONObj &oldObj,
                            const dpsUnqIdxHashArray *pUnqIdxHashArray,
                            const INT64 *position,
-<<<<<<< HEAD
                            const DPS_TRANS_ID &transID,
                            const DPS_LSN_OFFSET &preTransLsn,
                            const DPS_LSN_OFFSET &relatedLSN,
-=======
-                           const dpsRecordTransInfo &transInfo,
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                            dpsLogRecord &record ) ;
 
    INT32 dpsRecord2Delete( const CHAR *logRecord,
@@ -361,7 +278,8 @@ namespace engine
 
    const CHAR*  dpsTSCommitAttr2String ( UINT8 attr ) ;
 
-   INT32 dpsTransCommit2Record( const dpsRecordTransInfo &transInfo,
+   INT32 dpsTransCommit2Record( const DPS_TRANS_ID &transID,
+                                const DPS_LSN_OFFSET &preTransLsn,
                                 const DPS_LSN_OFFSET &firstTransLsn,
                                 const UINT8  &attr,
                                 const UINT32 *pNodeNum,
@@ -377,7 +295,9 @@ namespace engine
                                 const UINT64 **ppNodes
                                 ) ;
 
-   INT32 dpsTransRollback2Record( const dpsRecordTransInfo &transInfo,
+   INT32 dpsTransRollback2Record( const DPS_TRANS_ID &transID,
+                                  const DPS_LSN_OFFSET &preTransLSN,
+                                  const DPS_LSN_OFFSET &relatedLSN,
                                   dpsLogRecord &record ) ;
 
    INT32 dpsInvalidCata2Record( const UINT8 &type,
@@ -399,7 +319,9 @@ namespace engine
                          const CHAR *data,
                          const UINT32 &pageSize,
                          const DMS_LOB_PAGEID &pageID,
-                         const dpsRecordTransInfo &transInfo,
+                         const DPS_TRANS_ID &transID,
+                         const DPS_LSN_OFFSET &preTransLsn,
+                         const DPS_LSN_OFFSET &relatedLSN,
                          dpsLogRecord &record ) ;
 
    INT32 dpsRecord2LobW( const CHAR *raw,
@@ -424,7 +346,9 @@ namespace engine
                           const CHAR *oldData,
                           const UINT32 &pageSize,
                           const DMS_LOB_PAGEID &pageID,
-                          const dpsRecordTransInfo &transInfo,
+                          const DPS_TRANS_ID &transID,
+                          const DPS_LSN_OFFSET &preTransLsn,
+                          const DPS_LSN_OFFSET &relatedLSN,
                           dpsLogRecord &record ) ;
 
    INT32 dpsRecord2LobU( const CHAR *raw,
@@ -449,7 +373,9 @@ namespace engine
                           const CHAR *data,
                           const UINT32 &pageSize,
                           const DMS_LOB_PAGEID &page,
-                          const dpsRecordTransInfo &transInfo,
+                          const DPS_TRANS_ID &transID,
+                          const DPS_LSN_OFFSET &preTransLsn,
+                          const DPS_LSN_OFFSET &relatedLSN,
                           dpsLogRecord &record ) ;
 
    INT32 dpsRecord2LobRm( const CHAR *raw,
@@ -502,22 +428,6 @@ namespace engine
    INT32 dpsGetTransIDFromRecord( const dpsLogRecord &record,
                                   BOOLEAN isRequired,
                                   DPS_TRANS_ID &transID ) ;
-
-   // get transaction logical time from record
-   // NOTE: logical times related to a transactions are transaction begin
-   //       time and transaction pre-commit time
-   INT32 dpsGetTransTimeFromRecord( const dpsLogRecord &record,
-                                    const DPS_TRANS_ID &transID,
-                                    stpLogicalTimeUS &time ) ;
-
-#if defined (SDB_ENGINE)
-   INT32 dpsGetTransIDFromRequest( const dpsWriteRequest &req,
-                                   DPS_TRANS_ID &transID ) ;
-
-   INT32 dpsGetTransTimeFromCtx( const dpsWriteContext &ctx,
-                                 const DPS_TRANS_ID &transID,
-                                 stpLogicalTimeUS &time ) ;
-#endif
 
 }
 

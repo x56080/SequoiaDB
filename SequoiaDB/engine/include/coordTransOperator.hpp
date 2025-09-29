@@ -110,8 +110,6 @@ namespace engine
          INT32         beginTrans( pmdEDUCB *cb,
                                    BOOLEAN isAutoCommit = FALSE ) ;
 
-         INT32         addAllGroups( pmdEDUCB *cb, BOOLEAN isWrite = FALSE) ;
-
          virtual INT32 execute( MsgHeader *pMsg,
                                 pmdEDUCB *cb,
                                 INT64 &contextID,
@@ -162,8 +160,7 @@ namespace engine
          virtual INT32 buildPhase2Msg( const CHAR *pReceiveBuffer,
                                        CHAR **pMsg,
                                        INT32 *pMsgSize,
-                                       pmdEDUCB *cb,
-                                       BOOLEAN inCompact ) = 0 ;
+                                       pmdEDUCB *cb ) = 0 ;
 
          virtual void  releasePhase1Msg( CHAR *pMsg,
                                          INT32 msgSize,
@@ -176,8 +173,7 @@ namespace engine
          virtual INT32 executeOnDataGroup ( MsgHeader *pMsg,
                                             pmdEDUCB *cb,
                                             INT64 &contextID,
-                                            rtnContextBuf *buf,
-                                            SET_NODEID *retryNodes ) = 0 ;
+                                            rtnContextBuf *buf ) = 0 ;
 
          virtual BOOLEAN canCompactCommit() = 0 ;
 
@@ -189,10 +185,6 @@ namespace engine
          virtual void    releaseCompactMsg( CHAR *pMsg,
                                             INT32 msgSize,
                                             pmdEDUCB *cb ) = 0 ;
-
-      protected:
-         UINT64 _preCommitTimeUS ;
-         UINT64 _commitTimeUS ;
    } ;
    typedef _coord2PhaseCommit coord2PhaseCommit ;
 
@@ -223,8 +215,7 @@ namespace engine
          virtual INT32 buildPhase2Msg( const CHAR *pReceiveBuffer,
                                        CHAR **pMsg,
                                        INT32 *pMsgSize,
-                                       pmdEDUCB *cb,
-                                       BOOLEAN inCompact ) ;
+                                       pmdEDUCB *cb ) ;
 
          virtual void  releasePhase1Msg( CHAR *pMsg,
                                          INT32 msgSize,
@@ -237,8 +228,7 @@ namespace engine
          virtual INT32 executeOnDataGroup ( MsgHeader *pMsg,
                                             pmdEDUCB *cb,
                                             INT64 &contextID,
-                                            rtnContextBuf *buf,
-                                            SET_NODEID *retryNodes ) ;
+                                            rtnContextBuf *buf ) ;
 
          virtual BOOLEAN canCompactCommit() ;
 
@@ -251,11 +241,9 @@ namespace engine
                                             INT32 msgSize,
                                             pmdEDUCB *cb ) ;
 
-      protected:
-         INT32 _onReply( pmdEDUCB *cb,
-                         MsgOpReply *reply ) ;
       private:
-         MsgOpTransCommitInt _phase2Msg ;
+         MsgOpTransCommit                 _phase2Msg ;
+         
    } ;
    typedef _coordTransCommit coordTransCommit ;
 
@@ -284,37 +272,6 @@ namespace engine
 
    } ;
    typedef _coordTransRollback coordTransRollback ;
-
-   /*
-      A transaction guard class.
-      The constructor begins a global transaction.
-      The destructor calls rollback.
-      If commit is called, it disables the rollback.
-      Caller should check the rc via getRc() after contruction.
-
-      Example usage:
-         coordTransHandler trans();           // begins the transaction
-         if ((rc = trans.getRc())) return rc; // error case
-         ...                                  // do work, if early return trans
-         ...                                  // is rolled back
-         rc = trans.commit();                 // commits the transaction
-   */
-   class coordTransHandler : public SDBObject
-   {
-    public:
-      // If allGroups = TRUE, adds the primary of each group the trans map
-      coordTransHandler(pmdEDUCB *cb, coordResource *pResource,
-                        BOOLEAN allGroups = TRUE);
-      ~coordTransHandler();
-      INT32 commit();
-      INT32 getRc() { return _rc; };
-
-    private:
-      pmdEDUCB *_cb;
-      coordResource *_pResource;
-      INT32 _rc;
-      BOOLEAN _committed;
-   };
 
 }
 

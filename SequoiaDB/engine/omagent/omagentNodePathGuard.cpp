@@ -37,7 +37,6 @@
 namespace engine {
 
    _omaNodePathGuard::_omaNodePathGuard()
-   : _type( SDB_TYPE_DB )
    {
       ossMemset( _nodeName, 0, sizeof( _nodeName ) ) ;
    }
@@ -98,22 +97,6 @@ namespace engine {
       {
          _nodePaths.push_back( options->getArchivePath() ) ;
       }
-
-      _type = SDB_TYPE_DB ;
-   }
-
-   void _omaNodePathGuard::initStp( const CHAR *nodeName,
-                                    const CHAR *cfgFileName )
-   {
-      ossStrncpy( _nodeName, nodeName, OSS_MAX_SERVICENAME ) ;
-      _nodeName[ OSS_MAX_SERVICENAME ] = 0 ;
-
-      if ( NULL != cfgFileName && '\0' != cfgFileName[ 0 ] )
-      {
-         _nodePaths.push_back( cfgFileName ) ;
-      }
-
-      _type = SDB_TYPE_STP ;
    }
 
    BOOLEAN _omaNodePathGuard::muteXOn( _omaNodePathGuard *pOther )

@@ -73,13 +73,7 @@ namespace engine
    INT32 utilWriteConfigFile( const CHAR * pFile, const CHAR * pData,
                               BOOLEAN createOnly = FALSE ) ;
 
-<<<<<<< HEAD
    INT32 utilGetServiceByConfigPath( const string &confPath,
-=======
-   INT32 utilGetServiceByConfigPath( const string& confPath,
-                                     const CHAR *fileName,
-                                     const CHAR *fieldName,
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                                      const string &defaultName,
                                      string &svcname,
                                      BOOLEAN allowFileNotExist = TRUE,

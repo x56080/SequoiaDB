@@ -2,13 +2,8 @@
  * @Description   : seqDB-6657:remove带条件删除所有数据并再次插入数据
  * @Author        : XiaoNi Huang
  * @CreateTime    : 2016.03.23
-<<<<<<< HEAD
  * @LastEditTime  : 2023.02.07
  * @LastEditors   : liuli
-=======
- * @LastEditTime  : 2021.02.23
- * @LastEditors   : XiaoNi Huang
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
  ******************************************************************************/
 testConf.skipStandAlone = true;
 testConf.useSrcGroup = true;
@@ -28,7 +23,6 @@ function test ( testPara )
    // insert  
    insertRecs2( cl, insertRecsNum );
    checkLzwAttributeByDataNode( rgName, csName, clName, true );
-<<<<<<< HEAD
 
    // truncate
    cl.truncate();
@@ -40,17 +34,6 @@ function test ( testPara )
    insertRecs2( cl, insertRecsNum );
 
    waitDictionary( db, csName, clName );
-=======
-
-   // truncate
-   cl.truncate();
-   var recsCnt = cl.count();
-   assert.equal( recsCnt, 0 );
-   checkLzwAttributeByDataNodeAfterTruncate( rgName, csName, clName );
-
-   // insert again
-   insertRecs2( cl, insertRecsNum );
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    // 检查结果，检查组内每个节点数据正确性
    checkLzwAttributeByDataNode( rgName, csName, clName, true );
@@ -65,7 +48,6 @@ function checkLzwAttributeByDataNodeAfterTruncate ( rgName, csName, clName )
       var nodeName = rc.current().toObj()["NodeName"];
       var nodeDB = null;
       try
-<<<<<<< HEAD
       {
          nodeDB = new Sdb( nodeName );
          var nodeCL = nodeDB.getCS( csName ).getCL( clName );
@@ -77,19 +59,6 @@ function checkLzwAttributeByDataNodeAfterTruncate ( rgName, csName, clName )
       }
       finally 
       {
-=======
-      {
-         nodeDB = new Sdb( nodeName );
-         var nodeCL = nodeDB.getCS( csName ).getCL( clName );
-         var clInfo = nodeDB.snapshot( 4, { Name: csName + "." + clName } ).toArray();
-         var details = JSON.parse( clInfo[0] ).Details[0];
-         assert.equal( details.Attribute, "Compressed", "clInfo = " + JSON.stringify( clInfo ) );
-         assert.equal( details.CompressionType, "lzw", "clInfo = " + JSON.stringify( clInfo ) );
-         assert.equal( details.DictionaryCreated, false, "clInfo = " + JSON.stringify( clInfo ) );
-      }
-      finally 
-      {
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          if( nodeDB != null ) nodeDB.close();
       }
    }

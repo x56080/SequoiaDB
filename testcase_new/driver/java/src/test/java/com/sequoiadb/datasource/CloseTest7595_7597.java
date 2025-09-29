@@ -80,11 +80,7 @@ public class CloseTest7595_7597 extends DataSourceTestBase {
         } catch ( InterruptedException e ) {
             Assert.fail( e.getMessage() );
         } catch ( BaseException e ) {
-<<<<<<< HEAD
             judegeErrCode( "SDB_CLIENT_CONNPOOL_CLOSE", e.getErrorCode() );
-=======
-            judegeErrCode( "SDB_SYS", e.getErrorCode() );
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         }
 
     }
@@ -115,22 +111,14 @@ public class CloseTest7595_7597 extends DataSourceTestBase {
         } catch ( InterruptedException e ) {
             Assert.fail( e.getMessage() );
         } catch ( BaseException e ) {
-<<<<<<< HEAD
             judegeErrCode( "SDB_CLIENT_CONNPOOL_CLOSE", e.getErrorCode() );
-=======
-            judegeErrCode( "SDB_SYS", e.getErrorCode() );
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         }
 
         try {
             datasource.releaseConnection( sdb );
             Assert.fail( "must throw exception!" );
         } catch ( BaseException e ) {
-<<<<<<< HEAD
             judegeErrCode( "SDB_CLIENT_CONNPOOL_CLOSE", e.getErrorCode() );
-=======
-            judegeErrCode( "SDB_SYS", e.getErrorCode() );
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         }
     }
 

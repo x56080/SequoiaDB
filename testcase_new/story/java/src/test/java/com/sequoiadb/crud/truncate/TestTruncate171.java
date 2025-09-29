@@ -60,7 +60,7 @@ public class TestTruncate171 extends SdbTestBase {
         }
     }
 
-    @Test()
+    @Test
     public void test() {
         TruncateThread truncateThread = new TruncateThread();
         SplitThread splitThread = new SplitThread();

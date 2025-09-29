@@ -1,9 +1,4 @@
-<<<<<<< HEAD
 /*******************************************************************************
-=======
-#ifndef VERSION_GEN_FOR_PYTHON_HPP
-#define VERSION_GEN_FOR_PYTHON_HPP
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    Copyright (C) 2011-Present SequoiaDB Ltd.
 
@@ -23,7 +18,6 @@
 
    Descriptive Name = N/A
 
-<<<<<<< HEAD
    Dependencies: N/A
 
    Restrictions: N/A
@@ -41,8 +35,6 @@
 
 #include "versionGeneratorBase.hpp"
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 class versionGenForPython : public versionGeneratorBase
 {
 DECLARE_GENERATOR_AUTO_REGISTER() ;

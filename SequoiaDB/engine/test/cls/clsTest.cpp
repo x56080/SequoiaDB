@@ -117,8 +117,7 @@ public:
    virtual ~myHandler(){}
    virtual INT32 handleMsg( const NET_HANDLE &handle,
                             const _MsgHeader *header,
-                            const CHAR *msg,
-                            UINT64 msgUserData )
+                            const CHAR *msg )
    {
       return SDB_OK ;
    }

@@ -41,11 +41,7 @@
 #include "oss.hpp"
 #include "msg.h"
 #include "msgDef.h"
-<<<<<<< HEAD
 #include <boost/shared_ptr.hpp>
-=======
-#include "dpsTransID.hpp"
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 #include <string>
 
 namespace engine
@@ -80,11 +76,6 @@ namespace engine
       SDB_CB_PMDCTRL,
       SDB_CB_OMPROXY,
       SDB_CB_SEADAPTER,
-
-      SDB_CB_STP,
-
-      SDB_CB_DMS_ENGINE,
-
       // THE MAX CB TYPE
       SDB_CB_MAX
    } ;
@@ -124,10 +115,6 @@ namespace engine
       SDB_SESSION_PROTOCOL,
       SDB_SESSION_SE_INDEX,
       SDB_SESSION_SE_AGENT,
-<<<<<<< HEAD
-=======
-      SDB_SESSION_STP,
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       SDB_SESSION_DUMMY,
       // Reserved
       SDB_SESSION_MAX
@@ -164,7 +151,6 @@ namespace engine
    */
    #define SDB_DB_MODE_READONLY        0x00000001
    #define SDB_DB_MODE_DEACTIVATED     0x00000002
-   #define SDB_DB_MODE_RESTORING       0x00000004
 
    /*
       _ISDBRoot define
@@ -311,11 +297,6 @@ namespace engine
 
          virtual BOOLEAN      privCheckEnabled() const = 0 ;
          virtual UINT32       getRoleID() const = 0 ;
-<<<<<<< HEAD
-=======
-         virtual INT32        checkPrivilege( const MsgHeader *pMsg ) = 0 ;
-         virtual INT32        checkCmdPrivilege( const CHAR *cmdName ) = 0 ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    } ;
    typedef _IClient IClient ;
 
@@ -523,17 +504,14 @@ namespace engine
          virtual UINT32    getLsnCount () const = 0 ;
          virtual BOOLEAN   isDoRollback () const = 0 ;
 
-         virtual const DPS_TRANS_ID &getTransID () const = 0 ;
+         virtual UINT64    getTransID () const = 0 ;
          virtual UINT64    getCurTransLsn () const = 0 ;
-      #if defined( SDB_ENGINE )
-         virtual INT32 getTransIsolation() const = 0;
-      #endif
          /// for write
          virtual void      resetLsn() = 0 ;
          virtual void      insertLsn( UINT64 lsn,
                                       BOOLEAN isRollback = FALSE ) = 0 ;
 
-         virtual void      setTransID( const DPS_TRANS_ID &transID ) = 0 ;
+         virtual void      setTransID( UINT64 transID ) = 0 ;
          virtual void      setCurTransLsn( UINT64 lsn ) = 0 ;
 
          /*
@@ -589,9 +567,6 @@ namespace engine
 
          virtual void      addIOService( IIOService *pIOService ) = 0 ;
          virtual void      delIOSerivce( IIOService *pIOService ) = 0 ;
-
-      public:
-         virtual UINT64 getMinRunningLSN() = 0;
 
    } ;
    typedef _IExecutorMgr IExecutorMgr ;

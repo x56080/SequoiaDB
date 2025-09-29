@@ -6,7 +6,6 @@
 
 import unittest
 import datetime
-import time
 from pysequoiadb.error import (SDBTypeError, SDBBaseError, SDBEndOfCursor, SDBError)
 from lib import testlib
 
@@ -61,7 +60,6 @@ class TestTransaction12487(testlib.SdbTestBase):
       doc = []
       for i in range(0, insert_nums):
          doc.append({"a": i , "b": "test" + str(i)})
-<<<<<<< HEAD
       try:
          flags = 0
          self.cl.bulk_insert(flags, doc)
@@ -79,37 +77,6 @@ class TestTransaction12487(testlib.SdbTestBase):
          self.cl.delete(condition = cond)
       except SDBBaseError as e:
          self.fail('remove fail: ' + str(e))
-=======
-      for j in range(0,10):
-         try:
-            flags = 0
-            self.cl.bulk_insert(flags, doc)
-            break
-         except SDBBaseError as e:
-            if(e.code != -355 or j > 8):
-               self.fail('insert fail: ' + str(e))
-            time.sleep(1)
-
-   def update_datas(self,rule,cond):
-      for j in range(0,10):
-         try:
-            self.cl.update(rule, condition = cond)
-            break
-         except SDBBaseError as e:
-            if(e.code != -355 or j > 8):
-               self.fail('update fail: ' + str(e))
-            time.sleep(1)
-
-   def remove_datas(self,cond):
-      for j in range(0,10):
-         try:
-            self.cl.delete(condition = cond)
-            break
-         except SDBBaseError as e:
-            if(e.code != -355 or j > 8):
-               self.fail('remove fail: ' + str(e))
-            time.sleep(1)
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    def commit_transaction(self):
       try:

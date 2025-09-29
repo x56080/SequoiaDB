@@ -33,8 +33,8 @@
 #ifndef CLS_RESOURCE_CONTAINER_HPP_
 #define CLS_RESOURCE_CONTAINER_HPP_
 
-#include "ossTypes.hpp"
 #include "oss.hpp"
+#include "ossTypes.hpp"
 
 namespace engine
 {

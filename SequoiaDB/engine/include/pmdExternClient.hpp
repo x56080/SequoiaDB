@@ -41,10 +41,7 @@
 #include <string>
 #include "utilAuthSCRAMSHA.hpp"
 #include "authDef.hpp"
-<<<<<<< HEAD
 #include "authAccessControlList.hpp"
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 using namespace std ;
 
@@ -133,12 +130,6 @@ namespace engine
             return _roleID ;
          }
 
-<<<<<<< HEAD
-=======
-         virtual INT32 checkPrivilege( const MsgHeader *msg ) ;
-         virtual INT32 checkCmdPrivilege( const CHAR *cmdName ) ;
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       public:
          ossSocket*           getSocket() { return _pSocket ; }
 
@@ -150,10 +141,6 @@ namespace engine
                                                       const CHAR **password ) ;
          INT32                _processAuthResponse( INT32 opCode ) ;
          INT32                _parseUserRole( const bson::BSONObj &userInfo ) ;
-<<<<<<< HEAD
-=======
-         BOOLEAN              _shouldSkipPrivCheck( INT32 opCode ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       protected:
          string               _username ;

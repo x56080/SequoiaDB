@@ -762,19 +762,11 @@ namespace engine
       {
          ossScopedLock lock( &_forceLatch ) ;
          if ( _isStop )
-<<<<<<< HEAD
          {
             ret = FALSE ;
          }
          else
          {
-=======
-         {
-            ret = FALSE ;
-         }
-         else
-         {
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             try
             {
                // push session into the force list
@@ -878,7 +870,6 @@ namespace engine
    INT32 _pmdAsycSessionMgr::dispatchMsg( const NET_HANDLE &handle,
                                           const MsgHeader *pMsg,
                                           pmdEDUMemTypes memType,
-                                          UINT64 recvTime,
                                           BOOLEAN decPending,
                                           BOOLEAN *hasDispatched )
    {
@@ -1006,11 +997,11 @@ namespace engine
          goto done ;
       }
 
-      // On receive
-      pSession->onRecieve( handle, (_MsgHeader*)pMsg ) ;
+      // On recieve
+      pSession->onRecieve ( handle, (_MsgHeader*)pMsg ) ;
 
-      // push the message into session manager
-      rc = _pushMessage( pSession, pMsg, memType, handle, recvTime ) ;
+      // push the mssage into session manager
+      rc = _pushMessage( pSession, pMsg, memType, handle ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG ( PDERROR, "Failed to push message[Len:%u, opCode:%d, "
@@ -1044,14 +1035,13 @@ namespace engine
    INT32 _pmdAsycSessionMgr::_pushMessage( pmdAsyncSession *pSession,
                                            const MsgHeader *header,
                                            pmdEDUMemTypes memType,
-                                           const NET_HANDLE &handle,
-                                           UINT64 recvTime )
+                                           const NET_HANDLE &handle )
    {
       INT32 rc                = SDB_OK ;
       PD_TRACE_ENTRY ( PMD_SESSMGR_PUSHMSG ) ;
       CHAR *pNewBuff          = NULL ;
       UINT64 userData         = PMD_MAKE_SESSION_USERDATA( handle,
-                                                 PMD_SESSION_MSG_INPOOL ) ;
+                                           PMD_SESSION_MSG_INPOOL ) ;
 
       if ( pSession->isClosed() )
       {
@@ -1144,7 +1134,7 @@ namespace engine
       // post edu event
       pSession->eduCB()->postEvent( pmdEDUEvent( PMD_EDU_EVENT_MSG,
                                                  memType, pNewBuff,
-                                                 userData, recvTime ) ) ;
+                                                 userData ) ) ;
    done:
       PD_TRACE_EXITRC ( PMD_SESSMGR_PUSHMSG, rc ) ;
       return rc ;

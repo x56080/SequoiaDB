@@ -177,11 +177,5 @@ namespace engine
                           pmdCBMgrEntryPoint,
                           "SeAdapterMgr" ) ;
 
-#if defined ( SDB_STP )
-   PMD_DEFINE_ENTRYPOINT( EDU_TYPE_STP_SYSTEM_SESSION, FALSE,
-                          pmdCBMgrEntryPoint,
-                          "STPSystemSession" ) ;
-#endif
-
 }
 

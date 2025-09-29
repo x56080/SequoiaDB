@@ -16,11 +16,7 @@ protected:
    CHAR pResult[ NAME_LEN+1 ] ;
    bson csOption ;
    bson domObj ;
-<<<<<<< HEAD
    BOOLEAN isStandAlone;
-=======
-   BOOLEAN isStandAlone ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    void SetUp()
    {
      pDomainName        = "domain1" ;
@@ -30,11 +26,7 @@ protected:
      dom                = 0 ;
      pResult[ 0 ]       = 0 ;
      testBase::SetUp() ;
-<<<<<<< HEAD
      isStandAlone = FALSE ;
-=======
-     isStandAlone = FALSE;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
      if ( isStandalone(db) )
      {
         isStandAlone = TRUE ;

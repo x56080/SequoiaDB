@@ -3967,13 +3967,9 @@ namespace engine
       UINT32 primary = 0 ;
       UINT32 groupVersion = 0 ;
       UINT32 groupID = 0 ;
-<<<<<<< HEAD
       string groupName ;
       map<UINT64, _netRouteNode> groups ;
       CLS_LOC_INFO_MAP locInfo ;
-=======
-      NET_ROUTE_MAP groups ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       PD_LOG( PDDEBUG, "Update groupItem[%s]", obj.toString().c_str() ) ;
 
@@ -4074,26 +4070,15 @@ namespace engine
          goto done;
       }
       {
-         clsNodeItem& item = _vecNodes[pos] ;
-         id = item._id ;
-         id.columns.serviceID = (UINT16)type ;
-         try
-         {
-            hostName = item._host ;
-            serviceName = item._service[(UINT16)type] ;
-         }
-         catch( std::exception &e )
-         {
-            rc = ossException2RC( &e ) ;
-            PD_RC_CHECK( rc, PDERROR, "Assigning value to string occured "
-                         "exception: %s, rc: %d", e.what(), rc ) ;
-         }
+      clsNodeItem& item = _vecNodes[pos] ;
+      id = item._id ;
+      id.columns.serviceID = (UINT16)type ;
+      hostName = item._host ;
+      serviceName = item._service[(UINT16)type] ;
       }
    done:
       PD_TRACE_EXIT ( SDB__CLSGPIM_GETNDINFO1 ) ;
       return rc ;
-   error:
-      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSGPIM_GETNDINFO2, "_clsGroupItem::getNodeInfo" )
@@ -4109,24 +4094,13 @@ namespace engine
          goto done ;
       }
       {
-         clsNodeItem& item = _vecNodes[pos] ;
-         try
-         {
-            hostName = item._host ;
-            serviceName = item._service[id.columns.serviceID] ;
-         }
-         catch( std::exception &e )
-         {
-            rc = ossException2RC( &e ) ;
-            PD_RC_CHECK( rc, PDERROR, "Assigning value to string occured "
-                         "exception: %s, rc: %d", e.what(), rc ) ;
-         }
+      clsNodeItem& item = _vecNodes[pos] ;
+      hostName = item._host ;
+      serviceName = item._service[id.columns.serviceID] ;
       }
    done:
       PD_TRACE_EXIT ( SDB__CLSGPIM_GETNDINFO2 ) ;
       return rc ;
-   error:
-      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSGPIM_GETNDINFO3, "_clsGroupItem::getNodeInfo" )
@@ -4267,13 +4241,13 @@ namespace engine
       _mapLocInfo.swap( locInfo ) ;
    }
 
-   INT32 _clsGroupItem::updateNodes ( NET_ROUTE_MAP & nodes )
+   INT32 _clsGroupItem::updateNodes ( std::map <UINT64, _netRouteNode> & nodes )
    {
       INT32 rc = SDB_OK ;
 
       _clear() ;
 
-      NET_ROUTE_MAP::iterator it = nodes.begin () ;
+      std::map <UINT64, _netRouteNode>::iterator it = nodes.begin () ;
       UINT8 pos = 0 ;
 
       try
@@ -4788,7 +4762,7 @@ namespace engine
       UINT32 groupVersion = 0 ;
       UINT32 groupID = 0 ;
       string groupName ;
-      NET_ROUTE_MAP group ;
+      map<UINT64, _netRouteNode> group ;
       UINT32 primary = 0 ;
       CLS_LOC_INFO_MAP locInfo ;
 

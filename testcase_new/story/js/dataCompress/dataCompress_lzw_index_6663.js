@@ -20,19 +20,12 @@ function test ( testPara )
    var cl = testPara.testCL;
    var insertRecsNum = 800000;
    var checkRecsNum = 3;
-<<<<<<< HEAD
 
    // 创建索引并插入数据
    cl.createIndex( "idx", { INNER_NO: 1, SA_ACCT_NO: -1 }, true, true );
    insertRecs( cl, insertRecsNum );
 
    waitDictionary( db, csName, clName );
-=======
-
-   // 创建索引并插入数据
-   cl.createIndex( "idx", { INNER_NO: 1, SA_ACCT_NO: -1 }, true, true );
-   insertRecs( cl, insertRecsNum );
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    // 批量修改数据
    var rc = cl.find( { $and: [{ INNER_NO: { $gte: 300000 } }, { SA_ACCT_NO: { $lt: 700000 } }] } )

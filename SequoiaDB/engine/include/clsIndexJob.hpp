@@ -1,6 +1,5 @@
 /*******************************************************************************
 
-<<<<<<< HEAD
    Copyright (C) 2011-Present SequoiaDB Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,23 +13,6 @@
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
-=======
-
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
-
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
-
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    Source File Name = clsIndexJob.hpp
 
@@ -46,10 +28,6 @@
    Last Changed =
 
 *******************************************************************************/
-<<<<<<< HEAD
-=======
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 #ifndef CLS_INDEX_JOB_HPP_
 #define CLS_INDEX_JOB_HPP_
 
@@ -85,14 +63,6 @@ namespace engine
          virtual INT32 init () ;
          virtual INT32 doit () ;
 
-<<<<<<< HEAD
-=======
-         virtual BOOLEAN useTransLock() const
-         {
-            return TRUE ;
-         }
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       protected:
          virtual void _onAttach() ;
          virtual void _onDetach() ;
@@ -111,17 +81,10 @@ namespace engine
          BOOLEAN _isCLNameExist() ;
 
       private:
-<<<<<<< HEAD
          CLS_INDEX_THREAD_MODE _threadMode ;
          BOOLEAN               _hasSetIndexObj ; // protect _indexObj
          BOOLEAN               _retryLater ;
          BOOLEAN               _checkTasks ;
-=======
-         _pmdDummySession      _session ;
-         CLS_INDEX_THREAD_MODE _threadMode ;
-         BOOLEAN               _hasSetIndexObj ; // protect _indexObj
-         BOOLEAN               _retryLater ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    };
    typedef class _clsIndexJob clsIndexJob ;
 

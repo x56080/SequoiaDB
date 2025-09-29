@@ -115,8 +115,6 @@ namespace engine
 
    INT32 monDBDumpLogInfo( BSONObjBuilder &ob );
 
-   INT32 monDBDumpRBSInfo( BSONObjBuilder &ob );
-
    INT32 monDumpLastOpInfo( BSONObjBuilder &ob, const monAppCB &moncb ) ;
 
    void  monDumpSvcTaskInfo( BSONObjBuilder &ob,
@@ -134,7 +132,6 @@ namespace engine
    INT32 monCollection2Obj ( const monCollection &full, UINT32 addInfoMask,
                              BSONObjBuilder &ob ) ;
 
-<<<<<<< HEAD
    INT32 monCollectionStatInfo2Obj( const collectionStatInfo &collectionStat,
                                     BSONObjBuilder &builder ) ;
    
@@ -149,10 +146,6 @@ namespace engine
 
    INT32 monBuildIndexStatResult( BSONObj &stat, UINT32 addInfoMask,
                                   BSONObjBuilder &ob, BOOLEAN detail = FALSE ) ;
-=======
-   INT32 monBuildStatResult( BSONObj &stat, UINT32 addInfoMask,
-                             BSONObjBuilder &ob, BOOLEAN detail = FALSE ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    /*
       _monTransFetcher define
@@ -970,3 +963,4 @@ namespace engine
 }
 
 #endif //MONDUMP_HPP_
+

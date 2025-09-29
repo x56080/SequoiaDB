@@ -63,24 +63,10 @@ namespace engine
          virtual void  handleClose( const NET_HANDLE &handle,
                                     _MsgRouteID id ) ;
 
-         virtual INT32 onReceiveMsg( const NET_HANDLE &handle,
-                                     const MsgRouteID &id,
-                                     MsgHeader *header,
-                                     UINT32 availableSize,
-                                     netUserDataHolder *userDataHolder ) ;
-
       protected:
          virtual void _postMainMsg( const NET_HANDLE &handle,
                                     MsgHeader *pNewMsg,
                                     pmdEDUMemTypes memType ) ;
-
-         virtual BOOLEAN _needUserData()
-         {
-            return TRUE ;
-         }
-
-         virtual INT32 _allocUserData( NET_HANDLE handle,
-                                       netUserDataHolder *userDataHolder ) ;
 
       protected:
          pmdEDUCB             *_pShardCB ;

@@ -47,11 +47,6 @@
 #include "coordOmProxy.hpp"
 #include "coordSequenceAgent.hpp"
 #include "coordDataSource.hpp"
-<<<<<<< HEAD
-=======
-#include "coordGTSAgent.hpp"
-#include "../bson/bson.h"
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 #include "utilArray.hpp"
 #include "coordCacheCleaner.hpp"
 
@@ -101,10 +96,6 @@ namespace engine
       _pOmStrategyAgent = NULL ;
       _pSequenceAgent = NULL ;
       _pDataSourceMgr = NULL ;
-<<<<<<< HEAD
-=======
-      _pGTSAgent = NULL ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       _totalCataInfoSize = 0 ;
    }
 
@@ -205,18 +196,6 @@ namespace engine
          goto error ;
       }
 
-      // initialize GTS agent
-      _pGTSAgent = SDB_OSS_NEW coordGTSAgent() ;
-      PD_CHECK( NULL != _pGTSAgent, SDB_OOM, error, PDERROR,
-                "Failed to alloc GTS agent" ) ;
-
-      rc = _pGTSAgent->init( this ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to initialize GTS agent, "
-                   "rc: %d", rc ) ;
-
-      // register to transCB
-      sdbGetTransCB()->registerGTSAgent( _pGTSAgent ) ;
-
    done:
       if ( pCataGroup )
       {
@@ -261,31 +240,6 @@ namespace engine
          SDB_OSS_DEL _pSequenceAgent ;
          _pSequenceAgent = NULL ;
       }
-
-      if ( _pGTSAgent )
-      {
-         _pGTSAgent->fini() ;
-         SDB_OSS_DEL _pGTSAgent ;
-         _pGTSAgent = NULL ;
-      }
-   }
-
-   INT32 _coordResource::onRegistered()
-   {
-      INT32 rc = SDB_OK ;
-
-      EDUID eduID = 0 ;
-
-      // start GTS lowTran job
-      rc = dpsStartGTSLowTranJob( _pGTSAgent, &eduID ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to start GTS lowTran job, rc: %d",
-                   rc ) ;
-
-   done:
-      return rc ;
-
-   error:
-      goto done ;
    }
 
    _netRouteAgent* _coordResource::getRouteAgent()
@@ -2584,7 +2538,6 @@ namespace engine
                ossSleepmillis( 20 ) ;
                continue ;
             }
-<<<<<<< HEAD
 
             if ( ossStrlen( fullName ) == 0 )
             {
@@ -2662,83 +2615,4 @@ namespace engine
       goto done ;
    }
 
-=======
-
-            if ( ossStrlen( fullName ) == 0 )
-            {
-               it = _mapCataInfo.begin() ;
-            }
-            else
-            {
-               it = _mapCataInfo.lower_bound( fullName ) ;
-               if ( it == _mapCataInfo.end() )
-               {
-                  break ;
-               }
-            }
-
-            while ( loop++ < COORD_METACACHE_DELETION_SCAN_MAX &&
-                    it != _mapCataInfo.end() )
-            {
-               UINT64 lastTime = it->second->getLastAccessTime() ;
-               UINT64 tickspan = currentTime - lastTime ;
-               if ( lastTime < currentTime &&
-                    1 >= it->second.use_count() &&
-                    expiredTime < pmdDBTickSpan2Time( tickspan ) )
-               {
-                  ++count ;
-                  deletionVec[ idx++ ] = it->second ;
-                  _removeCataInfo( it++ ) ;
-                  if ( COORD_METACACHE_DELETION_VEC_SIZE == idx )
-                  {
-                     break ;
-                  }
-                  continue ;
-               }
-               ++it ;
-            }
-
-            if ( it == _mapCataInfo.end() )
-            {
-               break ;
-            }
-            ossStrncpy( fullName, it->second->getName(),
-                        DMS_COLLECTION_FULL_NAME_SZ ) ;
-         }
-         catch( std::exception &e )
-         {
-            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
-            rc = pdGetLastError() ? pdGetLastError() : SDB_SYS ;
-            goto error ;
-         }
-
-         if ( 0 == idx )
-         {
-            ossSleepmillis( 100 ) ;
-         }
-         for ( INT32 i = 0 ; i < idx ; ++i )
-         {
-            deletionVec[ i ].reset() ;
-         }
-      }
-
-#if defined ( _DEBUG )
-      {
-         UINT64 endTime = pmdGetDBTick() ;
-         UINT64 cost = pmdDBTickSpan2Time ( endTime - currentTime ) ;
-         FLOAT64 fcost = 1.0 * cost / 1000 ;
-         PD_LOG( PDDEBUG, "Cost %.3lf (s) when clean CataInfo caches.", fcost ) ;
-      }
-#endif
-
-      PD_LOG( PDDEBUG, "Total clean %d CataInfo caches which were timeout, now "
-              "%d CataInfo caches is valid.", count , _mapCataInfo.size() ) ;
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 }

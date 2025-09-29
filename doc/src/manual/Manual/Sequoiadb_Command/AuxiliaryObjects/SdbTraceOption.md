@@ -178,9 +178,5 @@
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [general_guide]:manual/FAQ/faq_sdb.md
-<<<<<<< HEAD
 [edu]:manual/Distributed_Engine/Architecture/Thread_Model/edu.md
 
-=======
-[edu]:manual/Distributed_Engine/Architecture/Thread_Model/edu.md
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2

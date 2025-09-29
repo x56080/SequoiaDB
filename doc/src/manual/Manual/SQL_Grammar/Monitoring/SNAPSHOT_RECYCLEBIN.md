@@ -16,13 +16,8 @@ $SNAPSHOT_RECYCLEBIN
 | OriginID        | int64      | 已回收的集合空间或集合的唯一标识   |
 | OriginName      | string     | 已回收的集合空间或集合的名称 |
 | Type            | string     | 回收站项目的类型，取值如下：<br>"CollectionSpace"：集合空间<br>"Collection" ：集合 |
-<<<<<<< HEAD
 | OpType          | string     | 回收站项目的操作类型，取值如下：<br>"Drop"：删除集合空间或集合操作<br>"Truncate"：删除数据操作 |
 | RecycleTime     | string     | 生成回收站项目的时间 |
-=======
-| OpType          | string     | 回收站项目的操作类型，取值如下：<br>"Drop"：删除集合空间或集合操作<br>"Truncate"：删除数据操作 | 
-| RecycleTime     | timestamp  | 生成回收站项目的时间 |
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 | PageSize        | int32      | 回收站项目的数据页大小，单位为字节 |
 | LobPageSize     | int32      | 回收站项目的大对象数据页大小，单位为字节 |
 | TotalRecords    | int32      | 回收站项目的记录总数 |
@@ -49,13 +44,7 @@ $SNAPSHOT_RECYCLEBIN
   "OriginID": 21474836481,
   "Type": "Collection",
   "OpType": "Drop",
-<<<<<<< HEAD
   "RecycleTime": "2022-01-24-12.04.12.000000",
-=======
-  "RecycleTime": {
-    "$timestamp": "2022-01-24-12.04.12.000000"
-  },
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
   "NodeName": "server:20000",
   "GroupName": "db1",
   "PageSize": 65536,

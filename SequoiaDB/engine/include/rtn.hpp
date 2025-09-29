@@ -103,16 +103,6 @@ namespace engine
                            _dmsScanner **ppScanner,
                            DMS_ACCESS_TYPE accessType,
                            IRtnOprHandler *opHandler = NULL ) ;
-<<<<<<< HEAD
-=======
-
-   INT32 rtnGetIndexSeps( optAccessPlanRuntime *planRuntime,
-                          _dmsStorageUnit *su,
-                          _dmsMBContext *mbContext,
-                          _pmdEDUCB *cb,
-                          std::vector< BSONObj > &idxBlocks,
-                          std::vector< dmsRecordID > &idxRIDs ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    BSONObj rtnUpdator2Obj( const BSONObj &source, const BSONObj &updator ) ;
 
@@ -293,7 +283,6 @@ namespace engine
                                       const BSONObj *pIdIdxDef = NULL,
                                       BOOLEAN addIdxIDIfNotExist = FALSE ) ;
 
-<<<<<<< HEAD
    INT32 rtnGetMore ( SINT64 contextID,            // input, context id
                       SINT32 maxNumToReturn,       // input, max record to read
                       rtnContextBuf &buffObj,      // output
@@ -306,22 +295,6 @@ namespace engine
                       rtnContextBuf &buffObj,      // output
                       pmdEDUCB *cb,                // input educb
                       SDB_RTNCB *rtnCB             // input runtimecb
-=======
-   INT32 rtnGetMore ( SINT64 contextID,               // input, context id
-                      SINT32 maxNumToReturn,          // input, max record to read
-                      rtnContextBuf &buffObj,         // output
-                      pmdEDUCB *cb,                   // input educb
-                      SDB_RTNCB *rtnCB,               // input runtimecb
-                      const BSONObj &hint = BSONObj() // input hint obj
-                      ) ;
-
-   INT32 rtnGetMore ( rtnContextPtr &pContext,        // input, context
-                      SINT32 maxNumToReturn,          // input, max record to read
-                      rtnContextBuf &buffObj,         // output
-                      pmdEDUCB *cb,                   // input educb
-                      SDB_RTNCB *rtnCB,               // input runtimecb
-                      const BSONObj &hint = BSONObj() // input hint obj
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                       ) ;
 
    INT32 rtnAdvance( SINT64 contextID,
@@ -610,18 +583,11 @@ namespace engine
 
    INT32 rtnTransBegin( _pmdEDUCB *cb,
                         BOOLEAN isAutoCommit = FALSE,
-                        BOOLEAN isGlobTrans = FALSE,
-                        const DPS_TRANS_ID &specID = DPS_TRANS_ID(),
-                        const stpLogicalTimeUS &specBeginTime = stpLogicalTimeUS() ) ;
-   INT32 rtnTransPreCommit( _pmdEDUCB *cb,
-                            UINT32 nodeNum,
-                            const UINT64 *pNodes,
-                            const stpLogicalTimeUS &preCommitTime,
-                            INT16 w,
+                        DPS_TRANS_ID specID = DPS_INVALID_TRANS_ID ) ;
+   INT32 rtnTransPreCommit( _pmdEDUCB *cb, UINT32 nodeNum,
+                            const UINT64 *pNodes, INT16 w,
                             SDB_DPSCB *dpsCB ) ;
-   INT32 rtnTransCommit( _pmdEDUCB *cb,
-                         SDB_DPSCB *dpsCB,
-                         const stpLogicalTimeUS &specCommitTime = stpLogicalTimeUS() );
+   INT32 rtnTransCommit( _pmdEDUCB *cb, SDB_DPSCB *dpsCB );
    INT32 rtnTransRollback( _pmdEDUCB * cb, SDB_DPSCB *dpsCB );
    INT32 rtnTransRollbackAll( _pmdEDUCB * cb,
                               UINT64 doRollbackID );
@@ -756,7 +722,6 @@ namespace engine
                                      const CHAR *pCSName ) ;
 
    INT32 rtnCheckAndConvertIndexDef( BSONObj& indexDef ) ;
-<<<<<<< HEAD
 
    INT32 rtnIsIndexCBValid( ixmIndexCB *indexCB,
                             dmsExtentID expectedExtentID,
@@ -765,41 +730,11 @@ namespace engine
                             dmsStorageUnit *su,
                             dmsMBContext *mbContext ) ;
 
-=======
-
-   // Load compression dictionary for one collection.
-   INT32 rtnLoadCollectionDict( const CHAR *pCollectionName,
-                                const CHAR *dictionary,
-                                UINT32 dictSize ) ;
-
-   INT32 rtnLoadCollectionDict( dmsStorageDataCommon *dataSu,
-                                dmsMBContext *context,
-                                const CHAR *dictionary,
-                                UINT32 dictSize ) ;
-
-   INT32 rtnIsIndexCBValid( ixmIndexCB *indexCB,
-                            dmsExtentID expectedExtentID,
-                            const CHAR* expectedIndexName,
-                            dmsExtentID expectedIndexLID,
-                            dmsStorageUnit *su,
-                            dmsMBContext *mbContext ) ;
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    INT32 rtnParseCmdLocationMatcher( const BSONObj &query,
                                      BSONObj &nodesMatcher,
                                      BSONObj &newMatcher,
                                      BOOLEAN ignoreNodeParam = FALSE,
                                      BOOLEAN ignoreCtrlParam = FALSE ) ;
-<<<<<<< HEAD
-=======
-
-   INT32 rtnUpdateGlobTranAvailTime( IExecutor *executor,
-                                     const CHAR *clFullName,
-                                     SDB_DMSCB *dmsCB,
-                                     SDB_RTNCB *rtnCB,
-                                     CONST_CL_META_INFO_PTR &clMetaInfo );
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 }
 
 #endif

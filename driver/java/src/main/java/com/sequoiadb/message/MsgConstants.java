@@ -15,7 +15,6 @@
 package com.sequoiadb.message;
 
 public final class MsgConstants {
-<<<<<<< HEAD
     /* 
      * Internal flag, not exposed to users.
      * This flag identifies whether the inserted record (or batch of records) contains
@@ -23,16 +22,11 @@ public final class MsgConstants {
     */
     public final static int FLG_INSERT_HAS_ID_FIELD = 0x00000010;
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     /* auth key*/
     public final static String AUTH_USER = "User";
     public final static String AUTH_PASSWD = "Passwd";
     public final static String AUTH_TEXT_PASSWD = "TextPasswd";
-<<<<<<< HEAD
     public final static String AUTH_OPTIONS = "Options";
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     public final static String AUTH_TYPE = "Type";
     public final static String AUTH_STEP = "Step";
     public final static String AUTH_SALT = "Salt";

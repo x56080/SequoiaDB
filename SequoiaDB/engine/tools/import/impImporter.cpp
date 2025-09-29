@@ -187,12 +187,9 @@ namespace import
                                options->enableTransaction(),
                                options->allowKeyDuplication(),
                                options->replaceKeyDuplication(),
-<<<<<<< HEAD
                                options->allowIDKeyDuplication(),
                                options->replaceIDKeyDuplication(),
                                options->mustHasIDField(),
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                                options->batchSize() ) ;
 
       SDB_ASSERT( NULL != freeQueue, "freeQueue can't be NULL" ) ;

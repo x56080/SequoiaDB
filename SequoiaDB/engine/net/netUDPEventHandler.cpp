@@ -149,16 +149,6 @@ namespace engine
       PD_CHECK( sock->is_open(), SDB_NETWORK, error, PDERROR,
                 "Failed to send message, UDP socket is closed" ) ;
 
-<<<<<<< HEAD
-=======
-      rc = _evSuitPtr->getFrame()->onSendMsg( _getSharedBase(),
-                                              _id,
-                                              (MsgHeader *)( buf ) ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to call event on sending message "
-                   "by connection[Handle:%d, Node:%s], rc: %d",
-                   _handle, routeID2String( _id ).c_str(), rc ) ;
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       while ( TRUE )
       {
          try
@@ -226,21 +216,6 @@ namespace engine
    CHAR *_netUDPEventHandler::msg()
    {
       return _evSuitPtr->getMessage() ;
-   }
-
-   UINT32 _netUDPEventHandler::getAvailableSize()
-   {
-      return 0 ;
-   }
-
-   ip::address_v4 _netUDPEventHandler::localIP() const
-   {
-      return _evSuitPtr->getLocalEndPoint().address().to_v4() ;
-   }
-
-   ip::address_v4 _netUDPEventHandler::remoteIP() const
-   {
-      return _remoteEndPoint.address().to_v4() ;
    }
 
    string _netUDPEventHandler::localAddr() const
@@ -346,12 +321,9 @@ namespace engine
          id( routeID ) ;
       }
    }
-<<<<<<< HEAD
 
    BOOLEAN _netUDPEventHandler::isSuitStopped() const
    {
       return NULL != _evSuitPtr.get() ? _evSuitPtr->isStoppped() : FALSE ;
    }
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 }

@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-=======
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 ##名称##
 
 listReplicaGroups - 枚举复制组信息
@@ -40,7 +36,6 @@ v2.0 及以上版本
 
 * 返回所有复制组信息
 
-<<<<<<< HEAD
     ```lang-javascript
     > db.listReplicaGroups()
     {
@@ -115,73 +110,6 @@ v2.0 及以上版本
     ```
 
     这个复制组有两个节点：11800和11850，其中11850为主节点。复制组详细信息请见[复制组列表][LIST_GROUPS]
-=======
-	```lang-javascript
-	> db.listReplicaGroups()
-	{
-	"Group": 
-	[
-	  {
-		"dbpath": "/opt/sequoiadb/data/11800",
-		"HostName": "vmsvr2-suse-x64",
-		"Service": [
-		  {
-			"Type": 0,
-			"Name": "11800"
-		  },
-		  {
-			"Type": 1,
-			"Name": "11801"
-		  },
-		  {
-			"Type": 2,
-			"Name": "11802"
-		  },
-		  {
-			"Type": 3,
-			"Name": "11803"
-		  }
-		],
-		"NodeID": 1000
-	  },
-	  {
-		"dbpath": "/opt/sequoiadb/data/11850",
-		"HostName": "vmsvr2-suse-x64",
-		"Service": [
-		  {
-			"Type": 0,
-			"Name": "11850"
-		  },
-		  {
-			"Type": 1,
-			"Name": "11851"
-		  },
-		  {
-			"Type": 2,
-			"Name": "11852"
-		  },
-		  {
-			"Type": 3,
-			"Name": "11853"
-		  }
-		],
-		"NodeID": 1001
-	  }
-	],
-	"GroupID": 1001,
-	"GroupName": "group",
-	"PrimaryNode": 1001,
-	"Role": 0,
-	"Status": 1,
-	"Version": 5,
-	"_id": {
-	  "$oid": "517b2fc33d7e6f820fc0eb57"
-	  }
-	}
-	```
-
-	这个复制组有两个节点：11800和11850，其中11850为主节点。复制组详细信息请见[复制组列表][LIST_GROUPS]
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 
 [^_^]:
@@ -190,8 +118,4 @@ v2.0 及以上版本
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [error_guide]:manual/FAQ/faq_sdb.md
-<<<<<<< HEAD
 [LIST_GROUPS]:manual/Manual/List/SDB_LIST_GROUPS.md
-=======
-[LIST_GROUPS]:manual/Manual/List/SDB_LIST_GROUPS.md
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2

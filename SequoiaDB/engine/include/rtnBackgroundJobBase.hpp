@@ -78,13 +78,7 @@ namespace engine
       // cls adapter jobs
       RTN_JOB_CLS_ADAPTER_TEXT_INDEX = 29,
 
-<<<<<<< HEAD
       RTN_JOB_TASKINFO_UPDATE        = 30, // update task info in cata and data
-=======
-      RTN_JOB_GTS_LOWTRAN        = 30,
-
-      RTN_JOB_TASKINFO_UPDATE    = 31, // update task info in cata and data
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       RTN_JOB_MAX
    } ;

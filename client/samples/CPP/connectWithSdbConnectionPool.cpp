@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 /*******************************************************************************
 
    Copyright (C) 2011-Present SequoiaDB Ltd.
@@ -17,50 +16,6 @@
 
    
 *******************************************************************************/
-=======
-/******************************************************************************
-*
-* Name: connectWithSdbConnectionPool.cpp
-* Description: This program demostrates how to connect to SequoiaDB database \
-* with sdbConnectionPool
-*
-* 
-* Auto Compile:
-* Linux: ./buildApp.sh connectWithSdbConnectionPool
-* Win: buildApp.bat connectWithSdbConnectionPool
-* Manual Compile:
-*    Dynamic Linking:
-*    Linux:
-*       if GCC version >= 5.1
-*          g++ connectWithSdbConnectionPool.cpp common.cpp -o connectWithSdbConnectionPool \
-*          -I../../include -O0 -ggdb -Wno-deprecated -L../../lib -lsdbcpp -lm -ldl -D_GLIBCXX_USE_CXX11_ABI=0
-*       if GCC version < 5.1
-*          g++ connectWithSdbConnectionPool.cpp common.cpp -o connectWithSdbConnectionPool \
-*          -I../../include -O0 -ggdb -Wno-deprecated -L../../lib -lsdbcpp -lm -ldl
-*    Win:
-*       cl /FoconnectWithSdbConnectionPool.obj /c connectWithSdbConnectionPool.cpp \
-*       /I..\..\include /wd4047 /Od /MDd /RTC1 /Z7 /TP
-*       cl /Focommon.obj /c common.cpp /I..\..\include /wd4047 /Od /MDd /RTC1 /Z7 /TP
-*       link /OUT:connectWithSdbConnectionPool.exe /LIBPATH:..\..\lib\cpp\debug\dll sdbcppd.lib \
-*            connectWithSdbConnectionPool.obj common.obj /debug
-*       copy ..\..\lib\cpp\debug\dll\sdbcppd.dll .
-*    Static Linking:
-*    Linux: 
-*       if GCC version >= 5.1
-*          g++ connectWithSdbConnectionPool.cpp common.cpp -o \
-*          connectWithSdbConnectionPool.static -I../../include -O0 -ggdb -Wno-deprecated \
-*          ../../lib/libstaticsdbcpp.a -lm -ldl -lpthread -D_GLIBCXX_USE_CXX11_ABI=0
-*       if GCC version < 5.1
-*          g++ connectWithSdbConnectionPool.cpp common.cpp -o \
-*          connectWithSdbConnectionPool.static -I../../include -O0 -ggdb -Wno-deprecated \
-*          ../../lib/libstaticsdbcpp.a -lm -ldl -lpthread
-* Run:
-*    Linux: LD_LIBRARY_PATH=<path for libsdbcpp.so> ./connectWithSdbConnectionPool 
-*    Win: connectWithSdbConnectionPool.exe
-*
-******************************************************************************/
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 #include "common.hpp"
 #include "sdbConnectionPoolComm.hpp"
 #include "sdbConnectionPool.hpp"
@@ -120,11 +75,7 @@ INT32 main( INT32 argc, CHAR **argv )
 {
    INT32                    rc = SDB_OK ;
    sdbConnectionPoolConf    conf ;
-<<<<<<< HEAD
    sdbConnectionPool            connPool ;
-=======
-   sdbConnectionPool        connPool ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    // set configure of sdbConnectionPool
    // userName="",passwd=""

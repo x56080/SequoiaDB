@@ -33,14 +33,13 @@
 #ifndef PMD_STARTUPHISTORYLOGGER_HPP_
 #define PMD_STARTUPHISTORYLOGGER_HPP_
 
-#include "ossTypes.hpp"
+#include <vector>
 #include "ossFile.hpp"
 #include "ossUtil.hpp"
 #include "ossTypes.hpp"
 #include "ossMemPool.hpp"
 #include "ossLatch.hpp"
 #include "pmdStartup.hpp"
-#include <vector>
 
 #define PMD_STARTUPHST_FILE_NAME ".SEQUOIADB_STARTUP_HISTORY"
 

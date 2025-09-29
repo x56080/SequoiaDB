@@ -60,12 +60,9 @@ namespace import
                                    BOOLEAN enableTransaction,
                                    BOOLEAN allowKeyDuplication,
                                    BOOLEAN replaceKeyDuplication,
-<<<<<<< HEAD
                                    BOOLEAN allowIDKeyDuplication,
                                    BOOLEAN replaceIDKeyDuplication,
                                    BOOLEAN mustHasIDField,
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                                    INT32 batchSize )
          : _insertBufferSize( 0 ),
            _recvBufferSize( 0 ),
@@ -209,11 +206,7 @@ namespace import
       {
          if ( SDB_DMS_NOTEXIST == rc )
          {
-<<<<<<< HEAD
             ossPrintf( "Collection %s does not exist" OSS_NEWLINE,
-=======
-            ossPrintf( "Collection %s does not exist." OSS_NEWLINE,
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                        _clname.c_str() ) ;
             PD_LOG( PDERROR, "Collection %s does not exist, rc = %d",
                     _clname.c_str(), rc ) ;
@@ -405,11 +398,8 @@ namespace import
       _insertMsg->header.flags         = 0 ;
       _insertMsg->header.routeID.value = 0 ;
       _insertMsg->header.TID           = ossGetCurrentThreadID() ;
-<<<<<<< HEAD
       ossMemset( &(_insertMsg->header.globalID), 0,
                 sizeof( _insertMsg->header.globalID ) ) ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       ossMemset( _insertMsg->header.reserve, 0,
                 sizeof( _insertMsg->header.reserve ) ) ;
 

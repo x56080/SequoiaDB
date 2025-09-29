@@ -85,7 +85,6 @@ namespace engine
          void           removeAllEH() ;
          UINT32         getHandleNum() ;
 
-<<<<<<< HEAD
          // check if the net suit is stopped
          BOOLEAN        isStoppped() const
          {
@@ -98,8 +97,6 @@ namespace engine
             _stopped = TRUE ;
          }
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       public:
          virtual INT32     run() ;
          virtual void      stop() ;

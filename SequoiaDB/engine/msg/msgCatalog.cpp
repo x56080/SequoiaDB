@@ -49,7 +49,7 @@ namespace engine
    INT32 msgParseCatGroupRes( const MsgCatGroupRes *msg,
                               CLS_GROUP_VERSION &version,
                               string &groupName,
-                              NET_ROUTE_MAP &group,
+                              map<UINT64, _netRouteNode> &group,
                               UINT32 *pPrimary,
                               UINT32 *pSecID,
                               CLS_LOC_INFO_MAP *pLocationInfo )
@@ -261,7 +261,7 @@ namespace engine
                               CLS_GROUP_VERSION &version,
                               UINT32 &groupID,
                               string &groupName,
-                              NET_ROUTE_MAP &group,
+                              map<UINT64, _netRouteNode> &group,
                               UINT32 *pPrimary,
                               UINT32 *pSecID,
                               CLS_LOC_INFO_MAP *pLocationInfo,

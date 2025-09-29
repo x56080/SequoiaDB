@@ -38,7 +38,6 @@
 #define DPSPAGEMETA_HPP_
 
 #include "core.hpp"
-#include "pd.hpp"
 
 namespace engine
 {

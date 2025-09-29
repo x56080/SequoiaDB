@@ -571,11 +571,7 @@ namespace engine
                    "rc: %d", rc ) ;
 
       if ( task->testFlags( RTN_ALTER_TASK_TRANS_LOCK ) &&
-<<<<<<< HEAD
            _su->data()->isTransLockRequired( _mbContext ) &&
-=======
-           _su->data()->isTransSupport( _mbContext ) &&
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
            NULL != cb &&
            cb->getTransExecutor()->useTransLock() )
       {

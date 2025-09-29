@@ -63,9 +63,6 @@ namespace engine
                    ( lID < rID ? -1 : 1 )  ) ) )
 
 #define DPS_LOG_FILE_VERSION1       (1)
-#define DPS_LOG_FILE_PADDING_SIZE   ( DPS_LOG_HEAD_LEN - \
-                                      48 - \
-                                      sizeof( dpsLogSummary ) )
 
    /*
       _dpsLogHeader define
@@ -79,8 +76,7 @@ namespace engine
       UINT32   _version ;
       UINT64   _fileSize ;
       UINT32   _fileNum ;
-      dpsLogSummary _summary ;
-      CHAR     _padding [ DPS_LOG_FILE_PADDING_SIZE ] ;
+      CHAR     _padding [ DPS_LOG_HEAD_LEN - 48 ] ;
 
       _dpsLogHeader ()
       {
@@ -110,7 +106,6 @@ namespace engine
       UINT32         _fileNum ;
       UINT32         _idleSize ;
       dpsLogHeader   _logHeader ;
-      dpsLogSummary  _cachedSummary ;
       ossAutoEvent   _writeEvent ;
       BOOLEAN        _inRestore ;
       BOOLEAN        _dirty ;
@@ -163,8 +158,7 @@ namespace engine
       UINT32 getValidLength() const ;
       // reset metadata
       INT32 reset ( UINT32 logID, const DPS_LSN_OFFSET &offset,
-                    const DPS_LSN_VER &version,
-                    BOOLEAN saveSummary ) ;
+                    const DPS_LSN_VER &version ) ;
       // get first lsn
       DPS_LSN getFirstLSN ( BOOLEAN mustExist = TRUE ) ;
 
@@ -187,34 +181,6 @@ namespace engine
       }
 
       INT32 sync() ;
-
-      // get log summary in file
-      const dpsLogSummary &getFileLogSummary() const
-      {
-         return _logHeader._summary ;
-      }
-
-      // get log summary in cache
-      const dpsLogSummary &getCachedLogSummary() const
-      {
-         return _cachedSummary ;
-      }
-
-      // update log summary in cache
-      // NOTE: the write processing of log file header is in asynchronous, so
-      // we need to update the cache first, and then the write processing will
-      // flush the cache summary to the file summary
-      void updateCachedLogSummary( const dpsLogSummary &summary )
-      {
-         _cachedSummary = summary ;
-      }
-
-      void updateLogSummary( const dpsLogSummary &summary )
-      {
-         _logHeader._summary = summary ;
-         _cachedSummary = summary ;
-      }
-
    private:
       void _initHead( UINT32 logID )
       {
@@ -224,8 +190,6 @@ namespace engine
          _logHeader._fileNum = _fileNum ;
          _logHeader._fileSize = _fileSize ;
          _logHeader._version  = DPS_LOG_FILE_VERSION1 ;
-         _logHeader._summary.reset() ;
-         _cachedSummary.reset() ;
       }
       // flush log file header
       INT32 _flushHeader() ;

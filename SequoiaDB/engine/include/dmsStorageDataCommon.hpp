@@ -40,10 +40,7 @@
 #include "dmsStorageBase.hpp"
 #include "dmsExtent.hpp"
 #include "dpsLogWrapper.hpp"
-<<<<<<< HEAD
 #include "dpsTransVersionCtrl.hpp"
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 #include "dpsOp2Record.hpp"
 #include "dmsCompress.hpp"
 #include "dmsEventHandler.hpp"
@@ -59,9 +56,6 @@ using namespace bson ;
 
 namespace engine
 {
-   // class forward declare
-   class oldVersionContainer ;
-
 #pragma pack(1)
    /*
       _IDToInsert define
@@ -200,7 +194,6 @@ namespace engine
       UINT64         _createTime ;
       UINT64         _updateTime ;
 
-<<<<<<< HEAD
       // record ID generator
       UINT64         _ridGen ;
 
@@ -210,9 +203,6 @@ namespace engine
       BOOLEAN        _overwrite ;
 
       CHAR           _pad [ 216 ] ;
-=======
-      CHAR           _pad [ 244 ] ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       void reset ( const CHAR *clName = NULL,
                    utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL,
@@ -302,15 +292,12 @@ namespace engine
          _createTime             = 0 ;
          _updateTime             = 0 ;
 
-<<<<<<< HEAD
          _ridGen                 = 0 ;
 
          _maxSize                = DMS_DFT_CAPPEDCL_SIZE ;
          _maxRecNum              = DMS_DFT_CAPPEDCL_RECNUM ;
          _overwrite              = FALSE ;
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          // pad
          ossMemset( _pad, 0, sizeof( _pad ) ) ;
       }
@@ -434,7 +421,6 @@ namespace engine
    */
    struct _dmsMBStatInfo
    {
-<<<<<<< HEAD
       ossAtomic64 _totalRecords ;
       ossAtomic32 _writePtrCount ;
       UINT32      _totalDataPages ;
@@ -443,16 +429,6 @@ namespace engine
       UINT64      _totalDataFreeSpace ;
       UINT64      _totalIndexFreeSpace ;
       ossAtomic64 _totalLobs ;
-=======
-      UINT64      _totalRecords ;
-      UINT32      _writePtrCount ;
-      UINT32      _totalDataPages ;
-      UINT32      _totalIndexPages ;
-      UINT32      _totalLobPages ;
-      UINT64      _totalDataFreeSpace ;
-      UINT64      _totalIndexFreeSpace ;
-      UINT64      _totalLobs ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       UINT8       _uniqueIdxNum ;
       UINT8       _textIdxNum ;
       UINT8       _globIdxNum ;
@@ -461,17 +437,13 @@ namespace engine
       ossAtomic64 _totalDataLen ;
       UINT32      _startLID ;
       UINT32      _flag ;
-<<<<<<< HEAD
       ossAtomic64 _totalLobSize ;
       ossAtomic64 _totalValidLobSize ;
-=======
-      UINT64      _totalLobSize ;
-      UINT64      _totalValidLobSize ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       ossAtomic32 _commitFlag ;
       ossAtomic64 _lastLSN ;
-      UINT64      _maxGlobTransID ;
+      // FIXME: need "atomic" for DPS_TRANS_ID later
+      ossAtomic64 _maxGlobTransID ;
       UINT64      _lastWriteTick ;
       BOOLEAN     _isCrash ;
 
@@ -491,21 +463,12 @@ namespace engine
       ossAtomic64 _rcTotalRecords ;
 
       // runtime CRUD statistics monitor
-      monCRUDCB   _crudCB ;
+      monCRUDCB _crudCB ;
 
       // bitmap to indicate index fields
       ixmIdxHashBitmap _clIdxHashBitmap ;
       ixmIdxHashArray  _idxHashFields[ IXM_IDX_HASH_MAX_INDEX_NUM ] ;
 
-<<<<<<< HEAD
-=======
-      // global timestamp to support global transaction to
-      // fetch MVCC old versions
-      // - updated after destination of split
-      // - updated after commit of transaction with lock escalated
-      ossAtomic64 _globTransAvailTime ;
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       // the last search slot of delete list
       UINT8       _lastSearchSlot ;
       // the last search position of delete list
@@ -515,7 +478,6 @@ namespace engine
       UINT64      _createTime ;
       // cache of update time
       UINT64      _updateTime ;
-<<<<<<< HEAD
 
       // generator of record ID
       ossAtomic64 _ridGen ;
@@ -527,13 +489,6 @@ namespace engine
       {
          _totalRecords.init( 0 ) ;
          _writePtrCount.init( 0 ) ;
-=======
-
-      void reset()
-      {
-         _totalRecords           = 0 ;
-         _writePtrCount          = 0 ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          _totalDataPages         = 0 ;
          _totalIndexPages        = 0 ;
          _totalDataFreeSpace     = 0 ;
@@ -548,20 +503,15 @@ namespace engine
          _totalDataLen.init( 0 ) ;
          _startLID               = DMS_INVALID_CLID ;
          _flag                   = 0 ;
-<<<<<<< HEAD
          _totalLobSize.init(0) ;
          _totalValidLobSize.init(0) ;
-=======
-         _totalLobSize           = 0 ;
-         _totalValidLobSize      = 0 ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          _commitFlag.init( 0 ) ;
          _lastLSN.init( ~0 ) ;
          _lastWriteTick          = 0 ;
          _isCrash                = FALSE ;
          _idxCommitFlag.init( 0 ) ;
          _idxLastLSN.init( ~0 ) ;
-         _maxGlobTransID         = 0 ;
+         _maxGlobTransID.init( 0 ) ;
          _idxLastWriteTick       = 0 ;
          _idxIsCrash             = FALSE ;
          _lobCommitFlag.init( 0 ) ;
@@ -576,19 +526,12 @@ namespace engine
          {
             _idxHashFields[ i ].reset() ;
          }
-<<<<<<< HEAD
-=======
-         _globTransAvailTime.init( 0 ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          _lastSearchSlot = dmsMB::_max ;
          _lastSearchRID.reset() ;
          _createTime             = 0 ;
          _updateTime             = 0 ;
-<<<<<<< HEAD
          _ridGen.init( 0 ) ;
          _snapshotID.init( 0 ) ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       }
 
       void updateLastLSN( UINT64 lsn, DMS_FILE_TYPE type )
@@ -655,136 +598,17 @@ namespace engine
          }
       }
 
-      // compare and update GlobTransID if the one passed in is newer
-      // Note: that we only compare serial number with global transaction tag
-      //       here. When user use this maxGlobTranID, he may need to consider
-      //       max error if needed.
-      void updateGlobTransIDWithComp( const DPS_TRANS_ID &transID )
+      // compare and update GlobTransID is the one passed in is newer
+      // FIXME: need implement automic compare and swap for DPS_TRANS_ID later
+      void updateGlobTransIDWithComp( DPS_TRANS_ID transID )
       {
-         if ( transID.isGlobTrans() &&
-              _maxGlobTransID < transID.getGlobSN() )
-         {
-            _maxGlobTransID = transID.getGlobSN() ;
-         }
+         _maxGlobTransID.swapGreaterThan( transID ) ;
       }
 
-      // get the max GlobTransID 
+      // compare and update GTID is the one passed in is newer
       UINT64 getMaxGlobTransID( )
       {
-         return _maxGlobTransID ;
-      }
-
-      void setIdxHash( INT32 indexID, const CHAR *idxFieldName )
-      {
-         SDB_ASSERT( indexID >= 0 && indexID < DMS_COLLECTION_MAX_INDEX,
-                     "invalid index ID" ) ;
-         UINT32 bitIndex = ixmIdxHashBitmap::calcIndex( idxFieldName ) ;
-         _clIdxHashBitmap.setBit( bitIndex ) ;
-         if ( indexID < IXM_IDX_HASH_MAX_INDEX_NUM )
-         {
-            _idxHashFields[ indexID ].setField( bitIndex ) ;
-         }
-      }
-
-      // reset index hash fields from given index
-      void resetIdxHashFrom( INT32 indexID )
-      {
-         SDB_ASSERT( indexID >= 0 && indexID < DMS_COLLECTION_MAX_INDEX,
-                     "invalid index ID" ) ;
-         _clIdxHashBitmap.resetBitmap() ;
-         // reset bitmaps after given index ID
-         for ( UINT32 i = indexID ; i < IXM_IDX_HASH_MAX_INDEX_NUM ; ++ i )
-         {
-            _idxHashFields[ i ].reset() ;
-         }
-      }
-
-      void resetIdxHashAt( INT32 indexID )
-      {
-         SDB_ASSERT( indexID >= 0 && indexID < DMS_COLLECTION_MAX_INDEX,
-                     "invalid index ID" ) ;
-         _idxHashFields[ indexID ].reset() ;
-      }
-
-      void mergeIdxHash( INT32 indexID )
-      {
-         SDB_ASSERT( indexID >= 0 && indexID < DMS_COLLECTION_MAX_INDEX,
-                     "invalid index ID" ) ;
-         if ( indexID < IXM_IDX_HASH_MAX_INDEX_NUM )
-         {
-            _idxHashFields[ indexID ].mergeToBitmap( _clIdxHashBitmap ) ;
-         }
-      }
-
-      BOOLEAN testIdxHash( const ixmIdxHashBitmap &idxHash )
-      {
-         return _clIdxHashBitmap.hasIntersaction( idxHash ) ;
-      }
-
-      BOOLEAN testIdxHash( INT32 indexID, const ixmIdxHashBitmap &idxHash )
-      {
-         SDB_ASSERT( indexID >= 0 && indexID < DMS_COLLECTION_MAX_INDEX,
-                     "invalid index ID" ) ;
-         if ( indexID < IXM_IDX_HASH_MAX_INDEX_NUM )
-         {
-            return _idxHashFields[ indexID ].testBitmap( idxHash ) ;
-         }
-         return TRUE ;
-      }
-
-      BOOLEAN isIdxHashReady() const
-      {
-         return !( _clIdxHashBitmap.isEmpty() ) ;
-      }
-
-      BOOLEAN isIdxHashReady( INT32 indexID ) const
-      {
-         SDB_ASSERT( indexID >= 0 && indexID < DMS_COLLECTION_MAX_INDEX,
-                     "invalid index ID" ) ;
-         if ( indexID < IXM_IDX_HASH_MAX_INDEX_NUM )
-         {
-            return _idxHashFields[ indexID ].isValid() ;
-         }
-         // for indexes after first 8 ones, always not ready
-         return FALSE ;
-      }
-
-      UINT32 getAvgDataSize() const
-      {
-         if ( 0 != _totalRecords )
-         {
-            // calculate from total data length and total records
-            UINT64 avgSize = _totalDataLen / _totalRecords ;
-            avgSize = OSS_MAX( DMS_MIN_RECORD_SZ, avgSize ) ;
-            avgSize = OSS_MIN( DMS_RECORD_USER_MAX_SZ, avgSize ) ;
-            return (UINT32)( avgSize ) ;
-         }
-         return 0 ;
-      }
-
-      void addTotalLobSize( INT64 size )
-      {
-         ossFetchAndAdd64( OSS_ONCE_UINT64_PTR( _totalLobSize ), size ) ;
-      }
-
-      void subTotalLobSize( INT64 size )
-      {
-         addTotalLobSize( 0 - size ) ;
-      }
-
-      void resetTotalLobSize()
-      {
-         ossAtomicExchange64( OSS_ONCE_UINT64_PTR( _totalLobSize ), 0 ) ;
-      }
-
-      void addTotalValidLobSize( INT64 size )
-      {
-         ossFetchAndAdd64( OSS_ONCE_UINT64_PTR( _totalValidLobSize ), size ) ;
-      }
-
-      void resetTotalValidLobSize()
-      {
-         ossAtomicExchange64( OSS_ONCE_UINT64_PTR( _totalValidLobSize ), 0 ) ;
+         return _maxGlobTransID.peek() ;
       }
 
       void setIdxHash( INT32 indexID, const CHAR *idxFieldName )
@@ -915,17 +739,14 @@ namespace engine
         _totalValidLobSize(0),
         _commitFlag( 0 ),
         _lastLSN( 0 ),
+        _maxGlobTransID( 0 ),
         _idxCommitFlag( 0 ),
         _idxLastLSN( 0 ),
         _lobCommitFlag( 0 ),
         _lobLastLSN( 0 ),
         _rcTotalRecords( 0 ),
-<<<<<<< HEAD
         _ridGen( 0 ),
         _snapshotID( 0 )
-=======
-        _globTransAvailTime( 0 )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       {
          reset() ;
       }
@@ -1000,10 +821,7 @@ namespace engine
          INT32             _mbLockType ;
          INT32             _resumeType ;
          _IContext         *_pSubContext ;
-<<<<<<< HEAD
          mutable std::shared_ptr<ICollection> _collPtr ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    };
    typedef _dmsMBContext   dmsMBContext ;
 
@@ -1257,7 +1075,6 @@ namespace engine
    //    3             2.9                Support for capped collection. A new
    //                                     page for extend option is used, id
    //                                     stored in MB.
-<<<<<<< HEAD
    //    16            5.0.3/5.0.4        Support for MVCC.
    // WARNING: next version should start from 17
    #define DMS_COMPRESSION_ENABLE_VER     2
@@ -1267,18 +1084,6 @@ namespace engine
    #define DMS_DATASU_MAX_VERSION         DMS_MVCC_ENABLE_VER
 
    #define DMS_DATACAPSU_EYECATCHER       "SDBDCAP"
-=======
-   //   16             5.0.2              Support for MVCC
-   #define DMS_DATACAPSU_EYECATCHER       "SDBDCAP"
-   #define DMS_COMPRESSION_ENABLE_VER     2
-   #define DMS_CAPPED_ENABLE_VER          3
-   #define DMS_NONMVCC_MAX_VER            ( DMS_CAPPED_ENABLE_VER )
-   // enabled from 5.0.2
-   // NOTE: 3.x can have their versions, so reserved a range
-   //       before MVCC version
-   #define DMS_MVCC_ENABLE_VER            16
-   #define DMS_DATASU_CUR_VERSION         ( DMS_MVCC_ENABLE_VER )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    #define DMS_CONTEXT_MAX_SIZE           (2000)
    #define DMS_RECORDS_PER_EXTENT_SQUARE  4     // value is 2^4=16
    #define DMS_RECORD_OVERFLOW_RATIO      1.2f
@@ -1398,10 +1203,7 @@ namespace engine
          INT32          flushMME( BOOLEAN sync = FALSE ) ;
 
          BOOLEAN        isTransSupport( dmsMBContext *context ) const ;
-<<<<<<< HEAD
          BOOLEAN        isTransLockRequired( dmsMBContext *context ) const ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       public:
 
@@ -1436,7 +1238,6 @@ namespace engine
                                     BOOLEAN truncateLob = TRUE,
                                     dmsTruncCLOptions *options = NULL ) ;
 
-<<<<<<< HEAD
          INT32 prepareCollectionLoads( dmsMBContext *context,
                                        const bson::BSONObj &record,
                                        BOOLEAN isLast,
@@ -1447,10 +1248,6 @@ namespace engine
          INT32 buildCollectionLoads( dmsMBContext *context,
                                      BOOLEAN isAsynchr,
                                      pmdEDUCB *cb ) ;
-=======
-         INT32 truncateCollectionLoads( const CHAR *pName,
-                                        dmsMBContext *context = NULL ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
          INT32 changeCLUniqueID( const MAP_CLNAME_ID& modifyCl,
                                  BOOLEAN changeOtherCL,
@@ -1511,8 +1308,7 @@ namespace engine
                               _mthModifier &modifier,
                               BSONObj* newRecord = NULL,
                               IDmsOprHandler *pHandler = NULL,
-                              utilUpdateResult *pResult = NULL,
-                              const dmsTransRecordInfo *pInfo = NULL ) ;
+                              utilUpdateResult *pResult = NULL ) ;
 
          virtual INT32 popRecord( dmsMBContext *context,
                                   INT64 targetID,
@@ -1523,24 +1319,10 @@ namespace engine
 
          // the dataRecord is not owned
          // Caller must hold mb exclusive/shared lock
-         INT32 fetch ( dmsMBContext      *context,
+         INT32 fetch ( dmsMBContext *context,
                        const dmsRecordID &recordID,
-<<<<<<< HEAD
                        dmsRecordData &recordData,
                        _pmdEDUCB *cb ) ;
-
-         virtual void incWritePtrCount( INT32 collectionID ) ;
-=======
-                       BSONObj           &dataRecord,
-                       _pmdEDUCB         *cb,
-                       BOOLEAN            dataOwned = FALSE,
-                       DPS_TRANS_ID      *version = NULL ) ;
-
-         INT32 loadDictionary( dmsMBContext *context, const CHAR *dictionary,
-                               UINT32 dictLen ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
-
-         virtual void decWritePtrCount( INT32 collectionID ) ;
 
          virtual void incWritePtrCount( INT32 collectionID ) ;
 
@@ -1553,12 +1335,8 @@ namespace engine
                                     const dmsRecordID &recordID,
                                     _pmdEDUCB *cb,
                                     dmsRecordData &recordData,
-<<<<<<< HEAD
                                     BOOLEAN needIncDataRead = TRUE,
                                     BOOLEAN needGetOwned = TRUE ) ;
-=======
-                                    BOOLEAN needIncDataRead = TRUE ) = 0 ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
          virtual void postLoadExt( dmsMBContext *context,
                                    dmsExtent *extAddr,
@@ -1628,26 +1406,11 @@ namespace engine
                                             INT64 &position,
                                             dmsRecordID &foundRID ) = 0 ;
 
-         virtual INT32 _getRecordPosition( const dmsRecordID &rid,
-                                           const dmsRecordData &recordData,
-                                           INT64 &position ) = 0 ;
-
-         virtual INT32 _checkMarkInsert( dmsMBContext *context,
-                                         const DPS_TRANS_ID &transID,
-                                         const BSONObj &insertObj,
-                                         pmdEDUCB *cb,
-                                         INT64 &position,
-                                         BOOLEAN &markInsert,
-                                         dmsRecordID &foundRID,
-                                         dmsRecordData &recordData,
-                                         dmsRecordRW &recordRW ) = 0 ;
-
          virtual INT32 _allocRecordSpace( dmsMBContext *context,
                                           UINT32 size,
                                           dmsRecordID &foundRID,
                                           _pmdEDUCB *cb ) = 0 ;
 
-<<<<<<< HEAD
          virtual INT32 _checkRecordSpace( dmsMBContext *context,
                                           UINT32 size,
                                           dmsRecordID &foundRID,
@@ -1655,94 +1418,24 @@ namespace engine
 
          virtual INT32 _operationPermChk( DMS_ACCESS_TYPE accessType ) = 0 ;
 
-=======
-         virtual INT32 _allocRecordSpaceByPos( dmsMBContext *context,
-                                               UINT32 size,
-                                               INT64 position,
-                                               dmsRecordID &foundRID,
-                                               _pmdEDUCB *cb ) = 0 ;
-
-         virtual INT32 _extentInsertRecord( dmsMBContext *context,
-                                            dmsExtRW &extRW,
-                                            dmsRecordRW &recordRW,
-                                            const dmsRecordData &recordData,
-                                            UINT32 recordSize,
-                                            _pmdEDUCB *cb,
-                                            BOOLEAN isInsert = TRUE,
-                                            const dmsTransRecordInfo *recordInfo = NULL ) = 0 ;
-
-         virtual void _postInsertRecord( dmsMBContext *context,
-                                         dmsExtRW &extRW,
-                                         dmsRecordRW &recordRW,
-                                         const dmsRecordData &recordData,
-                                         UINT32 recordSize,
-                                         _pmdEDUCB *cb ) = 0 ;
-
-         virtual INT32 _operationPermChk( DMS_ACCESS_TYPE accessType ) = 0 ;
-
-         virtual INT32 _extentUpdatedRecord( dmsMBContext *context,
-                                             dmsExtRW &extRW,
-                                             dmsRecordRW &recordRW,
-                                             const dmsRecordData &recordData,
-                                             const BSONObj &newObj,
-                                             _pmdEDUCB *cb,
-                                             IDmsOprHandler *pHandler,
-                                             utilUpdateResult *pResult,
-                                             dpsUnqIdxHashArray *pNewUnqIdxHashArray,
-                                             dpsUnqIdxHashArray *pOldUnqIdxHashArray,
-                                             const ixmIdxHashBitmap &idxHashBitmap ) = 0 ;
-
-         virtual INT32 _extentRemoveRecord( dmsMBContext *context,
-                                            dmsExtRW &extRW,
-                                            dmsRecordRW &recordRW,
-                                            _pmdEDUCB *cb,
-                                            BOOLEAN decCount = TRUE,
-                                            const dmsTransRecordInfo *recordInfo = NULL ) = 0 ;
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          // Calculate the final size needed by the record. Records of different
          // type may have different strategy, such as reservation for update,
          // space for meta data, etc.
          virtual void _finalRecordSize( UINT32 &size,
                                         const dmsRecordData &recordData ) = 0 ;
 
-<<<<<<< HEAD
-=======
-         virtual INT32 _onInsertFail( dmsMBContext *context,
-                                      BOOLEAN hasInsert,
-                                      dmsRecordID rid,
-                                      SDB_DPSCB *dpscb,
-                                      ossValuePtr dataPtr,
-                                      _pmdEDUCB *cb,
-                                      const dmsTransRecordInfo *pInfo ) = 0 ;
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          virtual INT32  _onOpened() ;
          virtual void   _onClosed() ;
          virtual INT32  _onMapMeta( UINT64 curOffSet ) ;
          virtual void   _onRestore() ;
          virtual INT32  _onFlushDirty( BOOLEAN force, BOOLEAN sync ) ;
 
-<<<<<<< HEAD
          virtual void   _onHeaderUpdated( UINT64 updateTime = 0 )
          {
             _dmsStorageBase::_onHeaderUpdated( updateTime ) ;
             if ( NULL != _dmsHeader && NULL != _suDescriptor )
             {
                _suDescriptor->getStorageInfo()._updateTime = _dmsHeader->_updateTime ;
-=======
-         virtual INT32  _setRecordGlobTransID( dmsMBContext *context,
-                                               dmsRecordRW  &recordRW,
-                                               _pmdEDUCB    *cb,
-                                               BOOLEAN      bSetOvfRecrd ) = 0 ;
-
-         virtual void   _onHeaderUpdated( UINT64 updateTime = 0 )
-         {
-            _dmsStorageBase::_onHeaderUpdated( updateTime ) ;
-            if ( NULL != _dmsHeader && NULL != _pStorageInfo )
-            {
-               _pStorageInfo->_updateTime = _dmsHeader->_updateTime ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             }
          }
 
@@ -1771,13 +1464,6 @@ namespace engine
 
          virtual UINT64 _getOldestWriteTick() const ;
 
-         virtual INT32 _dummyUpdateRecord ( dmsMBContext *context,
-                                            const dmsRecordID &recordID,
-                                            ossValuePtr updatedDataPtr,
-                                            _pmdEDUCB *cb ) ;
-
-
-
       protected:
          OSS_INLINE const CHAR* _clFullName ( const CHAR *clName,
                                               CHAR *clFullName,
@@ -1800,42 +1486,14 @@ namespace engine
                                  BOOLEAN add2LoadList = FALSE,
                                  dmsExtentID *allocExtID = NULL ) ;
 
-<<<<<<< HEAD
          INT32 _logDPS( SDB_DPSCB *dpsCB, dpsMergeInfo &info,
                         _pmdEDUCB *cb, dmsMBContext *context,
                         dmsExtentID extID, dmsOffset extOffset, BOOLEAN needUnLock,
                         DMS_FILE_TYPE type, UINT32 *clLID = NULL ) ;
-=======
-         INT32 _logDPS( SDB_DPSCB     *dpsCB, 
-                        dpsMergeInfo  &info,
-                        _pmdEDUCB     *cb,
-                        dmsMBContext  *context,
-                        dmsExtentID    extLID, 
-                        BOOLEAN        needUnLock,
-                        DMS_FILE_TYPE  type,
-                        dmsRecord     *pRecord = NULL,
-                        UINT32        *clLID = NULL ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
          INT32 _freeExtent ( dmsExtentID extentID, INT32 collectionID ) ;
          INT32 _freeExtent ( dmsMBContext *context, dmsExtentID extentID ) ;
 
-<<<<<<< HEAD
-=======
-         void _increaseMBStat ( utilCLUniqueID clUniqueID,
-                                dmsMBStatInfo * mbStat,
-                                const dmsTransRecordInfo *recordInfo,
-                                _pmdEDUCB * cb ) ;
-         void _decreaseMBStat ( utilCLUniqueID clUniqueID,
-                                dmsMBStatInfo * mbStat,
-                                const dmsTransRecordInfo *recordInfo,
-                                _pmdEDUCB * cb ) ;
-         void _updateMBStat( utilCLUniqueID clUniqueID,
-                             dmsMBStatInfo *mbStat,
-                             const dmsTransRecordInfo *recordInfo,
-                             _pmdEDUCB *cb ) ;
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          void _onMBUpdated( UINT16 mbID ) ;
 
       private:
@@ -1869,10 +1527,7 @@ namespace engine
                                         const dmsRecordID &rid,
                                         pmdEDUCB * cb,
                                         IDmsOprHandler *pOprHandle,
-<<<<<<< HEAD
                                         dmsWriteGuard &writeGuard,
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                                         utilWriteResult *insertResult,
                                         dpsUnqIdxHashArray *pUnqIdxHashArray ) ;
 

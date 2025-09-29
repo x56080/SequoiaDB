@@ -69,7 +69,6 @@ namespace engine
          INT32 release_w () ;
          BOOLEAN try_lock_r() ;
          BOOLEAN try_lock_w() ;
-         UINT32 get_r() ;
 
       protected:
          UINT32   _makeTimeout( INT32 &millisec, UINT32 timeout ) ;

@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 /*******************************************************************************
 
    Copyright (C) 2011-Present SequoiaDB Ltd.
@@ -14,25 +13,6 @@
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
-=======
-/******************************************************************************
-
-
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
-
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
-
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    Source File Name = dpsDeadlockDetector.hpp
 
@@ -54,10 +34,6 @@
    Last Changed =
 
 *******************************************************************************/
-<<<<<<< HEAD
-=======
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 #ifndef DPSDEADLOCKDETECOR_HPP_
 #define DPSDEADLOCKDETECOR_HPP_
 
@@ -101,13 +77,8 @@ class dpsTDEdge : public utilPooledObject
 public:
    void reset()
    {
-<<<<<<< HEAD
       waiter = DPS_INVALID_TRANS_ID ;
       holder = DPS_INVALID_TRANS_ID ;
-=======
-      waiter.reset() ;
-      holder.reset() ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    }
 
    dpsTDEdge()
@@ -138,12 +109,8 @@ public:
 
    BOOLEAN isValid()
    {
-<<<<<<< HEAD
       return ( ( DPS_INVALID_TRANS_ID != waiter ) &&
                ( DPS_INVALID_TRANS_ID != holder ) ) ? TRUE : FALSE ;
-=======
-      return ( waiter.isValid() && holder.isValid() ) ? TRUE : FALSE ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    }
 
    BOOLEAN operator== ( const dpsTDEdge & rhs ) const
@@ -196,24 +163,14 @@ class dpsTDVertex : public utilPooledObject
 {
 public:
    DPS_TRANS_ID nodeId; // vertex id, i.e., node number
-<<<<<<< HEAD
    mutable DPS_TD_VCOLOR color; // node color, i.e., the processing status of this node
-=======
-   DPS_TD_VCOLOR color; // node color, i.e., the processing status of this node
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    // attributies dfn and low are used by Tarjan's algorithm in findng
    // Strongly Connected Components of a directed graph 
 
-<<<<<<< HEAD
    mutable SINT32 dfn ;   // DFS number, the sequence when a node visited
                         // during DFS traversal  
    mutable SINT32 low ;   // low-link value, the topmost reachable ancestor(
-=======
-   SINT32       dfn ;   // DFS number, the sequence when a node visited
-                        // during DFS traversal  
-   SINT32       low ;   // low-link value, the topmost reachable ancestor(
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                         // with minimum possible dfn value ) via the subtree
                         // of that node. 
 public:
@@ -226,11 +183,7 @@ public:
 
    dpsTDVertex()
    {
-<<<<<<< HEAD
       nodeId = DPS_INVALID_TRANS_ID;
-=======
-      nodeId.reset() ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       resetAttr();
    }
 
@@ -288,22 +241,13 @@ class dpsDeadlockTx : public utilPooledObject
 {
 public:
    DPS_TRANS_ID txId;       // transId
-<<<<<<< HEAD
    mutable UINT32 degree ;    // in_degree + out_degree
    mutable UINT64 cost ;
-=======
-   UINT32       degree ;    // in_degree + out_degree
-   UINT64       cost ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    
 public:
    dpsDeadlockTx()
    {
-<<<<<<< HEAD
       txId   = DPS_INVALID_TRANS_ID;
-=======
-      txId.reset() ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       degree = 0;
       cost   = 0;
    }
@@ -516,13 +460,8 @@ class dpsTransWait : public utilPooledObject
 public:
    void reset()
    {
-<<<<<<< HEAD
       waiter  = DPS_INVALID_TRANS_ID ;
       holder  = DPS_INVALID_TRANS_ID ;
-=======
-      waiter.reset() ;
-      holder.reset() ;  
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       nodeId.reset() ;
       waiterCost = 0 ;
       holderCost = 0 ;

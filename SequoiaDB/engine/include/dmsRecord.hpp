@@ -41,10 +41,8 @@
 #include "../bson/bson.h"
 #include "oss.hpp"
 #include "ossUtil.hpp"
-#include "dpsUtil.hpp"
 #include "utilCompressor.hpp"
 #include "dpsDef.hpp"
-#include "dpsLogDef.hpp"
 
 namespace engine
 {
@@ -134,20 +132,16 @@ namespace engine
    #define DMS_RECORD_FLAG_DELETED           0x04
    // 4~7 bit for ATTR
    #define DMS_RECORD_FLAG_COMPRESSED        0x10
-   // Indicate this record has global transaction ID and lsn, introduced in v1
+   // Indicate this record has global transaction ID, introduced in v1
    #define DMS_RECORD_FLAG_HASGLOBTRANSID    0x20
    // some one wait X-lock, the last one who get X-lock will delete the record
    #define DMS_RECORD_FLAG_DELETING          0x80
 
-   // V0 meta size is 16B
    #define DMS_RECORD_V0_METADATA_SZ   sizeof(_dmsRecord_v0)
-   // V1 meta size is 36B
    #define DMS_RECORD_V1_METADATA_SZ   sizeof(_dmsRecord_v1)
    #define DMS_RECORD_RBS_METADATA_SZ   sizeof(_dmsRBSRecord)
    #define DMS_RECORD_CAP_METADATA_SZ   sizeof(_dmsCappedRecord)
-   #define DMS_RECORD_NOMVCC_METADATA_SZ DMS_RECORD_V0_METADATA_SZ
-
-   #define DMS_RECORD_METADATA_SZ DMS_RECORD_V1_METADATA_SZ
+   #define DMS_RECORD_METADATA_SZ DMS_RECORD_V0_METADATA_SZ
    // based on current record version to decide the record metadata size
    #define DMS_RECORD_VERSIONED_METADATA_SZ               \
            ( hasGlobTransID() ? DMS_RECORD_V1_METADATA_SZ : \
@@ -156,8 +150,6 @@ namespace engine
    /*
       _dmsRecord defined
    */
-#pragma pack(1)
-
    class _dmsRecord_v0 : public SDBObject
    {
    public:
@@ -342,33 +334,15 @@ namespace engine
          Copy the data to disk directly
       */
       OSS_INLINE void  setData( const dmsRecordData &data ) ;
-
-      // return dummy trans id for down version
-      const DPS_TRANS_ID getGlobTransID() const
-      {
-         DPS_TRANS_ID dummy ;
-         return dummy ;
-      }
-
-      OSS_INLINE string toString() const ;
    } ;
-#pragma pack()
-
    typedef _dmsRecord_v0 dmsRecord_v0 ;
    
-#pragma pack(1)
-   // dmsRecord after V3.4 will contain create lsnOffset and globTransID
-   // to support MVCC.
+
    class _dmsRecord_v1 : public _dmsRecord_v0
    {
    public :
-<<<<<<< HEAD
      CHAR _globTransID[ 12 ] ;  // global transaction ID
 
-=======
-      DPS_TRANS_ID   _globTransID ; // global transaction ID
-      CHAR           _pad[2]      ; // force 4B alignment with pragma pack
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       /*
          Follow _globTransID is:
             if overflow, is overflow rid(8bytes)
@@ -376,105 +350,11 @@ namespace engine
                 In compressed: 4bytes + data
                 uncompressed:  data( the first 4bytes is bson size )
       */
-<<<<<<< HEAD
-=======
-
-   public :
-      _dmsRecord_v1()
-      {
-         // V1 record has GlobTransID attribute
-         setHasGlobTransID() ;
-      }
-
-      void resetAttr( BOOLEAN isMVCCEnabled )
-      {
-         unsetAttr( 0xF0 ) ;
-         if ( isMVCCEnabled )
-         {
-            // v1 should always have GlobTransID field, although the value
-            // could be invalid if the update/insert is done when transaction
-            // is not ON
-            setHasGlobTransID() ;
-         }
-      }
-
-      DPS_TRANS_ID getGlobTransID() const
-      {
-         return _globTransID ;
-      }
-
-      void setHasGlobTransID()
-      {
-         setAttr( DMS_RECORD_FLAG_HASGLOBTRANSID ) ;
-      }
-
-      void resetGlobTransID ( )
-      {
-         _globTransID.reset() ;
-         setHasGlobTransID() ;
-      }
-
-      void setGlobTransID ( const DPS_TRANS_ID &globtransid )
-      {
-         _globTransID = globtransid.getOrigTransID() ;
-         setHasGlobTransID() ;
-      }
-
-      // inflight migration from a v0 record
-      void migrateFromV0( BOOLEAN moveData = TRUE )
-      {
-         UINT32 oldsize = ((dmsRecord_v0 *) this)->getSize() ;
-         // NOTE: when record is overflow-from, data length is invalid,
-         //       but we need to copy record ID of overflow-to
-         UINT32 moveSize = isOvf() ?
-                           sizeof( dmsRecordID ) :
-                           ( ((dmsRecord_v0 *) this)->getDataLength() ) ;
-         SDB_ASSERT( !(this->hasGlobTransID()),
-                     "This is not a V0 record" ) ;
-         // Only migrate if has enough space for the extra size difference
-         if ( moveData &&
-              oldsize - DMS_RECORD_V1_METADATA_SZ > moveSize )
-         {
-
-            ossMemmove( (CHAR*)this + DMS_RECORD_V1_METADATA_SZ,
-                        (CHAR*)this + DMS_RECORD_V0_METADATA_SZ,
-                        moveSize ) ;
-            // set globTransID flag and initialize the value
-            resetGlobTransID() ;
-         }
-         else if ( !moveData )
-         {
-            // there should be at least enough space for new header plus 8B for
-            // overflow rid
-            SDB_ASSERT( ( oldsize > ( DMS_RECORD_V1_METADATA_SZ + 8 ) ),
-                        " Not sufficient space for V1 record header. " ) ;
-            // set globTransID flag and initialize the value
-            resetGlobTransID() ;
-         }
-#ifdef _DEBUG
-         else
-         {
-            PD_LOG ( PDDEBUG,
-                     "Skipped In-flight migration of record(%s),"
-                     "oldsize(%d), exitingDataLen(%d), moveData(%d)",
-                     this->toString().c_str(),
-                     oldsize,
-                     ((dmsRecord_v0 *) this)->getDataLength(),
-                     moveData ) ;
-
-         }
-#endif         
-         return ;
-      }
-   
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    };
-#pragma pack()
-
    typedef _dmsRecord_v1 dmsRecord_v1 ;
 
    // current version is v1 which has GlobTransID for MVCC purpose
-   typedef _dmsRecord_v1 _dmsRecord ;
+   typedef _dmsRecord_v0 _dmsRecord ;
    typedef _dmsRecord dmsRecord ;
 
    // implementations has to put after _dmsRecord_v1 definition
@@ -543,57 +423,6 @@ namespace engine
                  data.data(), data.len() ) ;
    }
 
-   OSS_INLINE string _dmsRecord_v0::toString () const
-   {
-      stringstream ss ;
-      ss << OSS_NEWLINE << "Record:" ;
-      ss << OSS_NEWLINE << "  Status:" ;
-      if ( this->isNormal() )
-      {
-         ss << " Normal" ;
-      }
-      if ( this->isOvf() )
-      {
-        ss << " OvfFrom" ;
-      }
-      if ( this->isOvt() )
-      {
-        ss << " OvfTo" ;
-      }
-      if ( this->isDeleted() )
-      {
-        ss << " Deleted" ;
-      }
-      if ( this->isDeleting() )
-      {
-        ss << " Deleting" ;
-      }
-
-      ss << OSS_NEWLINE << "  Flags:" << OSS_NEWLINE;
-      ss << "    Compressed: " << 
-            ( this->isCompressed() ? "True" : "False" )
-         << OSS_NEWLINE ;
-      ss << "    CompressType: "
-         << utilCompressType2String( this->getCompressType() )
-         << OSS_NEWLINE ;
-      ss << "    Has transID: " <<
-            (this->hasGlobTransID() ? "True" : "False")
-         << OSS_NEWLINE ;
-      ss << "  Record Size: " << this->getSize() << OSS_NEWLINE ;
-      ss << "  My Offset : " << _myOffset << OSS_NEWLINE ;
-      ss << "  Prev Offset : " << _previousOffset << OSS_NEWLINE ;
-      ss << "  Nextv Offset : " << _nextOffset << OSS_NEWLINE ;
-      
-      if ( this->hasGlobTransID() )
-      {
-         ss << "  Trans ID: " 
-            << dpsTransIDToString(((_dmsRecord_v1*)this)->_globTransID).c_str() 
-            << OSS_NEWLINE ;
-      }
-
-      return ss.str() ;
-   }
-
    // Extract Data
    #define DMS_RECORD_EXTRACTDATA( pRecord, retPtr, compressorEntry )   \
    do {                                                                 \
@@ -618,7 +447,6 @@ namespace engine
          }                                                              \
       } while ( FALSE )
 
-#pragma pack(1)
    // Capped collectionr record header.
    class _dmsCappedRecord : public SDBObject
    {
@@ -640,11 +468,7 @@ namespace engine
       // similar to LR LSN, logical ID is an strictly incremental offset of
       // an record within the capped CS
       INT64       _logicalID ;
-      // cappedCL in internal and will be newly created in new release
-      DPS_TRANS_ID  _globTransID ; // global transaction ID updated the 
-                                   // record it's the same trans created
-                                   // cappedRecord
-      CHAR          _pad[2]      ; // force 4B alignment with pragma pack
+
    public:
       CHAR getFlag() const
       {
@@ -691,10 +515,9 @@ namespace engine
          return ((const dmsRecord*)this)->isNormal() ;
       }
 
-      void resetAttr( BOOLEAN isMVCCEnabled )
+      void resetAttr()
       {
-         // Capped record has no lsn and transID fields
-         return ((dmsRecord*)this)->resetAttr( isMVCCEnabled ) ;
+         return ((dmsRecord*)this)->resetAttr() ;
       }
 
       void setData( const dmsRecordData &data )
@@ -726,23 +549,10 @@ namespace engine
       {
          return ((const dmsRecord*)this)->getState() ;
       }
-
-      const DPS_TRANS_ID &getGlobTransID() const
-      {
-         return _globTransID ;
-      }
-
-      void setGlobTransID ( const DPS_TRANS_ID &globtransid )
-      {
-         _globTransID = globtransid.getOrigTransID() ;
-         ((dmsRecord*)this)->setHasGlobTransID() ;
-      }
    } ;
-#pragma pack()
    typedef _dmsCappedRecord dmsCappedRecord ;
 
 
-#pragma pack(1)
    /*
       _dmsDeletedRecord defined
    */
@@ -756,11 +566,11 @@ namespace engine
       }                 _head ;
       dmsOffset         _myOffset ;
       dmsRecordID       _next ;
-      // the position of the lsn/GTID is same as v1 record. So once a record 
-      // is deleted under new release, it's automatically converted to
-      // v1 type
-      DPS_TRANS_ID      _globTransID ;
-      CHAR              _pad[2] ; // force 4B alignment with pragma pack
+      // FIXME: Enable this once we switch default record to V1
+      // DPS_TRANS_ID     _globTransID ;  // the position of GlobTransID is same 
+                                          // as V1 Record. So once a record is
+                                          // deleted under new release, it's 
+                                          // automatically converted to V1 type
 
       /*
          Get Functions
@@ -771,7 +581,8 @@ namespace engine
       }
       BOOLEAN isDeleted() const
       {
-         return DMS_RECORD_FLAG_DELETED == getFlag() ;
+         return ( ( DMS_RECORD_FLAG_DELETED | getFlag() ) 
+                  == DMS_RECORD_FLAG_DELETED ) ;
       }
       UINT32 getSize() const
       {
@@ -801,12 +612,26 @@ namespace engine
       {
          _next = rid ;
       }
+      void setFlag( CHAR flag )
+      {
+         _head._recordHead[ 0 ] = flag ;
+      }
       void setDeleted()
       {
-         _head._recordHead[ 0 ] = DMS_RECORD_FLAG_DELETED ;
+         setFlag( DMS_RECORD_FLAG_DELETED ) ;
       }
+#if 0    // FIXME:enable this later
+      void setHasGlobTransID()
+      {
+         _head._recordHead[ 0 ] |= DMS_RECORD_FLAG_HASGLOBTRANSID ;
+      }
+      void resetGlobTransID()
+      {
+         setHasGlobTransID() ;
+         _globTransID = DPS_INVALID_TRANS_ID ;
+      }
+#endif
    } ;
-#pragma pack()
    typedef _dmsDeletedRecord dmsDeletedRecord ;
    #define DMS_DELETEDRECORD_METADATA_SZ  sizeof(dmsDeletedRecord)
 

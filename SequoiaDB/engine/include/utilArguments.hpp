@@ -63,10 +63,7 @@ namespace engine
    #define UTIL_CL_REPAIRCHECK_FIELD         ( 0x00080000 )
    #define UTIL_CL_AUTOINCREMENT_FIELD       ( 0x00100000 )
    #define UTIL_CL_NOTRANS_FIELD             ( 0x00200000 )
-<<<<<<< HEAD
    #define UTIL_CL_CONSISTENCYSTRATEGY_FIELD ( 0x00400000 )
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    // mask for one field of autoincrement filed attr.
    #define UTIL_CL_AUTOINC_INCREMENT_FIELD   ( 0x00000001 )

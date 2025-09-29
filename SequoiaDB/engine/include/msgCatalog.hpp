@@ -165,7 +165,7 @@ namespace engine
    INT32 msgParseCatGroupRes( const MsgCatGroupRes *msg,
                               CLS_GROUP_VERSION &version,
                               string &groupName,
-                              NET_ROUTE_MAP &group,
+                              map<UINT64, _netRouteNode> &group,
                               UINT32 *pPrimary = NULL,
                               UINT32 *pSecID = NULL,
                               CLS_LOC_INFO_MAP *pLocationInfo = NULL ) ;
@@ -176,7 +176,7 @@ namespace engine
                               CLS_GROUP_VERSION &version,
                               UINT32 &groupID,
                               string &groupName,
-                              NET_ROUTE_MAP &group,
+                              map<UINT64, _netRouteNode> &group,
                               UINT32 *pPrimary = NULL,
                               UINT32 *pSecID = NULL,
                               CLS_LOC_INFO_MAP *pLocationInfo = NULL,
@@ -259,18 +259,6 @@ namespace engine
 
    typedef MsgOpQuery MsgCatQueryTaskReq ;
    typedef MsgOpReply MsgCatQueryTaskRes ;
-
-   /*
-      _MsgGTSLowTranReq define
-    */
-   // | header | BSON { LowTran : ... } |
-   typedef MsgHeader MsgGTSLowTranReq ;
-
-   /*
-      _MsgGTSLowTranRsp
-    */
-   // | reply | BSON { GlobLowTran : ... } |
-   typedef MsgOpReply MsgGTSLowTranRsp ;
 
 }
 #pragma pack()

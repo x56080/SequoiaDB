@@ -33,19 +33,14 @@
 
 *******************************************************************************/
 #include "clsVSVote.hpp"
-#include "clsReplAgent.hpp"
 #include "pdTrace.hpp"
 #include "clsTrace.hpp"
+#include "pmdStartup.hpp"
 
 namespace engine
 {
-<<<<<<< HEAD
    _clsVSVote::_clsVSVote( _clsGroupInfo *info, _netRouteAgent *agent ):
    _clsVoteStatus( info, agent, CLS_ELECTION_STATUS_VOTE )
-=======
-   _clsVSVote::_clsVSVote( ICLSReplAgent *replAgent )
-   : _clsVoteStatus( replAgent, CLS_ELECTION_STATUS_VOTE )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
 
    }
@@ -183,7 +178,7 @@ namespace engine
       _timeout() += millisec ;
       if ( CLS_VOTE_CS_TIME <= _timeout() )
       {
-         if ( _replAgent->isLocalAbnormal() &&
+         if ( !pmdGetStartup().isOK() &&
               _info()->isAllNodeAbnormal( 0 ) )
          {
             next = CLS_ELECTION_STATUS_SEC ;
@@ -231,7 +226,7 @@ namespace engine
       _accepted() = 0 ;
       _criticalAccepted() = 0 ;
 
-      if ( _info()->groupSize() == 1 && _replAgent->isLocalOK() )
+      if ( _info()->groupSize() == 1 && pmdGetStartup().isOK() )
       {
          next = CLS_ELECTION_STATUS_ANNOUNCE ;
       }

@@ -162,10 +162,6 @@ const CHAR* monLatchName[] =
    "rtnRemoteMessenger lock",
    "utilCacheBucket rwMutex",
    "utilHashTable bucketNumLock",
-   "preIdxTree latch",
-   "_dmsRBSHashBkt latch",
-   "dmsRBSSUMgr latch",
-
 } ;
 
 const CHAR* monLatchIDtoName ( MON_LATCH_IDENTIFIER latchID)
@@ -334,13 +330,6 @@ monSpinXLatch::monSpinXLatch( MON_LATCH_IDENTIFIER latchID )
      numXOwner( 0 )
 {
    this->latchID = latchID ;
-}
-
-monSpinXLatch::monSpinXLatch( )
-   : lastSOwnerTID( 0 ),
-     xOwnerTID( 0 ),
-     numXOwner( 0 )
-{
 }
 
 monSpinXLatch::~monSpinXLatch()

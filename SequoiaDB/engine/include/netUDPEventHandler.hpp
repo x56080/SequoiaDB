@@ -78,10 +78,7 @@ namespace engine
       virtual void close() ;
       virtual void setOpt() ;
       virtual CHAR *msg() ;
-      virtual UINT32 getAvailableSize() ;
 
-      virtual boost::asio::ip::address_v4 localIP() const ;
-      virtual boost::asio::ip::address_v4 remoteIP() const ;
       virtual std::string localAddr() const ;
       virtual std::string remoteAddr() const ;
       virtual UINT16 localPort() const ;
@@ -95,12 +92,9 @@ namespace engine
          return _remoteEndPoint ;
       }
 
-<<<<<<< HEAD
       // check if the net suit is stopped
       virtual BOOLEAN isSuitStopped() const ;
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    protected:
       OSS_INLINE NET_UDP_EH _getShared()
       {

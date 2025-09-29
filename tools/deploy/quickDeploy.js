@@ -111,15 +111,10 @@ var TMP_COORD_INSTALL_PATH = "" ;
 const DB_DATA_ROLE         = "data" ;
 const DB_COORD_ROLE        = "coord" ;
 const DB_CATA_ROLE         = "catalog" ;
-const DB_STP_SVR_ROLE      = "server" ;
-const DB_STP_CLT_ROLE      = "client" ;
-
-const DB_STP_GROUPNAME     = "stp" ;
 
 const FIELD_SEQUOIADB_CATA_CONF  = "SEQUOIADB_CATA_CONF" ;
 const FIELD_SEQUOIADB_COORD_CONF = "SEQUOIADB_COORD_CONF" ;
 const FIELD_SEQUOIADB_DATA_CONF  = "SEQUOIADB_DATA_CONF" ;
-const FIELD_SEQUOIADB_STP_CONF   = "SEQUOIADB_STP_CONF" ;
 const FIELD_MYSQL_INSTALL_PATH   = "MYSQL_INSTALL_PATH" ;
 const FIELD_MYSQL_INSTANCE_CONF  = "MYSQL_INSTANCE_CONF" ;
 const FIELD_PG_INSTALL_PATH      = "PG_INSTALL_PATH" ;
@@ -535,7 +530,6 @@ function getSqlConf( dbType, installedPath )
       try
       {
          aLine = file.readLine() ;
-         iLine++ ;
          aLine = aLine.replace( /[\r\n]/g, "" ) ; // delete last line break
       }
       catch( e )
@@ -681,15 +675,12 @@ function getACoordAddr()
  *
  * The inspection rules for each field are as follows:
  * [ role, groupName, hostName, serviceName, dbPath ]
- * * role can't be empty and must be "data", "coord", "catalog", "server" or
- *   "client"
- * * groupName can't be empty, and must be "stp" when role is "server" or
- *   "client"
- * * hostName can't be empty
- * * serviceName can't be empty
- * * the range of serviceName must be between 0 and 65535
- * * dbPath must start with "[installpath]" or '/' when role is "data",
- *   "catalog" or "coord"
+ * role can't be empty and must be "data" or "coord" or "catalog"
+ * groupName can't be empty
+ * hostName can't br empty
+ * serviceName can't be empty
+ * the range of serviceName must be between 0 and 65535
+ * dbPath must start with "[installpath]" or '/'
  *
  * @param  aNodeConf   sequoiadb node configuration
  * @param  line        number of rows for aNodeConf in the conf file
@@ -707,8 +698,7 @@ function checkSequoiadbConf( aNodeConf, line, nodeNameList )
 
    // check dbRole
    if ( DB_CATA_ROLE != dbRole && DB_COORD_ROLE != dbRole &&
-        DB_DATA_ROLE != dbRole && DB_STP_SVR_ROLE != dbRole &&
-        DB_STP_CLT_ROLE != dbRole )
+        DB_DATA_ROLE != dbRole )
    {
       println( "Invalid configure file[sequoiadb.conf], line[" + line +
                "]: wrong role" ) ;
@@ -727,15 +717,6 @@ function checkSequoiadbConf( aNodeConf, line, nodeNameList )
       println( "Invalid configure file[sequoiadb.conf], line[" + line +
                "]: wrong groupName" ) ;
       throw "ERROR" ;
-   }
-   if ( DB_STP_SVR_ROLE == dbRole || DB_STP_CLT_ROLE == dbRole )
-   {
-      if ( DB_STP_GROUPNAME != groupName )
-      {
-         println( "Invalid configure file[sequoiadb.conf], line[" + line +
-                  "]: wrong groupName" ) ;
-         throw "ERROR" ;
-      }
    }
 
    // check hostname
@@ -787,30 +768,26 @@ function checkSequoiadbConf( aNodeConf, line, nodeNameList )
    }
 
    // check dbPath
-   if ( DB_CATA_ROLE == dbRole || DB_COORD_ROLE == dbRole ||
-        DB_DATA_ROLE == dbRole )
+   if ( "undefined" == typeof( dbPath ) )
    {
-      if ( "undefined" == typeof( dbPath ) )
-      {
-         println( "Invalid configure file[sequoiadb.conf], line[" + line +
-                  "]: empty dbPath" ) ;
-         throw "ERROR" ;
-      }
-      else if ( "" == dbPath )
+      println( "Invalid configure file[sequoiadb.conf], line[" + line +
+               "]: empty dbPath" ) ;
+      throw "ERROR" ;
+   }
+   else if ( "" == dbPath )
+   {
+      println( "Invalid configure file[sequoiadb.conf], line[" + line +
+               "]: wrong dbPath" ) ;
+      throw "ERROR" ;
+   }
+   else
+   {
+      var dbPathSplit = dbPath.split( ']' ) ;
+      if ( "[installPath" != dbPathSplit[0] && '/' != dbPathSplit[0][0] )
       {
          println( "Invalid configure file[sequoiadb.conf], line[" + line +
                   "]: wrong dbPath" ) ;
          throw "ERROR" ;
-      }
-      else
-      {
-         var dbPathSplit = dbPath.split( ']' ) ;
-         if ( "[installPath" != dbPathSplit[0] && '/' != dbPathSplit[0][0] )
-         {
-            println( "Invalid configure file[sequoiadb.conf], line[" + line +
-                     "]: wrong dbPath" ) ;
-            throw "ERROR" ;
-         }
       }
    }
 }
@@ -845,7 +822,6 @@ function getSequoiadbConf( replaceInstallPath )
       try
       {
          aLine = file.readLine() ;
-         iLine++ ;
          aLine = aLine.replace( /[\r\n]/g, "" ) ; // delete last line break
       }
       catch( e )
@@ -863,11 +839,6 @@ function getSequoiadbConf( replaceInstallPath )
       if ( aLine.substr( 0,1 ) == "#" ) continue ;   // this line is a note
 
       var aNode = aLine.split( "," ) ;
-<<<<<<< HEAD
-=======
-      checkSequoiadbConf( aNode, iLine ) ;
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       // replace 'localhost' to real hostname
       aNode[2] = aNode[2].replace( /localhost/g, MY_HOSTNAME ) ;
 
@@ -1053,7 +1024,7 @@ function createCatalog( nodesConf )
          }
       }
 
-      println( "Create catalog:    " + hostName + ":" + service ) ;
+      println( "Create catalog: " + hostName + ":" + service ) ;
    }
 
    var rc = checkCataPrimary( db ) ;
@@ -1104,7 +1075,7 @@ function createCoord( nodesConf )
          }
       }
 
-      println( "Create coord:      " + hostName + ":" + service ) ;
+      println( "Create coord:   " + hostName + ":" + service ) ;
    }
 
    try
@@ -1371,7 +1342,7 @@ function createData( nodesConf )
          }
       }
 
-      println( "Create data:       " + hostName + ":" + service ) ;
+      println( "Create data:    " + hostName + ":" + service ) ;
    }
 
    for ( var i in nodesConf )
@@ -1390,99 +1361,6 @@ function createData( nodesConf )
                   groupName + "]!" ) ;
          throw e ;
       }
-   }
-}
-
-function createStp( nodesConf )
-{
-   if ( nodesConf.length == 0 ) return ;
-
-   /// connect local sdbcm
-   try
-   {
-      var oma = new Oma( MY_HOSTNAME, LOCAL_CM_PORT ) ;
-   }
-   catch( e )
-   {
-
-      println( "Unexpected error[" + e + "] when connecting cm[" + MY_HOSTNAME +
-               ":" + LOCAL_CM_PORT + "]!" ) ;
-      throw e ;
-   }
-
-   /// get server list
-   var serverList = "" ;
-   var serverCnt = 0 ;
-   for ( var i in nodesConf )
-   {
-      var aNodeConf = nodesConf[i] ;
-      var role = aNodeConf[0] ;
-      var hostName = aNodeConf[2] ;
-      var service = aNodeConf[3] ;
-
-      if ( role == DB_STP_SVR_ROLE )
-      {
-         serverCnt++ ;
-         if ( serverCnt != 1 )
-         {
-            serverList += "," ;
-         }
-         serverList += hostName + ":" + service ;
-      }
-   }
-
-   /// create and start each stp node
-   for ( var i in nodesConf )
-   {
-      var aNodeConf = nodesConf[i] ;
-      var role = aNodeConf[0] ;
-      var hostName = aNodeConf[2] ;
-      var service = aNodeConf[3] ;
-      var omaRemote ;
-
-      // connnect remote sdbcm
-      try
-      {
-         var cmPort = oma.getAOmaSvcName( hostName ) ;
-         omaRemote = new Oma( hostName, cmPort ) ;
-      }
-      catch( e )
-      {
-
-         println( "Unexpected error[" + e + "] when connecting cm[" + hostName +
-                  ":" + cmPort + "]!" ) ;
-         throw e ;
-      }
-
-      // create stp node
-      try
-      {
-         var obj = {} ;
-         obj["role"] = role ;
-         obj["port"] = service ;
-         obj["serverlist"] = serverList ;
-         omaRemote.createStp( obj ) ;
-      }
-      catch( e )
-      {
-         println( "Unexpected error[" + e + "] when creating stp node[" +
-                  hostName + ":" + service + "]!" ) ;
-         throw e ;
-      }
-
-      // start stp node
-      try
-      {
-         omaRemote.startStp() ;
-      }
-      catch( e )
-      {
-         println( "Unexpected error[" + e + "] when start stp node[" +
-                  hostName + ":" + service + "]!" ) ;
-         throw e ;
-      }
-
-      println( "Create stp " + role + ": " + hostName + ":" + service ) ;
    }
 }
 
@@ -1583,20 +1461,12 @@ function checkNodeConf( nodesConf )
 
    for ( var i in nodesConf )
    {
-      var aNodeConf  = nodesConf[i] ;
-      var role       = aNodeConf[0] ;
+      var aNodeConf = nodesConf[i] ;
       var dbHostname = aNodeConf[2] ;
-      var service    = aNodeConf[3] ;
-      var dbPath     = aNodeConf[4] ;
-      if ( role == DB_STP_SVR_ROLE || role == DB_STP_CLT_ROLE )
-      {
-         checkPort( service, dbHostname ) ;
-      }
-      else
-      {
-         checkPort( service, dbHostname ) ;
-         checkFilePath( dbPath, dbHostname, false ) ;
-      }
+      var service = aNodeConf[3] ;
+      var dbPath = aNodeConf[4] ;
+      checkPort( service, dbHostname ) ;
+      checkFilePath( dbPath, dbHostname, false ) ;
    }
 }
 
@@ -1650,32 +1520,23 @@ function checkSequoiadb()
    var catalogConf = [] ;
    var coordConf = [] ;
    var dataConf = [] ;
-   var stpConf = [] ;
    var nodesConf = getSequoiadbConf( true ) ;
    for ( var i in nodesConf )
    {
       var aNodeConf = nodesConf[i] ;
       var role = aNodeConf[0] ;
       aNodeConf[ aNodeConf.length ] = {} ; // default node configure is null
-      if ( role == DB_CATA_ROLE )
+      if ( role == "catalog" )
       {
          catalogConf.push( aNodeConf ) ;
       }
-      else if ( role == DB_COORD_ROLE )
+      else if ( role == "coord" )
       {
          coordConf.push( aNodeConf ) ;
       }
-      else if ( role == DB_DATA_ROLE )
+      else if ( role == "data" )
       {
          dataConf.push( aNodeConf ) ;
-      }
-      else if ( role == DB_STP_SVR_ROLE )
-      {
-         stpConf.push( aNodeConf ) ;
-      }
-      else if ( role == DB_STP_CLT_ROLE )
-      {
-         stpConf.push( aNodeConf ) ;
       }
       else
       {
@@ -1697,12 +1558,10 @@ function checkSequoiadb()
    checkNodeConf( catalogConf ) ;
    checkNodeConf( coordConf ) ;
    checkNodeConf( dataConf ) ;
-   checkNodeConf( stpConf ) ;
 
    nodesConf[FIELD_SEQUOIADB_CATA_CONF] = catalogConf ;
    nodesConf[FIELD_SEQUOIADB_COORD_CONF] = coordConf ;
    nodesConf[FIELD_SEQUOIADB_DATA_CONF] = dataConf ;
-   nodesConf[FIELD_SEQUOIADB_STP_CONF] = stpConf ;
 
    return nodesConf ;
 }
@@ -1828,14 +1687,12 @@ function deploySequoiadb( nodesConf )
    var catalogConf = nodesConf[FIELD_SEQUOIADB_CATA_CONF] ;
    var coordConf = nodesConf[FIELD_SEQUOIADB_COORD_CONF] ;
    var dataConf = nodesConf[FIELD_SEQUOIADB_DATA_CONF] ;
-   var stpConf = nodesConf[FIELD_SEQUOIADB_STP_CONF] ;
 
    // create sequoiadb cluster
    createTmpCoord() ;
    createCatalog( catalogConf ) ;
    createCoord( coordConf ) ;
    createData( dataConf ) ;
-   createStp( stpConf ) ;
 
    removeTmpCoord() ;
 }

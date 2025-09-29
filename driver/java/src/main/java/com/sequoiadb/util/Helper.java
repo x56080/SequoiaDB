@@ -22,11 +22,6 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Base64;
-<<<<<<< HEAD
-=======
-
-import com.sequoiadb.base.UserConfig;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
 import org.bson.BSON;
@@ -43,11 +38,8 @@ public final class Helper {
 
     public static final long INIT_LONG = -1L;
 
-<<<<<<< HEAD
     public final static String ADDRESS_SEPARATOR = ":";
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     public static Object getValue( BSONObject srcObj, String key, Object defaultValue ){
         if ( srcObj == null ){
             return defaultValue;
@@ -423,7 +415,6 @@ public final class Helper {
         return Arrays.copyOf( md5.digest( arr ), length );
     }
 
-<<<<<<< HEAD
     // hostname to ip
     public static String parseHostName(String hostName) {
         try {
@@ -459,23 +450,5 @@ public final class Helper {
 
     public static byte[] Base64Decode( String data ) {
         return Base64.getDecoder().decode( data );
-=======
-    public static String getPasswd( UserConfig userConfig ) {
-        if ( userConfig.getPassword() == null && userConfig.getCipherFile() != null ) {
-            SdbDecrypt decrypt = new SdbDecrypt();
-            SdbDecryptUserInfo userInfo = decrypt.parseCipherFile( userConfig.getUserName(), userConfig.getToken(), userConfig.getCipherFile() );
-            return userInfo.getPasswd();
-        } else {
-            return userConfig.getPassword();
-        }
-    }
-
-    public static String Base64Encode(byte[] data) {
-        return Base64.getEncoder().encodeToString(data);
-    }
-
-    public static byte[] Base64Decode(String data) {
-        return Base64.getDecoder().decode(data);
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     }
 }

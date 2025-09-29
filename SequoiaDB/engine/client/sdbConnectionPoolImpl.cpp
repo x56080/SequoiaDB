@@ -1,11 +1,7 @@
 /*******************************************************************************
 
 
-<<<<<<< HEAD
    Copyright (C) 2023-present SequoiaDB Ltd.
-=======
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -224,15 +220,7 @@ namespace sdbclient
             _toStopWorkers = FALSE ;
             // prepare some connections
             INT32 retNum = 0 ;
-<<<<<<< HEAD
             _createConnByNum( _conf.getInitConnCount(), retNum ) ;
-=======
-            rc = _createConnByNum( _conf.getInitConnCount(), retNum ) ;
-            if ( SDB_OK != rc )
-            {
-               goto error ;
-            }
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             // start create connection thread
             _createConnWorker = SDB_OSS_NEW sdbConnPoolWorker(
                createConnFunc, this ) ;

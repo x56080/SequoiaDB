@@ -91,17 +91,11 @@ public class Index10214 extends SdbTestBase {
                 }
             } catch ( BaseException e ) {
                 int eCode = e.getErrorCode();
-<<<<<<< HEAD
                 if ( eCode != -248 && eCode != -147 // -248, -147: Dropping the
                                                     // collection space is in
                                                     // progress
                         && eCode != -247 // -247: Redefine index
                         && eCode != -23 && eCode != -34 && eCode != -243 ) {
-=======
-                if ( eCode != -248 && eCode != -147 // -248, -147: Dropping the collection space is in progress
-                        && eCode != -247 // -247: Redefine index
-                        && eCode != -23 && eCode != -34 ) {
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                     throw e;
                 }
             }

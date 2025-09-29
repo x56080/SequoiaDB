@@ -45,7 +45,6 @@ using namespace bson ;
 
 namespace engine
 {
-   class _optAccessPlanRuntime ;
 
    // Index merge scanner is used to merge results from different scanner.
    // For instance, we have a scanner to traverse on disk index trees; we
@@ -59,7 +58,7 @@ namespace engine
    {
    public:
       _rtnMergeIXScanner( ixmIndexCB *pIndexCB,
-                          _optAccessPlanRuntime * planRuntime,
+                          rtnPredicateList *predList,
                           _dmsStorageUnit  *su,
                           _dmsMBContext    *mbContext,
                           _pmdEDUCB        *cb,
@@ -93,7 +92,6 @@ namespace engine
       virtual const BSONObj*  getCurKeyObj() const ;
       virtual const dmsRecordID& getSavedRID () const { return _savedRID ; }
       virtual const BSONObj*  getSavedObj () const { return &_savedObj ; }
-<<<<<<< HEAD
 
       virtual BOOLEAN canPrefetch() const
       {
@@ -109,18 +107,6 @@ namespace engine
          }
          return _rightEnabled ? _rightIXScanner->getSession() : nullptr ;
       }
-=======
-   
-      virtual INT32           isCursorSame( const BSONObj &saveObj,
-                                            const dmsRecordID &saveRID,
-                                            BOOLEAN &isSame ) ;
-      virtual void getOwnerTransID( DPS_TRANS_ID &transID ) ;
-
-      virtual void getRBSPositions( dmsRBSOffset & startPos, 
-                                    dmsRBSOffset & endPos,
-                                    dmsRecordID  & rid,
-                                    preIdxTreePtr  memTree ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    protected:
       virtual INT32 _relocateRID( BOOLEAN &found ) ;

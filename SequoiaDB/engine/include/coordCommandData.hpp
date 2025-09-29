@@ -410,11 +410,7 @@ namespace engine
          virtual BOOLEAN _flagUseGrpLstInCoord() { return TRUE ; }
 
       protected:
-<<<<<<< HEAD
          coordTruncGlobIdxHandler _globIdxHandler ;
-=======
-         coordDropGlobIdxHandler _globIdxHandler ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          coordCMDRecycleHandler  _recycleHandler ;
          coordCMDRecyTaskHandler _taskHandler ;
    } ;

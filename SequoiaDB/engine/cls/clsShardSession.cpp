@@ -68,203 +68,6 @@ namespace engine
 
 #define SHD_RET_BUILDER_DFT_SIZE          ( 80 )
 
-   /*
-      _clsShdNetData implement
-    */
-   _clsShdNetData::_clsShdNetData()
-   : INetUserData(),
-     _totalBlockSize( 0 ),
-     _blockInfoIndex( 0 ),
-     _blockInfoSize( 0 ),
-     _recvTimeRC( SDB_OK ),
-     _recvTime()
-   {
-   }
-
-   _clsShdNetData::~_clsShdNetData()
-   {
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDNETDATA_ACQUIRERECVTIME, "_clsShdNetData::acquireRecvTime" )
-   INT32 _clsShdNetData::acquireRecvTime( UINT32 receivedSize,
-                                          UINT32 currentSize )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__CLSSHDNETDATA_ACQUIRERECVTIME ) ;
-
-      stpAgent agent ;
-
-      // if has blocking messages, use the time to block the message
-      if ( _totalBlockSize > 0 && _blockInfoSize > 0 )
-      {
-         _recvTime = _blockInfo[ _blockInfoIndex ].blockTimestamp ;
-         onReceiveMsg( receivedSize, currentSize ) ;
-         goto done ;
-      }
-
-      // acquiring new logical time, so we could reset blocking info
-      _totalBlockSize = 0 ;
-      _blockInfoIndex = 0 ;
-      _blockInfoSize = 0 ;
-
-      // get logical time
-      rc = agent.getLogicalTimeUS( _recvTime, 1, FALSE ) ;
-      PD_RC_CHECK( rc, PDWARNING, "Failed to get logical time from STP, "
-                   "rc: %d", rc ) ;
-
-      // check if remain messages are blocking, if so, add to blocking list
-      if ( receivedSize > currentSize &&
-           receivedSize - currentSize > CLS_SHD_MSG_BLOCK_SIZE )
-      {
-         _addBlockInfo( receivedSize - currentSize, _recvTime ) ;
-      }
-
-   done:
-      // set return code
-      _recvTimeRC = rc ;
-
-      PD_TRACE_EXITRC( SDB__CLSSHDNETDATA_ACQUIRERECVTIME, rc ) ;
-      return rc ;
-
-   error:
-      _recvTime.reset() ;
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDNETDATA_ONRECVMSG, "_clsShdNetData::onReceiveMsg" )
-   void _clsShdNetData::onReceiveMsg( UINT32 receivedSize, UINT32 currentSize )
-   {
-      PD_TRACE_ENTRY( SDB__CLSSHDNETDATA_ONRECVMSG ) ;
-
-      // calculate current blocking size
-      _calcBlockSize( receivedSize, currentSize ) ;
-
-      // if new received messages are blocking, add a new blocking info
-      if ( receivedSize > _totalBlockSize &&
-           receivedSize - _totalBlockSize > CLS_SHD_MSG_BLOCK_SIZE )
-      {
-         stpLogicalTimeUS blockTime ;
-         _addBlockInfo( receivedSize - _totalBlockSize, blockTime ) ;
-      }
-
-      PD_TRACE_EXIT( SDB__CLSSHDNETDATA_ONRECVMSG ) ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDNETDATA__CALCBLOCKSIZE, "_clsShdNetData::_calcBlockSize" )
-   void _clsShdNetData::_calcBlockSize( UINT32 &blockSize,
-                                        UINT32 currentSize )
-   {
-      PD_TRACE_ENTRY( SDB__CLSSHDNETDATA__CALCBLOCKSIZE ) ;
-
-      // remove current message from received messages
-      if ( blockSize > currentSize )
-      {
-         blockSize -= currentSize ;
-      }
-      else
-      {
-         blockSize = 0 ;
-      }
-
-      // remove current message from blocking messages
-      if ( _totalBlockSize > currentSize )
-      {
-         _totalBlockSize -= currentSize ;
-         while ( currentSize > 0 && _blockInfoSize > 0 )
-         {
-            if ( _blockInfo[ _blockInfoIndex ].blockSize > currentSize )
-            {
-               // only part of the first blocking info is covered by current
-               // message, reduce the block size of the first blocking info
-               _blockInfo[ _blockInfoIndex ].blockSize -= currentSize ;
-               currentSize = 0 ;
-            }
-            else
-            {
-               // the whole of the first blocking info is covered by current
-               // message, remove first blocking info
-               currentSize -= _blockInfo[ _blockInfoIndex ].blockSize ;
-               _blockInfoIndex =
-                     ( _blockInfoIndex + 1 ) % CLS_SHD_MAX_BLOCK_SIZE ;
-               -- _blockInfoSize ;
-            }
-         }
-         if ( 0 == _blockInfoSize )
-         {
-            // all blocking info have been cleared
-            _totalBlockSize = 0 ;
-            _blockInfoIndex = 0 ;
-         }
-      }
-      else
-      {
-         // bigger message arrived, clear blocking info
-         _totalBlockSize = 0 ;
-         _blockInfoIndex = 0 ;
-         _blockInfoSize = 0 ;
-      }
-
-#if SDB_INTERNAL_DEBUG
-      PD_LOG( PDDEBUG, "handle %u: total blocking size %u, "
-              "blocking list size %u, first blocking size %u",
-              _handle, _totalBlockSize, _blockInfoSize,
-              _blockInfoSize > 0 ?
-                    ( _blockInfo[ _blockInfoIndex ].blockSize ) : 0 ) ;
-#endif
-
-      PD_TRACE_EXIT( SDB__CLSSHDNETDATA__CALCBLOCKSIZE ) ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDNETDATA__ADDBLOCKINFO, "_clsShdNetData::_addBlockInfo" )
-   INT32 _clsShdNetData::_addBlockInfo( UINT32 blockSize,
-                                        stpLogicalTimeUS &blockTime )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__CLSSHDNETDATA__ADDBLOCKINFO ) ;
-
-      UINT8 nextIndex = 0 ;
-
-      if ( _blockInfoSize >= CLS_SHD_MAX_BLOCK_SIZE )
-      {
-         // blocking info is full
-         goto done ;
-      }
-
-      // acquire logical time for saving blocking info if not given
-      if ( !blockTime.isValid() )
-      {
-         stpAgent agent ;
-         rc = agent.getLogicalTimeUS( blockTime, 1, FALSE ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to get logical time, rc: %d", rc ) ;
-      }
-
-      // add a new blocking info
-      nextIndex =
-            ( _blockInfoIndex + _blockInfoSize ) % CLS_SHD_MAX_BLOCK_SIZE ;
-      _blockInfo[ nextIndex ].blockSize = blockSize ;
-      _blockInfo[ nextIndex ].blockTimestamp = blockTime ;
-      ++ _blockInfoSize ;
-      _totalBlockSize += blockSize ;
-
-#if SDB_INTERNAL_DEBUG
-      PD_LOG( PDDEBUG, "handle %u: add new blocking info %u, "
-              "total blocking size %u, blocking list size %u, "
-              "first blocking info size %u",
-              _handle, blockSize, _totalBlockSize, _blockInfoSize,
-              _blockInfoSize > 0 ?
-                    ( _blockInfo[ _blockInfoIndex ].blockSize ) : 0 ) ;
-#endif
-
-   done:
-      PD_TRACE_EXITRC( SDB__CLSSHDNETDATA__ADDBLOCKINFO, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
    BEGIN_OBJ_MSG_MAP( _clsShdSession, _pmdAsyncSession )
       ON_MSG ( MSG_BS_UPDATE_REQ, _onOPMsg )
       ON_MSG ( MSG_BS_INSERT_REQ, _onOPMsg )
@@ -327,8 +130,7 @@ namespace engine
       _pendingStartFrom = 0 ;
 
       _transWaitTimeout = 0 ;
-      _transWaitID.reset() ;
-      _recvGlobTime = 0LL ;
+      _transWaitID = DPS_INVALID_TRANS_ID ;
 
       PD_TRACE_EXIT ( SDB__CLSSDSESS__CLSSHDSESS ) ;
    }
@@ -380,18 +182,14 @@ namespace engine
                                     MsgHeader * msg )
    {
       PD_TRACE_ENTRY ( SDB__CLSSHDSESS_ONRV ) ;
-
       ossGetCurrentTime( _lastRecvTime ) ;
-
       PD_TRACE_EXIT ( SDB__CLSSHDSESS_ONRV ) ;
    }
 
    void _clsShdSession::onDispatchMsgBegin( const NET_HANDLE netHandle,
-                                            const MsgHeader *pHeader,
-                                            UINT64 recvTime )
+                                            const MsgHeader *pHeader )
    {
       _pTaskInfo->beginATask() ;
-      _recvGlobTime = recvTime ;
    }
 
    void _clsShdSession::onDispatchMsgEnd( INT64 costUsecs )
@@ -422,8 +220,8 @@ namespace engine
 
       if ( curTime.time - _lastRecvTime.time > SHD_SESSION_TIMEOUT &&
            _pEDUCB->contextNum() == 0 &&
-           ( _pEDUCB->getTransID().isInvalid() ||
-           !( sdbGetReplCB()->primaryIsMe() ) ) )
+           ( _pEDUCB->getTransID() == DPS_INVALID_TRANS_ID ||
+           !(sdbGetReplCB()->primaryIsMe())))
       {
          // will be release
          ret = TRUE ;
@@ -466,7 +264,7 @@ namespace engine
       else
       {
          _transWaitTimeout = 0 ;
-         _transWaitID.reset() ;
+         _transWaitID = DPS_INVALID_TRANS_ID ;
       }
    }
 
@@ -655,8 +453,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      stpLogicalTimeUS commitTime ;
-
       if ( DPS_INVALID_LSN_OFFSET == _pEDUCB->getCurTransLsn() )
       {
          // readonly transaction goes to rollback directly
@@ -671,7 +467,7 @@ namespace engine
          clsGTSAgent *pGTSAgent = _pShdMgr->getGTSAgent() ;
          DPS_TRANS_STATUS status = DPS_TRANS_UNKNOWN ;
 
-         DPS_TRANS_ID transID ;
+         DPS_TRANS_ID transID = DPS_INVALID_TRANS_ID ;
          DPS_LSN_OFFSET preTransLsn = DPS_INVALID_LSN_OFFSET ;
          DPS_LSN_OFFSET firstTransLsn = DPS_INVALID_LSN_OFFSET ;
          UINT8 attr = 0 ;
@@ -730,13 +526,9 @@ namespace engine
 
          do
          {
-            UINT64 tmpPreCommitTime =
-                                 _pEDUCB->getTransPreCommitTime().getTime() ;
-            UINT64 tmpCommitTime = 0LL ;
             rc = pGTSAgent->checkTransStatus( _pEDUCB->getTransID(),
                                               nodeNum, pNodes,
-                                              _pEDUCB, tmpPreCommitTime,
-                                              status, tmpCommitTime ) ;
+                                              _pEDUCB, status ) ;
             if ( rc )
             {
                ossSleep( OSS_ONE_SEC ) ;
@@ -752,24 +544,14 @@ namespace engine
 
             if ( DPS_TRANS_COMMIT == status )
             {
-               // it is committed on other groups, go commit
-               if ( transID.isGlobTrans() )
-               {
-                  // set commit time for global transaction
-                  commitTime.setTime( tmpCommitTime ) ;
-                  commitTime.setTimeError( _pEDUCB->getTransTimeError() ) ;
-               }
                goto commit ;
             }
             else
             {
-               // it is rollbacked on other groups, go rollback
                goto rollback ;
             }
          } while( pmdIsPrimary() ) ;
          {
-            // not primary now, save as wait commit and to be processed
-            // when switch to primary again
             BOOLEAN savedAsWaitCommit = FALSE ;
             rc = rtnTransSaveWaitCommit( _pEDUCB, _pDpsCB, savedAsWaitCommit ) ;
             if ( rc )
@@ -782,8 +564,7 @@ namespace engine
             }
          }
       }
-      else if ( DPS_TRANS_DOING == _pEDUCB->getTransStatus() ||
-                DPS_TRANS_PRE_WAIT_COMMIT == _pEDUCB->getTransStatus() )
+      else if ( DPS_TRANS_DOING == _pEDUCB->getTransStatus() )
       {
          _pEDUCB->setTransStatus( DPS_TRANS_DOING_INTERRUPT ) ;
          sdbGetTransCB()->updateTransStatus( _pEDUCB->getTransID(),
@@ -807,7 +588,7 @@ namespace engine
       {
          *pHasRollback = FALSE ;
       }
-      rc = rtnTransCommit( _pEDUCB, _pDpsCB, commitTime ) ;
+      rc = rtnTransCommit( _pEDUCB, _pDpsCB ) ;
       if ( rc )
       {
          goto error ;
@@ -817,274 +598,6 @@ namespace engine
    done:
       return rc ;
    error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDSESS__CHKGLOBBEGIN, "_clsShdSession::_checkGlobBegin" )
-   INT32 _clsShdSession::_checkGlobBegin( const DPS_TRANS_ID &transID,
-                                          const MsgRouteID &remoteRID,
-                                          const stpLogicalTimeUS &transBeginTime,
-                                          const stpLogicalTimeUS &sendTime )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__CLSSHDSESS__CHKGLOBBEGIN ) ;
-
-      dpsTransCB *transCB = sdbGetTransCB() ;
-      clsGTSAgent *gtsAgent = _pShdMgr->getGTSAgent() ;
-
-      stpLogicalTimeUS receivedTime ;
-
-      // check if received global transaction time is valid
-      // if not valid, retry now
-      if ( 0LL == _recvGlobTime )
-      {
-         PD_LOG( PDWARNING, "Failed to get global transaction time "
-                 "for RR transaction checking" ) ;
-         stpAgent agent ;
-         rc = agent.getLogicalTimeUS( receivedTime,
-                                      _pEDUCB->getTransTimeout(),
-                                      FALSE ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to get global logical "
-                      "time for transaction begin on this node, "
-                      "rc: %d", rc ) ;
-      }
-      else
-      {
-         receivedTime.setTime( _recvGlobTime ) ;
-      }
-
-#if SDB_INTERNAL_DEBUG
-      PD_LOG( PDDEBUG, "Check RR transaction begin [%s], "
-              "begin time [%s], send time [%s], "
-              "receive time [%s]", dpsTransIDToString( transID ).c_str(),
-              dpsTransTimeToString( transBeginTime ).c_str(),
-              dpsTransTimeToString( sendTime ).c_str(),
-              dpsTransTimeToString( receivedTime ).c_str() ) ;
-#endif
-
-      // check transaction with RR isolation
-      // - check logical times between remote and local nodes, the logical time
-      //   should be synchronized in a given time error
-      // - do pre-arbitration to avoid stale read on other groups
-
-      // check logical time between remote and local
-      if ( transCB->isGlobTransSyncCheck() &&
-           sendTime != receivedTime )
-      {
-         UINT32 acceptTimeError =
-               gtsAgent->getAcceptTimeError( sendTime, receivedTime ) ;
-
-         PD_LOG( PDDEBUG, "Global transaction times between nodes "
-                 "are not synchronized with original time error, "
-                 "remote node %s is [%s], local node %s is [%s], "
-                 "diff [%lld]",
-                 routeID2String( remoteRID ).c_str(),
-                 dpsTransTimeToString( sendTime ).c_str(),
-                 routeID2String( pmdGetNodeID() ).c_str(),
-                 dpsTransTimeToString( receivedTime ).c_str(),
-                 (INT64)( receivedTime.getTime() ) -
-                       (INT64)( sendTime.getTime() ) ) ;
-
-         receivedTime.setTimeError( gtsAgent->getNodeTimeError() ) ;
-         if ( sendTime != receivedTime )
-         {
-            stpAgent agent ;
-
-            PD_LOG( PDWARNING, "Global transaction times between nodes "
-                    "are not synchronized with node time error, "
-                    "remote node %s is [%s], local node %s is [%s], "
-                    "diff [%lld]",
-                    routeID2String( remoteRID ).c_str(),
-                    dpsTransTimeToString( sendTime ).c_str(),
-                    routeID2String( pmdGetNodeID() ).c_str(),
-                    dpsTransTimeToString( receivedTime ).c_str(),
-                    (INT64)( receivedTime.getTime() ) -
-                          (INT64)( sendTime.getTime() ) ) ;
-
-            // notify local to synchronize time
-            // NOTE: no need to wait, the COORD will wait
-            agent.notifySync( 0 ) ;
-
-            // increase time error
-            gtsAgent->incNodeTimeError( acceptTimeError ) ;
-
-            rc = SDB_GLOB_TRANS_NOT_SYNC ;
-            goto error ;
-         }
-         else
-         {
-            // try decrease time error
-            gtsAgent->decNodeTimeError( acceptTimeError ) ;
-
-            PD_LOG( PDDEBUG, "Global transaction times between nodes "
-                    "pass synchronization check with node time error, "
-                    "remote node %s is [%s], local node %s is [%s], "
-                    "diff [%lld]",
-                    routeID2String( remoteRID ).c_str(),
-                    dpsTransTimeToString( sendTime ).c_str(),
-                    routeID2String( pmdGetNodeID() ).c_str(),
-                    dpsTransTimeToString( receivedTime ).c_str(),
-                    (INT64)( receivedTime.getTime() ) -
-                          (INT64)( sendTime.getTime() ) ) ;
-         }
-      }
-
-      // check if transaction passed doing arbitration time ( after that
-      // time, no need to launch arbitration against doing write transactions )
-      receivedTime.setTimeError( gtsAgent->getMaxNodeTimeError() ) ;
-      if ( transBeginTime < receivedTime )
-      {
-#if SDB_INTERNAL_DEBUG
-         PD_LOG( PDDEBUG, "current transaction [%s] passed doing "
-                 "arbit limit, current time [%s]",
-                 dpsTransIDToString( transID ).c_str(),
-                 dpsTransTimeToString( receivedTime ).c_str() ) ;
-#endif
-         _pEDUCB->setPassedDoingArbit( TRUE ) ;
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB__CLSSHDSESS__CHKGLOBBEGIN, rc ) ;
-      return rc ;
-
-   error:
-      // report error
-      transCB->incGlobErrCount( rc ) ;
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDSESS__CHKGLOBPRECOMMIT, "_clsShdSession::_checkGlobPreCommit" )
-   INT32 _clsShdSession::_checkGlobPreCommit( const DPS_TRANS_ID &transID,
-                                              const MsgRouteID &remoteRID,
-                                              const stpLogicalTimeUS &transBeginTime,
-                                              const stpLogicalTimeUS &sendTime,
-                                              stpLogicalTimeUS &preCommitTime )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__CLSSHDSESS__CHKGLOBPRECOMMIT ) ;
-
-      dpsTransCB *transCB = sdbGetTransCB() ;
-      clsGTSAgent *gtsAgent = _pShdMgr->getGTSAgent() ;
-      stpAgent agent ;
-      stpLogicalTimeUS receivedTime, localTime ;
-
-      SDB_ASSERT( NULL != gtsAgent, "GTS agent is invalid" ) ;
-
-      // update to PRE_WAIT_COMMIT status to notify other transactions
-      // should wait for status change of current transaction if they are
-      // reading the same records updated by current transaction
-      rc = transCB->updateTransStatus( transID, DPS_TRANS_PRE_WAIT_COMMIT ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to update status to [%s] for "
-                   "transaction [%s], rc: %d",
-                   dpsTransStatusToString( DPS_TRANS_PRE_WAIT_COMMIT ),
-                   dpsTransIDToString( transID ).c_str(), rc ) ;
-
-      // get global logical time for pre-commit in this DATA node
-      rc = agent.getLogicalTimeUS( localTime,
-                                   _pEDUCB->getTransTimeout(),
-                                   FALSE ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get global logical "
-                   "time for transaction pre-commit on this node, "
-                   "rc: %d", rc ) ;
-
-      if ( transCB->isGlobTransSyncCheck() )
-      {
-         if ( 0LL == _recvGlobTime )
-         {
-            // failed to get logical time when receiving message
-            // retry now
-            PD_LOG( PDWARNING, "Failed to get receive time for pre-commit "
-                    "message" ) ;
-
-            // use current time
-            receivedTime = localTime ;
-         }
-         else
-         {
-            receivedTime.setTime( _recvGlobTime ) ;
-         }
-
-#if SDB_INTERNAL_DEBUG
-         PD_LOG( PDDEBUG, "Check RR transaction pre-commit [%s] "
-                 "sent at [%s], received at [%s], current time [%s]",
-                 dpsTransIDToString( transID ).c_str(),
-                 dpsTransTimeToString( sendTime ).c_str(),
-                 dpsTransTimeToString( receivedTime ).c_str(),
-                 dpsTransTimeToString( localTime ).c_str() ) ;
-#endif
-
-         // we check doing transaction arbitration with maximum time error,
-         // ( read transaction started after a maximum time error period, it
-         // needn't to do arbitration with doing transaction anymore )
-         // so we could check pre-commit with maximum time error too
-         receivedTime.setTimeError( gtsAgent->getMaxNodeTimeError() ) ;
-
-         // check logical time between remote and local
-         if ( sendTime != receivedTime )
-         {
-            stpAgent agent ;
-
-            PD_LOG( PDWARNING, "Failed to check time for transaction [%s], "
-                    "global transaction times between nodes "
-                    "are not synchronized with node time error, "
-                    "remote node %s sent at [%s], "
-                    "local node %s received at [%s], current time [%s], "
-                    "diff [%lld]/[%lld]",
-                    dpsTransIDToString( transID ).c_str(),
-                    routeID2String( remoteRID ).c_str(),
-                    dpsTransTimeToString( sendTime ).c_str(),
-                    routeID2String( pmdGetNodeID() ).c_str(),
-                    dpsTransTimeToString( receivedTime ).c_str(),
-                    dpsTransTimeToString( localTime ).c_str(),
-                    (INT64)( receivedTime.getTime() ) -
-                          (INT64)( sendTime.getTime() ),
-                    (INT64)( localTime.getTime() ) -
-                          (INT64)( sendTime.getTime() ) ) ;
-
-            // notify local to synchronize time
-            // NOTE: no need to wait, the COORD will wait
-            agent.notifySync( 0 ) ;
-
-            rc = SDB_GLOB_TRANS_NOT_SYNC ;
-            goto error ;
-         }
-      }
-
-      // pre-arbitrate for write transactions
-      // NOTE: considering that, this write transaction could be quickly
-      //       committed after this operator, the commit time could before a
-      //       read transaction in this node with time error, so it might cause
-      //       stale read issue on other groups
-      //       the read transaction should not see changes from this writing
-      //       transaction, but on other group, the read operator might be
-      //       sent later
-      //       so if we do not do pre-arbitration for read transaction to
-      //       tell that the read transaction is not visible for this
-      //       write transaction, the read transaction might have a chance to
-      //       see changes in a staled read request to other groups
-      if ( sendTime.getTime() > localTime.getTime() )
-      {
-         // if send time is large than local time, means the logical time
-         // of COORD is a little ahead, need delay current time on DATA node
-         localTime.setTime( sendTime.getTime() ) ;
-      }
-      localTime.setTimeError( _pEDUCB->getTransTimeError() ) ;
-      rc = transCB->getLocalPreCommitTime( localTime, preCommitTime ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get pre-commit time for "
-                   "transaction [%s], rc: %d",
-                   dpsTransIDToString( transID ).c_str(), rc ) ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__CLSSHDSESS__CHKGLOBPRECOMMIT, rc ) ;
-      return rc ;
-
-   error:
-      // failed to check pre-commit, update back to DOING status
-      transCB->updateTransStatus( transID, DPS_TRANS_DOING ) ;
-      // report error
-      transCB->incGlobErrCount( rc ) ;
       goto done ;
    }
 
@@ -1365,9 +878,7 @@ namespace engine
 
             case MSG_BS_TRANS_COMMITPRE_REQ:
                isNeedRollback = TRUE ;
-               rc = _onTransCommitPreMsg( handle, msg, buffObj,
-                                          ( _inPacketLevel > 0 ?
-                                                NULL : &_retBuilder ) ) ;
+               rc = _onTransCommitPreMsg( handle, msg );
                break;
 
             case MSG_COM_SESSION_INIT_REQ:
@@ -1550,21 +1061,10 @@ namespace engine
             /// when coord catalog info is old, can't rollback, coord will retry
             if ( inTrans )
             {
-               /// in below casees, can't rollback, coord will retry
-               /// - when coord catalog info is old
-               /// - global logical time is not synchronized
                if ( ( isAutoCommit ||
-<<<<<<< HEAD
                       ( isNeedRollback && SDB_CLS_COORD_NODE_CAT_VER_OLD != rc
                         && _pEDUCB->getTransExecutor()->isTransAutoRollback()) )
                     || SDB_OK != transRC )
-=======
-                      ( isNeedRollback &&
-                        SDB_CLS_COORD_NODE_CAT_VER_OLD != rc &&
-                        SDB_GLOB_TRANS_NOT_SYNC != rc &&
-                        _pEDUCB->getTransExecutor()->isTransAutoRollback() ) ) ||
-                    SDB_OK != transRC )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                {
                   PD_LOG ( PDDEBUG, "Rolling back operation(op=%d, rc=%d) on data",
                            opCode, rc ) ;
@@ -1997,7 +1497,6 @@ namespace engine
          }
       }
 
-<<<<<<< HEAD
    done:
       return rc ;
    error:
@@ -2017,106 +1516,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to get remote operator, rc: %d",
                    rc ) ;
-
-      try
-      {
-         matcher = BSON( FIELD_NAME_CL_UNIQUEID << (INT64)clUniqID ) ;
-      }
-      catch( std::exception &e )
-      {
-         rc = ossException2RC( &e ) ;
-         PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
-      }
-
-      rc = pRemoteOpr->list( contextID,
-                             CMD_ADMIN_PREFIX CMD_NAME_LIST_INDEXES,
-                             matcher, dummyObj, dummyObj, dummyObj ) ;
-      PD_RC_CHECK( rc, PDERROR,
-                   "Failed to snapshot index by remote operator, rc: %d",
-                   rc ) ;
-
-      if ( contextID == -1 )
-      {
-         goto done ;
-      }
-
-      while ( TRUE )
-      {
-         rtnContextBuf buf ;
-         rc = rtnGetMore( contextID, -1, buf, _pEDUCB, _pRtnCB ) ;
-         if ( SDB_DMS_EOC == rc )
-         {
-            contextID = -1 ;
-            rc = SDB_OK ;
-            break ;
-         }
-         PD_RC_CHECK( rc, PDERROR, "Failed to get more, rc: %d", rc ) ;
-
-         while ( !buf.eof() )
-         {
-            BSONObj obj ;
-            try
-            {
-               rc = buf.nextObj( obj ) ;
-               PD_RC_CHECK( rc, PDERROR,
-                            "Failed to get obj from obj buf, rc: %d", rc ) ;
-
-               BSONObj def = obj.getObjectField( IXM_FIELD_NAME_INDEX_DEF ) ;
-               if ( def.isEmpty() )
-               {
-                  PD_LOG( PDWARNING, "Invalid index info[%s]",
-                          obj.toString().c_str() ) ;
-               }
-               else
-               {
-                  indexInfo.push_back( def.getOwned() ) ;
-               }
-            }
-            catch( std::exception &e )
-            {
-               rc = ossException2RC( &e ) ;
-               PD_RC_CHECK( rc, PDERROR, "Occur exception: %s", e.what() ) ;
-            }
-         }
-      }
-
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
-   done:
-      if ( contextID != -1 )
-      {
-         rtnKillContexts( 1, &contextID, _pEDUCB, _pRtnCB ) ;
-      }
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 _clsShdSession::_getIndexInfoFromCatalog( utilCLUniqueID clUniqID,
-                                                   ossPoolVector<BSONObj> &indexInfo )
-   {
-      INT32 rc = SDB_OK ;
-      IRemoteOperator *pRemoteOpr = NULL ;
-      INT64 contextID = -1 ;
-      BSONObj matcher, dummyObj ;
-
-<<<<<<< HEAD
-      INT32 rc                   = SDB_OK ;
-      utilCSUniqueID tmpUniqueID = UTIL_UNIQUEID_NULL ;
-      dmsStorageUnitID suID      = DMS_INVALID_SUID ;
-      dmsStorageUnit *su         = NULL ;
-      INT64 contextID            = 0 ;
-      rtnContextRenameCS::sharePtr pCtx ;
-      CHAR csNameInData[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] = { 0 } ;
-      rtnContextBuf buffObj ;
-      BOOLEAN allowOldSYS = FALSE, allowNewSYS = FALSE ;
-=======
-      // get & set index's unique id
-      rc = _pEDUCB->getOrCreateRemoteOperator( &pRemoteOpr ) ;
-      PD_RC_CHECK( rc, PDERROR,
-                   "Failed to get remote operator, rc: %d",
-                   rc ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       try
       {
@@ -2204,6 +1603,7 @@ namespace engine
       rtnContextRenameCS::sharePtr pCtx ;
       CHAR csNameInData[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] = { 0 } ;
       rtnContextBuf buffObj ;
+      BOOLEAN allowOldSYS = FALSE, allowNewSYS = FALSE ;
 
       PD_CHECK( UTIL_IS_VALID_CSUNIQUEID( csUniqueID ),
                 SDB_INVALIDARG, error, PDERROR,
@@ -2517,16 +1917,6 @@ namespace engine
          }
       }
 
-<<<<<<< HEAD
-=======
-      rc = _checkRestoring() ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDWARNING, "failed to check restoring status:%d", rc ) ;
-         goto error ;
-      }
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       _pEDUCB->setIsAffectGIndex( TRUE ) ;
 
       rc = _checkCLStatusAndGetSth( pCollectionName, pUpdate->version,
@@ -2561,7 +1951,6 @@ namespace engine
                                   0, -1, flags ) ;
          options.setMainCLName( eduCB()->getCurMainCLName() ) ;
          options.setUpdator( updator ) ;
-         options.setWriteOp( TRUE ) ;
 
          // add last op info
          MON_SAVE_OP_OPTION( eduCB()->getMonAppCB(), msg, options ) ;
@@ -2646,16 +2035,6 @@ namespace engine
       }
 
       _setCollectionName( pCollectionName ) ;
-<<<<<<< HEAD
-=======
-
-      rc = _checkRestoring() ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDWARNING, "failed to check restoring status:%d", rc ) ;
-         goto error ;
-      }
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       _pEDUCB->setIsAffectGIndex( TRUE ) ;
 
@@ -2766,16 +2145,6 @@ namespace engine
 
       MONQUERY_SET_NAME( eduCB(), pCollectionName ) ;
 
-<<<<<<< HEAD
-=======
-      rc = _checkRestoring() ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDWARNING, "failed to check restoring status:%d", rc ) ;
-         goto error ;
-      }
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       _pEDUCB->setIsAffectGIndex( TRUE ) ;
 
       rc = _checkCLStatusAndGetSth( pCollectionName, pDelete->version,
@@ -2812,10 +2181,6 @@ namespace engine
          rtnQueryOptions options( matcher, dummy, dummy, hint, pCollectionName,
                                   0, -1, flags ) ;
          options.setMainCLName( eduCB()->getCurMainCLName() ) ;
-<<<<<<< HEAD
-=======
-         options.setWriteOp( TRUE ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
          // add last op info
          MON_SAVE_OP_OPTION( eduCB()->getMonAppCB(), msg, options ) ;
@@ -2894,16 +2259,6 @@ namespace engine
          {
             BOOLEAN repairCheck = FALSE ;
             needRollback = TRUE ;
-<<<<<<< HEAD
-=======
-
-            rc = _checkRestoring() ;
-            if ( SDB_OK != rc )
-            {
-               PD_LOG( PDWARNING, "failed to check restoring status:%d", rc ) ;
-               goto error ;
-            }
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
             _pEDUCB->setIsAffectGIndex( TRUE ) ;
 
@@ -3088,22 +2443,6 @@ namespace engine
 
          if ( pCommand->writable () )
          {
-<<<<<<< HEAD
-=======
-            // Only restore commands are allowed if in restoring state
-            if ( ( rc = _checkRestoring() ) &&
-                 ( SDB_RESTORE_IN_PROGRESS != rc ||
-                   !( CMD_RESTORE_TO_TIME == pCommand->type() ||
-                      CMD_RESTORE_ABORT   == pCommand->type() ||
-                      CMD_RESTORE_PREPARE == pCommand->type() ||
-                      CMD_RESTORE_CHECK   == pCommand->type() ) ) )
-            {
-               PD_LOG( PDWARNING, "failed to check restoring status:%d", rc ) ;
-               goto error ;
-            }
-            rc = SDB_OK ; // reset in case it was set above
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             if ( CMD_TRUNCATE == pCommand->type()
                  || CMD_CREATE_INDEX == pCommand->type() )
             {
@@ -3440,13 +2779,8 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__CLSSHDSESS__ONGETMOREREQMSG ) ;
       INT32 numToRead = 0 ;
       rtnContextPtr pContext ;
-<<<<<<< HEAD
-=======
-      const CHAR *pHint = NULL ;
-      BSONObj hint ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
-      rc = msgExtractGetMore( (CHAR*)msg, &numToRead, &contextID, &pHint ) ;
+      rc = msgExtractGetMore ( (CHAR*)msg, &numToRead, &contextID ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG ( PDERROR, "Session[%s] extract GETMORE msg failed[rc:%d]",
@@ -3476,9 +2810,7 @@ namespace engine
       /// trans context
       if ( pContext->isTransContext() && !eduCB()->isTransaction() )
       {
-         // NOTE: auto-commit global transaction will generate
-         //       logical begin time automatically, no need to pass
-         rc = rtnTransBegin( eduCB(), TRUE, eduCB()->isGlobTransOn() ) ;
+         rc = rtnTransBegin( eduCB(), TRUE ) ;
          if ( rc )
          {
             goto error ;
@@ -3498,26 +2830,7 @@ namespace engine
                     "context [%llu], rc: %d", pContext->contextID(), rc ) ;
       }
 
-<<<<<<< HEAD
       rc = rtnGetMore ( pContext, numToRead, buffObj, eduCB(), _pRtnCB ) ;
-=======
-      if ( pHint )
-      {
-         try
-         {
-            hint = BSONObj( pHint ) ;
-         }
-         catch ( std::exception &e )
-         {
-            rc = ossException2RC( &e ) ;
-            PD_LOG( PDERROR, "An exception occurred when building hint "
-                    "bsonobj: %s, rc: %d", e.what(), rc ) ;
-            goto error ;
-         }
-      }
-
-      rc = rtnGetMore ( pContext, numToRead, buffObj, eduCB(), _pRtnCB, hint ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       if ( rc )
       {
          contextID = -1 ;
@@ -3544,7 +2857,6 @@ namespace engine
       {
          _pRtnCB->contextDelete( contextID, eduCB() ) ;
       }
-<<<<<<< HEAD
       goto done ;
    }
 
@@ -3564,76 +2876,6 @@ namespace engine
 
       rc = msgExtractAdvanceMsg( (const CHAR *)msg, &contextTmp, &pOption,
                                  &pBackData, &backDataSize ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG ( PDERROR, "Session[%s] extract ADVANCE msg failed[rc:%d]",
-                  sessionName(), rc ) ;
-         goto error ;
-      }
-
-      try
-      {
-         BSONObj option( pOption ) ;
-         // add last op info
-         MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
-                             "ContextID:%lld, BackDataSize:%d, "
-                             "Option:%s", contextTmp,
-                             backDataSize,
-                             option.toPoolString(false, false, true).c_str() ) ;
-         /*
-         PD_LOG ( PDDEBUG, "Advance: contextID:%lld\nBackDataSize:%d\n"
-                           "Option:%s", contextTmp,
-                  backDataSize,
-                  arg.toPoolString(false, false, true).c_str() ) ; */
-
-         needRollback = FALSE ; /// don't rollback when failed
-
-         rc = rtnAdvance ( contextTmp, option, pBackData, backDataSize,
-                           eduCB(), _pRtnCB ) ;
-         if ( rc )
-         {
-            goto error ;
-         }
-      }
-      catch( std::exception &e )
-      {
-         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
-         rc = ossException2RC( &e ) ;
-         goto error ;
-      }
-
-   done:
-      return rc ;
-   error:
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
-      goto done ;
-   }
-
-   INT32 _clsShdSession::_onAdvanceReqMsg( MsgHeader * msg,
-                                           rtnContextBuf &buffObj,
-                                           INT32 & startingPos,
-                                           INT64 &contextID,
-                                           BOOLEAN &needRollback )
-   {
-      PD_LOG ( PDDEBUG, "session[%s] _onAdvanceReqMsg", sessionName() ) ;
-
-      INT32 rc = SDB_OK ;
-<<<<<<< HEAD
-      PD_TRACE_ENTRY ( SDB__CLSSHDSESS__ONKILLCTXREQMSG ) ;
-      INT32 contextNum = 0 ;
-      const INT64 *pContextIDs = NULL ;
-
-      rc = msgExtractKillContexts ( (const CHAR*)msg, &contextNum, &pContextIDs ) ;
-=======
-      const CHAR *pOption = NULL ;
-      const CHAR *pBackData = NULL ;
-      INT32 backDataSize = 0 ;
-      INT64 contextTmp = -1 ;
-
-      rc = msgExtractAdvanceMsg( (const CHAR *)msg, &contextTmp, &pOption,
-                                 &pBackData, &backDataSize ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       if ( SDB_OK != rc )
       {
          PD_LOG ( PDERROR, "Session[%s] extract ADVANCE msg failed[rc:%d]",
@@ -3747,25 +2989,17 @@ namespace engine
       return SDB_OK ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDSESS__ONTRANSBEGINMSG, "_clsShdSession::_onTransBeginMsg" )
    INT32 _clsShdSession::_onTransBeginMsg( NET_HANDLE handle, MsgHeader *msg )
    {
       INT32 rc = SDB_OK ;
-<<<<<<< HEAD
       MsgOpTransBegin *pTransBegin = ( MsgOpTransBegin* )msg ;
       BOOLEAN needRollback = FALSE ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
-      PD_TRACE_ENTRY( SDB__CLSSHDSESS__ONTRANSBEGINMSG ) ;
-
-      BOOLEAN isGlobTrans = FALSE ;
-      DPS_TRANS_ID transID ;
-      stpLogicalTimeUS beginTime ;
-
-      PD_CHECK( DPS_TRANS_WAIT_COMMIT != eduCB()->getTransStatus(),
-                SDB_RTN_EXIST_INDOUBT_TRANS, error, PDERROR,
-                "Failed to begin transaction, has in-doubt transaction" ) ;
+      if ( DPS_TRANS_WAIT_COMMIT == eduCB()->getTransStatus() )
+      {
+         rc = SDB_RTN_EXIST_INDOUBT_TRANS ;
+         goto error ;
+      }
 
       rc = _checkPrimaryStatus() ;
       if ( SDB_OK != rc )
@@ -3781,36 +3015,20 @@ namespace engine
          goto error ;
       }
 
-      rc = _checkRestoring() ;
-      if ( SDB_OK != rc )
+      /// Old trans begin msg is only a MsgHeader
+      if ( msg->messageLength > (INT32)sizeof( MsgHeader ) &&
+           DPS_INVALID_TRANS_ID != pTransBegin->transID &&
+           0 != DPS_TRANS_GET_NODEID( pTransBegin->transID ) )
       {
-         PD_LOG( PDINFO, "Failed to check restoring status, rc: %d", rc ) ;
-         goto error ;
-      }
-
-      if ( msg->messageLength == sizeof( MsgOpTransBegin_V0 ) )
-      {
-         // version 0
-         // transaction begin message is only a header, do nothing
-         isGlobTrans = FALSE ;
-      }
-      else if ( msg->messageLength == sizeof( MsgOpTransBegin_V1 ) )
-      {
-         // version 1
-         // transaction begin message with transaction ID of version 0
-         MsgOpTransBegin_V1 *message = (MsgOpTransBegin_V1 *)msg ;
-
-         if ( DPS_INVALID_TRANSID_V0 != message->transID &&
-              0 != DPS_TRANS_GET_NODEID_V0( message->transID ) )
-         {
-            transID.convertFromV0( message->transID ) ;
-         }
-
-         isGlobTrans = FALSE ;
+         rc = rtnTransBegin( _pEDUCB, FALSE, pTransBegin->transID ) ;
       }
       else
       {
-<<<<<<< HEAD
+         rc = rtnTransBegin( _pEDUCB ) ;
+      }
+
+      if ( SDB_OK == rc )
+      {
          // there is a gap between the first primary check and adding cb to transCB,
          // if switch to secondary during the gap, the cb will not be notified
          // since it is not in transCB, so, we need a double check of primary status
@@ -3823,53 +3041,10 @@ namespace engine
          }
          /// unset all trans context
          rtnUnsetTransContext( eduCB(), _pRtnCB ) ;
-=======
-         // new version
-         // transaction begin message with transaction ID of version 1
-         // supports global transaction
-         MsgOpTransBegin *message = (MsgOpTransBegin *)msg ;
-         MsgRouteID remoteRID ;
-
-         remoteRID.value = msg->routeID.value ;
-
-         if ( DPS_INVALID_TRANSID_SN != message->transID &&
-              DPS_INVALID_TRANSID_NODEID != remoteRID.columns.nodeID )
-         {
-            // node ID component is hidden in route ID of message
-            transID.setSN( message->transID ) ;
-            transID.setNodeID( remoteRID.columns.nodeID ) ;
-
-            // if transaction is global, get transaction begin time
-            if ( transID.isGlobTrans() )
-            {
-               beginTime.setTime( transID.getLogicalTime() ) ;
-               beginTime.setTimeError( message->transTimeError ) ;
-
-               // we need to do transaction arbitration
-               stpLogicalTimeUS sendTime( message->sendTime,
-                                          message->transTimeError ) ;
-               rc = _checkGlobBegin( transID, remoteRID, beginTime,
-                                     sendTime ) ;
-               PD_RC_CHECK( rc, PDERROR, "Failed to check transaction "
-                            "begin with global transaction, rc: %d", rc ) ;
-
-               isGlobTrans = TRUE ;
-            }
-         }
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       }
 
-      rc = rtnTransBegin( _pEDUCB, FALSE, isGlobTrans, transID, beginTime ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to begin transaction [%s], rc: %d",
-                   dpsTransIDToString( transID ).c_str(), rc ) ;
-
-      /// unset all trans context
-      rtnUnsetTransContext( eduCB(), _pRtnCB ) ;
-
    done:
-      PD_TRACE_EXITRC( SDB__CLSSHDSESS__ONTRANSBEGINMSG, rc ) ;
       return rc ;
-
    error:
       if ( needRollback )
       {
@@ -3882,12 +3057,10 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDSESS__ONTRANSCOMMITMSG, "_clsShdSession::_onTransCommitMsg" )
    INT32 _clsShdSession::_onTransCommitMsg( NET_HANDLE handle, MsgHeader *msg )
    {
       INT32 rc = SDB_OK ;
 
-<<<<<<< HEAD
       CHAR tmpID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
       CHAR tmpAttr[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
 
@@ -3901,20 +3074,6 @@ namespace engine
          rc = SDB_DPS_TRANS_NO_TRANS ;
          goto error ;
       }
-=======
-      PD_TRACE_ENTRY( SDB__CLSSHDSESS__ONTRANSCOMMITMSG ) ;
-
-      CHAR tmpID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
-      CHAR tmpAttr[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
-
-      stpLogicalTimeUS specCommitTime ;
-
-      PD_CHECK( _pReplSet->primaryIsMe(), SDB_CLS_NOT_PRIMARY, error, PDERROR,
-                "Failed to commit transaction, node is not primary" ) ;
-      PD_CHECK( _pEDUCB->getTransID().isValid(), SDB_DPS_TRANS_NO_TRANS,
-                error, PDERROR, "Failed to commit transaction, "
-                "session is not in transaction" ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       dpsTransIDToString( eduCB()->getTransID(),
                           tmpID, DPS_TRANS_STR_LEN ) ;
@@ -3924,38 +3083,10 @@ namespace engine
       MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), MSG_BS_TRANS_COMMIT_REQ,
                           "TransactionID: %s(%s)", tmpID, tmpAttr ) ;
 
-<<<<<<< HEAD
       rc = rtnTransCommit( _pEDUCB, _pDpsCB ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to commit transaction, rc: %d", rc ) ;
 
    done:
-=======
-      if ( msg->messageLength == sizeof( MsgOpTransCommit ) )
-      {
-         // version 0
-         // do nothing
-      }
-      else
-      {
-         // version 1
-         // transaction commit message with global logical time of transaction
-         // commit
-         MsgOpTransCommitInt *message = (MsgOpTransCommitInt *)msg ;
-         if ( 0LL != message->commitTime )
-         {
-            // commit time is specified by COORD
-            specCommitTime.setTime( message->commitTime ) ;
-            specCommitTime.setTimeError( eduCB()->getTransTimeError() ) ;
-         }
-      }
-
-      rc = rtnTransCommit( _pEDUCB, _pDpsCB, specCommitTime ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to commit transaction [%s], rc: %d",
-                   dpsTransIDToString( _pEDUCB->getTransID() ).c_str(), rc ) ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__CLSSHDSESS__ONTRANSCOMMITMSG, rc ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       return rc ;
 
    error:
@@ -3984,9 +3115,7 @@ namespace engine
    }
 
    INT32 _clsShdSession::_onTransCommitPreMsg( NET_HANDLE handle,
-                                               MsgHeader *msg,
-                                               rtnContextBuf &retBuffer,
-                                               BSONObjBuilder *retBuilder )
+                                               MsgHeader *msg )
    {
       INT32 rc = SDB_OK ;
       CHAR tmpID[ DPS_TRANS_STR_LEN + 1 ] = { 0 } ;
@@ -3995,86 +3124,24 @@ namespace engine
       pmdOptionsCB *optCB = pmdGetOptionCB() ;
       MsgOpTransCommitPre *pCommitPreMsg = ( MsgOpTransCommitPre* )msg ;
 
-<<<<<<< HEAD
       DPS_TRANS_ID curTransID = _pEDUCB->getTransID() ;
       DPS_LSN_OFFSET preTransLsn = _pEDUCB->getCurTransLsn() ;
-=======
-      DPS_TRANS_ID transID = _pEDUCB->getTransID() ;
-
-      stpLogicalTimeUS preCommitTime ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       INT16 replSize = optCB->transReplSize() ;
       INT16 w = 0 ;
-
-      BSONObj retObject ;
 
       if ( !_pReplSet->primaryIsMe() )
       {
          rc = SDB_CLS_NOT_PRIMARY ;
          goto error ;
       }
-<<<<<<< HEAD
       if ( DPS_INVALID_TRANS_ID == curTransID )
-=======
-      if ( transID.isInvalid() )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       {
          rc = SDB_DPS_TRANS_NO_TRANS ;
          goto error ;
       }
 
-<<<<<<< HEAD
       dpsTransIDToString( curTransID,
-=======
-      if ( (UINT32)( msg->messageLength ) ==
-                  MSG_TRANS_COMMIT_PRE_SIZE_V1( pCommitPreMsg ) )
-      {
-         // for global transaction with RR isolation, we need to do transaction
-         // time synchronization checking before pre-commit
-         // NOTE: only write transaction needs pre-commit check, read-only
-         //       transaction does not care about pre-commit time which won't
-         //       affect visibility of other transactions
-         if ( _pEDUCB->isGlobTrans() &&
-              DPS_INVALID_LSN_OFFSET != _pEDUCB->getCurTransLsn() )
-         {
-            // version 1, has send time
-            stpLogicalTimeUS sendTime(
-                        MSG_TRANS_COMMIT_PRE_GET_SEND_TIME( pCommitPreMsg ),
-                        _pEDUCB->getTransBeginTime().getTimeError() ) ;
-
-            rc = _checkGlobPreCommit( transID,
-                                      pCommitPreMsg->header.routeID,
-                                      _pEDUCB->getTransBeginTime(),
-                                      sendTime,
-                                      preCommitTime ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to check transaction pre-commit "
-                         "with global transaction, rc: %d", rc ) ;
-
-            // build reply object if needed, for global transaction, we send
-            // back pre-commit time on this node to COORD, and COORD will
-            // calculate the final commit time
-            if ( NULL != retBuilder )
-            {
-               try
-               {
-                  retBuilder->append( FIELD_NAME_PRECOMMITTIME,
-                                      (INT64)( preCommitTime.getTime() ) ) ;
-                  retObject = retBuilder->done() ;
-               }
-               catch ( exception &e )
-               {
-                  PD_LOG( PDERROR, "Failed to build reply object, error: %s",
-                          e.what() ) ;
-                  rc = SDB_SYS ;
-                  goto error ;
-               }
-            }
-         }
-      }
-
-      dpsTransIDToString( eduCB()->getTransID(),
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                           tmpID, DPS_TRANS_STR_LEN ) ;
       dpsTransIDAttrToString( curTransID,
                               tmpAttr, DPS_TRANS_STR_LEN ) ;
@@ -4097,31 +3164,16 @@ namespace engine
          }
       }
 
-      rc = rtnTransPreCommit( _pEDUCB,
-                              pCommitPreMsg->nodeNum,
-                              pCommitPreMsg->nodes,
-                              preCommitTime,
-                              w,
-                              _pDpsCB ) ;
+      rc = rtnTransPreCommit( _pEDUCB, pCommitPreMsg->nodeNum,
+                              pCommitPreMsg->nodes, w, _pDpsCB ) ;
       if ( rc )
       {
          goto error ;
       }
 
-      // copy reply object to output buffer
-      if ( NULL != retBuilder && !retObject.isEmpty() )
-      {
-         retBuffer = rtnContextBuf( retObject ) ;
-      }
-
    done:
       return rc ;
-
    error:
-      if ( NULL != retBuilder )
-      {
-         retBuilder->reset() ;
-      }
       goto done ;
    }
 
@@ -4147,7 +3199,6 @@ namespace engine
                PD_LOG( PDINFO, "Failed to check rollback status, rc: %d", rc ) ;
                goto done ;
             }
-<<<<<<< HEAD
             rc = rtnTransBegin( _pEDUCB, TRUE ) ;
             if ( SDB_OK == rc )
             {
@@ -4161,18 +3212,7 @@ namespace engine
                   PD_LOG( PDINFO, "Failed to double check primary status, rc: %d", rc ) ;
                   goto error ;
                }
-=======
-            rc = _checkRestoring() ;
-            if ( SDB_OK != rc )
-            {
-               PD_LOG( PDINFO, "Failed to check restoring status, rc: %d",
-                       rc ) ;
-               goto done ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             }
-            // NOTE: auto-commit global transaction will generate
-            //       logical begin time automatically, no need to pass
-            rc = rtnTransBegin( _pEDUCB, TRUE, _pEDUCB->isGlobTransOn() ) ;
          }
          else
          {
@@ -5032,7 +4072,6 @@ namespace engine
          }
       }
       _pCatAgent->release_r() ;
-<<<<<<< HEAD
 
       if ( 0 != includeShardingOrder )
       {
@@ -5063,38 +4102,6 @@ namespace engine
             {
                UINT32 index = 0 ;
 
-=======
-
-      if ( 0 != includeShardingOrder )
-      {
-         try
-         {
-            if ( !sortedSubCLIdxMap.empty() )
-            {
-               // sort info is prepared, use the sorted map to sort
-               // sub-collections
-               SDB_ASSERT( sortedSubCLIdxMap.size() == subCLList.size(),
-                           "sizes of sorted sub-collections are different" ) ;
-               sortedSubCLList.clear() ;
-               sortedSubCLList.reserve( subCLList.size() ) ;
-               for ( CLS_ORDER2SUBCLIDX_MAP::iterator iter =
-                                                   sortedSubCLIdxMap.begin() ;
-                     iter != sortedSubCLIdxMap.end() ;
-                     ++ iter )
-               {
-                  SDB_ASSERT( iter->second < subCLList.size(),
-                              "index is invalid" ) ;
-                  // replace
-                  sortedSubCLList.push_back( subCLList[ iter->second ] ) ;
-               }
-               // swap with sorted result
-               subCLList.swap( sortedSubCLList ) ;
-            }
-            else
-            {
-               UINT32 index = 0 ;
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                // calculate from full sorted list of sub-collections
                ossPoolSet<string> setNameFilter ;
                CLS_SUBCL_LIST_IT it = subCLList.begin() ;
@@ -5144,8 +4151,6 @@ namespace engine
             goto error ;
          }
       }
-<<<<<<< HEAD
-=======
 
    done:
       return rc ;
@@ -5219,87 +4224,10 @@ namespace engine
       PD_RC_CHECK( rc, PDDEBUG, "Failed to check message version [%d] of "
                    "collection [%s], rc: %d", _clVersion, mainCLName,
                    rc ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    done:
       return rc ;
 
-<<<<<<< HEAD
-   error:
-      goto done ;
-   }
-
-   INT32 _clsShdSession::_checkSubCLList( const CHAR *pCollectionName,
-                                          const CLS_SUBCL_LIST &subCLList,
-                                          BOOLEAN isWrite,
-                                          BOOLEAN isAllowEmptyList )
-   {
-      INT32 rc = SDB_OK ;
-
-      if ( !isAllowEmptyList )
-      {
-         // not allow empty sub-collection list
-         PD_CHECK( !subCLList.empty(), SDB_INVALID_MAIN_CL, error, PDERROR,
-                   "main-collection [%s] has no sub-collection!",
-                   pCollectionName ) ;
-      }
-      else if ( subCLList.empty() )
-      {
-         goto done ;
-      }
-
-      // check write status is needed
-      if ( isWrite )
-      {
-         for ( CLS_SUBCL_LIST::const_iterator iter = subCLList.begin() ;
-               iter != subCLList.end() ;
-               ++ iter )
-         {
-            rc = _pFreezingWindow->waitForOpr( iter->c_str(),
-                                               _pEDUCB,
-                                               _pEDUCB->isWritingDB() ) ;
-            PD_RC_CHECK( rc, PDERROR, "Wait freezing window for "
-                         "sub-collection(%s) failed, rc: %d",
-                         iter->c_str(), rc ) ;
-         }
-      }
-
-      // need recheck version of main-collection
-      rc = _checkCLVersion( pCollectionName, _clVersion ) ;
-      PD_RC_CHECK( rc, PDDEBUG, "Failed to check message version [%d] of "
-                   "collection [%s], rc: %d", _clVersion, pCollectionName,
-                   rc ) ;
-
-   done:
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
-   INT32 _clsShdSession::_checkSubCL( const CHAR *mainCLName,
-                                      const CHAR *subCLName )
-   {
-      INT32 rc = SDB_OK ;
-
-      rc = _pFreezingWindow->waitForOpr( subCLName,
-                                         _pEDUCB,
-                                         _pEDUCB->isWritingDB() ) ;
-      PD_RC_CHECK( rc, PDERROR, "Wait freezing window for "
-                   "sub-collection(%s) failed, rc: %d",
-                   subCLName, rc ) ;
-
-      // need recheck version of main-collection
-      rc = _checkCLVersion( mainCLName, _clVersion ) ;
-      PD_RC_CHECK( rc, PDDEBUG, "Failed to check message version [%d] of "
-                   "collection [%s], rc: %d", _clVersion, mainCLName,
-                   rc ) ;
-
-   done:
-      return rc ;
-
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    error:
       goto done ;
    }
@@ -6434,7 +5362,6 @@ namespace engine
          PD_LOG( PDERROR, "failed to extract open msg:%d", rc ) ;
          goto error ;
       }
-<<<<<<< HEAD
 
       try
       {
@@ -6466,60 +5393,6 @@ namespace engine
             subCLName = ele.valuestr() ;
          }
 
-         ele = lob.getField( FIELD_NAME_LOB_OPEN_MODE ) ;
-         if ( NumberInt != ele.type() )
-         {
-            PD_LOG( PDERROR, "Failed to parse invalid lob obj:%s, "
-                    "[%s] is not an integer",
-                    lob.toString( FALSE, TRUE ).c_str(),
-                    FIELD_NAME_LOB_OPEN_MODE ) ;
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
-         mode = ele.Int() ;
-      }
-      catch ( exception &e )
-      {
-         PD_LOG( PDERROR, "Failed to parse lob options, occur exception %s",
-                 e.what() ) ;
-         rc = ossException2RC( &e ) ;
-         goto error ;
-      }
-=======
-
-      try
-      {
-         BSONElement ele = lob.getField( FIELD_NAME_COLLECTION ) ;
-         if ( String != ele.type() )
-         {
-            PD_LOG( PDERROR, "Failed to parse invalid lob obj:%s, "
-                    "[%s] is not a string",
-                    lob.toString( FALSE, TRUE ).c_str(),
-                    FIELD_NAME_COLLECTION ) ;
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
-         fullName = ele.valuestr() ;
-         _setCollectionName( fullName ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
-
-         ele = lob.getField( FIELD_NAME_SUBCLNAME ) ;
-         if ( EOO != ele.type() )
-         {
-            if ( String != ele.type() )
-            {
-               PD_LOG( PDERROR, "Failed to parse invalid lob obj:%s, "
-                       "[%s] is not a string",
-                       lob.toString( FALSE, TRUE ).c_str(),
-                       FIELD_NAME_SUBCLNAME ) ;
-               rc = SDB_INVALIDARG ;
-               goto error ;
-            }
-            subCLName = ele.valuestr() ;
-         }
-
-<<<<<<< HEAD
-=======
          ele = lob.getField( FIELD_NAME_LOB_OPEN_MODE ) ;
          if ( NumberInt != ele.type() )
          {
@@ -6544,7 +5417,6 @@ namespace engine
       MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                           "Option:%s", lob.toPoolString().c_str() ) ;
 
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       if ( !SDB_IS_LOBREADONLY_MODE( mode ) )
       {
          opType = CLS_CL_OP_WRITE ;
@@ -6554,7 +5426,6 @@ namespace engine
          if ( OSS_BIT_TEST( header->flags, FLG_LOBREAD_PRIMARY ) )
          {
             opType = CLS_CL_OP_READ_ON_PRY ;
-<<<<<<< HEAD
          }
          else if ( OSS_BIT_TEST( header->flags, FLG_LOBREAD_SECONDARY ) )
          {
@@ -6562,15 +5433,6 @@ namespace engine
          }
          else
          {
-=======
-         }
-         else if ( OSS_BIT_TEST( header->flags, FLG_LOBREAD_SECONDARY ) )
-         {
-            opType = CLS_CL_OP_READ_ON_SND ;
-         }
-         else
-         {
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             opType = CLS_CL_OP_READ_ON_ANY ;
          }
       }
@@ -7447,7 +6309,7 @@ namespace engine
 
       ++_inPacketLevel ;
 
-      pos += sizeof( MsgPacketReq ) ;
+      pos += sizeof( MsgHeader ) ;
       while( pos < msg->messageLength )
       {
          pTmpMsg = ( MsgHeader* )( ( CHAR*)msg + pos ) ;
@@ -7918,19 +6780,6 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDSESS__CKRESTORING, "_clsShdSession::_checkRestoring" )
-   INT32 _clsShdSession::_checkRestoring()
-   {
-      INT32 rc = SDB_OK;
-      PD_TRACER_BEGIN(SDB__CLSSHDSESS__CKRESTORING, &rc);
-
-      if (_pShdMgr->getDCMgr()->getDCBaseInfo()->isRestoring())
-      {
-         return (rc = SDB_RESTORE_IN_PROGRESS);
-      }
-      return rc;
-   }
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDSESS__CKWRITESTATUS, "_clsShdSession::_checkWriteStatus" )
    INT32 _clsShdSession::_checkWriteStatus()
    {
@@ -8124,8 +6973,8 @@ namespace engine
       }
       else if ( eduCB()->isTransaction() )
       {
-         if ( (rc = _checkRollbackStatus()) ||
-              (rc = _checkRestoring()) )
+         rc = _checkRollbackStatus() ;
+         if ( rc )
          {
             goto error ;
          }
@@ -8139,11 +6988,7 @@ namespace engine
       }
 
       rc = _checkCLVersion( name, version, &_isMainCL, w, mainCLName,
-<<<<<<< HEAD
                             clUniqueID, repairCheck, TRUE ) ;
-=======
-                            clUniqueID, repairCheck ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       if ( rc )
       {
          goto error ;
@@ -8233,12 +7078,8 @@ namespace engine
                                           INT16 *w,
                                           CHAR *mainCLName,
                                           utilCLUniqueID *clUniqueID,
-<<<<<<< HEAD
                                           BOOLEAN *repairCheck,
                                           BOOLEAN setReplStrategy )
-=======
-                                          BOOLEAN *repairCheck )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
       INT32 rc = SDB_OK ;
 
@@ -8273,15 +7114,12 @@ namespace engine
          {
             *w = 1 ;
          }
-<<<<<<< HEAD
 
          if ( setReplStrategy )
          {
             _pEDUCB->getOperator()->setReplStrategy( replStrategy ) ;
          }
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          if ( NULL != repairCheck )
          {
             *repairCheck = FALSE ;
@@ -8308,7 +7146,6 @@ namespace engine
          *clUniqueID = set->clUniqueID() ;
       }
       if ( NULL != mainCLName )
-<<<<<<< HEAD
       {
          if ( !set->getMainCLName().empty() )
          {
@@ -8323,22 +7160,6 @@ namespace engine
       }
       if ( NULL != repairCheck )
       {
-=======
-      {
-         if ( !set->getMainCLName().empty() )
-         {
-            ossStrncpy( mainCLName, set->getMainCLName().c_str(),
-                        DMS_COLLECTION_FULL_NAME_SZ ) ;
-            mainCLName[ DMS_COLLECTION_FULL_NAME_SZ ] = 0 ;
-         }
-         else
-         {
-            mainCLName[ 0 ] = 0 ;
-         }
-      }
-      if ( NULL != repairCheck )
-      {
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          *repairCheck = set->isRepairCheck() ;
       }
       _pCatAgent->release_r () ;

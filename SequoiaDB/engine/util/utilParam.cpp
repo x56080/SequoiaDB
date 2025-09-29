@@ -340,13 +340,7 @@ namespace engine
       goto done ;
    }
 
-<<<<<<< HEAD
    INT32 utilGetServiceByConfigPath( const string &confPath,
-=======
-   INT32 utilGetServiceByConfigPath( const string & confPath,
-                                     const CHAR *fileName,
-                                     const CHAR *fieldName,
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                                      const string &defaultName,
                                      string &svcname,
                                      BOOLEAN allowFileNotExist,
@@ -357,7 +351,7 @@ namespace engine
       po::options_description desc ;
       po::variables_map vm ;
       desc.add_options()
-         ( fieldName, po::value<string>(), "" ) ;
+         ( PMD_OPTION_SVCNAME, po::value<string>(), "" ) ;
       CHAR conf[OSS_MAX_PATHSIZE + 1] = { 0 } ;
 
       if ( NULL != isConfFileValid )
@@ -374,8 +368,8 @@ namespace engine
          svcname = defaultName ;
       }
 
-      rc = utilBuildFullPath ( confPath.c_str(), fileName, OSS_MAX_PATHSIZE,
-                               conf ) ;
+      rc = utilBuildFullPath ( confPath.c_str(), PMD_DFT_CONF,
+                               OSS_MAX_PATHSIZE, conf ) ;
       if ( rc )
       {
          if ( NULL != errMsg )
@@ -409,9 +403,9 @@ namespace engine
          goto error ;
       }
 
-      if ( vm.count ( fieldName ) )
+      if ( vm.count ( PMD_OPTION_SVCNAME ) )
       {
-         svcname = vm [ fieldName ].as<string>() ;
+         svcname = vm [ PMD_OPTION_SVCNAME ].as<string>() ;
       }
 
    done :
@@ -763,11 +757,7 @@ namespace engine
          {
             rc = SDB_SYS ;
             ossPrintf( "Error: Failed to get ulimit[%s]" OSS_NEWLINE,
-<<<<<<< HEAD
                        limitStr.c_str() ) ;
-=======
-                       limStr.c_str() ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             goto error ;
          }
          if ( curSoft != -1 && ( curSoft < expVal || expVal == -1 ) )

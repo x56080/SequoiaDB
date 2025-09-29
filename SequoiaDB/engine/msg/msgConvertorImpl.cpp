@@ -1,6 +1,5 @@
 /*******************************************************************************
 
-<<<<<<< HEAD
    Copyright (C) 2011-Present SequoiaDB Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,23 +13,6 @@
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
-=======
-
-   Copyright (C) 2011-2022 SequoiaDB Ltd.
-
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
-
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    Source File Name = msgConvertorImpl.cpp
 
@@ -406,11 +388,7 @@ namespace engine
                   "Simple request should has only 1 piece of message" ) ;
 
       // Step 1: Upgrade the message header of old format into new.
-<<<<<<< HEAD
       _msgHeaderUpgrade( oldHeader, header ) ;
-=======
-      msgHeaderUpgrade( oldHeader, header ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       readOffset = sizeof(MsgHeaderV1) ;
 
       // Step 2: Make sure the buffer for the new converted message is enough.
@@ -466,11 +444,7 @@ namespace engine
       netIOV &piece = _msgPieces.front() ;
       const MsgHeader *oldHeader = (const MsgHeader *)piece.iovBase ;
 
-<<<<<<< HEAD
       _msgHeaderDowngrade( oldHeader, header ) ;
-=======
-      msgHeaderDowngrade( oldHeader, header ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       readOffset = sizeof(MsgHeader) ;
 
       rc = _ensureMsgBuff( header.messageLength ) ;
@@ -540,13 +514,8 @@ namespace engine
 
       // Step 3: Upgrade the header of the outermost layer and copy into the
       //         conversion buffer.
-<<<<<<< HEAD
       _msgHeaderUpgrade( (const MsgHeaderV1 *)message,
                          *(MsgHeader *)_convertBuff ) ;
-=======
-      msgHeaderUpgrade( (const MsgHeaderV1 *) message,
-                        *(MsgHeader *)_convertBuff ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       readOffset = origHeaderSize ;
       ((MsgHeader *)_convertBuff)->messageLength = newMsgLen ;
       writeLen = sizeof(MsgHeader) ;
@@ -555,13 +524,8 @@ namespace engine
       for ( UINT16 i = 0; i < subMsgNum; ++ i )
       {
          INT32 subMsgLen = *(INT32 *)( (CHAR *)message + readOffset ) ;
-<<<<<<< HEAD
          _msgHeaderUpgrade( (const MsgHeaderV1 *)((CHAR *)message + readOffset),
                             *(MsgHeader *)(_convertBuff + writeLen) ) ;
-=======
-         msgHeaderUpgrade( (const MsgHeaderV1 *)((CHAR *)message + readOffset),
-                           *(MsgHeader *)(_convertBuff + writeLen) ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          readOffset += origHeaderSize ;
          writeLen += sizeof(MsgHeader) ;
          if ( subMsgLen > origHeaderSize )
@@ -619,13 +583,8 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Allocate memory[size: %u] to downgrade packet "
                    "request failed[%d]", newMsgLen, rc ) ;
 
-<<<<<<< HEAD
       _msgHeaderDowngrade( (const MsgHeader *)message,
                            *(MsgHeaderV1 *)_convertBuff ) ;
-=======
-      msgHeaderDowngrade( (const MsgHeader *)message,
-                          *(MsgHeaderV1 *)_convertBuff ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       readOffset = origHeaderSize ;
       ((MsgHeader *)_convertBuff)->messageLength = newMsgLen ;
       writeLen = sizeof(MsgHeaderV1) ;
@@ -633,13 +592,8 @@ namespace engine
       for ( UINT16 i = 0; i < subMsgNum; ++i )
       {
          INT32 subMsgLen = *(INT32 *)( (CHAR *)message + readOffset ) ;
-<<<<<<< HEAD
          _msgHeaderDowngrade( (const MsgHeader *)((CHAR *)message + readOffset ),
                               *(MsgHeaderV1 *)(_convertBuff + writeLen) ) ;
-=======
-         msgHeaderDowngrade( (const MsgHeader *)((CHAR *)message + readOffset ),
-                             *(MsgHeaderV1 *)(_convertBuff + writeLen) ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          readOffset += origHeaderSize ;
          writeLen += sizeof(MsgHeaderV1) ;
          if ( subMsgLen > origHeaderSize )
@@ -688,21 +642,13 @@ namespace engine
       if ( _isInnerOpReply( ((MsgHeaderV1 *)piece.iovBase)->opCode ) )
       {
          // For inner op reply, only upgrade the header
-<<<<<<< HEAD
          _msgHeaderUpgrade( (const MsgHeaderV1 *)piece.iovBase, reply.header ) ;
-=======
-         msgHeaderUpgrade( (const MsgHeaderV1 *) piece.iovBase, reply.header ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          readOffset = sizeof( MsgHeaderV1 ) ;
          partLen = sizeof( MsgHeader ) ;
       }
       else
       {
-<<<<<<< HEAD
          _msgReplyHeaderUpgrade( (const MsgOpReplyV1 *)piece.iovBase, reply ) ;
-=======
-         msgReplyHeaderUpgrade( (const MsgOpReplyV1 *) piece.iovBase, reply ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          readOffset = sizeof( MsgOpReplyV1 ) ;
          partLen = sizeof( MsgOpReply ) ;
       }
@@ -750,21 +696,13 @@ namespace engine
 
       if ( _isInnerOpReply( ((MsgHeader *)piece.iovBase)->opCode ) )
       {
-<<<<<<< HEAD
          _msgHeaderDowngrade( (const MsgHeader *)piece.iovBase, reply.header ) ;
-=======
-         msgHeaderDowngrade( (const MsgHeader *) piece.iovBase, reply.header ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          readOffset = sizeof( MsgHeader ) ;
          partLen = sizeof( MsgHeaderV1 ) ;
       }
       else
       {
-<<<<<<< HEAD
          _msgReplyHeaderDowngrade( (const MsgOpReply *)piece.iovBase, reply ) ;
-=======
-         msgReplyHeaderDowngrade( (const MsgOpReply *) piece.iovBase, reply ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          readOffset = sizeof( MsgOpReply ) ;
          partLen = sizeof( MsgOpReplyV1 ) ;
       }
@@ -844,13 +782,8 @@ namespace engine
       goto done ;
    }
 
-<<<<<<< HEAD
    void _msgConvertorImpl::_msgHeaderUpgrade( const MsgHeaderV1 *msgHeader,
                                               MsgHeader &newMsgHeader )
-=======
-   void _msgConvertorImpl::msgHeaderUpgrade( const MsgHeaderV1 *msgHeader,
-                                             MsgHeader &newMsgHeader )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
       SDB_ASSERT( msgHeader, "Message to be upgrade is null" ) ;
       newMsgHeader.messageLength = msgHeader->messageLength +
@@ -862,21 +795,12 @@ namespace engine
       newMsgHeader.TID = msgHeader->TID ;
       newMsgHeader.routeID = msgHeader->routeID ;
       newMsgHeader.requestID = msgHeader->requestID ;
-<<<<<<< HEAD
       ossMemset( &(newMsgHeader.globalID), 0, sizeof( newMsgHeader.globalID) ) ;
       ossMemset( newMsgHeader.reserve, 0, sizeof( newMsgHeader.reserve) ) ;
    }
 
    void _msgConvertorImpl::_msgHeaderDowngrade( const MsgHeader *msgHeader,
                                                 MsgHeaderV1 &newMsgHeader )
-=======
-      // TODO: YSD Set the message globalID.
-      ossMemset( newMsgHeader.reserve, 0, sizeof( newMsgHeader.reserve) ) ;
-   }
-
-   void _msgConvertorImpl::msgHeaderDowngrade( const MsgHeader *msgHeader,
-                                               MsgHeaderV1 &newMsgHeader )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
       newMsgHeader.messageLength = msgHeader->messageLength -
                                    ( sizeof(MsgHeader) - sizeof(MsgHeaderV1) ) ;
@@ -886,17 +810,10 @@ namespace engine
       newMsgHeader.requestID = msgHeader->requestID ;
    }
 
-<<<<<<< HEAD
    void _msgConvertorImpl::_msgReplyHeaderUpgrade( const MsgOpReplyV1 *replyHeader,
                                                    MsgOpReply &newReplyHeader )
    {
       _msgHeaderUpgrade( &replyHeader->header, newReplyHeader.header ) ;
-=======
-   void _msgConvertorImpl::msgReplyHeaderUpgrade( const MsgOpReplyV1 *replyHeader,
-                                                  MsgOpReply &newReplyHeader )
-   {
-      msgHeaderUpgrade( &replyHeader->header, newReplyHeader.header ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       newReplyHeader.header.messageLength = replyHeader->header.messageLength +
          sizeof(MsgOpReply) - sizeof(MsgOpReplyV1);
       newReplyHeader.contextID = replyHeader->contextID ;
@@ -906,17 +823,10 @@ namespace engine
       newReplyHeader.returnMask = 0 ;
    }
 
-<<<<<<< HEAD
    void _msgConvertorImpl::_msgReplyHeaderDowngrade( const MsgOpReply *replyHeader,
                                                      MsgOpReplyV1 &newReplyHeader )
    {
       _msgHeaderDowngrade( &replyHeader->header, newReplyHeader.header ) ;
-=======
-   void _msgConvertorImpl::msgReplyHeaderDowngrade( const MsgOpReply *replyHeader,
-                                                    MsgOpReplyV1 &newReplyHeader )
-   {
-      msgHeaderDowngrade( &replyHeader->header, newReplyHeader.header ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       newReplyHeader.header.messageLength = replyHeader->header.messageLength -
          ( sizeof(MsgOpReply) - sizeof(MsgOpReplyV1) ) ;
       newReplyHeader.contextID = replyHeader->contextID ;

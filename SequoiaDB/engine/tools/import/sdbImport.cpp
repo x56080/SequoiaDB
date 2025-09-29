@@ -72,7 +72,6 @@ int main(int argc, char* argv[])
       goto done;
    }
 
-<<<<<<< HEAD
    // Initialize TZ, ignore error
    rc = ossInitTZEnv() ;
    if ( SDB_OK != rc )
@@ -80,9 +79,6 @@ int main(int argc, char* argv[])
       PD_LOG( PDWARNING, "Failed to init the TZ environment variable, rc: %d", rc ) ;
       rc = SDB_OK ;
    }
-=======
-   initTimezoneEnv() ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    try
    {

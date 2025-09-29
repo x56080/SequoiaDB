@@ -342,139 +342,6 @@ Linux64:
         whereis libfuse.a
         cp ./lib/.libs/libfuse.a ./lib/linux64/release/libfuse.a
         
-    bzip2 1.0.8
-       bzip2 can be download from https://sourceware.org/bzip2/
-       More comprehensive documentation can be found under thirdparty/bzip2/ directory.
-
-       How to build, simply type 'make', this builds the library libbz2.a
-       and then the programs bzip2 and bzip2recover. For more details, please
-       reference bzip2/README and bzip2/Makefile.
-
-       # simply build the libbz2.a, bzip2 and bzip2recover
-           cd bzip2
-           make
-           cp libbz2.a ./lib/linux64/release/
-
-    zstd 1.4.8
-        Website:     https://facebook.github.io/zstd/
-        Repository:  https://github.com/facebook/zstd
-
-        How to build, simply type 'make'. Please check zstd/README.md
-        for more details.
-
-        # simply build `zstd` binary, and `libzstd` dynamic and static libraries
-        cd zstd
-        CPPFLAGS=-DZSTD_MULTITHREAD make
-        cp lib/libzstd.a ./lib/linux64/release/
-
-    rocksdb 6.29.5
-        Website:    https://rocksdb.org
-        Repository: https://github.com/facebook/rocksdb/
-
-        Warning: For the needs of SequoiaDB project, need to make two changes. 
-        First, modify rocksdb/Makefile
-        # for making debug lib only, i.e., without installing gflags
-        # nor building the rocksdb built-in test programs, you will need
-        # to update the Makefile by changine the line DEBUG_LEVEL=0 to
-        # DEBUG_LEVEL?=0 in static_lib setting, like following:
-            ifeq ($(MAKECMDGOALS),static_lib)
-                #DEBUG_LEVEL=0
-                DEBUG_LEVEL?=0
-                LIB_MODE=static
-            endif
-        
-        Second, modify rocksdb/build_tools/build_detect_platform
-        # for making rocksdb link to compression library which locate in SequoiaDB project when compiling. 
-        # Now SequoiaDB project link to snappy, lz4, zstd.
-        # In order to link to snappy, lz4, zstd, modify rocksdb/build_tools/build_detect_platform
-        # Remove conditon to force append compiling flag -DSNAPPY, change following:
-            if ! test $ROCKSDB_DISABLE_SNAPPY; then
-                # Test whether Snappy library is installed
-                # http://code.google.com/p/snappy/
-                $CXX $PLATFORM_CXXFLAGS -x c++ - -o test.o 2>/dev/null  <<EOF
-                #include <snappy.h>
-                int main() {}
-        EOF
-                if [ "$?" = 0 ]; then
-                    COMMON_FLAGS="$COMMON_FLAGS -DSNAPPY"
-                    PLATFORM_LDFLAGS="$PLATFORM_LDFLAGS -lsnappy"
-                    JAVA_LDFLAGS="$JAVA_LDFLAGS -lsnappy"
-                fi
-            fi
-            # changed like following:
-            if ! test $ROCKSDB_DISABLE_SNAPPY; then
-                # Test whether Snappy library is installed
-                # http://code.google.com/p/snappy/
-                $CXX $PLATFORM_CXXFLAGS -x c++ - -o test.o 2>/dev/null  <<EOF
-                #include <snappy.h>
-                int main() {}
-        EOF
-                #if [ "$?" = 0 ]; then
-                    COMMON_FLAGS="$COMMON_FLAGS -DSNAPPY"
-                    PLATFORM_LDFLAGS="$PLATFORM_LDFLAGS -lsnappy"
-                    JAVA_LDFLAGS="$JAVA_LDFLAGS -lsnappy"
-                #fi
-            fi
-
-        # Remove conditon to force append compiling flag -DLZ4, change following:
-            if ! test $ROCKSDB_DISABLE_LZ4; then
-                # Test whether lz4 library is installed
-                $CXX $PLATFORM_CXXFLAGS $COMMON_FLAGS -x c++ - -o test.o 2>/dev/null  <<EOF
-                #include <lz4.h>
-                #include <lz4hc.h>
-                int main() {}
-        EOF
-                if [ "$?" = 0 ]; then
-                    COMMON_FLAGS="$COMMON_FLAGS -DLZ4"
-                    PLATFORM_LDFLAGS="$PLATFORM_LDFLAGS -llz4"
-                    JAVA_LDFLAGS="$JAVA_LDFLAGS -llz4"
-                fi
-            fi          
-            # changed like following:
-            if ! test $ROCKSDB_DISABLE_LZ4; then
-                # Test whether lz4 library is installed
-                $CXX $PLATFORM_CXXFLAGS $COMMON_FLAGS -x c++ - -o test.o 2>/dev/null  <<EOF
-                #include <lz4.h>
-                #include <lz4hc.h>
-                int main() {}
-        EOF
-                #if [ "$?" = 0 ]; then
-                    COMMON_FLAGS="$COMMON_FLAGS -DLZ4"
-                    PLATFORM_LDFLAGS="$PLATFORM_LDFLAGS -llz4"
-                    JAVA_LDFLAGS="$JAVA_LDFLAGS -llz4"
-                #fi
-            fi   
-
-        # Remove conditon to force append compiling flag -DZSTD, change following:
-            if ! test $ROCKSDB_DISABLE_ZSTD; then
-                # Test whether zstd library is installed
-                $CXX $PLATFORM_CXXFLAGS $COMMON_FLAGS -x c++ - -o /dev/null 2>/dev/null  <<EOF
-                #include <zstd.h>
-                int main() {}
-        EOF
-                if [ "$?" = 0 ]; then
-                    COMMON_FLAGS="$COMMON_FLAGS -DZSTD"
-                    PLATFORM_LDFLAGS="$PLATFORM_LDFLAGS -lzstd"
-                    JAVA_LDFLAGS="$JAVA_LDFLAGS -lzstd"
-                fi
-            fi
-            # changed like following:
-            if ! test $ROCKSDB_DISABLE_ZSTD; then
-                # Test whether zstd library is installed
-                $CXX $PLATFORM_CXXFLAGS $COMMON_FLAGS -x c++ - -o /dev/null 2>/dev/null  <<EOF
-                #include <zstd.h>
-                int main() {}
-        EOF
-                #if [ "$?" = 0 ]; then
-                    COMMON_FLAGS="$COMMON_FLAGS -DZSTD"
-                    PLATFORM_LDFLAGS="$PLATFORM_LDFLAGS -lzstd"
-                    JAVA_LDFLAGS="$JAVA_LDFLAGS -lzstd"
-                #fi
-            fi
-
-                
-
-        
 ARM64:
     Building Prerequisites:
         g++ 4.6.3
@@ -849,11 +716,7 @@ Alpha64:
         cd snappy
         scons
 
-<<<<<<< HEAD
     lz4 1.9.4:
-=======
-    lz4 1.7.1:
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         cd lz4
         scons
 
@@ -865,8 +728,4 @@ Alpha64:
             libzlib.a
     The second way to build:
         cd zlib
-<<<<<<< HEAD
         scons
-=======
-        scons
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2

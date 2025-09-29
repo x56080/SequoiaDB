@@ -46,8 +46,6 @@
 #include "ossAtomic.hpp"
 #include "ossRWMutex.hpp"
 
-#include "interface/ITransLockConsole.h"
-
 namespace engine
 {
    class _dpsTransExecutor ;
@@ -71,7 +69,7 @@ namespace engine
 
    #define DPS_LOCK_INVALID_BUCKET_SLOT  ( (UINT32) -1 )
 
-   class dpsTransLockManager : public ITransLockConsole
+   class dpsTransLockManager : public SDBObject
    {
       friend class _dpsTransExecutor ;
    public:
@@ -232,11 +230,6 @@ namespace engine
          UINT32               & refCount
       ) ;
 
-<<<<<<< HEAD
-=======
-      // search LRB header list by lockId to get dpsLRBExtData pointer
-      dpsLRBExtData * getExtDataHdlByLockId( const dpsTransLockId &lockId ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       // snap lockWait info for a given waiterLRB
       // similar as dumpEDUTransInfo, this function currently called from
       // sdb snapshot( monDump.cpp )
@@ -258,42 +251,11 @@ namespace engine
       // kill waiters with error code
       BOOLEAN killWaiters( const dpsTransLockId &lockID, INT32 errorCode ) ;
 
-<<<<<<< HEAD
-=======
-   public:
-      virtual INT32 acquire(IExecutor *executor,
-                            const dpsTransLockId &lockId,
-                            const DPS_TRANSLOCK_TYPE &mode,
-                            _IContext * pContext,
-                            dpsTransRetInfo *pdpsTxResInfo,
-                            _dpsITransLockCallback *callback) override;
-
-      virtual void release(IExecutor *executor,
-                           const dpsTransLockId &lockId,
-                           BOOLEAN bForceRelease,
-                           _dpsITransLockCallback * callback) override;
-
-      virtual void releaseAll(IExecutor *executor,
-                              _dpsITransLockCallback *callback) override;
-
-      virtual INT32 tryAcquire(IExecutor *executor,
-                                 const dpsTransLockId &lockId,
-                                 const DPS_TRANSLOCK_TYPE &mode,
-                                 dpsTransRetInfo *pdpsTxResInfo,
-                                 _dpsITransLockCallback *callback) override;
-
-      virtual INT32 testAcquire(IExecutor *executor,
-                                 const dpsTransLockId &lockId,
-                                 const DPS_TRANSLOCK_TYPE &mode,
-                                 BOOLEAN preemptMode,
-                                 dpsTransRetInfo *pdpsTxResInfo,
-                                 _dpsITransLockCallback *callback,
-                                 BOOLEAN intentLock) override;
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    private:
       // Latch for normal lock operation ( acquire, tryAcquire,
       // testAcquire, release, releaseAll, hasWait etc on ) :
+      //     . latch _rwMutext in shared mode
+      //     . latch a bucket slot in exclusively
       OSS_INLINE void _acquireOpLatch ( const UINT32  bucketIndex )
       {
          _LockHdrBkt[ bucketIndex ].hashHdrLatch.get() ;
@@ -461,12 +423,6 @@ namespace engine
          dpsTransLRBHeader *   lrbDel
       ) ;
 
-      // release a LRB Header from a LRB Header list by bucket index
-      void _releaseFromLRBHeaderListByBktIdx
-      (
-         const UINT32           bktIdx,
-         const dpsTransLockId & lockId
-      ) ;
 
       // remove a LRB from the EDU LRB list
       void _removeFromEDULRBList

@@ -50,8 +50,7 @@ namespace engine
    template < class Key,
               class T,
               INT32 BUCKET_NUM = UTIL_CONCURRENT_MAP_DEFAULT_BUCKET_NUM,
-              class Hash = boost::hash<Key>,
-              class Latch = ossSpinSLatch >
+              class Hash = boost::hash<Key> >
    class utilConcurrentMap: public SDBObject
    {
    public:
@@ -60,7 +59,7 @@ namespace engine
       typedef typename map_type::iterator       map_iterator ;
       typedef typename map_type::const_iterator map_const_iterator ;
    private:
-      typedef utilConcurrentMap< Key, T, BUCKET_NUM, Hash, Latch > cmap_type ;
+      typedef utilConcurrentMap< Key, T, BUCKET_NUM, Hash > cmap_type ;
 
    private:
       // disallow copy and assign
@@ -93,9 +92,9 @@ namespace engine
       }
 
    public:
-      class Bucket
+      class Bucket: public ossSpinSLatch
       {
-         friend class utilConcurrentMap< Key, T, BUCKET_NUM, Hash, Latch > ;
+         friend class utilConcurrentMap< Key, T, BUCKET_NUM, Hash > ;
       private:
          // disallow copy and assign
          Bucket( const Bucket& ) ;
@@ -152,47 +151,6 @@ namespace engine
             UINT32 res = _map.erase( key ) ;
             _countRef.sub( res ) ;
             return res ;
-<<<<<<< HEAD
-=======
-         }
-
-         OSS_INLINE void erase( map_const_iterator iter )
-         {
-            UINT32 res = _map.size() ;
-            _map.erase( iter ) ;
-            res -= _map.size() ;
-            _countRef.sub( res ) ;
-         }
-
-         OSS_INLINE void erase( map_iterator iter )
-         {
-            UINT32 res = _map.size() ;
-            _map.erase( iter ) ;
-            res -= _map.size() ;
-            _countRef.sub( res ) ;
-         }
-
-         OSS_INLINE void erase( map_const_iterator begin,
-                                map_const_iterator end )
-         {
-            UINT32 res = _map.size() ;
-            _map.erase( begin, end ) ;
-            res -= _map.size() ;
-            _countRef.sub( res ) ;
-         }
-
-         OSS_INLINE void erase( map_iterator begin, map_iterator end )
-         {
-            UINT32 res = _map.size() ;
-            _map.erase( begin, end ) ;
-            res -= _map.size() ;
-            _countRef.sub( res ) ;
-         }
-
-         OSS_INLINE map_iterator find( const Key &key )
-         {
-            return _map.find( key ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          }
 
          OSS_INLINE map_const_iterator find( const Key& key ) const
@@ -205,39 +163,15 @@ namespace engine
             UINT32 res = _map.size() ;
             _map.clear() ;
             _countRef.sub( res ) ;
-<<<<<<< HEAD
-=======
-         }
-
-         OSS_INLINE const map_type &getMap() const
-         {
-            return _map ;
-         }
-
-         OSS_INLINE map_type &getMap()
-         {
-            return _map ;
-         }
-
-         OSS_INLINE Latch *getLatch()
-         {
-            return &_latch ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          }
 
       private:
          ossAtomic64 & _countRef ;
-<<<<<<< HEAD
-=======
-         Latch    _latch ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          map_type _map ;
       } ;
 
-      #define BUCKET_XLOCK( _bucket ) \
-                  ossScopedLock __lock( (_bucket).getLatch(), EXCLUSIVE )
-      #define BUCKET_SLOCK( _bucket ) \
-                  ossScopedLock __lock( (_bucket).getLatch(), SHARED )
+      #define BUCKET_XLOCK( _bucket ) ossScopedLock __lock( &(_bucket), EXCLUSIVE )
+      #define BUCKET_SLOCK( _bucket ) ossScopedLock __lock( &(_bucket), SHARED )
 
    private:
       OSS_INLINE INT32 _getBucketIndex( const Key& key ) const
@@ -255,27 +189,14 @@ namespace engine
       }
 
    public:
-      OSS_INLINE INT32 getIndex( const Key &key )
-      {
-         return _getBucketIndex( key ) ;
-      }
-
       OSS_INLINE Bucket& getBucket( const Key& key )
       {
          INT32 index = _getBucketIndex( key ) ;
          return _bucketAt( index ) ;
       }
 
-      OSS_INLINE Bucket &getBucketAt( INT32 index )
-      {
-<<<<<<< HEAD
-=======
-         return _bucketAt( index ) ;
-      }
-
       OSS_INLINE UINT32 size( BOOLEAN lock = TRUE )
       {
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          if ( lock )
          {
            return _count.fetch() ;
@@ -353,7 +274,7 @@ namespace engine
    public:
       class bucket_iterator: public SDBObject
       {
-         friend class utilConcurrentMap< Key, T, BUCKET_NUM, Hash, Latch > ;
+         friend class utilConcurrentMap< Key, T, BUCKET_NUM, Hash > ;
       public:
          bucket_iterator()
          {

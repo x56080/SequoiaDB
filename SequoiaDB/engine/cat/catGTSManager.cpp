@@ -97,11 +97,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-<<<<<<< HEAD
-=======
-      _globTransMgr.clearGlobLowTran() ;
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       if ( NULL != _catCB )
       {
          _catCB->unregEventHandler( this ) ;

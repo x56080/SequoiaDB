@@ -30,11 +30,8 @@ SDB_SNAP_DATABASE
 | ServiceName           | string    | svcname 所指定的服务名，与 HostName 共同作为一个逻辑节点的标识                                                 |
 | GroupName             | string    | 该逻辑节点所属的复制组名，standalone 模式下该字段为空字符串     |
 | IsPrimary             | boolean   | 是否为主节点，standalone 模式下该字段为 false                   |
-<<<<<<< HEAD
 | Location              | string    | 节点的位置信息，该字段为空时表示未设置位置属性                  |
 | IsLocationPrimary     | boolean   | 是否为位置集主节点                                              |
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 | ServiceStatus         | boolean   | 是否为可提供服务状态<br>一些特殊状态，例如[全量同步][replicate_url]时，服务状态为 false |
 | Status                | string    | 节点状态，取值如下：<br/>            "Normal"：正常工作状态 <br/>              "Shutdown"：正在关闭状态，表示节点正在被关闭<br/>             "Rebuilding"：重新构建状态，如节点异常重启后，无法与其他节点进行数据同步时，节点会进入该状态，重新构建数据 <br/>           "FullSync"：全量同步状态 <br/>              "OfflineBackup"：[数据备份][regular_bar]状态   |
 | FTStatus              | string | 容错状态，取值如下：<br> "NOSPC"：磁盘空间不足 <br>"DEADSYNC"：节点数据不同步 <br> "SLOWNODE"：节点数据同步过慢 <br> "TRANSERR"：节点事务异常 |
@@ -63,7 +60,6 @@ SDB_SNAP_DATABASE
 | CurrentContexts       | int32     | 当前上下文数量                                                  |
 | ReceivedEvents        | int32     | 当前分区接收到的事件请求总数                                    |
 | Role                  | string    | 当前节点角色                                                    |
-<<<<<<< HEAD
 | Disk.DatabasePath     | string    | 数据库所在路径                                                  |
 | Disk.LoadPercent      | int32     | 数据库路径磁盘占用率百分比                                      |
 | Disk.TotalSpace       | int64     | 数据库路径总空间，单位为字节                                    |
@@ -71,15 +67,6 @@ SDB_SNAP_DATABASE
 | TotalNumConnects      | int32     | 数据库连接请求数量                                              |
 | TotalQuery            | int64     | 总查询数量（广义查询，泛指在数据库上执行的所有操作）            |
 | TotalSlowQuery        | int64     | 总慢查询数量（广义查询，泛指在数据库上执行的所有操作）          |
-=======
-| Disk.DatabasePath     | string | 数据库所在路径                                                                  |
-| Disk.LoadPercent      | int32   | 数据库路径磁盘占用率百分比                                                      |
-| Disk.TotalSpace       | int64 | 数据库路径总空间，单位为字节                                                  |
-| Disk.FreeSpace        | int64 | 数据库路径空闲空间，单位为字节                                                |
-| TotalNumConnects      | int32     | 数据库连接请求数量                                              |
-| TotalQuery            | int64     | 总查询数量（广义查询，泛指在数据库上执行的所有操作）               |
-| TotalSlowQuery        | int64     | 总慢查询数量（广义查询，泛指在数据库上执行的所有操作）             |
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 | TotalTransCommit      | int64     | 总事务提交数量                                                  |
 | TotalTransRollback    | int64     | 总事务回滚数量                                                  |
 | TotalDataRead         | int64     | 总数据读请求                                                    |
@@ -94,7 +81,6 @@ SDB_SNAP_DATABASE
 | ReplInsert            | int64     | 复制插入记录数量                                                |
 | TotalSelect           | int64     | 总选择记录数量                                                  |
 | TotalRead             | int64     | 总读取记录数量                                                  |
-<<<<<<< HEAD
 | TotalLobGet           | int64     | 客户端获取大对象文件的总次数（仅在 v3.6.1 及以上版本生效）      |
 | TotalLobPut           | int64     | 客户端上传大对象文件的总次数（仅在 v3.6.1 及以上版本生效）      |
 | TotalLobDelete        | int64     | 客户端删除大对象文件的总次数（仅在 v3.6.1 及以上版本生效）      |
@@ -105,18 +91,6 @@ SDB_SNAP_DATABASE
 | TotalLobWrite         | int64     | 服务端中 LOB 分片的写次数（仅在 v3.6.1 及以上版本生效）         |
 | TotalLobTruncate      | int64     | 服务端中 LOB 分片的截断次数（仅在 v3.6.1 及以上版本生效）       |
 | TotalLobAddressing    | int64     | 服务端中 LOB 分片的寻址总次数（仅在 v3.6.1 及以上版本生效）     |
-=======
-| TotalLobGet           | int64     | 客户端获取大对象文件的总次数（仅在 v5.0.4 及以上版本生效） |
-| TotalLobPut           | int64     | 客户端上传大对象文件的总次数（仅在 v5.0.4 及以上版本生效） |
-| TotalLobDelete        | int64     | 客户端删除大对象文件的总次数（仅在 v5.0.4 及以上版本生效） |
-| TotalLobList          | int64     | 客户端列举大对象文件的总次数（仅在 v5.0.4 及以上版本生效） |
-| TotalLobReadSize      | int64     | 客户端读大对象文件的总字节数（仅在 v5.0.4 及以上版本生效） |
-| TotalLobWriteSize     | int64     | 客户端写大对象文件的总字节数（仅在 v5.0.4 及以上版本生效） |
-| TotalLobRead     | int64     | 服务端中 LOB 分片的读次数（仅在 v5.0.4 及以上版本生效） |
-| TotalLobWrite     | int64     | 服务端中 LOB 分片的写次数（仅在 v5.0.4 及以上版本生效） |
-| TotalLobTruncate    | int64     | 服务端中 LOB 分片的截断次数（仅在 v5.0.4 及以上版本生效） |
-| TotalLobAddressing     | int64     | 服务端中 LOB 分片的寻址总次数（仅在 v5.0.4 及以上版本生效） |
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 | TotalReadTime         | int64     | 总读取时间，单位为毫秒                                          |
 | TotalWriteTime        | int64     | 总写入时间，单位为毫秒                                          |
 | ActivateTimestamp     | timestamp | 数据库启动时间                                                  |
@@ -126,10 +100,7 @@ SDB_SNAP_DATABASE
 | freeLogSpace          | int64     | 空闲日志空间，单位为字节                                        |
 | vsize                 | int64     | 虚拟内存使用量，单位为字节                                      |
 | rss                   | int64     | 物理内存使用量，单位为字节                                      |
-<<<<<<< HEAD
 | MemShared             | int64     | 物理内存中共享内存使用量，单位为字节                            |
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 | fault                 | int64     | 每秒访问失败数（仅支持 Linux），数据被交换出物理内存，放到 swap |
 | TotalMapped           | int64     | mmap 的总数据量，单位为字节                                     |
 | svcNetIn              | int64     | 本地服务端口收到的网络流量，单位为字节                          |
@@ -144,14 +115,10 @@ SDB_SNAP_DATABASE
 | Wait                  | int32     | 当前处于等待队列的任务数量（包含未分发的任务）                  |
 | SchdlrMgrEvtNum       | int32     | 当前未分发的任务数量                                            |
 | SchdlrTimes           | int64     | 统计时间范围内总的任务执行次数                                  |
-<<<<<<< HEAD
 | MemPoolSize           | int64     | Pool Memory 的大小，单位为字节                                  |
 | MemPoolUsed           | int64     | Pool Memory 中被使用的大小，单位为字节                          |
 | MemPoolFree           | int64     | Pool Memory 中空闲的大小，单位为字节                            |
 | MemPoolMaxOOLSize     | int64     | 运行过程中超出 Pool Memory 的最大大小，单位为字节，表示 Pool Memory 需要调大 |
-=======
-| MemPoolSize           | int64     | Pool Memory 的大小，单位为字节                                                |
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 
 ## 协调节点字段信息
@@ -175,7 +142,6 @@ SDB_SNAP_DATABASE
 | ReplInsert        | int64     | 复制插入记录数量                              |
 | TotalSelect       | int64     | 总选择记录数量                                |
 | TotalRead         | int64     | 总读取记录数量                                |
-<<<<<<< HEAD
 | TotalLobGet           | int64     | 客户端获取大对象文件的总次数（仅在 v3.6.1 及以上版本生效） |
 | TotalLobPut           | int64     | 客户端上传大对象文件的总次数（仅在 v3.6.1 及以上版本生效） |
 | TotalLobDelete        | int64     | 客户端删除大对象文件的总次数（仅在 v3.6.1 及以上版本生效） |
@@ -186,27 +152,12 @@ SDB_SNAP_DATABASE
 | TotalLobWrite     | int64     | 服务端中 LOB 分片的写次数（仅在 v3.6.1 及以上版本生效） |
 | TotalLobTruncate    | int64     | 服务端中 LOB 分片的截断次数（仅在 v3.6.1 及以上版本生效） |
 | TotalLobAddressing     | int64     | 服务端中 LOB 分片的寻址总次数（仅在 v3.6.1 及以上版本生效） |
-=======
-| TotalLobGet           | int64     | 客户端获取大对象文件的总次数（仅在 v5.0.4 及以上版本生效） |
-| TotalLobPut           | int64     | 客户端上传大对象文件的总次数（仅在 v5.0.4 及以上版本生效） |
-| TotalLobDelete        | int64     | 客户端删除大对象文件的总次数（仅在 v5.0.4 及以上版本生效） |
-| TotalLobList          | int64     | 客户端列举大对象文件的总次数（仅在 v5.0.4 及以上版本生效） |
-| TotalLobReadSize      | int64     | 客户端读大对象文件的总字节数（仅在 v5.0.4 及以上版本生效） |
-| TotalLobWriteSize     | int64     | 客户端写大对象文件的总字节数（仅在 v5.0.4 及以上版本生效） |
-| TotalLobRead     | int64     | 服务端中 LOB 分片的读次数（仅在 v5.0.4 及以上版本生效） |
-| TotalLobWrite     | int64     | 服务端中 LOB 分片的写次数（仅在 v5.0.4 及以上版本生效） |
-| TotalLobTruncate    | int64     | 服务端中 LOB 分片的截断次数（仅在 v5.0.4 及以上版本生效） |
-| TotalLobAddressing     | int64     | 服务端中 LOB 分片的寻址总次数（仅在 v5.0.4 及以上版本生效） |
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 | TotalReadTime     | int64     | 总读取时间，单位为毫秒                        |
 | TotalWriteTime    | int64     | 总写入时间，单位为毫秒                        |
 | freeLogSpace      | int64     | 空闲日志空间，单位为字节                      |
 | vsize             | int64     | 虚拟内存使用量，单位为字节                    |
 | rss               | int64     | 物理内存使用量，单位为字节                    |
-<<<<<<< HEAD
 | MemShared         | int64     | 物理内存中共享内存使用量，单位为字节                            |
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 | fault             | int64     | 每秒访问失败数（仅支持 Linux），数据被交换出物理内存，放到 swap |
 | TotalMapped       | int64     | mmap 的总数据量，单位为字节                   |
 | svcNetIn          | int64     | 本地服务端口收到的网络流量，单位为字节        |
@@ -215,13 +166,10 @@ SDB_SNAP_DATABASE
 | shardNetOut       | int64     | shard 平面端口发送的网络流量，单位为字节      |
 | replNetIn         | int64     | 数据同步平面端口收到的网络流量，单位为字节    |
 | replNetOut        | int64     | 数据同步平面端口发送的网络流量，单位为字节    |
-<<<<<<< HEAD
 | MemPoolSize       | int64     | Pool Memory 的大小，单位为字节                                  |
 | MemPoolUsed       | int64     | Pool Memory 中被使用的大小，单位为字节                          |
 | MemPoolFree       | int64     | Pool Memory 中空闲的大小，单位为字节                            |
 | MemPoolMaxOOLSize | int64     | 运行过程中超出 Pool Memory 的最大大小，单位为字节，表示 Pool Memory 需要调大 |
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 | ErrNodes          | bson array| 异常节点的信息         |
 | ErrNodes.NodeName | string    | 异常节点名，格式为<主机名>:<服务名>                     |
 | ErrNodes.GroupName| string    | 异常节点所属复制组名                                    |
@@ -248,11 +196,8 @@ SDB_SNAP_DATABASE
      "ServiceName": "11820",
      "GroupName": "group1",
      "IsPrimary": true,
-<<<<<<< HEAD
      "Location": "GuangZhou",
      "IsLocationPrimary": true,
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
      "ServiceStatus": true,
      "Status": "Normal",
      "FTStatus": "",
@@ -336,10 +281,7 @@ SDB_SNAP_DATABASE
      "freeLogSpace": 1342177280,
      "vsize": 3302031360,
      "rss": 56151,
-<<<<<<< HEAD
 	 "MemShared": 16121,
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
      "fault": 0,
      "TotalMapped": 667385856,
      "svcNetIn": 468,
@@ -354,14 +296,10 @@ SDB_SNAP_DATABASE
      "Wait": 0,
      "SchdlrMgrEvtNum": 0,
      "SchdlrTimes": 0,
-<<<<<<< HEAD
      "MemPoolSize": 108975104,
      "MemPoolUsed": 68871074,
      "MemPoolFree": 40104030,
      "MemPoolMaxOOLSize": 0,
-=======
-     "MemPoolSize": 108975104
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    }
    ```
 
@@ -406,10 +344,7 @@ SDB_SNAP_DATABASE
      "freeLogSpace": 5368709120,
      "vsize": 13657559040,
      "rss": 257087,
-<<<<<<< HEAD
 	 "MemShared": 116124,
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
      "fault": 9,
      "TotalMapped": 1377402880,
      "svcNetIn": 1536,
@@ -418,13 +353,10 @@ SDB_SNAP_DATABASE
      "shardNetOut": 22375,
      "replNetIn": 0,
      "replNetOut": 0,
-<<<<<<< HEAD
      "MemPoolSize": 108975104,
      "MemPoolUsed": 68871074,
      "MemPoolFree": 40104030,
      "MemPoolMaxOOLSize": 0,
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
      "ErrNodes": []
    }
    ```

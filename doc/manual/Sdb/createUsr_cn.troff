@@ -8,19 +8,11 @@
 createUsr \- 创建数据库用户
 .SH 语法
 .PP
-<<<<<<< HEAD
 \f[B]db.createUsr( <name>, <password>, [options] )\f[]
 .PP
 \f[B]db.createUsr( <User>, [options] )\f[]
 .PP
 \f[B]db.createUsr( <CipherUser>, [options] )\f[]
-=======
-\f[B]db.createUsr(<name>, <password>, [options])\f[]
-.PP
-\f[B]db.createUsr(<User>, [options])\f[]
-.PP
-\f[B]db.createUsr(<CipherUser>, [options])\f[]
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 .SH 类别
 .PP
 Sdb
@@ -100,11 +92,7 @@ T}@T{
 否
 T}
 .TE
-<<<<<<< HEAD
 .SS options取值
-=======
-.SS options 取值
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 .PP
 .TS
 tab(@);
@@ -243,107 +231,66 @@ Role
 T}@T{
 String
 T}@T{
-<<<<<<< HEAD
 旧版本的用户角
-=======
-用户角色，当前
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-<<<<<<< HEAD
 色，只支持系统
-=======
-只支持系统内置
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-<<<<<<< HEAD
 内置角色，取值
-=======
-角色，默认值为 "
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-<<<<<<< HEAD
 列表："admin"、"
-=======
-admin"，取值列表
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-<<<<<<< HEAD
 monitor"。"admin" 为
-=======
-："admin"、"monitor"。
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-<<<<<<< HEAD
 管理员角色，可
-=======
-"admin" 为管理员角
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-<<<<<<< HEAD
 执行任何操作；"
-=======
-色，可执行任何
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-<<<<<<< HEAD
 monitor" 为监控角
-=======
-操作；"monitor" 为
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-<<<<<<< HEAD
 色，只能执行
-=======
-监控角色，只能
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-<<<<<<< HEAD
 snapshot 和 list 操
-=======
-执行 snapshot 和
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-<<<<<<< HEAD
 作
 T}
 T{
@@ -378,9 +325,6 @@ T}@T{
 T}@T{
 T}@T{
 Access Control
-=======
-list 操作
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}
 .TE
 .RS
@@ -392,11 +336,6 @@ T}
 当数据库创建了用户，连接数据库必须指定用户名和密码。
 .IP \[bu] 2
 数据库用户名和密码的限制请参考数据库限制。
-<<<<<<< HEAD
-=======
-.IP \[bu] 2
-数据库中创建的第一个用户必须是"admin"角色。
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 .RE
 .SH 返回值
 .PP
@@ -417,11 +356,7 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
-<<<<<<< HEAD
 > db.createUsr( "sdbadmin", "sdbadmin", { AuditMask: "DDL|DML|!DQL" } )
-=======
-> db.createUsr("sdbadmin", "sdbadmin", {AuditMask: "DDL|DML|!DQL"})
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 \f[]
 .fi
 .RE
@@ -431,13 +366,8 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
-<<<<<<< HEAD
 > var a = User( "sdbadmin", "sdbadmin" )
 > db.createUsr( a )
-=======
-> var a = User("sdbadmin", "sdbadmin")
-> db.createUsr(a)
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 \f[]
 .fi
 .RE
@@ -449,13 +379,8 @@ v2.0 及以上版本
 .IP
 .nf
 \f[C]
-<<<<<<< HEAD
 > var a = CipherUser( "sdbadmin" )
 > db.createUsr( a )
-=======
-> var a = CipherUser("sdbadmin")
-> db.createUsr(a)
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 \f[]
 .fi
 .RE

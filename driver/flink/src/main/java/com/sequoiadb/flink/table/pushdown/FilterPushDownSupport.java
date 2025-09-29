@@ -106,11 +106,7 @@ public class FilterPushDownSupport {
 
 
     /**
-<<<<<<< HEAD
      * Loop through a list of expressions to get BSON result
-=======
-     * Loop through a list of expressions to get BSON　result
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
      *
      * @param resolvedExpressionList list of expression
      * @return BSONObject expression
@@ -168,13 +164,8 @@ public class FilterPushDownSupport {
      * a > 1 positive
      * 1 > a reverse
      *
-<<<<<<< HEAD
      * @param callExpr    expression
      * @param func        positive   column operator value
-=======
-     * @param callExpr expression
-     * @param func positive   column operator value
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
      * @param reverseFunc reverse value operator column
      * @return BSON result
      */

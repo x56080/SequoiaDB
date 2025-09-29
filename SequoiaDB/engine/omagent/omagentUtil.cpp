@@ -40,13 +40,6 @@
 #include "ossSocket.hpp"
 #include "utilCommon.hpp"
 #include "ossCmdRunner.hpp"
-#include "utilOptions.hpp"
-#include "utilParam.hpp"
-
-#include "../bson/bson.hpp"
-
-using namespace std ;
-using namespace bson ;
 
 namespace engine
 {
@@ -413,7 +406,7 @@ namespace engine
    }
 
    INT32 omStopDBNode( const CHAR *pExecName, const CHAR *pServiceName,
-                       BOOLEAN force, BOOLEAN withService )
+                       BOOLEAN force )
    {
       INT32 rc                = SDB_OK ;
       CHAR *pArgumentBuffer   = NULL ;
@@ -424,7 +417,7 @@ namespace engine
       OSSPID pid ;
 
       argv.push_back( pExecName ) ;
-      if ( withService && pServiceName && pServiceName[0] )
+      if ( pServiceName && pServiceName[0] )
       {
          argv.push_back( SDBCM_OPTION_PREFIX PMD_OPTION_SVCNAME ) ;
          argv.push_back( pServiceName ) ;
@@ -560,87 +553,5 @@ namespace engine
       return utilStrTrim( nodeStr ) ; ;
    }
 
-   INT32 omGetStpFromConfig( const CHAR *cfgRootDir, string &svcName )
-   {
-      INT32 rc = SDB_OK ;
-
-      CHAR cfgPath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
-      CHAR cfgFileName[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
-      po::options_description desc( "Command options" ) ;
-      po::variables_map vm ;
-
-      // append "stp" to "conf" path
-      rc = utilBuildFullPath( cfgRootDir, STP_DIR_NAME, OSS_MAX_PATHSIZE,
-                              cfgPath ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to build STP path from root "
-                   "path %s, rc: %d", cfgRootDir, rc ) ;
-
-      rc = utilBuildFullPath( cfgPath, STP_CFG_FILE_NAME,
-                              OSS_MAX_PATHSIZE, cfgFileName ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to build STP config path from STP "
-                   "path %s, rc: %d", cfgPath, rc ) ;
-
-      // read port from config file
-      PMD_ADD_PARAM_OPTIONS_BEGIN( desc )
-         ( STP_OPTION_PORT, po::value<string>(), "port" )
-      PMD_ADD_PARAM_OPTIONS_END
-
-      rc = utilReadConfigureFile( cfgFileName, desc, vm ) ;
-      PD_RC_CHECK( rc, ( SDB_FNE == rc ? PDINFO : PDWARNING ),
-                   "Failed to read STP config file [%s], "
-                   "rc: %d", cfgFileName, rc ) ;
-
-      if ( vm.count( STP_OPTION_PORT ) )
-      {
-         svcName = vm[ STP_OPTION_PORT ].as<string>() ;
-      }
-      else
-      {
-         svcName = STP_DEF_SERVICE_NAME ;
-      }
-
-   done:
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
-   INT32 omGetOptionString( stringstream &ss, const BSONElement &element )
-   {
-      INT32 rc = SDB_OK ;
-
-      ss << element.fieldName() << "=" ;
-      switch( element.type() )
-      {
-         case NumberDouble :
-            ss << element.numberDouble () ;
-            break ;
-         case NumberInt :
-            ss << element.numberLong () ;
-            break ;
-         case NumberLong :
-            ss << element.numberInt () ;
-            break ;
-         case String :
-            ss << element.valuestrsafe () ;
-            break ;
-         case Bool :
-            ss << ( element.boolean() ? "TRUE" : "FALSE" ) ;
-            break ;
-         default :
-            PD_LOG ( PDERROR, "Unexpected type[%d] for %s",
-                     element.type(), element.toString().c_str() ) ;
-            rc = SDB_INVALIDARG ;
-            goto error ;
-      }
-      ss << endl ;
-
-   done:
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
 }
+

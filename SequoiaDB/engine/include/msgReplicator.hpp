@@ -550,12 +550,8 @@ const UINT32 MSG_SERVICE_MAX = 64 ;
    {
       public:
          _MsgHeader header ;
-         // global serial number of transaction ID of V1
          UINT64     transID ;
-         // node ID of transaction ID
-         UINT16     transIDNodeID ;
-         // reserved space ( NOTE: align to 4 bytes )
-         UINT32     reserved[ 7 ] ;
+         UINT32     reserved[8] ;
 
          _MsgClsTransCheckReq()
          {
@@ -565,7 +561,6 @@ const UINT32 MSG_SERVICE_MAX = 64 ;
             header.TID = 0 ;
             header.requestID = 0 ;
             transID = 0 ;
-            transIDNodeID = 0 ;
             ossMemset( reserved, 0, sizeof( reserved ) ) ;
          }
    } ;
@@ -575,63 +570,6 @@ const UINT32 MSG_SERVICE_MAX = 64 ;
       MsgOpReply + BSON( { TransID:xxx, Status:xxx } )
    */
    typedef MsgOpReply MsgClsTransCheckRes ;
-
-   /*
-      _MsgClsGTSArbitReq define
-    */
-   class _MsgClsGTSArbitReq : public SDBObject
-   {
-   public:
-      MsgHeader header ;
-      // transaction ID of read transaction
-      UINT16    readTransNodeID ;
-      UINT64    readTransID ;
-      // transaction ID of write transaction
-      UINT64    writeTransID ;
-      UINT16    writeTransNodeID ;
-      // status of write transaction
-      UINT16    writeTransStatus ;
-
-      _MsgClsGTSArbitReq()
-      {
-         header.messageLength = sizeof( _MsgClsGTSArbitReq ) ;
-         header.opCode = MSG_CLS_GTS_ARBIT_REQ ;
-         header.routeID.value = MSG_INVALID_ROUTEID ;
-         header.TID = 0 ;
-         header.requestID = 0 ;
-         readTransNodeID = 0 ;
-         readTransID = 0LL ;
-         writeTransNodeID = 0 ;
-         writeTransID = 0LL ;
-         writeTransStatus = 0 ;
-      }
-   } ;
-
-   typedef class _MsgClsGTSArbitReq MsgClsGTSArbitReq ;
-
-   /*
-      _MsgClsGTSArbitRsp define
-    */
-   class _MsgClsGTSArbitRsp : public SDBObject
-   {
-   public:
-      MsgInternalReplyHeader  header ;
-      // indicate visibility of write transaction
-      UINT8                   visible ;
-
-      _MsgClsGTSArbitRsp()
-      {
-         header.header.messageLength = sizeof( _MsgClsGTSArbitRsp ) ;
-         header.header.opCode = MSG_CLS_GTS_ARBIT_RSP ;
-         header.header.routeID.value = MSG_INVALID_ROUTEID ;
-         header.header.TID = 0 ;
-         header.header.requestID = 0 ;
-         header.res = SDB_OK ;
-         visible = FALSE ;
-      }
-   } ;
-
-   typedef class _MsgClsGTSArbitRsp MsgClsGTSArbitRsp ;
 
 }
 

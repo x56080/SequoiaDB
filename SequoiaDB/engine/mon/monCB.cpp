@@ -177,10 +177,6 @@ namespace engine
       totalLobWrite             = rhs.totalLobWrite ;
       totalLobTruncate          = rhs.totalLobTruncate ;
       totalLobAddressing        = rhs.totalLobAddressing ;
-<<<<<<< HEAD
-=======
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       receiveNum                = rhs.receiveNum ;
 
       replUpdate                = rhs.replUpdate ;
@@ -606,7 +602,6 @@ namespace engine
       return ;
    }
 
-<<<<<<< HEAD
    void _monAppCB::replaceLastOpDetail( const CHAR *detail )
    {
       ossStrncpy( _lastOpDetail, detail, sizeof( _lastOpDetail ) - 1 ) ;
@@ -614,8 +609,6 @@ namespace engine
       _lastOpMsgSaved = FALSE ;
    }
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    void _monAppCB::clearLastOpDetail()
    {
       _lastOpMsgSaved = FALSE ;
@@ -639,11 +632,7 @@ namespace engine
             case MSG_BS_QUERY_REQ :
             {
                saveLastOpDetail( "Collection:%s, Matcher:%s, Selector:%s, "
-<<<<<<< HEAD
                                  "OrderBy:%s, Hint:%s, Skip:%lld, Limit:%lld, "
-=======
-                                 "OrderBy:%s, Hint:%s, Skip:%llu, Limit:%lld, "
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                                  "Flag:0x%08x(%u)",
                                  options.getCLFullName(),
                                  options.getQuery().toPoolString().c_str(),
@@ -874,15 +863,12 @@ namespace engine
          case MON_INDEX_READ :
             monIndexReadInc( delta ) ;
             break ;
-<<<<<<< HEAD
          case MON_DATA_WRITE :
             monDataWriteInc( delta ) ;
             break ;
          case MON_INDEX_WRITE :
             monIndexWriteInc( delta ) ;
             break ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          case MON_LOB_READ :
             monLobReadInc( delta ) ;
             break ;

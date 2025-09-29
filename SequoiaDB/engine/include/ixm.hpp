@@ -48,10 +48,7 @@
 #include "msgDef.h"
 #include "../bson/ordering.h"
 #include "sdbInterface.hpp"
-<<<<<<< HEAD
 #include "utilResult.hpp"
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 using namespace std ;
 using namespace bson ;
@@ -219,21 +216,10 @@ namespace engine
       #define SET_NAME_EXT_DATA_INITED()     ( _fieldInitedFlag |= 0x00002000 )
       #define ID_INDEX_IS_INITED()           ( _fieldInitedFlag &  0x00004000 )
       #define SET_ID_INDEX_INITED()          ( _fieldInitedFlag |= 0x00004000 )
-<<<<<<< HEAD
       #define GLOB_INDEX_IS_INITED()         ( _fieldInitedFlag &  0x00008000 )
       #define SET_GLOB_INDEX_INITED()        ( _fieldInitedFlag |= 0x00008000 )
       #define UNIQUEID_IS_INITED()           ( _fieldInitedFlag &  0x00010000 )
       #define SET_UNIQUEID_INITED()          ( _fieldInitedFlag |= 0x00010000 )
-=======
-      #define CREATE_TIME_IS_INITED()        ( _fieldInitedFlag &  0x00008000 )
-      #define SET_CREATE_TIME_INITED()       ( _fieldInitedFlag |= 0x00008000 )
-      #define REBUILD_TIME_IS_INITED()       ( _fieldInitedFlag &  0x00010000 )
-      #define SET_REBUILD_TIME_INITED()      ( _fieldInitedFlag |= 0x00010000 )
-      #define GLOB_INDEX_IS_INITED()         ( _fieldInitedFlag &  0x00020000 )
-      #define SET_GLOB_INDEX_INITED()        ( _fieldInitedFlag |= 0x00020000 )
-      #define UNIQUEID_IS_INITED()           ( _fieldInitedFlag &  0x00040000 )
-      #define SET_UNIQUEID_INITED()          ( _fieldInitedFlag |= 0x00040000 )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    private:
 #pragma pack(1)
@@ -290,11 +276,6 @@ namespace engine
       mutable BOOLEAN _isIDIndex ;
       mutable OID _oid ;
       mutable const CHAR* _nameExtData ;
-<<<<<<< HEAD
-=======
-      mutable UINT64 _createTime ;
-      mutable UINT64 _rebuildTime ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       mutable UINT32 _fieldInitedFlag ;
 
       // Whether the given extent is a valid control block
@@ -440,7 +421,6 @@ namespace engine
       INT32 getKeysFromObject ( const BSONObj &obj,
                                 BSONObjSet &keys,
                                 BOOLEAN *pAllUndefined = NULL,
-<<<<<<< HEAD
                                 BOOLEAN checkValid = FALSE,
                                 utilWriteResult *pResult = NULL ) const ;
 
@@ -448,12 +428,6 @@ namespace engine
                        const BSONObjSet &keys,
                        const BSONElement &arrEle,
                        utilWriteResult *pResult = NULL ) const ;
-=======
-                                BOOLEAN checkValid = FALSE ) const ;
-
-      INT32 checkKeys( const BSONObjSet &keys,
-                       const BSONElement &arrEle ) const ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       /* get the key pattern for this object.
          e.g., { lastname:1, firstname:1 }
@@ -920,7 +894,6 @@ namespace engine
 
             fieldCount++ ;
          }
-<<<<<<< HEAD
          if ( obj.hasField( IXM_STANDALONE_FIELD ) )
          {
             fieldCount++ ;
@@ -931,17 +904,6 @@ namespace engine
             fieldCount++ ;
          }
          if ( obj.hasField( IXM_REBUILDTIME_FIELD ) )
-=======
-         if ( obj.hasField( IXM_FIELD_NAME_CREATETIME ) )
-         {
-            fieldCount ++ ;
-         }
-         if ( obj.hasField( IXM_FIELD_NAME_REBUILDTIME ) )
-         {
-            fieldCount ++ ;
-         }
-         if ( obj.hasField( IXM_STANDALONE_FIELD ) )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          {
             fieldCount++ ;
          }
@@ -1241,8 +1203,6 @@ namespace engine
 
       // Extend the index definition. Only append new element.
       INT32 extendDef( const BSONElement &ele ) ;
-      // update definition
-      INT32 updateDef( const BSONElement &ele ) ;
 
       // INT32 appendDef() ;
       const CHAR *getExtDataName() const
@@ -1265,7 +1225,6 @@ namespace engine
          return _nameExtData ;
       }
 
-<<<<<<< HEAD
    protected:
       INT32 _initGlobIndexInfo() const ;
 
@@ -1275,29 +1234,6 @@ namespace engine
                              const BSONObjSet &keys,
                              const BSONElement &arrEle,
                              utilWriteResult *pResult ) const ;
-=======
-   public:
-      // functions to handle create and rebuild times
-
-      // NOTE:
-      // - create time of index is global logical time when the index
-      //   starts to create ( add meta into collection )
-      // - rebuild time of index is global logical time when the index
-      //   finishes to rebuild ( scan all data to build the index )
-      // - rebuild time is used to check against global transactions,
-      //   if global transaction started before rebuild time of index, some
-      //   keys of old version might be missing for this transaction, so this
-      //   transaction should not use this index
-
-      // get create time from index CB
-      UINT64 getCreateTime() const ;
-      // get rebuild time from index CB
-      UINT64 getRebuildTime() const ;
-      // update rebuild time in index CB
-      INT32 updateRebuildTime( UINT64 rebuildTime ) ;
-   protected:
-      INT32 _initGlobIndexInfo() const ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    } ;
    typedef class _ixmIndexCB ixmIndexCB ;
 

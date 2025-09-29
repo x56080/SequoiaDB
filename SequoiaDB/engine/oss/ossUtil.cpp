@@ -1440,10 +1440,7 @@ INT32 ossGetDiskInfo ( const CHAR *pPath, INT64 &totalBytes, INT64 &freeBytes,
    totalBytes = vfs.f_frsize * vfs.f_blocks ;
    freeBytes = vfs.f_bsize * vfs.f_bfree ;
    availBytes = vfs.f_bsize * vfs.f_bavail ;
-<<<<<<< HEAD
    
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    /// 2. get disk name ( device name )
    if ( NULL == fsName )
@@ -2538,132 +2535,6 @@ INT32 ossException2RC( std::exception *pe )
    return SDB_SYS ;
 }
 
-<<<<<<< HEAD
-=======
-INT32 ossGetLowestBit1From8Bits(UINT8 n)
-{
-   INT32 r = 0;
-   if (0 == n)
-   {
-      return -1;
-   }
-   do
-   {
-      if (0 != (n & 0x01))
-      {
-         break;
-      }
-      n >>= 1;
-      ++r;
-   } while (r < 8);
-   return r; 
-} 
-
-INT32 ossGetLowestBit1From32Bits(UINT32 n)
-{
-   INT32 r = 0;
-   if (0 == n)
-   {
-      return -1;
-   }
-   if (0 == (n & 0xffff))
-   {
-      n >>= 16;
-      r += 16;
-   }
-   if (0 == (n & 0xff))
-   {
-      n >>= 8;
-      r += 8;
-   }
-   if (0 == (n & 0x0f))
-   {
-      n >>= 4;
-      r += 4;
-   }
-   if (0 == (n & 0x03))
-   {
-      n >>= 2;
-      r += 2;
-   }
-   if (0 == (n & 0x01))
-   {
-      r += 1;
-   }
-   return r;
-}
-
-INT32 ossGetLowestBit1From64Bits(UINT64 n)
-{
-   INT32 r = 0;
-   if (0 == n)
-   {
-      return -1;
-   }
-   if (0 == (n & 0xffffffffull))
-   {
-      n >>= 32;
-      r += 32;
-   }
-   if (0 == (n & 0xffffull))
-   {
-      n >>= 16;
-      r += 16;
-   }
-   if (0 == (n & 0xffull))
-   {
-      n >>= 8;
-      r += 8;
-   }
-   if (0 == (n & 0x0full))
-   {
-      n >>= 4;
-      r += 4;
-   }
-   if (0 == (n & 0x03ull))
-   {
-      n >>= 2;
-      r += 2;
-   }
-   if (0 == (n & 0x01ull))
-   {
-      r += 1;
-   }
-   return r;
-}
-
-UINT32 ossGetNonZeroBitCount64(UINT64 bits)
-{
-   UINT32 cnt = 0;
-   while (0 < bits)
-   {
-      ++cnt;
-      bits &= (bits - 1);
-   }
-   return cnt;
-}
-
-UINT32 ossGetNonZeroBitCount32(UINT32 bits)
-{
-   UINT32 cnt = 0;
-   while (0 < bits)
-   {
-      ++cnt;
-      bits &= (bits - 1);
-   }
-   return cnt;
-}
-
-void ossMemcpyFlipBits(void* dst, const void* src, size_t len)
-{
-   const CHAR *input = static_cast<const CHAR *>(src);
-   char *output = static_cast<CHAR *>(dst);
-   for (UINT32 i = 0; i < len; ++i)
-   {
-      *output++ = ~(*input++);
-   }
-}
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 OSS_INLINE BOOLEAN ossIsNaN( FLOAT64 d )
 {
    return d != d ;

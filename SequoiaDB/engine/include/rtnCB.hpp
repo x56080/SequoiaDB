@@ -46,7 +46,6 @@
 #include "pd.hpp"
 #include "monEDU.hpp"
 #include "pmdEDU.hpp"
-#include "rtnObjectStatCache.hpp"
 #include "sdbInterface.hpp"
 #include "utilConcurrentMap.hpp"
 #include "optAPM.hpp"
@@ -57,10 +56,7 @@
 #include "rtnIxmKeySorter.hpp"
 #include "rtnScannerChecker.hpp"
 #include "dmsTaskStatus.hpp"
-<<<<<<< HEAD
 #include "rtnUserCache.hpp"
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 #define RTN_INIT_TEXT_INDEX_VERSION    -1
 
@@ -87,11 +83,6 @@ namespace engine
 
       dmsTaskStatusMgr  _taskStatusMgr ;
 
-<<<<<<< HEAD
-=======
-      rtnObjectStatCache _statCache;
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       // The following members are used for communication with search engine
       // adapter when do text searching. Search engine adapter use the shard
       // plane to get data from data node, and data node use this new plane to
@@ -109,11 +100,8 @@ namespace engine
       rtnIxmKeySorterCreator    _sorterCreator ;
       rtnScannerCheckerCreator  _checkerCreator ;
 
-<<<<<<< HEAD
       rtnUserCache _userCache;
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    public:
       virtual void contextDelete( INT64 contextID, IExecutor *pExe ) ;
       virtual void* queryInterface( SDB_INTERFACE_TYPE type ) ;
@@ -209,10 +197,7 @@ namespace engine
             monContextFull item( contextID, *monCB ) ;
             item._typeDesp = (*it).second->name() ;
             item._info = (*it).second.get()->toString() ;
-<<<<<<< HEAD
             item._queryID = (*it).second->getGlobalID().getQueryID() ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
             contextList[ eduID ].insert( item ) ;
          }
@@ -282,15 +267,9 @@ namespace engine
          return &_taskStatusMgr ;
       }
 
-<<<<<<< HEAD
       OSS_INLINE rtnUserCache* getUserCacheMgr()
       {
          return &_userCache;
-=======
-      OSS_INLINE rtnObjectStatCache* getObjectStatCache()
-      {
-         return &_statCache ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       }
 
       INT32   addUnloadCS( const CHAR* csName ) ;
@@ -298,12 +277,8 @@ namespace engine
       BOOLEAN hasUnloadCS( const CHAR* csName ) ;
 
    private:
-<<<<<<< HEAD
       void  _notifyKillContexts( const _RTN_EDU_CTX_MAP &contexts ) ;
       void  _setGlobalID( _pmdEDUCB *cb, rtnContextPtr &pContext ) ;
-=======
-      void _notifyKillContexts( const _RTN_EDU_CTX_MAP &contexts ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    } ;
    typedef class _SDB_RTNCB SDB_RTNCB ;
 

@@ -740,11 +740,7 @@ namespace engine
       BOOLEAN againTry = FALSE ;
       UINT32 timeout = 0 ;
       monSvcTaskInfo *pOldInfo = NULL ;
-<<<<<<< HEAD
       pdLogShield logShield ;
-=======
-      pdLogRCShield logShield ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       while ( timeout < OSS_ONE_SEC )
       {
@@ -977,8 +973,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCTXBASE_GETMORE, "_rtnContextBase::getMore" )
    INT32 _rtnContextBase::getMore( INT32 maxNumToReturn,
                                    rtnContextBuf &buffObj,
-                                   pmdEDUCB *cb,
-                                   const BSONObj &hint )
+                                   pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
       BOOLEAN locked = FALSE ;
@@ -1037,19 +1032,9 @@ namespace engine
          UINT64 startDataWrite = cb->getMonAppCB()->totalDataWrite ;
          UINT64 startIndexWrite = cb->getMonAppCB()->totalIndexWrite ;
 
-<<<<<<< HEAD
          pdLogShield logShield ;
          logShield.addRC( SDB_IXM_ADVANCE_EOC ) ;
 
-=======
-         pdLogRCShield logShield ;
-         logShield.addRC( SDB_IXM_ADVANCE_EOC ) ;
-
-         rc = _processGetMoreHint( hint ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to process hint in getMore msg, "
-                      "rc: %d", rc ) ;
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          while ( TRUE )
          {
             if ( _canPrepareMoreData() )

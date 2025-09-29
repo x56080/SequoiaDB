@@ -45,7 +45,6 @@ using namespace bson ;
 
 namespace engine
 {
-   class _optAccessPlanRuntime ;
 
    /*
       _rtnMemIXTreeScanner define
@@ -56,11 +55,9 @@ namespace engine
    */
    class _rtnMemIXTreeScanner : public _rtnIXScanner
    {
-      friend class _rtnMergeIXScanner ;
-
    public:
       _rtnMemIXTreeScanner( ixmIndexCB *pIndexCB,
-                            _optAccessPlanRuntime * planRuntime,
+                            rtnPredicateList *predList,
                             _dmsStorageUnit  *su,
                             _dmsMBContext    *mbContext,
                             _pmdEDUCB        *cb,
@@ -81,28 +78,16 @@ namespace engine
                                  const dmsRecordID &rid ) ;
 
       virtual BOOLEAN         isAvailable() const ;
-<<<<<<< HEAD
       virtual rtnScannerType  getType() const ;
       virtual rtnScannerType  getCurScanType() const ;
       virtual void            disableByType( rtnScannerType type ) ;
       virtual BOOLEAN         isTypeEnabled( rtnScannerType type ) const ;
       virtual INT32           getIdxLockModeByType( rtnScannerType type ) const ;
-=======
-      virtual IXScannerType   getType() const ;
-      virtual IXScannerType   getCurScanType() const ;
-      virtual void            disableByType( IXScannerType type ) ;
-      virtual INT32           getLockModeByType( IXScannerType type ) const ;
-      virtual void getOwnerTransID(DPS_TRANS_ID & transID) 
-      {
-         transID = _savedTransID ; 
-      }
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       virtual const BSONObj*  getCurKeyObj() const { return &_curKeyObj ; }
       virtual const dmsRecordID& getSavedRID () const { return _savedRID ; }
       virtual const BSONObj*  getSavedObj () const { return &_savedObj ; }
 
-<<<<<<< HEAD
       virtual BOOLEAN canPrefetch() const
       {
          return FALSE ;
@@ -120,21 +105,6 @@ namespace engine
       virtual INT32 _relocateRID( BOOLEAN &found )  ;
       virtual rtnPredicateListIterator*   _getPredicateListInterator() ;
 
-=======
-      virtual INT32           isCursorSame( const BSONObj &saveObj,
-                                            const dmsRecordID &saveRID,
-                                            BOOLEAN &isSame ) ;
-      virtual void getRBSPositions( dmsRBSOffset & startPos,
-                                    dmsRBSOffset & endPos,
-                                    dmsRecordID  & rid,
-                                    preIdxTreePtr  memTree ) ;
-
-   protected:
-      virtual INT32 relocateRID( BOOLEAN &found )  ;
-      virtual rtnPredicateListIterator*   getPredicateListInterator() ;
-      DPS_TRANS_ID  getCurKeyTransID() ;
-      preIdxTreePtr getMemTree() { return _memIdxTree ; }
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    protected:
       void                    reset() ;
 
@@ -180,8 +150,6 @@ namespace engine
       // the BSONObj during pause(), otherwise it would affect runtime perf.
       BSONObj                    _savedObj ;
       dmsRecordID                _savedRID ;
-      DPS_TRANS_ID               _savedTransID ;
-      DPS_PREIDXTREENODEVALUE_STATUS _objStatus ;
 
       // pointer to the in memory index tree. It's hanging off dpsTransCB
       preIdxTreePtr              _memIdxTree ;

@@ -67,7 +67,7 @@ namespace seadapter
    #define RTN_CONDNODE_ALLOCATOR_SIZE      2048
    // Allocator for the tree to allocate nodes. If not enough, allocate from
    // heap.
-   typedef _utilStackOnlyAllocator<RTN_CONDNODE_ALLOCATOR_SIZE> rtnCondNodeAllocator ;
+   typedef _utilAllocator<RTN_CONDNODE_ALLOCATOR_SIZE> rtnCondNodeAllocator ;
    typedef vector<_rtnCondNode *> UTIL_CONDNODE_VEC ;
 
    class _rtnCondNode

@@ -1,9 +1,5 @@
 [^_^]:
     离线升级
-<<<<<<< HEAD
-=======
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 离线升级指在升级过程中服务会暂时性不可用，在整个升级过程完成之后恢复服务。本文档将说明在一台主机上的离线升级流程，按照相同步骤，用户可以依次完成所有主机上的软件升级。
 
@@ -15,25 +11,15 @@
 
 ###升级说明###
 
-<<<<<<< HEAD
 - 升级过程需要使用 root 用户权限。
 - 升级过程中不支持输入非英文字符。
 - 升级过程中如果输入有误，可按 ctrl+退格键进行删除。
 
 ###升级步骤###
-=======
-##升级##
-
-###升级说明###
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 下述升级过程以 SequoiaDB v3.4.4 升级至 v5.6.1 为例进行说明，其他版本间的升级操作基本一致。
 
-<<<<<<< HEAD
 1. 以 root 用户登陆目标主机，解压 SequoiaDB 巨杉数据库产品包，并为解压得到的 `sequoiadb-5.6.1-linux_x86_64-installer.run` 安装包赋可执行权限
-=======
-###升级步骤###
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
     ```lang-bash
     # tar -zxvf sequoiadb-5.6.1-linux_x86_64-installer.tar.gz
@@ -152,7 +138,6 @@
     安装成功，安装报告可查看：/opt/sequoiadb/install_report
     ```
 
-<<<<<<< HEAD
 在集群中所有主机完成软件升级后，如果 SequoiaDB 是由 v3.6/5.0.3 以下版本升级至 v3.6/5.0.3 及以上版本，需要手动执行 [sdbupgradeidx][upgrade_index] 工具进行索引升级。
 
 [^_^]:
@@ -161,16 +146,3 @@
 [upgrade_index]:manual/Distributed_Engine/Maintainance/Mgmt_Tools/upgrade_index.md
 [report]:manual/Distributed_Engine/Maintainance/Mgmt_Tools/upgrade_index.md#示例
 [compatibility]:manual/Distributed_Engine/Maintainance/Upgrade/compatibility.md
-=======
-6. 在集群中所有主机完成软件升级后，如果 SequoiaDB 是由 v3.6/5.0.3 以下版本升级至 v3.6/5.0.3 及以上版本，需要手动执行 [sdbupgradeidx][upgrade_index] 工具进行索引升级。
-
-
-
-
-[^_^]:
-    本文中用到的所有链接
-[download]:http://download.sequoiadb.com/cn/
-[compatibility]:manual/Maintainance/Upgrade/compatibility.md
-[upgrade_index]:manual/Distributed_Engine/Maintainance/Mgmt_Tools/upgrade_index.md
-[report]:manual/Distributed_Engine/Maintainance/Mgmt_Tools/upgrade_index.md#示例
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2

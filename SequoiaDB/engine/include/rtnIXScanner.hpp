@@ -41,14 +41,6 @@
 #include "monCB.hpp"
 #include "rtnScanner.hpp"
 #include "rtnPredicate.hpp"
-<<<<<<< HEAD
-=======
-#include "ossMemPool.hpp"
-#include "utilSet.hpp"
-#include "dmsRBSSUMgr.hpp"
-#include "dpsTransID.hpp"
-#include "dpsTransVersionCtrl.hpp"
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 #include "../bson/ordering.h"
 #include "../bson/oid.h"
 #include "utilPooledAutoPtr.hpp"
@@ -60,23 +52,7 @@ namespace engine
    class _dmsStorageUnit ;
    class _dmsMBContext ;
    class _pmdEDUCB ;
-   class _optAccessPlanRuntime ;
 
-<<<<<<< HEAD
-=======
-   // define type of index scanners
-   enum IXScannerType
-   {
-      SCANNER_TYPE_DISK      = 0,
-      SCANNER_TYPE_MEM_TREE,
-      SCANNER_TYPE_MERGE,
-      SCANNER_TYPE_MAX
-   } ;
-
-   // Performance optimization by using the utilSet.
-   typedef _utilSet< dmsRecordID >  SET_RECORDID ;
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    /*
       _rtnScannerSharedInfo define
    */
@@ -121,7 +97,7 @@ namespace engine
    {
    public:
       _rtnIXScanner( ixmIndexCB *pIndexCB,
-                     _optAccessPlanRuntime *planRuntime,
+                     rtnPredicateList *predList,
                      _dmsStorageUnit  *su,
                      _dmsMBContext    *mbContext,
                      BOOLEAN           isAsync,
@@ -158,18 +134,9 @@ namespace engine
       INT32       compareWithCurKeyObj( const BSONObj &keyObj ) const ;
       INT32       syncPredStatus( _rtnIXScanner *source ) ;
 
-<<<<<<< HEAD
       BOOLEAN                isIndexCover() const ;
       void                   setIndexCover( const BOOLEAN indexCover ) ;
       ixmIndexCover&         getIndex() ;
-=======
-      BOOLEAN     eof() const ;
-      BOOLEAN                isIndexCover() const ;
-      void                   setIndexCover( const BOOLEAN indexCover ) ;
-      ixmIndexCover&         getIndex() ;
-
-      INT64 getExpReturn () const ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    /// Interface
    public:
@@ -183,27 +150,11 @@ namespace engine
       virtual const BSONObj*  getCurKeyObj() const = 0 ;
       virtual const dmsRecordID& getSavedRID () const = 0 ;
       virtual const BSONObj*  getSavedObj () const = 0 ;
-      virtual void getOwnerTransID( DPS_TRANS_ID &transID ) = 0 ;
 
-<<<<<<< HEAD
    protected:
       virtual INT32 _relocateRID( BOOLEAN &found ) = 0 ;
       virtual rtnPredicateListIterator*   _getPredicateListInterator() = 0 ;
 
-=======
-      virtual INT32           isCursorSame( const BSONObj &saveObj,
-                                            const dmsRecordID &saveRID,
-                                            BOOLEAN &isSame ) = 0 ;
-      virtual void getRBSPositions( dmsRBSOffset & startPos,
-                                    dmsRBSOffset & endPos,
-                                    dmsRecordID  & rid,
-                                    preIdxTreePtr  memTree ) = 0;
-
-   protected:
-      virtual INT32 relocateRID( BOOLEAN &found ) = 0 ;
-      virtual rtnPredicateListIterator*   getPredicateListInterator() = 0 ;
-      _optAccessPlanRuntime * getPlanRuntime () { return _planRuntime ; }
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    protected:
       BOOLEAN                 _insert2Dup( const dmsRecordID &rid ) ;
 
@@ -211,14 +162,7 @@ namespace engine
       ixmIndexCB              *_indexCB ;
       BOOLEAN                 _owned ;
       rtnPredicateList        *_pPredList ;
-<<<<<<< HEAD
-=======
-      _optAccessPlanRuntime   *_planRuntime ;
-      _dmsStorageUnit         *_su ;
-      _pmdEDUCB               *_cb ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       rtnScannerSharedInfo    *_pInfo ;
-      INT32                   _transIsolation ;
 
       dmsExtentID             _indexLID ;
       dmsExtentID             _indexCBExtent ;

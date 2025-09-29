@@ -7,11 +7,7 @@ sdb_maria_ctl 是 MariaDB 实例组件的管理工具。用户通过 sdb_maria_c
 | -h | 返回帮助说明 | 否 |
 | -D | 指定数据库储存路径 | 是 |
 | -l | 指定日志文件，默认在安装路径下，与实例名同名 | 否 |
-<<<<<<< HEAD
 | -P | 指定 MariaDB 服务的监听端口，默认为 6101 | 否 |
-=======
-| -p | 指定 MySQL 服务的监听端口，默认为 3306 | 否 |
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 | -f | 指定 pid 文件，默认为数据库储存路径下的 `mysqld.pid` | 否 |
 | -s | 指定 mysqld.sock 文件，默认为数据库储存路径下的 `mysqld.sock` | 否 |
 | -w | 指定本地连接 root 用户的密码 | 否 |
@@ -36,20 +32,12 @@ sdb_maria_ctl 是 MariaDB 实例组件的管理工具。用户通过 sdb_maria_c
 
 * 创建实例
 
-<<<<<<< HEAD
     sdb_maria_ctl  addinst \<INSTNAME\> \<-D DATADIR\> [-l LOGFILE] [--print] [-P PORT] [-f PIDFILE] [-s SOCKETFILE] [-w PASSWORD] [-g INST_GROUP_NAME] [-k INST_GROUP_KEY] [--sdb-conn-addr=ADDR] [--sdb-user USER] [--sdb-passwd PASSWD] [--sdb-cipherfile PATH] [--sdb-token TOKEN]
-=======
-    sdb_maria_ctl  addinst \<INSTNAME\> \<-D DATADIR\> [-l LOGFILE] [--print] [-p PORT] [-f PIDFILE] [-s SOCKETFILE] [-w PASSWORD] [-g INST_GROUP_NAME] [-k INST_GROUP_KEY] [--sdb-conn-addr=ADDR] [--sdb-user USER] [--sdb-passwd PASSWD] [--sdb-cipherfile PATH] [--sdb-token TOKEN]
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
  
     添加一个 myinst 的实例，指定数据库存储路径为 `/opt/sequoiasql/mariadb/database/3306/`，指定密码为 123456
  
     ```lang-bash
-<<<<<<< HEAD
     $ sdb_maria_ctl  addinst myinst -D /opt/sequoiasql/mariadb/database/3306/ -l /opt/sequoiasql/mariadb/database/myinst.log --print -P 3306 -f /opt/sequoiasql/mariadb/database/myinst.pid -s /opt/sequoiasql/mariadb/database/myinst.sock -w 123456
-=======
-    $ sdb_maria_ctl  addinst myinst -D /opt/sequoiasql/mariadb/database/3306/ -l /opt/sequoiasql/mariadb/database/myinst.log --print -p 3306 -f /opt/sequoiasql/mariadb/database/myinst.pid -s /opt/sequoiasql/mariadb/database/myinst.sock -w 123456
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     ```
  
 * 启动实例
@@ -112,11 +100,7 @@ sdb_maria_ctl 是 MariaDB 实例组件的管理工具。用户通过 sdb_maria_c
  
 * 创建一个实例并加入[实例组][instance_group]
 
-<<<<<<< HEAD
     sdb_maria_ctl  addinst \<INSTNAME\> \<-D DATADIR\> [-l LOGFILE] [--print] [-P PORT] [-f PIDFILE] [-s SOCKETFILE] [-w PASSWORD] [-g INST_GROUP_NAME] [-k INST_GROUP_KEY] [--sdb-conn-addr=ADDR] [--sdb-user USER] [--sdb-passwd PASSWD] [--sdb-cipherfile PATH] [--sdb-token TOKEN]
-=======
-    sdb_maria_ctl  addinst \<INSTNAME\> \<-D DATADIR\> [-l LOGFILE] [--print] [-p PORT] [-f PIDFILE] [-s SOCKETFILE] [-w PASSWORD] [-g INST_GROUP_NAME] [-k INST_GROUP_KEY] [--sdb-conn-addr=ADDR] [--sdb-user USER] [--sdb-passwd PASSWD] [--sdb-cipherfile PATH] [--sdb-token TOKEN]
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
     先初始化一个名为“sql_group”实例组
 
@@ -131,11 +115,7 @@ sdb_maria_ctl 是 MariaDB 实例组件的管理工具。用户通过 sdb_maria_c
     创建一个名为“inst1”的 MariaDB 实例并加入 sql_group 实例组
 
     ```lang-bash
-<<<<<<< HEAD
     $ sdb_maria_ctl addinst inst1  -D /opt/sequoiasql/mariadb/database/3309 -P 3309 -g sql_group
-=======
-    $ sdb_maria_ctl addinst inst1  -D /opt/sequoiasql/mariadb/database/3309 -p 3309 -g sql_group
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     ```
 
 * 已有实例加入实例组
@@ -163,11 +143,7 @@ sdb_maria_ctl 是 MariaDB 实例组件的管理工具。用户通过 sdb_maria_c
 用户可通过 sdb_maria_ctl  指定实例名修改所有 SequoiaDB 引擎配置，各配置项说明可参考 SequoiaDB [引擎配置][config]。实例组功能的使用及相关配置项可参考[实例组][instance_group]。
  
 ```lang-text
-<<<<<<< HEAD
 sdb_maria_ctl chconf <INSTNAME> [-P PORT] [-e LEVEL] [-a MAX-CON]
-=======
-sdb_maria_ctl chconf <INSTNAME> [-p PORT] [-e LEVEL] [-a MAX-CON]
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                      [--sdb-conn-addr=ADDR] [--sdb-user=USER] [--sdb-passwd=PASSWD] [--sdb-auto-partition=BOOL] [--sdb-use-bulk-insert=BOOL]
                      [--sdb-bulk-insert-size=SIZE] [--sdb-use-autocommit=BOOL] 
                      [--sdb-debug-log=BOOL] [--sdb-token=TOKEN] [--sdb-cipherfile=PATH] [--sdb-error-level=ENUM] [--sdb-replica-size=SIZE]

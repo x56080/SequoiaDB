@@ -35,13 +35,8 @@ MariaDB 实例组是由若干 MariaDB 实例组成的一个无状态的集群，
 3. 创建两个 MariaDB 实例并加入到实例组 mariadb
 
    ```lang-bash
-<<<<<<< HEAD
    $ bin/sdb_maria_ctl addinst mariadb01 -D database/3309 -P3309 -g mariadb -k test
    $ bin/sdb_maria_ctl addinst mariadb02 -D database/3310 -P3310 -g mariadb -k test
-=======
-   $ bin/sdb_maria_ctl addinst mariadb01 -D database/3309 -p3309 -g mariadb -k test
-   $ bin/sdb_maria_ctl addinst mariadb02 -D database/3310 -p3310 -g mariadb -k test
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    ```
 
    > **Note：**
@@ -125,11 +120,7 @@ MariaDB 实例组是由若干 MariaDB 实例组成的一个无状态的集群，
 9. 新增实例 mariadb03 并加入实例组
  
    ```lang-bash
-<<<<<<< HEAD
    $ bin/sdb_maria_ctl addinst mariadb03 -D database/3311 -P 3311 -g mariadb -k test
-=======
-   $ bin/sdb_maria_ctl addinst mariadb03 -D database/3311 -p 3311 -g mariadb -k test
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    ```
 
 10. 使用 mysql 命令连接到实例 mariadb03

@@ -33,15 +33,17 @@
 
 *******************************************************************************/
 #include "clsVSSilence.hpp"
-#include "clsReplAgent.hpp"
+#include "pd.hpp"
 #include "pdTrace.hpp"
 #include "clsTrace.hpp"
+#include "pmd.hpp"
 
 namespace engine
 {
 
-   _clsVSSilence::_clsVSSilence( ICLSReplAgent *replAgent )
-   : _clsVoteStatus( replAgent, CLS_ELECTION_STATUS_SILENCE )
+   _clsVSSilence::_clsVSSilence( _clsGroupInfo *info,
+                                 _netRouteAgent *agent )
+   :_clsVoteStatus( info, agent, CLS_ELECTION_STATUS_SILENCE )
    {
 
    }
@@ -71,7 +73,7 @@ namespace engine
 
       const static UINT32 maxSliceTime = 30 * OSS_ONE_SEC ;
       /// silence time must be higher than brk time.
-      if ( _replAgent->getSharingBreakTime() + 1000 <= _timeout() ||
+      if ( pmdGetOptionCB()->sharingBreakTime() + 1000 <= _timeout() ||
            maxSliceTime <= _timeout() )
       {
          next = CLS_ELECTION_STATUS_SEC ;

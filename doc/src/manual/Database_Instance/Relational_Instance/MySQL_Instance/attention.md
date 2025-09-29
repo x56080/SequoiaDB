@@ -39,9 +39,4 @@
     本文使用到的所有连接及引用
 [config]:manual/Database_Instance/Relational_Instance/MySQL_Instance/Operation/database_and_table_operation.md#自定义表配置
 [setAttributes]:manual/Manual/Sequoiadb_Command/SdbCollection/setAttributes.md
-<<<<<<< HEAD
 [auto_increment]:manual/Distributed_Engine/Architecture/Data_Model/sequence.md#自增字段
-=======
-[auto_increment]:manual/Distributed_Engine/Architecture/Data_Model/sequence.md#自增字段
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2

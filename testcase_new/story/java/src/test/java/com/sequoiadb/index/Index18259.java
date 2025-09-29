@@ -95,11 +95,8 @@ public class Index18259 extends SdbTestBase {
                         && e.getErrorCode() != SDBError.SDB_IXM_NOTEXIST
                                 .getErrorCode()
                         && e.getErrorCode() != SDBError.SDB_IXM_CREATING
-<<<<<<< HEAD
                                 .getErrorCode()
                         && e.getErrorCode() != SDBError.SDB_TASK_HAS_CANCELED
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                                 .getErrorCode() ) {
                     throw e;
                 }

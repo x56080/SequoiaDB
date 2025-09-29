@@ -15,11 +15,7 @@
     <!--用例创建节点预留端口号最大值-->
     <parameter name="RSRVPORTEND"    value="27000" />
     <!--用例创建节点存放节点数据目录-->
-<<<<<<< HEAD
     <parameter name="RSRVNODEDIR"    value="${RSRVNODEDIR}" />
-=======
-    <parameter name="RSRVNODEDIR"    value="/opt/sequoiadb/database/" />
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     <!--用例存放临时文件的目录-->
     <parameter name="WORKDIR"        value="/tmp/javatest" />
     <!--用例远程机器用户名-->
@@ -44,10 +40,7 @@
 	        <package name="com.sequoiadb.driveconnection.serial"/>
             <package name="com.sequoiadb.index.serial"/>
             <package name="com.sequoiadb.bsontypes.serial"/>
-<<<<<<< HEAD
             <package name="com.sequoiadb.recyclebin"/>
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         </packages>
     </test>
 </suite>

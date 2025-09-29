@@ -57,12 +57,8 @@ namespace import
                    const string& stringDelimiter,
                    BOOLEAN autoAddField = TRUE,
                    BOOLEAN autoAddValue = FALSE,
-<<<<<<< HEAD
                    BOOLEAN autoAddStrDel = FALSE,
                    BOOLEAN mustHasIDField = TRUE);
-=======
-                   BOOLEAN autoAddStrDel = FALSE);
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    public:
       virtual ~RecordParser() {}
@@ -75,10 +71,7 @@ namespace import
       BOOLEAN  _autoAddField;
       BOOLEAN  _autoAddValue;
       BOOLEAN  _autoAddStrDel;
-<<<<<<< HEAD
       BOOLEAN  _mustHasIDField;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    public:
       static INT32 createInstance(INPUT_FORMAT format, const Options& options,

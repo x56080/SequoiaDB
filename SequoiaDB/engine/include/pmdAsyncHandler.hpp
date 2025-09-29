@@ -92,21 +92,13 @@ namespace engine
 
          virtual INT32 handleMsg( const NET_HANDLE &handle,
                                   const _MsgHeader *header,
-                                  const CHAR *msg,
-                                  UINT64 msgUserData ) ;
-         virtual INT32 handleConnect( const NET_HANDLE &handle,
-                                      _MsgRouteID id,
-                                      BOOLEAN isPositive,
-                                      netUserDataHolder *userDataHolder ) ;
+                                  const CHAR *msg );
          virtual void  handleClose( const NET_HANDLE &handle, _MsgRouteID id ) ;
 
-<<<<<<< HEAD
          virtual INT32 handleConnect( const NET_HANDLE &handle,
                                       _MsgRouteID id,
                                       BOOLEAN isPositive ) ;
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          virtual void  onPrepareStop() ;
 
          virtual void  onStop() ;
@@ -117,8 +109,7 @@ namespace engine
 
          INT32 _handleSessionMsg( const NET_HANDLE &handle,
                                   const _MsgHeader *header,
-                                  const CHAR *msg,
-                                  UINT64 recvTime ) ;
+                                  const CHAR *msg );
 
          INT32 _handleAdapterMsg( const NET_HANDLE &handle,
                                   const _MsgHeader *header,
@@ -136,19 +127,6 @@ namespace engine
          virtual void _postMainMsg( const NET_HANDLE &handle,
                                     MsgHeader *pNewMsg,
                                     pmdEDUMemTypes memType ) ;
-
-         // indicate if user data is needed for net event
-         virtual BOOLEAN _needUserData()
-         {
-            return FALSE ;
-         }
-
-         // allocate user data for given holder
-         virtual INT32 _allocUserData( NET_HANDLE handle,
-                                       netUserDataHolder *userDataHolder )
-         {
-            return SDB_OK ;
-         }
 
       protected:
          _pmdAsycSessionMgr      *_pSessionMgr ;

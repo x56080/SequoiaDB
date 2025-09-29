@@ -58,7 +58,7 @@ BOOLEAN g_isTraceStarted = FALSE ;
 // we want
 
 void pdTraceFunc ( UINT64 funcCode, INT32 type,
-                   UINT32 line,
+                   const CHAR* file, UINT32 line,
                    pdTraceArgTuple *tuple )
 {
    pdTraceCB *pdCB = sdbGetPDTraceCB() ;
@@ -113,28 +113,25 @@ void pdTraceFunc ( UINT64 funcCode, INT32 type,
       record._tid = tid ;
       record._line = (UINT16)line ;
 
-      if ( NULL != tuple )
+      // parse arguments and calcualte the total size of buffer we need
+      for ( INT8 i = 0 ; i < PD_TRACE_MAX_ARG_NUM ; ++i )
       {
-         // parse arguments and calcualte the total size of buffer we need
-         for ( INT8 i = 0 ; i < PD_TRACE_MAX_ARG_NUM ; ++i )
+         if ( PD_TRACE_ARGTYPE_NONE != tuple[i]._arg.getType() )
          {
-            if ( PD_TRACE_ARGTYPE_NONE != tuple[i]._arg.getType() )
+            /// make sure size is not overflow
+            if ( tuple[i]._arg.argSize() > lastSize )
             {
-               /// make sure size is not overflow
-               if ( tuple[i]._arg.argSize() > lastSize )
-               {
-                  tuple[i]._arg.setType( PD_TRACE_ARGTYPE_NONE ) ;
-                  break ;
-               }
-
-               ++record._numArgs ;
-               record._recordSize += tuple[i]._arg.argSize() ;
-               lastSize -= tuple[i]._arg.argSize() ;
-            }
-            else
-            {
+               tuple[i]._arg.setType( PD_TRACE_ARGTYPE_NONE ) ;
                break ;
             }
+
+            ++record._numArgs ;
+            record._recordSize += tuple[i]._arg.argSize() ;
+            lastSize -= tuple[i]._arg.argSize() ;
+         }
+         else
+         {
+            break ;
          }
       }
 
@@ -151,23 +148,20 @@ void pdTraceFunc ( UINT64 funcCode, INT32 type,
          goto done ;
       }
 
-      if ( NULL != tuple )
+      for ( INT8 i = 0 ; i < PD_TRACE_MAX_ARG_NUM ; ++i )
       {
-         for ( INT8 i = 0 ; i < PD_TRACE_MAX_ARG_NUM ; ++i )
+         if ( PD_TRACE_ARGTYPE_NONE != tuple[i]._arg.getType() )
          {
-            if ( PD_TRACE_ARGTYPE_NONE != tuple[i]._arg.getType() )
-            {
-               pBuffer = pdCB->fillIn ( pBuffer,
-                                        (const CHAR*)(&tuple[i]._arg),
-                                        tuple[i]._arg.headerSize() ) ;
-               pBuffer = pdCB->fillIn ( pBuffer,
-                                        (const CHAR*)(tuple[i].y),
-                                        tuple[i]._arg.dataSize() ) ;
-            }
-            else
-            {
-               break ;
-            }
+            pBuffer = pdCB->fillIn ( pBuffer,
+                                     (const CHAR*)(&tuple[i]._arg),
+                                     tuple[i]._arg.headerSize() ) ;
+            pBuffer = pdCB->fillIn ( pBuffer,
+                                     (const CHAR*)(tuple[i].y),
+                                     tuple[i]._arg.dataSize() ) ;
+         }
+         else
+         {
+            break ;
          }
       }
 

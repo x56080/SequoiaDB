@@ -164,9 +164,5 @@ TEST_F(collectionspaceTest, sdbDropCollectionSpace1_with_options25073)
    bson_destroy( &options1 ) ;
    sdbReleaseCS( collectionspace ) ;
    sdbReleaseCollection( collection ) ;
-<<<<<<< HEAD
 }
 
-=======
-}
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2

@@ -118,21 +118,12 @@ namespace engine
 
       // 2. execute on the special groups or special nodes, ignore error
       pAttachMsg->header.opCode        = MSG_BS_QUERY_REQ ;
-<<<<<<< HEAD
 
       // These commands will return all groups, no need to update group again
       if ( 0 == ossStrcasecmp( CMD_VALUE_NAME_SET_ACTIVE_LOCATION, pAction ) ||
            0 == ossStrcasecmp( CMD_VALUE_NAME_SET_LOCATION, pAction ) ||
            0 == ossStrcasecmp( CMD_VALUE_NAME_START_MAINTENANCE_MODE, pAction ) ||
            0 == ossStrcasecmp( CMD_VALUE_NAME_STOP_MAINTENANCE_MODE, pAction ) )
-=======
-      if ( 0 == ossStrcasecmp( CMD_VALUE_NAME_ENABLE_READONLY, pAction ) ||
-           0 == ossStrcasecmp( CMD_VALUE_NAME_DISABLE_READONLY, pAction ) ||
-           0 == ossStrcasecmp( CMD_VALUE_NAME_ACTIVATE, pAction ) ||
-           0 == ossStrcasecmp( CMD_VALUE_NAME_DEACTIVATE, pAction ) ||
-           0 == ossStrcasecmp( CMD_VALUE_NAME_ENABLE_RESTORING, pAction ) ||
-           0 == ossStrcasecmp( CMD_VALUE_NAME_DISABLE_RESTORING, pAction ) )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       {
          coordNodeCMDHelper helper ;
          BOOLEAN hasFailedGroup = FALSE ;

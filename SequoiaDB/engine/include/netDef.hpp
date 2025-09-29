@@ -280,14 +280,6 @@ namespace engine
    typedef class _netUDPEventHandler netUDPEventHandler ;
    typedef utilSharePtr< netUDPEventHandler > NET_UDP_EH ;
 
-   // net event user data
-   class _INetUserData ;
-   typedef class _INetUserData INetUserData ;
-
-   // net event user data holder
-   class _netUserDataHolder ;
-   typedef class _netUserDataHolder netUserDataHolder ;
-
 }
 
 #endif // NETDEF_HPP_

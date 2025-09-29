@@ -42,7 +42,6 @@
 #include "pdTrace.hpp"
 #include "coordTrace.hpp"
 #include "rtnRemoteMessenger.hpp"
-#include "stpAgent.hpp"
 
 using namespace bson ;
 
@@ -389,7 +388,7 @@ namespace engine
          SDB_ASSERT( _mapTransNodes.empty(), "Trans node is not empty" ) ;
 
          dpsTransCB *pTransCB = pmdGetKRCB()->getTransCB() ;
-         DPS_TRANS_ID transID ;
+         DPS_TRANS_ID transID = DPS_INVALID_TRANS_ID ;
 
          if ( !pTransCB->isTransOn() )
          {
@@ -397,41 +396,13 @@ namespace engine
          }
          else
          {
-            stpLogicalTimeUS beginTime ;
-
-         retry:
             /// alloc trans id
-            rc = pTransCB->allocTransID( isAutoCommit,
-                                         cb->isGlobTransOn(),
-                                         cb->getTransTimeout(),
-                                         transID,
-                                         beginTime ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to allocate transaction ID, "
-                         "rc: %d", rc ) ;
+            transID = pTransCB->allocTransID( isAutoCommit ) ;
+            /// clear first op
+            DPS_TRANS_CLEAR_FIRSTOP( transID ) ;
 
-            /// clear first op tag ( do not care on COORD )
-            transID.clearFirstOp() ;
-
-            if ( transID.isGlobTrans() )
-            {
-               cb->setGlobTrans( transID, beginTime ) ;
-            }
-            else
-            {
-               /// set trans id
-               cb->setTransID( transID ) ;
-            }
-
-            // check if has duplicated transaction ID
-            if ( transID.isGlobTrans() &&
-                 !pTransCB->addTransCB( transID, cb ) )
-            {
-               // for global transaction, we could retry to get a new logical
-               // time
-               pTransCB->incTransIDConflict() ;
-               cb->resetTransID() ;
-               goto retry ;
-            }
+            /// set trans id
+            cb->setTransID( transID ) ;
 
             _mapTransNodes.clear() ;
             _writeTransNodeNum = 0 ;
@@ -442,26 +413,12 @@ namespace engine
          }
       }
 
-   done:
       return rc ;
-
-   error:
-      goto done ;
    }
 
    void _coordSessionPropSite::endTrans( _pmdEDUCB *cb )
    {
-      if ( cb->isGlobTrans() )
-      {
-         // remove from transaction CB map
-         sdbGetTransCB()->delTransCB( cb->getTransID() ) ;
-      }
-
-      // clear records for transaction arbitration
-      cb->getTransExecutor()->clearArbit() ;
-
-      cb->resetTransID() ;
-
+      cb->setTransID( DPS_INVALID_TRANS_ID ) ;
       _mapTransNodes.clear() ;
       _writeTransNodeNum = 0 ;
    }
@@ -2122,12 +2079,8 @@ namespace engine
       else if ( SDB_CLS_FULL_SYNC == flag ||
                 SDB_RTN_IN_REBUILD == flag ||
                 SDB_DATABASE_DOWN == flag ||
-<<<<<<< HEAD
                 SDB_CLS_DATA_NOT_SYNC == flag ||
                 SDB_CLS_NODE_IN_MAINTENANCE == flag )
-=======
-                SDB_CLS_DATA_NOT_SYNC == flag )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       {
          if( groupPtr.get() )
          {
@@ -2143,7 +2096,6 @@ namespace engine
                     NET_NODE_FAULTUP_MIN_TIME ) ;
             ossSleep( NET_NODE_FAULTUP_MIN_TIME * OSS_ONE_SEC ) ;
          }
-<<<<<<< HEAD
          else if ( SDB_CLS_NODE_IN_MAINTENANCE == flag )
          {
             if ( _maxRetryTimes < COORD_OPR_MAX_RETRY_TIMES )
@@ -2151,8 +2103,6 @@ namespace engine
                setMaxRetryTimes( _maxRetryTimes + 1 ) ;
             }
          }
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       }
       else if ( ( SDB_UNKNOWN_MESSAGE == flag ||
                   SDB_CLS_UNKNOW_MSG == flag ) &&
@@ -2176,28 +2126,13 @@ namespace engine
       BOOLEAN bRetry = FALSE ;
       _pmdEDUCB *cb = _pPropSite->getEDUCB() ;
 
-      if ( _canRetry() )
+      if ( _canRetry() && coordCataCheckFlag( flag ) )
       {
-         if ( coordCataCheckFlag( flag ) )
-         {
-            bRetry = TRUE ;
+         bRetry = TRUE ;
 
-            if ( canUpdate && SDB_OK != cataSel.updateCataInfo( NULL, cb ) )
-            {
-               bRetry = FALSE ;
-            }
-         }
-         else if ( coordGlobTransCheckFlag( flag ) )
+         if ( canUpdate && SDB_OK != cataSel.updateCataInfo( NULL, cb ) )
          {
-            // global logical time used for global transaction is not
-            // synchronized with remote node, notify STP to synchronize,
-            // and retry again
-            stpAgent agent ;
-            bRetry = TRUE ;
-            if ( SDB_OK != agent.notifySync() )
-            {
-               bRetry = FALSE ;
-            }
+            bRetry = FALSE ;
          }
       }
 
@@ -2218,23 +2153,7 @@ namespace engine
 
    _coordGroupSession::~_coordGroupSession()
    {
-      // Use finalize to avoid throwing exception in destructor.
-      finalize() ;
-   }
-
-   void _coordGroupSession::finalize()
-   {
-      INT32 rc = SDB_OK ;
-
-      try
-      {
-         release() ;
-      }
-      catch ( std::exception &e )
-      {
-         rc = ossException2RC( &e ) ;
-         PD_LOG( PDERROR, "Unexpected exception occurred: %s, rc: %d", e.what(), rc ) ;
-      }
+      release() ;
 
       _pSite      = NULL ;
       _pPropSite  = NULL ;

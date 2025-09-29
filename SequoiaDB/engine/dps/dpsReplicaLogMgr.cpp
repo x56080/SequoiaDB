@@ -44,8 +44,6 @@
 #include "pdTrace.hpp"
 #include "dpsTrace.hpp"
 #include "dpsTransCB.hpp"
-#include "dpsWriteContext.hpp"
-#include "ossLikely.hpp"
 
 namespace engine
 {
@@ -159,14 +157,14 @@ namespace engine
       /// read meta content
       metaContent = _metaFile.getContent() ;
       /// invalid meta status
-      rc = _metaFile.invalidateStatus( !pmdGetStartup().isOK() ) ;
+      rc = _metaFile.invalidateStatus() ;
       PD_RC_CHECK( rc, PDERROR, "Invalidate dps meta status failed, rc: %d",
                    rc ) ;
 
       /// when start from crash
       if ( metaContent.isStatusValid() && !pmdGetStartup().isOK() )
       {
-         metaContent.resetStatus( TRUE ) ;
+         metaContent.resetStatus() ;
       }
 
       // initialize log files
@@ -249,7 +247,7 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Write oldest lsn failed, rc: %d", rc ) ;
       }
 
-      rc = _metaFile.invalidateStatus( FALSE ) ;
+      rc = _metaFile.invalidateStatus() ;
       if ( rc )
       {
          goto error ;
@@ -349,17 +347,17 @@ namespace engine
       goto done ;
    }
 
-   UINT32 _dpsReplicaLogMgr::_generateDummySize( BOOLEAN isRow, 
-                                                 UINT32 recordSize ) const
+   UINT32 _dpsReplicaLogMgr::_generateDummySize( dpsMergeBlock &block,
+                                                 dpsLogRecordHeader &head,
+                                                 UINT32 logFileSz )
    {
       UINT32 dummyLogSize = 0 ;
-      UINT32 logFileSize = _logger.getLogFileSz() ;
-      if (!isRow)
+      if ( !block.isRow() )
       {
-         if ( ( _lsn.offset / logFileSize ) !=
-              ( _lsn.offset + recordSize - 1 ) / logFileSize )
+         if ( ( _lsn.offset / logFileSz ) !=
+               ( _lsn.offset + head._length - 1 ) / logFileSz )
          {
-            dummyLogSize = logFileSize - ( _lsn.offset % logFileSize ) ;
+            dummyLogSize = logFileSz - ( _lsn.offset % logFileSz ) ;
          }
       }
 
@@ -395,7 +393,7 @@ namespace engine
          /// at last lock mtx. So, this don't block read operations
          scopedWriteMtx.lock() ;
 
-         checkDummySize = _generateDummySize( block.isRow(), head._length ) ;
+         checkDummySize = _generateDummySize( block, head, logFileSz ) ;
          while ( _idleSize.peek() < head._length + checkDummySize )
          {
             PD_LOG ( PDWARNING, "No space in log buffer for %d bytes data, "
@@ -512,33 +510,8 @@ namespace engine
          _lsn.version = head._version ;
       }
 
-      if ( head._lsn % logFileSz == 0 )
-      {
-         // record will be saved in a new log file, save snapshot of
-         // transaction information into next file's header
-         // NOTE: the next file ( file to store current log record ) will be
-         // write later in asynchronous, so we only save the summary in cache
-         // of the file, then the write processing of log file will save into
-         // disk from cache
-         dpsLogSummary summary ;
-         UINT32 fileID = head._lsn / logFileSz ;
-         _transCB->dumpLogSummary( TRUE, summary ) ;
-         _logger.updateCachedSummary( fileID, summary ) ;
-      }
-
       // Update the max LR size as needed. Protected under _writeMutex
       _transCB->updateMaxLRSize( head._length, _lsn.offset ) ;
-      if ( info.hasTransTime() )
-      {
-         // there is transaction time with the log, update the restore PIT
-         // window
-         _transCB->updateRestoreWindow( info.getTransTime() ) ;
-      }
-      else if ( info.isIrreversible() )
-      {
-         // the log is irreversible, push the restore PIT window
-         _transCB->pushRestoreWindow() ;
-      }
 
       // change global metadata
       _currentLsn = _lsn ;
@@ -589,13 +562,11 @@ namespace engine
             dpsLogRecord newRecord ;
             newRecord = info.getMergeBlock().record() ;
             newRecord.loadRowBody() ;
-            _transCB->saveTransInfoFromLog( newRecord, TRUE ) ;
+            _transCB->saveTransInfoFromLog( newRecord ) ;
          }
          else
          {
-            // already handled with outside caller
-            _transCB->saveTransInfoFromLog( info.getMergeBlock().record(),
-                                            FALSE ) ;
+            _transCB->saveTransInfoFromLog( info.getMergeBlock().record() ) ;
          }
       }
 
@@ -1126,7 +1097,7 @@ namespace engine
             // if we don't want to find from file
             else
             {
-               PD_LOG ( PDINFO, "Failed to find [%lld, %d] from memory, "
+               PD_LOG ( PDDEBUG, "Failed to find [%lld, %d] from memory, "
                         "rc = %d", minLsn.offset, minLsn.version, rc ) ;
                goto error ;
             }
@@ -1387,7 +1358,7 @@ namespace engine
          // same as _pageFlushCount % 0x4000 == 0
          if ( ( _pageFlushCount & 0x3FFF ) == 0 )
          {
-            flushTransMeta() ;
+            _flushOldestTransBeginLSN() ;
          }
 
          rc = _flushPage ( page ) ;
@@ -1405,22 +1376,16 @@ namespace engine
       goto done ;
    }
 
-   void _dpsReplicaLogMgr::flushTransMeta()
+   void _dpsReplicaLogMgr::_flushOldestTransBeginLSN()
    {
       if ( NULL != _transCB )
       {
          DPS_LSN_OFFSET offset = _transCB->getOldestBeginLsn() ;
-         dpsLogSummary summary ;
-         _transCB->dumpLogSummary( FALSE, summary ) ;
          if ( DPS_INVALID_LSN_OFFSET != offset )
          {
             // offset is valid, just save offset.
             // flush only, no need to sync
-<<<<<<< HEAD
             _metaFile.writeOldestLSNOffset( offset, FALSE ) ;
-=======
-            _metaFile.writeTransMeta( offset, summary, FALSE ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          }
          else
          {
@@ -1430,18 +1395,8 @@ namespace engine
             if ( !_pageFlushedBeginLSN.invalid() )
             {
                // flush only, no need to sync
-<<<<<<< HEAD
                _metaFile.writeOldestLSNOffset( _pageFlushedBeginLSN.offset,
                                                FALSE ) ;
-=======
-               _metaFile.writeTransMeta( offset, summary, FALSE ) ;
-            }
-            else
-            {
-               // no valid offset is given, flush summary only
-               // flush only, no need to sync
-               _metaFile.writeSummary( summary, FALSE ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             }
          }
       }
@@ -1527,13 +1482,11 @@ namespace engine
       /// save info to meta file
       {
          DPS_LSN_OFFSET offset = DPS_INVALID_LSN_OFFSET ;
-         dpsLogSummary summary ;
          UINT32 curLsnLength = 0 ;
 
          if ( _transCB )
          {
             offset = _transCB->getOldestBeginLsn() ;
-            _transCB->dumpLogSummary( FALSE, summary ) ;
          }
 
          if ( offset == DPS_INVALID_LSN_OFFSET )
@@ -1553,8 +1506,7 @@ namespace engine
                          _logger.getWorkPos(),
                          _currentLsn,
                          curLsnLength,
-                         _getStartLsn(),
-                         summary ) ;
+                         _getStartLsn() ) ;
       }
 
    done :
@@ -1729,307 +1681,5 @@ namespace engine
    error:
       goto done ;
    }
-
-   // PD_TRACE_DECLARE_FUNCTION (SDB__DPSRPCMGR_GETCURRENTSUMMARY, "_dpsReplicaLogMgr::getCurrentSummary" )
-   INT32 _dpsReplicaLogMgr::getCurrentSummary( DPS_LSN_OFFSET offset,
-                                               dpsLogSummary &summary,
-                                               BOOLEAN &isValid )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__DPSRPCMGR_GETCURRENTSUMMARY ) ;
-
-      UINT32 logicalFileID = DPS_INVALID_LOG_FILE_ID ;
-
-      if ( 0LL == offset )
-      {
-         // first LSN of all, summary is invalid
-         summary.reset() ;
-         isValid = TRUE ;
-         goto done ;
-      }
-      else if ( 0 == offset % _logger.getLogFileSz() )
-      {
-         // first LSN of log file ( which exactly the end of the previous
-         // log file ), look for summary saved in this file
-         logicalFileID = offset / _logger.getLogFileSz() ;
-      }
-      else
-      {
-         // look for summary saved in the next file
-         logicalFileID = offset / _logger.getLogFileSz() + 1 ;
-      }
-
-      // get summary from log file
-      rc = _logger.getSummary( logicalFileID, summary, isValid ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get summary for file [%u], rc: %d",
-                   logicalFileID, rc ) ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__DPSRPCMGR_GETCURRENTSUMMARY, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSRPCMGR_WRITE, "_dpsReplicaLogMgr::write" )
-   INT32 _dpsReplicaLogMgr::write( IExecutor *executor,
-                                   const dpsWriteRequest &request,
-                                   const dpsWriteOptions &o,
-                                   dpsLogRecordHeader *result )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY(SDB__DPSRPCMGR_WRITE) ;
-      BOOLEAN locked = FALSE ;
-      dpsWriteContext ctx(executor, &request, &o);
-      UINT32 originalRecordSize = _getAlignedRecordSize( ctx.getOriginalEleSize() ) ;
-      UINT32 dummyRecordSize = 0 ;
-      UINT32 alignedRecordSize = 0 ;
-
-      if ( nullptr != result )
-      {
-         result->clear() ;
-      }
-
-      if ( OSS_UNLIKELY( _restoreFlag ) )
-      {
-         PD_LOG( PDERROR, "log mgr is restoring" );
-         rc = SDB_SYS;
-         goto error;
-      }
-      else if ( OSS_UNLIKELY( _totalSize < originalRecordSize ) )
-      {
-         PD_LOG ( PDERROR, "dps total memory size[%d] less than record size[%d]",
-                  _totalSize, originalRecordSize ) ;
-         rc = SDB_SYS ;
-         SDB_ASSERT ( 0, "system error" ) ;
-         goto error ;
-      }
-      
-      alignedRecordSize = _getAlignedRecordSize( ctx.getRecordBodySizeAuto() ) ;
-      /// first to lock writeMutex, then make sure idle space is enough,
-      /// at last lock mtx. So, this don't block read operations
-      _writeMutex.get() ;
-      dummyRecordSize = _generateDummySize( FALSE, alignedRecordSize) ;
-      while ( _idleSize.peek() < alignedRecordSize + dummyRecordSize )
-      {
-         PD_LOG ( PDWARNING, "No space in log buffer for %d bytes data, "
-                  "%d bytes dummmy, currently left %d bytes", alignedRecordSize,
-                  dummyRecordSize, _idleSize.peek() ) ;
-         _allocateEvent.wait ( OSS_ONE_SEC ) ;
-      }
-
-      _mtx.get();
-      locked = TRUE ;
-      
-      if ( DPS_INVALID_LSN_VERSION == _lsn.version || _incVersion )
-      {
-         ++_lsn.version ;
-         _incVersion = FALSE ;
-      }
-
-      if ( 0 < dummyRecordSize )
-      {
-         /// never split one log record into different files,
-         /// if the free space of current file is not enough to
-         /// save log record, append a dummy record to it and
-         /// save record to the next file.
-         _allocateDummyRecord( ctx ) ;
-      }
-
-      _allocateFormalRecord( ctx ) ;
-
-      _mtx.release() ;
-      _writeMutex.release() ;
-      locked = FALSE ;
-
-      if ( ctx.isDummyRecordFilled() )
-      {
-         _writeToBuffer( ctx.getDummmyRecord(),
-                         utilSlice(), 
-                         ctx.getDummyPageMeta()) ;
-         SHARED_UNLOCK_NODES( ctx.getDummyPageMeta() ) ;
-      }
-
-      _writeToBuffer( ctx.getRecord(), ctx.getRecordBodyData(), ctx.getPageMeta() ) ;
-      SHARED_UNLOCK_NODES( ctx.getPageMeta() ) ;
-
-      if ( nullptr != _transCB &&
-           _transCB->isTransOn() &&
-           !_restoreFlag )
-      {
-         _transCB->saveTransInfoFromCtx( ctx, FALSE ) ;
-      }
-
-      if ( nullptr != result )
-      {
-         *result = ctx.getRecord() ;
-      }
-
-   done:
-      if ( locked )
-      {
-         _mtx.release() ;
-         _writeMutex.release() ;
-      }
-      PD_TRACE_EXITRC( SDB__DPSRPCMGR_WRITE, rc );
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSRPCMGR__ALLOCATEDUMMYRECORD, "_dpsReplicaLogMgr::_allocateDummyRecord" )
-   void _dpsReplicaLogMgr::_allocateDummyRecord( dpsWriteContext &ctx )
-   {
-      PD_TRACE_ENTRY( SDB__DPSRPCMGR__ALLOCATEDUMMYRECORD ) ;
-      dpsLogRecordHeader &header = ctx.getDummmyRecord() ;
-      UINT32 alignedRecordSize = _getAlignedRecordSize( ctx.getRecordBodySizeAuto() ) ;
-      UINT32 dummyRecordSize = _generateDummySize( FALSE, alignedRecordSize ) ;
-      UINT32 logFileSz = _logger.getLogFileSz() ;
-      UINT32 fileFreeSize = logFileSz - ( _lsn.offset % logFileSz ) ;
-      SDB_ASSERT ( dummyRecordSize >= sizeof ( dpsLogRecordHeader ),
-                   "dummy log size is smaller than log head" ) ;
-      SDB_ASSERT ( dummyRecordSize % sizeof(SINT32) == 0,
-                   "dummy log size is not 4 bytes aligned" ) ;
-      SDB_ASSERT ( fileFreeSize == dummyRecordSize, "must be same" ) ;
-
-      _prepareLogBuffers( dummyRecordSize, ctx.getDummyPageMeta() ) ;
-
-      header._length = dummyRecordSize ;
-      header._type = LOG_TYPE_DUMMY ;
-      header._lsn = _lsn.offset ;
-      header._version = _lsn.version ;
-      header._preLsn = _currentLsn.offset ;
-      _currentLsn = _lsn ;
-      _lsn.offset += dummyRecordSize ;
-
-      if ( ctx.getOptions()->notify && _vecEventHandler.size() > 0 )
-      {
-         const dpsWriteOptions *o = ctx.getOptions() ;
-         for( UINT32 i = 0 ; i < _vecEventHandler.size() ; ++i )
-         {
-            _vecEventHandler[i]->onPrepareLog( o->csid,
-                                               o->clid,
-                                               o->extentPos,
-                                               header._lsn ) ;
-         }
-      }
-
-      PD_TRACE_EXIT( SDB__DPSRPCMGR__ALLOCATEDUMMYRECORD ) ;
-      return ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSRPCMGR__ALLOCATEFORMALRECORD, "_dpsReplicaLogMgr::_allocateFormalRecord" )
-   void _dpsReplicaLogMgr::_allocateFormalRecord( dpsWriteContext &ctx )
-   {
-      PD_TRACE_ENTRY( SDB__DPSRPCMGR__ALLOCATEFORMALRECORD ) ;
-      dpsLogRecordHeader &header = ctx.getRecord() ;
-      const dpsWriteRequest *req = ctx.getReq() ;
-      UINT32 recordSize = _getAlignedRecordSize( ctx.getRecordBodySizeAuto() ) ;
-      UINT32 freeSize = _getCurrentFileFreeSize() ;
-      SDB_ASSERT( recordSize <= freeSize, "invalid free size" ) ;
-      if ( freeSize < ( sizeof(dpsLogRecordHeader) + recordSize ) )
-      {
-         /// extend record size if no more record can be saved in current file
-         recordSize += ( freeSize - recordSize );
-      }
-
-      _prepareLogBuffers( recordSize, ctx.getPageMeta() ) ;
-
-      header._type = req->getType() ;
-      header._length = recordSize ;
-      header._lsn = _lsn.offset ;
-      header._version = _lsn.version ;
-      header._preLsn = _currentLsn.offset ;
-
-      if (0 == _lsn.offset % _logger.getLogFileSz() )
-      {
-         // record will be saved in a new log file, save snapshot of
-         // transaction information into next file's header
-         // NOTE: the next file ( file to store current log record ) will be
-         // write later in asynchronous, so we only save the summary in cache
-         // of the file, then the write processing of log file will save into
-         // disk from cache
-         dpsLogSummary summary ;
-         UINT32 fileID = header._lsn / _logger.getLogFileSz() ;
-         _transCB->dumpLogSummary( TRUE, summary ) ;
-         _logger.updateCachedSummary( fileID, summary ) ;
-      }
-
-      // Update the max LR size as needed. Protected under _writeMutex
-      _transCB->updateMaxLRSize( recordSize, _lsn.offset ) ;
-      if ( ctx.getOptions()->hasTransTime() )
-      {
-         // there is transaction time with the log, update the restore PIT
-         // window
-         _transCB->updateRestoreWindow( ctx.getOptions()->transTime ) ;
-      }
-      else if ( ctx.isIrreversible() )
-      {
-         // the log is irreversible, push the restore PIT window
-         _transCB->pushRestoreWindow() ;
-      }
-
-      _currentLsn = _lsn ;
-      _lsn.offset += header._length ;
-
-      if ( ctx.getOptions()->notify && _vecEventHandler.size() > 0 )
-      {
-         const dpsWriteOptions *o = ctx.getOptions() ;
-         for( UINT32 i = 0 ; i < _vecEventHandler.size() ; ++i )
-         {
-            _vecEventHandler[i]->onPrepareLog( o->csid,
-                                               o->clid,
-                                               o->extentPos,
-                                               header._lsn ) ;
-         }
-      }
-
-      PD_TRACE_EXIT( SDB__DPSRPCMGR__ALLOCATEFORMALRECORD ) ;
-      return ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSRPCMGR__PREPARELOGBUFFERS, "_dpsReplicaLogMgr::_prepareLogBuffers")
-   void _dpsReplicaLogMgr::_prepareLogBuffers(UINT32 size, dpsPageMeta &pm )
-   {
-      PD_TRACE_ENTRY( SDB__DPSRPCMGR__PREPARELOGBUFFERS ) ;
-      _allocate( size, pm );
-      SHARED_LOCK_NODES( pm );
-      _push2SendQueue( pm );
-      PD_TRACE_EXIT( SDB__DPSRPCMGR__PREPARELOGBUFFERS ) ;
-      return ;
-   }
-
-   UINT32 _dpsReplicaLogMgr::_getCurrentFileFreeSize() const
-   {
-      return _logger.getLogFileSz() - ( _lsn.offset % _logger.getLogFileSz() ) ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSRPCMGR__WRITETOBUFFER, "_dpsReplicaLogMgr::_writeToBuffer")
-   void _dpsReplicaLogMgr::_writeToBuffer( const dpsLogRecordHeader &header,
-                                           const utilSlice &body,
-                                           const dpsPageMeta &pm )
-   {
-      PD_TRACE_ENTRY( SDB__DPSRPCMGR__WRITETOBUFFER ) ;
-      SDB_ASSERT( pm.valid(), "can not be invalid" ) ;
-      UINT32 offset = pm.offset ;
-      UINT32 work = pm.beginSub ;
-
-      _mergePage((const CHAR *)(&header), sizeof( dpsLogRecordHeader ), work, offset ) ;
-
-      if ( 0 < body.size() )
-      {
-         _mergePage( body.data(), body.size(), work, offset ) ;
-      }
-      else if ( (sizeof(dpsRecordEle) + sizeof(dpsLogRecordHeader)) <= header._length )
-      {
-         /// make sure record will end by invalid tag if body is empty.
-         CHAR stop[sizeof(dpsRecordEle)] = {} ;
-         _mergePage( stop, sizeof(stop), work, offset ) ;
-      }
-      
-      PD_TRACE_EXIT( SDB__DPSRPCMGR__WRITETOBUFFER ) ;
-      return ;
-   }
 }
+

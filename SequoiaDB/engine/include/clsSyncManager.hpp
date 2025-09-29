@@ -37,18 +37,19 @@
 
 #include "core.hpp"
 #include "oss.hpp"
-#include "clsReplDef.hpp"
+#include "clsDef.hpp"
 #include "ossLatch.hpp"
 #include "clsSyncMinHeap.hpp"
 #include "msgReplicator.hpp"
 #include "ossAtomic.hpp"
-#include "pmdEDU.hpp"
-#include "netRouteAgent.hpp"
 #include "ossMemPool.hpp"
 #include "utilReplSizePlan.hpp"
 
 namespace engine
 {
+   class _netRouteAgent ;
+   class _dpsLogWrapper ;
+   class _pmdEDUCB ;
 
    struct clsWakePlanCompare
    {
@@ -95,16 +96,10 @@ namespace engine
    class _clsSyncManager : public SDBObject
    {
    public:
-<<<<<<< HEAD
       _clsSyncManager( _netRouteAgent *agent,
                        _clsGroupInfo *info,
                        _clsGroupInfo *locationInfo = NULL ) ;
 
-=======
-      _clsSyncManager( ICLSReplAgent *replAgent ) ;
-      _clsSyncManager( netRouteAgent *agent,
-                       clsGroupInfo *info ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       ~_clsSyncManager() ;
 
    public:
@@ -162,7 +157,6 @@ namespace engine
       DPS_LSN_OFFSET getSyncCtrlArbitLSN() ;
 
       /// offset is current offset.
-<<<<<<< HEAD
       BOOLEAN atLeastOne( const DPS_LSN_OFFSET &offset, UINT16 ensureNodeID = 0 ) ;
 
       void prepareBlackList( set<UINT64> &blacklist, const CLS_SELECT_RANGE &range ) ;
@@ -179,13 +173,6 @@ namespace engine
       /// compare waitPlan of session whit checkList, and if necessary,
       /// jump to next checklist until it passes checklist.
       INT32 _jump( _clsSyncSession &session, UINT32 &sub, BOOLEAN &needWait, BOOLEAN &hasJump ) ;
-=======
-      BOOLEAN atLeastOne( const DPS_LSN_OFFSET &offset,
-                          UINT64 ensureRIDValue = MSG_INVALID_ROUTEID ) ;
-
-   private:
-      INT32 _wait( pmdEDUCB *&cb, UINT32 sub, INT64 timeout = -1 ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       void _createWakePlan( CLS_WAKE_PLAN &plan ) ;
 
@@ -207,15 +194,9 @@ namespace engine
       _ossSpinXLatch   _mtxs[CLS_REPLSET_MAX_NODE_SIZE - 1] ;
       _clsSyncStatus   _notifyList[CLS_REPLSET_MAX_NODE_SIZE - 1] ;
 
-<<<<<<< HEAD
       _netRouteAgent *_agent ;
       _clsGroupInfo *_info ;
       _clsGroupInfo *_locationInfo ;
-=======
-      ICLSReplAgent * _replAgent ;
-      netRouteAgent *_agent ;
-      clsGroupInfo *_info ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       MsgRouteID _syncSrc ;
 
       /// valid _notifyList size
@@ -227,9 +208,6 @@ namespace engine
       // counts of operations which are blocking repl sync
       ossAtomic32 _blockSync ;
    } ;
-
-   typedef class _clsSyncManager clsSyncManager ;
-
 }
 
 #endif

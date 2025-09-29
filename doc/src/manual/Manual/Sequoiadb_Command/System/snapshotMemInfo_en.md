@@ -36,16 +36,9 @@ Acquire memory information
 ```lang-javascript
 > System.snapshotMemInfo()
 {
-<<<<<<< HEAD
   "Size": 5967,
   "Used": 2919,
   "Free": 384,
-=======
-  "Size": 7982,
-  "Used": 4945,
-  "Free": 192,
-  "Available": 2713,
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
   "Unit": "M"
 }
 ```

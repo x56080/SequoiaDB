@@ -331,15 +331,9 @@ class _mongoDeleteCommand : public _mongoCollectionCommand
 
       virtual INT32 parseSdbReply( const MsgOpReply &sdbReply,
                                    engine::rtnContextBuf &bodyBuf ) ;
-<<<<<<< HEAD
 
       virtual BOOLEAN hasProcessAllMsg() const { return _hasProcessAllMsg ; }
 
-=======
-
-      virtual BOOLEAN hasProcessAllMsg() const { return _hasProcessAllMsg ; }
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 private:
       BOOLEAN _hasBuildMsgVec ;
       BOOLEAN _hasProcessAllMsg ;
@@ -365,19 +359,11 @@ class _mongoUpdateCommand : public _mongoCollectionCommand
       virtual BOOLEAN needConvertDecimal() const { return TRUE ; }
 
       virtual INT32 buildSdbRequest( mongoMsgBuffer &sdbMsg, mongoSessionCtx &ctx ) ;
-<<<<<<< HEAD
 
       virtual INT32 buildMongoReply( const MsgOpReply &sdbReply,
                                      engine::rtnContextBuf &replyBuf,
                                      _mongoResponseBuffer &resHeader ) ;
 
-=======
-
-      virtual INT32 buildMongoReply( const MsgOpReply &sdbReply,
-                                     engine::rtnContextBuf &replyBuf,
-                                     _mongoResponseBuffer &resHeader ) ;
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       virtual INT32 parseSdbReply( const MsgOpReply &sdbReply,
                                    engine::rtnContextBuf &bodyBuf ) ;
 
@@ -494,19 +480,11 @@ class _mongoGetmoreCommand : public _mongoCommand
       virtual INT32 init( const _mongoMessage *pMsg, mongoSessionCtx &ctx ) ;
 
       virtual INT32 buildSdbRequest( mongoMsgBuffer &sdbMsg, mongoSessionCtx &ctx ) ;
-<<<<<<< HEAD
 
       virtual INT32 buildMongoReply( const MsgOpReply &sdbReply,
                                      engine::rtnContextBuf &replyBuf,
                                      _mongoResponseBuffer &resHeader ) ;
 
-=======
-
-      virtual INT32 buildMongoReply( const MsgOpReply &sdbReply,
-                                     engine::rtnContextBuf &replyBuf,
-                                     _mongoResponseBuffer &resHeader ) ;
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       virtual INT32 parseSdbReply( const MsgOpReply &sdbReply,
                                    engine::rtnContextBuf &bodyBuf )
       {
@@ -570,19 +548,11 @@ class _mongoKillCursorCommand : public _mongoCommand
       virtual INT32 init( const _mongoMessage *pMsg, mongoSessionCtx &ctx ) ;
 
       virtual INT32 buildSdbRequest( mongoMsgBuffer &sdbMsg, mongoSessionCtx &ctx ) ;
-<<<<<<< HEAD
 
       virtual INT32 buildMongoReply( const MsgOpReply &sdbReply,
                                      engine::rtnContextBuf &replyBuf,
                                      _mongoResponseBuffer &resHeader ) ;
 
-=======
-
-      virtual INT32 buildMongoReply( const MsgOpReply &sdbReply,
-                                     engine::rtnContextBuf &replyBuf,
-                                     _mongoResponseBuffer &resHeader ) ;
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       virtual INT32 parseSdbReply( const MsgOpReply &sdbReply,
                                    engine::rtnContextBuf &bodyBuf )
       {

@@ -685,11 +685,7 @@ namespace engine
                  rc, exitCode ) ;
          rc = SDB_OK ;
       }
-<<<<<<< HEAD
       else 
-=======
-      else
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       {
          rc = runner.read( outStr ) ;
          if ( SDB_OK != rc )
@@ -700,11 +696,7 @@ namespace engine
                << rc ;
             err = ss.str() ;
             goto error ;
-<<<<<<< HEAD
          } 
-=======
-         }
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       }
 
       rc = _extractCpuInfo( outStr.c_str(), builder ) ;
@@ -1890,11 +1882,7 @@ namespace engine
          {
             // if password has been input, we don't save command to history file.
             sdbSetIsNeedSaveHistory( FALSE ) ;
-<<<<<<< HEAD
             
-=======
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             if ( String != elem.type() )
             {
                rc = SDB_INVALIDARG ;
@@ -1902,7 +1890,6 @@ namespace engine
                goto error ;
             }
             cmd << " -p \'" << elem.valuestr() << "\'" ;
-<<<<<<< HEAD
          }
          else if ( 0 == ossStrcmp( elem.fieldName(), "gid" ) )
          {
@@ -1915,42 +1902,10 @@ namespace engine
             cmd << " -g " << elem.valuestr() ;
          }
          else if ( 0 == ossStrcmp( elem.fieldName(), "groups" ) )
-=======
-         }
-         else if ( 0 == ossStrcmp( elem.fieldName(), "gid" ) )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          {
             if ( String != elem.type() )
             {
                rc = SDB_INVALIDARG ;
-<<<<<<< HEAD
-               err = "groups must be string" ;
-               goto error ;
-            }
-            cmd << " -G " << elem.valuestr() ;
-         }
-         else if ( 0 == ossStrcmp( elem.fieldName(), "dir" ) )
-=======
-               err = "gid must be string" ;
-               goto error ;
-            }
-            cmd << " -g " << elem.valuestr() ;
-         }
-         else if ( 0 == ossStrcmp( elem.fieldName(), "groups" ) )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
-         {
-            if ( String != elem.type() )
-            {
-               rc = SDB_INVALIDARG ;
-<<<<<<< HEAD
-               err = "dir must be string" ;
-               goto error ;
-            }
-            cmd << " -d " << elem.valuestr() ;
-         }
-         else if ( 0 == ossStrcmp( elem.fieldName(), "createDir" ) )
-         {
-=======
                err = "groups must be string" ;
                goto error ;
             }
@@ -1968,7 +1923,6 @@ namespace engine
          }
          else if ( 0 == ossStrcmp( elem.fieldName(), "createDir" ) )
          {
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             if ( Bool != elem.type() )
             {
                rc = SDB_INVALIDARG ;
@@ -2083,11 +2037,7 @@ namespace engine
                rc = SDB_INVALIDARG ;
                err = "isUnique must be bool" ;
                goto error ;
-<<<<<<< HEAD
             } 
-=======
-            }
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             if ( FALSE == elem.boolean() )
             {
                cmd << " -o " ;
@@ -2116,11 +2066,7 @@ namespace engine
          err = "name must be config" ;
          goto error ;
       }
-<<<<<<< HEAD
       
-=======
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       // run cmd
       rc = runner.exec( cmd.str().c_str(), exitCode,
                         FALSE, -1, FALSE, NULL, TRUE ) ;
@@ -2320,11 +2266,7 @@ namespace engine
       BOOLEAN           nameFlag = 0 ;
 
       cmd << "userdel" ;
-<<<<<<< HEAD
       
-=======
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       BSONObjIterator it( configObj ) ;
       while ( it.more() )
       {
@@ -2366,11 +2308,7 @@ namespace engine
          err = "name must be config" ;
          goto error ;
       }
-<<<<<<< HEAD
       
-=======
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       // run cmd
       rc = runner.exec( cmd.str().c_str(), exitCode,
                         FALSE, -1, FALSE, NULL, TRUE ) ;
@@ -4438,7 +4376,7 @@ namespace engine
 
       try
       {
-         boost::algorithm::split( splited, buf, boost::is_any_of("\t \n") ) ;
+         boost::algorithm::split( splited, buf, boost::is_any_of("\t ") ) ;
       }
       catch( std::exception &e )
       {
@@ -4476,9 +4414,7 @@ namespace engine
          builder.append( CMD_USR_SYSTEM_USED,
                          boost::lexical_cast<UINT32>(splited.at( 2 ) ) ) ;
          builder.append( CMD_USR_SYSTEM_FREE,
-                         boost::lexical_cast<UINT32>(splited.at( 3 ) ) ) ;
-         builder.append( CMD_USR_SYSTEM_AVAILABLE,
-                         boost::lexical_cast<UINT32>(splited.at( 6 ) ) ) ;
+                         boost::lexical_cast<UINT32>(splited.at( 3) ) ) ;
          builder.append( CMD_USR_SYSTEM_UNIT, "M" ) ;
       }
       catch ( std::exception &e )

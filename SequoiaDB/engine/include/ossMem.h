@@ -97,7 +97,6 @@ void    ossOnMemConfigChange( BOOLEAN debugEnable,
                               BOOLEAN memDebugDetail,
                               UINT32  memDebugMask ) ;
 
-<<<<<<< HEAD
 void    ossSetSysMemInfo( INT32 mxfast,
                           INT32 trimThreshold,
                           INT32 mmapThreshold,
@@ -105,12 +104,6 @@ void    ossSetSysMemInfo( INT32 mxfast,
                           INT32 topPad ) ;
 
 INT32   ossMemTrim() ;
-=======
-// watch a given memory address to capture value changes
-INT32 ossMemWatch( INT32 *address, INT32 oldValue, INT64 timeout ) ;
-// wake up threads who are watching a given memory address
-INT32 ossMemWakeUpWatchers( INT32 *address ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 SDB_EXTERN_C_END
 #endif

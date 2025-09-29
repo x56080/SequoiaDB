@@ -53,11 +53,9 @@
 #include <stdio.h>
 #include <ctype.h>
 
-#define OSS_ONE_THOUSAND   ( 1000 )
-#define OSS_TEN_MILLION    ( 10000000 )
-#define OSS_ONE_MILLION    ( 1000000 )
-#define OSS_ONE_BILLION    ( 1000000000LL )
-#define OSS_ONE_SEC        ( 1000 )
+#define OSS_TEN_MILLION 10000000
+#define OSS_ONE_MILLION 1000000
+#define OSS_ONE_SEC     (1000)
 
 #define OSS_EPSILON     (1e-6)
 

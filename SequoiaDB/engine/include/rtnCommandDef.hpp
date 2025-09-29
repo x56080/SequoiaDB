@@ -127,15 +127,8 @@ namespace engine
 #define NAME_UPDATE_CONFIG                   CMD_NAME_UPDATE_CONFIG
 #define NAME_DELETE_CONFIG                   CMD_NAME_DELETE_CONFIG
 #define NAME_ANALYZE                         CMD_NAME_ANALYZE
-<<<<<<< HEAD
 #define NAME_ALTER_GROUP                     CMD_NAME_ALTER_GROUP
 #define NAME_MEM_TRIM                        CMD_NAME_MEM_TRIM
-=======
-#define NAME_RESTORE_TO_TIME                 CMD_NAME_RESTORE_TO_TIME
-#define NAME_RESTORE_ABORT                   CMD_NAME_RESTORE_ABORT
-#define NAME_RESTORE_PREPARE                 CMD_NAME_RESTORE_PREPARE
-#define NAME_RESTORE_CHECK                   CMD_NAME_RESTORE_CHECK
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 // the commands that does not supported by data nodes or standalone mode
 #define NAME_CREATE_GROUP                    CMD_NAME_CREATE_GROUP
@@ -184,7 +177,6 @@ namespace engine
 #define NAME_RETURN_RECYCLEBIN_ITEM          CMD_NAME_RETURN_RECYCLEBIN_ITEM
 #define NAME_RETURN_RECYCLEBIN_ITEM_TO_NAME  CMD_NAME_RETURN_RECYCLEBIN_ITEM_TO_NAME
 
-<<<<<<< HEAD
 #define NAME_INVALIDATE_USER_CACHE           CMD_NAME_INVALIDATE_USER_CACHE
 #define NAME_CREATE_ROLE                     CMD_NAME_CREATE_ROLE
 #define NAME_DROP_ROLE                       CMD_NAME_DROP_ROLE
@@ -199,8 +191,6 @@ namespace engine
 #define NAME_GRANT_ROLES_TO_USER             CMD_NAME_GRANT_ROLES_TO_USER
 #define NAME_REVOKE_ROLES_FROM_USER          CMD_NAME_REVOKE_ROLES_FROM_USER
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    /*
       Command Type Define
    */
@@ -356,14 +346,6 @@ namespace engine
       CMD_DROP_SEQUENCE                      = 261,
       CMD_ALTER_SEQUENCE                     = 262,
 
-<<<<<<< HEAD
-=======
-      CMD_RESTORE_CHECK                      = 263,
-      CMD_RESTORE_TO_TIME                    = 264,
-      CMD_RESTORE_ABORT                      = 265,
-      CMD_RESTORE_PREPARE                    = 266,
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       CMD_SNAPSHOT_TASKS                     = 270,
       CMD_SNAPSHOT_INDEXES                   = 271,
       CMD_SNAPSHOT_TRANSWAITS                = 272,
@@ -382,7 +364,6 @@ namespace engine
       CMD_RETURN_RECYCLEBIN_ITEM             = 297,
       CMD_RETURN_RECYCLEBIN_ITEM_TO_NAME     = 298,
 
-<<<<<<< HEAD
       // rbac commands
       CMD_INVALIDATE_USER_CACHE              = 310,
       CMD_CREATE_ROLE                        = 311,
@@ -398,8 +379,6 @@ namespace engine
       CMD_GRANT_ROLES_TO_USER                = 321,
       CMD_REVOKE_ROLES_FROM_USER             = 322,
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       CMD_UNKNOW                             = 65535
    };
 

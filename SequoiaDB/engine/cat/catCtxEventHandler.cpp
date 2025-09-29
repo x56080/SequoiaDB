@@ -1,6 +1,5 @@
 /*******************************************************************************
 
-<<<<<<< HEAD
    Copyright (C) 2011-Present SequoiaDB Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,23 +13,6 @@
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
-=======
-
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
-
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
-
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    Source File Name = catContextData.cpp
 
@@ -51,10 +33,6 @@
    Last Changed =
 
 *******************************************************************************/
-<<<<<<< HEAD
-=======
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 #include "catCtxEventHandler.hpp"
 #include "pdTrace.hpp"
 #include "catTrace.hpp"
@@ -506,13 +484,8 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_CATRECYCTXTASKHANDLER_ONCHECKEVENT ) ;
 
-<<<<<<< HEAD
       rc = _checkTasks( cb, w ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to check tasks, "
-=======
-      rc = _checkSplitTasks( cb, w ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to check split tasks, "
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                    "rc: %d", rc ) ;
 
    done:
@@ -523,21 +496,12 @@ namespace engine
       goto done ;
    }
 
-<<<<<<< HEAD
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATRECYCTXTASKHANDLER__CHECKTASKS, "_catRecyCtxTaskHandler::_checkTasks" )
    INT32 _catRecyCtxTaskHandler::_checkTasks( _pmdEDUCB *cb, INT16 w )
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB_CATRECYCTXTASKHANDLER__CHECKTASKS ) ;
-=======
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATRECYCTXTASKHANDLER__CHECKSPLITTASKS, "_catRecyCtxTaskHandler::_checkSplitTasks" )
-   INT32 _catRecyCtxTaskHandler::_checkSplitTasks( _pmdEDUCB *cb, INT16 w )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB_CATRECYCTXTASKHANDLER__CHECKSPLITTASKS ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       if ( !_recycleItem.isValid() )
       {
@@ -547,13 +511,8 @@ namespace engine
       if ( UTIL_RECYCLE_CS == _recycleItem.getType() )
       {
          const CHAR *csName = _recycleItem.getOriginName() ;
-<<<<<<< HEAD
          rc = catGetCSTasks( csName, cb, _taskSet ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get tasks on collection "
-=======
-         rc = catGetCSTaskByType( csName, CLS_TASK_SPLIT, cb, _taskSet ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to get split tasks on collection "
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                       "space [%s], rc: %d", csName, rc ) ;
       }
       else if ( UTIL_RECYCLE_CL == _recycleItem.getType() )
@@ -583,28 +542,19 @@ namespace engine
             {
                const CHAR *subCLName = iter->c_str() ;
 
-<<<<<<< HEAD
                rc = catGetCLTasks( subCLName, cb, _taskSet ) ;
-=======
-               rc = catGetCLTaskByType( subCLName, CLS_TASK_SPLIT, cb, _taskSet ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                PD_RC_CHECK( rc, PDERROR, "Failed to get split tasks on collection "
                             "space [%s], rc: %d", subCLName, rc ) ;
             }
          }
          else
          {
-<<<<<<< HEAD
             rc = catGetCLTasks( clName, cb, _taskSet ) ;
-=======
-            rc = catGetCLTaskByType( clName, CLS_TASK_SPLIT, cb, _taskSet ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             PD_RC_CHECK( rc, PDERROR, "Failed to get split tasks on collection "
                          "space [%s], rc: %d", clName, rc ) ;
          }
       }
 
-<<<<<<< HEAD
       // for both drop and truncate, we need to cancel tasks
       // - for split task
       // once collection or collection space recycled, the clean job of
@@ -612,30 +562,17 @@ namespace engine
       // - for index task
       // if the priamry nodes not finish task, while the secondary node finished,
       // which will cause the index not consistent
-=======
-      // for both drop and truncate, we need to cancel split tasks
-      // once collection or collection space recycled, the clean job of
-      // split tasks will not be able to find the origin collection
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       // NOTE: the reason of truncate need cancel split tasks is because
       // once the split hangs by error (e.g. array sharding keys), the truncate
       // hangs also
       rc = _cancelTasks( cb, w ) ;
-<<<<<<< HEAD
       PD_RC_CHECK( rc, PDERROR, "Failed to cancel tasks before "
-=======
-      PD_RC_CHECK( rc, PDERROR, "Failed to cancel split tasks before "
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                    "recycle item [origin: %s, recycle: %s], rc: %d",
                    _recycleItem.getOriginName(),
                    _recycleItem.getRecycleName(), rc ) ;
 
    done:
-<<<<<<< HEAD
       PD_TRACE_EXITRC( SDB_CATRECYCTXTASKHANDLER__CHECKTASKS, rc ) ;
-=======
-      PD_TRACE_EXITRC( SDB_CATRECYCTXTASKHANDLER__CHECKSPLITTASKS, rc ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       return rc ;
 
    error:

@@ -75,8 +75,6 @@ namespace engine
       _extOffset = DMS_INVALID_OFFSET ;
       _needNty = FALSE ;
       _transEnabled = FALSE ;
-      _irreversible = FALSE ;
-      _transTime = DPS_INVALID_TRANS_TIME ;
    }
 
    _dpsMergeInfo::_dpsMergeInfo( dpsMergeBlock &block )
@@ -89,8 +87,6 @@ namespace engine
       _extOffset = DMS_INVALID_OFFSET ;
       _needNty = FALSE ;
       _transEnabled = FALSE ;
-      _irreversible = FALSE ;
-      _transTime = DPS_INVALID_TRANS_TIME ;
    }
 
    _dpsMergeInfo::~_dpsMergeInfo ()

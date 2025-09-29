@@ -109,11 +109,6 @@ namespace engine
       _dropDups = FALSE ;
       _isIDIndex = FALSE ;
       _nameExtData = NULL ;
-<<<<<<< HEAD
-=======
-      _createTime = 0 ;
-      _rebuildTime = 0 ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       _fieldInitedFlag = 0 ;
 
       _extent = (const ixmIndexCBExtent*)pIndexSu->beginFixedAddr ( extentID,
@@ -274,12 +269,8 @@ namespace engine
    INT32 _ixmIndexCB::getKeysFromObject ( const BSONObj &obj,
                                           BSONObjSet &keys,
                                           BOOLEAN *pAllUndefined,
-<<<<<<< HEAD
                                           BOOLEAN checkValid,
                                           utilWriteResult *pResult ) const
-=======
-                                          BOOLEAN checkValid ) const
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
       INT32 rc = SDB_OK ;
       SDB_ASSERT ( _isInitialized,
@@ -296,11 +287,7 @@ namespace engine
 
       if ( checkValid )
       {
-<<<<<<< HEAD
          rc = checkKeys( obj, keys, arrEle, pResult ) ;
-=======
-         rc = checkKeys( keys, arrEle ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          PD_RC_CHECK( rc, PDERROR, "Failed to check keys for object [%s], "
                       "rc: %d", PD_SECURE_OBJ( obj ), rc ) ;
       }
@@ -312,7 +299,6 @@ namespace engine
       goto done ;
    }
 
-<<<<<<< HEAD
    INT32 _ixmIndexCB::_checkNullKeys( const BSONObjSet &keys,
                                       utilWriteResult *pResult ) const
    {
@@ -366,11 +352,6 @@ namespace engine
                                  const BSONObjSet &keys,
                                  const BSONElement &arrEle,
                                  utilWriteResult *pResult ) const
-=======
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMINXCB_CHECKKEYS, "_ixmIndexCB::checkKeys" )
-   INT32 _ixmIndexCB::checkKeys( const BSONObjSet &keys,
-                                 const BSONElement &arrEle ) const
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
       INT32 rc = SDB_OK ;
 
@@ -378,18 +359,12 @@ namespace engine
 
       if ( notArray() )
       {
-<<<<<<< HEAD
          rc = _checkArrayKeys( obj, keys, arrEle, pResult ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to check array keys, rc: %d", rc ) ;
-=======
-         PD_CHECK( arrEle.eoo(), SDB_IXM_KEY_NOT_SUPPORT_ARRAY, error, PDERROR,
-                   "Failed to check keys, index not support array" ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       }
 
       if ( notNull() )
       {
-<<<<<<< HEAD
          rc = _checkNullKeys( keys, pResult ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to check NULL keys, rc: %d", rc ) ;
       }
@@ -571,27 +546,10 @@ namespace engine
                if ( SDB_OK == tmpRC )
                {
                   tmpRC = pResult->setIndexErrInfo( getName(), keyPattern(), builder.obj() ) ;
-=======
-         for ( BSONObjSet::const_iterator iter = keys.begin() ;
-               iter != keys.end() ;
-               ++ iter )
-         {
-            try
-            {
-               BSONObjIterator bIter( *iter ) ;
-               while ( bIter.more() )
-               {
-                  BSONElement ele = bIter.next() ;
-                  PD_CHECK( ( Undefined != ele.type() &&
-                              jstNULL != ele.type() ),
-                            SDB_IXM_KEY_NOTNULL, error, PDERROR,
-                            "Failed to check keys, index not support NULL" ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                }
             }
             catch ( exception &e )
             {
-<<<<<<< HEAD
                PD_LOG( PDERROR, "Failed to build error info, occur exception %s", e.what() ) ;
                tmpRC = ossException2RC( &e ) ;
             }
@@ -604,18 +562,6 @@ namespace engine
       }
 
    done:
-=======
-               PD_LOG( PDERROR, "Failed to parse object, occur exception %s",
-                       e.what() ) ;
-               rc = ossException2RC( &e ) ;
-               goto error ;
-            }
-         }
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB__IXMINXCB_CHECKKEYS, rc ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       return rc ;
 
    error:
@@ -660,36 +606,6 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__IXMINXCB_TRUNC );
       PD_TRACE1 ( SDB__IXMINXCB_TRUNC, PD_PACK_INT(removeRoot) ) ;
 
-<<<<<<< HEAD
-=======
-      setFlag ( IXM_INDEX_FLAG_TRUNCATING ) ;
-      dmsExtentID root = getRoot() ;
-      if ( DMS_INVALID_EXTENT != root )
-      {
-         BOOLEAN valid = TRUE ;
-         ixmExtent rootExtent ( root, _pIndexSu ) ;
-         UINT16 keyCnt = rootExtent.getNumKeyNode() ;
-         rootExtent.truncate ( this, DMS_INVALID_EXTENT, valid, pDelKeyCnt ) ;
-         if ( valid && removeRoot )
-         {
-            UINT16 mbID = rootExtent.getMBID() ;
-            UINT16 freeSize = rootExtent.getFreeSize() ;
-            // we need to set _totalIndexFreeSpace before freeExtent()
-            _pIndexSu->decStatFreeSpace( mbID, freeSize ) ;
-            rc = freeExtent ( root ) ;
-            if ( rc )
-            {
-               _pIndexSu->addStatFreeSpace( mbID, freeSize ) ;
-               PD_LOG ( PDERROR, "Failed to free extent %d", root ) ;
-               goto error ;
-            }
-            if ( pDelKeyCnt )
-            {
-               pDelKeyCnt->add( keyCnt ) ;
-            }
-         }
-      }
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       setFlag ( indexFlag ) ;
       scanExtLID ( DMS_INVALID_EXTENT ) ;
       PD_TRACE_EXITRC ( SDB__IXMINXCB_TRUNC, rc );
@@ -738,7 +654,6 @@ namespace engine
          PD_LOG( PDERROR, "occur unexpected error(%s)", e.what() ) ;
          goto error ;
       }
-<<<<<<< HEAD
 
    done:
       return rc ;
@@ -750,176 +665,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-=======
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   // WANRING: should not use to update key definition of index
-   INT32 _ixmIndexCB::updateDef( const BSONElement &newElement )
-   {
-      INT32 rc = SDB_OK ;
-
-      try
-      {
-         BOOLEAN updated = FALSE ;
-         BSONObjBuilder builder ;
-         BSONObj newDef ;
-         dmsExtRW extRW ;
-         ixmIndexCBExtent *extent = NULL ;
-
-         BSONObjIterator iter( _infoObj ) ;
-         while ( iter.more() )
-         {
-            BSONElement element = iter.next() ;
-            if ( 0 == ossStrcmp( element.fieldName(),
-                                 newElement.fieldName() ) )
-            {
-               builder.append( newElement ) ;
-               updated = TRUE ;
-            }
-            else
-            {
-               builder.append( element ) ;
-            }
-         }
-
-         if ( !updated )
-         {
-            builder.append( newElement ) ;
-         }
-
-         newDef = builder.obj() ;
-
-         extRW = _pIndexSu->extent2RW( _extentID, _extent->_mbID ) ;
-         extent = extRW.writePtr<ixmIndexCBExtent>( 0, (UINT32)_pageSize ) ;
-
-         ossMemcpy( ( (CHAR *)extent ) + IXM_INDEX_CB_EXTENT_METADATA_SIZE,
-                    newDef.objdata(), (size_t)( newDef.objsize() ) ) ;
-
-         _infoObj = BSONObj( ( (const CHAR *)_extent ) +
-                             IXM_INDEX_CB_EXTENT_METADATA_SIZE ) ;
-         _fieldInitedFlag = 0 ;
-      }
-      catch ( exception &e )
-      {
-         PD_LOG( PDERROR, "Failed to update index definition, error: %s",
-                 e.what() ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
-
-   done:
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
-   UINT64 _ixmIndexCB::getCreateTime() const
-   {
-      // get create time from index CB
-
-      // index CB should be initialized
-      SDB_ASSERT ( _isInitialized, "index must be initialized" ) ;
-
-      if( !CREATE_TIME_IS_INITED() )
-      {
-         // get create time from BSON
-         try
-         {
-            BSONElement element = _infoObj.getField( IXM_FIELD_NAME_CREATETIME ) ;
-            if ( NumberLong == element.type() )
-            {
-               _createTime = element.numberLong() ;
-            }
-            else
-            {
-               _createTime = 0LL ;
-            }
-            SET_CREATE_TIME_INITED() ;
-         }
-         catch ( exception &e )
-         {
-            PD_LOG ( PDERROR, "Failed to get [%s] of index, error: %s",
-                     IXM_FIELD_NAME_CREATETIME, e.what() ) ;
-         }
-      }
-
-      return _createTime ;
-   }
-
-   UINT64 _ixmIndexCB::getRebuildTime() const
-   {
-      // get rebuild time from index CB
-
-      // index CB should be initialized
-      SDB_ASSERT ( _isInitialized, "index must be initialized" ) ;
-
-      if ( !REBUILD_TIME_IS_INITED() )
-      {
-         // get rebuild time from BSON
-         try
-         {
-            BSONElement element = _infoObj.getField( IXM_FIELD_NAME_REBUILDTIME ) ;
-            if ( NumberLong == element.type() )
-            {
-               _rebuildTime = element.numberLong() ;
-            }
-            else
-            {
-               _rebuildTime = 0LL ;
-            }
-            SET_REBUILD_TIME_INITED() ;
-         }
-         catch ( exception &e )
-         {
-            PD_LOG ( PDERROR, "Failed to get [%s] of index, error: %s",
-                     IXM_FIELD_NAME_REBUILDTIME, e.what() ) ;
-         }
-      }
-
-      return _rebuildTime ;
-   }
-
-   INT32 _ixmIndexCB::updateRebuildTime( UINT64 rebuildTime )
-   {
-      INT32 rc = SDB_OK ;
-
-      try
-      {
-         BSONObj rebuildObject = BSON( IXM_FIELD_NAME_REBUILDTIME <<
-                                       (INT64)rebuildTime ) ;
-         rc = updateDef( rebuildObject.firstElement() ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to update definition of index, "
-                      "rc: %d", rc ) ;
-
-         _rebuildTime = rebuildTime ;
-         SET_REBUILD_TIME_INITED() ;
-      }
-      catch ( exception &e )
-      {
-         rc = SDB_SYS ;
-         PD_LOG( PDERROR, "Failed to update rebuild time of index, error: %s",
-                 e.what() ) ;
-         goto error ;
-      }
-
-   done:
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
-   INT32 _ixmIndexCB::_initGlobIndexInfo() const
-   {
-      INT32 rc = SDB_OK ;
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       if ( GLOB_INDEX_IS_INITED() )
       {
          goto done ;

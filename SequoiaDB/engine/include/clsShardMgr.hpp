@@ -43,10 +43,6 @@
 #include "clsDCMgr.hpp"
 #include "monDMS.hpp"
 #include "ossMemPool.hpp"
-<<<<<<< HEAD
-=======
-#include "dpsTransID.hpp"
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 #include "clsFreezingWindow.hpp"
 
 using namespace bson ;
@@ -126,6 +122,9 @@ namespace engine
       typedef ossPoolMap<UINT64, clsCSEventItem*>        MAP_CS_EVENT ;
       typedef MAP_CS_EVENT::iterator                     MAP_CS_EVENT_IT ;
 
+      typedef std::map<UINT64, _netRouteNode>            MAP_ROUTE_NODE ;
+      typedef MAP_ROUTE_NODE::iterator                   MAP_ROUTE_NODE_IT ;
+
       DECLARE_OBJ_MSG_MAP()
 
       public:
@@ -168,13 +167,6 @@ namespace engine
                                     BOOLEAN *pUpdated = NULL ) ;
          INT32 unlockGroupItem( clsGroupItem *item ) ;
 
-         INT32 getNodeInfo( const MsgRouteID &routeID,
-                            std::string &hostName,
-                            std::string &serviceName,
-                            BOOLEAN noWithUpdate = TRUE,
-                            INT64 waitMillSec = CLS_SHARD_TIMEOUT,
-                            BOOLEAN *updated = NULL ) ;
-
          INT32 rGetCSInfo( const CHAR *csName,
                            utilCSUniqueID &csUniqueID,
                            UINT32 *pageSize = NULL,
@@ -196,15 +188,7 @@ namespace engine
                                BOOLEAN canUpCataGrp = TRUE ) ;
          INT32  syncSend( MsgHeader * msg, UINT32 groupID, BOOLEAN primary,
                           MsgHeader **ppRecvMsg,
-                          INT64 millisec = CLS_SHARD_TIMEOUT,
-                          const CHAR *buffer = NULL,
-                          UINT32 bufferSize = 0 ) ;
-         INT32  syncSend( MsgHeader *message,
-                          const MsgRouteID &routeID,
-                          MsgHeader **recvMessage,
-                          INT64 millisec = CLS_SHARD_TIMEOUT,
-                          const CHAR *buffer = NULL,
-                          UINT32 bufferSize = 0 ) ;
+                          INT64 millisec = CLS_SHARD_TIMEOUT ) ;
          INT32  updatePrimary ( const NodeID & id , BOOLEAN primary ) ;
          INT32  updateCatGroup ( INT64 millsec = 0 ) ;
          INT32  updatePrimaryByReply( MsgHeader *pMsg,
@@ -252,15 +236,6 @@ namespace engine
                                 NET_HANDLE *pHandle = NULL,
                                 INT64 millsec = 0 ) ;
 
-         // send message and receive reply with temporary socket
-         INT32 _sendAndRecv( const CHAR *hostName,
-                             UINT16 port,
-                             MsgHeader *message,
-                             MsgHeader **receiveMessage,
-                             INT64 millisec = CLS_SHARD_TIMEOUT,
-                             const CHAR *buffer = NULL,
-                             UINT32 bufferSize = 0 ) ;
-
          clsEventItem *_findCatSyncEvent ( const CHAR *pCollectionName,
                                            utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL,
                                            BOOLEAN bCreate = FALSE ) ;
@@ -270,7 +245,7 @@ namespace engine
                                           BOOLEAN bCreate = FALSE ) ;
          clsEventItem *_findNMSyncEvent ( UINT64 requestID ) ;
 
-         INT32 _findCatNodeID ( NET_ROUTE_MAP &catNodes,
+         INT32 _findCatNodeID ( MAP_ROUTE_NODE &catNodes,
                                 const CHAR *hostName,
                                 const std::string &service,
                                 NodeID &id ) ;
@@ -306,7 +281,7 @@ namespace engine
          UINT64                        _requestID ;
 
          clsGroupItem                  _cataGrpItem ;
-         NET_ROUTE_MAP                 _mapNodes ;
+         MAP_ROUTE_NODE                _mapNodes ;
 
          UINT32                        _catVerion ;
          ossEvent                      _upCatEvent ;

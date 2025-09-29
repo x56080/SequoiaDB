@@ -51,7 +51,7 @@ namespace engine
       TRANS_ISOLATION_RU = 0, // READ UNCOMMITTED
       TRANS_ISOLATION_RC = 1, // READ COMMITTED
       TRANS_ISOLATION_RS = 2, // READ STABILITY
-      TRANS_ISOLATION_RR = 3, // REPEATABLE READ
+    //TRANS_ISOLATION_RR = 3, // REPEATABLE READ
 
       TRANS_ISOLATION_MAX
    } ;
@@ -83,9 +83,6 @@ namespace engine
       DPS_TRANS_ROLLBACK      = 4,
       // transaction is doing but interrupted (it is going to rollback)
       DPS_TRANS_DOING_INTERRUPT = 5,
-      // transaction is preparing to pre-commit
-      // NOTE: only used in global transaction with RR isolation
-      DPS_TRANS_PRE_WAIT_COMMIT = 6,
       // transaction is not found in history map ( cleared by gc )
       DPS_TRANS_UNKNOWN       = 99
    } ;
@@ -104,13 +101,6 @@ namespace engine
    #define DPS_TRANS_MAXLOGSPACERATIO_MIN ( 1 )
    #define DPS_TRANS_MAXLOGSPACERATIO_MAX ( 50 )
    #define DPS_TRANS_MAXLOGSPACERATIO_DFT ( DPS_TRANS_MAXLOGSPACERATIO_MAX )
-<<<<<<< HEAD
-=======
-
-   #define DPS_DEF_GLOBTRANS_MAXTIMEERROR ( 500000 )
-   #define DPS_MAX_GLOBTRANS_MAXTIMEERROR ( 5000000 )
-   #define DPS_INVALID_GLOBTRANS_MAXTIMEERROR ( 0xFFFFFFFF )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    /*
       TRANS CONFIG MASK

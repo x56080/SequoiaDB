@@ -4,11 +4,7 @@
 
     <groupId>com.sequoiadb</groupId>
     <artifactId>sequoiadb-driver</artifactId>
-<<<<<<< HEAD
     <version>3.6.1-SNAPSHOT</version>
-=======
-    <version>5.0.3-SNAPSHOT</version>
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     <packaging>jar</packaging>
 
     <name>SequoiaDB Java Driver</name>
@@ -162,13 +158,10 @@
                         <exclude>com/sequoiadb/util/Helper.java</exclude>
                         <exclude>com/sequoiadb/log/Log.java</exclude>
                         <exclude>com/sequoiadb/log/LogFactory.java</exclude>
-<<<<<<< HEAD
                         <exclude>com/sequoiadb/util/AuthAlgorithmSHA256.java</exclude>
                         <exclude>com/sequoiadb/util/lobid/UtilBitAssist.java</exclude>
                         <exclude>com/sequoiadb/util/SdbBase64.java</exclude>
                         <exclude>com/sequoiadb/util/SdbSecureUtil.java</exclude>
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                     </sourceFileExcludes>
                 </configuration>
             </plugin>

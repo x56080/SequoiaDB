@@ -159,8 +159,4 @@
 [create_collection]:manual/Manual/Sequoiadb_Command/SdbCS/createCL.md
 [split]:manual/Manual/Sequoiadb_Command/SdbCollection/split.md
 [attach_command]:manual/Manual/Sequoiadb_Command/SdbCollection/attachCL.md
-<<<<<<< HEAD
 [snapshot]:manual/Manual/Snapshot/Readme.md
-=======
-[snapshot]:manual/Manual/Snapshot/Readme.md
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2

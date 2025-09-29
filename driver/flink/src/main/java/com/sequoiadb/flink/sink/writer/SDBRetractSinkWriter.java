@@ -18,10 +18,7 @@ package com.sequoiadb.flink.sink.writer;
 
 import com.sequoiadb.flink.common.client.SDBClientProvider;
 import com.sequoiadb.flink.common.exception.SDBException;
-<<<<<<< HEAD
 import com.sequoiadb.flink.common.util.RetryUtil;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 import com.sequoiadb.flink.config.SDBSinkOptions;
 import com.sequoiadb.flink.serde.SDBDataConverter;
 
@@ -102,7 +99,6 @@ public class SDBRetractSinkWriter implements SinkWriter<RowData, Void, Void> {
         // metadata column, check if there is more than one topic or partition.
         detectIfUsingMultiPartition(rowData);
 
-<<<<<<< HEAD
         RetryUtil.retryWhenRuntimeException(() -> {
             switch (rowData.getRowKind()) {
                 case INSERT:
@@ -121,23 +117,6 @@ public class SDBRetractSinkWriter implements SinkWriter<RowData, Void, Void> {
             }
             return null;
         }, RetryUtil.DEFAULT_MAX_RETRY_TIMES, RetryUtil.DEFAULT_RETRY_DURATION, true);
-=======
-        switch (rowData.getRowKind()) {
-            case INSERT:
-            case UPDATE_AFTER:
-                provider.getCollection().upsert(
-                        createMatcher(record),
-                        createModifier(MODIFIER_SET, record),
-                        null,
-                        record, 0);
-                break;
-
-            case UPDATE_BEFORE:
-            case DELETE:
-                provider.getCollection().deleteRecords(createMatcher(record));
-                break;
-        }
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     }
 
     /**

@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 /*******************************************************************************
 
    Copyright (C) 2011-Present SequoiaDB Ltd.
@@ -31,8 +30,6 @@
    Last Changed =
 
 *******************************************************************************/
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 package com.sequoiadb.message.request;
 
 import com.sequoiadb.exception.BaseException;
@@ -107,13 +104,7 @@ public class SequenceFetchRequest extends SdbRequest {
         out.put((byte) 0);
         int length = clNameBytes.length + 1;
         int paddingLen = Helper.alignedSize(length) - length;
-<<<<<<< HEAD
         Helper.fillZero(out, paddingLen);
-=======
-        if (paddingLen > 0) {
-            out.put(new byte[paddingLen]);
-        }
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         encodeBSONBytes(matcherBytes, out);
         encodeBSONBytes(selectorBytes, out);
         encodeBSONBytes(orderBytes, out);

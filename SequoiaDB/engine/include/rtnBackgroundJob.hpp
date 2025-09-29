@@ -38,10 +38,7 @@
 #include "dpsLogWrapper.hpp"
 #include "dmsCB.hpp"
 #include "dmsTaskStatus.hpp"
-<<<<<<< HEAD
 #include "pmdDummySession.hpp"
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 #include <string>
 
 #include "../bson/bsonobj.h"
@@ -76,11 +73,8 @@ namespace engine
          const CHAR* getIndexName () const ;
          const CHAR* getCollectionName() const ;
          utilCLUniqueID getCLUniqueID() const ;
-<<<<<<< HEAD
          UINT32 getCSLID() const ;
          UINT32 getCLLID() const ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
          static INT32 checkIndexExist( const CHAR *pCLName,
                                        const CHAR *pIdxName,
@@ -92,21 +86,15 @@ namespace engine
          virtual INT32 doit () ;
 
       protected:
-<<<<<<< HEAD
          virtual void _onAttach() ;
          virtual void _onDetach() ;
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          virtual INT32 _onDoit( INT32 resultCode ) { return SDB_OK ; }
          INT32 _buildJobName() ;
          virtual BOOLEAN _needRetry( INT32 rc, BOOLEAN &retryLater ) ;
 
       protected:
-<<<<<<< HEAD
          _pmdDummySession        _session ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          RTN_JOB_TYPE            _type ;
          CHAR                    _clFullName[DMS_COLLECTION_FULL_NAME_SZ + 1] ;
          utilCLUniqueID          _clUniqID ;

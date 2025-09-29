@@ -46,10 +46,6 @@
 #include "ossPath.hpp"
 #include "utilCommon.hpp"
 #include "dpsUtil.hpp"
-<<<<<<< HEAD
-=======
-#include "dpsOp2Record.hpp"
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 #include <sstream>
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/operations.hpp>
@@ -456,11 +452,7 @@ BOOLEAN _dpsTransFilter::match( dpsDumper *dumper, CHAR *pRecord )
 {
    BOOLEAN rc = FALSE ;
 
-<<<<<<< HEAD
    if( 0 == dumper->_transID )
-=======
-   if( dumper->_transID.isInvalid() )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
       rc = dpsDumpFilter::match( dumper, pRecord ) ;
       goto done ;
@@ -469,7 +461,6 @@ BOOLEAN _dpsTransFilter::match( dpsDumper *dumper, CHAR *pRecord )
    {
       dpsLogRecord record ;
       record.load( pRecord ) ;
-<<<<<<< HEAD
 
       DPS_TRANS_ID transID = DPS_INVALID_TRANS_ID ;
       rc = dpsGetTransIDFromRecord( record, FALSE, transID ) ;
@@ -479,19 +470,6 @@ BOOLEAN _dpsTransFilter::match( dpsDumper *dumper, CHAR *pRecord )
          {
             rc = dpsDumpFilter::match( dumper, pRecord ) ;
             goto done ;
-=======
-      dpsLogRecord::iterator itr = record.find( DPS_LOG_PUBLIC_TRANSID ) ;
-      if( itr.valid() )
-      {
-         DPS_TRANS_ID transID ;
-         if ( SDB_OK == dpsGetTransIDFromRecord( pRecord, transID ) )
-         {
-            if( transID.getOrigTransID() == dumper->_transID)
-            {
-               rc = dpsDumpFilter::match( dumper, pRecord ) ;
-               goto done ;
-            }
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          }
       }
    }
@@ -710,11 +688,6 @@ INT32 _dpsDumper::process( const po::options_description &desc,
                    << std::endl ;
          goto error ;
       }
-<<<<<<< HEAD
-=======
-
-      _transID = _transID.getOrigTransID() ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    }
 
    ///< we should deal with lsn filter first

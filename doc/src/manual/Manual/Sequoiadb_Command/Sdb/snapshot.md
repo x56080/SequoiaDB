@@ -202,9 +202,4 @@ v2.0 及以上版本
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
 [faq]:manual/FAQ/faq_sdb.md
-<<<<<<< HEAD
 [error_code]:manual/Manual/Sequoiadb_error_code.md
-=======
-[error_code]:manual/Manual/Sequoiadb_error_code.md
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2

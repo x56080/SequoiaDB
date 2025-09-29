@@ -190,7 +190,6 @@ namespace engine
                           pmdAsyncNetSubEntryPoint,
                           "SubNetAgent" ) ;
 
-<<<<<<< HEAD
    PMD_DEFINE_ENTRYPOINT( EDU_TYPE_FS_MCS_NET_SERVICE, TRUE,
                           pmdAsyncNetEntryPoint,
                           "FsMcsNetService" ) ;
@@ -200,18 +199,4 @@ namespace engine
                           "FsMcsNetAgent" ) ;
 
 }
-=======
-   PMD_DEFINE_ENTRYPOINT( EDU_TYPE_STP_NET_AGENT, TRUE,
-                          pmdAsyncNetEntryPoint,
-                          "STPNetAgent" ) ;
 
-   PMD_DEFINE_ENTRYPOINT( EDU_TYPE_FS_MCS_NET_SERVICE, TRUE,
-                          pmdAsyncNetEntryPoint,
-                          "FsMcsNetService" ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
-
-   PMD_DEFINE_ENTRYPOINT( EDU_TYPE_FS_MCS_NET_AGENT, TRUE,
-                          pmdAsyncNetEntryPoint,
-                          "FsMcsNetAgent" ) ;
-
-}

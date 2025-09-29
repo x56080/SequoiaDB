@@ -1,6 +1,5 @@
 /*******************************************************************************
 
-<<<<<<< HEAD
    Copyright (C) 2011-Present SequoiaDB Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,22 +13,6 @@
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
-=======
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
-
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
-
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    Source File Name = coordCommandRecycleBin.cpp
 
@@ -50,10 +33,6 @@
    Last Changed =
 
 *******************************************************************************/
-<<<<<<< HEAD
-=======
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 #include "coordCommandRecycleBin.hpp"
 #include "coordCB.hpp"
 #include "coordUtil.hpp"
@@ -127,19 +106,11 @@ namespace engine
                    "rc: %d", getName(), rc ) ;
 
       // update all groups
-<<<<<<< HEAD
       rc = _pResource->updateGroupList( groupList, cb, NULL, TRUE, TRUE, TRUE, TRUE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to update all data group, "
                    "rc: %d", rc ) ;
 
       rc = executeOnDataGroup( pMsg, cb, groupList, TRUE, NULL, NULL, NULL, buf ) ;
-=======
-      rc = _pResource->updateGroupList( groupList, cb, NULL, TRUE, TRUE ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to update all data group, "
-                   "rc: %d", rc ) ;
-
-      rc = executeOnDataGroup( pMsg, cb, groupList, TRUE ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       PD_RC_CHECK( rc, PDERROR, "Failed to execute %s on data nodes, rc: %d",
                    getName(), rc ) ;
 
@@ -209,11 +180,7 @@ namespace engine
       if ( needAllGroups )
       {
          // use all groups
-<<<<<<< HEAD
          rc = _pResource->updateGroupList( groupList, cb, NULL, TRUE, TRUE, TRUE, TRUE ) ;
-=======
-         rc = _pResource->updateGroupList( groupList, cb, NULL, TRUE, TRUE ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          PD_RC_CHECK( rc, PDERROR, "Failed to update all data group for "
                       "command [%s], rc: %d", getName(), rc ) ;
       }
@@ -279,20 +246,12 @@ namespace engine
                               "rc: %d", _recycleItemName, rc ) ;
 
             BSONElement e1  = _options.getField(  FIELD_NAME_RECURSIVE ) ;
-<<<<<<< HEAD
             PD_CHECK( Bool == e1.type() || EOO == e1.type(), SDB_INVALIDARG,
-=======
-            PD_CHECK( Bool == e1.type() || EOO == e1.type(), SDB_INVALIDARG, 
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                       error, PDERROR, "Failed to parse message, failed to "
                       "get field [%s] from options", FIELD_NAME_RECURSIVE ) ;
          }
          BSONElement e2 = _options.getField( FIELD_NAME_ASYNC ) ;
-<<<<<<< HEAD
          PD_CHECK( Bool == e2.type() || EOO == e2.type(), SDB_INVALIDARG,
-=======
-         PD_CHECK( Bool == e2.type() || EOO == e2.type(), SDB_INVALIDARG, 
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                    error, PDERROR, "Failed to parse message, failed to "
                    "get field [%s] from options", FIELD_NAME_ASYNC ) ;
       }

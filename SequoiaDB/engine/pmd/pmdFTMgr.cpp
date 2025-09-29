@@ -851,14 +851,11 @@ namespace engine
       }
    }
 
-<<<<<<< HEAD
    void _pmdFTMgr::reportErr( PMD_FT_ERR_TYPE errType )
    {
       _sampleWnd.reportErr( errType ) ;
    }
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    void _pmdFTMgr::holdStatus( UINT32 status )
    {
       OSS_BIT_SET( _heldMask, status ) ;

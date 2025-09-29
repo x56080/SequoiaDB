@@ -536,16 +536,9 @@ namespace engine
          BOOLEAN needToBuildConfPathArg = TRUE ;
 
          // first check
-<<<<<<< HEAD
          rc = utilGetServiceByConfigPath( configs[ j ], info._svcname,
                                           svcname, isForce,
                                           &isConfFileValid ) ;
-=======
-         rc = utilGetServiceByConfigPath( configs[ j ], PMD_DFT_CONF,
-                                          PMD_OPTION_SVCNAME,
-                                          info._svcname, svcname,
-                                          isForce, &isConfFileValid ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          if ( SDB_OK == rc && !svcname.empty() &&
               serviceExists( svcname.c_str(), info ) )
          {

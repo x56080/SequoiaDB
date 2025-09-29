@@ -2,11 +2,7 @@
     FlinkSQL 连接器-数据类型映射
 
 本文档主要介绍 SequoiaDB 巨杉数据库与 FlinkSQL 的数据类型映射，以及两者间数据类型转换的兼容性。
-<<<<<<< HEAD
  
-=======
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 ##数据类型映射表##
 
 | SequoiaDB 数据类型   |     FlinkSQL 数据类型    |

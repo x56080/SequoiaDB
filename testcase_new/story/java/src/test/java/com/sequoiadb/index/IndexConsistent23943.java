@@ -81,12 +81,9 @@ public class IndexConsistent23943 extends SdbTestBase {
                             .getErrorCode()
                     && createIndex
                             .getRetCode() != SDBError.SDB_DMS_SCANNER_INTERRUPT
-<<<<<<< HEAD
                                     .getErrorCode()
                     && createIndex
                             .getRetCode() != SDBError.SDB_TASK_HAS_CANCELED
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                                     .getErrorCode() ) {
                 Assert.fail( "---errorCode=" + createIndex.getRetCode() );
             }
@@ -193,8 +190,4 @@ public class IndexConsistent23943 extends SdbTestBase {
                 .parse( "{LowBound:{no:20000},UpBound:{no:40000}}" ) );
         return mainCL;
     }
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2

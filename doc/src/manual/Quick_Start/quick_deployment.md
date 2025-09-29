@@ -1,8 +1,4 @@
-<<<<<<< HEAD
 本入门教程使用 SequoiaDB v3.4 及 MySQL 实例组件 v3.4 在 Ubuntu 16.04 上搭建一个基础运行环境，以快速了解 SequoiaDB 巨杉数据库及 MySQL 实例组件的基本功能。
-=======
-﻿本入门教程使用 SequoiaDB v5.0 及 MySQL 实例组件 v5.0 在 Ubuntu 16.04 上搭建一个基础运行环境，以快速了解 SequoiaDB 巨杉数据库及 MySQL 实例组件的基本功能。
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 SequoiaDB 可以选择部署在单台机器上，也可以部署在多台机器上。
 
@@ -20,11 +16,7 @@ SequoiaDB 可以选择部署在单台机器上，也可以部署在多台机器�
 
    > **Note：**
    >
-<<<<<<< HEAD
    > SequoiaDB 默认需要的端口号为 11800、11810、11820、11830、11840 及 18800，MySQL 实例默认需要的端口号为 3306，需确保这些端口没有被占用。
-=======
-   > SequoiaDB 默认需要的端口号为 11800、11810、11820、11830、11840、18800 及 9622，MySQL 实例默认需要的端口号为 3306，需确保这些端口没有被占用。
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 **部署工具说明**
 
@@ -60,20 +52,11 @@ SequoiaDB 可以选择部署在单台机器上，也可以部署在多台机器�
 
    ```lang-text
    ************ Deploy SequoiaDB ************************
-<<<<<<< HEAD
    Create catalog: sdbserver1:11800
    Create coord:   sdbserver1:11810
    Create data:    sdbserver1:11820
    Create data:    sdbserver1:11830
    Create data:    sdbserver1:11840
-=======
-   Create catalog:    sdbserver1:11800
-   Create coord:      sdbserver1:11810
-   Create data:       sdbserver1:11820
-   Create data:       sdbserver1:11830
-   Create data:       sdbserver1:11840
-   Create stp server: sdbserver1:9622
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
   
    ************ Deploy SequoiaSQL-MySQL *****************
    Create instance: [name: myinst, port: 3306]
@@ -122,13 +105,6 @@ SequoiaDB 可以选择部署在单台机器上，也可以部署在多台机器�
   data,group3,sdbserver1,11840,[installPath]/database/data/11840
   data,group3,sdbserver2,11840,[installPath]/database/data/11840
   data,group3,sdbserver3,11840,[installPath]/database/data/11840
-<<<<<<< HEAD
-=======
-
-  server,stp,sdbserver1,9622,-
-  server,stp,sdbserver2,9622,-
-  server,stp,sdbserver3,9622,-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
   ```
 
 4. 在主机 sdbserver1 上执行快速部署工具
@@ -140,7 +116,6 @@ SequoiaDB 可以选择部署在单台机器上，也可以部署在多台机器�
 
    ```lang-text
   ************ Deploy SequoiaDB ************************
-<<<<<<< HEAD
   Create catalog: sdbserver1:11800
   Create catalog: sdbserver2:11800
   Create catalog: sdbserver3:11800
@@ -156,26 +131,6 @@ SequoiaDB 可以选择部署在单台机器上，也可以部署在多台机器�
   Create data:    sdbserver1:11840
   Create data:    sdbserver2:11840
   Create data:    sdbserver3:11840
-=======
-  Create catalog:    sdbserver1:11800
-  Create catalog:    sdbserver2:11800
-  Create catalog:    sdbserver3:11800
-  Create coord:      sdbserver1:11810
-  Create coord:      sdbserver2:11810
-  Create coord:      sdbserver3:11810
-  Create data:       sdbserver1:11820
-  Create data:       sdbserver2:11820
-  Create data:       sdbserver3:11820
-  Create data:       sdbserver1:11830
-  Create data:       sdbserver2:11830
-  Create data:       sdbserver3:11830
-  Create data:       sdbserver1:11840
-  Create data:       sdbserver2:11840
-  Create data:       sdbserver3:11840
-  Create stp server: sdbserver1:9622
-  Create stp server: sdbserver2:9622
-  Create stp server: sdbserver3:9622
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
   
   ************ Deploy SequoiaSQL-MySQL *****************
   Create instance: [name: myinst, port: 3306]

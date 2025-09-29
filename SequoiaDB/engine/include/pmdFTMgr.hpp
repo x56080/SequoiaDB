@@ -255,9 +255,6 @@ namespace engine
          void     holdStatus( UINT32 status ) ;
          void     unholdStatus( UINT32 status ) ;
 
-         void     holdStatus( UINT32 status ) ;
-         void     unholdStatus( UINT32 status ) ;
-
       protected:
          ftSampleWndItem*  _sample( UINT64 dbTick ) ;
          UINT32            _confirm( ftSampleWndItem *current ) ;

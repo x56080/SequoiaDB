@@ -49,8 +49,6 @@ final class SdbConstants {
     final static String FIELD_NAME_CELLECTIONSPACE = "CollectionSpace";
     final static String FIELD_NAME_AUTOINCREMENT = "AutoIncrement";
     final static String FIELD_NAME_AUTOINC_FIELD = "Field";
-    final static String FIELD_NAME_DETAIL = "Detail";
-    final static String FIELD_NAME_CMD_OPTIONS = "$Options";
 
     final static String FIELD_NAME_SESSION_ID = "SessionID";
 
@@ -84,14 +82,11 @@ final class SdbConstants {
 
     final static String SDB_ALTER_ENABLE_RECYCLEBIN = "enable";
     final static String SDB_ALTER_DISABLE_RECYCLEBIN = "disable";
-<<<<<<< HEAD
     final static String SDB_ALTER_GROUP_SET_ACTIVE_LOCATION = "set active location";
     final static String SDB_ALTER_GROUP_START_CRITICAL_MODE = "start critical mode";
     final static String SDB_ALTER_GROUP_STOP_CRITICAL_MODE = "stop critical mode";
     final static String SDB_ALTER_GROUP_START_MAINTENANCE_MODE = "start maintenance mode";
     final static String SDB_ALTER_GROUP_STOP_MAINTENANCE_MODE = "stop maintenance mode";
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
     final static String FIELD_NAME_MODIFY = "$Modify";
     final static String FIELD_NAME_OP = "OP";
@@ -163,7 +158,6 @@ final class SdbConstants {
     final static String SEQ_OPT_SET_CURR_VALUE = "set current value";
     final static String SEQ_OPT_RENAME = "rename";
     final static String SEQ_OPT_RESTART = "restart";
-<<<<<<< HEAD
 
     final static String NODE_LOCATION = "Location";
     final static String NODE_SET_LOCATION = "set location";
@@ -174,6 +168,4 @@ final class SdbConstants {
     final static String FIELD_NAME_ROLE = "Role";
     final static String FIELD_NAME_PRIVILEGES = "Privileges";
     final static String FIELD_NAME_ROLES = "Roles";
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 }

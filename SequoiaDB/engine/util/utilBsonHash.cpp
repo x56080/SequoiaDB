@@ -297,7 +297,6 @@ namespace engine
            decimal.compare( minFloat ) < 0 )
       {
          return FALSE ;
-<<<<<<< HEAD
       }
       else
       {
@@ -341,51 +340,6 @@ namespace engine
       }
       else
       {
-=======
-      }
-      else
-      {
-         return TRUE ;
-      }
-   }
-
-   UINT32 _utilBSONHasher::_hashDecimal( UINT32 hashCode,
-                                         const bson::bsonDecimal &decimal )
-   {
-      INT16 sign          = 0 ;
-      INT16 weight        = 0 ;
-      INT32 ndigits       = 0 ;
-      INT32 i             = 0 ;
-      const INT16 *digits = NULL ;
-
-      sign    = decimal.getSign() ;
-      weight  = decimal.getWeight() ;
-      ndigits = decimal.getNdigit() ;
-      digits  = decimal.getDigits() ;
-
-      HASH_COMBINE( hashCode, hash( &sign, sizeof( sign ) ) ) ;
-      HASH_COMBINE( hashCode, hash( &weight, sizeof( weight ) ) ) ;
-      HASH_COMBINE( hashCode, hash( &ndigits, sizeof( ndigits ) ) ) ;
-      for ( i = 0 ; i < ndigits ; i++ )
-      {
-         HASH_COMBINE( hashCode, hash( &digits[i], sizeof( digits[i] ) ) ) ;
-      }
-
-      return hashCode ;
-   }
-
-   UINT32 _utilBSONHasher::hashDecimalV3( UINT32 hashCode,
-                                          const bson::bsonDecimal &decimal )
-   {
-      if ( _isInDoubleRange( decimal ) )
-      {
-         FLOAT64 dv = 0.0 ;
-         decimal.toDouble( &dv ) ;
-         hashCode = hashFLoat64V3( hashCode, dv ) ;
-      }
-      else
-      {
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          hashCode = _hashDecimal( hashCode, decimal ) ;
       }
 

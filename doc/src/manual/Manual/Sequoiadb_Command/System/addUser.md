@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-=======
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 ##名称##
 
 addUser - 新增操作系统用户
@@ -50,10 +46,7 @@ users（ *object，必填* ）
 
     格式：`dir: "userHomeDir"`
 
-<<<<<<< HEAD
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 ##返回值##
 
 函数执行成功时，无返回值。
@@ -77,11 +70,6 @@ v3.2 及以上版本
 ```
 
 
-<<<<<<< HEAD
-=======
-
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 [^_^]:
     本文使用的所有引用及链接
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md

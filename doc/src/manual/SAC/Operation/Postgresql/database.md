@@ -45,10 +45,6 @@
 [^_^]:
     本文使用的所有引用及链接
 [deployment_postgresql]:manual/SAC/Deployment/Deployment_Bystep/deployment_postgresql.md#添加PostgreSQL实例存储
-<<<<<<< HEAD
-=======
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 [record]:manual/SAC/Operation/Postgresql/record.md
 
 [database_oltp]:images/SAC/Operation/Postgresql/database_oltp.png

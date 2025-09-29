@@ -479,15 +479,9 @@ accesses) is the same as if
 
         int len() const { return _buf.l; }
 
-#if defined ( SDB_ENGINE ) || defined ( SDB_FMP ) || defined ( SDB_TOOL ) || defined ( SDB_STP )
-        ossPoolString poolStr() const { return std::move(ossPoolString(_buf.data, _buf.l)); }
+#if defined ( SDB_ENGINE ) || defined ( SDB_FMP ) || defined ( SDB_TOOL )
+        ossPoolString poolStr() const { return ossPoolString(_buf.data, _buf.l); }
 #endif //SDB_ENGINE || SDB_FMP || SDB_TOOL
-
-        StringBuilder &appendUint32WithF(unsigned int x, const char *macro)
-        {
-           SBNUM( x , SDB_U32_SIZE, macro );
-           return *this;
-        }
 
     private:
         BufBuilder _buf;

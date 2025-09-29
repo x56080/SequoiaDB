@@ -92,10 +92,6 @@ options（ *object，必填* ）
     - 0：RU 级别
     - 1：RC 级别
     - 2：RS 级别
-<<<<<<< HEAD
-=======
-    - 3：RR 级别
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
     格式：`TransIsolation: 1`
 
@@ -164,11 +160,7 @@ options（ *object，必填* ）
 
 ##版本##
 
-<<<<<<< HEAD
 v3.4 及以上版本
-=======
-v5.0 及以上版本
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 ##示例##
 
@@ -199,8 +191,4 @@ v5.0 及以上版本
 [faq]:manual/FAQ/faq_sdb.md
 [error_code]:manual/Manual/Sequoiadb_error_code.md
 [config]:manual/Manual/Database_Configuration/configuration_parameters.md
-<<<<<<< HEAD
 [instance]:manual/Distributed_Engine/Architecture/Data_Model/instance.md
-=======
-[instance]:manual/Distributed_Engine/Architecture/Data_Model/instance.md
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2

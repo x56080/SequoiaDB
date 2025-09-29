@@ -597,7 +597,7 @@ namespace engine
       {
          void *beginAddr = (void *)( (CHAR *)p - MTH_MEM_TYPE_SIZE ) ;
          // Only release memory allocted by SDB_THREAD_FREE().
-         // Objects allocated by instances of _utilStackOnlyAllocator(allocator is not
+         // Objects allocated by instances of _utilAllocator(allocator is not
          // NULL in new) will not be released seperately, as they are allocated
          // in a stack. They space is released when the allocator is destroyed.
          if ( MTH_MEM_BY_DFT_ALLOCATOR == *(INT32 *)beginAddr )

@@ -146,17 +146,10 @@ namespace engine
                                         const CHAR *serverProof,
                                         const CHAR *hashCode,
                                         BSONObj &result ) ;
-<<<<<<< HEAD
       INT32   _checkRemoveUser( const CHAR *username, _pmdEDUCB *cb ) ;
 
       INT32   _isUserRoot( const CHAR *username, _pmdEDUCB *cb, BOOLEAN *result ) ;
 
-=======
-      INT32   _rebuildUserOption( const BSONObj &oldOpt, BSONObj &newOpt ) ;
-      INT32   _checkCrtUserOption( const BSONObj &option, _pmdEDUCB *cb ) ;
-      INT32   _checkRemoveUser( const CHAR *username, _pmdEDUCB *cb ) ;
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    private:
       BOOLEAN     _authEnabled ;
       authRoleManager _roleMgr ;

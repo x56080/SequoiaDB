@@ -142,7 +142,6 @@ public class AuthAlgorithmSHA256 {
         }
     }
 
-<<<<<<< HEAD
     private byte[] xor( final byte[] a, final byte[] b ) {
         byte[] result = new byte[a.length];
         System.arraycopy( a, 0, result, 0, a.length );
@@ -150,15 +149,6 @@ public class AuthAlgorithmSHA256 {
     }
 
     private byte[] xorInPlace( final byte[] a, final byte[] b ) {
-=======
-    private byte[] xor(final byte[] a, final byte[] b) {
-        byte[] result = new byte[a.length];
-        System.arraycopy(a, 0, result, 0, a.length);
-        return xorInPlace(result, b);
-    }
-
-    private byte[] xorInPlace(final byte[] a, final byte[] b) {
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         for (int i = 0; i < a.length; i++) {
             a[i] ^= b[i];
         }

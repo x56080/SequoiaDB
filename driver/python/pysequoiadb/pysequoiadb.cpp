@@ -2944,16 +2944,9 @@ __METHOD_IMP(cl_get_index_stat)
    PYOBJECT *obj          = NULL ;
    sdbCollection *cl      = NULL ;
    const CHAR *index_name = NULL ;
-<<<<<<< HEAD
    bson::BSONObj retObj ;
 
    if ( !PARSE_PYTHON_ARGS( args, "Os", &obj, &index_name ) )
-=======
-   BOOLEAN detail         = FALSE;
-   bson::BSONObj retObj ;
-
-   if ( !PARSE_PYTHON_ARGS( args, "Osi", &obj, &index_name, &detail ) )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
       rc = SDB_INVALIDARGS ;
       goto done ;
@@ -2961,11 +2954,7 @@ __METHOD_IMP(cl_get_index_stat)
 
    CAST_PYOBJECT_TO_COBJECT( obj, sdbCollection, cl ) ;
 
-<<<<<<< HEAD
    rc = cl->getIndexStat( index_name, retObj ) ;
-=======
-   rc = cl->getIndexStat( index_name, retObj, detail ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    if ( SDB_OK != rc )
    {
       goto done ;

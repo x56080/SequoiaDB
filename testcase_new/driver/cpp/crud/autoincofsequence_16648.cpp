@@ -268,13 +268,8 @@ TEST_F( autoIncrement_16648, case16653 )
    
 
    long long CLUniqueID = getCLUniqueID( db, cl2.getFullName());
-<<<<<<< HEAD
    char szName[32] = {0};
    snprintf(szName, sizeof(szName),"SYS_%lld_%s_SEQ", CLUniqueID, "id");
-=======
-   char szName[32] ={0};
-   snprintf(szName, sizeof(szName),"SYS_%ld_%s_SEQ", CLUniqueID, "id");
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    bson::BSONObj cond = BSON("Name" << szName  ) ;
    
    sdbCursor cursor ; 

@@ -95,8 +95,6 @@ namespace engine
       contextID = -1 ;
 
       _preSet( cb, ctrlParam ) ;
-      rc = _getMonProcessor( monProcessorPtr ) ;
-      PD_RC_CHECK( rc, PDERROR, "Get aggr mon-processor failed, rc: %d", rc ) ;
 
       rc = _getMonProcessor( monProcessorPtr ) ;
       PD_RC_CHECK( rc, PDERROR, "Get aggr mon-processor failed, rc: %d", rc ) ;

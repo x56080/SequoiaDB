@@ -1,5 +1,4 @@
 [^_^]:
-<<<<<<< HEAD
     数据库日志 dump 工具
 
 sdbdpsdump 是 SequoiaDB 巨杉数据库的同步日志解析工具，用于解析目录 `replicalog` 下的同步日志内容。当集群数据存在异常时，可使用该工具进行数据分析。
@@ -79,181 +78,6 @@ sdbdpsdump 是 SequoiaDB 巨杉数据库的同步日志解析工具，用于解�
     PreLSN : 0x0000000000000050(80)
     Length : 104
     Flags  : 0x0000()
-=======
-    概述
-    作者：吴艳
-    时间：20190320
-    评审意见
-    王涛：时间：
-    许建辉：时间：
-    市场部：时间：20190521
-
-
-sdbdpsdump 是 SequoiaDB 巨杉数据库的同步日志文件 dump 工具，该工具可以解析 replicalog 同步日志文件的内容，并且给出结果报告。
-
-运行需求
-----
-
-- sdbdpsdump 不需要与数据库连接。
-- 运行 sdbdpsdump 命令的用户必须对数据库的 replicalog 同步日志文件拥有读权限。
-
-连接
-
-语法规则
-----
-```lang-text
-sdbdpsdump [--source | -s arg][--output | -o arg][ --type | -t arg]
-
-sdbdpsdump [--source | -s arg][--name | -n arg][--output | -o arg][ --type | -t arg]
-
-sdbdpsdump [--source | -s arg][--lsn | -l arg][--ahead | -a arg][--output | -o arg]
-
-sdbdpsdump [--source | -s arg][--meta | -m]
-
-sdbdpsdump [--source | -s arg][--last | -e arg] 
-
-sdbdpsdump [--source | -s arg][--transaction arg] 
-
-sdbdpsdump --help | -h
-
-sdbdpsdump --version | -v
-```
-
-参数说明
-----
-
-- **--help, -h**
-  
- 返回基本帮助和用法文本
-
-
-- **--version, -v**  
-
- 返回工具的编译版本
-
-- **--meta, -m**  
-
- 指定在解析日志文件时，只解析日志文件的元数据信息，只能单独使用
-
-- **--type, -t**  
-
- 指定只解析日志文件中指定类型的日志：<br />
-
- - 1 表示数据插入<br />
- - 2 表示数据更新<br />
- - 3 表示数据删除<br />
- - 4 表示创建集合空间<br />
- - 5 表示删除集合空间<br />
- - 6 表示创建集合
- - 7 表示删除集合
- - 8 表示创建索引<br />
- - 9 表示删除索引<br />
- - 10 表示集合重命名<br />
- - 11 表示集合 truncate<br />
- - 12 表示事务提交<br />
- - 13 表示事务回滚<br />
- - 14 表示清空 Catalog 缓存<br />
- - 15 表示写入 LOB 数据<br />
- - 16 表示删除 LOB 数据<br />
- - 17 表示修改 LOB 数据<br />
- - 21 表示修改集合/集合空间的属性<br />
- - 22 表示添加集合/集合空间的 UniqueID<br />
-
-- **--name, -n**  
-
- 指定集合空间或者集合名，只解析和指定名相关的集合或者集合空间的日志
-
-- **--lsn, -l**  
-
- 指定 LSN 值，只解析 LSN 的日志，可与 -a 和 -b 联用
-
-- **--last, -e**  
-
- 指定解析日志文件最后的 N 条日志，N 为指定的数值（需要 -s 指定到文件）
- 
-- **--transaction**  
-
- 指定事务ID，只解析和指定事务ID相关的日志。其中事务ID的格式为16进制格式，例如：--transaction 0x00040105b78b1bc9eed4
-
-- **--source, -s**  
-
- 指定日志文件的目录或路径，默认为当前目录
-
-- **--output, -o**  
-
- 指定输出文件，默认为屏幕输出
-
-- **--ahead, -a**  
-
- 指定解析指定 LSN 之前的 N 条日志，N 为指定数值，默认值为 20，必须与 -l 或 --lsn 联用
-
-- **--back, -b**  
-
- 指定解析指定 lsn 之后的 N 条日志，N 为指定数值，默认值为 20，必须与 -l 或 --lsn 联用
-
-> **Note：**
->
-> 无论用户是否指定 --meta 选项，sdbdpsdump 都会打印日志文件的元数据信息。
-
-示例
-----
-
-* sdbdpsdump 解析指定目录 `/opt/sequoiadb/database/data/11860/replicalog` 中的 replicalog 文件，并只解析类型为 1（数据插入）的日志，输出到当前目录 `out.log`
-
-   ```lang-bash
-   $ sdbdpsdump -s /opt/sequoiadb/database/data/11860/replicalog/sequoiadbLog.0 -o out.log -t 1
-   ```
-
-   输出如下日志文件元数据信息，包括起始日志文件、结束日志文件、起始 LSN 、最后的日志 LSN、日志有效空间等：
-
-   ```lang-text
-   =======================================
-       Log Files in total: 1
-       LogFile begin     : sequoiadbLog.0
-       LogFile work      : sequoiadbLog.0
-       Begin Lsn         : 0x00000000
-       Current Lsn       : 0x00000644
-       Expect Lsn        : 0x00000710
-   =======================================
-   
-   Log File Name: sequoiadbLog.0
-   Logic ID     : 0
-   First LSN    : 0x00000000
-   Last  LSN    : 0x00000644
-   Valid Size   : 1808 bytes
-   Rest Size    : 67107056 bytes
-   
-   parse file : [/opt/sequoiadb/database/data/11860/replicalog/sequoiadbLog.0]
-   
-   0x00007FFF40BC1290 : 5344 424C 4F47 4844 0000 0000 0000 0000   SDBLOGHD........
-   0x00007FFF40BC12A0 : 0100 0000 0000 0000 0000 0000 0100 0000   ................
-   0x00007FFF40BC12B0 : 0000 0004 0000 0000 1400 0000 0000 0000   ................
-   0x00007FFF40BC12C0 : 0000 0000 0000 0000 0000 0000 0000 0000   ................
-   *
-   
-    Head   : SDBLOGHD
-    FirstLSN: 0x0000000000000000(0)
-    LogID  : 0
-    
-   0x00000000019EE900 : 2001 0000 0000 0000 A400 0000 0000 0000    ...............
-   0x00000000019EE910 : 7000 0000 0100 0000 0100 0000 0000 0000   p...............
-   0x00000000019EE920 : C910 0000 0073 616D 706C 652E 656D 706C   .....sample.empl
-   0x00000000019EE930 : 6F79 6565 0001 3500 0000 3500 0000 075F   oyee..5...5...._
-   0x00000000019EE940 : 6964 005C 9496 946E 6107 74AC 9A1C 6510   id.\...na.t...e.
-   0x00000000019EE950 : 6100 0000 0000 106E 6F00 0000 0000 0274   a......no......t
-   0x00000000019EE960 : 6573 7400 0600 0000 7465 7374 3000 0000   est.....test0...
-   
-   ```
-   
-   dump 解析数据插入的日志，记录日志版本、当前日志 LSN 、上一条日志 LSN 、日志长度 Length 、日志标签 Flags 、日志类型 Type 、集合空间名 FullName、插入记录等
-   
-   ```lang-text
-   Version: 0x00000001(1)
-    LSN    : 0x0000000000000120(288)
-    PreLSN : 0x00000000000000a4(164)
-    Length : 112
-    Flags  : 0x0010(NonBusinessOP)
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     Type   : INSERT(1)
     FullName : sample.employee
     Insert : { "_id": { "$oid": "645c8054cc434dc594399897" }, "name": "Tom", "age": 20 }
@@ -273,11 +97,7 @@ sdbdpsdump --version | -v
     | FullName | 集合空间 |
     | Insert | 所插入集合的数据信息 |
 
-<<<<<<< HEAD
 - 解析创建索引类型的日志，并将结果输出至文件 `index.log`
-=======
-   dump 解析数据更新的日志，记录日志版本、当前日志 LSN 、上一条日志 LSN 、日志长度 Length 、日志标签 Flags 、日志类型 Type 、集合空间名 FullName、更新记录等
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
     ```lang-bash
     $ sdbdpsdump -s /opt/sequoiadb/database/data/11860/replicalog/ -o index.log -t 8
@@ -287,7 +107,6 @@ sdbdpsdump --version | -v
 
     ```lang-text
     Version: 0x00000001(1)
-<<<<<<< HEAD
     LSN    : 0x0000000000000210(528)
     PreLSN : 0x00000000000001a8(424)
     Length : 204
@@ -298,34 +117,6 @@ sdbdpsdump --version | -v
     Option : { "SortBufferSize": 64, "TaskID": 1 }
     ...
     ```
-=======
-    LSN    : 0x0000000000000580(1408)
-    PreLSN : 0x0000000000000510(1296)
-    Length : 196
-    Flags  : 0x0000()
-    Type   : UPDATE(2)
-    FullName : sample.employee
-    Orig id : { "_id": { "$oid": "5c9496946e610774ac9a1c67" } }
-    Orig   : { "$unset": { "b": "" } }
-    New id  : { "_id": { "$oid": "5c9496946e610774ac9a1c67" } }
-    New    : { "$set": { "b": "testupdate" } }
-    Old ShardingKey: { "a": 2 }
-   
-   0x0000000001A73B90 : 4406 0000 0000 0000 8005 0000 0000 0000   D...............
-   0x0000000001A73BA0 : CC00 0000 0100 0000 0200 0000 0000 0000   ................
-   0x0000000001A73BB0 : C910 0000 0073 616D 706C 652E 656D 706C   .....sample.empl
-   0x0000000001A73BC0 : 6F79 6565 0001 1600 0000 1600 0000 075F   oyee..........._
-   0x0000000001A73BD0 : 6964 005C 9496 946E 6107 74AC 9A1C 6800   id.\...na.t...h.
-   0x0000000001A73BE0 : 0220 0000 0020 0000 0003 2473 6574 0015   . ... ....$set..
-   0x0000000001A73BF0 : 0000 0002 7465 7374 0006 0000 0074 6573   ....test.....tes
-   0x0000000001A73C00 : 7433 0000 0003 1600 0000 1600 0000 075F   t3............._
-   0x0000000001A73C10 : 6964 005C 9496 946E 6107 74AC 9A1C 6800   id.\...na.t...h.
-   0x0000000001A73C20 : 0425 0000 0025 0000 0003 2473 6574 001A   .%...%....$set..
-   0x0000000001A73C30 : 0000 0002 7465 7374 000B 0000 0074 6573   ....test.....tes
-   0x0000000001A73C40 : 7475 7064 6174 6500 0000 050C 0000 000C   tupdate.........
-   0x0000000001A73C50 : 0000 0010 6100 0300 0000 0000             ....a.......
-   ```
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
     上述字段说明如下：
 
@@ -342,84 +133,9 @@ sdbdpsdump --version | -v
 
 - 解析事务提交类型的日志，并将结果输出至文件 `transaction.log`
 
-<<<<<<< HEAD
     ```lang-bash
     $ sdbdpsdump -s /opt/sequoiadb/database/data/11860/replicalog/ -o transaction.log -t 12
     ```
-=======
-   ```lang-text
-   Version: 0x00000018(24)
-    LSN    : 0x00000010b305055c(71722927452)
-    PreLSN : 0x00000010b3050504(71722927364)
-    Length : 88
-    Flags  : 0x0000()
-    Type   : INSERT(1)
-    FullName : sample.employee
-    Insert : { "_id": { "$oid": "5cc69c950fb91f653845a92d" }, "a": 9 }
-   
-   0x0000000000CCA7E0 : B405 05B3 1000 0000 5C05 05B3 1000 0000   ........\.......
-   0x0000000000CCA7F0 : 5800 0000 1800 0000 0300 0000 0000 0000   X...............
-   0x0000000000CCA800 : C910 0000 0073 616D 706C 652E 656D 706C   .....sample.empl
-   0x0000000000CCA810 : 6F79 6565 0001 1D00 0000 1D00 0000 075F   oyee..........._
-   0x0000000000CCA820 : 6964 005C C69C 950F B91F 6538 45A9 2610   id.\......e8E.&.
-   0x0000000000CCA830 : 6100 0200 0000 0000                       a.......
-   
-   
-    Version: 0x00000018(24)
-    LSN    : 0x00000010b30505b4(71722927540)
-    PreLSN : 0x00000010b305055c(71722927452)
-    Length : 88
-    Flags  : 0x0000()
-    Type   : DELETE(3)
-    CLName : sample.employee
-    Orig   : { "_id": { "$oid": "5cc69c950fb91f653845a926" }, "a": 2 }
-   
-   0x0000000000CCA7E0 : 0C06 05B3 1000 0000 B405 05B3 1000 0000   ................
-   0x0000000000CCA7F0 : AC00 0000 1800 0000 0200 0000 0000 0000   ................
-   0x0000000000CCA800 : C910 0000 0073 616D 706C 652E 656D 706C   .....sample.empl
-   0x0000000000CCA810 : 6F79 6565 0001 1600 0000 1600 0000 075F   oyee..........._
-   0x0000000000CCA820 : 6964 005C C69C 950F B91F 6538 45A9 2500   id.\......e8E.%.
-   0x0000000000CCA830 : 021A 0000 001A 0000 0003 2475 6E73 6574   ..........$unset
-   0x0000000000CCA840 : 000D 0000 0002 6300 0100 0000 0000 0003   ......c.........
-   0x0000000000CCA850 : 1600 0000 1600 0000 075F 6964 005C C69C   ........._id.\..
-   0x0000000000CCA860 : 950F B91F 6538 45A9 2500 041C 0000 001C   ....e8E.%.......
-   0x0000000000CCA870 : 0000 0003 2473 6574 0011 0000 0002 6300   ....$set......c.
-   0x0000000000CCA880 : 0500 0000 7465 7374 0000 0000             ....test....
-   
-   
-    Version: 0x00000018(24)
-    LSN    : 0x00000010b305060c(71722927628)
-    PreLSN : 0x00000010b30505b4(71722927540)
-    Length : 172
-    Flags  : 0x0000()
-    Type   : UPDATE(2)
-    FullName : sample.employee
-    Orig id : { "_id": { "$oid": "5cc69c950fb91f653845a925" } }
-    Orig   : { "$unset": { "c": "" } }
-    New id  : { "_id": { "$oid": "5cc69c950fb91f653845a925" } }
-    New    : { "$set": { "c": "test" } }
-   
-   0x0000000000CCA7E0 : B806 05B3 1000 0000 0C06 05B3 1000 0000   ................
-   0x0000000000CCA7F0 : 8C00 0000 1800 0000 0800 0000 0000 0000   ................
-   0x0000000000CCA800 : C910 0000 0073 616D 706C 652E 656D 706C   .....sample.empl
-   0x0000000000CCA810 : 6F79 6565 0001 4F00 0000 4F00 0000 075F   oyee..O...O...._
-   0x0000000000CCA820 : 6964 005C C69C CDEB A8A8 886D F90D 6E03   id.\.......m..n.
-   0x0000000000CCA830 : 6B65 7900 0C00 0000 1061 0001 0000 0000   key......a......
-   0x0000000000CCA840 : 026E 616D 6500 0A00 0000 7465 7374 696E   .name.....testin
-   0x0000000000CCA850 : 6465 7800 0875 6E69 7175 6500 0008 656E   dex..unique...en
-   0x0000000000CCA860 : 666F 7263 6564 0000 0000 0000             forced......
-   
-   
-    Version: 0x00000018(24)
-    LSN    : 0x00000010b30506b8(71722927800)
-    PreLSN : 0x00000010b305060c(71722927628)
-    Length : 140
-    Flags  : 0x0000()
-    Type   : IX CREATE(8)
-    CLName : sample.employee
-    IXDef  : { "_id": { "$oid": "5cc69ccdeba8a8886df90d6e" }, "key": { "a": 1 }, "name": "testindex", "unique": false, "enforced": false }
-   ```
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
     文件记录的数据信息如下：
 

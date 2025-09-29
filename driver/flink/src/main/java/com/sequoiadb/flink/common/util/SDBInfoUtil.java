@@ -25,14 +25,10 @@ import com.sequoiadb.flink.common.constant.SDBConstant;
 import com.sequoiadb.flink.config.SDBSourceOptions;
 import com.sequoiadb.flink.source.strategy.NodeInfo;
 import com.sequoiadb.flink.source.strategy.ShardingInfo;
-<<<<<<< HEAD
 import org.apache.flink.metrics.MetricGroup;
 import org.apache.flink.runtime.metrics.scope.ScopeFormat;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
-=======
-import org.bson.BSONObject;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 import org.bson.types.BasicBSONList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,12 +43,9 @@ public class SDBInfoUtil {
 
     private static final Logger LOG = LoggerFactory.getLogger(SDBInfoUtil.class);
 
-<<<<<<< HEAD
     private static final String SESSION_ATTR_SOURCE = "Source";
     private static final String SESSION_ATTR_SOURCE_PREFIX = "flink";
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     public static Map<String, List<NodeInfo>> getDataGroups(Sequoiadb sdb) {
         Map<String, List<NodeInfo>> dataGroups = new HashMap<>();
 
@@ -234,20 +227,14 @@ public class SDBInfoUtil {
 
         return abnormalNodes;
     }
-<<<<<<< HEAD
 
     public static boolean containValidation(BSONObject bsonObject1, BSONObject bsonObject2) {
-=======
-    
-    public static boolean containValidation(BSONObject bsonObject1, BSONObject bsonObject2){
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         Set<String> keySet1 = bsonObject1.keySet();
         Set<String> keySet2 = bsonObject2.keySet();
 
         return keySet1.containsAll(keySet2);
     }
 
-<<<<<<< HEAD
     /**
      * Set SessionAttr in target Sequoiadb Connection.
      *
@@ -311,6 +298,4 @@ public class SDBInfoUtil {
         return String.join("-", tmId, jobId);
     }
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 }

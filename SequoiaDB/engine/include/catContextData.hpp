@@ -603,7 +603,6 @@ namespace engine
 
    protected :
       typedef _catCtxDataBase _BASE ;
-<<<<<<< HEAD
 
       virtual INT32 _regEventHandlers() ;
 
@@ -615,19 +614,6 @@ namespace engine
 
       virtual INT32 _executeInternal( _pmdEDUCB *cb, INT16 w ) ;
 
-=======
-
-      virtual INT32 _regEventHandlers() ;
-
-      virtual INT32 _parseQuery( _pmdEDUCB *cb ) ;
-
-      virtual INT32 _checkInternal( _pmdEDUCB *cb ) ;
-
-      virtual INT32 _buildP1Reply( bson::BSONObjBuilder &builder ) ;
-
-      virtual INT32 _executeInternal( _pmdEDUCB *cb, INT16 w ) ;
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    protected :
       catCtxGlobIdxHandler _globIdxHandler ;
       catRecyCtxTaskHandler _taskHandler ;

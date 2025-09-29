@@ -158,13 +158,8 @@ namespace engine
       catch( std::exception &e )
       {
          rc = ossException2RC( &e ) ;
-<<<<<<< HEAD
          PD_RC_CHECK( rc, PDERROR, "Failed node to get nameSet, exception: %s, rc=%d",
                       e.what(), rc ) ;
-=======
-         PD_RC_CHECK( rc, PDWARNING, "Get logic match node name, Occur exception: %s",
-                      e.what() ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       }
    done:
       return rc ;

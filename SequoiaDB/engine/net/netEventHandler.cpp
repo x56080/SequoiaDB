@@ -40,10 +40,6 @@
 #include "pmdEnv.hpp"
 #include "msgDef.h"
 #include "msgMessage.hpp"
-<<<<<<< HEAD
-=======
-#include "msgConvertorImpl.hpp"
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 #include "pdTrace.hpp"
 #include "netTrace.hpp"
@@ -115,40 +111,6 @@ namespace engine
       }
 
       return eh ;
-   }
-
-   ip::address_v4 _netEventHandler::localIP() const
-   {
-      ip::address_v4 addr ;
-
-      try
-      {
-         addr = _sock.local_endpoint().address().to_v4() ;
-      }
-      catch ( exception &e )
-      {
-         PD_LOG( PDERROR, "get local address occurred exception: %s",
-                 e.what() ) ;
-      }
-
-      return addr ;
-   }
-
-   ip::address_v4 _netEventHandler::remoteIP() const
-   {
-      ip::address_v4 addr ;
-
-      try
-      {
-         addr = _sock.remote_endpoint().address().to_v4() ;
-      }
-      catch ( exception &e )
-      {
-         PD_LOG( PDERROR, "get remote address occurred exception: %s",
-                 e.what() ) ;
-      }
-
-      return addr ;
    }
 
    string _netEventHandler::localAddr() const
@@ -298,32 +260,6 @@ namespace engine
                  _handle, e.what() ) ;
       }
       PD_TRACE_EXIT ( SDB__NETEVNHND_SETOPT );
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__NETEVNHND_GETAVAILABLESIZE, "_netEventHandler::getAvailableSize" )
-   UINT32 _netEventHandler::getAvailableSize()
-   {
-      UINT32 availableSize = 0 ;
-
-      PD_TRACE_ENTRY( SDB__NETEVNHND_GETAVAILABLESIZE ) ;
-
-      boost::system::error_code ec ;
-
-      if ( _sock.is_open() )
-      {
-         availableSize = _sock.available( ec ) ;
-         if ( ec )
-         {
-            PD_LOG( PDWARNING, "Connection[Handle:%d, Node:%s] failed to "
-                    "get available size, error: %s,%d",
-                    _handle, routeID2String( _id ).c_str(),
-                    ec.message().c_str(), ec.value() ) ;
-         }
-      }
-
-      PD_TRACE_EXIT( SDB__NETEVNHND_GETAVAILABLESIZE ) ;
-
-      return availableSize ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__NETEVNHND_SYNCCONN, "_netEventHandler::syncConnect" )
@@ -805,26 +741,6 @@ namespace engine
                        remoteAddr().c_str(), remotePort() ) ;
             }
          }
-
-         // on receive message callback
-         if ( SDB_PROTOCOL_VER_1 == _peerVersion )
-         {
-            MsgHeader tmpHeader ;
-            msgConvertorImpl::msgHeaderUpgrade( (MsgHeaderV1 *)&_header,
-                                                tmpHeader ) ;
-            _evSuitPtr->getFrame()->onReceiveMsg( _getSharedBase(),
-                                                  _id,
-                                                  &tmpHeader,
-                                                  _headerSz ) ;
-         }
-         else
-         {
-            _evSuitPtr->getFrame()->onReceiveMsg( _getSharedBase(),
-                                                  _id,
-                                                  &_header,
-                                                  sizeof( MsgHeader ) ) ;
-         }
-
          /// msg has only header
          if ( _headerSz == (UINT32)_header.messageLength )
          {

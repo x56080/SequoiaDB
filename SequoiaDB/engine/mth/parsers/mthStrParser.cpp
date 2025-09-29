@@ -189,95 +189,9 @@ namespace engine
       goto done ;
    }
 
-<<<<<<< HEAD
    ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHSTRLENCPPARSER_PARSE, "_mthStrLenCPParser::parse" )
    INT32 _mthStrLenCPParser::parse( const bson::BSONElement &e,
                                     _mthSAction &action ) const
-=======
-   ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHSTRLENBYTESPARSER_PARSE, "_mthStrLenBytesParser::parse" )
-   INT32 _mthStrLenBytesParser::parse( const bson::BSONElement &e,
-                                       _mthSAction &action ) const
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY(SDB__MTHSTRLENBYTESPARSER_PARSE ) ;
-#if defined (_DEBUG)
-      if ( 0 != _name.compare( e.fieldName() ) )
-      {
-         rc = SDB_INVALIDARG ;
-         PD_LOG_MSG( PDERROR, "Invalid field name[%s]", e.fieldName() ) ;
-         goto error ;
-      }
-#endif
-      if ( e.eoo() )
-      {
-         rc = SDB_INVALIDARG ;
-         PD_LOG_MSG( PDERROR, "The type of %s field can't be EOO",
-                     e.fieldName() ) ;
-         goto error ;
-      }
-
-      if ( !mthIsNumber1( e ) )
-      {
-         rc = SDB_INVALIDARG ;
-         PD_LOG_MSG( PDERROR, "The value of %s must be 1", e.fieldName() ) ;
-         goto error ;
-      }
-
-      action.setAttribute( MTH_S_ATTR_PROJECTION ) ;
-      action.setFunc( &mthStrLenBytesBuild,
-                      &mthStrLenBytesGet ) ;
-      action.setName( _name.c_str() ) ;
-   done:
-      PD_TRACE_EXITRC( SDB__MTHSTRLENBYTESPARSER_PARSE, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHSTRLENCPPARSER_PARSE, "_mthStrLenCPParser::parse" )
-   INT32 _mthStrLenCPParser::parse( const bson::BSONElement &e,
-                                    _mthSAction &action ) const
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY(SDB__MTHSTRLENCPPARSER_PARSE ) ;
-#if defined (_DEBUG)
-      if ( 0 != _name.compare( e.fieldName() ) )
-      {
-         rc = SDB_INVALIDARG ;
-         PD_LOG_MSG( PDERROR, "Invalid field name[%s]", e.fieldName() ) ;
-         goto error ;
-      }
-#endif
-      if ( e.eoo() )
-      {
-         rc = SDB_INVALIDARG ;
-         PD_LOG_MSG( PDERROR, "The type of %s field can't be EOO",
-                     e.fieldName() ) ;
-         goto error ;
-      }
-
-      if ( !mthIsNumber1( e ) )
-      {
-         rc = SDB_INVALIDARG ;
-         PD_LOG_MSG( PDERROR, "The value of %s must be 1", e.fieldName() ) ;
-         goto error ;
-      }
-
-      action.setAttribute( MTH_S_ATTR_PROJECTION ) ;
-      action.setFunc( &mthStrLenCPBuild,
-                      &mthStrLenCPGet ) ;
-      action.setName( _name.c_str() ) ;
-   done:
-      PD_TRACE_EXITRC( SDB__MTHSTRLENCPPARSER_PARSE, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHLOWERPARSER_PARSE, "_mthLowerParser::parse" )
-   INT32 _mthLowerParser::parse( const bson::BSONElement &e,
-                                 _mthSAction &action ) const
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY(SDB__MTHSTRLENCPPARSER_PARSE ) ;

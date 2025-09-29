@@ -47,21 +47,12 @@ SDB_SNAP_COLLECTIONS
 | Details.TotalDataPages          | int32         | 集合的数据页总数                                        |
 | Details.TotalIndexPages         | int32         | 集合的索引页总数                                        |
 | Details.TotalLobPages           | int32         | 集合大对象文件已使用空间数据页个数 |
-<<<<<<< HEAD
 | Details.TotalUsedLobSpace   | int64      | 集合大对象文件已使用的空间大小，单位为字节（仅在 v3.6.1 及以上版本生效） |
 | Details.UsedLobSpaceRatio    | double      | 集合大对象文件已使用的空间占其所在集合空间存储容量的比率（仅在 v3.6.1 及以上版本生效） |
 | Details.TotalLobSize     | int64      | 集合大对象文件的数据总大小，单位为字节（仅在 v3.6.1 及以上版本生效）    |
 | Details.TotalValidLobSize | int64     | 集合大对象文件有效数据总大小，单位为字节（仅在 v3.6.1 及以上版本生效） |
 | Details.LobUsageRate    | double  | 集合大对象文件的有效使用率（仅在 v3.6.1 及以上版本生效）<br>使用率越高，空间浪费越少 |
 | Details.AvgLobSize     | int64      | 集合大对象文件平均大小，单位为字节（仅在 v3.6.1 及以上版本生效） |
-=======
-| Details.TotalUsedLobSpace   | int64      | 集合大对象文件已使用的空间大小，单位为字节（仅在 v5.0.4 及以上版本生效） |
-| Details.UsedLobSpaceRatio    | double      | 集合大对象文件已使用的空间占其所在集合空间存储容量的比率（仅在 v5.0.4 及以上版本生效） |
-| Details.TotalLobSize     | int64      | 集合大对象文件的数据总大小，单位为字节（仅在 v5.0.4 及以上版本生效）    |
-| Details.TotalValidLobSize | int64     | 集合大对象文件有效数据总大小，单位为字节（仅在 v5.0.4 及以上版本生效） |
-| Details.LobUsageRate    | double  | 集合大对象文件的有效使用率（仅在 v5.0.4 及以上版本生效）<br>使用率越高，空间浪费越少 |
-| Details.AvgLobSize     | int64      | 集合大对象文件平均大小，单位为字节（仅在 v5.0.4 及以上版本生效） |
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 | Details.TotalDataFreeSpace      | int64         | 集合的数据空闲空间，单位为字节                          |
 | Details.TotalIndexFreeSpace     | int64         | 集合的索引空闲空间，单位为字节                          |
 | Details.CurrentCompressionRatio | double        | 集合的的压缩率                                          |
@@ -83,7 +74,6 @@ SDB_SNAP_COLLECTIONS
 | Details.TotalWrite      | int64 | 集合写入记录数量 |
 | Details.TotalTbScan     | int64 | 集合使用表扫描次数 |
 | Details.TotalIxScan     | int64 | 集合使用索引扫描次数 |
-<<<<<<< HEAD
 | Details.TotalLobGet           | int64     | 客户端获取大对象文件的总次数（仅在 v3.6.1 及以上版本生效） |
 | Details.TotalLobPut           | int64     | 客户端上传大对象文件的总次数（仅在 v3.6.1 及以上版本生效） |
 | Details.TotalLobDelete        | int64     | 客户端删除大对象文件的总次数（仅在 v3.6.1 及以上版本生效） |
@@ -97,21 +87,6 @@ SDB_SNAP_COLLECTIONS
 | Details.ResetTimestamp  | string | 重置快照的时间 |
 | Details.CreateTime | string | 创建集合的时间（仅在 v3.6.1 及以上版本生效） |
 | Details.UpdateTime | string | 更新集合元数据的时间（仅在 v3.6.1 及以上版本生效） |
-=======
-| Details.TotalLobGet           | int64     | 客户端获取大对象文件的总次数（仅在 v5.0.4 及以上版本生效） |
-| Details.TotalLobPut           | int64     | 客户端上传大对象文件的总次数（仅在 v5.0.4 及以上版本生效） |
-| Details.TotalLobDelete        | int64     | 客户端删除大对象文件的总次数（仅在 v5.0.4 及以上版本生效） |
-| Details.TotalLobList          | int64     | 客户端列举大对象文件的总次数（仅在 v5.0.4 及以上版本生效） |
-| Details.TotalLobReadSize      | int64     | 客户端读大对象文件的总字节数（仅在 v5.0.4 及以上版本生效） |
-| Details.TotalLobWriteSize     | int64     | 客户端写大对象文件的总字节数（仅在 v5.0.4 及以上版本生效） |
-| Details.TotalLobRead     | int64     | 服务端中 LOB 分片的读次数（仅在 v5.0.4 及以上版本生效） |
-| Details.TotalLobWrite     | int64     | 服务端中 LOB 分片的写次数（仅在 v5.0.4 及以上版本生效） |
-| Details.TotalLobTruncate    | int64     | 服务端中 LOB 分片的截断次数（仅在 v5.0.4 及以上版本生效） |
-| Details.TotalLobAddressing     | int64     | 服务端中 LOB 分片的寻址总次数（仅在 v5.0.4 及以上版本生效） |
-| Details.ResetTimestamp  | string | 重置快照的时间 |
-| Details.CreateTime | string | 创建集合的时间（仅在 v5.0.4 及以上版本生效） |
-| Details.UpdateTime | string | 更新集合元数据的时间（仅在 v5.0.4 及以上版本生效） |
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 协调节点字段信息
 ----
@@ -131,21 +106,12 @@ SDB_SNAP_COLLECTIONS
 | Details.Group.TotalDataPages      | int32         | 集合的数据页总数                                        |
 | Details.Group.TotalIndexPages     | int32         | 集合的索引页总数                                        |
 | Details.Group.TotalLobPages           | int32         | 集合大对象文件已使用空间数据页个数 |
-<<<<<<< HEAD
 | Details.Group.TotalUsedLobSpace   | int64      | 集合空间大对象文件已使用的空间大小，单位为字节（仅在 v3.6.1 及以上版本生效） |
 | Details.Group.UsedLobSpaceRatio    | double      | 集合大对象文件已使用的空间占其所在集合空间存储容量的比率（仅在 v3.6.1 及以上版本生效） |
 | Details.Group.TotalLobSize     | int64      | 集合大对象文件的数据总大小，单位为字节（仅在 v3.6.1 及以上版本生效）    |
 | Details.Group.TotalValidLobSize | int64     | 集合空间大对象文件有效数据总大小，单位为字节（仅在 v3.6.1 及以上版本生效） |
 | Details.Group.LobUsageRate    | double  | 集合空间大对象文件的有效使用率（仅在 v3.6.1 及以上版本生效）<br>使用率越高，空间浪费越少 |
 | Details.Group.AvgLobSize     | int64      | 集合空间大对象文件平均大小，单位为字节（仅在 v3.6.1 及以上版本生效） |
-=======
-| Details.Group.TotalUsedLobSpace   | int64      | 集合空间大对象文件已使用的空间大小，单位为字节（仅在 v5.0.4 及以上版本生效） |
-| Details.Group.UsedLobSpaceRatio    | double      | 集合大对象文件已使用的空间占其所在集合空间存储容量的比率（仅在 v5.0.4 及以上版本生效） |
-| Details.Group.TotalLobSize     | int64      | 集合大对象文件的数据总大小，单位为字节（仅在 v5.0.4 及以上版本生效）    |
-| Details.Group.TotalValidLobSize | int64     | 集合空间大对象文件有效数据总大小，单位为字节（仅在 v5.0.4 及以上版本生效） |
-| Details.Group.LobUsageRate    | double  | 集合空间大对象文件的有效使用率（仅在 v5.0.4 及以上版本生效）<br>使用率越高，空间浪费越少 |
-| Details.Group.AvgLobSize     | int64      | 集合空间大对象文件平均大小，单位为字节（仅在 v5.0.4 及以上版本生效） |
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 | Details.Group.TotalDataFreeSpace  | int64         | 集合的数据空闲空间，单位为字节                          |
 | Details.Group.TotalIndexFreeSpace | int64         | 集合的索引空闲空间，单位为字节                          |
 | Details.Group.TotalDataRead   | int64 | 集合数据读请求 |
@@ -160,7 +126,6 @@ SDB_SNAP_COLLECTIONS
 | Details.Group.TotalWrite      | int64 | 集合写入记录数量 |
 | Details.Group.TotalTbScan     | int64 | 集合使用表扫描次数 |
 | Details.Group.TotalIxScan     | int64 | 集合使用索引扫描次数 |
-<<<<<<< HEAD
 | Details.Group.TotalLobGet           | int64     | 客户端获取大对象文件的总次数（仅在 v3.6.1 及以上版本生效） |
 | Details.Group.TotalLobPut           | int64     | 客户端上传大对象文件的总次数（仅在 v3.6.1 及以上版本生效） |
 | Details.Group.TotalLobDelete        | int64     | 客户端删除大对象文件的总次数（仅在 v3.6.1 及以上版本生效） |
@@ -175,22 +140,6 @@ SDB_SNAP_COLLECTIONS
 | Details.Group.NodeName            | string        | 节点名，格式为<主机名>:<服务名>                         |
 | Details.CreateTime | string | 创建集合的时间（仅在 v3.6.1 及以上版本生效） |
 | Details.UpdateTime | string | 更新集合元数据的时间（仅在 v3.6.1 及以上版本生效） |
-=======
-| Details.Group.TotalLobGet           | int64     | 客户端获取大对象文件的总次数（仅在 v5.0.4 及以上版本生效） |
-| Details.Group.TotalLobPut           | int64     | 客户端上传大对象文件的总次数（仅在 v5.0.4 及以上版本生效） |
-| Details.Group.TotalLobDelete        | int64     | 客户端删除大对象文件的总次数（仅在 v5.0.4 及以上版本生效） |
-| Details.Group.TotalLobList          | int64     | 客户端列举大对象文件的总次数（仅在 v5.0.4 及以上版本生效） |
-| Details.Group.TotalLobReadSize      | int64     | 客户端读大对象文件的总字节数（仅在 v5.0.4 及以上版本生效） |
-| Details.Group.TotalLobWriteSize     | int64     | 客户端写大对象文件的总字节数（仅在 v5.0.4 及以上版本生效） |
-| Details.Group.TotalLobRead     | int64     | 服务端中 LOB 分片的读次数（仅在 v5.0.4 及以上版本生效） |
-| Details.Group.TotalLobWrite     | int64     | 服务端中 LOB 分片的写次数（仅在 v5.0.4 及以上版本生效） |
-| Details.Group.TotalLobTruncate    | int64     | 服务端中 LOB 分片的截断次数（仅在 v5.0.4 及以上版本生效） |
-| Details.Group.TotalLobAddressing     | int64     | 服务端中 LOB 分片的寻址总次数（仅在 v5.0.4 及以上版本生效） |
-| Details.Group.ResetTimestamp  | string | 重置快照的时间 |
-| Details.Group.NodeName            | string        | 节点名，格式为<主机名>:<服务名>                         |
-| Details.CreateTime | string | 创建集合的时间（仅在 v5.0.4 及以上版本生效） |
-| Details.UpdateTime | string | 更新集合元数据的时间（仅在 v5.0.4 及以上版本生效） |
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 
 示例

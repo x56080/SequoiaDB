@@ -33,20 +33,17 @@
 
 *******************************************************************************/
 #include "clsVSPrimary.hpp"
-#include "clsReplAgent.hpp"
+#include "pmd.hpp"
+#include "pmdCB.hpp"
 #include "pdTrace.hpp"
 #include "clsTrace.hpp"
 
 namespace engine
 {
+   #define CLS_PRIMARY_UP_NOTIFY_TIMES          ( 60 )
 
-<<<<<<< HEAD
    _clsVSPrimary::_clsVSPrimary( _clsGroupInfo *info, _netRouteAgent *agent )
    : _clsVoteStatus( info, agent, CLS_ELECTION_STATUS_PRIMARY)
-=======
-   _clsVSPrimary::_clsVSPrimary( ICLSReplAgent *replAgent )
-   : _clsVoteStatus( replAgent, CLS_ELECTION_STATUS_PRIMARY )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
 
    }
@@ -95,23 +92,12 @@ namespace engine
 
    void _clsVSPrimary::deactive ()
    {
-<<<<<<< HEAD
       _MsgCatPrimaryChange msg ;
       UINT32 opKey = MAKE_REPLY_TYPE( msg.header.opCode ) ;
       const _clsCataCallerMeta* pMeta = sdbGetReplCB()->getCataCallerMeta( opKey ) ;
 
       // Merge Replica Group and Location primary change info together in one msg
       if ( NULL != pMeta && 0 != pMeta->sendTimes )
-=======
-      MsgRouteID newPrimaryRID, oldPrimaryRID ;
-
-      _replAgent->beforePrimaryDeactive() ;
-
-      _info()->mtx.lock_w() ;
-
-      oldPrimaryRID = _info()->primary ;
-      if ( _info()->local.value == _info()->primary.value )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       {
          _MsgCatPrimaryChange* pMsg = ( _MsgCatPrimaryChange* ) pMeta->header ;
          msg.newPrimary = pMsg->newPrimary ;
@@ -119,7 +105,6 @@ namespace engine
          msg.newLocationPrimary = pMsg->newLocationPrimary ;
          msg.oldLocationPrimary = pMsg->oldLocationPrimary ;
       }
-<<<<<<< HEAD
 
       if ( ! isLocation() )
       {
@@ -152,27 +137,16 @@ namespace engine
          msg.locationID = _info()->localLocationID ;
          _info()->mtx.release_w() ;
       }
-=======
-      newPrimaryRID = _info()->primary ;
 
-      _replAgent->onPrimaryDeactive( newPrimaryRID, oldPrimaryRID ) ;
-
-      _info()->mtx.release_w() ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
-
-      _replAgent->afterPrimaryDeactive( newPrimaryRID, oldPrimaryRID ) ;
+      sdbGetReplCB()->callCatalog( (MsgHeader *)&msg ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSVSPMY_ACTIVE, "_clsVSPrimary::active" )
    void _clsVSPrimary::active( INT32 &next )
    {
       PD_TRACE_ENTRY ( SDB__CLSVSPMY_ACTIVE ) ;
-
-      MsgRouteID newPrimaryRID, oldPrimaryRID ;
-
       _timeout() = 0 ;
       next = id() ;
-<<<<<<< HEAD
       _MsgCatPrimaryChange msg ;
       UINT32 opKey = MAKE_REPLY_TYPE(msg.header.opCode) ;
       const _clsCataCallerMeta* pMeta = sdbGetReplCB()->getCataCallerMeta( opKey ) ;
@@ -200,26 +174,9 @@ namespace engine
          _info()->mtx.release_w() ;
 
          sdbGetReplCB()->reelectionDone() ;
-=======
-
-      _replAgent->beforePrimaryActive() ;
-
-      _info()->mtx.lock_w() ;
-
-      oldPrimaryRID = _info()->primary ;
-      _info()->primary = _info()->local ;
-      newPrimaryRID = _info()->primary ;
-
-      _replAgent->onPrimaryActive( newPrimaryRID, oldPrimaryRID ) ;
-
-      _info()->mtx.release_w() ;
-
-      _replAgent->reelectionDone() ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
          PD_LOG ( PDEVENT, "%s Vote: change to primary", getScopeName() ) ;
 
-<<<<<<< HEAD
          // after primary
          sdbGetClsCB()->ntyPrimaryChange( TRUE, SDB_EVT_OCCUR_AFTER ) ;
       }
@@ -240,11 +197,9 @@ namespace engine
 
       sdbGetReplCB()->callCatalog( (MsgHeader *)&msg,
                                    CLS_PRIMARY_UP_NOTIFY_TIMES ) ;
-=======
-      _replAgent->afterPrimaryActive( newPrimaryRID, oldPrimaryRID ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       PD_TRACE_EXIT ( SDB__CLSVSPMY_ACTIVE ) ;
+      return ;
    }
 
 }

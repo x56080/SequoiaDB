@@ -1120,7 +1120,6 @@ namespace engine
    {
       if ( _mbContext && _mbContext->mbStat() )
       {
-<<<<<<< HEAD
          BOOLEAN doLock = FALSE ;
          BOOLEAN isOk = TRUE ;
          // test and get mb lock before submitting
@@ -1146,9 +1145,6 @@ namespace engine
          {
             _mbContext->mbUnlock() ;
          }
-=======
-         _mbContext->mbStat()->_crudCB.incMetrics( delta ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       }
    }
 

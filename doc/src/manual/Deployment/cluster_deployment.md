@@ -9,23 +9,13 @@
 
 本文档主要介绍如何在本地主机采用三副本机制部署 SequoiaDB 巨杉数据库集群。集群模式是 SequoiaDB 巨杉数据库部署的标准模式，具有高可用、容灾、数据分区等能力。
 
-<<<<<<< HEAD
 ##集群模式说明##
-=======
-集群模式说明
-----
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 在集群环境下，SequoiaDB 巨杉数据库需要三种角色的节点，分别为：[数据节点][data_node]、[编目节点][catalog_node]和[协调节点][coord_node]。集群模式的最小配置中，每种角色的节点都至少启动一个，才能构成完整的集群模式。
 
 集群模式中客户端或应用程序只需连接协调节点，协调节点会对接收到的请求进行解析，并将请求发送到数据节点进行处理。一个或多个节点组成复制组，复制组间的数据无共享。复制组内各节点采用异步数据复制，以保证数据的最终一致性。
 
-<<<<<<< HEAD
 ##检查服务状态##
-=======
-检查服务状态
-----
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 在进行集群模式部署前，用户需要在每台数据库服务器上检查 SequoiaDB 配置服务的状态。
 
@@ -40,12 +30,7 @@
 ```
 
 
-<<<<<<< HEAD
 ##部署##
-=======
-部署
-----
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 部署集群模式主要分为以下步骤：
 
@@ -188,7 +173,6 @@
      > oma.removeCoord(18800)
      ```
 
-<<<<<<< HEAD
 ##高可用与容灾说明##
 
 如果用户采用[高可用与容灾部署方案][ha_dr_program]，在集群部署完成后需按数据中心手动划分[位置集][location]，便于后续的灾难恢复。在多中心的部署方案中，为保证数据传输效率，用户需关闭自动全量同步功能，以控制 SequoiaDB 集群对网络宽带的占用。下述以同城双中心的部署方案为例，介绍具体操作步骤。
@@ -297,17 +281,12 @@
     ```lang-javascript
     > db.snapshot(SDB_SNAP_CONFIGS, {}, {NodeName: null, dataerrorop: null})
     ```
-=======
-至此，SequoiaDB 集群模式部署完毕，用户可通过 SDB Shell 进行数据操作。
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 [^_^]:
      本文使用的所有引用及链接
 [data_node]:manual/Distributed_Engine/Architecture/Node/data_node.md
 [catalog_node]:manual/Distributed_Engine/Architecture/Node/catalog_node.md
 [coord_node]:manual/Distributed_Engine/Architecture/Node/coord_node.md
-<<<<<<< HEAD
 [ha_dr_program]:manual/Deployment/ha_dr_program.md
 [split_merge]:manual/Distributed_Engine/Maintainance/Mgmt_Tools/split_merge.md
 [location]:manual/Distributed_Engine/Architecture/Location/Readme.md
@@ -318,7 +297,3 @@
 [domain]:manual/Distributed_Engine/Architecture/domain.md
 [location_principle]:manual/Distributed_Engine/Architecture/Location/location_principle.md#位置亲和性
 [location]:images/Deployment/location.png
-=======
-
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2

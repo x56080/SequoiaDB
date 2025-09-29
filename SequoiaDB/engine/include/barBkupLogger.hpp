@@ -114,11 +114,6 @@ namespace engine
    #define BAR_MIN_DATAFILE_SIZE                      (32)        // MB
 
    /*
-      Header: global backup defines
-   */
-   const UINT32 BAR_BACKUP_GLOBAL_BKP =               1 ;
-
-   /*
       _barBackupHeader define
    */
    struct _barBackupHeader : public SDBObject
@@ -154,9 +149,7 @@ namespace engine
       UINT64            _thinDataSize ;
       UINT64            _compressDataSize ;
       INT32             _compressionType ;
-      UINT32            _global ;
-      UINT64            _globalBackupTime ;
-      CHAR              _pad[61920] ;
+      CHAR              _pad[61932] ;
 
       _barBackupHeader ()
       {
@@ -658,13 +651,7 @@ namespace engine
 
          BOOLEAN                       _skipConf ;
          BOOLEAN                       _isDoRestoring ;
-         BOOLEAN                       _isGlobal ;
 
-      public:
-         void ignoreConsistency()
-         {
-            _isGlobal = FALSE ;
-         }
    } ;
    typedef _barRSBaseLogger barRSBaseLogger ;
 
@@ -709,7 +696,6 @@ namespace engine
                                              UINT64 &offset ) ;
          INT32             _writeSU( barBackupExtentHeader *pExtHeader,
                                      const CHAR *pData ) ;
-         INT32             _loadDMS () ;
 
       private:
          string               _curSUName ;

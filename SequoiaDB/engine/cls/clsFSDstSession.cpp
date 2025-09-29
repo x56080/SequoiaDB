@@ -1595,7 +1595,6 @@ namespace engine
                ossSnprintf( recyFullName, DMS_COLLECTION_FULL_NAME_SZ, "%s.%s",
                             csName, options._recycleItem.getRecycleName() ) ;
 
-<<<<<<< HEAD
                // truncate will rename the old collections, and create a new
                // empty collection with the same name, both collections
                // should be synchronized
@@ -1609,10 +1608,6 @@ namespace engine
                   goto error ;
                }
                _addCollection( recyFullName ) ;
-=======
-               _renameCollection( originFullName, recyFullName, replayRC ) ;
-               replayRC = SDB_OK ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             }
 
             if ( SDB_OK != replayRC )
@@ -1681,14 +1676,10 @@ namespace engine
                ossSnprintf( recyFullName, DMS_COLLECTION_FULL_NAME_SZ, "%s.%s",
                             csName, options._recycleItem.getRecycleName() ) ;
 
-<<<<<<< HEAD
                rc = _renameCollection( originFullName, recyFullName, replayRC ) ;
                PD_RC_CHECK( rc, PDERROR, "Session[%s] failed to replay drop "
                             "collection DPS log record, rc: %d", sessionName(),
                             rc ) ;
-=======
-               _renameCollection( originFullName, recyFullName, replayRC ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             }
             else
             {
@@ -1728,18 +1719,12 @@ namespace engine
             if ( options._recycleItem.isValid() )
             {
                // if recycle name is valid, check rename collection
-<<<<<<< HEAD
                rc = _renameCollectionSpace( options._recycleItem.getOriginName(),
                                             options._recycleItem.getRecycleName(),
                                             replayRC ) ;
                PD_RC_CHECK( rc, PDERROR, "Session[%s] failed to replay drop "
                             "collection space DPS log record, rc: %d",
                             sessionName(), rc ) ;
-=======
-               _renameCollectionSpace( options._recycleItem.getOriginName(),
-                                       options._recycleItem.getRecycleName(),
-                                       replayRC ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             }
             else
             {
@@ -2255,15 +2240,12 @@ namespace engine
          goto done ;
       }
 
-<<<<<<< HEAD
       _syncBeginTick = pmdGetDBTick() ;
       ossSnprintf( _lastSyncDetail, CLS_SYNC_DETAIL_MAX_LEN,
                    "Fullsync begin, expect LSN: ( offset: %lld, version: %u )",
                    (INT64)msg->lsn.offset, msg->lsn.version ) ;
       MON_REPLACE_OP_DETAIL( eduCB()->getMonAppCB(), header->opCode, _lastSyncDetail ) ;
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       /// begin next status
       _meta() ;
 
@@ -2901,18 +2883,7 @@ namespace engine
          {
             const monCSSimple &csInfo = *it ;
 
-            // skip SYSTEM during sync
             if ( 0 == ossStrcmp( csInfo._name, SDB_DMSTEMP_NAME ) )
-            {
-               csList.erase( it++ ) ;
-               ++count ;
-               continue ;
-            }
-
-            // skip SYSRBS CS during sync because it's local to the node
-            if ( 0 == ossStrncmp( csInfo._name,
-                                  SDB_DMSRBS_NAME,
-                                  SDB_DMSRBS_NAME_SIZE ) )
             {
                csList.erase( it++ ) ;
                ++count ;
@@ -3417,8 +3388,6 @@ namespace engine
       msg.header.TID = CLS_TID( _sessionID ) ;
       _sendTo( _selector.src(), &(msg.header) ) ;
       _timeout = 0 ;
-      // End of split, make it so that restoreToTime cannot go beyond this
-      sdbGetTransCB()->pushRestoreWindow() ;
       PD_TRACE_EXIT ( SDB__CLSSPLDS__LEND );
    }
 
@@ -3470,60 +3439,6 @@ namespace engine
       }
       else if ( STEP_POST_SYNC == _step )
       {
-         INT32       rc       = SDB_OK ;
-         SDB_DMSCB  *dmsCB    = pmdGetKRCB()->getDMSCB() ;
-         dpsTransCB *pTransCB = sdbGetTransCB() ;
-
-         // get glob trans time if RR is supported
-         if ( pTransCB->isRRSupported() )
-         {
-
-            // get glob tx time and mark split finish timestamp in mbStat
-            // until succeed or EDU is interrupted
-            dmsStorageUnit  *su       = NULL ;
-            const CHAR      *pCLShort = NULL ;
-            dmsMBContext    *pContext = NULL ;
-            dmsStorageUnitID suID     = DMS_INVALID_SUID ;
-            stpAgent timeAgent ;
-            stpLogicalTimeUS finishTime ;
-
-            // get global logical time
-            rc = timeAgent.getLogicalTimeUS( finishTime,
-                                             OSS_ONE_SEC,
-                                             FALSE ) ;
-
-            // lock su
-            if ( SDB_OK == rtnResolveCollectionNameAndLock(
-                              _pTask->collectionName(), dmsCB, &su,
-                              &pCLShort, suID ) )
-            {
-               // mark split finish timestamp in mbStat
-               if ( SDB_OK == su->data()->getMBContext( &pContext, pCLShort,
-                                                        SHARED ) )
-               {
-                  UINT64 tm = finishTime.getTime() + STP_MAX_TIME_ERROR_US ;
-                  // update global transaction available timestamp
-                  // split won't fetch old versions from source
-                  if ( SDB_OK != rc )
-                  {
-                     PD_LOG( PDWARNING, "Failed to get STP logical time, rc:%d ", rc ) ;
-                     pContext->mbStat()
-                             ->_globTransAvailTime.swapGreaterThan( DPS_MAX_TRANS_TIME) ;
-                     rc = SDB_OK ;
-                  }
-                  else
-                  {
-                     pContext->mbStat()
-                             ->_globTransAvailTime.swapGreaterThan( tm ) ;
-                  }
-                  // release context
-                  su->data()->releaseMBContext( pContext ) ;
-               }
-               // release sulock
-               dmsCB->suUnlock( suID ) ;
-            }
-         }
-
          _taskNotify( MSG_CAT_SPLIT_CHGMETA_REQ ) ;
       }
       else if ( STEP_META == _step )
@@ -3853,7 +3768,6 @@ namespace engine
       }
 
       _step = STEP_FINISH ;
-<<<<<<< HEAD
       // unregister collection
       if ( _regTask )
       {
@@ -3864,8 +3778,6 @@ namespace engine
                  " unregistered", sessionName(), _pTask->collectionName(),
                  _pTask->taskName() ) ;
       }
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       // notify catalog remove the task
       _taskNotify( MSG_CAT_SPLIT_FINISH_REQ ) ;
 

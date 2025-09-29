@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 /*******************************************************************************
 
    Copyright (C) 2011-Present SequoiaDB Ltd.
@@ -31,8 +30,6 @@
    Last Changed =
 
 *******************************************************************************/
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
@@ -75,11 +72,7 @@ public class PushdownTest {
 
     private static final String cl = "utCL";
 
-<<<<<<< HEAD
     private static final Sequoiadb sequoiadb = new Sequoiadb(con, username, password);
-=======
-    private static final Sequoiadb sequoiadb = new Sequoiadb(con,username,password);
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
     private static final CollectionSpace collectionSpace;
 
@@ -116,17 +109,10 @@ public class PushdownTest {
                 ") WITH (" +
                 "'connector' = 'sequoiadb'," +
                 "'hosts' = '" + con + "'," +
-<<<<<<< HEAD
                 "'collection' = '" + cl + "'," +
                 "'collectionspace' = '" + cs + "'," +
                 "'username' = '" + username + "'," +
                 "'password' = '" + password + "'," +
-=======
-                "'collection' = '"+ cl +"'," +
-                "'collectionspace' = '"+ cs +"'," +
-                "'username' = '"+ username +"'," +
-                "'password' = '"+ password +"'," +
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                 "'overwrite' = 'false')";
         tableEnvironment.executeSql(sdbSql);
 
@@ -155,15 +141,9 @@ public class PushdownTest {
         CloseableIterator<Row> iterator = tableResult.collect();
 
         BSONObject selector = new BasicBSONObject();
-<<<<<<< HEAD
         selector.put("id", null);
 
         DBCursor dbCursor = dbCollection.query(conditions, selector, null, null);
-=======
-        selector.put("id" , null);
-
-        DBCursor dbCursor = dbCollection.query(conditions,selector,null,null);
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
         Assert.assertTrue(check(dbCursor, iterator));
     }
@@ -175,24 +155,14 @@ public class PushdownTest {
         BSONObject condition = new BasicBSONObject();
         BSONObject value = new BasicBSONObject();
         value.put("$gt", BSONDate.valueOf(LocalDate.parse("2021-07-22")));
-<<<<<<< HEAD
         condition.put("atime", value);
-=======
-        condition.put("atime" , value);
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
         CloseableIterator<Row> iterator = tableResult.collect();
 
         BSONObject selector = new BasicBSONObject();
-<<<<<<< HEAD
         selector.put("id", null);
 
         DBCursor dbCursor = dbCollection.query(condition, selector, null, null);
-=======
-        selector.put("id" , null);
-
-        DBCursor dbCursor = dbCollection.query(condition,selector,null,null);
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
         Assert.assertTrue(check(dbCursor, iterator));
     }
@@ -230,15 +200,9 @@ public class PushdownTest {
         CloseableIterator<Row> iterator = tableResult.collect();
 
         BSONObject selector = new BasicBSONObject();
-<<<<<<< HEAD
         selector.put("id", null);
 
         DBCursor dbCursor = dbCollection.query(condition, selector, null, null);
-=======
-        selector.put("id" , null);
-
-        DBCursor dbCursor = dbCollection.query(condition,selector,null,null);
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
         Assert.assertTrue(check(dbCursor, iterator));
     }
@@ -262,24 +226,14 @@ public class PushdownTest {
         andList.add(condition1);
         andList.add(condition2);
 
-<<<<<<< HEAD
         conditions.put("$and", andList);
-=======
-        conditions.put("$and",andList);
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
         CloseableIterator<Row> iterator = tableResult.collect();
 
         BSONObject selector = new BasicBSONObject();
-<<<<<<< HEAD
         selector.put("id", null);
 
         DBCursor dbCursor = dbCollection.query(conditions, selector, null, null);
-=======
-        selector.put("id" , null);
-
-        DBCursor dbCursor = dbCollection.query(conditions,selector,null,null);
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
         Assert.assertTrue(check(dbCursor, iterator));
     }
@@ -320,15 +274,9 @@ public class PushdownTest {
         conditions.put("$or", orList);
 
         BSONObject selector = new BasicBSONObject();
-<<<<<<< HEAD
         selector.put("id", null);
 
         DBCursor dbCursor = dbCollection.query(conditions, selector, null, null);
-=======
-        selector.put("id" , null);
-
-        DBCursor dbCursor = dbCollection.query(conditions,selector,null,null);
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
         Assert.assertTrue(check(dbCursor, iterator));
     }
@@ -356,13 +304,8 @@ public class PushdownTest {
 
         BSONObject condition3 = new BasicBSONObject();
         BSONObject value3 = new BasicBSONObject();
-<<<<<<< HEAD
         value3.put("$et", "asdasd");
         condition3.put("name", value3);
-=======
-        value3.put("$et" , "asdasd");
-        condition3.put("name" , value3);
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         orList.add(condition3);
 
         BSONObject condition4 = new BasicBSONObject();
@@ -371,21 +314,12 @@ public class PushdownTest {
         condition4.put("property", value4);
         orList.add(condition4);
 
-<<<<<<< HEAD
         conditions.put("$or", orList);
 
         BSONObject selector = new BasicBSONObject();
         selector.put("id", null);
 
         DBCursor dbCursor = dbCollection.query(conditions, selector, null, null);
-=======
-        conditions.put("$or",orList);
-
-        BSONObject selector = new BasicBSONObject();
-        selector.put("id" , null);
-
-        DBCursor dbCursor = dbCollection.query(conditions,selector,null,null);
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
         Assert.assertTrue(check(dbCursor, iterator));
     }
@@ -413,11 +347,7 @@ public class PushdownTest {
         value12.put("$lt", new BigDecimal("545665.135"));
         condition12.put("property", value12);
         orList1.add(condition12);
-<<<<<<< HEAD
         condition1.put("$or", orList1);
-=======
-        condition1.put("$or",orList1);
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         andList.add(condition1);
 
 
@@ -475,15 +405,9 @@ public class PushdownTest {
         conditions.put("$and", andList);
 
         BSONObject selector = new BasicBSONObject();
-<<<<<<< HEAD
         selector.put("id", null);
 
         DBCursor dbCursor = dbCollection.query(conditions, selector, null, null);
-=======
-        selector.put("id" , null);
-
-        DBCursor dbCursor = dbCollection.query(conditions,selector,null,null);
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
         Assert.assertTrue(check(dbCursor, iterator));
     }
@@ -510,21 +434,12 @@ public class PushdownTest {
         condition2.put("age", value2);
         andList.add(condition2);
 
-<<<<<<< HEAD
         conditions.put("$and", andList);
 
         BSONObject selector = new BasicBSONObject();
         selector.put("id", null);
 
         DBCursor dbCursor = dbCollection.query(conditions, selector, null, null);
-=======
-        conditions.put("$and",andList);
-
-        BSONObject selector = new BasicBSONObject();
-        selector.put("id" , null);
-
-        DBCursor dbCursor = dbCollection.query(conditions,selector,null,null);
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
         Assert.assertTrue(check(dbCursor, iterator));
     }
@@ -538,21 +453,12 @@ public class PushdownTest {
         BSONObject condition = new BasicBSONObject();
         BSONObject value = new BasicBSONObject();
         value.put("$gt", 1);
-<<<<<<< HEAD
         condition.put("id", value);
 
         BSONObject selector = new BasicBSONObject();
         selector.put("id", null);
 
         DBCursor dbCursor = dbCollection.query(condition, selector, null, null);
-=======
-        condition.put("id" , value);
-
-        BSONObject selector = new BasicBSONObject();
-        selector.put("id" , null);
-
-        DBCursor dbCursor = dbCollection.query(condition,selector,null,null);
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
         Assert.assertTrue(check(dbCursor, iterator));
     }
@@ -600,13 +506,8 @@ public class PushdownTest {
 
         BSONObject condition3 = new BasicBSONObject();
         BSONObject value3 = new BasicBSONObject();
-<<<<<<< HEAD
         value3.put("$et", "asdaqw");
         condition3.put("sex", value3);
-=======
-        value3.put("$et" , "asdaqw");
-        condition3.put("sex" , value3);
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         andList.add(condition3);
 
         BSONObject condition4 = new BasicBSONObject();
@@ -615,21 +516,12 @@ public class PushdownTest {
         condition4.put("property", value4);
         andList.add(condition4);
 
-<<<<<<< HEAD
         conditions.put("$and", andList);
 
         BSONObject selector = new BasicBSONObject();
         selector.put("id", null);
 
         DBCursor dbCursor = dbCollection.query(conditions, selector, null, null);
-=======
-        conditions.put("$and",andList);
-
-        BSONObject selector = new BasicBSONObject();
-        selector.put("id" , null);
-
-        DBCursor dbCursor = dbCollection.query(conditions,selector,null,null);
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
         Assert.assertTrue(check(dbCursor, iterator));
     }
@@ -673,21 +565,12 @@ public class PushdownTest {
         condition5.put("id", value5);
         orList.add(condition5);
 
-<<<<<<< HEAD
         conditions.put("$or", orList);
 
         BSONObject selector = new BasicBSONObject();
         selector.put("id", null);
 
         DBCursor dbCursor = dbCollection.query(conditions, selector, null, null);
-=======
-        conditions.put("$or",orList);
-
-        BSONObject selector = new BasicBSONObject();
-        selector.put("id" , null);
-
-        DBCursor dbCursor = dbCollection.query(conditions,selector,null,null);
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
         Assert.assertTrue(check(dbCursor, iterator));
     }
@@ -722,11 +605,7 @@ public class PushdownTest {
         value13.put("$gt", 10);
         condition13.put("age", value13);
         orList1.add(condition13);
-<<<<<<< HEAD
         condition1.put("$or", orList1);
-=======
-        condition1.put("$or" , orList1);
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         andList.add(condition1);
 
         BSONObject condition2 = new BasicBSONObject();
@@ -749,7 +628,6 @@ public class PushdownTest {
         value23.put("$gt", 100);
         condition23.put("property", value23);
         orList2.add(condition23);
-<<<<<<< HEAD
         condition2.put("$or", orList2);
         andList.add(condition1);
 
@@ -759,17 +637,6 @@ public class PushdownTest {
         selector.put("id", null);
 
         DBCursor dbCursor = dbCollection.query(conditions, selector, null, null);
-=======
-        condition2.put("$or",orList2);
-        andList.add(condition1);
-
-        conditions.put("$and",andList);
-
-        BSONObject selector = new BasicBSONObject();
-        selector.put("id" , null);
-
-        DBCursor dbCursor = dbCollection.query(conditions,selector,null,null);
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
         Assert.assertTrue(check(dbCursor, iterator));
     }
@@ -813,21 +680,12 @@ public class PushdownTest {
         condition5.put("id", value5);
         orList.add(condition5);
 
-<<<<<<< HEAD
         conditions.put("$or", orList);
 
         BSONObject selector = new BasicBSONObject();
         selector.put("id", null);
 
         DBCursor dbCursor = dbCollection.query(conditions, selector, null, null);
-=======
-        conditions.put("$or",orList);
-
-        BSONObject selector = new BasicBSONObject();
-        selector.put("id" , null);
-
-        DBCursor dbCursor = dbCollection.query(conditions,selector,null,null);
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
         Assert.assertTrue(check(dbCursor, iterator));
     }
@@ -864,20 +722,12 @@ public class PushdownTest {
         value22.put("$gt", 10.0);
         condition22.put("age", value22);
         andList2.add(condition22);
-<<<<<<< HEAD
         condition2.put("$and", andList2);
-=======
-        condition2.put("$and" , andList2);
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         orList.add(condition2);
 
 
         BSONObject condition3 = new BasicBSONObject();
-<<<<<<< HEAD
         BasicBSONList andList3 = new BasicBSONList();
-=======
-        BasicBSONList andList3= new BasicBSONList();
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
         BSONObject condition31 = new BasicBSONObject();
         BSONObject value31 = new BasicBSONObject();
@@ -890,11 +740,7 @@ public class PushdownTest {
         value32.put("$gt", Timestamp.from(Instant.parse("2021-07-22T03:04:46.2090Z")));
         condition32.put("btime", value32);
         andList3.add(condition32);
-<<<<<<< HEAD
         condition3.put("$and", andList3);
-=======
-        condition3.put("$and",andList3);
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         orList.add(condition3);
 
         BSONObject condition4 = new BasicBSONObject();
@@ -911,7 +757,6 @@ public class PushdownTest {
         value42.put("$et", "asds");
         condition42.put("address", value42);
         andList4.add(condition42);
-<<<<<<< HEAD
         condition4.put("$and", andList4);
         orList.add(condition4);
 
@@ -921,17 +766,6 @@ public class PushdownTest {
         selector.put("id", null);
 
         DBCursor dbCursor = dbCollection.query(conditions, selector, null, null);
-=======
-        condition4.put("$and",andList4);
-        orList.add(condition4);
-
-        conditions.put("$or",orList);
-
-        BSONObject selector = new BasicBSONObject();
-        selector.put("id" , null);
-
-        DBCursor dbCursor = dbCollection.query(conditions,selector,null,null);
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
         Assert.assertTrue(check(dbCursor, iterator));
     }
@@ -969,15 +803,9 @@ public class PushdownTest {
         conditions.put("sex", value);
 
         BSONObject selector = new BasicBSONObject();
-<<<<<<< HEAD
         selector.put("id", null);
 
         DBCursor dbCursor = dbCollection.query(conditions, selector, null, null);
-=======
-        selector.put("id" , null);
-
-        DBCursor dbCursor = dbCollection.query(conditions,selector,null,null);
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
         Assert.assertTrue(check(dbCursor, iterator));
     }
@@ -1028,16 +856,11 @@ public class PushdownTest {
         while (iterator.hasNext()) {
             Row row = iterator.next();
 
-<<<<<<< HEAD
             while (conditions.hasNext()) {
-=======
-            while (conditions.hasNext()){
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                 BSONObject bson = conditions.getNext();
                 Object value1 = bson.get("id");
                 Object value2 = row.getField("id");
 
-<<<<<<< HEAD
                 if (value1.equals(value2)) {
                     flag = true;
                     break;
@@ -1046,16 +869,6 @@ public class PushdownTest {
                 }
             }
             if (!flag) {
-=======
-                if(value1.equals(value2)){
-                    flag= true;
-                    break;
-                }else {
-                    flag= false;
-                }
-            }
-            if(!flag){
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                 break;
             }
         }

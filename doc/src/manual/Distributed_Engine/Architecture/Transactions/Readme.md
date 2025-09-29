@@ -41,26 +41,21 @@ SequoiaDB 的[事务日志][transaction_log]记录了事务对数据库的所有
 
 隔离性
 ----
-隔离性是避免在多个同时执行的事务操作会话之间出现相互干扰的机制。目前，SequoiaDB 支持四种隔离级别：
+隔离性是避免在多个同时执行的事务操作会话之间出现相互干扰的机制。目前，SequoiaDB 支持三种隔离级别：
 
 + 读未提交（Read Uncommitted，RU）：RU 级别是最低隔离级别，意味着不同会话之间能够互相读到未提交的修改信息；
 + 读已提交（Read Committed，RC）：RC 级别为会话读取每条记录最新已被提交的状态；
 + 读稳定性（Read Stability，RS）：RS 级别为会话在事务中首次读取的记录，在该会话结束前不会被其他会话所修改。
-+ 可重复读（Repeatable Read，RR）：RR 级别为会话在事务中首次读取的记录，在该会话结束前不会被其他会话所修改，且不会因为其他事务对结果集的记录个数发生改变。
 
-SequoiaDB 的 RR 隔离级别是使用多版本并发控制（MVCC，Multi-Version Convurrency Control）实现，详细可参考[隔离级别][isolation]。
+详细可参考[隔离级别][isolation]。
 
 分布式事务
 ----
 作为分布式数据库，SequoiaDB 将数据分布式存储在一台或多台物理设备中。当事务中的操作发生在不同物理设备中时，SequoiaDB 使用[两阶段提交][2pc]协议实现分布式事务，支持跨表跨节点的事务原子操作。
 
-另外，SequoiaDB 使用时间序列协议（STP，Serial Time Protocol）为分布式事务分配全局时间，并使用全局事务一致性的仲裁机制，对分布式事务实现了因果排序，再配合 MVCC 的可见性计算算法，从而实现了分布式事务的全局一致性。
-
 事务操作
 ----
-
-事务操作可参考 [SQL 应用开发的事务操作][sql_transactions]和 [JSON 应用开发的事务操作][json]。
-
+事务操作可参考 [SQL 应用开发的事务操作][sql_transactions]和 JSON 应用开发的事务操作。
 
 SequoiaDB 事务支持的操作：
 
@@ -76,18 +71,9 @@ SequoiaDB 事务支持的操作：
 
 [^_^]:
     本文使用到的所有链接
-[transaction_log]:manual/Distributed_Engine/Architecture/Transactions/transaction_log.md
-[isolation]:manual/Distributed_Engine/Architecture/Transactions/isolation.md
-[2pc]:manual/Distributed_Engine/Architecture/Transactions/2pc.md
-[configurations]:manual/Distributed_Engine/Architecture/Transactions/configurations.md
-[sql_transactions]:manual/Manual/SQL_Grammar/Statement/transaction.md
-[json]:manual/Database_Instance/Json_Instance/Development/JavaScript.md
 
-<<<<<<< HEAD
 [transaction_log]: manual/Distributed_Engine/Architecture/Transactions/transaction_log.md
 [isolation]: manual/Distributed_Engine/Architecture/Transactions/isolation.md
 [2pc]: manual/Distributed_Engine/Architecture/Transactions/2pc.md
 [configurations]: manual/Distributed_Engine/Architecture/Transactions/configurations.md
 [sql_transactions]: manual/Manual/SQL_Grammar/Statement/transaction.md
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2

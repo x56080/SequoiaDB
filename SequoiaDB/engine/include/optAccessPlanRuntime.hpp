@@ -111,60 +111,47 @@ namespace engine
    /*
       _optCLScanInfo define
     */
-   class _optCLScanInfo : public utilPooledObject
+   class _optCLScanInfo : public utilPooledObject,
+                          public _optCollectionInfo
    {
       public :
          _optCLScanInfo () ;
 
          _optCLScanInfo ( const _optCLScanInfo & info ) ;
 
-         ~_optCLScanInfo () ;
+         virtual ~_optCLScanInfo () ;
 
-         OSS_INLINE void setIndexExtID ( dmsExtentID indexExtID )
+         OSS_INLINE virtual void setIndexExtID ( dmsExtentID indexExtID )
          {
             _indexExtID = indexExtID ;
          }
 
-         OSS_INLINE void setIndexLID ( dmsExtentID indexLID )
+         OSS_INLINE virtual void setIndexLID ( dmsExtentID indexLID )
          {
             _indexLID = indexLID ;
          }
 
-         void setCLFullName ( const CHAR *pCLFullName ) ;
+         virtual void setCLFullName ( const CHAR *pCLFullName ) ;
 
-         OSS_INLINE dmsExtentID getIndexExtID () const
+         OSS_INLINE virtual dmsExtentID getIndexExtID () const
          {
             return _indexExtID ;
          }
 
-         OSS_INLINE dmsExtentID getIndexLID () const
+         OSS_INLINE virtual dmsExtentID getIndexLID () const
          {
             return _indexLID ;
          }
 
-         OSS_INLINE const CHAR *getCLFullName () const
+         OSS_INLINE virtual const CHAR *getCLFullName () const
          {
             return _clFullName ;
          }
 
-         OSS_INLINE void setCLUniqueID(utilCLUniqueID clUID)
-         {
-            _clUID = clUID ;
-         }
-
-         OSS_INLINE utilCLUniqueID getCLUniqueID() const
-         {
-            return _clUID ;
-         }
-         
-         
-
       protected :
-         dmsExtentID _indexExtID = DMS_INVALID_EXTENT ;
-         dmsExtentID _indexLID = DMS_INVALID_EXTENT ;
-         CHAR _clFullName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = {};
-         utilCLUniqueID _clUID = UTIL_UNIQUEID_NULL ;
-         
+         dmsExtentID _indexExtID ;
+         dmsExtentID _indexLID ;
+         CHAR        _clFullName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] ;
    } ;
 
    typedef class _optCLScanInfo optCLScanInfo ;
@@ -191,9 +178,10 @@ namespace engine
          void setCLScanInfo ( optCLScanInfo * clScanInfo ) ;
 
          INT32 bindPlanInfo ( const CHAR *pCLFullName,
+                              dmsStorageUnit *su,
+                              dmsMBContext *mbContext,
                               dmsExtentID indexExtID,
-                              dmsExtentID indexLID,
-                              utilCLUniqueID clUID ) ;
+                              dmsExtentID indexLID ) ;
 
          virtual const mthMatchRuntime * getMatchRuntime () const ;
          virtual mthMatchRuntime * getMatchRuntime () ;
@@ -214,23 +202,11 @@ namespace engine
 
          OSS_INLINE void setPlan ( optAccessPlan *plan,
                                    optAccessPlanManager *apm,
-                                   BOOLEAN isNewPlan,
-                                   BOOLEAN hasNonGTIndex )
+                                   BOOLEAN isNewPlan )
          {
             _plan = plan ;
             _apm = apm ;
             _isNewPlan = isNewPlan ;
-            _hasNonGTIndex = hasNonGTIndex ;
-         }
-
-         OSS_INLINE void setExplainOptions( const rtnExplainOptions *expOptions )
-         {
-            _expOptions = expOptions ;
-         }
-
-         OSS_INLINE const rtnExplainOptions *getExplainOptions() const
-         {
-            return _expOptions ;
          }
 
          OSS_INLINE void setExplainOptions( const rtnExplainOptions *expOptions )
@@ -266,11 +242,6 @@ namespace engine
          OSS_INLINE BOOLEAN isNewPlan () const
          {
             return _isNewPlan ;
-         }
-
-         OSS_INLINE BOOLEAN hasNonGTIndex() const
-         {
-            return _hasNonGTIndex ;
          }
 
          OSS_INLINE const optCLScanInfo * getCLScanInfo () const
@@ -352,11 +323,18 @@ namespace engine
                                  _plan->getCLFullName() ;
          }
 
-         OSS_INLINE utilCLUniqueID getCLUniqueID () const
+         OSS_INLINE UINT16 getCLMBID () const
          {
             SDB_ASSERT( _plan, "_plan is invalid" ) ;
-            return _clScanInfo ? _clScanInfo->getCLUniqueID() :
-                                 _plan->getCLUniqueID() ;
+            return _clScanInfo ? _clScanInfo->getCLMBID() :
+                                 _plan->getCLMBID() ;
+         }
+
+         OSS_INLINE UINT32 getCLLID () const
+         {
+            SDB_ASSERT( _plan, "_plan is invalid" ) ;
+            return _clScanInfo ? _clScanInfo->getCLLID() :
+                                 _plan->getCLLID() ;
          }
 
          OSS_INLINE BOOLEAN canSetQueryActivity () const
@@ -396,11 +374,6 @@ namespace engine
 
          // Mark the plan is new created or got from cache
          BOOLEAN                 _isNewPlan ;
-
-         // Mark the plan is created with non global transaction indexes
-         // NOTE: non global transaction index is index without rebuild time
-         //       or create behind current transaction
-         BOOLEAN                 _hasNonGTIndex ;
 
          // Used for main CL plan, bind sub-collection and index
          BOOLEAN                 _ownedPlanInfo ;

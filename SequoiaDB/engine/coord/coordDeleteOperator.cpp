@@ -153,7 +153,6 @@ namespace engine
 
          rtnQueryOptions options( boDeletor, dummy, dummy, hint, pCollectionName,
                                   0, -1, oldFlag ) ;
-         options.setWriteOp( TRUE ) ;
 
          // add last op info
          MON_SAVE_OP_OPTION( cb->getMonAppCB(), pMsg, options ) ;

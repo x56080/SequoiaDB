@@ -12,12 +12,8 @@ SYSCAT.SYSNODES 集合中包含了该集群中所有的节点与复制组信息�
 | Status      | number | 复制组状态，取值如下：<br> 1：已激活复制组<br>  0：未激活复制组<br>  不存在：未激活复制组  |
 | Version     | number |  版本号，由 1 起始，任何对该复制组的操作均会对其 +1 |
 | Group       | array  |  复制组中节点信息，所包含字段的详细说明可参考下述表格 |
-<<<<<<< HEAD
 | Locations   | array  |  复制组中节点的位置信息，所包含字段的说明如下：<br> Location：位置信息 <br> LocationID：位置信息 ID <br> PrimaryNode: 位置集主节点 ID |
 | ActiveLocation | string | 复制组中的 ActiveLocation |
-=======
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 复制组中如果存在一个以上节点，则每个节点作为一个对象存放在 Group 字段数组中，每个对象的信息如下：
 
@@ -28,10 +24,7 @@ SYSCAT.SYSNODES 集合中包含了该集群中所有的节点与复制组信息�
 | instanceid | number | 节点的实例 ID，用于 --preferredinstance 进行实例选择           |
 | NodeID   | number | 节点 ID，该 ID 在集群中唯一                          | 
 | Service  | array  | 服务名，每个逻辑节点对应四个服务名，每个服务名包括其类型与服务名（可以为端口号或 services 文件中的服务名），类型取值如下：<br> 0：直连服务，对应数据库参数 svcname   <br>  1：复制服务，对应数据库参数 replname   <br>  2：分区服务，对应数据库参数 shardname   <br> 3：编目服务，对应数据库参数 catalogname  |
-<<<<<<< HEAD
 | Location | string | 节点的位置信息 |
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 >**Note:**
 >
@@ -45,10 +38,7 @@ SYSCAT.SYSNODES 集合中包含了该集群中所有的节点与复制组信息�
 
  ```lang-json
  {
-<<<<<<< HEAD
    "ActiveLocation" : "GuangZhou",
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    "Group" :
      [
        {
@@ -61,17 +51,12 @@ SYSCAT.SYSNODES 集合中包含了该集群中所有的节点与复制组信息�
          { "Type" : 2, "Name" : "11802" },
          { "Type" : 0, "Name" : "11800" }
        ],
-<<<<<<< HEAD
        "dbpath" : "/home/sequoiadb/sequoiadb/catalog",
        "Location": "GuangZhou"
-=======
-       "dbpath" : "/home/sequoiadb/sequoiadb/catalog"
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       }
      ],
    "GroupID" : 1,
    "GroupName" : "SYSCatalogGroup",
-<<<<<<< HEAD
    "Locations": [
       {
         "Location": "GuangZhou",
@@ -79,8 +64,6 @@ SYSCAT.SYSNODES 集合中包含了该集群中所有的节点与复制组信息�
         "PrimaryNode": 2
       }
    ],
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    "PrimaryNode" : 2,
    "Role" : 2,
    "Version" : 1
@@ -91,10 +74,7 @@ SYSCAT.SYSNODES 集合中包含了该集群中所有的节点与复制组信息�
 
  ```lang-json
  {
-<<<<<<< HEAD
    "ActiveLocation" : "ShenZhen",
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    "Group" :
      [
        {
@@ -107,17 +87,12 @@ SYSCAT.SYSNODES 集合中包含了该集群中所有的节点与复制组信息�
          { "Type" : 2, "Name" : "11822" },
        ],
        "NodeID" : 1001,
-<<<<<<< HEAD
        "instanceid" : 10,
        "Location": "ShenZhen"
-=======
-       "instanceid" : 10
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
        }
      ],
    "GroupID" : 1001,
    "GroupName" : "sample1",
-<<<<<<< HEAD
    "Locations": [
       {
         "Location": "ShenZhen",
@@ -125,8 +100,6 @@ SYSCAT.SYSNODES 集合中包含了该集群中所有的节点与复制组信息�
         "PrimaryNode": 1001
       }
    ],
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    "PrimaryNode" : 1001,
    "Role" : 0,
    "Status" : 1,

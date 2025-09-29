@@ -1,6 +1,5 @@
 /*******************************************************************************
 
-<<<<<<< HEAD
    Copyright (C) 2011-Present SequoiaDB Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,22 +13,6 @@
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
-=======
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
-
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
-
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    Source File Name = catRecycleBinManager.cpp
 
@@ -51,10 +34,6 @@
    Last Changed =
 
 *******************************************************************************/
-<<<<<<< HEAD
-=======
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 #include "catCommon.hpp"
 #include "catRecycleBinManager.hpp"
 #include "rtn.hpp"
@@ -496,10 +475,7 @@ namespace engine
       BOOLEAN isAvailable = FALSE, isLimitedByVersion = FALSE ;
       const CHAR *originName = item.getOriginName() ;
       utilCLUniqueID originID = item.getOriginID() ;
-<<<<<<< HEAD
       BOOLEAN needDoubleCheckAvail = TRUE ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       utilRecycleBinConf conf = getConf() ;
 
@@ -511,15 +487,12 @@ namespace engine
          if ( isLimitedByVersion )
          {
             rc = _tryFindOldestItem( originName, originID, cb, droppingItem ) ;
-<<<<<<< HEAD
             if ( SDB_LOCK_FAILED == rc )
             {
                SDB_ASSERT( conf.getAutoDrop(), "conf can be AutoDrop" ) ;
                rc = _checkDelayLockFailed( conf ) ;
                needDoubleCheckAvail = FALSE ;
             }
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             PD_RC_CHECK( rc, PDERROR, "Failed to drop oldest recycle item "
                          "for [%s] in different versions, rc: %d",
                          originName, rc ) ;
@@ -527,15 +500,12 @@ namespace engine
          else
          {
             rc = _tryFindOldestItem( cb, droppingItem ) ;
-<<<<<<< HEAD
             if ( SDB_LOCK_FAILED == rc )
             {
                SDB_ASSERT( conf.getAutoDrop(), "conf can be AutoDrop" ) ;
                rc = _checkDelayLockFailed( conf ) ;
                needDoubleCheckAvail = FALSE ;
             }
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             PD_RC_CHECK( rc, PDERROR, "Failed to drop oldest recycle item, "
                          "rc: %d", rc ) ;
          }
@@ -559,11 +529,7 @@ namespace engine
             isAvailable = TRUE ;
             rc = SDB_OK ;
          }
-<<<<<<< HEAD
          else if ( needDoubleCheckAvail )
-=======
-         else
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          {
             // didn't drop any oldest item, may background job do it,
             // we can check available again
@@ -1340,7 +1306,6 @@ namespace engine
 
       try
       {
-<<<<<<< HEAD
          {
             ossPoolSet< utilCSUniqueID > lockedCS ;
             catCtxLockMgr dropItemLockMgr ;
@@ -1367,60 +1332,14 @@ namespace engine
                   continue ;
                }
                rc = tryLockItem( droppingItem, cb, EXCLUSIVE, dropItemLockMgr, &lockedCS ) ;
-=======
-         ossPoolSet< utilCSUniqueID > lockedCS ;
-
-         // check target item
-         if ( UTIL_RECYCLE_CS == item.getType() )
-         {
-            rc = tryLockItem( item, cb, EXCLUSIVE, lockMgr, &lockedCS, FALSE ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to lock recycle item, "
-                         "rc: %d", rc ) ;
-         }
-
-         for ( UTIL_RECY_ITEM_LIST_CIT iter = droppingItems.begin() ;
-               iter != droppingItems.end() ;
-               ++ iter )
-         {
-            const utilRecycleItem &droppingItem = *iter ;
-            if ( UTIL_RECYCLE_CS == droppingItem.getType() )
-            {
-               rc = tryLockItem( droppingItem, cb, EXCLUSIVE, lockMgr, &lockedCS ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                PD_RC_CHECK( rc, PDERROR, "Failed to lock recycle item, "
                             "rc: %d", rc ) ;
             }
          }
-<<<<<<< HEAD
 
          rc = tryLockItem( item, cb, EXCLUSIVE, lockMgr, NULL, FALSE ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to lock recycle item, "
                       "rc: %d", rc ) ;
-=======
-         // check target item
-         if ( ( UTIL_RECYCLE_CL == item.getType() )  )
-         {
-
-            rc = tryLockItem( item, cb, EXCLUSIVE, lockMgr, &lockedCS, FALSE ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to lock recycle item, "
-                         "rc: %d", rc ) ;
-         }
-
-         for ( UTIL_RECY_ITEM_LIST_CIT iter = droppingItems.begin() ;
-               iter != droppingItems.end() ;
-               ++ iter )
-         {
-            const utilRecycleItem &droppingItem = *iter ;
-            if ( UTIL_RECYCLE_CS == droppingItem.getType() )
-            {
-               continue ;
-            }
-            rc = tryLockItem( droppingItem, cb, EXCLUSIVE, lockMgr, &lockedCS ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to lock recycle item, "
-                         "rc: %d", rc ) ;
-         }
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       }
       catch ( exception &e )
       {
@@ -1478,10 +1397,7 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__CATRECYBINMGR__TRYFINDOLDESTITEM ) ;
 
-<<<<<<< HEAD
       utilRecycleItem candidate ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       while ( TRUE )
       {
          utilRecycleItem tempItem ;
@@ -1512,28 +1428,16 @@ namespace engine
                          "rc: %d", tempItem.getRecycleName(), rc ) ;
          }
 
-<<<<<<< HEAD
          candidate = tempItem ;
-=======
-         oldestItem = tempItem ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
          break ;
       }
 
-<<<<<<< HEAD
       if ( candidate.isValid() )
       {
          // check if item has been locked, if so, try later items
          catCtxLockMgr lockMgr ;
          rc = tryLockItem( candidate, cb, EXCLUSIVE, lockMgr ) ;
-=======
-      if ( oldestItem.isValid() )
-      {
-         // check if item has been locked, if so, try later items
-         catCtxLockMgr lockMgr ;
-         rc = tryLockItem( oldestItem, cb, EXCLUSIVE, lockMgr ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          if ( SDB_LOCK_FAILED == rc )
          {
             rc = SDB_OK ;
@@ -1543,24 +1447,15 @@ namespace engine
 
             PD_LOG( PDDEBUG, "Failed to lock oldest item "
                     "[origin %s, recycle %s], try move on later "
-<<<<<<< HEAD
                     "available one", candidate.getOriginName(),
                     candidate.getRecycleName() ) ;
-=======
-                    "available one", oldestItem.getOriginName(),
-                    oldestItem.getRecycleName() ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
             try
             {
                matcher =
                      BSON( FIELD_NAME_RECYCLE_ID <<
                            BSON( "$gt" <<
-<<<<<<< HEAD
                                  (INT64)( candidate.getRecycleID() ) ) ) ;
-=======
-                                 (INT64)( oldestItem.getRecycleID() ) ) ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                // the recycle ID is increased with time
                orderBy = BSON( FIELD_NAME_RECYCLE_ID << 1 ) ;
             }
@@ -1576,13 +1471,8 @@ namespace engine
                             CAT_RECYCLE_MAX_RETRY, cb, candItemList ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to get oldest items after "
                          "item [origin %s, recycle %s], rc: %d",
-<<<<<<< HEAD
                          candidate.getOriginName(),
                          candidate.getRecycleName(), rc ) ;
-=======
-                         oldestItem.getOriginName(),
-                         oldestItem.getRecycleName(), rc ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
             for ( UTIL_RECY_ITEM_LIST_IT iter = candItemList.begin() ;
                   iter != candItemList.end() ;
@@ -1596,11 +1486,7 @@ namespace engine
                   PD_LOG( PDDEBUG, "Found later available item "
                           "[origin %s, recycle %s]", tmpItem.getOriginName(),
                           tmpItem.getRecycleName() ) ;
-<<<<<<< HEAD
                   candidate = tmpItem ;
-=======
-                  oldestItem = tmpItem ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                   foundCandidate = TRUE ;
                   break ;
                }
@@ -1620,30 +1506,18 @@ namespace engine
 
             PD_CHECK( foundCandidate, SDB_LOCK_FAILED, error, PDERROR,
                       "Failed to lock dropping item [origin %s, recycle %s]",
-<<<<<<< HEAD
                       candidate.getOriginName(),
                       candidate.getRecycleName() ) ;
-=======
-                      oldestItem.getOriginName(),
-                      oldestItem.getRecycleName() ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          }
          else if ( SDB_OK != rc )
          {
             PD_RC_CHECK( rc, PDERROR, "Failed to lock oldest item "
                          "[origin %s, recycle %s], rc: %d",
-<<<<<<< HEAD
                          candidate.getOriginName(),
                          candidate.getRecycleName(), rc ) ;
          }
       }
       oldestItem = candidate ;
-=======
-                         oldestItem.getOriginName(),
-                         oldestItem.getRecycleName(), rc ) ;
-         }
-      }
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    done:
       PD_TRACE_EXITRC( SDB__CATRECYBINMGR__TRYFINDOLDESTITEM, rc ) ;
@@ -1664,10 +1538,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB__CATRECYBINMGR__TRYFINDOLDESTITEM_VER ) ;
 
       utilRecycleItem tempItemName, tempItemUID, tempItem ;
-<<<<<<< HEAD
       utilRecycleItem candidate ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       // fetch oldest item by name
       rc = _getOldestItem( originName, cb, tempItemName ) ;
@@ -1699,7 +1570,6 @@ namespace engine
          goto done ;
       }
 
-<<<<<<< HEAD
       candidate = tempItem ;
 
       if ( candidate.isValid() )
@@ -1707,15 +1577,6 @@ namespace engine
          // check if item has been locked, if so, try later items
          catCtxLockMgr lockMgr ;
          rc = tryLockItem( candidate, cb, EXCLUSIVE, lockMgr ) ;
-=======
-      oldestItem = tempItem ;
-
-      if ( oldestItem.isValid() )
-      {
-         // check if item has been locked, if so, try later items
-         catCtxLockMgr lockMgr ;
-         rc = tryLockItem( oldestItem, cb, EXCLUSIVE, lockMgr ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          if ( SDB_LOCK_FAILED == rc )
          {
             rc = SDB_OK ;
@@ -1728,13 +1589,8 @@ namespace engine
 
             PD_LOG( PDDEBUG, "Failed to lock oldest item "
                     "[origin %s, recycle %s], try move on later "
-<<<<<<< HEAD
                     "available one", candidate.getOriginName(),
                     candidate.getRecycleName() ) ;
-=======
-                    "available one", oldestItem.getOriginName(),
-                    oldestItem.getRecycleName() ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
             try
             {
@@ -1742,20 +1598,12 @@ namespace engine
                      BSON( FIELD_NAME_ORIGIN_NAME << originName <<
                            FIELD_NAME_RECYCLE_ID <<
                            BSON( "$gt" <<
-<<<<<<< HEAD
                                  (INT64)( candidate.getRecycleID() ) ) ) ;
-=======
-                                 (INT64)( oldestItem.getRecycleID() ) ) ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                matcherUID =
                      BSON( FIELD_NAME_ORIGIN_ID << (INT64)originID <<
                            FIELD_NAME_RECYCLE_ID <<
                            BSON( "$gt" <<
-<<<<<<< HEAD
                                  (INT64)( candidate.getRecycleID() ) ) ) ;
-=======
-                                 (INT64)( oldestItem.getRecycleID() ) ) ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
                // the recycle ID is increased with time
                orderBy = BSON( FIELD_NAME_RECYCLE_ID << 1 ) ;
@@ -1773,26 +1621,16 @@ namespace engine
                             CAT_RECYCLE_MAX_RETRY, cb, candNameItemList ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to get oldest items by name [%s] "
                          "after item [origin %s, recycle %s], rc: %d",
-<<<<<<< HEAD
                          originName, candidate.getOriginName(),
                          candidate.getRecycleName(), rc ) ;
-=======
-                         originName, oldestItem.getOriginName(),
-                         oldestItem.getRecycleName(), rc ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
             // get oldest versions by unique ID
             rc = _getItems( matcherUID, orderBy, _hintOrigID,
                             CAT_RECYCLE_MAX_RETRY, cb, candUIDItemList ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to get oldest items by "
                          "origin ID [%llu] after item [origin %s, recycle %s], "
-<<<<<<< HEAD
                          "rc: %d", originID, candidate.getOriginName(),
                          candidate.getRecycleName(), rc ) ;
-=======
-                         "rc: %d", originID, oldestItem.getOriginName(),
-                         oldestItem.getRecycleName(), rc ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
             iterName = candNameItemList.begin() ;
             iterUID = candUIDItemList.begin() ;
@@ -1826,11 +1664,7 @@ namespace engine
                           "[origin %s, recycle %s]",
                           tempItem.getOriginName(),
                           tempItem.getRecycleName() ) ;
-<<<<<<< HEAD
                   candidate = tempItem ;
-=======
-                  oldestItem = tempItem ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                   foundCandidate = TRUE ;
                   break ;
                }
@@ -1861,30 +1695,18 @@ namespace engine
 
             PD_CHECK( foundCandidate, SDB_LOCK_FAILED, error, PDERROR,
                       "Failed to lock dropping item [origin %s, recycle %s]",
-<<<<<<< HEAD
                       candidate.getOriginName(),
                       candidate.getRecycleName() ) ;
-=======
-                      oldestItem.getOriginName(),
-                      oldestItem.getRecycleName() ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          }
          else if ( SDB_OK != rc )
          {
             PD_RC_CHECK( rc, PDERROR, "Failed to lock oldest item "
                          "[origin %s, recycle %s], rc: %d",
-<<<<<<< HEAD
                          candidate.getOriginName(),
                          candidate.getRecycleName(), rc ) ;
          }
       }
       oldestItem = candidate ;
-=======
-                         oldestItem.getOriginName(),
-                         oldestItem.getRecycleName(), rc ) ;
-         }
-      }
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    done:
       PD_TRACE_EXITRC( SDB__CATRECYBINMGR__TRYFINDOLDESTITEM_VER, rc ) ;
@@ -2154,7 +1976,6 @@ namespace engine
       goto done ;
    }
 
-<<<<<<< HEAD
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CATRECYBINMGR__CHECKDELAYLOCKFAILED, "_catRecycleBinManager::_checkDelayLockFailed" )
    INT32 _catRecycleBinManager::_checkDelayLockFailed( const utilRecycleBinConf &conf )
    {
@@ -2177,6 +1998,4 @@ namespace engine
       return rc ;
    }
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 }

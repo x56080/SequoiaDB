@@ -5,32 +5,35 @@
 .hy
 .SH NAME
 .PP
-createUsr \- create database user
+createUsr \- Create a database user to prevent illegal users from illegally
+operating the database.
 .SH SYNOPSIS
 .PP
-\f[B]db.createUsr(<name>, <password>, [options])\f[]
+\f[B]\f[I]db.createUsr( <name>, <password>, [options] )\f[]\f[]
 .PP
-\f[B]db.createUsr(<User>, [options])\f[]
+\f[B]\f[I]db.createUsr( <User>, [options] )\f[]\f[]
 .PP
-\f[B]db.createUsr(<CipherUser>, [options])\f[]
+\f[B]\f[I]db.createUsr( <CipherUser>, [options] )\f[]\f[]
 .SH CATEGORY
 .PP
 Sdb
 .SH DESCRIPTION
 .PP
-This function is used to create database users to prevent illegal users from
-operating the database.
+Create a database user to prevent illegal users from illegally operating the
+database.
 .SH PARAMETERS
 .PP
 .TS
 tab(@);
-l l l l l.
+l l l l l l.
 T{
 0
 T}@T{
 Name
 T}@T{
 Type
+T}@T{
+Default
 T}@T{
 Description
 T}@T{
@@ -44,9 +47,11 @@ name
 T}@T{
 string
 T}@T{
+\-\-\-
+T}@T{
 username
 T}@T{
-required
+yes
 T}
 T{
 2
@@ -55,9 +60,11 @@ password
 T}@T{
 string
 T}@T{
+\-\-\-
+T}@T{
 password
 T}@T{
-required
+yes
 T}
 T{
 3
@@ -66,9 +73,11 @@ User
 T}@T{
 object
 T}@T{
+\-\-\-
+T}@T{
 User object
 T}@T{
-required
+yse
 T}
 T{
 4
@@ -77,23 +86,28 @@ CipherUser
 T}@T{
 object
 T}@T{
+\-\-\-
+T}@T{
 CipherUser object
 T}@T{
-required
+yes
 T}
 T{
 5
 T}@T{
 options
 T}@T{
-object
+Json
+T}@T{
+null
 T}@T{
 extended options
 T}@T{
 not
 T}
 .TE
-.SS options value
+.PP
+The detail description of \[aq]options\[aq] parameter is as follow:
 .PP
 .TS
 tab(@);
@@ -224,7 +238,6 @@ T}@T{
 T}@T{
 T}@T{
 selected.● A
-<<<<<<< HEAD
 T}
 T{
 T}@T{
@@ -278,23 +291,16 @@ T}@T{
 T}@T{
 version.
 Currently only
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-<<<<<<< HEAD
 supports built\-in
-=======
-value of "NONE"
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}
 T{
 T}@T{
 T}@T{
-<<<<<<< HEAD
 T}@T{
 roles in the system,
 T}
@@ -338,104 +344,6 @@ operation.
 T}
 T{
 T}@T{
-=======
-T}@T{
-indicates that all
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-configuration masks are
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-prohibited.
-That is,
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-the audit function is
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-turned off.
-T}
-T{
-2
-T}@T{
-Role
-T}@T{
-String
-T}@T{
-User role.
-Currently
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-only supports built\-in
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-roles in the system,
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-the default value is "
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-admin", and the value
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-list: "admin", "monitor
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-".
-"admin" is the
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-administrator role,
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-which can perform any
-T}
-T{
-T}@T{
-T}@T{
-T}@T{
-operation.
-"monitor" is
-T}
-T{
-T}@T{
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}@T{
 T}@T{
 the monitoring role,
@@ -457,7 +365,6 @@ T}@T{
 T}@T{
 T}@T{
 operations.
-<<<<<<< HEAD
 T}
 T{
 3
@@ -493,8 +400,6 @@ T}@T{
 T}@T{
 T}@T{
 based Access Control
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 T}
 .TE
 .RS
@@ -505,68 +410,45 @@ This interface can only be used in cluster mode.
 .IP \[bu] 2
 When a user is created in the database, the username and password must be
 specified to connect to the database.
-<<<<<<< HEAD
 .IP \[bu] 2
 For database username and password restrications, refer to database limit.
-=======
-.IP \[bu] 2
-For database username and password restrications, refer to database limit.
-.IP \[bu] 2
-The first user created in the database must be in the "admin" role.
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 .RE
 .SH RETURN VALUE
 .PP
-When the function executes successfully, there is no return value.
+On success, return void.
 .PP
-When the function fails, an exception will be thrown and an error message will
-be printed.
+On error, exception will be thrown.
 .SH ERRORS
 .PP
-When the exception happens, use getLastErrMsg() to get the error message or use
-getLastError() to get the error code.
-For more details, please refer to Troubleshooting.
+when exception happen, use getLastError() to get the error code and use
+getLastErrMsg() to get error message.
+For more detial, please reference to Troubleshooting.
 .SH EXAMPLES
-.IP \[bu] 2
-Create a user with username "sdbadmin" and password "sdbadmin", and set the
-auditlog mask.
-.RS 2
-.IP
+.IP "1." 3
+Create a user with username \[aq]sdbadmin\[aq] and password \[aq]sdbadmin\[aq],
+and set the audit log mask.
 .nf
 \f[C]
-<<<<<<< HEAD
 > db.createUsr( "sdbadmin", "sdbadmin", { AuditMask: "DDL|DML|!DQL" } )
-=======
-> db.createUsr("sdbadmin", "sdbadmin", {AuditMask: "DDL|DML|!DQL"})
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 \f[]
 .fi
 .RE
-.IP \[bu] 2
-Use the User object to create a user with username "sdbadmin" and password
-"sdbadmin".
-.RS 2
-.IP
+.IP "2." 3
+Create a user with username \[aq]sdbadmin\[aq] and password \[aq]sdbadmin\[aq]
+using User object.
 .nf
 \f[C]
-<<<<<<< HEAD
 > var a = User( "sdbadmin", "sdbadmin" )
 > db.createUsr( a )
-=======
-> var a = User("sdbadmin", "sdbadmin")
-> db.createUsr(a)
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 \f[]
 .fi
 .RE
-.IP \[bu] 2
-Use the CipherUser object to create a user with username "sdbadmin" and password
-"sdbadmin"(The user information with username "sdbadmin" and password "sdbadmin"
-in the ciphertext file.
-For details on how to add and delete ciphertext information in the ciphertext
-file, refer to sdbpasswd).
-.RS 2
-.IP
+.IP "3." 3
+Create a user with username \[aq]sdbadmin\[aq] and password \[aq]sdbadmin\[aq]
+using CipherUser object ( User information with username \[aq]sdbadmin\[aq] and
+password \[aq]sdbadmin\[aq] must exist in the cipher test file.
+For details on how to add and delete cipher test information in cipher test
+file, please see sdbpasswd for details ).
 .nf
 \f[C]
 > var a = CipherUser("sdbadmin")

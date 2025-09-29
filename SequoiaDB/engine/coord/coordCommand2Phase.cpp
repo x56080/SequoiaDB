@@ -213,7 +213,6 @@ namespace engine
       PD_CHECK( NULL != pDataMsgBuf, SDB_SYS, error, PDERROR,
                 "Failed to generate data message for command[%s, target:%s]",
                 getName(), pArguments->_targetName.c_str() ) ;
-<<<<<<< HEAD
 
       if ( (MsgHeader *)pDataMsgBuf != pMsg )
       {
@@ -251,45 +250,6 @@ namespace engine
          isDataMsgRewritten = TRUE ;
       }
 
-=======
-
-      if ( (MsgHeader *)pDataMsgBuf != pMsg )
-      {
-         isDataMsgRewritten = TRUE ;
-      }
-
-      if ( _needRewriteDataMsg() )
-      {
-         CHAR *pNewDataMsgBuf = NULL ;
-         INT32 newDataMsgSize = 0 ;
-
-         rc = _rewriteDataMsg( (MsgHeader *)pDataMsgBuf,
-                               pArguments,
-                               cb,
-                               &pNewDataMsgBuf,
-                               &newDataMsgSize ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to rewrite data message for "
-                      "command[%s, target:%s], rc: %d", getName(),
-                      pArguments->_targetName.c_str(), rc ) ;
-
-         if ( isDataMsgRewritten )
-         {
-            msgReleaseBuffer( pDataMsgBuf, cb ) ;
-            isDataMsgRewritten = FALSE ;
-         }
-         pDataMsgBuf = pNewDataMsgBuf ;
-         dataMsgSize = newDataMsgSize ;
-
-         SDB_ASSERT( NULL != pDataMsgBuf,
-                     "data message buffer should be valid" ) ;
-         PD_CHECK( NULL != pDataMsgBuf, SDB_SYS, error, PDERROR,
-                   "Failed to generate data message for command[%s, target:%s]",
-                   getName(), pArguments->_targetName.c_str() ) ;
-
-         isDataMsgRewritten = TRUE ;
-      }
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    retryData :
       // Execute P1 on Data Groups
       rc = _onDataP1Event( SDB_EVT_OCCUR_BEFORE, pArguments, cb ) ;
@@ -932,7 +892,6 @@ namespace engine
    done:
       PD_TRACE_EXITRC( COORD_CMD2PHASE__PARSECATP2RETURN, rc ) ;
       return rc ;
-<<<<<<< HEAD
 
    error:
       goto done ;
@@ -997,72 +956,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Parse message for command[%s] failed, "
                    "rc: %d", getName(), rc ) ;
 
-=======
-
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( COORD_CMD2PHASE__NEEDREWRITEDATAMSG, "_coordCMD2Phase::_needRewriteDataMsg" )
-   BOOLEAN _coordCMD2Phase::_needRewriteDataMsg()
-   {
-      BOOLEAN needRewrite = FALSE ;
-
-      PD_TRACE_ENTRY( COORD_CMD2PHASE__NEEDREWRITEDATAMSG ) ;
-
-      for ( COORD_CMD_EVENT_HANDLER_LIST_IT iter = _eventHandlers.begin() ;
-            iter != _eventHandlers.end() ;
-            ++ iter )
-      {
-         coordCMDEventHandler *handler = *iter ;
-         SDB_ASSERT( NULL != handler, "handler is invalid" ) ;
-
-         if ( handler->needRewriteDataMsg() )
-         {
-            needRewrite = TRUE ;
-            break ;
-         }
-      }
-
-      PD_TRACE_EXIT( COORD_CMD2PHASE__NEEDREWRITEDATAMSG ) ;
-
-      return needRewrite ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( COORD_CMD2PHASE__REWRITEDATAMSG, "_coordCMD2Phase::_rewriteDataMsg" )
-   INT32 _coordCMD2Phase::_rewriteDataMsg( MsgHeader *pMsg,
-                                           coordCMDArguments *pArgs,
-                                           pmdEDUCB *cb,
-                                           CHAR **ppMsgBuf,
-                                           INT32 *pBufSize )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( COORD_CMD2PHASE__REWRITEDATAMSG ) ;
-
-      INT32 flag = 0 ;
-      const CHAR *pCommandName = NULL ;
-      INT64 numToSkip = 0 ;
-      INT64 numToReturn = 0 ;
-      const CHAR *pQuery = NULL ;
-      const CHAR *pSelector = NULL ;
-      const CHAR *pOrder = NULL ;
-      const CHAR *pHint = NULL ;
-
-      CHAR *newBuffer = NULL ;
-      INT32 newBufferSize = 0 ;
-
-      SDB_ASSERT( NULL != pMsg, "message is invalid" ) ;
-      SDB_ASSERT( NULL != ppMsgBuf, "message buffer is invalid" ) ;
-      SDB_ASSERT( NULL != pBufSize, "message buffer size is invalid" ) ;
-
-      rc = msgExtractQuery( (const CHAR *)pMsg, &flag, &pCommandName,
-                            &numToSkip, &numToReturn, &pQuery, &pSelector,
-                            &pOrder, &pHint ) ;
-      PD_RC_CHECK( rc, PDERROR, "Parse message for command[%s] failed, "
-                   "rc: %d", getName(), rc ) ;
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       try
       {
          BSONObjBuilder queryBuilder, hintBuilder ;

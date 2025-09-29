@@ -44,15 +44,6 @@ namespace engine
 {
 #define DMS_INVALID_REC_LOGICALID         -1
 
-<<<<<<< HEAD
-=======
-// Default size threshold of capped collection is 30GB.
-// Default record number threshold is set to 0, which means no limit on that.
-// Default size threshold of Rollback Segment collection is 128MB each.
-#define DMS_DFT_CAPPEDCL_SIZE             (30 * 1024 * 1024 * 1024LL)
-#define DMS_DFT_CAPPEDCL_RECNUM           0
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 #define DMS_INVALID_LOGICALID             (-1)
 
 #pragma pack(1)
@@ -108,13 +99,6 @@ namespace engine
                                 INT8 direction = 1,
                                 BOOLEAN byNumber = FALSE ) ;
 
-      INT32 fetch ( dmsMBContext      *context,
-                    const dmsRecordID &recordID,
-                    BSONObj           &dataRecord,
-                    _pmdEDUCB         *cb,
-                    BOOLEAN            dataOwned = FALSE,
-                    DPS_TRANS_ID      *version = NULL ) ;
-
       virtual INT32 dumpExtOptions( dmsMBContext *context,
                                     BSONObj &extOptions ) ;
 
@@ -126,15 +110,6 @@ namespace engine
          return EXCLUSIVE ;
       }
 
-<<<<<<< HEAD
-=======
-      OSS_INLINE BOOLEAN spaceEnough( dmsMBContext *context, UINT32 newSize ) ;
-      OSS_INLINE BOOLEAN clDataSpaceEnough( dmsMBContext *clContext, UINT32 newSize ) ;
-   protected:
-      OSS_INLINE void _extLidAndOffset2RecLid( dmsExtentID extID,
-                                               dmsOffset offset,
-                                               INT64 &logicalID ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    private:
       virtual const CHAR* _getEyeCatcher() const ;
 
@@ -172,20 +147,6 @@ namespace engine
                                          INT64 &position,
                                          dmsRecordID &foundRID ) ;
 
-      virtual INT32 _getRecordPosition( const dmsRecordID &rid,
-                                        const dmsRecordData &recordData,
-                                        INT64 &position ) ;
-
-      virtual INT32 _checkMarkInsert( dmsMBContext *context,
-                                      const DPS_TRANS_ID &transID,
-                                      const BSONObj &insertObj,
-                                      pmdEDUCB *cb,
-                                      INT64 &position,
-                                      BOOLEAN &markInsert,
-                                      dmsRecordID &foundRID,
-                                      dmsRecordData &recordData,
-                                      dmsRecordRW &recordRW ) ;
-
       virtual void _finalRecordSize( UINT32 &size,
                                      const dmsRecordData &recordData ) ;
 
@@ -194,7 +155,6 @@ namespace engine
                                        dmsRecordID &foundRID,
                                        _pmdEDUCB *cb ) ;
 
-<<<<<<< HEAD
       virtual INT32 _checkRecordSpace( dmsMBContext *context,
                                        UINT32 size,
                                        dmsRecordID &foundRID,
@@ -202,75 +162,6 @@ namespace engine
 
       virtual INT32 _operationPermChk( DMS_ACCESS_TYPE accessType ) ;
 
-=======
-      virtual INT32 _allocRecordSpaceByPos( dmsMBContext *context,
-                                            UINT32 size,
-                                            INT64 position,
-                                            dmsRecordID &foundRID,
-                                            _pmdEDUCB *cb ) ;
-
-      virtual INT32 _extentInsertRecord( dmsMBContext *context,
-                                         dmsExtRW &extRW,
-                                         dmsRecordRW &recordRW,
-                                         const dmsRecordData &recordData,
-                                         UINT32 recordSize,
-                                         _pmdEDUCB *cb,
-                                         BOOLEAN isInsert = TRUE,
-                                         const dmsTransRecordInfo *recordInfo = NULL ) ;
-
-      virtual void _postInsertRecord( dmsMBContext *context,
-                                      dmsExtRW &extRW,
-                                      dmsRecordRW &recordRW,
-                                      const dmsRecordData &recordData,
-                                      UINT32 recordSize,
-                                      _pmdEDUCB *cb )
-      {
-         // do nothing
-      }
-
-      virtual INT32 _extentUpdatedRecord( dmsMBContext *context,
-                                          dmsExtRW &extRW,
-                                          dmsRecordRW &recordRW,
-                                          const dmsRecordData &recordData,
-                                          const BSONObj &newObj,
-                                          _pmdEDUCB *cb,
-                                          IDmsOprHandler *pHandler,
-                                          utilUpdateResult *pResult,
-                                          dpsUnqIdxHashArray *pNewUnqIdxHashArray,
-                                          dpsUnqIdxHashArray *pOldUnqIdxHashArray,
-                                          const ixmIdxHashBitmap &idxHashBitmap ) ;
-
-      virtual INT32 _extentRemoveRecord( dmsMBContext *context,
-                                         dmsExtRW &extRW,
-                                         dmsRecordRW &recordRW,
-                                         _pmdEDUCB *cb,
-                                         BOOLEAN decCount = TRUE,
-                                         const dmsTransRecordInfo *recordInfo = NULL ) ;
-
-      virtual INT32 _onInsertFail( dmsMBContext *context,
-                                   BOOLEAN hasInsert,
-                                   dmsRecordID rid,
-                                   SDB_DPSCB *dpscb,
-                                   ossValuePtr dataPtr,
-                                   _pmdEDUCB *cb,
-                                   const dmsTransRecordInfo *pInfo ) ;
-
-      virtual INT32 extractData( const dmsMBContext *mbContext,
-                                 const dmsRecordRW &recordRW,
-                                 _pmdEDUCB *cb,
-                                 dmsRecordData &recordData,
-                                 BOOLEAN needIncDataRead = TRUE ) ;
-
-      virtual INT32 _operationPermChk( DMS_ACCESS_TYPE accessType ) ;
-
-      virtual void _onAllocSpaceReady( dmsContext *context, BOOLEAN &doit ) ;
-
-      virtual INT32 _setRecordGlobTransID( dmsMBContext *context,
-                                           dmsRecordRW  &recordRW,
-                                           _pmdEDUCB    *cb,
-                                           BOOLEAN      bSetOvfRecrd ) ;
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       INT32 _parseExtendOptions( const BSONObj *extOptions,
                                  dmsCappedCLOptions &options ) ;
 
@@ -325,17 +216,6 @@ namespace engine
       return ( context->mb()->_maxSize > 0 ) &&
              ( ( context->mbStat()->_totalOrgDataLen.fetch() + newSize ) >
                (UINT64)( context->mb()->_maxSize ) ) ;
-   }
-
-   OSS_INLINE BOOLEAN _dmsStorageDataCapped::clDataSpaceEnough( dmsMBContext *context,
-                                                          UINT32 newSize )
-   {
-      const dmsMBStatInfo *mbStatInfo = getMBStatInfo( context->mbID() ) ;
-      SDB_ASSERT( mbStatInfo, "mbStatInfo should not be NULL" ) ;
-      // enough data space or has room to grow
-      return ( ( (UINT64)mbStatInfo->_totalDataFreeSpace >= newSize ) &&
-               spaceEnough( context, newSize )                        &&
-               !_numExceedLimit(context, 1 ) ) ;
    }
 
    OSS_INLINE BOOLEAN _dmsStorageDataCapped::_numExceedLimit( dmsMBContext *context,

@@ -351,15 +351,9 @@ namespace engine
          }
       }
 
-      PD_LOG ( PDEVENT, "Header info[first lsn:%d.%lld, logID:%d], "
-               "summary [ minRecoverableTime: %llu, "
-               "maxTransCommitTime: %llu ]",
+      PD_LOG ( PDEVENT, "Header info[first lsn:%d.%lld, logID:%d]",
                _logHeader._firstLSN.version, _logHeader._firstLSN.offset,
-               _logHeader._logID, _logHeader._summary._minRecoverableTime,
-               _logHeader._summary._maxTransCommitTime ) ;
-
-      // save cache
-      _cachedSummary = _logHeader._summary ;
+               _logHeader._logID ) ;
 
       // upgrade the header
       if ( _logHeader._version != DPS_LOG_FILE_VERSION1 )
@@ -514,21 +508,9 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSLOGFILE_RESET, "_dpsLogFile::reset" )
    INT32 _dpsLogFile::reset ( UINT32 logID, const DPS_LSN_OFFSET &offset,
-                              const DPS_LSN_VER &version,
-                              BOOLEAN saveSummary )
+                              const DPS_LSN_VER &version )
    {
       PD_TRACE_ENTRY ( SDB__DPSLOGFILE_RESET );
-
-      if ( saveSummary )
-      {
-         _logHeader._summary = _cachedSummary ;
-      }
-      else
-      {
-         _logHeader._summary.reset() ;
-         _cachedSummary.reset() ;
-      }
-
       if ( DPS_INVALID_LOG_FILE_ID != logID )
       {
          SDB_ASSERT ( DPS_LSN_2_FILEID( offset, _fileSize ) == logID ,

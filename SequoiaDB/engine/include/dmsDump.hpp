@@ -140,29 +140,6 @@ namespace engine
                                             UINT32 options,
                                             dmsExtentID &root ) ;
 
-<<<<<<< HEAD
-=======
-         static UINT32 dumpDmsLobMeta( CHAR *inBuf,
-                                        UINT32 inSize,
-                                        CHAR * outBuf,
-                                        UINT32 outSize,
-                                        CHAR * addrPrefix,
-                                        UINT32 options);
-
-         static UINT32 dumpDmsLobData( CHAR *inBuf,
-                                        UINT32 inSize,
-                                        CHAR * outBuf,
-                                        UINT32 outSize,
-                                        CHAR * addrPrefix,
-                                        UINT32 options);
-
-         static UINT32 dumpDmsLobDataMapBlk( dmsLobDataMapBlk *blk,
-                                        CHAR * outBuf,
-                                        UINT32 outSize,
-                                        CHAR * addrPrefix,
-                                        UINT32 options,
-                                        UINT32 pageSize);
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       private:
          static UINT32 _dumpExtentHeaderComm( const dmsExtent *extent,
                                               CHAR *outBuf, UINT32 outSize ) ;

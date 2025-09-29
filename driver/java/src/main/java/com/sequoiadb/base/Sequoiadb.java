@@ -31,10 +31,7 @@ import com.sequoiadb.message.request.*;
 import com.sequoiadb.message.response.*;
 import com.sequoiadb.util.AuthAlgorithmSHA256;
 import com.sequoiadb.util.Helper;
-<<<<<<< HEAD
 import com.sequoiadb.util.SdbSecureUtil;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 import org.bson.BSON;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
@@ -76,15 +73,11 @@ public class Sequoiadb implements Closeable {
     private final static int DEFAULT_BUFF_LENGTH = 512;
     private ByteBuffer requestBuffer = null;
     private SdbProtocolVersion protocolVersion = SdbProtocolVersion.SDB_PROTOCOL_VERSION_INVALID;
-<<<<<<< HEAD
     private int closeAllCursorMark = 0;
     private SdbAuthVersion authVersion = SdbAuthVersion.SDB_AUTH_MD5;
 
     private final int MAX_USERNAME_LENGTH = 256;
     private final int MAX_PASSWORD_LENGTH = 256;
-=======
-    private SdbAuthVersion authVersion = SdbAuthVersion.SDB_AUTH_MD5;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
     /**
      * specified the package size of the collections in current collection space to be 4K
@@ -192,13 +185,10 @@ public class Sequoiadb implements Closeable {
      * List of recycle bin
      */
     public final static int SDB_LIST_RECYCLEBIN = 27;
-<<<<<<< HEAD
     /**
      * list group mode
      */
     public final static int SDB_LIST_GROUPMODES = 28;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     // reserved
     public final static int SDB_LIST_CL_IN_DOMAIN = 129;
     // reserved
@@ -509,13 +499,8 @@ public class Sequoiadb implements Closeable {
     }
 
     private Sequoiadb( Builder builder ) {
-<<<<<<< HEAD
         init( builder.addressList, builder.userConfig.getUserName(),
                 builder.userConfig.getPassword(), builder.configOptions );
-=======
-        String passwd = Helper.getPasswd( builder.userConfig );
-        init( builder.addressList, builder.userConfig.getUserName(), passwd, builder.configOptions );
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     }
 
     /**
@@ -820,14 +805,10 @@ public class Sequoiadb implements Closeable {
             throw new BaseException(SDBError.SDB_INVALIDARG);
         }
 
-<<<<<<< HEAD
         if (username.length() > MAX_USERNAME_LENGTH || password.length() > MAX_PASSWORD_LENGTH) {
             throw new BaseException(SDBError.SDB_INVALIDARG, "Exceeds username or password maximum length");
         }
         AuthRequest request = new CreateUserRequest(username, password, authVersion, options);
-=======
-        AuthRequest request = new CreateUserRequest(username, password, authVersion);
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         SdbReply response = requestAndResponse(request);
         throwIfError(response, username);
     }
@@ -1065,7 +1046,6 @@ public class Sequoiadb implements Closeable {
         throwIfError(response);
         removeCache(csName);
     }
-
 
     /**
      * @param csName  The collection space name
@@ -1447,10 +1427,7 @@ public class Sequoiadb implements Closeable {
      *                   <li>{@link Sequoiadb#SDB_LIST_BACKUPS}
      *                   <li>{@link Sequoiadb#SDB_LIST_DATASOURCES}
      *                   <li>{@link Sequoiadb#SDB_LIST_RECYCLEBIN}
-<<<<<<< HEAD
      *                   <li>{@link Sequoiadb#SDB_LIST_GROUPMODES}
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
      *                   </ul>
      * @param query      The matching rule, match all the documents if null.
      * @param selector   The selective rule, return the whole document if null.
@@ -1503,10 +1480,7 @@ public class Sequoiadb implements Closeable {
      *                   <li>{@link Sequoiadb#SDB_LIST_BACKUPS}
      *                   <li>{@link Sequoiadb#SDB_LIST_DATASOURCES}
      *                   <li>{@link Sequoiadb#SDB_LIST_RECYCLEBIN}
-<<<<<<< HEAD
      *                   <li>{@link Sequoiadb#SDB_LIST_GROUPMODES}
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
      *                   </ul>
      * @param query    The matching rule, match all the documents if null.
      * @param selector The selective rule, return the whole document if null.
@@ -3011,7 +2985,6 @@ public class Sequoiadb implements Closeable {
         return new DBRecycleBin(this);
     }
 
-<<<<<<< HEAD
     /**
      * Create a role
      *
@@ -3326,8 +3299,6 @@ public class Sequoiadb implements Closeable {
         throwIfError(response);
     }
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     private boolean _checkIsExistByList(int listType, String targetName) throws BaseException {
         if (null == targetName || targetName.equals("")) {
             throw new BaseException(SDBError.SDB_INVALIDARG, targetName);
@@ -3602,13 +3573,10 @@ public class Sequoiadb implements Closeable {
         }
     }
 
-<<<<<<< HEAD
     boolean getInfoEncryption() {
         return globalClientConf.getInfoEncryption();
     }
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     private SysInfoResponse getSysInfo() {
         sendRequest(new SysInfoRequest());
         return receiveSysInfoResponse();

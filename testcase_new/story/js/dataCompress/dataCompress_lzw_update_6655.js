@@ -24,12 +24,9 @@ function test ( testPara )
    insertRecs( cl, insertRecsNum );
    cl.update( { "$set": { "dtest": "abcdefg890abcdefg890abcdefg890" } } );
 
-<<<<<<< HEAD
    // 等待字典构建
    waitDictionary( db, csName, clName );
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    // 检查结果，检查组内每个节点数据正确性
    checkLzwAttributeByDataNode( rgName, csName, clName, false );
    checkRecsByDataNode( rgName, csName, clName, insertRecsNum, checkRecsNum );

@@ -69,10 +69,7 @@ public class IndexConsistent23941C extends SdbTestBase {
         }
         es.run();
 
-<<<<<<< HEAD
         int[] resultCodes = new int[] { 0, -243 };
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         for ( int i = 0; i < subclNum; i++ ) {
             String clName = subclNames.get( i );
             if ( i < dropCLNum ) {
@@ -81,21 +78,13 @@ public class IndexConsistent23941C extends SdbTestBase {
                         clName );
             } else {
                 IndexUtils.checkIndexTask( sdb, "Create index",
-<<<<<<< HEAD
                         SdbTestBase.csName, clName, indexName, resultCodes );
-=======
-                        SdbTestBase.csName, clName, indexName );
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                 IndexUtils.checkIndexConsistent( sdb, SdbTestBase.csName,
                         clName, indexName, true );
             }
         }
         IndexUtils.checkIndexTask( sdb, "Create index", SdbTestBase.csName,
-<<<<<<< HEAD
                 mainclName, indexName, resultCodes );
-=======
-                mainclName, indexName );
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         runSuccess = true;
     }
 
@@ -126,14 +115,11 @@ public class IndexConsistent23941C extends SdbTestBase {
                 DBCollection cl = db.getCollectionSpace( SdbTestBase.csName )
                         .getCollection( mainclName );
                 cl.createIndex( indexName, "{no:1,testa:1}", false, false );
-<<<<<<< HEAD
             } catch ( BaseException e ) {
                if ( e.getErrorType() != SDBError.SDB_TASK_HAS_CANCELED
                         .getErrorType() ) {
                   throw e;
                }
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             }
         }
     }
@@ -201,8 +187,4 @@ public class IndexConsistent23941C extends SdbTestBase {
         }
         return mainCL;
     }
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2

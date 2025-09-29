@@ -69,14 +69,7 @@ namespace engine
       INT32 active() ;
       INT32 deactive() ;
 
-<<<<<<< HEAD
       INT32 loadNodeInfo() ;
-=======
-      INT32  readCataConfTemp()
-      {
-         return readCataConf();
-      }
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    // message process functions
    protected:

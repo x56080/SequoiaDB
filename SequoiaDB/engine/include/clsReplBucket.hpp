@@ -341,12 +341,9 @@ namespace engine
 
          // cache for last expect LSN
          DPS_LSN_OFFSET       _lastExpectLSN ;
-<<<<<<< HEAD
 
          // for notify full source session when parallel replay
          clsReplayEventHandler   *_replayEventHandler ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    } ;
    typedef _clsBucket clsBucket ;
 

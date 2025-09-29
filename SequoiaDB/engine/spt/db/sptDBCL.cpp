@@ -504,7 +504,6 @@ namespace engine
                goto error ;
             }
          }
-<<<<<<< HEAD
 
          // ContOnDupID
          elem = options.getField( FIELD_NAME_CONTONDUP_ID ) ;
@@ -521,8 +520,6 @@ namespace engine
          {
             flags |= FLG_INSERT_REPLACEONDUP_ID ;
          }
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       }
       else
       {
@@ -1173,7 +1170,6 @@ namespace engine
       {
          rval.getReturnVal().setValue( taskID ) ;
       }
-<<<<<<< HEAD
    done:
       return rc ;
    error:
@@ -1250,93 +1246,12 @@ namespace engine
       {
          rval.getReturnVal().setValue( taskID ) ;
       }
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    done:
       return rc ;
    error:
       goto done ;
    }
 
-<<<<<<< HEAD
-=======
-   INT32 _sptDBCL::dropIndex( const _sptArguments &arg,
-                              _sptReturnVal &rval,
-                              bson::BSONObj &detail )
-   {
-      return _dropIndex( arg, rval, detail, FALSE ) ;
-   }
-
-   INT32 _sptDBCL::dropIndexAsync( const _sptArguments &arg,
-                                   _sptReturnVal &rval,
-                                   bson::BSONObj &detail )
-   {
-      return _dropIndex( arg, rval, detail, TRUE ) ;
-   }
-
-   INT32 _sptDBCL::_copyIndex( const _sptArguments &arg,
-                               _sptReturnVal &rval,
-                               bson::BSONObj &detail,
-                               BOOLEAN isAsync )
-   {
-      INT32 rc = SDB_OK ;
-      string collectionStr, indexStr ;
-      const CHAR* collection = NULL ;
-      const CHAR* indexName = NULL ;
-      BSONObj option ;
-      INT64 taskID = 0 ;
-
-      // Get collection name
-      rc = arg.getString( 0, collectionStr ) ;
-      if( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
-      {
-         detail = BSON( SPT_ERR << "SubCLName must be string" ) ;
-         goto error ;
-      }
-      if ( !collectionStr.empty() )
-      {
-         collection = collectionStr.c_str() ;
-      }
-
-      // Get index name
-      rc = arg.getString( 1, indexStr ) ;
-      if( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
-      {
-         detail = BSON( SPT_ERR << "IndexName must be string" ) ;
-         goto error ;
-      }
-      if ( !indexStr.empty() )
-      {
-         indexName = indexStr.c_str() ;
-      }
-
-      // copy index
-      if ( isAsync )
-      {
-         rc = _cl.copyIndexAsync( taskID, collection, indexName ) ;
-      }
-      else
-      {
-         rc = _cl.copyIndex( collection, indexName ) ;
-      }
-      if( SDB_OK != rc )
-      {
-         detail = BSON( SPT_ERR << "Failed to copy index" ) ;
-         goto error ;
-      }
-
-      // return taskID
-      if ( isAsync )
-      {
-         rval.getReturnVal().setValue( taskID ) ;
-      }
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    INT32 _sptDBCL::copyIndex( const _sptArguments &arg,
                               _sptReturnVal &rval,
                               bson::BSONObj &detail )
@@ -3017,7 +2932,6 @@ namespace engine
       }
 
       rc = _cl.getIndexStat( indexName.c_str(), result, statDetail ) ;
-<<<<<<< HEAD
       if( SDB_OK != rc )
       {
          goto error ;
@@ -3037,8 +2951,6 @@ namespace engine
       bson::BSONObj result ;
 
       rc = _cl.getCollectionStat( result ) ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       if( SDB_OK != rc )
       {
          detail = BSON( SPT_ERR << "Failed to get collection stat" ) ;

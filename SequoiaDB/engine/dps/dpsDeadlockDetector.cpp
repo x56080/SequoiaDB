@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 /*******************************************************************************
 
    Copyright (C) 2011-Present SequoiaDB Ltd.
@@ -14,25 +13,6 @@
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
-=======
-/******************************************************************************
-
-
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
-
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
-
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    Source File Name = dpsDeadLock.cpp
 
@@ -54,10 +34,6 @@
    Last Changed =
 
 *******************************************************************************/
-<<<<<<< HEAD
-=======
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 #include "dpsDeadlockDetector.hpp"
 
 namespace engine
@@ -116,11 +92,7 @@ BOOLEAN dpsTDGraph::_getAdjacentNode( const dpsTDVertex & u,
    BOOLEAN found = FALSE ;
    TD_EDGE_SET_IT it ;
 
-<<<<<<< HEAD
    if ( DPS_INVALID_TRANS_ID == cv.nodeId )
-=======
-   if ( ! cv.nodeId.isValid() )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
       it = _edges.upper_bound( dpsTDEdge( u.nodeId, cv.nodeId ) );
    }
@@ -163,14 +135,9 @@ void dpsTDGraph::_update( dpsTDVertex & u )
    {
       try
       {
-<<<<<<< HEAD
          it->color = u.color ;
          it->dfn = u.dfn ;
          it->low = u.low ;
-=======
-         _vertices.erase( *it ) ;
-         _vertices.insert( u ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       }
       catch ( std::exception &e )
       {
@@ -373,14 +340,11 @@ void dpsTDGraph::_findSCC( dpsTDVertex & u, BOOLEAN ignoreSingleton )
                {
                   _pSetList->push_back( pSet ) ;
                }
-<<<<<<< HEAD
                else 
                {
                   delete pSet ;
                   pSet = NULL ;
                }
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             }
             catch ( std::exception &e )
             {  
@@ -389,14 +353,11 @@ void dpsTDGraph::_findSCC( dpsTDVertex & u, BOOLEAN ignoreSingleton )
                        e.what() ) ;
             }
          }
-<<<<<<< HEAD
          else 
          {
             delete pSet ;
             pSet = NULL ;
          }
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       }
 
       w.color = BLACK ;
@@ -432,13 +393,8 @@ void dpsTDUpdateTxNode( dpsDeadlockTx & u, DPS_DEADLOCK_TX_SET * pSet )
       {
          try
          {
-<<<<<<< HEAD
             it->degree = u.degree ;
             it->cost = u.cost ;
-=======
-            pSet->erase( *it ) ;
-            pSet->insert( u ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          }
          catch ( std::exception &e )
          {
@@ -586,11 +542,7 @@ void  deadlockDetector::addSet( DPS_TRANS_WAIT_SET * pLockWaitSet )
 
 void deadlockDetector::del( const DPS_TRANS_ID transId )
 {
-<<<<<<< HEAD
    DPS_TRANS_ID dummyHolderTransId = DPS_INVALID_TRANS_ID;
-=======
-   DPS_TRANS_ID dummyHolderTransId ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    DPS_TRANS_ID waiterTransId = transId;
    dpsDBNodeID    nodeId;
    dpsTransWait waitInfo( waiterTransId, dummyHolderTransId, nodeId ) ;
@@ -612,11 +564,7 @@ void  deadlockDetector::del( const DPS_TRANS_ID transId,
                              const dpsDBNodeID & nodeID )
 
 {
-<<<<<<< HEAD
    DPS_TRANS_ID dummyHolderTransId = DPS_INVALID_TRANS_ID;
-=======
-   DPS_TRANS_ID dummyHolderTransId ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    dpsDBNodeID    nodeId;
    dpsTransWait waitInfo( transId, dummyHolderTransId, nodeId ) ;
 

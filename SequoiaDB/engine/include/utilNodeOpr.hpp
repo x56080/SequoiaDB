@@ -138,14 +138,7 @@ namespace engine
                            OSSPID pidFilter = OSS_INVALID_PID,
                            INT32 roleFilter = -1,
                            BOOLEAN allowAloneCM = FALSE,
-<<<<<<< HEAD
                            BOOLEAN needLocationInfo = FALSE ) ;
-=======
-                           BOOLEAN includeSTP = TRUE ) ;
-
-   INT32 utilWritePipe( const CHAR *pSvcName, OSSPID pid,
-                        const CHAR *pWriteBuf, INT32 writeLen ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    /*
       send command to node pipe and read result from node pipe

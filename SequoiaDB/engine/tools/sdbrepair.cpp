@@ -37,6 +37,7 @@
 #include "dmsStorageData.hpp"
 #include "ossUtil.hpp"
 #include "ossIO.hpp"
+#include "rtn.hpp"
 #include "pdTrace.hpp"
 #include "pmdTrace.hpp"
 #include "pmdEDU.hpp"

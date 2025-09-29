@@ -859,7 +859,6 @@ namespace engine
    error :
       goto done ;
    }
-<<<<<<< HEAD
 
    INT32 _coordCMDAnalyze::_checkPrivileges( pmdEDUCB *cb, const CHAR *csname, const CHAR *clname )
    {
@@ -964,7 +963,5 @@ namespace engine
       return COORD_CTRL_MASK_ALL ;
    }
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 }
 

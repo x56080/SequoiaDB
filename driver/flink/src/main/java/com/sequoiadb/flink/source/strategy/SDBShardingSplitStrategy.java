@@ -18,19 +18,12 @@ package com.sequoiadb.flink.source.strategy;
 
 import com.sequoiadb.base.ConfigOptions;
 import com.sequoiadb.base.Sequoiadb;
-<<<<<<< HEAD
 import com.sequoiadb.flink.common.util.SDBInfoUtil;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 import com.sequoiadb.flink.config.SDBSourceOptions;
 import com.sequoiadb.flink.config.SplitMode;
 import com.sequoiadb.flink.common.exception.SDBException;
 import com.sequoiadb.flink.source.split.SDBSplit;
 import org.bson.BSONObject;
-<<<<<<< HEAD
-=======
-import com.sequoiadb.flink.common.util.SDBInfoUtil;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

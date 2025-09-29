@@ -3321,7 +3321,6 @@ int sdb_decimal_view_from_bsonvalue( const char *value,
    {
       return -6 ;
    }
-<<<<<<< HEAD
 
    //define in common_decimal.h __sdb_decimal
    size = *(int *)value ;
@@ -3336,22 +3335,6 @@ int sdb_decimal_view_from_bsonvalue( const char *value,
    weight = *(short *)value ;
    value += 2 ;
 
-=======
-
-   //define in common_decimal.h __sdb_decimal
-   size = *(int *)value ;
-   value += 4 ;
-
-   typemod = *(int *)value ;
-   value += 4 ;
-
-   scale = *(short *)value ;
-   value += 2 ;
-
-   weight = *(short *)value ;
-   value += 2 ;
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    decimal->typemod = typemod ;
    decimal->ndigits = ( size - SDB_DECIMAL_HEADER_SIZE ) / sizeof( short ) ;
    decimal->sign    = scale & SDB_DECIMAL_SIGN_MASK ;

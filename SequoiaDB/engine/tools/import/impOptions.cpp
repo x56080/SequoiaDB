@@ -174,8 +174,8 @@ namespace import
    #define IMP_GENERAL_OPTIONS \
       (IMP_OPTION_HELP",h",             /* no arg */     IMP_EXPLAIN_HELP) \
       (IMP_OPTION_VERSION",V",          /* no arg */     IMP_EXPLAIN_VERSION) \
-      (IMP_OPTION_HOSTNAME ",s",        _TYPE(string),    IMP_EXPLAIN_HOSTNAME) \
-      (IMP_OPTION_SVCNAME ",p",         _TYPE(string),    IMP_EXPLAIN_SVCNAME) \
+      (IMP_OPTION_HOSTNAME",s",        _TYPE(string),    IMP_EXPLAIN_HOSTNAME) \
+      (IMP_OPTION_SVCNAME",p",         _TYPE(string),    IMP_EXPLAIN_SVCNAME) \
       (IMP_OPTION_HOSTS,               _TYPE(string),    IMP_EXPLAIN_HOSTS) \
       (IMP_OPTION_USER",u",            _TYPE(string),    IMP_EXPLAIN_USER) \
       (IMP_OPTION_PASSWORD",w", po::value< vector<string> >(&passwdVec)->multitoken()->zero_tokens(), IMP_EXPLAIN_PASSWORD) \
@@ -603,7 +603,6 @@ namespace import
             BOOLEAN isNormalInput = FALSE ;
 
             if ( 0 == passwdVec.size() )
-<<<<<<< HEAD
             {
                isNormalInput = utilPasswordTool::interactivePasswdInput( passwd ) ;
             }
@@ -619,23 +618,6 @@ namespace import
                std::cerr << getErrDesp( rc ) << ", rc: " << rc << std::endl ;
                goto error ;
             }
-=======
-            {
-               isNormalInput = utilPasswordTool::interactivePasswdInput( passwd ) ;
-            }
-            else
-            {
-               isNormalInput = TRUE ;
-               passwd = passwdVec[0] ;
-            }
-
-            if ( !isNormalInput )
-            {
-               rc = SDB_APP_INTERRUPT ;
-               std::cerr << getErrDesp( rc ) << ", rc: " << rc << std::endl ;
-               goto error ;
-            }
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
             _password = passwd ;
          }

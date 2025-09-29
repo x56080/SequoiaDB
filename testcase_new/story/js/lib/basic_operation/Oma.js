@@ -7,7 +7,6 @@ var tmpOma = {
    createCoord: Oma.prototype.createCoord,
    createData: Oma.prototype.createData,
    createOM: Oma.prototype.createOM,
-   createStp: Oma.prototype.createStp,
    delAOmaSvcName: Oma.prototype.delAOmaSvcName,
    getAOmaSvcName: Oma.prototype.getAOmaSvcName,
    getIniConfigs: Oma.prototype.getIniConfigs,
@@ -16,25 +15,21 @@ var tmpOma = {
    getOmaConfigs: Oma.prototype.getOmaConfigs,
    getOmaInstallFile: Oma.prototype.getOmaInstallFile,
    getOmaInstallInfo: Oma.prototype.getOmaInstallInfo,
-   getStp: Oma.prototype.getStp,
    help: Oma.prototype.help,
    listNodes: Oma.prototype.listNodes,
    reloadConfigs: Oma.prototype.reloadConfigs,
    removeCoord: Oma.prototype.removeCoord,
    removeData: Oma.prototype.removeData,
    removeOM: Oma.prototype.removeOM,
-   removeStp: Oma.prototype.removeStp,
    setIniConfigs: Oma.prototype.setIniConfigs,
    setNodeConfigs: Oma.prototype.setNodeConfigs,
    setOmaConfigs: Oma.prototype.setOmaConfigs,
    startAllNodes: Oma.prototype.startAllNodes,
    startNode: Oma.prototype.startNode,
    startNodes: Oma.prototype.startNodes,
-   startStp: Oma.prototype.startStp,
    stopAllNodes: Oma.prototype.stopAllNodes,
    stopNode: Oma.prototype.stopNode,
    stopNodes: Oma.prototype.stopNodes,
-   stopStp: Oma.prototype.stopStp,
    toString: Oma.prototype.toString,
    updateNodeConfigs: Oma.prototype.updateNodeConfigs
 };
@@ -72,7 +67,6 @@ Oma.prototype.close=function(){try{return tmpOma.close.apply(this,arguments);}ca
 Oma.prototype.createCoord=function(){try{return tmpOma.createCoord.apply(this,arguments);}catch(e){throw new Error(e);}};
 Oma.prototype.createData=function(){try{return tmpOma.createData.apply(this,arguments);}catch(e){throw new Error(e);}};
 Oma.prototype.createOM=function(){try{return tmpOma.createOM.apply(this,arguments);}catch(e){throw new Error(e);}};
-Oma.prototype.createStp=function(){try{return tmpOma.createStp.apply(this,arguments);}catch(e){throw new Error(e);}};
 Oma.prototype.delAOmaSvcName=function(){try{return tmpOma.delAOmaSvcName.apply(this,arguments);}catch(e){throw new Error(e);}};
 Oma.prototype.getAOmaSvcName=function(){try{return tmpOma.getAOmaSvcName.apply(this,arguments);}catch(e){throw new Error(e);}};
 Oma.prototype.getIniConfigs=function(){try{return tmpOma.getIniConfigs.apply(this,arguments);}catch(e){throw new Error(e);}};
@@ -81,24 +75,20 @@ Oma.prototype.getOmaConfigFile=function(){try{return tmpOma.getOmaConfigFile.app
 Oma.prototype.getOmaConfigs=function(){try{return tmpOma.getOmaConfigs.apply(this,arguments);}catch(e){throw new Error(e);}};
 Oma.prototype.getOmaInstallFile=function(){try{return tmpOma.getOmaInstallFile.apply(this,arguments);}catch(e){throw new Error(e);}};
 Oma.prototype.getOmaInstallInfo=function(){try{return tmpOma.getOmaInstallInfo.apply(this,arguments);}catch(e){throw new Error(e);}};
-Oma.prototype.getStp=function(){try{return tmpOma.getStp.apply(this,arguments);}catch(e){throw new Error(e);}};
 Oma.prototype.help=function(){try{return tmpOma.help.apply(this,arguments);}catch(e){throw new Error(e);}};
 Oma.prototype.listNodes=function(){try{return tmpOma.listNodes.apply(this,arguments);}catch(e){throw new Error(e);}};
 Oma.prototype.reloadConfigs=function(){try{return tmpOma.reloadConfigs.apply(this,arguments);}catch(e){throw new Error(e);}};
 Oma.prototype.removeCoord=function(){try{return tmpOma.removeCoord.apply(this,arguments);}catch(e){throw new Error(e);}};
 Oma.prototype.removeData=function(){try{return tmpOma.removeData.apply(this,arguments);}catch(e){throw new Error(e);}};
 Oma.prototype.removeOM=function(){try{return tmpOma.removeOM.apply(this,arguments);}catch(e){throw new Error(e);}};
-Oma.prototype.removeStp=function(){try{return tmpOma.removeStp.apply(this,arguments);}catch(e){throw new Error(e);}};
 Oma.prototype.setIniConfigs=function(){try{return tmpOma.setIniConfigs.apply(this,arguments);}catch(e){throw new Error(e);}};
 Oma.prototype.setNodeConfigs=function(){try{return tmpOma.setNodeConfigs.apply(this,arguments);}catch(e){throw new Error(e);}};
 Oma.prototype.setOmaConfigs=function(){try{return tmpOma.setOmaConfigs.apply(this,arguments);}catch(e){throw new Error(e);}};
 Oma.prototype.startAllNodes=function(){try{return tmpOma.startAllNodes.apply(this,arguments);}catch(e){throw new Error(e);}};
 Oma.prototype.startNode=function(){try{return tmpOma.startNode.apply(this,arguments);}catch(e){throw new Error(e);}};
 Oma.prototype.startNodes=function(){try{return tmpOma.startNodes.apply(this,arguments);}catch(e){throw new Error(e);}};
-Oma.prototype.startStp=function(){try{return tmpOma.startStp.apply(this,arguments);}catch(e){throw new Error(e);}};
 Oma.prototype.stopAllNodes=function(){try{return tmpOma.stopAllNodes.apply(this,arguments);}catch(e){throw new Error(e);}};
 Oma.prototype.stopNode=function(){try{return tmpOma.stopNode.apply(this,arguments);}catch(e){throw new Error(e);}};
 Oma.prototype.stopNodes=function(){try{return tmpOma.stopNodes.apply(this,arguments);}catch(e){throw new Error(e);}};
-Oma.prototype.stopStp=function(){try{return tmpOma.stopStp.apply(this,arguments);}catch(e){throw new Error(e);}};
 Oma.prototype.toString=function(){try{return tmpOma.toString.apply(this,arguments);}catch(e){throw new Error(e);}};
 Oma.prototype.updateNodeConfigs=function(){try{return tmpOma.updateNodeConfigs.apply(this,arguments);}catch(e){throw new Error(e);}};

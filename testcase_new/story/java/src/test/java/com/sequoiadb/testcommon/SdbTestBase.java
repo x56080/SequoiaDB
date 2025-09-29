@@ -7,7 +7,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -19,11 +18,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.util.JSON;
-<<<<<<< HEAD
 import org.testng.Assert;
-=======
-import org.testng.SkipException;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 import org.testng.annotations.AfterSuite;
 import org.testng.annotations.AfterTest;
 import org.testng.annotations.BeforeSuite;
@@ -78,14 +73,6 @@ public class SdbTestBase {
     public static final String RS = "rs";
     public static final String RCAUTO = "rcauto";
     public static final String RCUSERBS = "rcuserbs";
-<<<<<<< HEAD
-=======
-    public static final String RR = "rr";
-    public static final String RRAUTO = "rrauto";
-    public static final String MVCCON = "mvccon";
-    public static final String GLOBTRANSON = "globtranson";
-    public static final String TRANSMAXLOCKMUN = "transmaxlocknum";
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
     public static final String LOCKESCALATION = "lockEscalation";
     public static final String TRANSREPLSIZE = "transreplsize";
     public static final String TRANSALLOWLOCKESCALATION = "transallowlockescalation";
@@ -98,15 +85,12 @@ public class SdbTestBase {
     public static final String MAXITEMNUM = "MaxItemNum";
     public static final String MAXVERSIONNUM = "MaxVersionNum";
     public static final String AUTODROP = "AutoDrop";
-<<<<<<< HEAD
     public static final String LOCATION = "location";
     public static ArrayList< String > expandGroupNames = new ArrayList<>();
     public static ArrayList< BasicBSONObject > expandNodeInfos = null;
     public static final String RBAC = "rbac";
     public static final String rootUserName = "rootUserName";
     public static final String rootUserPassword = "rootUserPassword";
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
     private static ConfigOptions options = new ConfigOptions();
     public static String testGroup = null;
@@ -183,34 +167,6 @@ public class SdbTestBase {
         group2Conf.get( RCUSERBS ).put( TRANSUSERBS, false );
         group2Conf.get( RCUSERBS ).put( TRANSREPLSIZE, transReplsize );
 
-<<<<<<< HEAD
-=======
-        group2Conf.put( RR, new BasicBSONObject() );
-        group2Conf.get( RR ).put( TRANSISOLATION, 3 );
-        group2Conf.get( RR ).put( TRANSLOCKWAIT, false );
-        group2Conf.get( RR ).put( INDEXSCANSTEP, newIndexScanStep );
-        group2Conf.get( RR ).put( TRANSTIMEOUT, timeOutLen );
-        group2Conf.get( RR ).put( TRANSAUTOCOMMIT, false );
-        group2Conf.get( RR ).put( TRANSAUTOROLLBACK, true );
-        group2Conf.get( RR ).put( TRANSUSERBS, true );
-        group2Conf.get( RR ).put( MVCCON, true );
-        group2Conf.get( RR ).put( GLOBTRANSON, true );
-        group2Conf.get( RR ).put( TRANSREPLSIZE, transReplsize );
-        group2Conf.get( RR ).put( TRANSMAXLOCKMUN, -1 );
-
-        group2Conf.put( RRAUTO, new BasicBSONObject() );
-        group2Conf.get( RRAUTO ).put( TRANSISOLATION, 3 );
-        group2Conf.get( RRAUTO ).put( TRANSLOCKWAIT, false );
-        group2Conf.get( RRAUTO ).put( INDEXSCANSTEP, newIndexScanStep );
-        group2Conf.get( RRAUTO ).put( TRANSTIMEOUT, timeOutLen );
-        group2Conf.get( RRAUTO ).put( TRANSAUTOCOMMIT, true );
-        group2Conf.get( RRAUTO ).put( TRANSAUTOROLLBACK, false );
-        group2Conf.get( RRAUTO ).put( TRANSUSERBS, true );
-        group2Conf.get( RRAUTO ).put( MVCCON, true );
-        group2Conf.get( RRAUTO ).put( GLOBTRANSON, true );
-        group2Conf.get( RRAUTO ).put( TRANSREPLSIZE, transReplsize );
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         group2Conf.put( LOCKESCALATION, new BasicBSONObject() );
         group2Conf.get( LOCKESCALATION ).put( TRANSISOLATION, 2 );
         group2Conf.get( LOCKESCALATION ).put( TRANSLOCKWAIT, false );
@@ -222,11 +178,6 @@ public class SdbTestBase {
         group2Conf.get( LOCKESCALATION ).put( TRANSREPLSIZE, transReplsize );
         group2Conf.get( LOCKESCALATION ).put( TRANSALLOWLOCKESCALATION, true );
         group2Conf.get( LOCKESCALATION ).put( TRANSMAXLOCKNUM, 10 );
-<<<<<<< HEAD
-=======
-        group2Conf.get( LOCKESCALATION ).put( MVCCON, true );
-        group2Conf.get( LOCKESCALATION ).put( GLOBTRANSON, true );
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
         // 添加回收站默认属性
         recycleBinAttr.put( RECYCLEBINDEFAULTATTR, new BasicBSONObject() );
@@ -281,12 +232,8 @@ public class SdbTestBase {
     }
 
     @Parameters({ "HOSTNAME", "SVCNAME", "CHANGEDPREFIX", "RSRVPORTBEGIN",
-<<<<<<< HEAD
             "RSRVPORTEND", "RSRVNODEDIR", "WORKDIR", "ROOTPASSWD", "REMOTEUSER",
             "REMOTEPASSWD", "BACKUPTMPNODELOGPATH", "CONFTOOL",
-=======
-            "RSRVPORTEND", "RSRVNODEDIR", "WORKDIR", "CONFTOOL",
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             "ENABLETRANSACTION", "ESHOSTNAME", "ESSVCNAME", "FULLTEXTPREFIX",
             "DSHOSTNAME", "DSSVCNAME" })
     @BeforeSuite(alwaysRun = true)
@@ -426,8 +373,7 @@ public class SdbTestBase {
             sdb.updateConfig( cfg, object );
         } catch ( BaseException e ) {
             e.printStackTrace();
-            // coord 节点 mvccon 默认为 false,更新配置时会报-264，由于不支持节点重启，暂不对外抛错；
-            // throw e;
+            throw e;
         }
     }
 
@@ -446,18 +392,11 @@ public class SdbTestBase {
         }
     }
 
-<<<<<<< HEAD
     @Parameters({ "EXPANDNODENUM" })
     @BeforeTest(groups = { RU, RC, RCWAITLOCK, RS, RCAUTO, RCUSERBS,
             LOCKESCALATION, RECYCLEBIN, LOCATION, RBAC })
     public static synchronized void initTestGroups(
             @Optional("0") int EXPANDNODENUM ) throws Exception {
-=======
-    @BeforeTest(groups = { RU, RC, RCWAITLOCK, RS, RCAUTO, RCUSERBS, RR, RRAUTO,
-            LOCKESCALATION, RECYCLEBIN })
-    public static synchronized void initTestGroups()
-            throws UnknownHostException {
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         if ( testGroup == null ) {
             return;
         } else if ( testGroup.equals( RECYCLEBIN ) ) {
@@ -465,7 +404,6 @@ public class SdbTestBase {
             getRecycleBinAttr();
             modifyRecycleBinAttr( recycleBinAttr.get( RECYCLEBINDEFAULTATTR ) );
         }
-<<<<<<< HEAD
         // 对需要扩容的测试用例创建一个复制组，并创建节点
         if ( testGroup.equals( LOCATION ) ) {
             try ( Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "",
@@ -486,48 +424,7 @@ public class SdbTestBase {
                 }
             }
         }
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         System.out.println( "init " + testGroup + " Groups..........." );
-        if ( testGroup.equals( RR ) || testGroup.equals( RRAUTO )
-                || testGroup.equals( LOCKESCALATION ) ) {
-            try ( Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "",
-                    options )) {
-                Object coordGlobTransConfig = null;
-                Object dataGlobTransConfig;
-                Object dataMvccConfig;
-                DBCursor cursor = sdb.getSnapshot( Sequoiadb.SDB_SNAP_CONFIGS,
-                        null,
-                        "{NodeName:'',globtranson:'','role':'',mvccon:''}",
-                        null );
-                while ( cursor.hasNext() ) {
-                    BSONObject config = cursor.getNext();
-                    String role = ( String ) config.get( "role" );
-                    switch ( role ) {
-                    case "coord":
-                        coordGlobTransConfig = config.get( "globtranson" );
-                        if ( !coordGlobTransConfig.equals( "TRUE" ) ) {
-                            throw new SkipException(
-                                    "globtranson disable on coord!" );
-                        }
-                        break;
-                    case "data":
-                        dataGlobTransConfig = config.get( "globtranson" );
-                        dataMvccConfig = config.get( "mvccon" );
-                        if ( !( dataGlobTransConfig.equals( "TRUE" )
-                                && dataMvccConfig.equals( "TRUE" ) ) ) {
-                            throw new SkipException(
-                                    "mvccon or globtranson disable on data!" );
-                        }
-                        break;
-                    case "catalog":
-                        break;
-
-                    }
-                }
-            }
-        }
-
         modifyNodeConf( group2Conf.get( testGroup ), null );
 
         if ( testGroup.equals( RBAC ) ) {
@@ -547,7 +444,6 @@ public class SdbTestBase {
         }
     }
 
-<<<<<<< HEAD
     @Parameters({ "EXPANDNODENUM" })
     @AfterTest(groups = { RC, RU, RCWAITLOCK, RS, RCAUTO, RCUSERBS,
             LOCKESCALATION, RECYCLEBIN, LOCATION, RBAC }, alwaysRun = true)
@@ -563,18 +459,10 @@ public class SdbTestBase {
             if ( !privilegecheck ) {
                 CommLib.setPrivilegecheck( privilegecheck );
             }
-=======
-    @AfterTest(groups = { RC, RU, RCWAITLOCK, RS, RCAUTO, RCUSERBS, RR, RRAUTO,
-            LOCKESCALATION, RECYCLEBIN }, alwaysRun = true)
-    public static synchronized void finiTestGroups() {
-        if ( testGroup == null ) {
-            return;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         } else if ( testGroup.equals( RECYCLEBIN ) ) {
             // 执行完用例后将回收站配置改为执行用例前配置
             modifyRecycleBinAttr( recycleBinAttr.get( RECYCLEBINUSERATTR ) );
         }
-<<<<<<< HEAD
         // 移除增加的复制组
         if ( testGroup.equals( LOCATION ) ) {
             try ( Sequoiadb sdb = new Sequoiadb( SdbTestBase.coordUrl, "", "",
@@ -605,8 +493,6 @@ public class SdbTestBase {
                 }
             }
         }
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
         System.out.println( "fini " + testGroup + " Groups..........." );
         for ( String key : node2Conf.keySet() ) {
             BasicBSONObject opt = new BasicBSONObject();

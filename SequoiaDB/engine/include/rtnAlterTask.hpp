@@ -40,10 +40,7 @@
 #include "../bson/bson.hpp"
 #include "utilGlobalID.hpp"
 #include "utilUniqueID.hpp"
-<<<<<<< HEAD
 #include "msgDef.hpp"
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
 namespace engine
 {
@@ -899,10 +896,7 @@ namespace engine
          BOOLEAN         _autoIndexID ;
          utilIdxUniqueID _idIdxUniqID ;
          INT32           _replSize ;
-<<<<<<< HEAD
          SDB_CONSISTENCY_STRATEGY _consistencyStrategy ;
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          BOOLEAN         _strictDataMode ;
          BOOLEAN         _noTrans ;
    } ;

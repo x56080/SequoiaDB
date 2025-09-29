@@ -40,11 +40,6 @@
 #include "pmd.hpp"
 #include "pdTrace.hpp"
 #include "rtnTrace.hpp"
-<<<<<<< HEAD
-=======
-#include "dpsUtil.hpp"
-#include "optAccessPlanRuntime.hpp"
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 #include "pdSecure.hpp"
 
 using namespace bson ;
@@ -65,19 +60,13 @@ namespace engine
    // Dependency:
    //    All input except su should not be NULL
    _rtnMemIXTreeScanner::_rtnMemIXTreeScanner ( ixmIndexCB *pIndexCB,
-                                                optAccessPlanRuntime * planRuntime,
+                                                rtnPredicateList *predList,
                                                 _dmsStorageUnit  *su,
                                                 _dmsMBContext    *mbContext,
                                                 _pmdEDUCB        *cb,
                                                 BOOLEAN indexCBOwnned )
-<<<<<<< HEAD
    :_rtnIXScanner( pIndexCB, predList, su, mbContext, FALSE, cb, indexCBOwnned ),
     _listIterator(*predList)
-=======
-   :_rtnIXScanner( pIndexCB, planRuntime, su, cb, indexCBOwnned ),
-    _listIterator(*_pPredList),
-    _savedTransID()
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
       _pTransCB = pmdGetKRCB()->getTransCB() ;
       _available = FALSE ;
@@ -132,10 +121,9 @@ namespace engine
 
    void _rtnMemIXTreeScanner::reset()
    {
-      _savedObj  = BSONObj() ;
+      _savedObj      = BSONObj() ;
       _savedRID.reset() ;
       _listIterator.reset() ;
-      _objStatus = DPS_PREIDXTREENODEVALUE_NONE ;
 
       if ( _pInfo )
       {
@@ -313,20 +301,7 @@ namespace engine
       goto done ;
    }
 
-<<<<<<< HEAD
    INT32 _rtnMemIXTreeScanner::_relocateRID( BOOLEAN &found )
-=======
-   // return the transID in the key which is the owner transID
-   DPS_TRANS_ID  _rtnMemIXTreeScanner::getCurKeyTransID()
-   {
-      SDB_ASSERT( _memIdxTree->isPosValid( _curIndexPos ),
-                  "Current iterator position is invalid" ) ;
-
-      return _memIdxTree->getNodeKey( _curIndexPos ).getNodeTransID() ;
-   }
-
-   INT32 _rtnMemIXTreeScanner::relocateRID( BOOLEAN &found )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
       return _relocateRID( found, _direction ) ;
    }
@@ -497,53 +472,9 @@ namespace engine
             // update monitor counters under latch
             DMS_MON_OP_COUNT_INC( pMonAppCB, MON_INDEX_READ, 1 ) ;
 
-            _objStatus = nodeVal.getStatus() ;
-
-            // if mvcc is enabled, there will be multiple versions in
-            // the tree. All except the latest version's records are
-            // deleted.
-            if ( pmdGetOptionCB()->mvccOn() )
-            {
-               // FIXME:  first add the RID to a global set to prevent
-               // it from being truely deleted. We then check the node transID
-               // with lowtran. If the node transID is older than lowtran, we
-               // can skip it
-
-               // When mvcc is enabled, there will be multiple versions
-               // in the tree, no matter what isolation is. When a node
-               // is invalid or marked as deleted, if isolation is RC or
-               // any level below RR, we shall skip this node right away;
-               // if isolation is RR, skip this node if it is expired ( older
-               // than lowtran )
-               if (( !_curIndexPos->second.isValid() ||
-                     nodeVal.isRecordDeleted() ) &&
-                   ((_transIsolation < TRANS_ISOLATION_RR) ||
-                    ((TRANS_ISOLATION_RR == _transIsolation) &&
-                     ( _cb->isVersionExpired( nodeKey.getNodeTransID() )))))
-               {
-                  // FIXME: remove from set
-#ifdef _DEBUG
-                  PD_LOG( PDDEBUG,
-                          "Skipping rid(%d, %d) in memory tree due to "
-                          "lowTran(%s) and expireTran(%s), node transid(%s)",
-                          nodeKey.getRID()._extent,
-                          nodeKey.getRID()._offset,
-                          dpsTransIDToString(
-                                _pTransCB->getGlobLowTran() ).c_str(),
-                          dpsTransIDToString(
-                                _pTransCB->getGlobExpireTran() ).c_str(),
-                          dpsTransIDToString(
-                                nodeKey.getNodeTransID() ).c_str() ) ;
-#endif
-                  _savedRID.reset() ;
-                  _objStatus = DPS_PREIDXTREENODEVALUE_NONE ;
-                  goto begin ;
-               }
-            }
-            else if (nodeVal.isRecordDeleted() )
+            if ( nodeVal.isRecordDeleted() )
             {
                _savedRID.reset() ;
-               _objStatus = DPS_PREIDXTREENODEVALUE_NONE ;
                goto begin ;
             }
 
@@ -591,15 +522,12 @@ namespace engine
                SDB_ASSERT( !_savedRID.isNull(),
                            "The RID from curIndexIter should not be NULL" ) ;
 
-               _objStatus = nodeVal.getStatus() ;
-
                if ( !_insert2Dup( _savedRID ) )
                {
                   // if we are able to find the recordid in dupBuffer, that
                   // means we've already processed the record, so let's also
                   // jump back to begin
                   _savedRID.reset() ;
-                  _objStatus = DPS_PREIDXTREENODEVALUE_NONE ;
                   goto begin ;
                }
 
@@ -612,12 +540,6 @@ namespace engine
 
                rid = _savedRID ;
 
-               // record the transID from the key when mvcc is enabled
-               if ( pmdGetOptionCB()->mvccOn() )
-               {
-                  _savedTransID = getCurKeyTransID() ;
-               }
-
                // if we are write mode, let's record the _savedObj as well
                if ( !isReadonly() )
                {
@@ -628,7 +550,6 @@ namespace engine
                   // in readonly scenario, _savedRID should always be null
                   // unless pauseScan() is called
                   _savedRID.reset() ;
-                  _objStatus = DPS_PREIDXTREENODEVALUE_NONE ;
                }
                rc = SDB_OK ;
                break ;
@@ -878,12 +799,10 @@ namespace engine
       }
       else if ( _treeLatchHeld )
       {
-         INDEX_TREE_CPOS findPos = _memIdxTree->find( &saveObj, saveRID,
-                                                      _savedTransID ) ;
+         INDEX_TREE_CPOS findPos = _memIdxTree->find( &saveObj, saveRID ) ;
          if ( _memIdxTree->isPosValid( findPos ) &&
               _curIndexPos == findPos &&
-              // !_memIdxTree->getNodeData( _curIndexPos ).isRecordDeleted() )
-              _memIdxTree->getNodeData(_curIndexPos).getStatus() == _objStatus )
+              !_memIdxTree->getNodeData( _curIndexPos ).isRecordDeleted() )
          {
             isSame = TRUE ;
          }
@@ -895,44 +814,6 @@ namespace engine
    rtnPredicateListIterator* _rtnMemIXTreeScanner::_getPredicateListInterator()
    {
       return &_listIterator ;
-   }
-
-   // returned startPos is inclusive, but the endPos is exclusive
-   void _rtnMemIXTreeScanner::getRBSPositions( dmsRBSOffset & startPos,
-                                               dmsRBSOffset & endPos,
-                                               dmsRecordID  & rid,
-                                               preIdxTreePtr  memTree )
-   {
-      SDB_ASSERT( memTree.get() == _memIdxTree.get(), "tree does not match" ) ;
-      // FIXME: we assign both start and end to curPos for now.
-      // Next we will follow _ridNext to find the
-      if ( _memIdxTree->isPosValid( _curIndexPos ) )
-      {
-         startPos = _memIdxTree->getNodeData(_curIndexPos).getRBSOffset() ;
-         if ( _memIdxTree->hasRidPre(_curIndexPos) )
-         {
-            endPos = _memIdxTree->getNodeData(_curIndexPos).getRidPre()
-                        ->second.getRBSOffset() ;
-         }
-         else
-         {
-            // search till the end of RBS
-            endPos.reset() ;
-         }
-#ifdef _DEBUG
-         PD_LOG( PDDEBUG,
-                 "IdxMemScan use startPos(%d, %lld) endPos(%d, %lld) for RBS",
-                 startPos._clID, startPos._logicalID,
-                 endPos._clID, endPos._logicalID );
-#endif
-
-      }
-      else
-      {
-         SDB_ASSERT( FALSE, "should not try to retrieve position" ) ;
-         startPos.reset() ;
-         endPos.reset() ;
-      }
    }
 
 }

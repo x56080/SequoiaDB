@@ -56,7 +56,9 @@ namespace engine
                                  BSONObj &updator ) ;
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNINSERTREC, "_rtnInsertRecord" )
-   static INT32 _rtnInsertRecord( const CHAR *clFullName,
+   static INT32 _rtnInsertRecord( dmsStorageUnit *su,
+                                  const CHAR *clFullName,
+                                  const CHAR *clShortName,
                                   const BSONObj &record,
                                   INT32 flags,
                                   const rtnInsertModifier *modifier,
@@ -66,23 +68,20 @@ namespace engine
                                   INT16 w,
                                   BOOLEAN mustOID,
                                   BOOLEAN canUnLock,
+                                  dmsMBContext *context,
                                   INT64 position,
                                   IRtnOprHandler *handler,
-<<<<<<< HEAD
                                   utilInsertResult *insertResult )
-=======
-                                  utilInsertResult *insertResult,
-                                  BOOLEAN isReplaying )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB__RTNINSERTREC ) ;
 
+      SDB_ASSERT( NULL != su, "su is invalid" ) ;
       SDB_ASSERT( NULL != clFullName, "collection full name is invalid" ) ;
+      SDB_ASSERT( NULL != clShortName, "collection short name is invalid" ) ;
       SDB_ASSERT( NULL != insertResult, "insert result is invalid" ) ;
 
-<<<<<<< HEAD
       pdLogShield shield ;
       BOOLEAN hasRetry = FALSE ;
 
@@ -105,41 +104,12 @@ retry:
          if ( ( FLG_INSERT_CONTONDUP & flags ) ||
               ( ( FLG_INSERT_CONTONDUP_ID & flags ) &&
                 ( 0 == ossStrcmp( insertResult->getIdxName().c_str(), IXM_ID_KEY_NAME ) ) ) )
-=======
-      pdLogRCShield shield ;
-      BOOLEAN hasRetry = FALSE ;
-      BOOLEAN writable = FALSE;
-
-      rc = dmsCB->writable( cb );
-      PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc: %d", rc );
-      writable = TRUE;
-
-      {
-         dmsOpenCLOptions openCLOptions;
-         DATA_COLLECTION_PTR cl = nullptr;
-         rc = dmsCB->openCL( cb, clFullName, openCLOptions, cl );
-         PD_RC_CHECK( rc, PDERROR, "failed to open collection[%s], rc: %d", clFullName, rc );
-
-         // Insertion replaying on capped collection should be done by position,
-         // as the record positions on primary and slavery nodes should be
-         // exactly the same.
-         if ( -1 == position && isReplaying && DMS_STORAGE_CAPPED == cl->getCSStorageType() )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          {
-            BSONElement positionEle = record.getField( DMS_ID_KEY_NAME );
-            if ( NumberLong != positionEle.type() )
-            {
-               PD_LOG( PDERROR,
-                       "Field _id type[ %d ] is not as expected"
-                       "[ %d ]",
-                       positionEle.type(), NumberLong );
-               rc = SDB_SYS;
-               goto error;
-            }
-
-            position = positionEle.numberLong();
+            insertResult->incDuplicatedNum();
+            insertResult->resetInfo() ;
+            // skip duplicate key error
+            rc = SDB_OK ;
          }
-<<<<<<< HEAD
          else if ( ( FLG_INSERT_REPLACEONDUP & flags ) ||
                    ( FLG_INSERT_UPDATEONDUP & flags ) ||
                    ( ( FLG_INSERT_REPLACEONDUP_ID & flags ) && 
@@ -156,131 +126,18 @@ retry:
             utilIdxDupErrAssit dupErrAssit( insertResult->getIdxKeyPattern(),
                                             insertResult->getIdxValue(),
                                             insertResult->getIdxName().c_str() ) ;
-=======
 
-         dmsInsertRecordOptions insertRecordOptions;
-         insertRecordOptions.position = position;
-         insertRecordOptions.dpsCB = dpsCB;
-
-      retry:
-         if ( ( OSS_BIT_TEST( FLG_INSERT_REPLACEONDUP, flags ) ||
-                OSS_BIT_TEST( FLG_INSERT_CONTONDUP, flags ) ||
-                OSS_BIT_TEST( FLG_INSERT_UPDATEONDUP, flags ) ) &&
-              !hasRetry )
-         {
-            shield.addRC( SDB_IXM_DUP_KEY );
-         }
-
-         rc = cl->insertRecord( cb, record, insertRecordOptions, insertResult );
-
-         shield.clearRC();
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
-
-         // check return code
-         if ( SDB_IXM_DUP_KEY == rc && !hasRetry )
-         {
-            if ( FLG_INSERT_CONTONDUP & flags )
+            rc = dupErrAssit.getIdxMatcher( matcher ) ;
+            if ( rc )
             {
-               insertResult->incDuplicatedNum();
-               insertResult->resetInfo();
-               // skip duplicate key error
-               rc = SDB_OK;
+               goto error ;
             }
-<<<<<<< HEAD
 
             rc = dupErrAssit.getIdxHint( hint ) ;
             if ( SDB_OK != rc )
             {
                PD_LOG( PDERROR, "Failed to get index hint, rc:%d", rc ) ;
                goto error ;
-=======
-            else if ( FLG_INSERT_REPLACEONDUP & flags || FLG_INSERT_UPDATEONDUP & flags )
-            {
-               // update record when duplicate key error
-               BSONObj updator;
-               BSONObj matcher;
-               BSONObj shardingKey;
-               utilUpdateResult upResult;
-               INT32 updateFlag = 0;
-
-               utilIdxDupErrAssit dupErrAssit( insertResult->getIdxKeyPattern(),
-                                               insertResult->getIdxValue() );
-
-               rc = dupErrAssit.getIdxMatcher( matcher );
-               if ( rc )
-               {
-                  goto error;
-               }
-               insertResult->resetInfo();
-
-               if ( NULL != handler )
-               {
-                  rc = handler->getShardingKey( clFullName, shardingKey );
-                  PD_RC_CHECK( rc, PDERROR, "Failed to get sharding key of collection: %s, rc: %d",
-                               clFullName, rc );
-               }
-
-               {
-                  BSONObj dummyObj;
-                  rtnQueryOptions options( matcher, dummyObj, dummyObj, dummyObj, clFullName, 0, -1,
-                                           updateFlag );
-                  if ( FLG_INSERT_REPLACEONDUP & flags )
-                  {
-                     rc = generateUpdator( record, TRUE, updator );
-                     PD_RC_CHECK( rc, PDERROR,
-                                  "Generate updator from insertor %s "
-                                  "when replace on duplication failed[%d]",
-                                  PD_SECURE_OBJ( record ), rc );
-                  }
-                  else
-                  {
-                     if ( modifier )
-                     {
-                        updator = modifier->getUpdator();
-                     }
-
-                     // If no updator specified in the hint, use the record to be
-                     // inserted as the updator. The field "_id" will be ignored,
-                     // in order to keep the original "_id".
-                     if ( updator.isEmpty() )
-                     {
-                        rc = generateUpdator( record, FALSE, updator );
-                        PD_RC_CHECK( rc, PDERROR,
-                                     "Generate updator from insertor "
-                                     "%s when update on duplication failed[%d]",
-                                     PD_SECURE_OBJ( record ), rc );
-                     }
-                  }
-
-                  rc = rtnUpdate( options, updator, cb, dmsCB, dpsCB, w, &upResult,
-                                  shardingKey.isEmpty() ? NULL : &shardingKey,
-                                  DPS_LOG_WRITE_MOD_INCREMENT, handler );
-                  if ( rc )
-                  {
-                     insertResult->setErrInfo( &upResult );
-
-                     PD_LOG( PDERROR,
-                             "Failed to update record[%s] in "
-                             "collection[%s] when insert exists duplicate key, rc: %d",
-                             PD_SECURE_OBJ( record ), clFullName, rc );
-                     goto error;
-                  }
-                  else if ( 0 == upResult.updateNum() )
-                  {
-                     // If no record is updated, the original record is removed.
-                     // Let's try to insert again.
-                     hasRetry = TRUE;
-                     goto retry;
-                  }
-                  else
-                  {
-                     // update success.
-                     insertResult->incDuplicatedNum( upResult.updateNum() );
-                     insertResult->incModifiedNum( upResult.modifiedNum() );
-                     rc = SDB_OK;
-                  }
-               }
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             }
             updateFlag |= FLG_UPDATE_FORCE_HINT ;
             shield.addRC( SDB_RTN_INVALID_HINT ) ;
@@ -289,7 +146,6 @@ retry:
 
             if ( NULL != handler )
             {
-<<<<<<< HEAD
                rc = handler->getShardingKey( clFullName, shardingKey ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to get sharding key of "
                             "collection: %s, rc: %d", clFullName, rc ) ;
@@ -371,26 +227,14 @@ retry:
                      PD_SECURE_OBJ( record ), clFullName, rc ) ;
             goto error ;
          }
-=======
-               PD_LOG( PDERROR,
-                       "Failed to insert record %s into "
-                       "collection: %s, rc: %d",
-                       PD_SECURE_OBJ( record ), clFullName, rc );
-               goto error;
-            }
-         }
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       }
+
    done:
       PD_TRACE_EXITRC( SDB__RTNINSERTREC, rc ) ;
-      if ( writable )
-      {
-         dmsCB->writeDown( cb );
-      }
-      return rc;
+      return rc ;
 
    error:
-      goto done;
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNINSERT1, "rtnInsert" )
@@ -431,13 +275,34 @@ retry:
       SDB_ASSERT ( pCollectionName, "collection name can't be NULL" ) ;
       SDB_ASSERT ( cb, "educb can't be NULL" ) ;
       SDB_ASSERT ( dmsCB, "dmsCB can't be NULL" ) ;
+      dmsStorageUnit *su = NULL ;
+      dmsStorageUnitID suID = DMS_INVALID_CS ;
+      const CHAR *pCollectionShortName = NULL ;
       UINT32 insertCount = 0 ;
+      BOOLEAN writable = FALSE ;
       ossValuePtr pDataPos = 0 ;
       utilInsertResult inTmpResult ;
 
       if ( !pResult )
       {
          pResult = &inTmpResult ;
+      }
+
+      rc = dmsCB->writable( cb ) ;
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "Database is not writable, rc = %d", rc ) ;
+         goto error;
+      }
+      writable = TRUE;
+
+      rc = rtnResolveCollectionNameAndLock ( pCollectionName, dmsCB, &su,
+                                             &pCollectionShortName, suID ) ;
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "Failed to resolve collection name %s",
+                  pCollectionName ) ;
+         goto error ;
       }
 
       if ( objs.isEmpty () )
@@ -471,14 +336,9 @@ retry:
          {
             BSONObj record ( (const CHAR*)pDataPos ) ;
 
-<<<<<<< HEAD
             rc = _rtnInsertRecord( su, pCollectionName, pCollectionShortName,
                                    record, flags, modifier, cb, dmsCB, dpsCB,
                                    w, TRUE, TRUE, NULL, -1, handler, pResult ) ;
-=======
-            rc = _rtnInsertRecord( pCollectionName, record, flags, modifier, cb, dmsCB, dpsCB, w,
-                                   TRUE, TRUE, -1, handler, pResult, FALSE );
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
             PD_RC_CHECK( rc, PDERROR, "Failed to insert record into "
                          "collection [%s], rc: %d", pCollectionName, rc ) ;
 
@@ -494,6 +354,14 @@ retry:
       }
 
    done :
+      if ( DMS_INVALID_CS != suID )
+      {
+         dmsCB->suUnlock ( suID ) ;
+      }
+      if ( writable )
+      {
+         dmsCB->writeDown( cb );
+      }
       if ( cb )
       {
          if ( SDB_OK == rc && dpsCB )
@@ -518,20 +386,21 @@ retry:
       SDB_ASSERT ( pCollectionName, "collection name can't be NULL" ) ;
       SDB_ASSERT ( cb, "educb can't be NULL" ) ;
       SDB_ASSERT ( dmsCB, "dmsCB can't be NULL" ) ;
-<<<<<<< HEAD
       dmsStorageUnit *su = NULL ;
       dmsStorageUnitID suID = DMS_INVALID_CS ;
       const CHAR *clShortName = NULL ;
       BOOLEAN writable = FALSE ;
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       utilInsertResult inTmpResult ;
 
       if ( !pResult )
       {
          pResult = &inTmpResult ;
       }
+
+      rc = dmsCB->writable( cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc: %d", rc ) ;
+      writable = TRUE ;
 
       if ( obj.isEmpty() )
       {
@@ -541,9 +410,13 @@ retry:
          goto error ;
       }
 
+      rc = rtnResolveCollectionNameAndLock( pCollectionName, dmsCB, &su,
+                                            &clShortName, suID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to resolve collection name %s",
+                   pCollectionName ) ;
+
       try
       {
-<<<<<<< HEAD
          // Insertion replaying on capped collection should be done by position,
          // as the record positions on primary and slavery nodes should be
          // exactly the same.
@@ -579,12 +452,6 @@ retry:
             }
             goto error ;
          }
-=======
-         rc = _rtnInsertRecord( pCollectionName, obj, flags, NULL, cb, dmsCB, dpsCB, w, TRUE, TRUE,
-                                position, opHandler, pResult, TRUE );
-         PD_RC_CHECK( rc, PDERROR, "failed to insert record into collection[%s.%s],rc: %d",
-                      pCollectionName, rc );
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       }
       catch( std::exception &e )
       {
@@ -594,6 +461,14 @@ retry:
       }
 
    done:
+      if ( DMS_INVALID_CS != suID )
+      {
+         dmsCB->suUnlock( suID ) ;
+      }
+      if ( writable )
+      {
+         dmsCB->writeDown( cb ) ;
+      }
       if ( cb )
       {
          if ( SDB_OK == rc && dpsCB )

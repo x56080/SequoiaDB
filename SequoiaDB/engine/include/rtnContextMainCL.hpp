@@ -42,9 +42,6 @@
 #include "rtnContextMain.hpp"
 #include "rtnContextExplain.hpp"
 #include "ossMemPool.hpp"
-#include "clsCatalogAgent.hpp"
-
-using namespace bson ;
 
 using namespace bson ;
 

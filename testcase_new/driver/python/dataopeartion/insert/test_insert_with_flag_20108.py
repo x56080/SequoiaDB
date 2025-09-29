@@ -6,11 +6,7 @@
 from dataopeartion.insert.commlib import *
 from lib import testlib
 from pysequoiadb.error import (SDBBaseError)
-<<<<<<< HEAD
 from pysequoiadb.collection import (INSERT_FLG_DEFAULT, INSERT_FLG_CONTONDUP, INSERT_FLG_RETURN_OID, INSERT_FLG_REPLACEONDUP, INSERT_FLG_RETURNNUM, INSERT_FLG_CONTONDUP_ID, INSERT_FLG_REPLACEONDUP_ID)
-=======
-from pysequoiadb.collection import (INSERT_FLG_DEFAULT, INSERT_FLG_CONTONDUP, INSERT_FLG_RETURN_OID, INSERT_FLG_REPLACEONDUP, INSERT_FLG_RETURNNUM)
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 from bson import ObjectId
 
 class TestInsertWithFlag20108(testlib.SdbTestBase):
@@ -68,18 +64,13 @@ class TestInsertWithFlag20108(testlib.SdbTestBase):
       check_Result(self.cl, {"a":1}, [record3], False)
       self.assertEqual({'DuplicatedNum': 1, 'InsertedNum': 0, 'ModifiedNum': 1}, ret_value)
 
-<<<<<<< HEAD
       # insert data with INSERT_FLG_RETURNNUM
-=======
-      # insert data with INSERT_FLG_RETURNNUM 
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       record4 = {"a": 3, "b": 3}
       ret_value = self.cl.insert_with_flag(record4, INSERT_FLG_RETURNNUM)
 
       # query data and check
       check_Result(self.cl, {"a":3}, [record4], False)
       self.assertEqual({"DuplicatedNum": 0, "InsertedNum": 1, 'ModifiedNum': 0}, ret_value)
-<<<<<<< HEAD
 
       # insert data with INSERT_FLG_CONTONDUP_ID
       idRecord1 = {"_id": 1, "b": 1}
@@ -100,9 +91,6 @@ class TestInsertWithFlag20108(testlib.SdbTestBase):
       check_Result(self.cl, {"_id": 1}, [idRecord3], True)
       self.assertEqual({'DuplicatedNum': 1, 'InsertedNum': 0, 'ModifiedNum': 1}, ret_value)
 
-=======
-      
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    def tearDown(self):
       if self.should_clean_env():
          self.db.drop_collection_space(self.cs_name)

@@ -40,8 +40,6 @@
 #include "ossTypes.h"
 #include "dpsDef.hpp"
 #include "ossMemPool.hpp"
-#include "stpLogicalTime.hpp"
-#include "../bson/bson.hpp"
 
 namespace engine
 {
@@ -54,40 +52,11 @@ namespace engine
 
    INT32 dpsGetTransIDFromString( const CHAR *pStr, DPS_TRANS_ID &transID ) ;
 
-<<<<<<< HEAD
-=======
-   // format transaction ID to string format
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    const CHAR* dpsTransIDToString( const DPS_TRANS_ID &transID,
                                    CHAR *pBuff,
                                    UINT32 bufSize ) ;
 
-   // format transaction ID to string format
    ossPoolString dpsTransIDToString( const DPS_TRANS_ID &transID ) ;
-
-   // format transaction SN to string format
-   const CHAR *dpsTransSNToString( const DPS_TRANSID_SN &transSN,
-                                   CHAR *buffer,
-                                   UINT32 bufferSize ) ;
-
-   // format transaction SN to string format
-   ossPoolString dpsTransSNToString( const DPS_TRANSID_SN &transSN ) ;
-
-   // format transaction SN to HEX string format
-   const CHAR *dpsTransSNToHEXString( const DPS_TRANSID_SN &transSN,
-                                      CHAR *buffer,
-                                      UINT32 bufferSize ) ;
-
-   // format transaction SN to HEX string format
-   ossPoolString dpsTransSNToHEXString( const DPS_TRANSID_SN &transSN ) ;
-
-   // format transaction time to string format
-   const CHAR* dpsTransTimeToString( const stpLogicalTimeUS &time,
-                                     CHAR *buffer,
-                                     UINT32 bufferSize ) ;
-
-   // format transaction time to string format
-   ossPoolString dpsTransTimeToString( const stpLogicalTimeUS &time ) ;
 
    const CHAR* dpsTransIDAttrToString( const DPS_TRANS_ID &transID,
                                        CHAR *pBuff,
@@ -95,34 +64,6 @@ namespace engine
 
    ossPoolString dpsTransIDAttrToString( const DPS_TRANS_ID &transID ) ;
 
-<<<<<<< HEAD
-=======
-   // format transaction ID into BSON object
-   INT32 dpsTransIDToBSON( const DPS_TRANS_ID &transID,
-                           bson::BSONObjBuilder &builder ) ;
-
-   // format transaction ID into BSON object with field name
-   INT32 dpsTransIDToBSON( const DPS_TRANS_ID &transID,
-                           bson::BSONObjBuilder &builder,
-                           const CHAR *fieldName ) ;
-
-   // parse BSON object into transaction ID
-   INT32 dpsTransIDFromBSON( const bson::BSONObj &object,
-                             DPS_TRANS_ID &transID ) ;
-
-   // calculate hash value of transaction ID
-   UINT64 dpsTransIDHashMod( const DPS_TRANS_ID &transID ) ;
-   UINT32 dpsTransIDHashMod( const DPS_TRANS_ID &transID, UINT32 modSize ) ;
-
-   typedef struct _dpsTransIDHash
-   {
-      std::size_t operator()( const DPS_TRANS_ID &transID ) const
-      {
-         return (std::size_t)( transID.getGlobSN() ) ;
-      }
-   } dpsTransIDHash ;
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    void dpsFlags2String( UINT16 flags, CHAR * pBuffer, INT32 bufSize ) ;
 
    void dpsAppendFlagString( CHAR * pBuffer, INT32 bufSize,
@@ -130,13 +71,10 @@ namespace engine
 
    typedef ossPoolSet< DPS_TRANS_ID > DPS_TRANS_ID_SET ;
 
-<<<<<<< HEAD
    // downgrade transaction ID from v1 to v0
    // WARNING: will lose high 16 bits of timestamp
    DPS_TRANS_ID dpsTransIDDowngrade( const dpsTransID_v1 &transID ) ;
 
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 }
 
 #endif // DPSUTIL_HPP_

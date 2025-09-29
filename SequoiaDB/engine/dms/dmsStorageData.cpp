@@ -41,23 +41,14 @@
 #include "pmd.hpp"
 #include "mthModifier.hpp"
 #include "dpsOp2Record.hpp"
-<<<<<<< HEAD
-=======
-#include "dpsUtil.hpp"
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 #include "pdSecure.hpp"
 
 namespace engine
 {
 
-<<<<<<< HEAD
    _dmsStorageData::_dmsStorageData( IStorageService *service,
                                      dmsSUDescriptor *suDescriptor,
                                      const CHAR *pSuFileName,
-=======
-   _dmsStorageData::_dmsStorageData( const CHAR *pSuFileName,
-                                     dmsStorageInfo *pInfo,
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                                      _IDmsEventHolder *pEventHolder )
    : _dmsStorageDataCommon( service, suDescriptor, pSuFileName, pEventHolder )
    {
@@ -115,15 +106,8 @@ namespace engine
 
       try
       {
-<<<<<<< HEAD
           // Step 1: Prepare the data, add OID and compress if necessary.
          recordData.setData( record.objdata(), record.objsize() ) ;
-=======
-         // Step 1: Prepare the data, add OID and compress if necessary.
-         recordData.setData( record.objdata(), record.objsize(),
-                             UTIL_COMPRESSOR_INVALID, TRUE ) ;
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          BSONElement ele = record.getField( DMS_ID_KEY_NAME ) ;
          // check ID index for normal update
          // NOTE: for sequoiadb upgrade, if the old data before upgrade
@@ -182,129 +166,9 @@ namespace engine
       goto done ;
    }
 
-<<<<<<< HEAD
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATA__PREPAREINSERT, "_dmsStorageData::_prepareInsert" )
    INT32 _dmsStorageData::_prepareInsert( const dmsRecordID &recordID,
                                           const dmsRecordData &recordData )
-=======
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATA__GETRECPOS, "_dmsStorageData::_getRecordPosition" )
-   INT32 _dmsStorageData::_getRecordPosition( const dmsRecordID &rid,
-                                              const dmsRecordData &recordData,
-                                              INT64 &position )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATA__GETRECPOS ) ;
-
-      if ( rid.isValid() )
-      {
-         position = (INT64)( ossPack32To64( (UINT32)( rid._extent ),
-                                            (UINT32)( rid._offset ) ) ) ;
-      }
-      else
-      {
-         position = -1 ;
-      }
-
-      PD_TRACE_EXITRC( SDB__DMSSTORAGEDATA__GETRECPOS, rc ) ;
-
-      return rc ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATA__CHKMARKINST, "_dmsStorageData::_checkMarkInsert" )
-   INT32 _dmsStorageData::_checkMarkInsert( dmsMBContext *context,
-                                            const DPS_TRANS_ID &transID,
-                                            const BSONObj &insertObj,
-                                            pmdEDUCB *cb,
-                                            INT64 &position,
-                                            BOOLEAN &markInsert,
-                                            dmsRecordID &foundRID,
-                                            dmsRecordData &recordData,
-                                            dmsRecordRW &recordRW )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATA__CHKMARKINST ) ;
-
-      markInsert = FALSE ;
-
-      /// when is rollback, and the rid is found
-      if ( -1 != position &&
-           transID.isValid() &&
-           cb->isInTransRollback() &&
-           !cb->isTakeOverTransRB() )
-      {
-         // use the given position instead
-         ossUnpack32From64( (UINT64)position,
-                            (UINT32 &)( foundRID._extent ),
-                            (UINT32 &)( foundRID._offset ) ) ;
-
-         markInsert = TRUE ;
-         const dmsRecord *pRecord = NULL ;
-
-         rc = context->mbLock( EXCLUSIVE ) ;
-         PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d",
-                      rc ) ;
-
-         recordRW = record2RW( foundRID, context->mbID() ) ;
-
-         /// 1. check status
-         pRecord = recordRW.readPtr<dmsRecord>() ;
-         if ( !pRecord->isDeleting() )
-         {
-            SDB_ASSERT( cb->getTransExecutor()->isLockEscalated(
-                                                      LOCKMGR_TRANS_LOCK ),
-                        "should be lock escalated" ) ;
-            markInsert = FALSE ;
-         }
-         /// 2. check the value is the same
-         else
-         {
-            if ( SDB_OK != extractData( context, recordRW, cb, recordData ) )
-            {
-               SDB_ASSERT( cb->getTransExecutor()->isLockEscalated(
-                                                      LOCKMGR_TRANS_LOCK ),
-                           "should be lock escalated" ) ;
-               markInsert = FALSE ;
-            }
-            else if ( 0 != insertObj.woCompare(BSONObj(recordData.data())) )
-            {
-               SDB_ASSERT( cb->getTransExecutor()->isLockEscalated(
-                                                      LOCKMGR_TRANS_LOCK ),
-                           "should be lock escalated" ) ;
-               markInsert = FALSE ;
-            }
-         }
-
-         context->mbUnlock() ;
-
-         if ( markInsert )
-         {
-            recordData.setData( insertObj.objdata(), insertObj.objsize(),
-                                UTIL_COMPRESSOR_INVALID, TRUE ) ;
-         }
-      }
-
-      // can not use mark insert, the position should be cleared
-      if ( !markInsert && -1 != position )
-      {
-         position = -1 ;
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB__DMSSTORAGEDATA__CHKMARKINST, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATA__ALLOCRECORDSPACE, "_dmsStorageData::_allocRecordSpace" )
-   INT32 _dmsStorageData::_allocRecordSpace( dmsMBContext *context,
-                                             UINT32 size,
-                                             dmsRecordID &foundRID,
-                                             pmdEDUCB *cb )
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    {
       INT32 rc = SDB_OK ;
 
@@ -315,7 +179,6 @@ namespace engine
       return rc ;
    }
 
-<<<<<<< HEAD
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATA__GETRECPOS, "_dmsStorageData::_getRecordPosition" )
    INT32 _dmsStorageData::_getRecordPosition( dmsMBContext *context,
                                               const dmsRecordID &rid,
@@ -324,163 +187,6 @@ namespace engine
                                               INT64 &position )
    {
       INT32 rc = SDB_OK ;
-=======
-   INT32 _dmsStorageData::_setRecordGlobTransID( dmsMBContext *context,
-                                                 dmsRecordRW  &recordRW,
-                                                 _pmdEDUCB    *cb,
-                                                 BOOLEAN       bSetOvfRecord )
-   {
-      INT32 rc = SDB_OK ;
-      dmsRecord  *pRecord  = NULL, *pOvfRecord = NULL ;
-      dpsTransCB *pTransCB = NULL ;
-      dmsRecordID recordID, ovfRID ;
-      dmsRecordRW ovfRW ;
-      DPS_TRANS_ID transID ;
-
-      pRecord  = recordRW.writePtr( 0 ) ;
-      recordID = recordRW.getRecordID() ;
-
-      if ( bSetOvfRecord && pRecord->isOvf() )
-      {
-         ovfRID = pRecord->getOvfRID() ;
-         ovfRW  = record2RW( ovfRID, context->mbID() ) ;
-         pOvfRecord = ovfRW.writePtr( 0 ) ;
-      }
-
-      if ( ! cb->isInTransRollback() )
-      {
-         transID = cb->getTransID() ;
-         // update transID in original record header
-         pRecord->setGlobTransID( transID ) ;
-         // update transID for ovf record when required
-         if ( bSetOvfRecord && pOvfRecord )
-         {
-            pOvfRecord->setGlobTransID( transID ) ;
-         }
-      }
-      else if ( cb->isInTransRollback() && !cb->isTakeOverTransRB() )
-      {
-         // restore record transID when rollback
-         pTransCB = pmdGetKRCB()->getTransCB() ;
-         SDB_ASSERT ( pTransCB, "ERROR: pTransCB is NULL" ) ;
-         if ( pTransCB->getOldVerRecordTransID( _logicalCSID,
-                                                context->mbID(),
-                                                &recordID,
-                                                transID ) )
-         {
-            // restore transID in original record header
-            pRecord->setGlobTransID( transID ) ;
-            // restore transID for ovf record when required
-            if ( bSetOvfRecord && pOvfRecord )
-            {
-               pOvfRecord->setGlobTransID( transID ) ;
-            }
-         }
-         else if ( pTransCB->transIsHolding( cb,
-                                             _logicalCSID,
-                                             context->mbID(),
-                                             NULL ) )
-         {
-            // if no old version is found, and the transaction is holding the
-            // collection lock, reset transaction ID, no MVCC old version
-            // will be available for other transactions
-            pRecord->resetGlobTransID() ;
-            if ( bSetOvfRecord && pOvfRecord )
-            {
-               pOvfRecord->resetGlobTransID() ;
-            }
-         }
-         // otherwise, the record is inserted by transaction itself
-         // do nothing
-      }
-      return rc ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATA__POSTINSERTRECORD, "_dmsStorageData::_postInsertRecord" )
-   void _dmsStorageData::_postInsertRecord( dmsMBContext *context,
-                                            dmsExtRW &extRW,
-                                            dmsRecordRW &recordRW,
-                                            const dmsRecordData &recordData,
-                                            UINT32 recordSize,
-                                            _pmdEDUCB *cb )
-   {
-      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATA__POSTINSERTRECORD ) ;
-
-      // and then need to check if we need to split deleted record
-      dmsRecord* pRecord = recordRW.writePtr( recordSize ) ;
-      dmsOffset  myOffset = pRecord->getMyOffset() ;
-      SDB_ASSERT( pRecord->getSize() >= recordSize, "invalid record size" ) ;
-      UINT32 remainSize = pRecord->getSize() - recordSize ;
-
-      if ( remainSize > DMS_MIN_RECORD_SZ )
-      {
-         // to avoid small deleted record which can not be reused by average
-         // size of records in the same collection, we only split the record if
-         // the remain size can at least save the record with average size,
-         // or current record ( scale down to 0.8x )
-         UINT32 avgDataSize = context->mbStat()->getAvgDataSize() ;
-         UINT32 minRemainSize = ( 0 == avgDataSize ) ?
-                                ( recordSize ) :
-                                ( OSS_MIN( recordSize, avgDataSize ) ) ;
-         // scale down to 0.8
-         minRemainSize = (UINT32)( (FLOAT64)( minRemainSize ) *
-                                   DMS_REMAIN_SIZE_RATIO ) ;
-         if ( remainSize > minRemainSize )
-         {
-            // original offset+new size = new delete offset
-            dmsOffset remainOffset = myOffset + recordSize ;
-            // original size - new size = new delete size
-            dmsRecordID remainRID = recordRW.getRecordID() ;
-            remainRID._offset = remainOffset ;
-            INT32 rc = _saveDeletedRecord( context->mb(), remainRID, remainSize ) ;
-            if ( SDB_OK != rc )
-            {
-               PD_LOG( PDWARNING, "Failed to save deleted record, rc: %d", rc ) ;
-            }
-            else
-            {
-               // set the original place with new dmsrecordSize
-               pRecord->setSize( recordSize ) ;
-            }
-         }
-      }
-      // if the leftover space is not good enough for a min_record, then we
-      // don't change the record size
-
-      PD_TRACE_EXIT( SDB__DMSSTORAGEDATA__POSTINSERTRECORD ) ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATA__EXTENTUPDATERECORD, "_dmsStorageData::_extentUpdatedRecord" )
-   INT32 _dmsStorageData::_extentUpdatedRecord( dmsMBContext *context,
-                                                dmsExtRW &extRW,
-                                                dmsRecordRW &recordRW,
-                                                const dmsRecordData &recordData,
-                                                const BSONObj &newObj,
-                                                _pmdEDUCB *cb,
-                                                IDmsOprHandler *pHandler,
-                                                utilUpdateResult *pResult,
-                                                dpsUnqIdxHashArray *pNewUnqIdxHashArray,
-                                                dpsUnqIdxHashArray *pOldUnqIdxHashArray,
-                                                const ixmIdxHashBitmap &idxHashBitmap )
-   {
-      INT32 rc                     = SDB_OK ;
-      UINT32 dmsRecordSize         = 0 ;
-      PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATA__EXTENTUPDATERECORD ) ;
-      monAppCB           *pMonAppCB       = cb ? cb->getMonAppCB() : NULL ;
-      dmsCompressorEntry *compressorEntry = &_compressorEntry[context->mbID()];
-      const dmsExtent    *pExtent         = NULL ;
-      dmsRecord          *pRecord         = NULL ;
-
-      dmsRecordID ovfRID ;
-      dmsExtRW ovfExtRW ;
-      dmsRecordRW ovfRW ;
-      dmsRecord *pOvfRecord        = NULL ;
-      dmsRecordData newRecordData ;
-
-      BOOLEAN needUndoIndex        = FALSE ;
-
-      _sdbRemoteOpCtrlAssist ctrlAssist( cb->getRemoteOpCtrl() ) ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       PD_TRACE_ENTRY( SDB__DMSSTORAGEDATA__GETRECPOS ) ;
 
@@ -508,7 +214,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-<<<<<<< HEAD
       PD_TRACE_ENTRY( SDB__DMSSTORAGEDATA__CHKREUSEPOS ) ;
 
       BOOLEAN isFound = FALSE ;
@@ -536,247 +241,6 @@ namespace engine
          {
             foundRID = tmpRID ;
             isFound = TRUE ;
-=======
-         // add metadata to size
-         dmsRecordSize += DMS_RECORD_METADATA_SZ ;
-         {
-            // before moving on, let's first make sure the new object doesn't
-            // violate any index unique rule
-            BSONObj oriObj( recordData.data() ) ;
-            BSONObj newObj( newRecordData.orgData() ) ;
-
-            // check ID index for normal update
-            // NOTE: for sequoiadb upgrade, if the old data before upgrade
-            //       contains invalid _id field, we could not report error,
-            //       we need to allow update if _id field is not changed
-            if( !cb->isDoReplay() &&
-                !cb->isInTransRollback() &&
-                !cb->isDoRollback() )
-            {
-               BSONElement newId = newObj.getField( DMS_ID_KEY_NAME ) ;
-               const CHAR *pCheckErr = "" ;
-               if( !dmsIsRecordIDValid( newId, TRUE, &pCheckErr ) )
-               {
-                  if( Array == newId.type() &&
-                      0 == newId.woCompare( oriObj.getField( DMS_ID_KEY_NAME ) ) )
-                  {
-                  }
-                  else
-                  {
-                     PD_LOG_MSG( PDERROR, "_id is error: %s", pCheckErr ) ;
-                     rc = SDB_INVALIDARG ;
-                     goto error ;
-                  }
-               }
-            }
-            rc = _pIdxSU->indexesUpdate( context, pExtent->_logicID,
-                                         oriObj, newObj,
-                                         recordRW.getRecordID(),
-                                         cb, FALSE, pHandler, idxHashBitmap,
-                                         pResult,
-                                         pNewUnqIdxHashArray,
-                                         pOldUnqIdxHashArray ) ;
-            needUndoIndex = TRUE ;
-            if ( rc )
-            {
-               PD_LOG ( PDWARNING, "Failed to update object(%s) index, rc: %d",
-                        PD_SECURE_OBJ( newObj ), rc ) ;
-               goto error ;
-            }
-         }
-
-         // call migrateFromV0 to handle in-flight migration if needed
-         // we don't have versioning. instead, we check for attribute
-         if ( _mvccSupport && !(pRecord->hasGlobTransID()) )
-         {
-            PD_LOG ( PDDEBUG, "In-flight migration of record during update object(%s) ",
-                     recordRW.toString().c_str() ) ;
-            pRecord->migrateFromV0() ;
-         }
-
-         if ( pRecord->isOvf() )
-         {
-            ovfRID = pRecord->getOvfRID() ;
-            DMS_MON_OP_COUNT_INC( pMonAppCB, MON_DATA_READ, 1 ) ;
-            ovfExtRW = extent2RW( ovfRID._extent, context->mbID() ) ;
-            ovfRW = record2RW( ovfRID, context->mbID() ) ;
-            pOvfRecord = ovfRW.writePtr( 0 ) ;
-
-            // call migrateFromV0 to handle in-flight migration if needed
-            // we don't have versioning. instead, we check for attribute
-            if ( _mvccSupport && !(pOvfRecord->hasGlobTransID()) )
-            {
-               PD_LOG ( PDDEBUG,
-                        "In-flight migration of OVF record during update "
-                        "object(%s) ",
-                        recordRW.toString().c_str() ) ;
-               pOvfRecord->migrateFromV0() ;
-            }
-
-            if ( _mvccSupport && !(pRecord->hasGlobTransID()) )
-            {
-               // We should not be here as we currently don't release the
-               // original space when a record becomes OV.
-               PD_LOG ( PDERROR,
-                        "Update could not in-flight migrate on OVF record(%s)",
-                        recordRW.toString().c_str() ) ;
-               PD_LOG ( PDERROR,
-                        "OVF Record: %s",
-                        pRecord->toString().c_str() );
-               PD_LOG ( PDERROR,
-                        "OVT Record: %s",
-                        pOvfRecord->toString().c_str() );
-               SDB_ASSERT ( FALSE,
-                            "Update failed to migrate existing OVF record." ) ;
-               rc = SDB_SYS ;
-               goto error ;
-            }
-         }
-
-         // if the current space is big enough for the whole record,
-         // let's put it here and return rightaway
-         // if the record does not have GlobTransID, it means we failed
-         // to migrate ealier due to not enough space, we need to allocate
-         // overflow record for the case
-         if ( dmsRecordSize <= pRecord->getSize() &&
-              pRecord->hasGlobTransID() )
-         {
-            pRecord->setData( newRecordData ) ;
-
-            // set or restore transID in record header
-            _setRecordGlobTransID( context, recordRW, cb, FALSE ) ;
-
-            DMS_MON_OP_COUNT_INC( pMonAppCB, MON_DATA_WRITE, 1 ) ;
-
-            if ( ovfRID.isValid() )
-            {
-               _extentRemoveRecord( context, ovfExtRW, ovfRW, cb, FALSE ) ;
-               pRecord->setNormal() ;
-            }
-            /// sub the remove data info
-            //if the record has compresssed,the orgLen mean the record size
-            //in DB,len mean the uncompress size. So when we substract the
-            //size,we should swap them.
-            context->mbStat()->_totalDataLen -= recordData.orgLen() ;
-            context->mbStat()->_totalOrgDataLen -= recordData.len() ;
-            context->mbStat()->_totalDataLen += newRecordData.len() ;
-            context->mbStat()->_totalOrgDataLen += newRecordData.orgLen() ;
-            goto done ;
-         }
-         else if ( pOvfRecord && ( dmsRecordSize <= pOvfRecord->getSize() ) &&
-                   pOvfRecord->hasGlobTransID() )
-         {
-            pOvfRecord->setData( newRecordData ) ;
-
-            // set or restore transID in both origin and ovf record header
-            _setRecordGlobTransID( context, recordRW, cb, TRUE ) ;
-
-            DMS_MON_OP_COUNT_INC( pMonAppCB, MON_DATA_WRITE, 1 ) ;
-            /// sub the remove data info
-            //if the record has compresssed,the orgLen mean the record size
-            //in DB,len mean the uncompress size. So when we substract the
-            //size,we should swap them.
-            context->mbStat()->_totalDataLen -= recordData.orgLen() ;
-            context->mbStat()->_totalOrgDataLen -= recordData.len() ;
-            context->mbStat()->_totalDataLen += newRecordData.len() ;
-            context->mbStat()->_totalOrgDataLen += newRecordData.orgLen() ;
-            goto done ;
-         }
-         // allocate over-flow recrod
-         else
-         {
-            dmsRecordID foundDeletedID ;
-            dmsExtRW newExtRW ;
-            dmsRecordRW newRecordRW ;
-            const dmsExtent *pNewExtent = NULL ;
-            dmsRecord *pNewRecord = NULL ;
-
-            dmsRecordSize -= DMS_RECORD_METADATA_SZ ;
-            // get the recordsize that we have to allocate
-            _overflowSize( dmsRecordSize ) ;
-            dmsRecordSize += DMS_RECORD_METADATA_SZ ;
-            // record is ALWAYS 4 bytes aligned
-            dmsRecordSize = OSS_MIN( DMS_RECORD_MAX_SZ,
-                                     ossAlignX ( dmsRecordSize, 4 ) ) ;
-
-            // find a free spot from delete list
-            rc = _reserveFromDeleteList ( context, dmsRecordSize,
-                                          foundDeletedID, cb ) ;
-            if ( rc )
-            {
-               PD_LOG( PDERROR, "Failed to reserve delete record, rc: %d", rc ) ;
-               goto error ;
-            }
-            newExtRW = extent2RW( foundDeletedID._extent, context->mbID() ) ;
-            newRecordRW = record2RW( foundDeletedID, context->mbID() ) ;
-            pNewExtent = newExtRW.readPtr<dmsExtent>() ;
-            pNewRecord = newRecordRW.writePtr() ;
-
-            if ( !pNewExtent->validate( context->mbID() ) )
-            {
-               PD_LOG ( PDERROR, "Invalid extent[%d] is detected",
-                        foundDeletedID._extent ) ;
-               rc = SDB_SYS ;
-               goto error ;
-            }
-            // pass FALSE to addIntoList so that we don't add the record into
-            // target extent's list
-            rc = _extentInsertRecord ( context, newExtRW, newRecordRW,
-                                       newRecordData, dmsRecordSize,
-                                       cb, FALSE ) ;
-            if ( rc )
-            {
-               PD_LOG ( PDERROR, "Failed to append record due to %d", rc ) ;
-               goto error ;
-            }
-
-            _postInsertRecord( context, newExtRW, newRecordRW, newRecordData,
-                               dmsRecordSize, cb ) ;
-
-            // set remote record as overflowed to
-            pNewRecord->setOvt() ;
-            if ( ovfRID.isValid() )
-            {
-               // overflowed record removal is done here, and it will mark the
-               // segment dirty in the function
-               _extentRemoveRecord( context, ovfExtRW, ovfRW, cb, FALSE ) ;
-            }
-
-            // if original record was not migrated, do the migration now
-            if ( _mvccSupport && !(pRecord->hasGlobTransID()) )
-            {
-               PD_LOG ( PDDEBUG,
-                        "In-flight migration of record during update object(%s) ",
-                        recordRW.toString().c_str() ) ;
-               // No need to move data for OVF record
-               pRecord->migrateFromV0( FALSE ) ;
-            }
-
-            SDB_ASSERT( !_mvccSupport || pRecord->hasGlobTransID(),
-                        "Original record was not migrated properly!") ;
-
-            pRecord->setOvf() ;
-            pRecord->setOvfRID( foundDeletedID ) ;
-
-            if ( _mvccSupport )
-            {
-               // set or restore transID in record header
-               // NOTE: if in transaction rollback, the overflow-to record is
-               //       inserted back without setting transaction ID since
-               //       the RID of overflow-to record is not in old versions
-               //       only after we set link with overflow-from, we could
-               //       find the actual RID back from overflow-from record
-               _setRecordGlobTransID( context, recordRW, cb,
-                                      cb->isInTransRollback() ) ;
-            }
-
-            /// sub the remove data info
-            //if the record has compresssed,the orgLen mean the record size
-            //in DB,len mean the uncompress size. So when we substract the
-            //size,we should swap them.
-            context->mbStat()->_totalDataLen -= recordData.orgLen() ;
-            context->mbStat()->_totalOrgDataLen -= recordData.len() ;
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
          }
 
          context->mbUnlock() ;
@@ -792,34 +256,6 @@ namespace engine
    done:
       PD_TRACE_EXITRC( SDB__DMSSTORAGEDATA__CHKREUSEPOS, rc ) ;
       return rc ;
-<<<<<<< HEAD
-=======
-   error :
-      if( needUndoIndex )
-      {
-         ctrlAssist.switchToUndo() ;
-         BSONObj oriObj( recordData.data() ) ;
-         BSONObj newObj( newRecordData.orgData() ) ;
-         // rollback the change on index by switching obj and oriObj
-         INT32 rc1 = _pIdxSU->indexesUpdate( context, pExtent->_logicID,
-                                             newObj, oriObj,
-                                             recordRW.getRecordID(),
-                                             cb, TRUE, pHandler,
-                                             idxHashBitmap ) ;
-         if ( rc1 )
-         {
-            if ( !ctrlAssist.isUndoFinished() )
-            {
-               // undo is not finished
-               if ( SDB_OK == cb->getTransRC() )
-               {
-                  cb->setTransRC( rc ) ;
-               }
-            }
-            PD_LOG ( PDERROR, "Failed to rollback update due to rc %d", rc1 ) ;
-         }
-      }
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    error:
       goto done ;
@@ -972,11 +408,7 @@ namespace engine
                // and got sufficient size for us
                if( pRead->isDeleted() && pRead->getSize() >= requiredSize )
                {
-<<<<<<< HEAD
                   if ( !isTransLockRequired( context ) ||
-=======
-                  if ( !isTransSupport( context ) ||
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
                        SDB_OK == pTransCB->transLockTestX( cb, _logicalCSID,
                                                            context->mbID(),
                                                            &foundDeletedID,
@@ -1137,7 +569,6 @@ namespace engine
       deleteRecordSlot = dmsMBGetSpaceSlot( recordSize ) ;
       // make sure we don't mis calculated it
       SDB_ASSERT ( deleteRecordSlot < dmsMB::_max, "Invalid record size" ) ;
-<<<<<<< HEAD
 
       if ( isRecycle &&
            mbStatInfo._lastSearchSlot == deleteRecordSlot &&
@@ -1168,38 +599,6 @@ namespace engine
          mb->_deleteList[ deleteRecordSlot ] = rid ;
       }
 
-=======
-
-      if ( isRecycle &&
-           mbStatInfo._lastSearchSlot == deleteRecordSlot &&
-           mbStatInfo._lastSearchRID.isValid() )
-      {
-         // insert the current record to the last search position,
-         // so the next search can check from this position
-         dmsRecordRW lastRecordRW = record2RW( mbStatInfo._lastSearchRID,
-                                               mbID ) ;
-         dmsDeletedRecord* lastRecord =
-                                 lastRecordRW.writePtr<dmsDeletedRecord>() ;
-         SDB_ASSERT( lastRecord->isDeleted(),
-                     "last search position should be deleted" ) ;
-         if ( lastRecord->isDeleted() )
-         {
-            pRecord->setNextRID( lastRecord->getNextRID() ) ;
-            lastRecord->setNextRID( rid ) ;
-            isSaved = TRUE ;
-         }
-      }
-
-      if ( !isSaved )
-      {
-         // set the first matching delete slot to the
-         // next rid for the deleted record
-         pRecord->setNextRID( mb->_deleteList [ deleteRecordSlot ] ) ;
-         // Then assign MB delete slot to the extent and offset
-         mb->_deleteList[ deleteRecordSlot ] = rid ;
-      }
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
       PD_TRACE_EXIT ( SDB__DMSSTORAGEDATA__SAVEDELETEDRECORD ) ;
       return SDB_OK ;
    }
@@ -1324,188 +723,6 @@ namespace engine
       return ;
    }
 
-<<<<<<< HEAD
-=======
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATA__EXTENTINSERTRECORD, "_dmsStorageData::_extentInsertRecord" )
-   INT32 _dmsStorageData::_extentInsertRecord( dmsMBContext *context,
-                                               dmsExtRW &extRW,
-                                               dmsRecordRW &recordRW,
-                                               const dmsRecordData &recordData,
-                                               UINT32 needRecordSize,
-                                               _pmdEDUCB *cb,
-                                               BOOLEAN isInsert,
-                                               const dmsTransRecordInfo *recordInfo )
-   {
-      INT32 rc                         = SDB_OK ;
-      monAppCB * pMonAppCB             = cb ? cb->getMonAppCB() : NULL ;
-      dmsRecord* pRecord               = NULL ;
-      dmsOffset  myOffset              = DMS_INVALID_OFFSET ;
-
-      PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATA__EXTENTINSERTRECORD ) ;
-      rc = context->mbLock( EXCLUSIVE ) ;
-      PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
-
-      pRecord = recordRW.writePtr( needRecordSize ) ;
-      myOffset = pRecord->getMyOffset() ;
-      // first we need to check if the delete record is large enough
-      if ( pRecord->getSize() < needRecordSize )
-      {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-      else if ( !recordData.isCompressed()
-                && recordData.len() < DMS_MIN_RECORD_DATA_SZ )
-      {
-         PD_LOG( PDERROR, "Bson obj size[%d] is invalid",
-                 recordData.len() ) ;
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-
-      // set to normal status
-      pRecord->setNormal() ;
-      pRecord->resetAttr( _mvccSupport ) ;
-
-      if ( _mvccSupport )
-      {
-         // set or restore transID in record header
-         _setRecordGlobTransID( context, recordRW, cb, FALSE ) ;
-      }
-
-      // then for the original location we set new record header and copy data
-      pRecord->setData( recordData ) ;
-
-      pRecord->setNextOffset( DMS_INVALID_OFFSET ) ;
-      pRecord->setPrevOffset( DMS_INVALID_OFFSET ) ;
-
-      // increase write counter
-      DMS_MON_OP_COUNT_INC( pMonAppCB, MON_DATA_WRITE, 1 ) ;
-
-      // no need to change offset
-      if ( isInsert )
-      {
-         dmsExtent *extent       = extRW.writePtr<dmsExtent>() ;
-         dmsOffset   offset      = extent->_lastRecordOffset ;
-         // finally add the record into list
-         extent->_recCount++ ;
-         _increaseMBStat( context->mb()->_clUniqueID, context->mbStat(),
-                          recordInfo, cb ) ;
-         // if there is last record in the extent
-         if ( DMS_INVALID_OFFSET != offset )
-         {
-            // if there is already record in the extent
-            dmsRecordRW preRW = record2RW( dmsRecordID( extRW.getExtentID(),
-                                                        offset ),
-                                           context->mbID() ) ;
-            dmsRecord *preRecord = preRW.writePtr() ;
-            // set the next of previous point to the new record
-            preRecord->setNextOffset( myOffset ) ;
-            // set the previous of current points to the original last
-            pRecord->setPrevOffset( offset ) ;
-         }
-         extent->_lastRecordOffset = myOffset ;
-         // then check for first record in extent
-         if ( DMS_INVALID_OFFSET == extent->_firstRecordOffset )
-         {
-            // we only change it when it points to nothing
-            extent->_firstRecordOffset = myOffset ;
-         }
-      }
-
-      _mbStatInfo[context->mbID()]._lastCompressRatio =
-         (UINT8)( recordData.getCompressRatio() * 100 ) ;
-      _mbStatInfo[context->mbID()]._totalOrgDataLen += recordData.orgLen() ;
-      _mbStatInfo[context->mbID()]._totalDataLen += recordData.len() ;
-
-   done :
-      PD_TRACE_EXITRC ( SDB__DMSSTORAGEDATA__EXTENTINSERTRECORD, rc ) ;
-      return rc ;
-   error :
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATA__EXTENTREMOVERECORD, "_dmsStorageData::_extentRemoveRecord" )
-   INT32 _dmsStorageData::_extentRemoveRecord( dmsMBContext *context,
-                                               dmsExtRW &extRW,
-                                               dmsRecordRW &recordRW,
-                                               _pmdEDUCB *cb,
-                                               BOOLEAN decCount,
-                                               const dmsTransRecordInfo *recordInfo )
-   {
-      INT32 rc              = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATA__EXTENTREMOVERECORD ) ;
-      monAppCB * pMonAppCB  = cb ? cb->getMonAppCB() : NULL ;
-
-      dmsExtent *pExtent = NULL ;
-      const dmsRecord *pRecord = NULL ;
-      dmsRecordID rid = recordRW.getRecordID() ;
-
-      if ( !context->isMBLock( EXCLUSIVE ) )
-      {
-         rc = SDB_SYS ;
-         PD_LOG( PDERROR, "Caller must hold exclusive lock[%s]",
-                 context->toString().c_str() ) ;
-         goto error ;
-      }
-
-      pExtent = extRW.writePtr<dmsExtent>() ;
-      pRecord = recordRW.readPtr() ;
-
-      // not over-flow to record
-      if ( !pRecord->isOvt() )
-      {
-         dmsOffset prevRecordOffset = pRecord->getPrevOffset() ;
-         dmsOffset nextRecordOffset = pRecord->getNextOffset() ;
-
-         if ( DMS_INVALID_OFFSET != prevRecordOffset )
-         {
-            dmsRecordID prevRID = rid ;
-            prevRID._offset = prevRecordOffset ;
-            dmsRecordRW prevRW = record2RW( prevRID, context->mbID() ) ;
-            dmsRecord *prevRecord = prevRW.writePtr() ;
-            prevRecord->setNextOffset( nextRecordOffset ) ;
-         }
-         if ( DMS_INVALID_OFFSET != nextRecordOffset )
-         {
-            dmsRecordID nextRID = rid ;
-            nextRID._offset = nextRecordOffset ;
-            dmsRecordRW nextRW = record2RW( nextRID, context->mbID() ) ;
-            dmsRecord *nextRecord = nextRW.writePtr() ;
-            nextRecord->setPrevOffset( prevRecordOffset ) ;
-         }
-         if ( pExtent->_firstRecordOffset == rid._offset )
-         {
-            pExtent->_firstRecordOffset = nextRecordOffset ;
-         }
-         if ( pExtent->_lastRecordOffset == rid._offset )
-         {
-            pExtent->_lastRecordOffset = prevRecordOffset ;
-         }
-
-         if ( decCount )
-         {
-            --(pExtent->_recCount) ;
-            _decreaseMBStat( context->mb()->_clUniqueID, context->mbStat(),
-                             recordInfo, cb ) ;
-         }
-      }
-      //increase data write counter
-      DMS_MON_OP_COUNT_INC( pMonAppCB, MON_DATA_WRITE, 1 ) ;
-
-      rc = _saveDeletedRecord( context->mb(), rid, 0 ) ;
-      if ( rc )
-      {
-         PD_LOG ( PDERROR, "Failed to save deleted record, rc = %d", rc ) ;
-         goto error ;
-      }
-   done :
-      PD_TRACE_EXITRC ( SDB__DMSSTORAGEDATA__EXTENTREMOVERECORD, rc ) ;
-      return rc ;
-   error :
-      goto done ;
-   }
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATA__FINALRECORDSIZE, "_dmsStorageData::_finalRecordSize" )
    void _dmsStorageData::_finalRecordSize( UINT32 &size,
                                            const dmsRecordData &recordData )
@@ -1523,125 +740,6 @@ namespace engine
       PD_TRACE_EXIT( SDB__DMSSTORAGEDATA__FINALRECORDSIZE ) ;
    }
 
-<<<<<<< HEAD
-=======
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATA__ONINSERTFAIL, "_dmsStorageData::_onInsertFail" )
-   INT32 _dmsStorageData::_onInsertFail( dmsMBContext *context,
-                                         BOOLEAN hasInsert,
-                                         dmsRecordID rid,
-                                         SDB_DPSCB *dpscb,
-                                         ossValuePtr dataPtr,
-                                         _pmdEDUCB *cb,
-                                         const dmsTransRecordInfo *pInfo )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATA__ONINSERTFAIL ) ;
-      if ( hasInsert )
-      {
-         // we won't touch old version if it's insert failure.
-         // No callback needed
-         // we need transaction record info to decide how to remove the
-         // record ( e.g. mark deleted or remove from extent )
-         rc = deleteRecord( context, rid, dataPtr, cb, dpscb, NULL, pInfo,
-                            TRUE ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to rollback, rc: %d", rc ) ;
-      }
-      else if ( rid.isValid() )
-      {
-         _saveDeletedRecord( context->mb(), rid, 0 ) ;
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB__DMSSTORAGEDATA__ONINSERTFAIL, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGEDATA_EXTRACTDATA, "_dmsStorageData::extractData" )
-   INT32 _dmsStorageData::extractData( const dmsMBContext *mbContext,
-                                       const dmsRecordRW &recordRW,
-                                       _pmdEDUCB *cb,
-                                       dmsRecordData &recordData,
-                                       BOOLEAN needIncDataRead )
-   {
-      INT32 rc                = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__DMSSTORAGEDATA_EXTRACTDATA ) ;
-      monAppCB         *pMonAppCB  = cb ? cb->getMonAppCB() : NULL ;
-      const dmsRecord  *pRecord    = recordRW.readPtr( 0 ) ;
-
-      recordData.reset() ;
-
-      if ( !mbContext->isMBLock() )
-      {
-         PD_LOG( PDERROR, "MB Context must be locked" ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
-
-      /// if ovf, need to get the ovt's data
-      if ( pRecord->isOvf() )
-      {
-         dmsRecordID ovfRID = pRecord->getOvfRID() ;
-         dmsRecordRW ovfRW = record2RW( ovfRID, mbContext->mbID() ) ;
-         // Inherit no-throw property
-         ovfRW.setNothrow( recordRW.isNothrow() ) ;
-         pRecord = ovfRW.readPtr( 0 ) ;
-         if ( NULL == pRecord )
-         {
-            rc = pdGetLastError() ? pdGetLastError() : SDB_SYS ;
-            PD_LOG( PDERROR, "Failed to get record from address[%d.%d]",
-                    ovfRID._extent, ovfRID._offset ) ;
-            goto error ;
-         }
-         SDB_ASSERT( pRecord->isOvt(), "Record must be ovt" ) ;
-         DMS_MON_OP_COUNT_INC( pMonAppCB, MON_DATA_READ, 1 ) ;
-      }
-
-      recordData.setData( pRecord->getData(), pRecord->getDataLength(),
-                          UTIL_COMPRESSOR_INVALID, TRUE ) ;
-
-      if ( pRecord->isCompressed() )
-      {
-         const CHAR *pUncompressData = NULL ;
-         INT32 unCompressDataLen = 0 ;
-         rc = dmsUncompress( cb, &_compressorEntry[ mbContext->mbID() ],
-                             pRecord->getCompressType(), pRecord->getData(),
-                             pRecord->getDataLength(),
-                             &pUncompressData, &unCompressDataLen ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Failed to uncompress data, rc: %d", rc ) ;
-            goto error ;
-         }
-         /// check the length
-         if ( unCompressDataLen != *(INT32*)pUncompressData )
-         {
-            PD_LOG( PDERROR, "Uncompress data length[%d] does not match "
-                    "real length[%d]", unCompressDataLen,
-                    *(INT32*)pUncompressData ) ;
-            rc = SDB_CORRUPTED_RECORD ;
-            goto error ;
-         }
-         recordData.setData( pUncompressData, unCompressDataLen,
-                             UTIL_COMPRESSOR_INVALID, FALSE ) ;
-      }
-      if( needIncDataRead )
-      {
-         DMS_MON_OP_COUNT_INC( pMonAppCB, MON_DATA_READ, 1 ) ;
-      }
-
-      DMS_MON_OP_COUNT_INC( pMonAppCB, MON_READ, 1 ) ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__DMSSTORAGEDATA_EXTRACTDATA, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-
-   }
-
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
    INT32 _dmsStorageData::_operationPermChk( DMS_ACCESS_TYPE accessType )
    {
       INT32 rc = SDB_OK ;

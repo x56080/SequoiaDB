@@ -106,10 +106,7 @@ namespace engine
       EN_MATCH_FUNC_TYPE               = 119,
       EN_MATCH_FUNC_STRLENBYTES        = 120,
       EN_MATCH_FUNC_STRLENCP           = 121,
-<<<<<<< HEAD
       EN_MATCH_FUNC_KEYSTRING          = 122,
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
       EN_MATCH_FUNC_END                = 200,
 
@@ -165,10 +162,7 @@ namespace engine
    #define MTH_FUNCTION_STR_TYPE                "$type"
    #define MTH_FUNCTION_STR_STRLENBYTES         "$strlenBytes"
    #define MTH_FUNCTION_STR_STRLENCP            "$strlenCP"
-<<<<<<< HEAD
    #define MTH_FUNCTION_STR_KEYSTRING           "$keyString"
-=======
->>>>>>> c4064a6f2c2dfdf2b1bf049c2f904b74db0494b2
 
    #define MTH_ALLOCATOR_SIZE                   2048
    #define MTH_MATCH_FIELD_STATIC_NAME_LEN      32
@@ -418,7 +412,7 @@ namespace engine
    #define MTH_MEM_BY_DFT_ALLOCATOR     1
 
    // Allocator for _mthMatchNode
-   typedef _utilStackOnlyAllocator<MTH_ALLOCATOR_SIZE> _mthNodeAllocator ;
+   typedef _utilAllocator<MTH_ALLOCATOR_SIZE> _mthNodeAllocator ;
 
    // Configure arguments for _mthMatchNode
    typedef struct _mthNodeConfig
