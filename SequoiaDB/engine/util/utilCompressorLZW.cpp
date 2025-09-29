@@ -183,7 +183,7 @@ namespace engine
       for ( vector<LZW_CODE>::iterator itr = codeVec.begin();
             itr != codeVec.end(); ++itr )
       {
-         compareCode = _readCode( &compareCtx ) ;
+         compareCode = _readVarLenCode( &compareCtx ) ;
          SDB_ASSERT( *itr == compareCode, "Code not match" ) ;
       }
 #endif /* _DEBUG */
