@@ -183,7 +183,7 @@ namespace engine
       ctx->getDictionary()->getVarLenInfo( code, lenIndex, splitSize ) ;
       _writeBitsExt( ctx, code, splitSize, lenIndex ) ;
 
-      return splitSize ;
+      return splitSize + ctx->getDictionary()->getVarLenFlagSize() ;
    }
 
    OSS_INLINE void _utilCompressorLZW::_writeByte( _utilLZWContext *ctx,
