@@ -5962,6 +5962,20 @@ namespace engine
          goto done ;
       }
 
+      /// check the last record is incorrect
+      if ( pLastRecord && ( !pLastRecord->isDeleting() || !pLastRecord->isInDeletingList() ) )
+      {
+         PD_LOG( PDWARNING, "Record(%d,%d) is not deleting or in deleting list. "
+                 "The deleting list is incorrect in collection(%s.%s), so reset it",
+                 mb._lastDeletingRID._extent, mb._lastDeletingRID._offset,
+                 getSuName(), pContext->mbStat()->_collectionName ) ;
+
+         pContext->mb()->_firstDeletingRID.reset() ;
+         pContext->mb()->_lastDeletingRID.reset() ;
+         pContext->mbStat()->_totalDeletingRecords = 0 ;
+         pLastRecord = NULL ;
+      }
+
       if ( pLastRecord )
       {
          if ( pRecord->setPrevDeletingRID( mb._lastDeletingRID ) &&
@@ -6023,6 +6037,23 @@ namespace engine
             goto error ;
          }
 
+         /// when the deleting link is incorrect
+         /// for upgrade from old version, and then rollback, then upgrade again
+         if ( pPrevRecord && ( !pPrevRecord->isDeleting() || !pPrevRecord->isInDeletingList() ) )
+         {
+            PD_LOG( PDWARNING, "Record(%d,%d) is not deleting or in deleting list. "
+                    "The deleting list is incorrect in collection(%s.%s), so reset it",
+                    prev._extent, prev._offset, getSuName(), pContext->mbStat()->_collectionName ) ;
+            goto resetDeletinglist ;
+         }
+         else if ( pNextRecord && ( !pNextRecord->isDeleting() || !pNextRecord->isInDeletingList() ) )
+         {
+            PD_LOG( PDWARNING, "Record(%d,%d) is not deleting or in deleting list. "
+                    "The deleting list is incorrect in collection(%s.%s), so reset it",
+                    next._extent, next._offset, getSuName(), pContext->mbStat()->_collectionName ) ;
+            goto resetDeletinglist ;
+         }
+
          if ( pPrevRecord )
          {
             pPrevRecord->setNextDeletingRID( next ) ;
@@ -6046,6 +6077,11 @@ namespace engine
    done:
       return rc ;
    error:
+      goto done ;
+   resetDeletinglist:
+      pContext->mb()->_firstDeletingRID.reset() ;
+      pContext->mb()->_lastDeletingRID.reset() ;
+      pContext->mbStat()->_totalDeletingRecords = 0 ;
       goto done ;
    }
 

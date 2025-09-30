@@ -426,8 +426,9 @@ namespace engine
          pContext->mb()->_firstDeletingRID.reset() ;
          pContext->mb()->_lastDeletingRID.reset() ;
          pContext->mbStat()->_totalDeletingRecords = 0 ;
-         PD_LOG( PDWARNING, "Non-deleting record [%d, %d] was found in "
-                 "deleting list", rid._extent, rid._offset ) ;
+         PD_LOG( PDWARNING, "Non-deleting record(%d,%d) was found in deleting list. "
+                 "The deleting list is incorrect in collection(%s.%s), so reset it",
+                 rid._extent, rid._offset, pSu->CSName(), pContext->mbStat()->_collectionName ) ;
          rc = SDB_SYS ;
          goto error ;
       }
