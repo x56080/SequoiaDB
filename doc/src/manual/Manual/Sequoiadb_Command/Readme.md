@@ -24,6 +24,7 @@ SequoiaDB Shell 包含的类如下：
 - [Sdbtool][Sdbtool]
 - [Ssh][Ssh]
 - [System][System]
+- [DiagLog][DiagLog]
 - [辅助类型对象][AuxiliaryObjects]
 - [特殊类型对象][SpecialObjects]
 
@@ -51,6 +52,7 @@ SequoiaDB Shell 包含的类如下：
 [Sdbtool]:manual/Manual/Sequoiadb_Command/Sdbtool
 [Ssh]:manual/Manual/Sequoiadb_Command/Ssh
 [System]:manual/Manual/Sequoiadb_Command/System
+[DiagLog]:manual/Manual/Sequoiadb_Command/DiagLog
 [AuxiliaryObjects]:manual/Manual/Sequoiadb_Command/AuxiliaryObjects
 [SpecialObjects]:manual/Manual/Sequoiadb_Command/SpecialObjects
 [location]:manual/Manual/Sequoiadb_Command/location.md

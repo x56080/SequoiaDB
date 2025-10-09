@@ -1,0 +1,51 @@
+##名称##
+
+snapshot - 设置 collect() 收集 snapshot 快照
+
+##语法##
+
+**diaglog.collect().snapshot(\<type\>)**
+
+##类别##
+
+DiagLog
+
+##描述##
+
+设置 collect() 收集 snapshot 快照。
+
+##参数##
+
+| 参数名   | 参数类型 | 默认值 | 描述            | 是否必填 |
+| -------- | -------- | ------ | --------------- | -------- |
+| type     | string      | ---   | SNAP_CSCL: $SNAPSHOT_CS、$SNAPSHOT_CL、$SNAPSHOT_CATA<br>SNAP_SYS: $SNAPSHOT_SYSTEM、$SNAPSHOT_CONFIGS、$SNAPSHOT_DB、$SNAPSHOT_HEALTH、$SNAPSHOT_SEQUENCES、$SNAPSHOT_SVCTASKS、$SNAPSHOT_TASKS<br>SNAP_SESSION: $SNAPSHOT_SESSION、$SNAPSHOT_CONTEXT<br>SNAP_QUERY: $SNAPSHOT_QUERIES、$SNAPSHOT_LOCKWAITS、$SNAPSHOT_LATCHWAITS、$SNAPSHOT_TRANS、$SNAPSHOT_ACCESSPLANS、$SNAPSHOT_INDEXSTATS、$SNAPSHOT_TRANSDEADLOCK、$SNAPSHOT_TRANSWAIT<br>SNAP_ALL: 上面全部  | 是       |
+
+##返回值##
+
+DiagLog 对象。
+
+##错误##
+
+如果出错则抛异常，并输出错误信息，可以通过[getLastErrMsg()](manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md)获取错误信息或通过[getLastError()](manual/Manual/Sequoiadb_Command/Global/getLastError.md)获取错误码。
+关于错误处理可以参考[常见错误处理指南](manual/FAQ/faq_sdb.md)。
+
+常见错误可参考[错误码](manual/Manual/Sequoiadb_error_code.md)。
+
+##版本##
+
+v5.8 及以上版本
+
+##示例##
+
+* 新建一个 DiagLog 对象
+
+    ```lang-javascript
+    > var diaglog = new DiagLog( "sdbserver1", 11810, "sdbadmin", "sdbadmin" )
+    ```
+
+* 收集所有类型的快照。
+
+    ```lang-javascript
+    > diaglog.collect().snapshot( 'SNAP_ALL' )
+    /tmp/sequoiadb/collect/diaglog_20250101_120101.auto
+    ```

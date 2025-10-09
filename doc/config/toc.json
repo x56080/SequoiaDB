@@ -4465,6 +4465,176 @@
                      ]
                   },
                   {
+                     "id": 1760087268,
+                     "dir": "DiagLog",
+                     "cn": "DiagLog",
+                     "en": "DiagLog",
+                     "contents": [
+                        {
+                           "id": 1760087269,
+                           "file": "DiagLog",
+                           "cn": "DiagLog",
+                           "en": "DiagLog"
+                        },
+                        {
+                           "id": 1760087270,
+                           "file": "search",
+                           "cn": "search",
+                           "en": "search"
+                        },
+                        {
+                           "id": 1760087271,
+                           "file": "collect",
+                           "cn": "collect",
+                           "en": "collect"
+                        },
+                        {
+                           "id": 1760087273,
+                           "file": "lastFile",
+                           "cn": "lastFile",
+                           "en": "lastFile"
+                        },
+                        {
+                           "id": 1760087274,
+                           "file": "lastest",
+                           "cn": "lastest",
+                           "en": "lastest"
+                        },
+                        {
+                           "id": 1760087275,
+                           "file": "timeBegin",
+                           "cn": "timeBegin",
+                           "en": "timeBegin"
+                        },
+                        {
+                           "id": 1760087276,
+                           "file": "timeEnd",
+                           "cn": "timeEnd",
+                           "en": "timeEnd"
+                        },
+                        {
+                           "id": 1760087277,
+                           "file": "error",
+                           "cn": "error",
+                           "en": "error"
+                        },
+                        {
+                           "id": 1760087278,
+                           "file": "diaglevel",
+                           "cn": "diaglevel",
+                           "en": "diaglevel"
+                        },
+                        {
+                           "id": 1760087279,
+                           "file": "keypattern",
+                           "cn": "keypattern",
+                           "en": "keypattern"
+                        },
+                        {
+                           "id": 1760087280,
+                           "file": "pid",
+                           "cn": "pid",
+                           "en": "pid"
+                        },
+                        {
+                           "id": 1760087281,
+                           "file": "tid",
+                           "cn": "tid",
+                           "en": "tid"
+                        },
+                        {
+                           "id": 1760087282,
+                           "file": "after",
+                           "cn": "after",
+                           "en": "after"
+                        },
+                        {
+                           "id": 1760087283,
+                           "file": "before",
+                           "cn": "before",
+                           "en": "before"
+                        },
+                        {
+                           "id": 1760087284,
+                           "file": "limit",
+                           "cn": "limit",
+                           "en": "limit"
+                        },
+                        {
+                           "id": 1760087285,
+                           "file": "original",
+                           "cn": "original",
+                           "en": "original"
+                        },
+                        {
+                           "id": 1760087286,
+                           "file": "output",
+                           "cn": "output",
+                           "en": "output"
+                        },
+                        {
+                           "id": 1760087287,
+                           "file": "path",
+                           "cn": "path",
+                           "en": "path"
+                        },
+                        {
+                           "id": 1760087288,
+                           "file": "snapshot",
+                           "cn": "snapshot",
+                           "en": "snapshot"
+                        },
+                        {
+                           "id": 1760087289,
+                           "file": "core",
+                           "cn": "core",
+                           "en": "core"
+                        },
+                        {
+                           "id": 1760087290,
+                           "file": "trap",
+                           "cn": "trap",
+                           "en": "trap"
+                        },
+                        {
+                           "id": 1760087291,
+                           "file": "all",
+                           "cn": "all",
+                           "en": "all"
+                        },
+                        {
+                           "id": 1760087292,
+                           "file": "compress",
+                           "cn": "compress",
+                           "en": "compress"
+                        },
+                        {
+                           "id": 1760087293,
+                           "file": "next",
+                           "cn": "next",
+                           "en": "next"
+                        },
+                        {
+                           "id": 1760087294,
+                           "file": "close",
+                           "cn": "close",
+                           "en": "close"
+                        },
+                        {
+                           "id": 1760087295,
+                           "file": "run",
+                           "cn": "run",
+                           "en": "run"
+                        },
+                        {
+                           "id": 1760087296,
+                           "file": "reset",
+                           "cn": "reset",
+                           "en": "reset"
+                        }
+                     ]
+                  },
+                  {
                      "id": 1552489109,
                      "dir": "AuxiliaryObjects",
                      "cn": "辅助类型对象",
