@@ -264,9 +264,9 @@ def package_db(opt_mgr, ver):
    # create dir in install dir
    dirs = ['bin', 'conf/samples', 'conf/local', 'conf/log', 'doc', 'include', 'java/jdk',
             'lib', 'license', 'packet', 'postgresql', 'python', 'samples', 'tools/server/php',
-            'tools/sequoias3', 'tools/sequoias3/java', 'tools/sequoiafs', 'tools/consistencycheck', 'web',
-            'www', 'spark', 'flink', 'plugins', 'plugins/SequoiaSQL', 'lib/phplib', 'CSharp',
-            'tools/script', 'tools/expect', 'tools/sdb-schedule']
+            'tools/sequoias3', 'tools/sequoias3/java', 'tools/sequoiafs', 'tools/consistencycheck',
+            'tools/diaglog', 'web', 'www', 'spark', 'flink', 'plugins', 'plugins/SequoiaSQL',
+            'lib/phplib', 'CSharp', 'tools/script', 'tools/expect', 'tools/sdb-schedule']
    for dir in dirs:
       os.makedirs(os.path.join(install_dir, dir))
 
@@ -302,6 +302,7 @@ def package_db(opt_mgr, ver):
    copy_file(os.path.join(ROOT_DIR, 'tools/sdbaudit'), os.path.join(install_dir, 'tools'))
    copy_file(os.path.join(ROOT_DIR, 'tools/generateJSforcopycluster'), os.path.join(install_dir, 'tools'))
    copy_file(os.path.join(ROOT_DIR, 'tools/consistencycheck'), os.path.join(install_dir, 'tools'))
+   copy_file(os.path.join(ROOT_DIR, 'tools/diaglog'), os.path.join(install_dir, 'tools'))
    copy_file(os.path.join(ROOT_DIR, 'client/admin/admintpl/*'), os.path.join(install_dir, 'www'))
    copy_file(os.path.join(ROOT_DIR, 'java/openJDK-8u292'), os.path.join(install_dir, 'java/jdk'))
    copy_file(os.path.join(ROOT_DIR, 'tools/sdbmemcheck'), os.path.join(install_dir, 'tools'))
@@ -371,6 +372,7 @@ def package_db(opt_mgr, ver):
    chmod(os.path.join(install_dir, 'tools/dr_ha/*.sh'), 'u+x')
    chmod(os.path.join(install_dir, 'tools/sdbmigrate/bin/*.sh'), 'u+x')
    chmod(os.path.join(install_dir, 'tools/consistencycheck/*.sh'), 'u+x')
+   chmod(os.path.join(install_dir, 'tools/diaglog/*.sh'), 'u+x')
    chmod(os.path.join(install_dir, 'tools/sequoias3/sequoias3.sh'), 'u+x')
    chmod(os.path.join(install_dir, 'tools/deploy/quickDeploy.sh'), '755')
    chmod(os.path.join(install_dir, 'tools/deploy/postgresql.conf'), '666')

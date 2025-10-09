@@ -3848,11 +3848,2382 @@ IniFile.prototype.save = function() {
 
 // end IniFile
 
+// IniFile member function
 
+function DiagLog(argv1, argv2, argv3, argv4) {
+   var argc = arguments.length ;
+   this.hostname   = 'localhost' ;
+   this.svcname    = 11810 ;
+   this.user       = '' ;
+   this.password   = '' ;
+   this.cipherUser = '' ;
+   if ( 1 > argc )
+   {
+      // may be not need login
+   }
+   else if ( 1 == argc )
+   {
+      setLastErrMsg( "Missing argument" ) ;
+      throw SDB_INVALIDARG ;
+   }
+   else if ( 2 == argc )
+   {
+      this.hostname   = argv1 ;
+      this.svcname    = argv2 ;
+   }
+   else if ( 3 == argc )
+   {
+      this.hostname   = argv1 ;
+      this.svcname    = argv2 ;
+      this.cipherUser = argv3 ;
+      if ( "object" != typeof( this.cipherUser ) )
+      {
+         setLastErrMsg( "cipherUser must be object" ) ;
+         throw SDB_INVALIDARG ;
+      }
+   } else
+   {
+      this.hostname   = argv1 ;
+      this.svcname    = argv2 ;
+      this.user       = argv3 ;
+      this.password   = argv4 ;
+   }
 
+   this._logTool = System.getEWD() + '/../tools/diaglog/logSearchTool.sh' ;
+   this._tmpDir = "/tmp/sequoiadb" ;
 
+   this.reset = function() {
+      this._lastFile = '' ;
+      this._lastest = '' ;
+      this._path = '' ;
+      this._timeBegin = '' ;
+      this._timeEnd = '' ;
+      this._output = '' ;
+      this._error = '' ;
+      this._diaglevel = '' ;
+      this._keypattern = '' ;
+      this._pid = '' ;
+      this._tid = '' ;
+      this._limit = 100 ;
+      this._after = '' ;
+      this._before = '' ;
+      this._original = false ;
+      this._snapshot = '' ;
+      this._core = false ;
+      this._trap = false ;
+      this._compress = 'tar.gz' ;
+      // internal
+      this._showHelp = false ;
+      this._needSearch = false ;
+      this._role = '' ;
+      this._serviceName = '' ;
+      this._hostName = '' ;
+      this._fileOnly = false ;
+      this._nohup = false ;
+      this._logFile = '' ;
+      this._locationHostName = '' ;
+      this._locationServiceName = '' ;
+      this._locationNodeName = '' ;
+      this._locationGroupName = '' ;
+      this._locationRole = '' ;
+      this._locationNodeID = '' ;
+      this._locationGroupID = '' ;
+   }
+   this.reset() ;
+}
+DiagLog() ;
 
+DiagLog.prototype.run = function() {
+   return this._exec() ;
+}
 
+DiagLog.prototype.valueOf = function() {
+   return this._exec() ;
+}
+
+DiagLog.prototype.toString = function() {
+   return this._exec() ;
+}
+
+DiagLog.prototype._exec = function() {
+   if ( this._showHelp )
+   {
+      this._showHelp = false ;
+      return '' ;
+   }
+
+   var rc = '' ;
+   try
+   {
+      if ( ! File.exist( this._logTool ) || File.isDir( this._logTool ) )
+      {
+         setLastErrMsg( this._logTool + ' does not exist' ) ;
+         throw SDB_FNE ;
+      }
+   } catch ( e )
+   {
+      throw e ;
+   }
+   try
+   {
+      // save some parameters
+      var savePath = this._path ;
+      var saveOutput = this._output ;
+      var saveOriginal = this._original ;
+      var saveLogTool = this._logTool ;
+      switch( this.mode )
+      {
+         case "search":
+            this.close() ;
+            rc = this._search() ;
+            break ;
+         case "collect":
+            this.close() ;
+            rc = this._collect() ;
+            break ;
+         case "analyze":
+            rc = this._analyze() ;
+            break ;
+         default:
+            break ;
+      }
+      // restore parameters
+      this._path = savePath ;
+      this._output = saveOutput ;
+      this._original = saveOriginal ;
+      this._logTool = saveLogTool ;
+   } catch ( e )
+   {
+      throw e;
+   }
+   return rc ;
+}
+
+DiagLog.prototype._location = function( locationObj ) {
+   if ( "object" != typeof( locationObj ) )
+   {
+      return ;
+   } else
+   {
+      // reset
+      this._locationHostName = '' ;
+      this._locationNodeName = '' ;
+      this._locationServiceName = '' ;
+      this._locationGroupName = '' ;
+      this._locationRole = '' ;
+      this._locationNodeID = '' ;
+      this._locationGroupID = '' ;
+   }
+   var keys = Object.keys( locationObj ) ;
+   for ( var i = 0; i < keys.length; i++ )
+   {
+      var key = keys[i] ;
+      var value = locationObj[key] ;
+      switch( key )
+      {
+         case "HostName":
+            this._locationHostName = value ;
+            break ;
+         case "NodeName":
+            this._locationNodeName = value ;
+            break ;
+         case "ServiceName":
+            this._locationServiceName = value ;
+            break ;
+         case "GroupName":
+            this._locationGroupName = value ;
+            break ;
+         case "Role":
+            this._locationRole = value ;
+            break ;
+         case "NodeID":
+            this._locationNodeID = value ;
+            break ;
+         case "GroupID":
+            this._locationGroupID = value ;
+            break ;
+         default:
+            // do nothing
+            break ;
+      }
+   }
+}
+
+DiagLog.prototype.search = function( locationObj ) {
+   this.mode = "search" ;
+   this._location( locationObj ) ;
+   return this ;
+}
+
+DiagLog.prototype.collect = function( locationObj ) {
+   this.mode = "collect" ;
+   this._location( locationObj ) ;
+   return this ;
+}
+
+DiagLog.prototype.analyze = function() {
+   this.mode = "analyze" ;
+   return this ;
+}
+
+DiagLog.prototype.lastFile = function( lastFile ) {
+   if ( "number" != typeof( lastFile ) )
+   {
+      setLastErrMsg( "lastFile value must be a number" ) ;
+      throw SDB_INVALIDARG ;
+   } else if ( lastFile <= 0 )
+   {
+      setLastErrMsg( "lastFile value must be a number greater than 0" ) ;
+      throw SDB_INVALIDARG ;
+   }
+   this._lastFile = lastFile ;
+   return this ;
+}
+
+DiagLog.prototype.lastest = function( lastest ) {
+   if ( "number" != typeof( lastest ) )
+   {
+      setLastErrMsg( "lastest value must be number" ) ;
+      throw SDB_INVALIDARG ;
+   } else if ( lastest <= 0 )
+   {
+      setLastErrMsg( "lastest value must be greater than 0" ) ;
+      throw SDB_INVALIDARG ;
+   }
+   this._lastest = lastest ;
+   return this ;
+}
+
+DiagLog.prototype.path = function( path ) {
+   if ( "string" != typeof( path ) )
+   {
+      setLastErrMsg( "path must be string" ) ;
+      throw SDB_INVALIDARG ;
+   } else if ( "" == path )
+   {
+      setLastErrMsg( "path cannot be empty" ) ;
+      throw SDB_INVALIDARG ;
+   } else if ( ! /^\//.test( path ) ) {
+      setLastErrMsg( "path must be an absolute path" ) ;
+      throw SDB_INVALIDARG ;
+   }
+   this._path = path ;
+   return this ;
+}
+
+DiagLog.prototype.timeBegin = function( timeBegin ) {
+   if ( "string" != typeof( timeBegin ) )
+   {
+      setLastErrMsg( "timeBegin value must be string" ) ;
+      throw SDB_INVALIDARG ;
+   }
+   if ( ! Date.parse(timeBegin) )
+   {
+      setLastErrMsg( "timeBegin value must be parsed with Date.parse()" ) ;
+      throw SDB_INVALIDARG ;
+   }
+   this._timeBegin = new Date( new Date( timeBegin ).getTime() + 8 * 60 * 60 * 1000 ).toJSON().replace('Z', '').replace( 'T', '-' ) ;
+   if ( '' != this._timeEnd && this._timeBegin >= this._timeEnd )
+   {
+      setLastErrMsg( "timeEnd value must be greater than timeBegin" ) ;
+      throw SDB_INVALIDARG ;
+   }
+   return this ;
+}
+
+DiagLog.prototype.timeEnd = function( timeEnd ) {
+   if ( "string" != typeof( timeEnd ) )
+   {
+      setLastErrMsg( "timeEnd value must be string" ) ;
+      throw SDB_INVALIDARG ;
+   }
+   if ( ! Date.parse(timeEnd) )
+   {
+      setLastErrMsg( "timeEnd value must be parsed with Date.parse()" ) ;
+      throw SDB_INVALIDARG ;
+   }
+   this._timeEnd = new Date( new Date( timeEnd ).getTime() + 8 * 60 * 60 * 1000 ).toJSON().replace('Z', '').replace( 'T', '-' ) ;
+   if ( '' != this._timeBegin && this._timeBegin >= this._timeEnd )
+   {
+      setLastErrMsg( "timeEnd value must be greater than timeBegin" ) ;
+      throw SDB_INVALIDARG ;
+   }
+   return this ;
+}
+
+DiagLog.prototype.output = function( output ) {
+   if ( "string" != typeof( output ) )
+   {
+      setLastErrMsg( "output path must be string" ) ;
+      throw SDB_INVALIDARG ;
+   } else if ( "" == output )
+   {
+      setLastErrMsg( "output path cannot be empty" ) ;
+      throw SDB_INVALIDARG ;
+   } else if ( ! /^\//.test( output ) ) {
+      setLastErrMsg( "output path must be an absolute path" ) ;
+      throw SDB_INVALIDARG ;
+   }
+   this._output = output + '/result' ;
+   return this ;
+}
+
+DiagLog.prototype.error = function( error ) {
+   if ( "number" != typeof( error ) )
+   {
+      setLastErrMsg( "error code must be number" ) ;
+      throw SDB_INVALIDARG ;
+   } else if ( error >= 0 )
+   {
+      setLastErrMsg( "error code must be less than 0" ) ;
+      throw SDB_INVALIDARG ;
+   }
+   this._error = error ;
+   this._needSearch = true ;
+   return this ;
+}
+
+DiagLog.prototype.diaglevel = function( diaglevel ) {
+   if ( "number" != typeof( diaglevel ) )
+   {
+      setLastErrMsg( "diaglevel value must be 0-4" ) ;
+      throw SDB_INVALIDARG ;
+   } else if ( diaglevel < 0 || diaglevel > 4 )
+   {
+      setLastErrMsg( "diaglevel value must be 0-4" ) ;
+      throw SDB_INVALIDARG ;
+   }
+   this._diaglevel = diaglevel ;
+   return this ;
+}
+
+DiagLog.prototype.keypattern = function( keypattern ) {
+   if ( "string" != typeof( keypattern ) )
+   {
+      setLastErrMsg( "keypattern value must be string" ) ;
+      throw SDB_INVALIDARG ;
+   } else if ( "" == keypattern )
+   {
+      setLastErrMsg( "keypattern value cannot be empty" ) ;
+      throw SDB_INVALIDARG ;
+   }
+   this._keypattern = keypattern ;
+   this._needSearch = true ;
+   return this ;
+}
+
+DiagLog.prototype.pid = function( pid ) {
+   if ( "number" != typeof( pid ) )
+   {
+      setLastErrMsg( "pid value must be number" ) ;
+      throw SDB_INVALIDARG ;
+   } else if ( pid <= 0 )
+   {
+      setLastErrMsg( "pid value must be greater than 0" ) ;
+      throw SDB_INVALIDARG ;
+   }
+   this._pid = pid ;
+   this._needSearch = true ;
+   return this ;
+}
+
+DiagLog.prototype.tid = function( tid ) {
+   if ( "number" != typeof( tid ) )
+   {
+      setLastErrMsg( "tid value must be number" ) ;
+      throw SDB_INVALIDARG ;
+   } else if ( tid <= 0 )
+   {
+      setLastErrMsg( "tid value must be greater than 0" ) ;
+      throw SDB_INVALIDARG ;
+   }
+   this._tid = tid ;
+   this._needSearch = true ;
+   return this ;
+}
+
+DiagLog.prototype.limit = function( limit ) {
+   if ( "number" != typeof( limit ) )
+   {
+      setLastErrMsg( "limit value must be number" ) ;
+      throw SDB_INVALIDARG ;
+   } else if ( 0 == limit )
+   {
+      setLastErrMsg( "limit value cannot be equal to 0" ) ;
+      throw SDB_INVALIDARG ;
+   }  else if ( -1 > limit )
+   {
+      setLastErrMsg( "limit value must be greater than 0, or -1" ) ;
+      throw SDB_INVALIDARG ;
+   }
+   this._limit = limit ;
+   return this ;
+}
+
+DiagLog.prototype.after = function( after ) {
+   if ( "number" != typeof( after ) )
+   {
+      setLastErrMsg( "after value must be number" ) ;
+      throw SDB_INVALIDARG ;
+   } else if ( after < 0 )
+   {
+      setLastErrMsg( "after value must be greater than 0" ) ;
+      throw SDB_INVALIDARG ;
+   }
+   this._after = after ;
+   return this ;
+}
+
+DiagLog.prototype.before = function( before ) {
+   if ( "number" != typeof( before ) )
+   {
+      setLastErrMsg( "before value must be number" ) ;
+      throw SDB_INVALIDARG ;
+   } else if ( before < 0 )
+   {
+      setLastErrMsg( "before value must be greater than 0" ) ;
+      throw SDB_INVALIDARG ;
+   }
+   this._before = before ;
+   return this ;
+}
+
+DiagLog.prototype.original = function() {
+   this._original = true ;
+   return this ;
+}
+
+DiagLog.prototype.snapshot = function( snapshot ) {
+   switch( snapshot )
+   {
+      case "SNAP_CSCL":
+      case "SNAP_SYS":
+      case "SNAP_SESSION":
+      case "SNAP_QUERY":
+      case "SNAP_ALL":
+         break ;
+      default:
+         setLastErrMsg( 'snapshot can only be onr of "SNAP_CSCL", "SNAP_SYS", "SNAP_SESSION", "SNAP_QUERY", "SNAP_ALL"' ) ;
+         throw SDB_INVALIDARG ;
+   }
+   this._snapshot = snapshot ;
+   return this ;
+}
+
+DiagLog.prototype.core = function() {
+   this._core = true ;
+   return this ;
+}
+
+DiagLog.prototype.trap = function() {
+   this._trap = true ;
+   return this ;
+}
+
+DiagLog.prototype.all = function() {
+   this._core = true ;
+   this._trap = true ;
+   this._snapshot = 'SNAP_ALL' ;
+   return this ;
+}
+
+DiagLog.prototype.compress = function( compress ) {
+   switch( compress )
+   {
+      case "zip":
+      case "tar.gz":
+         break ;
+      default:
+         setLastErrMsg( 'compress value must be "zip" or "tar.gz"' ) ;
+         throw SDB_INVALIDARG ;
+   }
+   this._compress = compress ;
+   return this ;
+}
+
+DiagLog.prototype._search = function() {
+   // close current open result file in DiagLog.next()
+   if ( '' != this._logFile ) {
+      this._logFile.close() ;
+      this._logFile = '' ;
+   }
+
+   if ( ! this._needSearch )
+   {
+      setLastErrMsg( 'No searchable conditions, such as "error()", "keypattern()", "tid()" or "pid()"' ) ;
+      throw SDB_INVALIDARG ;
+   }
+
+   try
+   {
+      if ( '' != this._path )
+      {
+         var regex = new RegExp( '^/.*/diaglog_[0-9]{8}_[0-9]{6}(\.auto)?((?:\.zip)|(?:\.tar.gz)|(?:\/))?$' ) ;
+         if ( regex.test( this._path ) )
+         {
+            // search from collect
+            if ( ! File.exist( this._path ) )
+            {
+               setLastErrMsg( "path " + this._path + " must be exist" ) ;
+               throw SDB_FNE ;
+            }
+            return this._searchFromCollect() ;
+         } else
+         {
+            // search normal diaglog directory
+            if ( ! File.exist( this._path ) || ! File.isDir( this._path ) )
+            {
+               setLastErrMsg( "path " + this._path + " must be a directory" ) ;
+               throw SDB_FNE ;
+            }
+            return this._searchFile() ;
+         }
+      } else
+      {
+         return this._searchCluster() ;
+      }
+   } catch ( e )
+   {
+      throw e;
+   }
+}
+
+DiagLog.prototype._checkLocation = function( locationObj, idInfo ) {
+   var rc = true ;
+   if ( '' != this._locationHostName && rc )
+   {
+      isChek = true ;
+      if ( Array.isArray( this._locationHostName ) )
+      {
+         var equal = false ;
+         for ( var i = 0; i < this._locationHostName.length; i++ )
+         {
+            if ( this._locationHostName[i] == locationObj.HostName )
+            {
+               equal = true ;
+               break ;
+            }
+         }
+         rc = equal ;
+      } else if ( "string" == typeof( this._locationHostName ) )
+      {
+         rc = this._locationHostName == locationObj.HostName ;
+      }
+   }
+
+   if ( '' != this._locationServiceName && rc )
+   {
+      if ( Array.isArray( this._locationServiceName ) )
+      {
+         var equal = false ;
+         for ( var i = 0; i < this._locationServiceName.length; i++ )
+         {
+            if ( this._locationServiceName[i] == locationObj.ServiceName )
+            {
+               equal = true ;
+               break ;
+            }
+         }
+         rc = equal ;
+      } else if ( "string" == typeof( this._locationServiceName ) )
+      {
+         rc = this._locationServiceName == locationObj.ServiceName ;
+      }
+   }
+
+   if ( '' != this._locationNodeName && rc )
+   {
+      if ( Array.isArray( this._locationNodeName ) )
+      {
+         var equal = false ;
+         for ( var i = 0; i < this._locationNodeName.length; i++ )
+         {
+            var tmpArray = this._locationNodeName[i].split( ':' ) ;
+            if ( tmpArray[0] == locationObj.HostName && -1 != tmpArray.indexOf( locationObj.ServiceName ) )
+            {
+               equal = true ;
+               break ;
+            }
+         }
+         rc = equal ;
+      } else if ( "string" == typeof( this._locationNodeName ) )
+      {
+         var tmpArray = this._locationNodeName.split( ':' ) ;
+         if ( tmpArray[0] == locationObj.HostName && -1 != tmpArray.indexOf( locationObj.ServiceName ) )
+         {
+            rc = true ;
+         } else
+         {
+            rc = false ;
+         }
+      }
+   }
+
+   if ( '' != this._locationGroupName && rc )
+   {
+      if ( Array.isArray( this._locationGroupName ) )
+      {
+         var equal = false ;
+         for ( var i = 0; i < this._locationGroupName.length; i++ )
+         {
+            if ( this._locationGroupName[i] == locationObj.GroupName )
+            {
+               equal = true ;
+               break ;
+            }
+         }
+         rc = equal ;
+      } else if ( "string" == typeof( this._locationGroupName ) )
+      {
+         rc = this._locationGroupName == locationObj.GroupName ;
+      }
+   }
+
+   if ( '' != this._locationRole && rc )
+   {
+      if ( Array.isArray( this._locationRole ) )
+      {
+         var equal = false ;
+         for ( var i = 0; i < this._locationRole.length; i++ )
+         {
+            if ( "all" == this._locationRole[i] )
+            {
+               equal = true ;
+               break ;
+            } else if ( this._locationRole[i] == locationObj.Role )
+            {
+               equal = true ;
+               break ;
+            }
+         }
+         rc = equal ;
+      } else if ( "string" == typeof( this._locationRole ) )
+      {
+         if ( "all" == this._locationRole )
+         {
+            rc = true ;
+         } else
+         {
+            rc = this._locationRole == locationObj.Role ;
+         }
+      }
+   }
+
+   try
+   {
+      if ( '' != this._locationNodeID && rc )
+      {
+         if ( Array.isArray( this._locationNodeID ) )
+         {
+            var equal = false ;
+            for ( var i = 0; i < this._locationNodeID.length; i++ )
+            {
+               if ( this._locationNodeID[i] == idInfo[locationObj.HostName + ':' + locationObj.ServiceName].NodeID )
+               {
+                  equal = true ;
+                  break ;
+               }
+            }
+            rc = equal ;
+         } else if ( "number" == typeof( this._locationNodeID ) )
+         {
+            rc = this._locationNodeID == idInfo[locationObj.HostName + ':' + locationObj.ServiceName].NodeID ;
+         }
+      }
+   
+      if ( '' != this._locationGroupID && rc )
+      {
+         if ( Array.isArray( this._locationGroupID ) )
+         {
+            var equal = false ;
+            for ( var i = 0; i < this._locationGroupID.length; i++ )
+            {
+               if ( this._locationGroupID[i] == idInfo[locationObj.GroupName].GroupID )
+               {
+                  equal = true ;
+                  break ;
+               }
+            }
+            rc = equal ;
+         } else if ( "number" == typeof( this._locationGroupID ) )
+         {
+            rc = this._locationGroupID == idInfo[locationObj.GroupName].GroupID ;
+         }
+      }
+   } catch ( e )
+   {
+      rc = false ;
+   }
+
+   return rc ;
+}
+
+DiagLog.prototype._searchFromCollect = function() {
+   var path = this._path ;
+   var pathArray = path.split( '/' ) ;
+   var output = '' ;
+
+   try
+   {
+      var cmd = new Cmd() ;
+      var now = new Date( new Date().getTime() + 8 * 60 * 60 * 1000 ) ;
+   } catch ( e )
+   {
+      throw e ;
+   }
+
+   if ( '' != this._output )
+   {
+      output = this._output ;
+   } else
+   {
+      output = this._tmpDir + '/search/cluster_' +  now.toJSON().replace('Z', '').replace( 'T', '-' ) + '.auto' ;
+   }
+
+   // remove old dir if more than 10
+   try
+   {
+      var fileArray = cmd.run( 'ls -d ' + this._tmpDir + '/search/cluster_*.auto' ).trimRight( '\n' ).split( '\n' ) ;
+      for ( var i = 0; i < fileArray.length - 9; i++ )
+      {
+         cmd.run( 'rm -rf ' + fileArray[i] ) ;
+      }
+   } catch ( e ) {}
+
+   // auto generate output dir with current time
+   try
+   {
+      File.mkdir( output, 0777 ) ;
+   } catch ( e )
+   {
+      setLastErrMsg( 'Failed to mkdir "' + output + '", error: ' + getLastErrMsg() ) ;
+      throw e ;
+   }
+
+   try {
+      if ( /.*\.zip$/.test( path ) )
+      {
+         cmd.run( 'unzip -o ' + path + ' -d ' + output ) ;
+         path = output + '/' + pathArray[pathArray.length - 1].replace( /\.zip$/, '' ) ;
+      } else if  ( /.*\.tar\.gz$/.test( path ) )
+      {
+         cmd.run( 'tar -xzf ' + path + ' -C ' + output ) ;
+         path = output + '/' + pathArray[pathArray.length - 1].replace( /\.tar.gz$/, '' ) ;
+      }
+   } catch ( e ) {
+      setLastErrMsg( 'Failed to unzip "' + path + '", error: ' + getLastErrMsg() ) ;
+      throw e ;
+   }
+
+   this._nohup = true ;
+   var clusterOutput = output + '/diaglog_' ;
+   var outputFileArray = [] ;
+
+   try
+   {
+      var hostArray = cmd.run( 'ls ' + path ).trimRight( '\n' ).split( '\n' ) ;
+      for ( var i = 0; i < hostArray.length; i++ )
+      {
+         var hostName = hostArray[i] ;
+         if ( 'analyze' == hostName || 'trap_core_snapshot' == hostName ) { continue ; }
+         var nodeFileArray = cmd.run( 'ls ' + path + '/' + hostName ).trimRight( '\n' ).split( '\n' ) ;
+         var idInfo = {} ;
+         for ( var j = 0; j < nodeFileArray.length; j++ )
+         {
+            var nodeFile = nodeFileArray[j] ;
+            // data_group1_11820_1001_1000
+            var nodeInfo = nodeFileArray[j].split( '_' ) ;
+            if ( 5 != nodeInfo.length ) {
+               setLastErrMsg( 'Failed to parse diaglog in directory ' + path ) ;
+               throw SDB_INVALIDARG ;
+            }
+            var role = nodeInfo[0] ;
+            var groupName = nodeInfo[1] ;
+            var serviceName = nodeInfo[2] ;
+            var nodeID = nodeInfo[3] ;
+            var groupID = nodeInfo[4] ;
+            var fullFileName = path + "/" + hostName + "/" + nodeFile ;
+            var locationObj = { "HostName": hostName, "ServiceName": serviceName, "GroupName": groupName, "Role": role };
+
+            idInfo[groupName] = { "GroupID": groupID } ;
+            idInfo[hostName + ":" + serviceName] = { "NodeID": nodeID } ;
+            if ( 'standalone' != role && ! this._checkLocation( locationObj, idInfo ) ) { continue ;}
+            isSearch = true ;
+   
+            this._hostName = hostName ;
+            this._serviceName = serviceName ;
+            this._role = groupName ;
+            this._path = fullFileName ;
+            this._output = clusterOutput + hostName + "_" + serviceName ;
+            this._searchFile( cmd ) ;
+            outputFileArray.push( this._output ) ;
+         }
+      }
+   } catch ( e )
+   {
+      throw e ;
+   }
+
+   this._path = path ;
+   this._nohup = false ;
+   if ( ! isSearch ) {
+      return ;
+   }
+
+   try
+   {
+      // waiting for background tasks
+      var timeout = 10 * 60 ;
+      for ( var i = 0; i < outputFileArray.length; i++ )
+      {
+         while ( timeout-- )
+         {
+            rc = parseInt( cmd.run( "test -f " + outputFileArray[i] + "; echo $?" ) ) ;
+            if ( ! rc ) {
+               break ;
+            }
+            if ( timeout <= 0 )
+            {
+               throw SDB_TIMEOUT ;
+            } else{
+               sleep( 100 ) ;
+            }
+         }
+      }
+   } catch ( e )
+   {
+      setLastErrMsg( 'Failed to wait for searching results, error: ' + getLastErrMsg() );
+      throw e ;
+   }
+
+   // merge result
+   this._output = clusterOutput + 'result' ;
+   this._outputFile = this._output ;
+
+   try
+   {
+      var resultDir = this._output.substring( 0, this._output.lastIndexOf( '/' ) );
+      if ( '' != resultDir )
+      {
+         File.mkdir( resultDir, 0777 ) ;
+      }
+      var resultFile = new File( this._output, 0644, SDB_FILE_READWRITE | SDB_FILE_CREATE ) ;
+      resultFile.truncate() ;
+      var content = "";
+      for ( var i = 0; i < outputFileArray.length; i++ )
+      {
+         try
+         {
+            var localFile = new File( outputFileArray[i], 0644, SDB_FILE_READONLY ) ;
+            while( true )
+            {
+               content = localFile.readContent( 4 * 1024 * 1024 ) ;
+               resultFile.writeContent( content ) ;
+               content.clear() ;
+            }
+         } catch ( e )
+         {
+            if ( -9 != e )
+            {
+               throw e ;
+            }
+         } finally
+         {
+            if ( null != localFile )
+            {
+               localFile.close() ;
+            }
+         }
+      }
+   } catch ( e )
+   {
+      setLastErrMsg( 'Failed to merge search result, error: ' + getLastErrMsg() );
+      throw e ;
+   } finally
+   {
+      if ( null != resultFile )
+      {
+         resultFile.close() ;
+      }
+   }
+
+   // sort result
+   var shellCmd = this._logTool + ' -o "' + this._output + '" --sort-only' ;
+   if ( '' != this._original )
+   {
+      shellCmd += ' -O' ;
+   }
+   if ( 0 < this._limit )
+   {
+      shellCmd += ' -n ' + this._limit ;
+   }
+
+   try {
+      cmd.run( shellCmd ) ;
+   } catch ( e ) {
+      setLastErrMsg( 'Failed to sort result with "' + shellCmd + '", error: ' + getLastErrMsg() );
+      throw e ;
+   }
+
+   this._loopFile = true ;
+   return this._output ;
+}
+
+DiagLog.prototype._searchCluster = function() {
+   var rc = "" ;
+   try
+   {
+      if ( '' != this.cipherUser)
+      {
+         var db = new Sdb( this.hostname, this.svcname, this.cipherUser ) ;
+      } else
+      {
+         var db = new Sdb( this.hostname, this.svcname, this.user, this.password ) ;
+      }
+   } catch ( e )
+   {
+      throw e ;
+   }
+
+   this._nohup = true ;
+   var outputFileArray = [] ;
+
+   try
+   {
+      var now = new Date( new Date().getTime() + 8 * 60 * 60 * 1000 );
+      var oma = new Oma() ;
+      var localCmd = new Cmd() ;
+   } catch ( e )
+   {
+      throw e;  
+   }
+
+   // remove old dir if more than 10
+   try
+   {
+      var fileArray = localCmd.run( 'ls -d ' + this._tmpDir + '/search/cluster_*.auto 2>/dev/null' ).trimRight( '\n' ).split( '\n' ) ;
+      for ( var i = 0; i < fileArray.length - 9; i++ )
+      {
+         localCmd.run( 'rm -rf ' + fileArray[i] ) ;
+      }
+   } catch ( e ) {}
+
+   // auto generate output dir with current time
+   try
+   {
+      File.mkdir( this._tmpDir + '/search/cluster_' + now.toJSON().replace('Z', '').replace( 'T', '-' ) + '.auto/', 0777 ) ;
+   } catch ( e )
+   {
+      setLastErrMsg( 'Failed to mkdir "' + this._tmpDir + '/search/cluster_' + now.toJSON().replace('Z', '').replace( 'T', '-' ) + '.auto/", error: ' + getLastErrMsg() );
+      throw e;  
+   }
+
+   var output = this._output ;
+   var clusterOutput = this._tmpDir + '/search/cluster_' + now.toJSON().replace('Z', '').replace( 'T', '-' ) + '.auto/diaglog_'  ;
+   var cursor ;
+   var idInfo = {} ;
+   var isSearch = false ;
+   var logTool = this._logTool ;
+
+   // skip standalone nodes
+   try {
+      var isStandalone = db.exec('select role from $SNAPSHOT_CONFIGS limit 1').current().toObj().role ;
+   } catch ( e ) {
+      setLastErrMsg( 'Failed to get info from "select role from $SNAPSHOT_CONFIGS", error: ' + getLastErrMsg() ) ;
+      throw e ;
+   }
+
+   if ( ( '' != this._locationNodeID || '' != this._locationGroupID ) && 'standalone' != isStandalone )
+   {
+      try
+      {
+         cursor = db.exec('select Group,GroupID,GroupName from $LIST_GROUP split by Group') ;
+         while ( cursor.next() )
+         {
+            var current = cursor.current().toObj() ;
+            idInfo[current.GroupName] = { "GroupID": current.GroupID } ;
+            idInfo[current.Group.HostName + ":" + current.Group.Service[0].Name] = { "NodeID": current.Group.NodeID } ;
+         }
+      } catch ( e )
+      {
+         setLastErrMsg( 'Failed get node info from "select Group,GroupID,GroupName from $LIST_GROUP split by Group"' ) ;
+         throw e ;
+      } finally
+      {
+         if ( null != cursor )
+         {
+            cursor.close() ;
+         }
+      }
+   }
+
+   var diagpathObj = {} ;
+   try {
+      cursor = db.exec('select NodeName,diagpath from $SNAPSHOT_CONFIGS');
+      while ( cursor.next() )
+      {
+         var current = cursor.current().toObj() ;
+         diagpathObj[current.NodeName] = current.diagpath;
+      }
+      cursor.close() ;
+   } catch ( e )
+   {
+      setLastErrMsg( 'Failed get node info from "select NodeName,diagpath from $SNAPSHOT_CONFIGS"' ) ;
+      throw e ;
+   }
+
+   try {
+      cursor = db.exec('select HostName, push(ServiceName) as ServiceName, push(GroupName) as GroupName from $SNAPSHOT_SYSTEM group by HostName') ;
+   } catch ( e )
+   {
+      setLastErrMsg( 'Failed get node info from "select HostName, push(ServiceName) as ServiceName, push(GroupName) as GroupName from $SNAPSHOT_SYSTEM group by HostName"' ) ;
+      throw e ;
+   }
+
+   try
+   {
+      while ( cursor.next() )
+      {
+         var current = cursor.current().toObj() ;
+         var HostName = current.HostName ;
+         var ServiceNameArray = current.ServiceName ;
+         var omaSvcName = oma.getAOmaSvcName( HostName ) ;
+         var remote = new Remote( HostName, omaSvcName ) ;
+         var cmd = remote.getCmd() ;
+         this._logTool = remote.getSystem().getEWD() + '/../tools/diaglog/logSearchTool.sh' ;
+         try
+         {
+            // remove old dir if more than 10 on remote
+            var dirArray = cmd.run( "ls -d " + this._tmpDir + "/search/cluster_*.auto 2>/dev/null" ).trimRight( '\n' ).split( "\n" ) ;
+            for ( var i = 0; i < dirArray.length - 10; i++ )
+            {
+               cmd.run( "rm -rf " + dirArray[i] ) ;
+            }
+         } catch ( e ) {}
+         for (var i = 0; i < ServiceNameArray.length; i++)
+         {
+            var locationObj = { "HostName": HostName, "ServiceName": ServiceNameArray[i], "GroupName": current.GroupName[i], "Role": "" };
+            if ( 'SYSCoord' == current.GroupName[i] )
+            {
+               locationObj["Role"] = 'coord' ;
+            } else if ( 'SYSCatalogGroup' == current.GroupName[i] )
+            {
+               locationObj["Role"] = 'catalog' ;
+            } else if ( '' != current.GroupName[i] )
+            {
+               locationObj["Role"] = 'data' ;
+            } else
+            {
+               locationObj["Role"] = 'standalone' ;
+            }
+            if ( 'standalone' != isStandalone && ! this._checkLocation( locationObj, idInfo ) ) { continue ;}
+            isSearch = true ;
+
+            this._hostName = HostName ;
+            this._serviceName = ServiceNameArray[i] ;
+            if ( '' != current.GroupName[i] )
+            {
+               this._role = current.GroupName[i] ;
+            } else
+            {
+               this._role = 'standalone' ;
+               locationObj["GroupName"] = 'standalone'
+            }
+            this._path = diagpathObj[HostName + ":" + ServiceNameArray[i]];
+            this._output = clusterOutput + HostName + "_" + ServiceNameArray[i] ;
+            this._searchFile( cmd ) ;
+            outputFileArray.push( { "HostName": HostName, "output": this._output, "remote": remote, "cmd": cmd } ) ;
+         }
+      }
+   } catch ( e )
+   {
+      throw e ;
+   } 
+
+   this._nohup = false ;
+   if ( ! isSearch ) {
+      return ;
+   }
+
+   try
+   {
+      // waiting for background tasks
+      var timeout = 100 * 60 ;
+      for ( var i = 0; i < outputFileArray.length; i++ )
+      {
+         while ( timeout-- )
+         {
+            rc = parseInt( outputFileArray[i].cmd.run( "test -f " + outputFileArray[i].output + "; echo $?" ) ) ;
+            if ( ! rc ) {
+               break ;
+            }
+            if ( timeout <= 0 )
+            {
+               throw SDB_TIMEOUT ;
+            } else{
+               sleep( 100 ) ;
+            }
+         }
+      }
+   } catch ( e )
+   {
+      setLastErrMsg( 'Failed to wait for searching results, error: ' + getLastErrMsg() );
+      throw e ;
+   } finally
+   {
+      if ( null != cursor )
+      {
+         cursor.close() ;
+      }
+      if ( null != db )
+      {
+         db.close() ;
+      }
+   }
+
+   // merge result
+   if ( '' != output )
+   {
+      this._output = output ;
+   } else
+   {
+      this._output = clusterOutput + 'result' ;
+   }
+   this._outputFile = this._output ;
+
+   try
+   {
+      var resultDir = this._output.substring( 0, this._output.lastIndexOf( '/' ) );
+      if ( '' != resultDir )
+      {
+         File.mkdir( resultDir, 0777 ) ;
+      }
+      var resultFile = new File( this._output, 0644, SDB_FILE_READWRITE | SDB_FILE_CREATE ) ;
+      resultFile.truncate() ;
+      var content = "";
+      for ( var i = 0; i < outputFileArray.length; i++ )
+      {
+         var remoteFile = outputFileArray[i].remote.getFile( outputFileArray[i].output ) ;
+         var localFile = new File( outputFileArray[i].output, 0644, SDB_FILE_WRITEONLY | SDB_FILE_CREATE ) ;
+         try
+         {
+            while( true )
+            {
+               content = remoteFile.readContent( 4 * 1024 * 1024 ) ;
+               resultFile.writeContent( content ) ;
+               localFile.writeContent( content ) ;
+               content.clear() ;
+            }
+         } catch ( e )
+         {
+            if ( -9 != e )
+            {
+               throw e ;
+            }
+         } finally
+         {
+            if ( null != localFile )
+            {
+               localFile.close() ;
+            }
+            if ( null != remoteFile )
+            {
+               remoteFile.close() ;
+            }
+         }
+      }
+   } catch ( e )
+   {
+      setLastErrMsg( 'Failed to merge search result, error: ' + getLastErrMsg() ) ;
+      throw e ;
+   } finally
+   {
+      if ( null != resultFile )
+      {
+         resultFile.close() ;
+      }
+   }
+
+   // sort result
+   this._logTool = logTool ;
+   var shellCmd = this._logTool + ' -o "' + this._output + '" --sort-only' ;
+   if ( '' != this._original )
+   {
+      shellCmd += ' -O' ;
+   }
+   if ( 0 < this._limit )
+   {
+      shellCmd += ' -n ' + this._limit ;
+   }
+
+   try {
+      localCmd.run( shellCmd ) ;
+   } catch ( e ) {
+      setLastErrMsg( 'Failed to sort result with "' + shellCmd + '", error: ' + getLastErrMsg() ) ;
+      throw e ;
+   }
+
+   for ( var i = 0; i < outputFileArray.length; i++ )
+   {
+      outputFileArray[i].remote.close() ;
+   }
+
+   this._loopFile = true ;
+   return this._output ;
+}
+
+DiagLog.prototype._searchFile = function( cmd ) {
+   try
+   {
+      if ( undefined == cmd ) {
+         var cmd = new Cmd() ;
+      }
+   } catch ( e )
+   {
+      throw e ;
+   }
+
+   var shellCmd = this._logTool + ' -d "' + this._path + '"' ;
+
+   if ( '' != this._lastFile )
+   {
+      shellCmd += ' -f ' + this._lastFile ;
+   }
+
+   if ( '' != this._lastest )
+   {
+      shellCmd += ' -r "' + this._lastest + '"' ;
+   }
+
+   if ( '' != this._timeBegin )
+   {
+      shellCmd += ' -s "' + this._timeBegin + '"' ;
+   }
+
+   if ( '' != this._timeEnd )
+   {
+      shellCmd += ' -e "' + this._timeEnd + '"' ;
+   }
+
+   if ( '' != this._output )
+   {
+      shellCmd += ' -o "' + this._output + '"' ;
+      this._outputFile = this._output ;
+   } else
+   {
+      // auto generate output dir with current time
+      var now = new Date( new Date().getTime() + 8 * 60 * 60 * 1000 );
+      this._outputFile = this._tmpDir + '/search/log_' + now.toJSON().replace('Z', '').replace( 'T', '-' ) + '.auto' ;
+      shellCmd += ' -o "' + this._outputFile + '"' ;
+      // remove old dir if more than 10
+      try
+      {
+         var fileArray = cmd.run( "ls " + this._tmpDir + "/search/log_*.auto 2>/dev/null" ).trimRight( '\n' ).split( "\n" ) ;
+         for ( var i = 0; i < fileArray.length - 9; i++ )
+         {
+            cmd.run( "rm -rf " + fileArray[i] ) ;
+         }
+      } catch ( e ) {}
+   }
+
+   if ( '' != this._diaglevel )
+   {
+      shellCmd += ' -l ' + this._diaglevel ;
+   }
+
+   if ( '' != this._error )
+   {
+      shellCmd += ' -E "' + this._error + '"' ;
+   }
+
+   if ( '' != this._keypattern )
+   {
+      shellCmd += ' -m "' + this._keypattern + '"' ;
+   }
+
+   if ( '' != this._pid )
+   {
+      shellCmd += ' -p ' + this._pid ;
+   }
+
+   if ( '' != this._tid )
+   {
+      shellCmd += ' -t ' + this._tid ;
+   }
+
+   if ( this._original )
+   {
+      shellCmd += ' -O' ;
+   }
+
+   if ( '' != this._after )
+   {
+      shellCmd += ' -a ' + this._after ;
+   }
+
+   if ( '' != this._before )
+   {
+      shellCmd += ' -b ' + this._before ;
+   }
+
+   if ( 0 < this._limit )
+   {
+      shellCmd += ' -n ' + this._limit ;
+   }
+
+   if ( '' != this._role )
+   {
+      shellCmd += ' -R "' + this._role + '"' ;
+   }
+
+   if ( '' != this._serviceName )
+   {
+      shellCmd += ' -S "' + this._serviceName + '"' ;
+   }
+
+   if ( '' != this._hostName ) {
+      shellCmd += ' -H "' + this._hostName + '"' ;
+   }
+
+   if ( this._fileOnly )
+   {
+      shellCmd += ' --files-only' ;
+   }
+
+   try
+   {
+      if ( "" != shellCmd )
+      {
+         if ( this._nohup )
+         {
+            cmd.start( shellCmd ) ;
+         } else
+         {
+            cmd.run( shellCmd ) ;
+            this._loopFile = true ;
+         }
+      }
+   } catch ( e )
+   {
+      setLastErrMsg( 'Failed to search log with cmd "' + shellCmd + '", error: "' + getLastErrMsg() + '"' ) ;
+      throw e ;
+   }
+   return this._outputFile ;
+}
+
+DiagLog.prototype.next = function( num ) {
+   if ( null == num )
+   {
+      num = 1 ;
+   }
+   if ( "number" != typeof( num ) )
+   {
+      setLastErrMsg( "next value must be number" ) ;
+      throw SDB_INVALIDARG ;
+   } else if ( num <= 0 )
+   {
+      setLastErrMsg( "next value must be greater than 0" ) ;
+      throw SDB_INVALIDARG ;
+   }
+
+   if ( ! this._loopFile )
+   {
+      return ;
+   }
+
+   try
+   {
+      if ( ! File.exist( this._outputFile ) || ! File.isFile( this._outputFile ) )
+      {
+         this._loopFile = false ;
+         return ;
+      }
+
+      if ( this._readFile != this._outputFile && '' != this._logFile ) {
+         this._logFile.close() ;
+         this._logFile = '' ;
+      }
+   
+      if ( '' == this._logFile )
+      {
+         this._logFile = new File( this._outputFile, 0644, SDB_FILE_READONLY ) ;
+         this._readFile = this._outputFile ;
+      }
+   } catch ( e )
+   {
+      setLastErrMsg( 'Failed to open file ' + this._outputFile + ', error: ' + getLastErrMsg() );
+      throw e ;   
+   }
+
+   var content ;
+   var result = '' ;
+   var preNodeName = '' ;
+   try
+   {
+      var i = 0 ;
+      var isEmptyLine = false ;
+      var isNodeNameLine = false ;
+      var curNodeName = '' ;
+      var regex = new RegExp( '^={2,}[^=]+={2,}$' );
+      while( content = this._logFile.readLine() )
+      {
+         if ( regex.test( content.trimRight( '\n' ) ) )
+         {
+            isNodeNameLine = true ;
+            curNodeName = content ;
+         }
+
+         if ( 0 == content.trimRight( '\n' ).length )
+         {
+            isEmptyLine = true ;
+         }
+
+         if ( ! this._original )
+         {
+            result += content ;
+            i++ ;
+         } else
+         {
+            if ( isNodeNameLine )
+            {
+               isNodeNameLine = false ;
+               if ( curNodeName != preNodeName || '' == preNodeName )
+               {
+                  preNodeName = curNodeName ;
+                  result += curNodeName ;
+               }
+            } else
+            {
+               result += content
+            }
+
+            if ( isEmptyLine )
+            {
+               i++ ;
+               isEmptyLine = false ;
+            }
+         }
+
+         if ( i >= num )
+         {
+            break ;
+         } 
+      }
+   } catch ( e )
+   {
+      this._logFile.close() ;
+      this._logFile = '' ;
+      this._loopFile = false ;
+      if ( SDB_EOF != e )
+      {
+         setLastErrMsg( 'Failed to read next line from ' + this._outputFile + ', error: ' + getLastErrMsg() );
+         throw e ;
+      }
+   }
+   return result ;
+}
+
+DiagLog.prototype._scp = function( src, dst ) {
+   if( "string" != typeof( src ) )
+   {
+      setLastErrMsg( "src must be string" ) ;
+      throw SDB_INVALIDARG ;
+   }
+   if( "string" != typeof( dst ) )
+   {
+      setLastErrMsg( "dst must be string" ) ;
+      throw SDB_INVALIDARG ;
+   }
+
+   var srcFile ;
+   var dstFile ;
+   var COPY_UNIT = 4*1024*1024 ;
+   var srcArr = src.split( "@" ) ;
+   var dstFilename ;
+   var mode ;
+   if( srcArr.length > 1 )
+   {
+      var hostPortSplit = srcArr[0].split( ":" ) ;
+      var remote = new Remote( hostPortSplit[0], hostPortSplit[1] ) ;
+      var fileMgr = remote.getFile() ;
+
+      if( false == fileMgr.exist( srcArr[1] ) )
+      {
+         setLastErrMsg( "src not exist" ) ;
+         throw SDB_FNE ;
+      }
+      mode = fileMgr._getPermission( srcArr[1] ) ;
+      srcFile = remote.getFile( srcArr[1], 0644, SDB_FILE_READONLY ) ;
+   }
+   else
+   {
+      if( false == File.exist( srcArr[0] ) )
+      {
+         setLastErrMsg( "src not exist" ) ;
+         throw SDB_FNE ;
+      }
+      mode = File._getPermission( srcArr[0] ) ;
+      srcFile = new File( srcArr[0], 0644, SDB_FILE_READONLY ) ;
+   }
+
+   var dstArr = dst.split( "@" ) ;
+   if( dstArr.length > 1 )
+   {
+      var hostPortSplit = dstArr[0].split( ":" ) ;
+      var remote = new Remote( hostPortSplit[0], hostPortSplit[1] ) ;
+      var fileMgr = remote.getFile() ;
+      dstFilename = dstArr[1] ;
+      if( true == fileMgr.exist( dstFilename ) )
+      {
+         setLastErrMsg( "dst file " + dst + " exist" ) ;
+         throw SDB_FE ;
+      }
+      else
+      {
+         dstFile = remote.getFile( dstFilename, mode,
+                                   SDB_FILE_CREATEONLY | SDB_FILE_READWRITE ) ;
+      }
+   }
+   else
+   {
+      dstFilename = dstArr[0] ;
+      if( true == File.exist( dstFilename ) )
+      {
+         setLastErrMsg( "dst file " + dst + " exist" ) ;
+         throw SDB_FE ;
+      }
+      else
+      {
+         dstFile = new File( dstFilename, mode,
+                             SDB_FILE_CREATEONLY | SDB_FILE_READWRITE ) ;
+      }
+   }
+
+   try
+   {
+      while( true )
+      {
+         var fileContent = srcFile.readContent( COPY_UNIT ) ;
+         dstFile.writeContent( fileContent ) ;
+         fileContent.clear() ;
+      }
+   }
+   catch( e )
+   {
+      srcFile.close() ;
+      dstFile.close() ;
+      var errValue = e.message || e;
+      if( -9 != errValue )
+      {
+         throw e ;
+      }
+   }
+}
+
+DiagLog.prototype._collectTrapAndCore = function ( db, collectOutput ) {
+   try
+   {
+      var dstDir = collectOutput + '/trap_core_snapshot' ;
+      File.mkdir( dstDir, 0777 ) ;
+   } catch ( e )
+   {
+      setLastErrMsg( 'Failed to mkdir ' + dstDir + ', error: ' + getLastErrMsg() );
+      throw e ;
+   }
+
+   var diagpathObj = {} ;
+   try {
+      var cursor = db.exec('select NodeName,diagpath from $SNAPSHOT_CONFIGS');
+      while ( cursor.next() )
+      {
+         var current = cursor.current().toObj() ;
+         diagpathObj[current.NodeName] = current.diagpath;
+      }
+      cursor.close() ;
+   } catch ( e )
+   {
+      setLastErrMsg( 'Failed get node info from "select NodeName,diagpath from $SNAPSHOT_CONFIGS"' ) ;
+      throw e ;
+   }
+
+   try
+   {
+      var oma = new Oma() ;
+      var cursor = db.exec('select HostName, push(ServiceName) as ServiceName, push(GroupName) as GroupName from $SNAPSHOT_SYSTEM group by HostName') ;
+      while ( cursor.next() )
+      {
+         var current = cursor.current().toObj() ;
+         var omaSvcName = oma.getAOmaSvcName( current.HostName ) ;
+         var remote = new Remote( current.HostName, omaSvcName ) ;
+         var cmd = remote.getCmd() ;
+         for ( var i = 0; i < current.ServiceName.length; i++ )
+         {
+            var coreArray = [] ;
+            var trapArray = [] ;
+            var GroupName = current.GroupName[i] ;
+            if ( '' == GroupName )
+            {
+               GroupName = 'standalone' ;
+            }
+            if ( this._core )
+            {
+               try
+               {
+                  coreArray = cmd.run( 'ls ' + diagpathObj[current.HostName + ":" + current.ServiceName[i]] + '/*.core 2>/dev/null' ).trimRight( '\n' ).split( '\n' ) ;
+               } catch ( e )
+               {
+                  if ( 2 != e )
+                  {
+                     setLastErrMsg( 'Failed to get the core file of the cluster, error: ' + getLastErrMsg() );
+                     throw e ;
+                  }
+               }
+            }
+            if ( this._trap )
+            {
+               try
+               {
+                  trapArray = cmd.run( 'ls ' + diagpathObj[current.HostName + ":" + current.ServiceName[i]] + '/*.trap 2>/dev/null' ).trimRight( '\n' ).split( '\n' ) ;
+               } catch ( e )
+               {
+                  if ( 2 != e )
+                  {
+                     setLastErrMsg( 'Failed to get the trap file of the cluster, error: ' + getLastErrMsg() );
+                     throw e ;
+                  }
+               }
+            }
+            var collectArray = coreArray.concat(trapArray) ;
+            var srcFile = '' ;
+            var dstFile = '' ;
+            for ( var j = 0; j < collectArray.length; j++ )
+            {
+               if ( '' == collectArray[j] ) { continue ; }
+               var collectNameArray = collectArray[j].split( '/' ) ;
+               srcFile = current.HostName + ':' + omaSvcName + '@' + collectArray[j] ;
+               dstFile = dstDir + '/' + current.HostName + '_' + current.ServiceName[i] + '_' + GroupName + '_' + collectNameArray[ collectNameArray.length - 1 ] ;
+               this._scp( srcFile, dstFile ) ;
+            }
+         }
+      }
+   } catch ( e )
+   {
+      setLastErrMsg( 'Failed to collect core or trap, error: ' + getLastErrMsg() );
+      throw e ;
+   } finally
+   {
+      if ( null != cursor )
+      {
+         cursor.close() ;
+      }
+   }
+}
+
+DiagLog.prototype._getSnapshot = function ( db, snapshot, filename, ignore, history ) {
+   var cursor ;
+   try
+   {
+      cursor = db.exec( 'select * from ' + snapshot ) ;
+   } catch ( e )
+   {
+      // ignore standalone nodes
+      if ( -159 == e )
+      {}
+      // some snapshots may not exist in earlier versions
+      else if ( -6 == e && ignore )
+      {} else
+      {
+         setLastErrMsg( 'Failed to select * from ' + snapshot + ', error: ' + getLastErrMsg() );
+         throw e ;
+      }
+   }
+
+   try
+   {
+      var file = new File( filename, 0644, SDB_FILE_READWRITE | SDB_FILE_CREATE ) ;
+   } catch ( e )
+   {
+      if ( null != cursor )
+      {
+         cursor.close() ;
+      }
+      setLastErrMsg( 'Failed to open ' + filename + ', error: ' + getLastErrMsg() );
+      throw e ;
+   }
+
+   try
+   {
+      if ( null != cursor )
+      {
+         while ( cursor.next() )
+         {
+            file.write( JSON.stringify( cursor.current().toObj(), null, 2 ) + '\n' ) ;
+         }
+      }
+   } catch ( e )
+   {
+      setLastErrMsg( 'Failed to write ' + snapshot + ' to ' + filename + ', error: ' + getLastErrMsg() );
+      throw e ;
+   } finally
+   {
+      if ( null != cursor )
+      {
+         cursor.close() ;
+      }
+      if ( null != file )
+      {
+         file.close() ;
+      }
+   }
+
+   if ( history )
+   {
+      try
+      {
+         cursor = db.exec( 'select * from ' + snapshot + ' /*+use_option(viewHistory,true)*/' ) ;
+      } catch ( e )
+      {
+         // ignore standalone nodes
+         if ( -159 == e )
+         {}
+         // some snapshots may not exist in earlier versions
+         else if ( -6 == e && ignore )
+         {} else
+         {
+            setLastErrMsg( 'Failed to select * from ' + snapshot + ', error: ' + getLastErrMsg() );
+            throw e ;
+         }
+      }
+
+      try
+      {
+         filename += '_history' ;
+         var file = new File( filename , 0644, SDB_FILE_READWRITE | SDB_FILE_CREATE ) ;
+      } catch ( e )
+      {
+         if ( null != cursor )
+         {
+            cursor.close() ;
+         }
+         setLastErrMsg( 'Failed to open ' + filename + ', error: ' + getLastErrMsg() );
+         throw e ;
+      }
+
+      try
+      {
+         if ( null != cursor )
+         {
+            while ( cursor.next() )
+            {
+               file.write( JSON.stringify( cursor.current().toObj(), null, 2 ) + '\n' ) ;
+            }
+         }
+      } catch ( e )
+      {
+         setLastErrMsg( 'Failed to write history ' + snapshot + ' to ' + filename + ', error: ' + getLastErrMsg() );
+         throw e ;
+      } finally
+      {
+         if ( null != cursor )
+         {
+            cursor.close() ;
+         }
+         if ( null != file )
+         {
+            file.close() ;
+         }
+      }
+   }
+}
+
+DiagLog.prototype._collectSnapshot = function ( db, collectOutput ) {
+   try
+   {
+      var dirName = collectOutput + '/trap_core_snapshot' ;
+      File.mkdir( dirName, 0777 ) ;
+      if ( 'SNAP_CSCL' == this._snapshot || 'SNAP_ALL' == this._snapshot )
+      {
+         this._getSnapshot( db, '$SNAPSHOT_CS', dirName + '/snapshot_cs', false, false );
+         this._getSnapshot( db, '$SNAPSHOT_CL', dirName + '/snapshot_cl', false, false );
+         this._getSnapshot( db, '$SNAPSHOT_CATA', dirName + '/snapshot_cata', false, false );
+      }
+      if ( 'SNAP_SYS' == this._snapshot || 'SNAP_ALL' == this._snapshot )
+      {
+         this._getSnapshot( db, '$SNAPSHOT_SYSTEM', dirName + '/snapshot_system', false, false );
+         this._getSnapshot( db, '$SNAPSHOT_CONFIGS', dirName + '/snapshot_configs', false, false );
+         this._getSnapshot( db, '$SNAPSHOT_DB', dirName + '/snapshot_db', false, false );
+         this._getSnapshot( db, '$SNAPSHOT_HEALTH', dirName + '/snapshot_health', false, false );
+         this._getSnapshot( db, '$SNAPSHOT_SEQUENCES', dirName + '/snapshot_sequences', false, false );
+         this._getSnapshot( db, '$SNAPSHOT_SVCTASKS', dirName + '/snapshot_svctasks', true, false );
+         this._getSnapshot( db, '$SNAPSHOT_TASKS', dirName + '/snapshot_tasks', true, false );
+      }
+      if ( 'SNAP_SESSION' == this._snapshot || 'SNAP_ALL' == this._snapshot )
+      {
+         this._getSnapshot( db, '$SNAPSHOT_SESSION', dirName + '/snapshot_session', false, false );
+         this._getSnapshot( db, '$SNAPSHOT_CONTEXT', dirName + '/snapshot_context', false, false );
+      }
+      if ( 'SNAP_QUERY' == this._snapshot || 'SNAP_ALL' == this._snapshot )
+      {
+         // always collect history, even if it may be empty
+         this._getSnapshot( db, '$SNAPSHOT_QUERIES', dirName + '/snapshot_queries', true, true );
+         this._getSnapshot( db, '$SNAPSHOT_LOCKWAITS', dirName + '/snapshot_lockwaits', true, true );
+         this._getSnapshot( db, '$SNAPSHOT_LATCHWAITS', dirName + '/snapshot_latchwaits', true, false );
+         this._getSnapshot( db, '$SNAPSHOT_TRANS', dirName + '/snapshot_trans', false, false );
+         this._getSnapshot( db, '$SNAPSHOT_ACCESSPLANS', dirName + '/snapshot_accessplans', false, false );
+         this._getSnapshot( db, '$SNAPSHOT_INDEXSTATS', dirName + '/snapshot_indexstats', true, false );
+         this._getSnapshot( db, '$SNAPSHOT_TRANSDEADLOCK', dirName + '/snapshot_transdeadlock', true, false );
+         this._getSnapshot( db, '$SNAPSHOT_TRANSWAIT', dirName + '/snapshot_transwait', true, false );
+      }
+   } catch ( e )
+   {
+      throw e;
+   }
+}
+
+DiagLog.prototype._collect = function() {
+   var db ;
+   try
+   {
+      if ( '' != this.cipherUser)
+      {
+         db = new Sdb( this.hostname, this.svcname, this.cipherUser ) ;
+      } else
+      {
+         db = new Sdb( this.hostname, this.svcname, this.user, this.password ) ;
+      }
+      var cmd = new Cmd() ;
+      var oma = new Oma() ;
+      var now = new Date() ;
+   } catch ( e )
+   {
+      throw e ;
+   }
+
+   // auto generate output dir with current time
+   var collectOutput = '' ;
+   var collectOutputDir = 'diaglog_' ;
+   var autoGenerate = '' ;
+   this._output = '' ;
+   if ( '' != this._path )
+   {
+      try
+      {
+         if ( File.exist( this._path ) )
+         {
+            var isDir = File.isDir( this._path );
+            if ( !isDir )
+            {
+               setLastErrMsg( 'In the collect(), the value of the path() must be a directory' ) ;
+               throw SDB_INVALIDARG ;
+            }
+         }
+
+      } catch ( e ) {
+         throw e ;
+      }
+      collectOutput += this._path ;
+      this._path = '' ;
+   } else
+   {
+      collectOutput += this._tmpDir + '/collect' ;
+      autoGenerate = '.auto' ;
+      // remove old dir if more than 10
+      try
+      {
+         var fileArray = cmd.run( 'ls -d ' + this._tmpDir + '/collect/diaglog_*.auto 2>/dev/null' ).trimRight( '\n' ).split( '\n' ) ;
+         for ( var i = 0; i < fileArray.length - 9; i++ )
+         {
+            cmd.run( "rm -rf " + fileArray[i] ) ;
+         }
+      } catch ( e ) {}
+      try
+      {
+         var fileArray = cmd.run( 'ls ' + this._tmpDir + '/collect/diaglog_*.auto.zip 2>/dev/null' ).trimRight( '\n' ).split( '\n' ) ;
+         for ( var i = 0; i < fileArray.length - 9; i++ )
+         {
+            cmd.run( "rm -rf " + fileArray[i] ) ;
+         }
+      } catch ( e ) {}
+      try
+      {
+         var fileArray = cmd.run( 'ls ' + this._tmpDir + '/collect/diaglog_*.auto.tar.gz 2>/dev/null' ).trimRight( '\n' ).split( '\n' ) ;
+         for ( var i = 0; i < fileArray.length - 9; i++ )
+         {
+            cmd.run( "rm -rf " + fileArray[i] ) ;
+         }
+      } catch ( e ) {}
+   }
+   collectOutputDir += now.getFullYear() ;
+   if ( now.getMonth() >= 9 )
+   {
+      collectOutputDir += (now.getMonth() + 1) ;
+   } else
+   {
+      collectOutputDir += '0' + (now.getMonth() + 1) ;
+   }
+   if ( now.getDate() > 9 )
+   {
+      collectOutputDir += (now.getDate()) + "_" ;
+   } else
+   {
+      collectOutputDir += '0' + (now.getDate()) + "_" ;
+   }
+   if ( now.getHours() > 9 )
+   {
+      collectOutputDir += (now.getHours()) ;
+   } else
+   {
+      collectOutputDir += '0' + (now.getHours()) ;
+   }
+   if ( now.getMinutes() > 9 )
+   {
+      collectOutputDir += (now.getMinutes()) ;
+   } else
+   {
+      collectOutputDir += '0' + (now.getMinutes()) ;
+   }
+   if ( now.getSeconds() > 9 )
+   {
+      collectOutputDir += (now.getSeconds()) ;
+   } else
+   {
+      collectOutputDir += '0' + (now.getSeconds()) ;
+   }
+   collectOutputDir += autoGenerate ;
+   collectOutput += '/' + collectOutputDir ;
+
+   var needCompress = false ;
+   if ( this._needSearch )
+   {
+      this._original = false ;
+      this._path = '' ;
+      // use --files-only to search log files name
+      this._fileOnly = true ;
+      try
+      {
+         this._search() ;
+      } catch ( e )
+      {
+         throw e ;
+      }
+      this._fileOnly = false ;
+
+      var nodeInfoObj = {} ;
+      var content ;
+      var cursor ;
+      try
+      {
+         // skip standalone nodes
+         try {
+            var isStandalone = db.exec('select role from $SNAPSHOT_CONFIGS limit 1').current().toObj().role ;
+         } catch ( e ) {
+            setLastErrMsg( 'Failed to get info from "select role from $SNAPSHOT_CONFIGS", error: ' + getLastErrMsg() ) ;
+            throw e ;
+         }
+         if ( 'standalone' != isStandalone ) {
+            try
+            {
+               cursor = db.exec('select Group,GroupID,GroupName from $LIST_GROUP split by Group') ;
+               while ( cursor.next() )
+               {
+                  var current = cursor.current().toObj() ;
+                  var info = {} ;
+                  info['NodeID'] = current.Group.NodeID ;
+                  info['GroupID'] = current.GroupID ;
+                  info['GroupName'] = current.GroupName ;
+                  if ( 'SYSCoord' == current.GroupName )
+                  {
+                     info["Role"] = 'coord' ;
+                  } else if ( 'SYSCatalogGroup' == current.GroupName )
+                  {
+                     info["Role"] = 'catalog' ;
+                  } else
+                  {
+                     info["Role"] = 'data' ;
+                  }
+                  nodeInfoObj[current.Group.HostName + ':' + current.Group.Service[0].Name] = info ;
+               }
+            } catch ( e )
+            {
+               setLastErrMsg( 'Failed to get info from "select Group,GroupID,GroupName from $LIST_GROUP split by Group", error: ' + getLastErrMsg() );
+               throw e ;
+            }
+         } else {
+            try
+            {
+               cursor = db.exec('select HostName,ServiceName,GroupName from $SNAPSHOT_DB') ;
+               while ( cursor.next() )
+               {
+                  var current = cursor.current().toObj() ;
+                  var info = {} ;
+                  info['NodeID'] = 0 ;
+                  info['GroupID'] = 0 ;
+                  info['GroupName'] = 'standalone' ;
+                  info["Role"] = 'standalone' ;
+                  nodeInfoObj[current.HostName + ':' + current.ServiceName] = info ;
+               }
+            } catch ( e )
+            {
+               setLastErrMsg( 'Failed to get info from "select HostName,ServiceName,GroupName from $SNAPSHOT_DB", error: ' + getLastErrMsg() );
+               throw e ;
+            }
+         }
+      } catch ( e )
+      {
+         throw e ;
+      } finally
+      {
+         if ( null != cursor )
+         {
+            cursor.close() ;
+         }
+      }
+
+      try
+      {
+         while ( content = this.next( 1 ) )
+         {
+            content = content.trim( '\n' );
+            if ( undefined == content || '' == content ) { continue ; }
+            var hostName = content.split( '@@' )[0] ;
+            var serviceName = content.split( '@@' )[1] ;
+            var fileName = content.split( '@@' )[2] ;
+            var nodeName = hostName + ':' + serviceName ;
+            var omaSvcName = oma.getAOmaSvcName( hostName ) ;
+            var filenameArray = fileName.split( '/' );
+            var srcFile = hostName + ':' + omaSvcName + '@' + fileName ;
+            var role = nodeInfoObj[nodeName].Role ;
+            var groupName = nodeInfoObj[nodeName].GroupName ;
+            var nodeID = nodeInfoObj[nodeName].NodeID ;
+            var groupID = nodeInfoObj[nodeName].GroupID ;
+            var dstDir = collectOutput + '/' + hostName + '/' + role + '_' + groupName + '_' + serviceName + '_' + nodeID + '_' + groupID ;
+            var dstFile = dstDir + '/' + filenameArray[filenameArray.length - 1] ;
+            File.mkdir( dstDir, 0777 ) ;
+            this._scp( srcFile, dstFile ) ;
+            needCompress = true ;
+         }
+      } catch ( e )
+      {
+         setLastErrMsg( 'Failed to get the collected log target, error: ' + getLastErrMsg() );
+         throw e ;
+      }
+   }
+
+   try
+      {
+      if ( this._trap || this._core )
+      {
+         needCompress = true ;
+         this._collectTrapAndCore( db, collectOutput ) ;
+      }
+      if ( '' != this._snapshot )
+      {
+         needCompress = true ;
+         this._collectSnapshot( db, collectOutput ) ;
+      }
+   } catch ( e )
+   {
+      throw e ;
+   } finally
+   {
+      if ( null != db )
+      {
+         db.close() ;
+      }
+   }
+
+   try
+   {
+      if ( needCompress )
+      {
+         if ( 'zip' != this._compress )
+         {
+            cmd.run( 'cd ' + collectOutput + '/../ && tar -zcf ' + collectOutputDir + '.tar.gz ' + collectOutputDir );
+         } else
+         {
+            cmd.run( 'cd ' + collectOutput + '/../ && zip -r ' + collectOutputDir + '.zip ' + collectOutputDir );
+         }
+      } else
+      {
+         File.mkdir( collectOutput, 0777 ) ;
+      }
+   } catch ( e )
+   {
+      setLastErrMsg( 'Failed to compress files "' + collectOutputDir + '", error: ' + getLastErrMsg() );
+      throw e ;
+   }
+
+   return collectOutput ;
+}
+
+DiagLog.prototype._analyze = function() {
+   if ( '' == this._path )
+   {
+      setLastErrMsg( "path cannot be empty" ) ;
+      throw SDB_INVALIDARG ;
+   }
+
+   try
+   {
+      var cmd = new Cmd() ;
+      var now = new Date( new Date().getTime() + 8 * 60 * 60 * 1000 );
+   } catch ( e )
+   {
+      throw e ;   
+   }
+
+   try {
+      // remove old dir if more than 10
+      var fileArray = cmd.run( 'ls -d ' + this._tmpDir + '/analyze/diaglog_*.auto 2>/dev/null' ).trimRight( '\n' ).split( '\n' ) ;
+      for ( var i = 0; i < fileArray.length - 9; i++ )
+      {
+         cmd.run( "rm -rf " + fileArray[i] ) ;
+      }
+   } catch ( e ) {}
+
+   var output = '' ;
+   if ( '' != this._output )
+   {
+      output = this._output ;
+   } else
+   {
+      output = this._tmpDir + '/analyze/diaglog_' +  now.toJSON().replace('Z', '').replace( 'T', '-' ) + '.auto' ;
+   }
+
+   var pathArray = this._path.split( '/' ) ;
+   var countCsv = output + '/error_count.csv' ;
+   var timeCsv = output + '/error_time.csv' ;
+
+   try {
+      try
+      {
+         File.mkdir( output, 0777 ) ;
+      } catch ( e )
+      {
+         setLastErrMsg( 'Failed to mkdir ' + output + ', error: ' + getLastErrMsg() );
+         throw e ;
+      }
+
+      try
+      {
+         if ( /.*\.zip$/.test( this._path ) )
+         {
+            cmd.run( 'unzip -o ' + this._path + ' -d ' + output ) ;
+            this._path = output + '/' + pathArray[pathArray.length - 1].replace( /\.zip$/, '' ) ;
+         } else if  ( /.*\.tar\.gz$/.test( this._path ) )
+         {
+            cmd.run( 'tar -xzf ' + this._path + ' -C ' + output ) ;
+            this._path = output + '/' + pathArray[pathArray.length - 1].replace( /\.tar.gz$/, '' ) ;
+         }
+         var hostArray = cmd.run( 'ls ' + this._path + '/' ).trimRight( '\n' ).split( '\n' ) ;
+      } catch ( e )
+      {
+         setLastErrMsg( 'Failed to parse path ' + this._path + ', error: ' + getLastErrMsg() );
+         throw e ;
+      }
+
+      try
+      {
+         var countFile = new File( countCsv, 0644, SDB_FILE_READWRITE | SDB_FILE_CREATE ) ;
+         countFile.truncate() ;
+      } catch ( e )
+      {
+         setLastErrMsg( 'Failed to touch csv ' + countCsv + ', error: ' + getLastErrMsg() );
+         throw e ;
+      }
+
+      try
+      {
+         var timeFile = new File( timeCsv, 0644, SDB_FILE_READWRITE | SDB_FILE_CREATE ) ;
+         timeFile.truncate() ;
+      } catch ( e )
+      {
+         setLastErrMsg( 'Failed to touch csv ' + timeCsv + ', error: ' + getLastErrMsg() );
+         throw e ;
+      }
+
+      for ( var i = 0; i < hostArray.length; i++ )
+      {
+         var hostName = hostArray[i] ;
+         if ( 'analyze' == hostName || 'trap_core_snapshot' == hostName ) { continue ; }
+         try
+         {
+            var nodeFileArray = cmd.run( 'ls ' + this._path + '/' + hostName ).trimRight( '\n' ).split( '\n' ) ;
+         } catch ( e )
+         {
+            setLastErrMsg( 'Failed to parse diaglog in directory ' + this._path + ', error: ' + getLastErrMsg() );
+            throw e ;
+         }
+         for ( var j = 0; j < nodeFileArray.length; j++ )
+         {
+            var nodeFile = nodeFileArray[j] ;
+            // example: data_group1_11820_1001_1000
+            var nodeInfo = nodeFileArray[j].split( '_' ) ;
+            if ( 5 != nodeInfo.length ) {
+               setLastErrMsg( 'Failed to parse diaglog in directory ' + this._path + '/' + hostName ) ;
+               throw SDB_INVALIDARG ;
+            }
+            var groupName = nodeInfo[1] ;
+            var serviceName = nodeInfo[2] ;
+            var fullFileName = this._path + "/" + hostName + "/" + nodeFile ;
+            try
+            {
+               var timeErrorArray = cmd.run( "awk '/(rc=|rc: )-[0-9]+\\]?$/{if(NR>5) print lines[NR-5]$0} {lines[NR]=$0}' " + fullFileName + "/* | sed 's#\\([^ ]*\\) .*\\(-[0-9][0-9]*\\)$#\\1 \\2#g'").trimRight( '\n' ).split( '\n' ) ;
+               for ( var k = 0; k < timeErrorArray.length; k++ )
+               {
+                  if ( '' != timeErrorArray[k] )
+                  {
+                     var timeError = timeErrorArray[k].split( ' ' ) ;
+                     timeFile.write( hostName + ',' + serviceName + ',' + groupName + ',' + timeError[1] + ',' + timeError[0] + '\n' ) ;
+                  }
+               }
+            } catch ( e )
+            {
+               setLastErrMsg( 'Failed to parse diaglog ' + fullFileName + ', error: ' + getLastErrMsg() );
+               throw e ;
+            }
+         }
+      }
+      
+      try
+      {
+         cmd.run( "awk -F',' '{print $1\" \"$2\" \"$3\" \"$4}' " + timeCsv + " | sort | uniq -c | awk '{print $2\",\"$3\",\"$4\",\"$5\",\"$1}' > " + countCsv ) ;
+      } catch ( e )
+      {
+         setLastErrMsg( 'Failed to parse csv ' + timeCsv + ', error: ' + getLastErrMsg() );
+         throw e ;  
+      }
+
+      try
+      {
+         cmd.run( "sort -t',' -k5,5nr -o " + countCsv + ' ' + countCsv );
+         cmd.run( "sed -i '1i\\HostName,ServiceName,GroupName,Error,Count' " + countCsv ) ;
+         cmd.run( "sort -t',' -k5,5r -o " + timeCsv + ' ' + timeCsv );
+         cmd.run( "sed -i '1i\\HostName,ServiceName,GroupName,Error,Time' " + timeCsv ) ;
+      } catch ( e )
+      {
+         setLastErrMsg( 'Failed to add head line on csv ' + timeCsv + ' and ' + countCsv + ', error: ' + getLastErrMsg() );
+         throw e ;  
+      }
+   } catch ( e )
+   {
+      throw e;
+   } finally
+   {
+      if ( null != timeFile )
+      {
+         timeFile.close() ;
+      }
+      if ( null != countFile )
+      {
+         countFile.close() ;
+      }
+   }
+
+   return output ;
+}
+
+DiagLog.prototype.close = function() {
+   try
+   {
+      if ( '' != this._logFile )
+      {
+         this._logFile.close() ;
+      }
+   } catch ( e )
+   {
+      throw e ;
+   }
+}
+
+DiagLog.prototype._helpSearch = function()
+{
+   println( "   lastFile(<num>)                - Search logs from the most recent <num> diaglog files." ) ;
+   println( "   lastest(<num>)                 - Search logs from the last <num> minutes." ) ;
+   println( "   timeBegin('<timeStr>')         - Search the earliest time in the diaglog files." ) ;
+   println( "                                    The time string format must be parsable by Date.parse()." ) ;
+   println( "   timeEnd('<timeStr>')           - Search the latest time in the diaglog files." ) ;
+   println( "                                    The time string format must be parsable by Date.parse()." ) ;
+   println( "   error(<num>)                   - Search for the error code <num> in the Message section of the diaglog files." ) ;
+   println( "   diaglevel(<0-4>)               - Filter by diaglevel, including lower levels" ) ;
+   println( "                                    0=SEVERE, 1=ERROR, 2=EVENT, 3=WARNING, 4=INFO." ) ;
+   println( "   keypattern('<str>')            - Search for the key pattern <str> in the Message section of the diaglog files." ) ;
+   println( "   pid(<num>)                     - Search logs by pid <num>." ) ;
+   println( "   tid(<num>)                     - Search logs by tid <num>." ) ;
+   println( "   after(<num>)                   - The search results include the last <num> logs of the target log." ) ;
+   println( "   before(<num>)                  - The search results include the first <num> logs of the target log." ) ;
+   println( "   limit(<num>)                   - Limit the maximum number of returned logs." ) ;
+   println( "   original()                     - Output the original logs, default is summary logs." ) ;
+   println( "   output('<path>')               - The directory for search result output." ) ;
+   println( "                                    If not specified, it will be generated automatically." ) ;
+   println( "   path('<path>')                 - Search the directory or archive collected by DiagLog.collect()." ) ;
+}
+
+DiagLog.prototype._helpCollect = function()
+{
+   println( "   snasphot('<snapType>')         - Collect the snasphot, snapType:" ) ;
+   println( "                                    SNAP_CSCL: $SNAPSHOT_CS $SNAPSHOT_CL $SNAPSHOT_CATA" ) ;
+   println( "                                    SNAP_SYS: $SNAPSHOT_SYSTEM $SNAPSHOT_CONFIGS $SNAPSHOT_DB" ) ;
+   println( "                                       $SNAPSHOT_HEALTH $SNAPSHOT_SEQUENCES $SNAPSHOT_SVCTASKS $SNAPSHOT_TASKS" ) ;
+   println( "                                    SNAP_SESSION: $SNAPSHOT_SESSION $SNAPSHOT_CONTEXT" ) ;
+   println( "                                    SNAP_QUERY: $SNAPSHOT_QUERIES $SNAPSHOT_LOCKWAITS $SNAPSHOT_LATCHWAITS $SNAPSHOT_TRANS" ) ;
+   println( "                                       $SNAPSHOT_ACCESSPLANS $SNAPSHOT_INDEXSTATS $SNAPSHOT_TRANSDEADLOCK $SNAPSHOT_TRANSWAIT" ) ;
+   println( "                                    SNAP_ALL: include all of the above" ) ;
+   println( "   core()                         - Collect the core files from all nodes." ) ;
+   println( "   trap()                         - Collect the trap files from all nodes." ) ;
+   println( "   all()                          - Collect the core, trap files from all nodes and snapshot('SNAP_ALL')." ) ;
+   println( "   compress('<mode>')             - The compression method of collect(), optional 'tar.gz' or 'zip', default is 'tar.gz'" ) ;
+   println( "   path('<path>')                 - The directory for collect result output." ) ;
+   println( "                                    If not specified, it will be generated automatically." ) ;
+}
+
+DiagLog.prototype._helpAnalyze = function()
+{
+   println( "   output('<path>')               - The directory for analyze result output." ) ;
+   println( "                                    If not specified, it will be generated automatically." ) ;
+   println( "   path('<path>')                 - Required parameter, analyze the directory or archive collected by DiagLog.collect()." ) ;
+}
+
+DiagLog.prototype.help = function( mode )
+{
+   this._showHelp = true ;
+   switch( mode )
+   {
+      case "search":
+         println( "DiagLog help on search() methods." ) ;
+         this._helpSearch() ;
+         break ;
+      case "collect":
+         println( "DiagLog help on collect() methods." ) ;
+         this._helpCollect() ;
+         break ;
+      case "analyze":
+         println( "DiagLog help on analyze() methods." ) ;
+         this._helpAnalyze() ;
+         break ;
+      default:
+         println() ;
+         println( '   --Instance methods for class "DiagLog":' ) ;
+         println( "   --methods for search(): " ) ;
+         this._helpSearch() ;
+         println();
+         println( "   --methods for collect(): " ) ;
+         this._helpCollect() ;
+         println();
+         println( "   --methods for analyze(): " ) ;
+         this._helpAnalyze() ;
+         println();
+         println( "   --methods for cursor: " ) ;
+         println( "   next(<num>)                    - Return the next <num> records of the result from search()." ) ;
+         println( "   close()                        - Close the current file from search()." ) ;
+         println( "   run()                          - Run with the currently set parameters" ) ;
+         println( "   reset()                        - Reset all parameters." ) ;
+         break ;
+   }
+   return this ;
+}
+
+// end IniFile
 
 
 
