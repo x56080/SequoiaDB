@@ -404,6 +404,8 @@ namespace engine
                   timeout += onceTimeout ;
                   if ( timeout >= tmpSyncWaitTimeout )
                   {
+                     PD_LOG( PDWARNING, "Wait sync timeout(HasWaitTime: %u, WaitTime: %u), rc: %d",
+                             timeout, tmpSyncWaitTimeout, rc ) ;
                      break ;
                   }
 
