@@ -2083,6 +2083,7 @@ done:
       _statMCVLimit = PMD_DFT_STAT_MCV_LIMIT ;
 
       _remoteLocationConsistency = TRUE ;
+      _syncWithLocation = TRUE ;
       _consultRollbackLogOn = TRUE ;
       _privilegeCheckEnabled = FALSE ;
       _userCacheInterval = PMD_DFT_USER_CACHE_INTERVAL ;
@@ -2713,6 +2714,10 @@ done:
       // --remotelocationconsistency
       rdxBooleanS( pEX, PMD_OPTION_REMOTE_LOCATION_CONSISTENCY, _remoteLocationConsistency, FALSE,
                    PMD_CFG_CHANGE_RUN, TRUE, TRUE ) ;
+
+      // --syncwithlocation
+      rdxBooleanS( pEX, PMD_OPTION_SYNC_WITH_LOCATION, _syncWithLocation, FALSE,
+                   PMD_CFG_CHANGE_RUN, TRUE, FALSE ) ;
 
       // --consultrollbacklogon
       rdxBooleanS( pEX, PMD_OPTION_CONSULT_ROLLBACK_LOG_ON, _consultRollbackLogOn, FALSE,

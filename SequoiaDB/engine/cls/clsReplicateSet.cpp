@@ -1233,7 +1233,7 @@ namespace engine
       UINT32 locationID = MSG_INVALID_LOCATIONID ;
       UINT8 primaryLocationNodes = 0 ;
       UINT8 affinitiveLocations = 0 ;
-      UINT8 locations = 0 ;
+      UINT8 locations = 0, remoteLocations = 0 ;
       UINT8 affinitiveNodes = 0 ;
       _utilStackBitmap< CLS_REPLSET_MAX_NODE_SIZE > isMarked ;
       BOOLEAN needLocInfo = SDB_CONSISTENCY_NODE != strategy ;
@@ -1326,6 +1326,7 @@ namespace engine
                else if ( !isMarked.testBit( pStatus->locationIndex ) )
                {
                   locations++ ;
+                  remoteLocations++ ;
                   isMarked.setBit( pStatus->locationIndex ) ;
                }
             }
@@ -1338,7 +1339,12 @@ namespace engine
          locationInfo->primaryLocationNodes = primaryLocationNodes + selfInc ;
          locationInfo->locations = locations + selfInc ;
          locationInfo->affinitiveLocations = affinitiveLocations + selfInc ;
-         locationInfo->affinitiveNodes = affinitiveNodes + selfInc ;
+
+         if ( isActiveLocation() && !_remoteLocationConsistency )
+         {
+            locationInfo->locations -= remoteLocations ;
+            locationInfo->affinitiveNodes = affinitiveNodes + selfInc ;
+         }
       }
 
       if ( isActiveLocation() && !_remoteLocationConsistency )

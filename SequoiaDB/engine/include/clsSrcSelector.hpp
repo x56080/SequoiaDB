@@ -95,6 +95,8 @@ namespace engine
       {
          _noRes += timeout ;
          _srcTimeout += timeout ;
+
+         _checkSource() ;
       }
 
       OSS_INLINE void clearTime()
@@ -107,6 +109,9 @@ namespace engine
          return _src ;
       }
 
+   protected:
+      void     _checkSource() ;
+
    private:
       set<UINT64>       _blacklist ;
       _clsSyncManager   *_syncmgr ;
@@ -115,6 +120,7 @@ namespace engine
       _clsNodeMgrAgent  *_nodeMgrAgent ;
       UINT32            _srcTimeout ;
       CLS_GROUP_VERSION _groupInfoVersion ;
+      BOOLEAN           _isSyncWithLocation ;
 
    } ;
    typedef class _clsSrcSelector clsSrcSelector ;

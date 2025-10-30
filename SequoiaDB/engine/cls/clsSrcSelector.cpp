@@ -49,7 +49,8 @@ namespace engine
    :_syncmgr( NULL ),
     _noRes( 0 ),
     _srcTimeout( 0 ),
-    _groupInfoVersion( 0 )
+    _groupInfoVersion( 0 ),
+    _isSyncWithLocation( TRUE )
    {
       PD_TRACE_ENTRY ( SDB__CLSSRCSL__CLSSRCSL ) ;
       _nodeMgrAgent = sdbGetShardCB()->getNodeMgrAgent() ;
@@ -71,12 +72,14 @@ namespace engine
    {
       PD_TRACE_ENTRY ( SDB__CLSSRCSL_GETFLSYNSRC ) ;
 
-      _src = _syncmgr->getFullSrc( _blacklist, _groupInfoVersion, TRUE ) ;
+      _isSyncWithLocation = pmdGetOptionCB()->isSyncWithLocation() ;
+
+      _src = _syncmgr->getFullSrc( _blacklist, _groupInfoVersion, _isSyncWithLocation ) ;
 
       if ( MSG_INVALID_ROUTEID == _src.value )
       {
          _blacklist.clear() ;
-         _src = _syncmgr->getFullSrc( _blacklist, _groupInfoVersion, TRUE ) ;
+         _src = _syncmgr->getFullSrc( _blacklist, _groupInfoVersion, _isSyncWithLocation ) ;
       }
 
       PD_TRACE_EXIT ( SDB__CLSSRCSL_GETFLSYNSRC ) ;
@@ -88,12 +91,14 @@ namespace engine
    {
       PD_TRACE_ENTRY ( SDB__CLSSRCSL_GETSYNCSRC ) ;
 
-      _src = _syncmgr->getSyncSrc( _blacklist, _groupInfoVersion, TRUE ) ;
+      _isSyncWithLocation = pmdGetOptionCB()->isSyncWithLocation() ;
+
+      _src = _syncmgr->getSyncSrc( _blacklist, _groupInfoVersion, _isSyncWithLocation ) ;
 
       if ( MSG_INVALID_ROUTEID == _src.value && !_blacklist.empty() )
       {
          _blacklist.clear() ;
-         _src = _syncmgr->getSyncSrc( _blacklist, _groupInfoVersion, TRUE ) ;
+         _src = _syncmgr->getSyncSrc( _blacklist, _groupInfoVersion, _isSyncWithLocation ) ;
       }
 
       PD_TRACE_EXIT ( SDB__CLSSRCSL_GETSYNCSRC ) ;
@@ -177,6 +182,17 @@ namespace engine
    done:
       PD_TRACE_EXIT ( SDB__CLSSRCSL_SLPMY ) ;
       return _src ;
+   }
+
+   void _clsSrcSelector::_checkSource()
+   {
+      BOOLEAN isSyncWithLocation = pmdGetOptionCB()->isSyncWithLocation() ;
+
+      if ( isSyncWithLocation != _isSyncWithLocation )
+      {
+         /// config has changed
+         clearSrc() ;
+      }
    }
 
 }

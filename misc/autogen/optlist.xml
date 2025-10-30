@@ -3274,6 +3274,25 @@
       <hidden>true</hidden>
   </opt>
 
+   <opt>
+      <name>PMD_OPTION_SYNC_WITH_LOCATION</name>
+      <long>syncwithlocation</long>
+      <description>
+         <en>Whether to prioritize synchronizing data from current location nodes. Default is true.</en>
+         <cn>是否优先从当前位置的节点同步数据，默认为 true。</cn>
+      </description>
+      <reloadable>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
+      </reloadable>
+      <detail>
+         <en>Whether to prioritize synchronizing data from current location nodes. Default is true.</en>
+         <cn>是否优先从当前位置的节点同步数据，默认为 true。</cn>
+      </detail>
+      <default>true</default>
+      <typeofweb>boolean</typeofweb>
+  </opt>
+
   <opt>
       <name>PMD_OPTION_CONSULT_ROLLBACK_LOG_ON</name>
       <long>consultrollbacklogon</long>

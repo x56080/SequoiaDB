@@ -399,6 +399,7 @@ namespace engine
          {
             BOOLEAN hasSendSync = FALSE ;
             ++_syncNoneNum ;
+
             if ( _repl->getPrimary().value != _syncSrc.value )
             {
                _syncFailedNum = 0 ;
@@ -407,10 +408,32 @@ namespace engine
                /// we choose a new node to sync data.
                /// But don't add location primary to the blackList.
 
-               if ( _repl->getLocationPrimary().value != _syncSrc.value )
+               /// 1. not location primary node
+               if ( !pmdGetOptionCB()->isSyncWithLocation() ||
+                    _repl->getLocationPrimary().value != _syncSrc.value )
                {
                   _selector.addToBlackList( _syncSrc ) ;
                }
+               /// 2. location primary node
+               else if ( _syncNoneNum > 3 )
+               {
+                  /// when the primary node has new log, but the location primary node has no more
+                  /// new data, need change to primary node
+                  _clsSharingStatus primaryInfo ;
+
+                  if ( _pReplBucket->isEmpty() &&
+                       _repl->getPrimaryInfo( primaryInfo ) &&
+                       primaryInfo.beat.endLsn.compareOffset(  expectLsn ) > 0 )
+                  {
+                     _selector.addToBlackList( _syncSrc ) ;
+                  }
+                  else
+                  {
+                     --_syncNoneNum ;
+                  }
+               }
+
+               /// reset source node, and calc again
                _selector.clearSrc() ;
 
                // can't call _sendSyncReq, because the primary maybe
