@@ -220,7 +220,8 @@ namespace sdbclient
                             _sdbLob **lob ) ;
 
       INT32 _createLob( _sdbLob **lob, const bson::OID *oid,
-                        BOOLEAN *isOldVersionLobServer = NULL ) ;
+                        BOOLEAN *isOldVersionLobServer = NULL,
+                        const bson::BSONObj &userObj = _sdbStaticObject ) ;
 
 #if defined CLIENT_THREAD_SAFE
       void lock ()
@@ -531,12 +532,16 @@ namespace sdbclient
       }
 
       /// lob
-      INT32 createLob( _sdbLob **lob, const bson::OID *oid = NULL ) ;
+      INT32 createLob( _sdbLob **lob,
+                       const bson::OID *oid = NULL,
+                       const bson::BSONObj &userObj = _sdbStaticObject ) ;
 
-      virtual INT32 createLob( sdbLob &lob, const bson::OID *oid = NULL )
+      virtual INT32 createLob( sdbLob &lob,
+                               const bson::OID *oid = NULL,
+                               const bson::BSONObj &userObj = _sdbStaticObject )
       {
          RELEASE_INNER_HANDLE( lob.pLob ) ;
-         return createLob( &lob.pLob, oid ) ;
+         return createLob( &lob.pLob, oid, userObj ) ;
       }
 
       virtual INT32 removeLob( const bson::OID &oid ) ;

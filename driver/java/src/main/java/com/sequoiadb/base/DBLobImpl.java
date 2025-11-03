@@ -45,6 +45,7 @@ class DBLobImpl implements DBLob {
     final static String FIELD_NAME_LOB_MODIFICATION_TIME = "ModificationTime";
     final static String FIELD_NAME_LOB_PAGESIZE = "LobPageSize";
     final static String FIELD_NAME_LOB_LENGTH = "Length";
+    final static String FIELD_NAME_LOB_USERDATA = "UserData";
     final static int SDB_LOB_CREATEONLY = 0x00000001;
 
     // the max lob data size to send for one message
@@ -58,6 +59,7 @@ class DBLobImpl implements DBLob {
     private Sequoiadb _sdb;
     private DBCollection _cl;
     private ObjectId _id;
+    private BSONObject _userData ;
     private int _mode;
     private int _pageSize;
     private long _lobSize;
@@ -126,6 +128,20 @@ class DBLobImpl implements DBLob {
      * @throws BaseException If error happens.
      */
     public void open(ObjectId id, int mode) throws BaseException {
+        open(id, mode, null);
+    }
+
+    /**
+     * Open an existing lob, or create a lob.
+     *
+     * @param id   the lob's id
+     * @param mode available mode is SDB_LOB_CREATEONLY or SDB_LOB_READ. SDB_LOB_CREATEONLY create a
+     *             new lob with given id, if id is null, it will be generated in this function;
+     *             SDB_LOB_READ read an exist lob
+     * @param userData User defined meta data(only take effect when creating a lob, The maximum size of this object is 384 bytes)
+     * @throws BaseException If error happens.
+     */
+    public void open(ObjectId id, int mode, BSONObject userData) throws BaseException {
         if (_isOpened) {
             throw new BaseException(SDBError.SDB_INVALIDARG, "lob have opened: id = " + _id);
         }
@@ -144,6 +160,7 @@ class DBLobImpl implements DBLob {
         _mode = mode;
         _currentOffset = 0;
         _id = id;
+        _userData = userData;
 
         // going to read and write lob
         if (_mode != SDB_LOB_CREATEONLY) {
@@ -198,6 +215,10 @@ class DBLobImpl implements DBLob {
             openLob.put(FIELD_NAME_LOB_OID, _id);
         }
         openLob.put(FIELD_NAME_LOB_OPEN_MODE, _mode);
+
+        if (_mode == SDB_LOB_CREATEONLY && _userData != null && !_userData.isEmpty()) {
+            openLob.put(FIELD_NAME_LOB_USERDATA, _userData);
+        }
 
         int flags = (_mode == SDB_LOB_READ) ? FLG_LOBOPEN_WITH_RETURNDATA : 0;
 

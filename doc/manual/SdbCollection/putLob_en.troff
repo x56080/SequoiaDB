@@ -8,7 +8,7 @@
 putLob \- put LOB in the collection
 .SH SYNOPSIS
 .PP
-\f[B]db.collectionspace.collection.putLob(<filepath>, [oid])\f[]
+\f[B]db.collectionspace.collection.putLob(<filepath>, [oid], [userData])\f[]
 .SH CATEGORY
 .PP
 SdbCollection
@@ -73,6 +73,38 @@ T}@T{
 T}@T{
 T}@T{
 LOB.
+T}@T{
+T}
+T{
+3
+T}@T{
+userData
+T}@T{
+object
+T}@T{
+User defined lob meta
+T}@T{
+not
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+data(The maximum size
+T}@T{
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+of this object is 384
+T}@T{
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+bytes).
 T}@T{
 T}
 .TE

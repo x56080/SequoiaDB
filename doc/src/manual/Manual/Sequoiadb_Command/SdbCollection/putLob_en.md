@@ -4,7 +4,7 @@ putLob - put LOB in the collection
 
 ##SYNOPSIS##
 
-**db.collectionspace.collection.putLob\(\<filepath\>, [oid]\)**
+**db.collectionspace.collection.putLob\(\<filepath\>, [oid], [userData]\)**
 
 ##CATEGORY##
 
@@ -20,6 +20,7 @@ This function is used to insert LOB in the collection.
 | ---- | --- | ----------- | --------------- |
 | filepath | string | The full path of the local file to be uploaded. | required |
 | oid | string |  Unique identifier of LOB. | not |
+| userData | object |  User defined lob meta data(The maximum size of this object is 384 bytes). | not |
 
 ##RETURN VALUE##
 

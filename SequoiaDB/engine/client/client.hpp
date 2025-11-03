@@ -554,7 +554,9 @@ namespace sdbclient
                               INT32 flag                     = 0,
                               const bson::BSONObj &options   = _sdbStaticObject ) = 0 ;
       /// lob
-      virtual INT32 createLob( sdbLob &lob, const bson::OID *oid = NULL ) = 0 ;
+      virtual INT32 createLob( sdbLob &lob,
+                               const bson::OID *oid = NULL,
+                               const bson::BSONObj &userObj = _sdbStaticObject ) = 0 ;
 
       virtual INT32 removeLob( const bson::OID &oid ) = 0 ;
 
@@ -2071,18 +2073,21 @@ namespace sdbclient
       /** \fn INT32 createLob( sdbLob &lob, const bson::OID *oid = NULL )
           \brief Create large object.
           \param [in] oid The id of the large object
+          \param [in] userObj The user defined meta data(The maximum size of this object is 384 bytes)
           \param [out] lob The newly create large object
           \retval SDB_OK Operation Success
           \retval Others Operation Fail
           \note When oid is offered, use it to create a lob for writing, otherwise, API will generate one. After finish writing the newly created lob, need to close it to release resource.
       */
-      INT32 createLob( sdbLob &lob, const bson::OID *oid = NULL )
+      INT32 createLob( sdbLob &lob,
+                       const bson::OID *oid = NULL,
+                       const bson::BSONObj &userObj = _sdbStaticObject )
       {
          if ( !pCollection )
          {
             return SDB_NOT_CONNECTED ;
          }
-         return pCollection->createLob( lob, oid ) ;
+         return pCollection->createLob( lob, oid, userObj ) ;
       }
 
       /** \fn INT32 removeLob( const bson::OID &oid )

@@ -475,6 +475,7 @@ namespace engine
              .append( FIELD_NAME_LOB_OID, oid )
              .append( FIELD_NAME_LOB_OPEN_MODE, mode )
              .appendBool( FIELD_NAME_LOB_IS_MAIN_SHD, TRUE ) ;
+
       if ( _cataInfo->isMainCL() )
       {
          builder.append( FIELD_NAME_SUBCLNAME, _subCLInfo->getName() ) ;
@@ -483,6 +484,7 @@ namespace engine
       if ( SDB_LOB_MODE_CREATEONLY == mode )
       {
          builder.append( FIELD_NAME_LOB_CREATETIME, (INT64)_getMeta()._createTime ) ;
+         builder.append( FIELD_NAME_LOB_USERDATA, _getUserData() ) ;
       }
 
       if ( _mainStreamOpened )
@@ -780,7 +782,24 @@ namespace engine
          }
          else if ( !ele.eoo() )
          {
-            PD_LOG( PDERROR, "invalid meta obj:%s",
+            PD_LOG( PDERROR, "Invalid meta obj: %s",
+                    _metaObj.toString( FALSE, TRUE ).c_str() ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+
+         ele = _metaObj.getField( FIELD_NAME_LOB_USERDATA ) ;
+         if ( Object == ele.type() )
+         {
+            BSONObj userData( ele.embeddedObject() ) ;
+            if ( userData.objsize() <= DMS_LOB_META_USERDATA_MAX_LEN )
+            {
+               ossMemcpy( meta._userData, userData.objdata(), userData.objsize() ) ;
+            }
+         }
+         else if ( !ele.eoo() )
+         {
+            PD_LOG( PDERROR, "Invalid meta obj: %s",
                     _metaObj.toString( FALSE, TRUE ).c_str() ) ;
             rc = SDB_SYS ;
             goto error ;
@@ -793,7 +812,7 @@ namespace engine
          }
          else if ( !ele.eoo() )
          {
-            PD_LOG( PDERROR, "invalid meta obj:%s",
+            PD_LOG( PDERROR, "Invalid meta obj: %s",
                     _metaObj.toString( FALSE, TRUE ).c_str() ) ;
             rc = SDB_SYS ;
             goto error ;

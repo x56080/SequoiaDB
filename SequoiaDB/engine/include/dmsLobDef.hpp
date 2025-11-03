@@ -61,6 +61,7 @@ namespace engine
    */
    #define DMS_LOB_META_LENGTH               ( 1024 )
    #define DMS_LOB_META_PIECESINFO_MAX_LEN   ( 320 )
+   #define DMS_LOB_META_USERDATA_MAX_LEN     ( 384 )
 
    #define RTN_LOB_GET_SEQUENCE( offset, isMerge, log ) \
      ( (isMerge) ? ( ( (INT64)(offset) + DMS_LOB_META_LENGTH ) >> (log) ) : \
@@ -168,7 +169,8 @@ namespace engine
       UINT64      _modificationTime ;
       UINT32      _flag ;
       INT32       _piecesInfoNum ;
-      CHAR        _pad[476] ;
+      CHAR        _pad[92] ;
+      CHAR        _userData[384] ;
 
       _dmsLobMeta()
       :_lobLen( 0 ),
@@ -181,9 +183,10 @@ namespace engine
        _piecesInfoNum( 0 )
       {
          ossMemset( _pad, 0, sizeof( _pad ) ) ;
+         ossMemset( _userData, 0, sizeof( _userData ) ) ;
          SDB_ASSERT( sizeof( _dmsLobMeta ) == 512,
                      "Lob meta size must be 512" ) ;
-         SDB_ASSERT( sizeof( _dmsLobMeta ) <= DMS_LOB_META_LENGTH,
+         SDB_ASSERT( sizeof( _dmsLobMeta ) + DMS_LOB_META_PIECESINFO_MAX_LEN <= DMS_LOB_META_LENGTH,
                      "Lob meta size must <= DMS_LOB_META_LENGTH" ) ;
       }
 
@@ -198,6 +201,7 @@ namespace engine
          _flag = 0 ;
          _piecesInfoNum = 0 ;
          ossMemset( _pad, 0, sizeof( _pad ) ) ;
+         ossMemset( _userData, 0, sizeof( _userData ) ) ;
       }
 
       BOOLEAN isDone() const
@@ -210,18 +214,41 @@ namespace engine
          return ( _flag & DMS_LOB_META_FLAG_PIECESINFO_INSIDE ) ? TRUE : FALSE ;
       }
 
+      BOOLEAN hasUserData() const
+      {
+         return *(INT32*)_userData >= 5 ? TRUE : FALSE ;
+      }
+
       string toString() const
       {
-         stringstream ss ;
-         ss << "Len:" << _lobLen
-            << ", CreateTime:" << _createTime
-            << ", ModificationTime:" << _modificationTime
-            << ", Status:" << (UINT32)_status
-            << ", Version:" << (UINT32)_version
-            << ", Flag:" << _flag
-            << ", PiecesInfoNum:" << _piecesInfoNum
-            << endl ;
-         return ss.str() ;
+         try
+         {
+            stringstream ss ;
+            ss << "Len:" << _lobLen
+               << ", CreateTime:" << _createTime
+               << ", ModificationTime:" << _modificationTime
+               << ", Status:" << (UINT32)_status
+               << ", Version:" << (UINT32)_version
+               << ", Flag:" << _flag
+               << ", PiecesInfoNum:" << _piecesInfoNum ;
+
+            /// when has user define data
+            if ( hasUserData() )
+            {
+               bson::BSONObj obj( _userData ) ;
+               ss << ", UserData:" << obj.toString() << endl ;
+            }
+            else
+            {
+               ss << endl ;
+            }
+            return ss.str() ;
+         }
+         catch ( ... )
+         {
+         }
+
+         return string("") ;
       }
    } ;
    typedef struct _dmsLobMeta dmsLobMeta ;
