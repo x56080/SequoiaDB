@@ -206,3 +206,96 @@ function checkCL ( groupNames, csName, clName )
    } );
 }
 
+function checkIdxLSN( clFullName )
+{
+   var dataCommitLSN = "" ;
+   var indexCommitLSN = "" ;
+   var t1_sqlStr = "select * from $SNAPSHOT_CL where Name='" + clFullName + "' split by Details" ;
+   var t2_sqlStr = "select T1.Name, T1.Details.DataCommitLSN, T1.Details.IndexCommitLSN, T1.Details.NodeName from ( " + t1_sqlStr + " ) as T1" ;
+
+   db.sync() ;
+
+   var isFirst = true ;
+   var firstObj = "" ;
+   var rc = db.exec( t2_sqlStr ) ;
+   while ( rc.next() )
+   {
+      var obj = rc.current().toObj() ;
+      println( JSON.stringify( obj ) ) ;
+
+      if ( isFirst )
+      {
+         dataCommitLSN = obj.DataCommitLSN ;
+         indexCommitLSN = obj.IndexCommitLSN ;
+         firstObj = obj ;
+         isFirst = false ;
+         continue ;
+      }
+
+      println( JSON.stringify( { "DataCommitLSN": dataCommitLSN, "IndexCommitLSN": indexCommitLSN } ) ) ;
+
+      if ( dataCommitLSN != obj.DataCommitLSN ||
+           indexCommitLSN != obj.IndexCommitLSN )
+      {
+         throw new Error( "Diff info: \nexpect: " +
+                          JSON.stringify( firstObj ) + "\nactual: " +
+                          JSON.stringify( obj ) ) ;
+      }
+   }
+}
+
+function checkIndexExist( cl, indexKey, mustHasIndex )
+{
+   var cataHasIdx = false;
+   var dataHasIdx = false;
+   var cursor = cl.listIndexes();
+   while( cursor.next() )
+   {
+      var obj = cursor.current().toObj();
+      if ( obj.IndexDef.name != "$shard" )
+      {
+         continue;
+      }
+
+      println( "cata sharding index: " + JSON.stringify(obj) );
+
+      cataHasIdx = true;
+
+      if ( JSON.stringify(obj.IndexDef.key) != JSON.stringify(indexKey) )
+      {
+         throw new Error( "Different sharding index key,: \nexpect: " +
+                          JSON.stringify(indexKey) + "\nactual: " +
+                          JSON.stringify(obj.IndexDef.key) );
+      }
+   }
+
+   cursor = cl.snapshotIndexes( { "IndexDef.name": "$shard" } );
+   while( cursor.next() )
+   {
+      dataHasIdx = true;
+      var obj = cursor.current().toObj();
+
+      if ( JSON.stringify(obj.IndexDef.key) != JSON.stringify(indexKey) )
+      {
+         throw new Error( "Different sharding index key,: \nexpect: " +
+                          JSON.stringify(indexKey) + "\nactual: " +
+                          JSON.stringify(obj.IndexDef.key) );
+      }
+      println( "data sharding index: " + JSON.stringify(obj) );
+   }
+
+   if ( cataHasIdx &&  dataHasIdx )
+   {
+      if ( !mustHasIndex )
+      {
+         throw new Error( "Expect sharding index not to exist" );
+      }
+   }
+   else
+   {
+      if ( mustHasIndex )
+      {
+         throw new Error( "Expect sharding index to exist" );
+      }
+   }
+}

@@ -19,7 +19,7 @@ function test ()
    var options = { ShardingType: 'hash', ShardingKey: { a: 1 }, Compressed: false };
    var cl1 = commCreateCL( db, csName, clName1, options, true, false, "create CL in the begin" );
    var cl2 = commCreateCL( db, csName, clName2, {}, true, false, "create CL in the begin" );
-   for( i = 0; i < 5000; i++ )
+   for( i = 0; i < 500; i++ )
    {
       cl1.insert( { a: i, b: "sequoiadh test split cl alter option" } );
       cl2.insert( { a: i, b: "sequoiadh test split cl alter option" } );

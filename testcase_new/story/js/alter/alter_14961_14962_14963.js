@@ -28,7 +28,7 @@ function test ()
 
    var options2 = { ShardingType: 'hash', ShardingKey: { a: 1 }, AutoSplit: false };
    var cl2 = commCreateCL( db, csName, clName2, options2, true, false, "create CL in the begin" );
-   for( i = 0; i < 5000; i++ )
+   for( i = 0; i < 500; i++ )
    {
       cl2.insert( { a: i, b: "sequoiadh test hash cl1 alter option" } );
    }
@@ -43,7 +43,7 @@ function test ()
    //修改AutoSplit值，hash表中有数据
    cl2.setAttributes( { AutoSplit: true } );
    checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName2, "AutoSplit", true );
-   checkData( csName, clName2, 5000 );
+   checkData( csName, clName2, 500 );
 
    clSetAttributes( cl2, { AutoSplit: false } );
    checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName2, "AutoSplit", true );

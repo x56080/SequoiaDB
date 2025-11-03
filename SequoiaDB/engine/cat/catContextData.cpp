@@ -3445,11 +3445,6 @@ namespace engine
             const rtnAlterTask * alterTask = catTask->getTask() ;
             CLS_SUBCL_LIST_IT iterSubCL ;
 
-            PD_CHECK( alterTask->testFlags( RTN_ALTER_TASK_FLAG_MAINCLALLOW ),
-                      SDB_OPTION_NOT_SUPPORT, error, PDERROR,
-                      "Failed to check alter task [%s]: not supported "
-                      "in main-collection", alterTask->getActionName() ) ;
-
             rc = cataSet.getSubCLList( subCLList );
             PD_RC_CHECK( rc, PDERROR,
                          "Failed to get sub-collection list of collection [%s],"

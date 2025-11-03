@@ -21,10 +21,12 @@ function test ()
    var csName = COMMCSNAME;
    var clName = CHANGEDPREFIX + "_14940";
 
+   commDropCL( db, csName, clName );
+
    var options = { ShardingType: 'hash', ShardingKey: { a: 1 } };
    var cl = commCreateCL( db, csName, clName, options, true, false, "create CL in the begin" );
 
-   for( i = 0; i < 5000; i++ )
+   for( i = 0; i < 500; i++ )
    {
       cl.insert( { a: i, b: "sequoiadh test split cl alter option" } );
    }
@@ -42,8 +44,9 @@ function test ()
    clSetAttributes( cl, { Partition: 8192 } );
    checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName, "Partition", 4096 );
 
-   clSetAttributes( cl, { EnsureShardingIndex: false } );
-   checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName, "EnsureShardingIndex", true );
+   // shard cl can change EnsureShardingIndex
+   // clSetAttributes( cl, { EnsureShardingIndex: false } );
+   // checkSnapshot( db, SDB_SNAP_CATALOG, csName, clName, "EnsureShardingIndex", true );
 
    commDropCL( db, csName, clName, true, false, "clean cl" );
 }

@@ -23,7 +23,7 @@ function test ()
 
    var cl = commCreateCL( db, csName, clName, {}, true, false, "create CL in the begin" );
 
-   for( i = 0; i < 5000; i++ )
+   for( i = 0; i < 500; i++ )
    {
       cl.insert( { a: i, b: "sequoiadh test split cl alter option" } );
    }

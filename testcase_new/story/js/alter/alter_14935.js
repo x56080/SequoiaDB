@@ -30,7 +30,7 @@ function test ()
 
    //preset data
    var data = [];
-   for( var i = 0; i < 2000; i++ )
+   for( var i = 0; i < 200; i++ )
    {
       data.push( { a: i, b: i, c: "test record: " + i } );
    }

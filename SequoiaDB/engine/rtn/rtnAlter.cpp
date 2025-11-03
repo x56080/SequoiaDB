@@ -29,10 +29,7 @@
 
 *******************************************************************************/
 #include "rtnAlter.hpp"
-#include "clsResourceContainer.hpp"
-#include "coordResource.hpp"
 #include "pd.hpp"
-#include "pmdController.hpp"
 #include "rtn.hpp"
 #include "rtnTrace.hpp"
 #include "dmsCB.hpp"
@@ -186,53 +183,130 @@ namespace engine
       BOOLEAN dropIndex = FALSE ;
       BOOLEAN createIndex = TRUE ;
       monIndex shardIndex ;
-      const BSONObj & shardingKey = argument.getShardingKey() ;
+      BSONObj shardingKeyArg = argument.getShardingKey() ;
 
       BOOLEAN needToChangeUniqueID = FALSE ;
+
+      CoordCataInfoPtr cataPtr ;
+      BOOLEAN ensureShardIndexOnCat = TRUE ;
+      BOOLEAN shardIndexExist = FALSE ;
+      BSONObj curShardKey ;
 
       if ( pWriteDpsLog )
       {
          *pWriteDpsLog = TRUE ;
       }
 
+      rc = rtnGetCataInfo( collection, cb, cataPtr ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get cata info, rc: %d", rc ) ;
+
+      if ( cataPtr.get() && cataPtr->getCatalogSet() )
+      {
+         ensureShardIndexOnCat = cataPtr->getCatalogSet()->ensureShardingIndex() ;
+         curShardKey = cataPtr->getCatalogSet()->getShardingKey() ;
+      }
+      else
+      {
+         PD_LOG( PDWARNING, "Invalid cata info" ) ;
+         goto done ;
+      }
+
       rc = su->getIndex( mbContext, IXM_SHARD_KEY_NAME, shardIndex ) ;
       if ( SDB_OK == rc )
       {
-         if ( shardingKey.isEmpty() )
-         {
-            dropIndex = TRUE ;
-            createIndex = FALSE ;
-         }
-         else if ( 0 == shardIndex.getKeyPattern().woCompare( shardingKey ) )
-         {
-            dropIndex = FALSE ;
-            // check unique id by create index
-            createIndex = TRUE ;
-         }
-         else
-         {
-            dropIndex = TRUE ;
-            createIndex = TRUE ;
-         }
-
-         if ( createIndex )
-         {
-            if ( UTIL_UNIQUEID_NULL != idxUniqueID &&
-                 shardIndex._idxUniqID != idxUniqueID )
-            {
-               needToChangeUniqueID = TRUE ;
-            }
-         }
+         shardIndexExist = TRUE ;
+         PD_LOG( PDWARNING, "$shard index already exists" ) ;
       }
       else if ( SDB_IXM_NOTEXIST == rc )
       {
+         shardIndexExist = FALSE ;
          rc = SDB_OK ;
-         needToChangeUniqueID = TRUE ;
+         PD_LOG( PDWARNING, "$shard index doesn't exists" ) ;
       }
-      PD_RC_CHECK( rc, PDERROR, "Failed to get index [%s] on collection [%s], "
-                   "rc: %d", IXM_SHARD_KEY_NAME, collection, rc ) ;
+      else
+      {
+         PD_RC_CHECK( rc, PDERROR, "Failed to get index [%s] on collection [%s], "
+                      "rc: %d", IXM_SHARD_KEY_NAME, collection, rc ) ;
+      }
 
-      if ( !dropIndex && !argument.isEnsureShardingIndex() && pWriteDpsLog )
+      if ( shardingKeyArg.isEmpty() )
+      {
+         if ( !argument.isEnsureShardingIndex() && !curShardKey.isEmpty() )
+         {
+            dropIndex = TRUE ;
+         }
+         else
+         {
+            dropIndex = FALSE ;
+         }
+      }
+      else
+      {
+         if ( !curShardKey.isEmpty() && shardIndexExist &&
+              ( 0 != shardIndex.getKeyPattern().woCompare( shardingKeyArg ) ||
+                !argument.isEnsureShardingIndex() ) )
+         {
+            dropIndex = TRUE ;
+         }
+         else
+         {
+            dropIndex = FALSE ;
+         }
+      }
+
+      if ( argument.isEnsureShardingIndex() )
+      {
+         if ( !shardingKeyArg.isEmpty() )
+         {
+            // db.cs.cl.alter({ShardingKey:{a:1}})
+            if ( argument.isDefEnsureShardingIndex() )
+            {
+               if ( ensureShardIndexOnCat )
+               {
+                  createIndex = TRUE ;
+               }
+               else
+               {
+                  createIndex = FALSE ;
+               }
+            }
+            // db.cs.cl.alter({EnsureShardingIndex:true,ShardingKey:{a:1}})
+            else
+            {
+               createIndex = TRUE ;
+            }
+         }
+         else
+         {
+            // db.cs.cl.alter({EnsureShardingIndex:true})
+            if ( curShardKey.isEmpty() )
+            {
+               // not shard collection
+               createIndex = FALSE ;
+            }
+            else
+            {
+               // create $shard base on cur shardingKey
+               shardingKeyArg = curShardKey ;
+               createIndex = TRUE ;
+            }
+         }
+      }
+      else
+      {
+         createIndex = FALSE ;
+      }
+
+      if ( shardIndexExist && createIndex )
+      {
+         if ( UTIL_UNIQUEID_NULL != idxUniqueID &&
+              shardIndex._idxUniqID != idxUniqueID )
+         {
+            needToChangeUniqueID = TRUE ;
+         }
+      }
+
+      if ( !dropIndex && !createIndex && pWriteDpsLog )
       {
          *pWriteDpsLog = FALSE ;
       }
@@ -254,10 +328,10 @@ namespace engine
                       " rc: %d", collection, rc ) ;
       }
 
-      if ( argument.isEnsureShardingIndex() && createIndex )
+      if ( createIndex )
       {
          BSONObj indexDef = BSON( IXM_FIELD_NAME_UNIQUEID << (INT64)idxUniqueID <<
-                                  IXM_FIELD_NAME_KEY << shardingKey <<
+                                  IXM_FIELD_NAME_KEY << shardingKeyArg <<
                                   IXM_FIELD_NAME_NAME << IXM_SHARD_KEY_NAME <<
                                   IXM_V_FIELD << 0 ) ;
 
@@ -308,7 +382,7 @@ namespace engine
 
       BSONObj shardingKey = argument.getShardingKey() ;
       BSONObj originShardingKey ;
-      BOOLEAN hasRegisterEdu = FALSE ;
+      CoordCataInfoPtr cataPtr ;
 
       PD_CHECK( DMS_STORAGE_NORMAL == su->type(),
                 SDB_OPTION_NOT_SUPPORT, error, PDERROR,
@@ -321,30 +395,18 @@ namespace engine
                 "Failed to check collection for sharding: "
                 "should be hash sharding for LOB data" ) ;
 
-      if ( sdbGetResourceContainer()->getResource() && sdbGetPMDController()->getRSManager() )
+      rc = rtnGetCataInfo( collection, cb, cataPtr ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get cata info, rc: %d", rc ) ;
+
+      if ( NULL != cataPtr )
       {
-         CoordCataInfoPtr cataPtr ;
-         sdbGetPMDController()->getRSManager()->registerEDU( cb ) ;
-         hasRegisterEdu = TRUE ;
-
-         rc = sdbGetResourceContainer()->getResource()->getOrUpdateCataInfo( collection, cataPtr, cb ) ;
-         if ( SDB_DMS_NOTEXIST == rc || SDB_DMS_CS_NOTEXIST == rc )
+         cataPtr->getShardingKey( originShardingKey ) ;
+         if ( 0 == originShardingKey.woCompare( shardingKey ) )
          {
-            rc = SDB_OK ;
+            PD_LOG( PDWARNING, "We don't need to check the shardingKey, old shardingKey[%s] == "
+                    "new shardingKey[%s]", originShardingKey.toString().c_str(),
+                    shardingKey.toString().c_str() ) ;
             goto done ;
-         }
-         PD_RC_CHECK( rc, PDERROR, "Failed to get cata info, rc: %d", rc ) ;
-
-         if ( NULL != cataPtr )
-         {
-            cataPtr->getShardingKey( originShardingKey ) ;
-            if ( 0 == originShardingKey.woCompare( shardingKey ) )
-            {
-               PD_LOG( PDWARNING, "We don't need to check the shardingKey, old shardingKey[%s] == "
-                       "new shardingKey[%s]", originShardingKey.toString().c_str(),
-                       shardingKey.toString().c_str() ) ;
-               goto done ;
-            }
          }
       }
 
@@ -398,10 +460,6 @@ namespace engine
       }
 
    done :
-      if ( hasRegisterEdu )
-      {
-         sdbGetPMDController()->getRSManager()->unregEUD( cb ) ;
-      }
       PD_TRACE_EXITRC( SDB__RTNCHKSHARD, rc ) ;
       return rc ;
    error :
@@ -650,7 +708,9 @@ namespace engine
       }
 
       // $sharding index
-      if ( localTask->testArgumentMask( UTIL_CL_SHDKEY_FIELD ) )
+      // localTask->testArgumentMask( UTIL_CL_ENSURESHDIDX_FIELD )
+      if ( localTask->testArgumentMask( UTIL_CL_SHDKEY_FIELD ) ||
+           localTask->testArgumentMask( UTIL_CL_ENSURESHDIDX_FIELD ) )
       {
          const rtnCLShardingArgument & argument =
                                              localTask->getShardingArgument() ;

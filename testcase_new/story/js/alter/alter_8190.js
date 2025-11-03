@@ -24,18 +24,7 @@ function test ()
    commCreateCL( db, COMMCSNAME, subCLName, { ReplSize: 1 } );
 
    //alters shardingType
-   try
-   {
-      maincl.alter( { ShardingType: "range" } );
-      throw new Error( "ERR_ALTER_CL" );
-   }
-   catch( e )
-   {
-      if( e.message != SDB_OPTION_NOT_SUPPORT )
-      {
-         throw new Error( "alter main cl shardingType, \nexp: -32, \nbut found: " + e );
-      }
-   }
+   maincl.alter( { ShardingType: "range" } );
 
    try
    {
@@ -66,7 +55,7 @@ function test ()
    }
    catch( e )
    {
-      if( e.message != SDB_OPTION_NOT_SUPPORT )
+      if( e.message != SDB_NO_SHARDINGKEY )
       {
          throw e;
       }

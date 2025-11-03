@@ -31,10 +31,12 @@
 #ifndef RTN_ALTERTASK_HPP_
 #define RTN_ALTERTASK_HPP_
 
+#include "coordDef.hpp"
 #include "core.hpp"
 #include "oss.hpp"
 #include "ossUtil.hpp"
 #include "ossMemPool.hpp"
+#include "pmdEDU.hpp"
 #include "utilCompression.hpp"
 #include "utilArguments.hpp"
 #include "../bson/bson.hpp"
@@ -44,7 +46,6 @@
 
 namespace engine
 {
-
    #define RTN_ALTER_TASK_FLAG_EMPTY         ( 0x00000000 )
    // The alter command should be executed from SHARD port
    #define RTN_ALTER_TASK_FLAG_SHARDONLY     ( 0x00000001 )
@@ -115,6 +116,8 @@ namespace engine
 
    class _rtnAlterTask ;
    typedef class _rtnAlterTask rtnAlterTask ;
+
+   INT32 rtnGetCataInfo( const CHAR *collection, _pmdEDUCB *cb, CoordCataInfoPtr &cataPtr ) ;
 
    /*
       _rtnAlterOptions define
@@ -410,6 +413,11 @@ namespace engine
             return _ensureShardingIndex ;
          }
 
+         OSS_INLINE BOOLEAN isDefEnsureShardingIndex() const
+         {
+            return _isDefEnsureShardingIndex ;
+         }
+
          OSS_INLINE BOOLEAN isAutoSplit () const
          {
             return _autoSplit ;
@@ -421,6 +429,7 @@ namespace engine
          bson::BSONObj  _shardingKey ;
          UINT32         _partition ;
          BOOLEAN        _ensureShardingIndex ;
+         BOOLEAN        _isDefEnsureShardingIndex ;
          BOOLEAN        _autoSplit ;
    } ;
 

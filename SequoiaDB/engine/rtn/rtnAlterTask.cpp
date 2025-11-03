@@ -29,7 +29,10 @@
 
 *******************************************************************************/
 #include "rtnAlterTask.hpp"
+#include "clsResourceContainer.hpp"
+#include "coordResource.hpp"
 #include "pd.hpp"
+#include "pmdController.hpp"
 #include "rtn.hpp"
 #include "rtnTrace.hpp"
 #include "pdTrace.hpp"
@@ -42,6 +45,36 @@ using namespace std ;
 
 namespace engine
 {
+   INT32 rtnGetCataInfo( const CHAR *collection, _pmdEDUCB *cb, CoordCataInfoPtr &cataPtr )
+   {
+      INT32 rc = SDB_OK ;
+      BOOLEAN hasRegisterEdu = FALSE ;
+      SDB_ASSERT( NULL != collection, "collection is invalid" ) ;
+      SDB_ASSERT( NULL != cb, "cb is invalid" ) ;
+
+      if ( sdbGetResourceContainer()->getResource() && sdbGetPMDController()->getRSManager() )
+      {
+         sdbGetPMDController()->getRSManager()->registerEDU( cb ) ;
+         hasRegisterEdu = TRUE ;
+
+         rc = sdbGetResourceContainer()->getResource()->updateCataInfo( collection, cataPtr, cb ) ;
+         if ( SDB_DMS_NOTEXIST == rc || SDB_DMS_CS_NOTEXIST == rc )
+         {
+            rc = SDB_OK ;
+            goto done ;
+         }
+         PD_RC_CHECK( rc, PDERROR, "Failed to get cata info, rc: %d", rc ) ;
+      }
+
+   done:
+      if ( hasRegisterEdu )
+      {
+         sdbGetPMDController()->getRSManager()->unregEUD( cb ) ;
+      }
+      return rc ;
+   error:
+      goto done ;
+   }
 
    /*
       _rtnAlterOptions implement
@@ -468,6 +501,7 @@ namespace engine
      _hashSharding( TRUE ),
      _partition( SDB_SHARDING_PARTITION_DEFAULT ),
      _ensureShardingIndex( TRUE ),
+     _isDefEnsureShardingIndex( TRUE ),
      _autoSplit( FALSE )
    {
    }
@@ -479,6 +513,7 @@ namespace engine
      _hashSharding( TRUE ),
      _partition( SDB_SHARDING_PARTITION_DEFAULT ),
      _ensureShardingIndex( TRUE ),
+     _isDefEnsureShardingIndex( TRUE ),
      _autoSplit( FALSE )
    {
    }
@@ -490,6 +525,7 @@ namespace engine
      _shardingKey( argument._shardingKey ),
      _partition( argument._partition ),
      _ensureShardingIndex( argument._ensureShardingIndex ),
+     _isDefEnsureShardingIndex( argument._isDefEnsureShardingIndex ),
      _autoSplit( argument._autoSplit )
    {
    }
@@ -507,6 +543,7 @@ namespace engine
       _shardingKey = argument._shardingKey ;
       _partition = argument._partition ;
       _ensureShardingIndex = argument._ensureShardingIndex ;
+      _isDefEnsureShardingIndex = argument._isDefEnsureShardingIndex ;
       _autoSplit = argument._autoSplit ;
 
       return ( *this ) ;
@@ -600,6 +637,7 @@ namespace engine
                    PDERROR, "Failed to get field [%s]",
                    FIELD_NAME_ENSURE_SHDINDEX ) ;
          _ensureShardingIndex = argElement.boolean() ;
+         _isDefEnsureShardingIndex = FALSE ;
          parsedArgumentMask( UTIL_CL_ENSURESHDIDX_FIELD ) ;
       }
 

@@ -67,7 +67,8 @@ namespace engine
      _postAutoSplit( FALSE ),
      _dropIdIdx( FALSE ),
      _dropShardIdx( FALSE ),
-     _subCLOFMainCL( FALSE )
+     _subCLOFMainCL( FALSE ),
+     _isDiffShdKey( FALSE )
    {
    }
 
@@ -468,7 +469,7 @@ namespace engine
 
       BOOLEAN createIdIdx = FALSE ;
       BOOLEAN createShardIdx = FALSE ;
-      BSONObj shardingKey ;
+      BSONObj shardingKeyArg ;
       BSONObj idxObj ;
 
       // main-collection doesn't have $id or $shard index
@@ -497,10 +498,10 @@ namespace engine
                       PDERROR, "Failed to get task" ) ;
 
             const rtnCLShardingArgument &arg = localTask->getShardingArgument() ;
-            shardingKey = arg.getShardingKey().getOwned() ;
+            shardingKeyArg = arg.getShardingKey().getOwned() ;
             const BSONObj &curShardKey = cataSet.getShardingKey() ;
 
-            if ( !curShardKey.isEmpty() && 0 != shardingKey.woCompare(curShardKey) )
+            if ( !curShardKey.isEmpty() && 0 != shardingKeyArg.woCompare(curShardKey) )
             {
                _dropShardIdx = TRUE ;
             }
@@ -508,7 +509,7 @@ namespace engine
             {
                _dropShardIdx = FALSE ;
             }
-            if ( arg.isEnsureShardingIndex() && !shardingKey.isEmpty() )
+            if ( arg.isEnsureShardingIndex() && !shardingKeyArg.isEmpty() )
             {
                createShardIdx = TRUE ;
             }
@@ -544,20 +545,74 @@ namespace engine
             if ( localTask->containShardingArgument() )
             {
                const rtnCLShardingArgument &arg = localTask->getShardingArgument() ;
-               shardingKey = arg.getShardingKey().getOwned() ; ;
+               shardingKeyArg = arg.getShardingKey().getOwned() ; ;
                const BSONObj &curShardKey = cataSet.getShardingKey() ;
 
-               if ( !curShardKey.isEmpty() && 0 != shardingKey.woCompare(curShardKey) )
+               /*
+               cur shardingkey = { a: 1 }, arg shardingkey = { b: 1 }, we should drop &shard
+               cur shardingkey = { a: 1 }, arg shardingkey = { a: 1 }, ensureshardingindex = false, we should drop &shard
+               */
+               if ( shardingKeyArg.isEmpty() )
                {
-                  _dropShardIdx = TRUE ;
+                  if ( !arg.isEnsureShardingIndex() && !curShardKey.isEmpty() )
+                  {
+                     _dropShardIdx = TRUE ;
+                  }
+                  else
+                  {
+                     _dropShardIdx = FALSE ;
+                  }
                }
                else
                {
-                  _dropShardIdx = FALSE ;
+                  if ( !curShardKey.isEmpty() &&
+                       ( 0 != shardingKeyArg.woCompare(curShardKey) || !arg.isEnsureShardingIndex() ) )
+                  {
+                     _dropShardIdx = TRUE ;
+                  }
+                  else
+                  {
+                     _dropShardIdx = FALSE ;
+                  }
                }
-               if ( arg.isEnsureShardingIndex() && !shardingKey.isEmpty() )
+
+               if ( arg.isEnsureShardingIndex() )
                {
-                  createShardIdx = TRUE ;
+                  if ( !shardingKeyArg.isEmpty() )
+                  {
+                     // db.cs.cl.alter({ShardingKey:{a:1}})
+                     if ( arg.isDefEnsureShardingIndex() )
+                     {
+                        if ( cataSet.ensureShardingIndex() )
+                        {
+                           createShardIdx = TRUE ;
+                        }
+                        else
+                        {
+                           createShardIdx = FALSE ;
+                        }
+                     }
+                     // db.cs.cl.alter({EnsureShardingIndex:true,ShardingKey:{a:1}})
+                     else
+                     {
+                        createShardIdx = TRUE ;
+                     }
+                  }
+                  else
+                  {
+                     // db.cs.cl.alter({EnsureShardingIndex:true})
+                     if ( curShardKey.isEmpty() )
+                     {
+                        // not shard collection
+                        createShardIdx = FALSE ;
+                     }
+                     else
+                     {
+                        // create $shard base on cur shardingKey
+                        shardingKeyArg = curShardKey ;
+                        createShardIdx = TRUE ;
+                     }
+                  }
                }
                else
                {
@@ -593,14 +648,14 @@ namespace engine
       if ( createShardIdx )
       {
          if ( createIdIdx &&
-              0 == shardingKey.woCompare( BSON( DMS_ID_KEY_NAME << 1 ) ) )
+              0 == shardingKeyArg.woCompare( BSON( DMS_ID_KEY_NAME << 1 ) ) )
          {
             PD_LOG( PDWARNING, "$shard index and $id index are the same "
                     "definition. Skip creating $shard index" ) ;
          }
          else
          {
-            BSONObj def = BSON( IXM_FIELD_NAME_KEY << shardingKey <<
+            BSONObj def = BSON( IXM_FIELD_NAME_KEY << shardingKeyArg <<
                                 IXM_FIELD_NAME_NAME << IXM_SHARD_KEY_NAME ) ;
             rc = _checkTaskConflict( cataSet.name(), def, cb ) ;
             PD_RC_CHECK( rc, PDERROR,
@@ -773,7 +828,9 @@ namespace engine
                                                  catCtxLockMgr & lockMgr )
    {
       INT32 rc = SDB_OK ;
-
+      BOOLEAN isDiffShardType = FALSE ;
+      BOOLEAN isDiffPartition = FALSE ;
+      BOOLEAN changeShardOption = FALSE ;
       PD_TRACE_ENTRY( SDB_CATCTXALTERCLTASK__CHKENABLESHD ) ;
 
       PD_CHECK( !OSS_BIT_TEST( cataSet.getAttribute(), DMS_MB_ATTR_CAPPED ),
@@ -781,9 +838,31 @@ namespace engine
                 "Failed to check [%s]: collection [%s] is capped",
                 _task->getActionName(), _dataName.c_str() ) ;
 
+      _isDiffShdKey = ( !argument.getShardingKey().isEmpty() &&
+                        0 != cataSet.getShardingKey().woCompare( argument.getShardingKey() ) ) ;
+
+      if ( argument.testArgumentMask( UTIL_CL_SHDTYPE_FIELD ) )
+      {
+         isDiffShardType = ( argument.isHashSharding() != cataSet.isHashSharding() ) ;
+      }
+
+      if ( argument.testArgumentMask( UTIL_CL_PARTITION_FIELD ) )
+      {
+         if ( !cataSet.isHashSharding() )
+         {
+            isDiffPartition = TRUE ;
+         }
+         else
+         {
+            isDiffPartition = ( (UINT32)cataSet.getHashPartition() != argument.getPartition() ) ;
+         }
+      }
+
+      changeShardOption = _isDiffShdKey || isDiffShardType || isDiffPartition ;
+
       if ( cataSet.isMainCL() &&
            _task->testFlags( RTN_ALTER_TASK_FLAG_MAINCLALLOW ) &&
-           argument.testArgumentMask( UTIL_CL_SHDKEY_FIELD ) )
+           argument.testArgumentMask( UTIL_CL_SHDKEY_FIELD ) && changeShardOption )
       {
          // Special case to alter sharding key of main-collection without any
          // sub-collections
@@ -794,10 +873,14 @@ namespace engine
       }
       else
       {
-         PD_CHECK( !cataSet.isMainCL(),
-                   SDB_OPTION_NOT_SUPPORT, error, PDERROR,
-                   "Failed to [%s]: Could not enable sharding in "
-                   "main-collection", _task->getActionName() ) ;
+         // main cl can't change shardingKey
+         if ( cataSet.isMainCL() && changeShardOption )
+         {
+            rc = SDB_OPTION_NOT_SUPPORT ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to [%s]: Could not enable sharding in main-collection",
+                         _task->getActionName() ) ;
+         }
 
          rc = _checkAutoSplit( cataSet, argument, cb, lockMgr ) ;
          PD_RC_CHECK( rc, PDERROR,
@@ -816,13 +899,23 @@ namespace engine
          {
             // the sharding key is ok, it will create $shard index
          }
+         else if ( argument.testArgumentMask( UTIL_CL_AUTOSPLIT_FIELD ) &&
+                   cataSet.hasAutoSplit() &&
+                   !argument.isAutoSplit() )
+         {
+            rc = SDB_OPTION_NOT_SUPPORT ;
+            PD_RC_CHECK( rc, PDERROR, "Shard autoSplit cl can't change AutoSplit to false, rc: %d", rc ) ;
+         }
          else
          {
-            // Could be only executed on one group
-            PD_CHECK( 1 == cataSet.groupCount(),
-                      SDB_OPTION_NOT_SUPPORT, error, PDERROR,
-                      "Failed to [%s]: should have one group",
-                      _task->getActionName() ) ;
+            // multi-group shard cl can't change shardingKey
+            if ( 1 != cataSet.groupCount() && changeShardOption )
+            {
+               rc = SDB_OPTION_NOT_SUPPORT ;
+               PD_RC_CHECK( rc, PDERROR,
+                            "Failed to [%s]: should have one group",
+                            _task->getActionName() ) ;
+            }
          }
 
          if ( cataSet.isSharding() )
@@ -943,10 +1036,38 @@ namespace engine
 
       if ( localTask->containShardingArgument() )
       {
-         rc = _checkEnableShard( cataSet, localTask->getShardingArgument(),
-                                 cb, lockMgr ) ;
-         PD_RC_CHECK( rc, PDERROR,
-                      "Failed to check shard arguments, rc: %d", rc ) ;
+         rtnCLShardingArgument argument = localTask->getShardingArgument() ;
+
+         // normal cl: alter( { ShardingKey: { a: 1 } } )
+         // - argument.getShardingKey() is not empty
+         // - cataSet.isSharding() is false
+         // shard cl: alter( { ShardingKey: { a: 1 } } ) or alter( { EnsureShardingIndex: false } )
+         // - argument.getShardingKey() may be empty
+         // - cataSet.isSharding() is true
+         if ( !argument.getShardingKey().isEmpty() || cataSet.isSharding() )
+         {
+            rc = _checkEnableShard( cataSet, argument, cb, lockMgr ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to check shard arguments, rc: %d", rc ) ;
+         }
+         else
+         {
+            if ( OSS_BIT_TEST( cataSet.getAttribute(), DMS_MB_ATTR_CAPPED ) )
+            {
+               rc = SDB_OPTION_NOT_SUPPORT ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to check [%s]: collection [%s] is capped",
+                            _task->getActionName(), _dataName.c_str() ) ;
+            }
+            if ( argument.testArgumentMask( UTIL_CL_ENSURESHDIDX_FIELD |
+                                            UTIL_CL_SHDTYPE_FIELD |
+                                            UTIL_CL_PARTITION_FIELD |
+                                            UTIL_CL_AUTOSPLIT_FIELD ) )
+            {
+               rc = SDB_NO_SHARDINGKEY ;
+               PD_RC_CHECK( rc, PDERROR, "Non-sharding collection can't change "
+                            "EnsureShardingIndex, ShardingType, Partition and AutoSplit, rc: %d", rc ) ;
+            }
+         }
       }
 
       if ( localTask->containCompressArgument() )
@@ -1393,6 +1514,17 @@ namespace engine
          setBuilder.appendBool( CAT_DOMAIN_AUTO_SPLIT, argument.isAutoSplit() ) ;
       }
 
+      if ( argument.testArgumentMask( UTIL_CL_ENSURESHDIDX_FIELD ) )
+      {
+         setBuilder.appendBool( CAT_ENSURE_SHDINDEX, argument.isEnsureShardingIndex() ) ;
+      }
+      else
+      {
+         setBuilder.appendBool( CAT_ENSURE_SHDINDEX, cataSet.ensureShardingIndex() ) ;
+      }
+
+      // main cl can't change shardingKey
+      // multi-group shard cl can't change shardingKey
       if ( 1 == cataSet.groupCount() && !cataSet.isMainCL() )
       {
          if ( argument.testArgumentMask( UTIL_CL_SHDKEY_FIELD |
@@ -1437,8 +1569,6 @@ namespace engine
          setBuilder.append( CAT_SHARDING_TYPE, argument.isHashSharding() ?
                                                FIELD_NAME_SHARDTYPE_HASH :
                                                FIELD_NAME_SHARDTYPE_RANGE ) ;
-         setBuilder.appendBool( CAT_ENSURE_SHDINDEX,
-                                argument.isEnsureShardingIndex() ) ;
          if( argument.isHashSharding() )
          {
             setBuilder.append( CAT_SHARDING_PARTITION,
@@ -1449,31 +1579,13 @@ namespace engine
             setBuilder.append( CAT_INTERNAL_VERSION, CAT_INTERNAL_CURRENT_VERSION ) ;
          }
       }
-      else if ( argument.getArgumentMask() == UTIL_CL_SHDKEY_FIELD &&
-                cataSet.isMainCL() )
+      else if ( argument.getArgumentMask() == UTIL_CL_SHDKEY_FIELD && cataSet.isMainCL() && _isDiffShdKey )
       {
          PD_CHECK( 0 == cataSet.getItemNum(),
                    SDB_OPTION_NOT_SUPPORT, error, PDERROR,
                    "Failed to [%s]: Could not enable sharding in "
                    "main-collection", _task->getActionName() ) ;
          setBuilder.append( CAT_SHARDINGKEY_NAME, argument.getShardingKey() ) ;
-      }
-      else if ( UTIL_CL_AUTOSPLIT_FIELD == argument.getArgumentMask() )
-      {
-         // it is ok
-      }
-      else if ( UTIL_CL_SHDKEY_FIELD == argument.getArgumentMask() )
-      {
-         // it is ok
-      }
-      else
-      {
-         PD_CHECK( !cataSet.isMainCL(), SDB_OPTION_NOT_SUPPORT, error,
-                   PDERROR, "Failed to [%s]: should not be main-collection",
-                   _task->getActionName() ) ;
-         PD_CHECK( 1 == cataSet.groupCount(), SDB_OPTION_NOT_SUPPORT, error,
-                   PDERROR, "Failed to [%s]: should have one group",
-                   _task->getActionName() ) ;
       }
 
    done :
@@ -1662,21 +1774,48 @@ namespace engine
       {
          rtnCLShardingArgument argument = localTask->getShardingArgument() ;
 
-         // Save old sharding arguments
-         rc = _fillShardingArgument( cataSet, _rollbackShardArgument ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to set rollback argument, "
-                      "rc: %d", rc ) ;
+         // normal cl: alter( { ShardingKey: { a: 1 } } )
+         // - argument.getShardingKey() is not empty
+         // - cataSet.isSharding() is false
+         // shard cl: alter( { ShardingKey: { a: 1 } } ) or alter( { EnsureShardingIndex: false } )
+         // - argument.getShardingKey() may be empty
+         // - cataSet.isSharding() is true
+         if ( !argument.getShardingKey().isEmpty() || cataSet.isSharding() )
+         {
+            // Save old sharding arguments
+            rc = _fillShardingArgument( cataSet, _rollbackShardArgument ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to set rollback argument, "
+                         "rc: %d", rc ) ;
 
-         _rollbackShardArgument.setArgumentMask( argument.getArgumentMask() ) ;
+            _rollbackShardArgument.setArgumentMask( argument.getArgumentMask() ) ;
 
-         rc = _fillShardingArgument( cataSet, argument ) ;
-         PD_RC_CHECK( rc, PDERROR,
-                      "Failed to fill sharding arguments, rc: %d", rc ) ;
+            rc = _fillShardingArgument( cataSet, argument ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to fill sharding arguments, rc: %d", rc ) ;
 
-         rc = _buildEnableShardFields( cataSet, argument, _postAutoSplit,
-                                       attribute, setBuilder, unsetBuilder ) ;
-         PD_RC_CHECK( rc, PDERROR,
-                      "Failed to build sharding fields, rc: %d", rc ) ;
+            rc = _buildEnableShardFields( cataSet, argument, _postAutoSplit,
+                                          attribute, setBuilder, unsetBuilder ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to build sharding fields, rc: %d", rc ) ;
+         }
+         else
+         {
+            if ( OSS_BIT_TEST( cataSet.getAttribute(), DMS_MB_ATTR_CAPPED ) )
+            {
+               rc = SDB_OPTION_NOT_SUPPORT ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to check [%s]: collection [%s] is capped",
+                            _task->getActionName(), _dataName.c_str() ) ;
+            }
+            if ( argument.testArgumentMask( UTIL_CL_ENSURESHDIDX_FIELD |
+                                            UTIL_CL_SHDTYPE_FIELD |
+                                            UTIL_CL_PARTITION_FIELD |
+                                            UTIL_CL_AUTOSPLIT_FIELD ) )
+            {
+               rc = SDB_NO_SHARDINGKEY ;
+               PD_RC_CHECK( rc, PDERROR, "Non-sharding collection can't change "
+                            "EnsureShardingIndex, ShardingType, Partition and AutoSplit, rc: %d", rc ) ;
+            }
+         }
       }
 
       if ( localTask->containCompressArgument() )

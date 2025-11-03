@@ -252,6 +252,7 @@ namespace engine
 
          BOOLEAN                 _subCLOFMainCL ;
          autoIncFieldsList       _rollbackAutoIncFields ;
+         BOOLEAN                 _isDiffShdKey ;
    } ;
 
    typedef class _catCtxAlterCLTask catCtxAlterCLTask ;

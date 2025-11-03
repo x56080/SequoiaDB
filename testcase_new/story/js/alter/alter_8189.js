@@ -33,19 +33,8 @@ function test ()
    cl.insert( data );
    cl.split( srcGroup, tarGroup, 50 );
 
-   //alters shardingType
-   try
-   {
-      cl.alter( { ShardingType: "hash" } );
-      throw new Error( "ERR_ALTER_CL" );
-   }
-   catch( e )
-   {
-      if( e.message != SDB_OPTION_NOT_SUPPORT )
-      {
-         throw e;
-      }
-   }
+   // alters shardingType
+   cl.alter( { ShardingType: "hash" } );
 
    try
    {

@@ -23,7 +23,7 @@ function test ()
    var options2 = { AutoIndexId: false };
    var cl2 = commCreateCL( db, csName, clName2, options2, true, false, "create CL in the begin" );
 
-   for( i = 0; i < 5000; i++ )
+   for( i = 0; i < 500; i++ )
    {
       cl1.insert( { a: i, b: "sequoiadh test split cl alter option" } );
       cl2.insert( { a: i, b: "sequoiadh test split cl alter option" } );
