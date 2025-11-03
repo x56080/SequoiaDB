@@ -2834,6 +2834,22 @@ public class DBCollection {
     }
 
     /**
+     * Create a lob with a given id.
+     *
+     * @param id the lob's id. if id is null, it will be generated in this function
+     * @param userData User defined meta data(The maximum size of this object is 384 bytes)
+     * @return DBLob object
+     * @throws BaseException If error happens..
+     */
+    public DBLob createLob(ObjectId id, BSONObject userData) throws BaseException {
+        DBLobImpl lob = new DBLobImpl(this);
+        lob.open(id, DBLobImpl.SDB_LOB_CREATEONLY, userData);
+        // upsert cache
+        sequoiadb.upsertCache(collectionFullName);
+        return lob;
+    }
+
+    /**
      * Open an existing lob with id.
      *
      * @param id   the lob's id.

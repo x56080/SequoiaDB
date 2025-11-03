@@ -2045,6 +2045,7 @@ namespace engine
       string oidStr ;
       string filePath ;
       OID oid ;
+      BSONObj userData ;
       ossFile file ;
       INT64 bufLen = LOB_BUFFER_LEN ;
       INT64 readSize = 0 ;
@@ -2062,15 +2063,21 @@ namespace engine
          goto error ;
       }
 
+      /// oid
       rc = arg.getString( 1, oidStr ) ;
       if( SDB_OUT_OF_BOUND == rc )
       {
          //oid is generated from server side
+         rc = SDB_OK ;
       }
       else if( SDB_OK != rc )
       {
-         detail = BSON( SPT_ERR << "OidStr must be string" ) ;
-         goto error ;
+         if ( !arg.isNull( 1 ) )
+         {
+            detail = BSON( SPT_ERR << "OidStr must be string" ) ;
+            goto error ;
+         }
+         rc = SDB_OK ;
       }
       else
       {
@@ -2091,6 +2098,19 @@ namespace engine
          oid = OID( oidStr ) ;
       }
 
+      /// user data
+      rc = arg.getBsonobj( 2, userData ) ;
+      if ( SDB_OUT_OF_BOUND == rc )
+      {
+         /// ignore
+         rc = SDB_OK ;
+      }
+      else if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "UserData must be Object" ) ;
+         goto error ;
+      }
+
       rc = file.open( filePath, OSS_READONLY|OSS_SHAREREAD,
                       OSS_DEFAULTFILE ) ;
       if( SDB_OK != rc )
@@ -2101,11 +2121,11 @@ namespace engine
 
       if ( oid.isSet() )
       {
-         rc = _cl.createLob( lob, &oid ) ;
+         rc = _cl.createLob( lob, &oid, userData ) ;
       }
       else
       {
-         rc = _cl.createLob( lob, NULL ) ;
+         rc = _cl.createLob( lob, NULL, userData ) ;
          if ( SDB_OK == rc )
          {
             rc = lob.getOid( oid ) ;

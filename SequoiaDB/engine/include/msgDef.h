@@ -594,6 +594,7 @@
 #define FIELD_NAME_LOB_CREATETIME            "CreateTime"
 #define FIELD_NAME_LOB_MODIFICATION_TIME     "ModificationTime"
 #define FIELD_NAME_LOB_FLAG                  "Flag"
+#define FIELD_NAME_LOB_USERDATA              "UserData"
 #define FIELD_NAME_LOB_PIECESINFONUM         "PiecesInfoNum"
 #define FIELD_NAME_LOB_PIECESINFO            "PiecesInfo"
 #define FIELD_NAME_LOB_PIECES                "Pieces"

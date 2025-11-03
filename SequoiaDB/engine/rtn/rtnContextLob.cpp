@@ -139,6 +139,8 @@ namespace engine
       BSONElement mode ;
       BSONElement oidEle ;
       BSONElement fullName ;
+      BSONElement eUserData ;
+      BSONObj userData ;
 
       SDB_ASSERT( pStream, "Stream can't be NULL" ) ;
       if ( !pStream )
@@ -181,9 +183,22 @@ namespace engine
          }
          else
          {
-            PD_LOG( PDERROR, "invalid oid in meta bsonobj:%s",
+            PD_LOG( PDERROR, "Invalid oid in meta bsonobj: %s",
                     lob.toString( FALSE, TRUE ).c_str() ) ;
             rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+
+         eUserData = lob.getField( FIELD_NAME_LOB_USERDATA ) ;
+         if ( Object == eUserData.type() )
+         {
+            userData = eUserData.embeddedObject() ;
+         }
+         else if ( !eUserData.eoo() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Invalid %s in meta bson object: %s",
+                    FIELD_NAME_LOB_USERDATA, lob.toString( FALSE, TRUE ).c_str() ) ;
             goto error ;
          }
       }
@@ -202,7 +217,8 @@ namespace engine
                           mode.Int(),
                           _flags,
                           this,
-                          cb ) ;
+                          cb,
+                          userData ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to open lob stream, rc: %d", rc ) ;

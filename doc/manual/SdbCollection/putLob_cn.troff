@@ -8,7 +8,7 @@
 putLob \- 在集合中插入大对象
 .SH 语法
 .PP
-\f[B]db.collectionspace.collection.putLob(<filepath>, [oid])\f[]
+\f[B]db.collectionspace.collection.putLob(<filepath>, [oid], [userData])\f[]
 .SH 类别
 .PP
 SdbCollection
@@ -66,6 +66,31 @@ T}@T{
 T}@T{
 T}@T{
 识
+T}@T{
+T}
+T{
+3
+T}@T{
+userData
+T}@T{
+object
+T}@T{
+用户自定义大对
+T}@T{
+否
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+象元数据(对象最
+T}@T{
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+大限制为384字节)
 T}@T{
 T}
 .TE

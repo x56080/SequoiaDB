@@ -66,7 +66,8 @@ namespace engine
                   INT32 mode,
                   INT32 flags,
                   _rtnContextBase *context,
-                  _pmdEDUCB *cb ) ;
+                  _pmdEDUCB *cb,
+                  const BSONObj &userData = BSONObj() ) ;
 
       INT32 close( _pmdEDUCB *cb ) ;
 
@@ -207,6 +208,11 @@ namespace engine
          return _flags ;
       }
 
+      OSS_INLINE const BSONObj& _getUserData() const
+      {
+         return _userData ;
+      }
+
       UINT32 _getSequence( INT64 offset ) const ;
 
       virtual void _onIncreaseMetrics( const monAppCB &delta ) {}
@@ -330,6 +336,7 @@ namespace engine
       INT32                _lobPageSz ;
       UINT32               _logarithmic ;
       INT64                _offset ;
+      BSONObj              _userData ;
 
       _rtnLobPiecesInfo    _lobPieces ;
       BOOLEAN              _hasPiecesInfo ;

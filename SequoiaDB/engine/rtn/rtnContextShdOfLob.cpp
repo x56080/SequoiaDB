@@ -1376,6 +1376,14 @@ namespace engine
          builder.append( FIELD_NAME_LOB_MODIFICATION_TIME,
                          (INT64)_meta._modificationTime ) ;
          builder.append( FIELD_NAME_LOB_FLAG, (INT32)_meta._flag ) ;
+
+         /// if has user data
+         if ( _meta.hasUserData() )
+         {
+            BSONObj userData( _meta._userData ) ;
+            builder.append( FIELD_NAME_LOB_USERDATA, userData ) ;
+         }
+
          builder.append( FIELD_NAME_LOB_PIECESINFONUM, _meta._piecesInfoNum ) ;
          if ( _meta.hasPiecesInfo() &&
               ( SDB_IS_LOBREADONLY_MODE(_mode) || SDB_HAS_LOBWRITE_MODE(_mode)

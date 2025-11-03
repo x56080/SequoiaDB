@@ -430,6 +430,13 @@ namespace engine
                                    (modificationTime % 1000 ) * 1000) ;
          _builder.appendBool( FIELD_NAME_LOB_AVAILABLE, meta->isDone() ) ;
 
+         /// if has user data
+         if ( meta->hasUserData() )
+         {
+            BSONObj userData( meta->_userData ) ;
+            _builder.append( FIELD_NAME_LOB_USERDATA, userData ) ;
+         }
+
    #ifdef _DEBUG
          _builder.appendBool( FIELD_NAME_LOB_HAS_PIECESINFO, meta->hasPiecesInfo() ) ;
          if ( meta->hasPiecesInfo() && info._len >= DMS_LOB_META_LENGTH )

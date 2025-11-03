@@ -164,7 +164,8 @@ namespace engine
                               INT32 mode,
                               INT32 flags,
                               _rtnContextBase *context,
-                              _pmdEDUCB *cb )
+                              _pmdEDUCB *cb,
+                              const BSONObj &userData )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_RTNLOBSTREAM_OPEN ) ;
@@ -175,6 +176,7 @@ namespace engine
       ossMemcpy( &_oid, &oid, sizeof( oid ) ) ;
       _mode = mode ;
       _flags = flags ;
+      _userData = userData ;
 
       if ( !SDB_IS_VALID_LOB_MODE( mode ) )
       {
@@ -187,6 +189,25 @@ namespace engine
       {
          _meta._createTime = ossGetCurrentMilliseconds() ;
          _meta._modificationTime = _meta._createTime ;
+
+         /// copy user data
+         if ( !userData.isEmpty() )
+         {
+            /// check length
+            if ( userData.objsize() <= DMS_LOB_META_USERDATA_MAX_LEN )
+            {
+               ossMemcpy( _meta._userData, userData.objdata(), userData.objsize() ) ;
+            }
+            else
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG_MSG( PDERROR, "Create lob(%s) in collection(%s) failed, rc: %d."
+                           "Because UserData's length(%d) is grater than max limit(%d)",
+                           oid.toString().c_str(), fullName, rc,
+                           userData.objsize(), DMS_LOB_META_USERDATA_MAX_LEN ) ;
+               goto error ;
+            }
+         }
       }
 
       rc = _checkPrivileges( cb );
@@ -343,6 +364,14 @@ namespace engine
          builder.append( FIELD_NAME_LOB_CREATETIME, (INT64)_meta._createTime ) ;
          builder.append( FIELD_NAME_LOB_MODIFICATION_TIME, (INT64)_meta._modificationTime ) ;
          builder.append( FIELD_NAME_LOB_FLAG, (INT32)_meta._flag ) ;
+
+         /// if has user data
+         if ( _meta.hasUserData() )
+         {
+            BSONObj userData( _meta._userData ) ;
+            builder.append( FIELD_NAME_LOB_USERDATA, userData ) ;
+         }
+
          builder.append( FIELD_NAME_LOB_PIECESINFONUM, _meta._piecesInfoNum ) ;
          if ( _meta.hasPiecesInfo() )
          {
@@ -912,6 +941,14 @@ namespace engine
          builder.append( FIELD_NAME_VERSION, (INT32)_meta._version ) ;
          builder.appendBool( FIELD_NAME_LOB_AVAILABLE, _meta.isDone() ) ;
          builder.append( FIELD_NAME_LOB_FLAG, (INT32)_meta._flag ) ;
+
+         /// if has user data
+         if ( _meta.hasUserData() )
+         {
+            BSONObj userData( _meta._userData ) ;
+            builder.append( FIELD_NAME_LOB_USERDATA, userData ) ;
+         }
+
          builder.appendBool( FIELD_NAME_LOB_HAS_PIECESINFO, _meta.hasPiecesInfo() ) ;
          builder.append( FIELD_NAME_LOB_PIECESINFONUM, _meta._piecesInfoNum ) ;
 

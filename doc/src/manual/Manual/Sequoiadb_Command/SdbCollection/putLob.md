@@ -4,7 +4,7 @@ putLob - 在集合中插入大对象
 
 ##语法##
 
-**db.collectionspace.collection.putLob\(\<filepath\>, [oid]\)**
+**db.collectionspace.collection.putLob\(\<filepath\>, [oid], [userData]\)**
 
 ##类别##
 
@@ -20,6 +20,7 @@ SdbCollection
 | ------ | ---- | ---- | -------- |
 | filepath | string | 待上传的本地文件全路径 | 是 |
 | oid | string | 大对象的唯一标识 | 否 |
+| userData | object | 用户自定义大对象元数据(对象最大限制为384字节) | 否 |
 
 ##返回值##
 
