@@ -231,7 +231,7 @@ namespace engine
 
       if ( shardingKeyArg.isEmpty() )
       {
-         if ( !argument.isEnsureShardingIndex() && !curShardKey.isEmpty() )
+         if ( !argument.isEnsureShardingIndex() && shardIndexExist )
          {
             dropIndex = TRUE ;
          }
