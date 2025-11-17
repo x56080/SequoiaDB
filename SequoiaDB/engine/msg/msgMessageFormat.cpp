@@ -173,6 +173,36 @@ const CHAR* msgType2String( MSG_TYPE msgType, BOOLEAN isCommand )
          return "LOB GETDETAIL" ;
       case MSG_BS_SEQUENCE_FETCH_REQ :
          return "SEQUENCE FETCH" ;
+      case MSG_CLS_SYNC_REQ :
+         return "SYNC" ;
+      case MSG_CLS_SYNC_NOTIFY :
+         return "SYNC NOTIFY" ;
+      case MSG_CLS_SYNC_VIR_REQ :
+         return "VIR SYNC" ;
+      case MSG_CLS_CONSULTATION_REQ :
+         return "CONSULT" ;
+      case MSG_CLS_FULL_SYNC_BEGIN :
+         return "SYNC BEGIN" ;
+      case MSG_CLS_FULL_SYNC_END :
+         return "SYNC END" ;
+      case MSG_CLS_FULL_SYNC_META_REQ :
+         return "SYNC META" ;
+      case MSG_CLS_FULL_SYNC_INDEX_REQ :
+         return "SYNC INDEX" ;
+      case MSG_CLS_FULL_SYNC_NOTIFY :
+         return "SYNC DATA" ;
+      case MSG_CLS_FULL_SYNC_LEND_REQ :
+         return "SYNC PRE END" ;
+      case MSG_CLS_FULL_SYNC_TRANS_REQ :
+         return "SYNC TRANS" ;
+      case MSG_CAT_SPLIT_CHGMETA_REQ :
+         return "TASK CHANGE META" ;
+      case MSG_CAT_SPLIT_CLEANUP_REQ :
+         return "TASK CLEAN UP" ;
+      case MSG_CAT_SPLIT_FINISH_REQ :
+         return "TASK FINISH" ;
+      case MSG_BS_MSG_REQ :
+         return "MSG" ;
    } ;
    return "UNKNOWN" ;
 }

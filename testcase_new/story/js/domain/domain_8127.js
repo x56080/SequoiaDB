@@ -26,11 +26,11 @@ function test ()
    }
 
    // List not exit domain name [Testing Point]
-   assert.tryThrow( SDB_DMS_EOC, function()
+   var listDom = db.listDomains( { "Name": "NotExistDomName" } );
+   if ( listDom.current() )
    {
-      var listDom = db.listDomains( { "Name": "NotExistDomName" } );
-      var notDomName = listDom.current().toObj()["Name"];
-   } );
+      throw "Domain should not exist" ;
+   }
 
    // List all domains and inspect[Testing Point]
    listDom = db.listDomains();

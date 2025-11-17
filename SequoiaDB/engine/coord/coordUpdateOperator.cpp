@@ -174,8 +174,8 @@ namespace engine
          {
             rc = rtnGetObjElement( boHint, "$"FIELD_NAME_CLIENTINFO, clientInfo ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to get field [%s], rc: %d",
-                         "$"FIELD_NAME_CLIENTINFO, rc ) ;
-            cb->getMonQueryCB()->clientInfo = clientInfo.getOwned() ;
+                         "$" FIELD_NAME_CLIENTINFO, rc ) ;
+            cb->getMonQueryCB()->setClientInfo( clientInfo.getOwned() ) ;
          }
 
          rtnQueryOptions options( boSelector, dummy, dummy, boHint, pCollectionName,

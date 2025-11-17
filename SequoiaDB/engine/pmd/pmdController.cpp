@@ -371,6 +371,7 @@ namespace engine
       monUpdateConf( pmdGetOptionCB()->slowQueryThreshold(),
                      pmdGetOptionCB()->slowLatchThreshold(),
                      pmdGetOptionCB()->slowLockThreshold(),
+                     pmdGetOptionCB()->slowSyncThreshold(),
                      pmdGetOptionCB()->monOptiLevel(),
                      pmdGetOptionCB()->monHistExpiredTime() ) ;
    }

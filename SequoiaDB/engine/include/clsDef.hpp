@@ -551,11 +551,12 @@ namespace engine
    class _clsSyncStatus : public SDBObject
    {
    public :
-      DPS_LSN_OFFSET    offset ;
+      DPS_LSN_OFFSET    offset ;       /// complete lsn
+      DPS_LSN_OFFSET    syncOffset ;   /// sync lsn
       _MsgRouteID       id ;
       BOOLEAN           valid ;
 
-      _clsSyncStatus():offset(0)
+      _clsSyncStatus():offset(0),syncOffset(0)
       {
          id.value       = 0 ;
          valid          = TRUE ;
@@ -564,6 +565,7 @@ namespace engine
       _clsSyncStatus& operator=( const _clsSyncStatus &right )
       {
          offset         = right.offset ;
+         syncOffset     = right.syncOffset ;
          id.value       = right.id.value ;
          valid          = right.valid ;
 

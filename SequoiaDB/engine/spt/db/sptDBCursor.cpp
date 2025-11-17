@@ -184,12 +184,23 @@ namespace engine
          goto done ;
       }
       rc = _cursor.current( record ) ;
-      if( SDB_OK != rc )
+      if( SDB_OK == rc )
+      {
+         _hasRead = TRUE ;
+         rval.getReturnVal().setValue( record ) ;
+      }
+      else if( SDB_DMS_EOC == rc )
+      {
+         engine::sdbSetReadData( _hasRead ) ;
+         _finishRead = TRUE ;
+         rc = SDB_OK ;
+      }
+      else
       {
          detail = BSON( SPT_ERR << "Failed to get current" ) ;
          goto error ;
       }
-      rval.getReturnVal().setValue( record ) ;
+
    done:
       return rc ;
    error:

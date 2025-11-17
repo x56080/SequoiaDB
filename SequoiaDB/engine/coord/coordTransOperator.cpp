@@ -797,8 +797,8 @@ namespace engine
             {
                rc = rtnGetObjElement( hint, "$"FIELD_NAME_CLIENTINFO, clientInfo ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to get field [%s], rc: %d",
-                            "$"FIELD_NAME_CLIENTINFO, rc ) ;
-               cb->getMonQueryCB()->clientInfo = clientInfo.getOwned() ;
+                            "$" FIELD_NAME_CLIENTINFO, rc ) ;
+               cb->getMonQueryCB()->setClientInfo( clientInfo.getOwned() ) ;
             }
          }
          catch ( std::exception &e )

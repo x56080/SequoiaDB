@@ -67,6 +67,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__CLSSYNCMAG__CLSSYNCMAG ) ;
       _syncSrc.value = MSG_INVALID_ROUTEID ;
       _wakeTimeout = 0 ;
+      _syncWaitSize = 0 ;
 
       for ( UINT32 i = 0 ; i < CLS_REPLSET_MAX_NODE_SIZE - 1 ; i++ )
       {
@@ -117,6 +118,7 @@ namespace engine
          if ( _notifyList[i].id.value == id.value )
          {
             _notifyList[i].offset = DPS_INVALID_LSN_OFFSET ;
+            _notifyList[i].syncOffset = DPS_INVALID_LSN_OFFSET ;
             break ;
          }
       }
@@ -235,6 +237,7 @@ namespace engine
          if ( !has )
          {
             status[merge].offset = 0 ;
+            status[merge].syncOffset = 0 ;
             status[merge].id.value = itr->first ;
             status[merge].valid = newNodeValid ;
             ++merge ;
@@ -333,7 +336,7 @@ namespace engine
       }
       else if ( needWait )
       {
-         rc = _wait( session.eduCB, sub, timeout ) ;
+         rc = _wait( session, sub, timeout ) ;
       }
 
    done:
@@ -346,7 +349,8 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSYNCMAG_COMPLETE, "_clsSyncManager::complete" )
    void _clsSyncManager::complete( const MsgRouteID &id,
                                    const DPS_LSN &lsn,
-                                   UINT32 TID )
+                                   UINT32 TID,
+                                   const DPS_LSN &syncLsn )
    {
       PD_TRACE_ENTRY ( SDB__CLSSYNCMAG_COMPLETE ) ;
       if ( lsn.invalid() || MSG_INVALID_ROUTEID == id.value )
@@ -363,13 +367,14 @@ namespace engine
       if ( primary.value == _info->local.value &&
            MSG_INVALID_ROUTEID != primary.value )
       {
-         _complete( id, lsn.offset ) ;
+         _complete( id, lsn.offset, syncLsn.offset ) ;
       }
       else if ( MSG_INVALID_ROUTEID != primary.value )
       {
          _MsgReplVirSyncReq msg ;
-         msg.next = lsn ;
+         msg.complete = lsn ;
          msg.from = id ;
+         msg.next = syncLsn ;
          msg.header.TID = TID ;
          _agent->syncSend( primary, (MsgHeader *)&msg ) ;
       }
@@ -689,11 +694,16 @@ namespace engine
    // The function is called by repl session, so need to use lock
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSYNCMAG__COMPLETE, "_clsSyncManager::_complete" )
    void _clsSyncManager::_complete( const MsgRouteID &id,
-                                    const DPS_LSN_OFFSET &offset )
+                                    const DPS_LSN_OFFSET &offset,
+                                    const DPS_LSN_OFFSET &syncOffset )
    {
       PD_TRACE_ENTRY ( SDB__CLSSYNCMAG__COMPLETE ) ;
-      DPS_LSN lsn ;
+      DPS_LSN lsn, syncLsn ;
       lsn.offset = offset ;
+      syncLsn.offset = syncOffset ;
+
+      /// update sync wait info
+      _updateSyncWaitInfo( id.columns.nodeID, offset, syncOffset ) ;
 
       ossScopedRWLock lock( &_info->mtx, SHARED ) ;
 
@@ -706,6 +716,10 @@ namespace engine
             {
                _notifyList[i].offset = offset ;
             }
+            if ( syncLsn.compareOffset( _notifyList[i].syncOffset ) > 0 )
+            {
+               _notifyList[i].syncOffset = syncOffset ;
+            }
             break ;
          }
       }
@@ -714,14 +728,17 @@ namespace engine
          /// wake up agent thread which is waiting
          CLS_WAKE_PLAN plan ;
          _createWakePlan( plan ) ;
-         _wake( plan ) ;
+         _wake( plan, id.columns.nodeID, offset, syncOffset ) ;
       }
       PD_TRACE_EXIT ( SDB__CLSSYNCMAG__COMPLETE ) ;
       return ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSYNCMAG__WAKE, "_clsSyncManager::_wake" )
-   void _clsSyncManager::_wake( CLS_WAKE_PLAN &plan )
+   void _clsSyncManager::_wake( CLS_WAKE_PLAN &plan,
+                                UINT16 wakeByNodeID,
+                                DPS_LSN_OFFSET wakeByOffset,
+                                DPS_LSN_OFFSET wakeSyncOffset )
    {
       /// eg: we got a plan : { 0, 5, 10 }
       /// begin from w = 2 sync list. we pop all nodes which
@@ -737,6 +754,7 @@ namespace engine
       SDB_ASSERT( plan.size() <= CLS_REPLSET_MAX_NODE_SIZE - 1,
                   "plan size should <= CLS_REPLSET_MAX_NODE_SIZE - 1" ) ;
 
+      UINT64 curTime = 0 ;
       _clsSyncSession session ;
       /// begin from w = 2.
       UINT32 sub = 0 ;
@@ -752,6 +770,22 @@ namespace engine
          {
             if ( 0 < lsn.compareOffset( session.endLsn ) )
             {
+               monClassQuery *pMonQuery = session.eduCB->getMonQueryCB() ;
+
+               /// set sync wait info
+               if ( pMonQuery && pMonQuery->isBeginSyncWait() )
+               {
+                  curTime = ossGetCurrentMicroseconds() ;
+                  for ( UINT32 i = 0; i < _validSync ; i++ )
+                  {
+                     pMonQuery->setSyncWaitInfo( _notifyList[i].id.columns.nodeID,
+                                                 _notifyList[i].offset,
+                                                 _notifyList[i].syncOffset,
+                                                 TRUE,
+                                                 curTime ) ;
+                  }
+               }
+
                session.eduCB->getEvent().signal ( SDB_OK ) ;
                _syncList[sub].pop( session ) ;
             }
@@ -817,7 +851,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSYNCMAG__WAIT, "_clsSyncManager::_wait" )
-   INT32 _clsSyncManager::_wait( _pmdEDUCB *&cb, UINT32 sub, INT64 timeout )
+   INT32 _clsSyncManager::_wait( _clsSyncSession &session, UINT32 sub, INT64 timeout )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSSYNCMAG__WAIT ) ;
@@ -826,13 +860,171 @@ namespace engine
       INT64 tmpTime = 0 ;
       BOOLEAN hasBlock = FALSE ;
 
+      pmdEDUCB *cb = session.eduCB ;
+      monClassQuery *pMonQuery = cb->getMonQueryCB() ;
+
+      BOOLEAN monSyncInfo = FALSE ;
+      UINT32 slowSyncThreshold = monGetSlowSyncThreshold() ;
+      UINT32 syncCostTime = 0 ;  /// ms
+
+      /// check is re-wait
+      if ( pMonQuery && 0 != pMonQuery->syncWaitBeginTime &&
+           pMonQuery->syncWaitLSN == session.endLsn )
+      {
+         if ( _regSyncWaitInfo( pMonQuery ) )
+         {
+            pMonQuery->reBeginSyncWait() ;
+            monSyncInfo = TRUE ;
+         }
+      }
+
       while ( !cb->isInterrupted() )
       {
          tmpTime = timeout >= 0 ?
                    ( timeout > OSS_ONE_SEC ? OSS_ONE_SEC : timeout ) :
                    OSS_ONE_SEC ;
+
+         /// fix tmp time
+         if ( pMonQuery && !monSyncInfo && tmpTime + syncCostTime >= slowSyncThreshold )
+         {
+            if ( syncCostTime < slowSyncThreshold )
+            {
+               tmpTime = slowSyncThreshold - syncCostTime ;
+            }
+            else
+            {
+               tmpTime = 1 ;
+            }
+         }
+
+         UINT64 curTime = 0 ;
          /// wait for responses from other nodes.
-         if ( SDB_OK != cb->getEvent().wait ( tmpTime, &rc ) )
+         INT32 rcTmp = cb->getEvent().wait ( tmpTime, &rc ) ;
+
+         /// check wether to enable monitor sync wait
+         if ( pMonQuery && !monSyncInfo && ( SDB_OK != rcTmp || SDB_OK != rc ) )
+         {
+            UINT64 syncBeginTime = 0 ; /// us
+            BOOLEAN hasCalcCost = FALSE ;
+            BOOLEAN isFirst = TRUE ;
+            BOOLEAN enusreCapicity = TRUE ;
+
+            if ( pMonQuery->isCurrentQueryTick( MON_TICK_SYNCWAIT, &syncBeginTime ) )
+            {
+               curTime = ossGetCurrentMicroseconds() ;
+               if ( curTime > syncBeginTime )
+               {
+                  syncCostTime = ( curTime - syncBeginTime ) / 1000 ;
+                  hasCalcCost = TRUE ;
+               }
+            }
+
+            if ( !hasCalcCost )
+            {
+               syncCostTime += ( SDB_OK != rcTmp ? tmpTime : 1 ) ;
+               hasCalcCost = TRUE ;
+            }
+
+            if ( syncCostTime >= slowSyncThreshold )
+            {
+               if ( 0 == curTime )
+               {
+                  curTime = ossGetCurrentMicroseconds() ;
+               }
+               pMonQuery->syncReplSize = CLS_SUB_2_W( sub ) ;
+               pMonQuery->slowSyncCount += 1 ;
+               if ( 0 != syncBeginTime )
+               {
+                  pMonQuery->syncWaitBeginTime = syncBeginTime ;
+               }
+               else if ( curTime > syncCostTime * 1000 )
+               {
+                  pMonQuery->syncWaitBeginTime = curTime - syncCostTime * 1000 ;
+               }
+               else
+               {
+                  pMonQuery->syncWaitBeginTime = curTime ;
+               }
+               pMonQuery->syncWaitLSN = session.endLsn ;
+
+               /// lock and add nodes
+               ossScopedRWLock lock( &_info->mtx, SHARED ) ;
+
+               if ( !pMonQuery->syncInfos.empty() )
+               {
+                  isFirst = FALSE ;
+               }
+               else
+               {
+                  try
+                  {
+                     pMonQuery->reserveSyncInfo( _validSync ) ;
+                  }
+                  catch( std::exception &e )
+                  {
+                     PD_LOG( PDWARNING, "Occur exception: %s", e.what() ) ;
+                     enusreCapicity = FALSE ;
+                     /// ignore error
+                  }
+               }
+
+               if ( enusreCapicity )
+               {
+                  for ( UINT32 i = 0; i < _validSync ; i++ )
+                  {
+                     monSyncWaitInfo waitInfo ;
+                     waitInfo._nodeID = _notifyList[i].id.columns.nodeID ;
+                     waitInfo._startPointNextOffset = _notifyList[i].syncOffset ;
+                     waitInfo._startPointCompleteOffset = _notifyList[i].offset ;
+                     waitInfo._endPointNextOffset = waitInfo._startPointNextOffset ;
+                     waitInfo._endPointCompleteOffset = waitInfo._startPointCompleteOffset ;
+
+                     /// update status
+                     if ( (UINT64)~0 != waitInfo.getCompareMatchLsn() &&
+                          waitInfo.getCompareMatchLsn() > pMonQuery->syncWaitLSN )
+                     {
+                        UINT64 costTime = 1 ;
+
+                        if ( curTime > pMonQuery->syncWaitBeginTime )
+                        {
+                           costTime = curTime - pMonQuery->syncWaitBeginTime ;
+                        }
+
+                        waitInfo.setInfo( waitInfo._endPointCompleteOffset,
+                                          waitInfo._endPointNextOffset,
+                                          pMonQuery->syncWaitLSN, FALSE,
+                                          costTime, curTime ) ;
+                     }
+
+                     if ( isFirst )
+                     {
+                        try
+                        {
+                           pMonQuery->addWaitInfo2SyncInfo( waitInfo ) ;
+                        }
+                        catch( std::exception &e )
+                        {
+                           PD_LOG( PDWARNING, "Occur exception: %s", e.what() ) ;
+                           /// ignore error
+                        }
+                     }
+                     else
+                     {
+                        pMonQuery->updateSyncWaitInfo( waitInfo ) ;
+                     }
+                  }
+
+                  if ( _regSyncWaitInfo( pMonQuery ) )
+                  {
+                     /// update flag
+                     monSyncInfo = TRUE ;
+                     pMonQuery->beginSyncWait() ;
+                  }
+               }
+            }
+         }
+
+         if ( SDB_OK != rcTmp )
          {
             if ( timeout >= 0 )
             {
@@ -892,6 +1084,11 @@ namespace engine
       if ( hasBlock )
       {
          cb->unsetBlock() ;
+      }
+      if ( monSyncInfo )
+      {
+         _unregSyncWaitInfo( pMonQuery ) ;
+         pMonQuery->finishSyncWait() ;
       }
       PD_TRACE_EXITRC ( SDB__CLSSYNCMAG__WAIT, rc ) ;
       return rc ;
@@ -955,6 +1152,154 @@ namespace engine
          }
       }
       PD_TRACE_EXIT ( SDB__CLSSYNCMAG__CRSYNCLIST ) ;
+   }
+
+   BOOLEAN _clsSyncManager::_regSyncWaitInfo( monClassQuery *pMonQuery )
+   {
+      BOOLEAN result = TRUE ;
+      ossPoolVector<monSyncWaitInfo>::iterator it ;
+
+      ossScopedLock lock( &_syncWaitLatch ) ;
+
+      try
+      {
+         it = pMonQuery->syncInfos.begin() ;
+         while ( it != pMonQuery->syncInfos.end() )
+         {
+            monSyncWaitInfo *pWaitInfo = &(*it) ;
+            MAP_LSN_2_SYNCWAIT_INFO &mapSyncWaitInfo = _mapNode2SyncWaitInfo[ pWaitInfo->_nodeID ] ;
+            if ( !mapSyncWaitInfo.insert( MAP_LSN_2_SYNCWAIT_INFO::value_type(
+                                             pMonQuery->syncWaitLSN,
+                                             clsSyncWaitItem( pMonQuery, pWaitInfo ) ) ).second )
+            {
+               result = FALSE ;
+               _unregSyncWaitInfo_i( pMonQuery ) ;
+               break ;
+            }
+            ++it ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         result = FALSE ;
+         _unregSyncWaitInfo_i( pMonQuery ) ;
+      }
+
+      _syncWaitSize = _mapNode2SyncWaitInfo.size() ;
+
+      return result ;
+   }
+
+   void _clsSyncManager::_unregSyncWaitInfo_i( monClassQuery *pMonQuery, BOOLEAN canUseNtyList )
+   {
+      MAP_NODE_2_SYNCWAIT_INFO::iterator it = _mapNode2SyncWaitInfo.begin() ;
+      while( it != _mapNode2SyncWaitInfo.end() )
+      {
+         MAP_LSN_2_SYNCWAIT_INFO &mapSyncWaitInfo = it->second ;
+
+         MAP_LSN_2_SYNCWAIT_INFO::iterator itSync = mapSyncWaitInfo.find( pMonQuery->syncWaitLSN ) ;
+         if ( itSync != mapSyncWaitInfo.end() )
+         {
+            clsSyncWaitItem &syncItem = itSync->second ;
+            if ( canUseNtyList && 0 == syncItem._pWaitInfo->_finished )
+            {
+               /// should update the end point info
+               for ( UINT32 i = 0; i < _validSync ; i++ )
+               {
+                  if ( _notifyList[i].id.columns.nodeID == syncItem._pWaitInfo->_nodeID )
+                  {
+                     syncItem._pWaitInfo->_endPointCompleteOffset = _notifyList[i].offset ;
+                     syncItem._pWaitInfo->_endPointNextOffset = _notifyList[i].syncOffset ;
+                     break ;
+                  }
+               }
+            }
+
+            /// erase
+            mapSyncWaitInfo.erase( itSync ) ;
+         }
+
+         /// when map is empty, erase it
+         if ( mapSyncWaitInfo.empty() )
+         {
+            _mapNode2SyncWaitInfo.erase( it++ ) ;
+         }
+         else
+         {
+            ++it ;
+         }
+      }
+   }
+
+   void _clsSyncManager::_unregSyncWaitInfo( monClassQuery *pMonQuery )
+   {
+      ossScopedRWLock lock( &_info->mtx, SHARED ) ;
+
+      ossScopedLock lockWait( &_syncWaitLatch ) ;
+
+      _unregSyncWaitInfo_i( pMonQuery, TRUE ) ;
+
+      _syncWaitSize = _mapNode2SyncWaitInfo.size() ;
+   }
+
+   void _clsSyncManager::_updateSyncWaitInfo( UINT16 nodeID,
+                                              const DPS_LSN_OFFSET &offset,
+                                              const DPS_LSN_OFFSET &syncOffset )
+   {
+      /// fast check
+      if ( _syncWaitSize > 0 )
+      {
+         UINT64 curTime = 0 ;
+         UINT64 costTime = 0 ;
+
+         ossScopedLock lock( &_syncWaitLatch ) ;
+
+         MAP_NODE_2_SYNCWAIT_INFO::iterator it = _mapNode2SyncWaitInfo.find( nodeID ) ;
+         if ( it != _mapNode2SyncWaitInfo.end() )
+         {
+            MAP_LSN_2_SYNCWAIT_INFO &mapSyncWaitInfo = it->second ;
+
+            MAP_LSN_2_SYNCWAIT_INFO::iterator itSync = mapSyncWaitInfo.begin() ;
+            while( itSync != mapSyncWaitInfo.end() )
+            {
+               clsSyncWaitItem &waitItem = itSync->second ;
+               UINT64 compareLsn = waitItem._pWaitInfo->getCompareMatchLsn( offset, syncOffset ) ;
+
+               if ( DPS_INVALID_LSN_OFFSET != compareLsn && compareLsn > itSync->first )
+               {
+                  if ( 0 == curTime )
+                  {
+                     curTime = ossGetCurrentMicroseconds() ;
+                  }
+                  
+                  if ( curTime > waitItem._pMonQuery->syncWaitBeginTime )
+                  {
+                     costTime = curTime - waitItem._pMonQuery->syncWaitBeginTime ;
+                  }
+                  else
+                  {
+                     costTime = 1 ;
+                  }
+
+                  waitItem._pWaitInfo->setInfo( offset, syncOffset, itSync->first,
+                                                FALSE, costTime, curTime ) ;
+
+                  mapSyncWaitInfo.erase( itSync++ ) ;
+               }
+               else
+               {
+                  break ;
+               }
+            }
+
+            if ( mapSyncWaitInfo.empty() )
+            {
+               _mapNode2SyncWaitInfo.erase( it ) ;
+               _syncWaitSize = _mapNode2SyncWaitInfo.size() ;
+            }
+         }
+      }
    }
 
 }

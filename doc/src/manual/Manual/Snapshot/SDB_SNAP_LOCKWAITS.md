@@ -1,5 +1,5 @@
 
-锁等待快照可以列出数据库中正在发生的锁等待信息。当 [mongroupmask][configuration] 参数设置为“slowQuery:detail”或“all:detail”时，该次等待记录会在线程拿到该锁后被归入历史锁等待信息。用户可以通过指定 [viewHistory][SnapshotOption] 选项，查看历史锁等待信息。
+锁等待快照可以列出数据库中正在发生的锁等待信息和历史慢锁等待信息。当 [mongroupmask][configuration] 参数设置为“slowQuery:detail”或“all:detail”时，该次等待记录会在线程拿到该锁后被归入历史锁等待信息。用户可以通过指定 [viewHistory][SnapshotOption] 选项，查看历史锁等待信息或当前锁等待信息。默认为查看历史锁等待信息。
 
 >**Note:**
 >

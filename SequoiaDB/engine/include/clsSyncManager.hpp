@@ -92,10 +92,29 @@ namespace engine
    } ;
 
    /*
+      _clsSyncWaitItem define
+   */
+   struct _clsSyncWaitItem
+   {
+      monClassQuery     *_pMonQuery ;
+      monSyncWaitInfo   *_pWaitInfo ;
+
+      _clsSyncWaitItem( monClassQuery *pMonQuery = NULL, monSyncWaitInfo *pWaitInfo = NULL )
+      {
+         _pMonQuery = pMonQuery ;
+         _pWaitInfo = pWaitInfo ;
+      }
+   } ;
+   typedef _clsSyncWaitItem clsSyncWaitItem ;
+
+   /*
       _clsSyncManager define
    */
    class _clsSyncManager : public SDBObject
    {
+      typedef ossPoolMap< UINT64, clsSyncWaitItem >            MAP_LSN_2_SYNCWAIT_INFO ;
+      typedef ossPoolMap< UINT16, MAP_LSN_2_SYNCWAIT_INFO >    MAP_NODE_2_SYNCWAIT_INFO ;
+
    public:
       _clsSyncManager( _netRouteAgent *agent,
                        _clsGroupInfo *info ) ;
@@ -115,7 +134,8 @@ namespace engine
 
       void complete( const MsgRouteID &id,
                      const DPS_LSN &lsn,
-                     UINT32 TID ) ;
+                     UINT32 TID,
+                     const DPS_LSN &syncLsn = DPS_LSN() ) ;
 
       void handleTimeout( const UINT32 &interval ) ;
 
@@ -168,19 +188,31 @@ namespace engine
       }
 
    private:
-      INT32 _wait( _pmdEDUCB *&cb, UINT32 sub, INT64 timeout = -1 ) ;
+      INT32 _wait( _clsSyncSession &session, UINT32 sub, INT64 timeout = -1 ) ;
 
       void _createWakePlan( CLS_WAKE_PLAN &plan ) ;
 
-      void _wake( CLS_WAKE_PLAN &plan ) ;
+      void _wake( CLS_WAKE_PLAN &plan,
+                  UINT16 wakeByNodeID = 0,
+                  DPS_LSN_OFFSET wakeByOffset = DPS_INVALID_LSN_OFFSET,
+                  DPS_LSN_OFFSET wakeSyncOffset = DPS_INVALID_LSN_OFFSET ) ;
 
       void _complete( const MsgRouteID &id,
-                      const DPS_LSN_OFFSET &offset ) ;
-
+                      const DPS_LSN_OFFSET &offset,      /// complete lsn
+                      const DPS_LSN_OFFSET &syncOffset   /// next lsn
+                     ) ;
 
       void _clearSyncList( UINT32 removed, UINT32 removedAlives,
                            UINT32 preAlives, UINT32 preSyncNum,                           
                            _clsSyncStatus *left ) ;
+
+      BOOLEAN _regSyncWaitInfo( monClassQuery *pMonQuery ) ;
+      void    _unregSyncWaitInfo( monClassQuery *pMonQuery ) ;
+      void    _unregSyncWaitInfo_i( monClassQuery *pMonQuery,
+                                    BOOLEAN canUseNtyList = FALSE ) ;
+      void    _updateSyncWaitInfo( UINT16 nodeID,
+                                   const DPS_LSN_OFFSET &offset,
+                                   const DPS_LSN_OFFSET &syncOffset ) ;
 
    private:
       /// sub between <0, CLS_REPLSET_MAX_NODE_SIZE - 2>.
@@ -193,6 +225,10 @@ namespace engine
       _netRouteAgent *_agent ;
       _clsGroupInfo *_info ;
       MsgRouteID _syncSrc ;
+
+      MAP_NODE_2_SYNCWAIT_INFO      _mapNode2SyncWaitInfo ;
+      _ossSpinXLatch                _syncWaitLatch ;
+      UINT32                        _syncWaitSize ;
 
       /// valid _notifyList size
       UINT32 _validSync ;

@@ -61,7 +61,7 @@
 | Expand  |  boolean/string  | [配置快照][SNAP_CONFIGS]  | 是否扩展显示用户未配置的配置项，默认为 true，如 {"Expand":false} | 否 |
 | ShowError | string | ALL | 指定是否返回错误信息，默认为"show"，取值如下： <br>"show"：显示错误信息 <br>"only"：只显示错误信息，不显示其他快照信息 <br>"ignore"：不显示错误信息 <br>如 { "ShowError: "only" }  | 否 |
 | ShowErrorMode | string | ALL | 指定返回错误信息的格式，默认为"aggr"，取值如下： <br>"aggr"：错误信息聚合为一条记录显示<br>"flat"：一个错误节点对应一条记录显示 <br>如 {"ShowErrorMode":"flat"}  | 否 |
-| viewHistory | boolean/string | [查询快照][SNAP_QUERIES]、[锁等待快照][SNAP_LOCKWAITS]、[闩锁等待快照][SNAP_LATCHWAITS]  | 显示快照中保留的慢查询相关的历史信息，默认为 false<br>当前暂时只支持显示查询快照、锁等待快照和闩锁等待快照的历史信息，如 { "viewHistory": true }   | 否 |
+| viewHistory | boolean/string | [查询快照][SNAP_QUERIES]、[锁等待快照][SNAP_LOCKWAITS]、[闩锁等待快照][SNAP_LATCHWAITS]  | 显示快照中保留的慢查询相关的历史信息，默认为 true<br>当前暂时只支持显示查询快照、锁等待快照和闩锁等待快照的历史信息，如 { "viewHistory": true }   | 否 |
 
 
 > **Note：**

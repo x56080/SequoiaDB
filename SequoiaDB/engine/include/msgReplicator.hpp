@@ -174,8 +174,9 @@ const UINT32 MSG_SERVICE_MAX = 64 ;
    {
    public :
       _MsgHeader        header ;
-      DPS_LSN           next;
+      DPS_LSN           complete ;
       MsgRouteID        from ;
+      DPS_LSN           next ;
       _MsgReplVirSyncReq()
       {
          header.messageLength = sizeof( _MsgReplVirSyncReq ) ;
@@ -183,6 +184,17 @@ const UINT32 MSG_SERVICE_MAX = 64 ;
          header.routeID.value = MSG_INVALID_ROUTEID ;
          header.TID= 0 ;
          from.value = MSG_INVALID_ROUTEID ;
+      }
+
+      const DPS_LSN& getCompleteLSN() const { return complete ; }
+      const DPS_LSN& getNextLSN() const
+      {
+         if ( header.messageLength < (INT32)sizeof( _MsgReplVirSyncReq ) )
+         {
+            /// for old version, the message no the member of next
+            return complete ;
+         }
+         return next ;
       }
    } ;
    typedef class _MsgReplVirSyncReq MsgReplVirSyncReq ;

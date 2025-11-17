@@ -2557,6 +2557,27 @@
    </opt>
 
    <opt>
+      <name>PMD_OPTION_MON_SLOWSYNC_THRESHOLD</name>
+      <long>monslowsyncthreshold</long>
+      <description>
+        <en>The threshold for a sync wait (ms). Default is 100.</en>
+        <cn>同步等待阈值时间，单位：毫秒，默认为 100。</cn>
+      </description>
+      <reloadable>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
+      </reloadable>
+      <detail>
+        <en>The threshold for a sync wait (ms). Default is 100.</en>
+        <cn>同步等待阈值时间，单位：毫秒，默认为 100。</cn>
+      </detail>
+      <type>int</type>
+      <typeofweb>num</typeofweb>
+      <default>100</default>
+      <hidden>false</hidden>
+   </opt>
+
+   <opt>
       <name>PMD_OPTION_MON_OPTI_LEVEL</name>
       <long>monoptilevel</long>
       <description>

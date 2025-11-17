@@ -1372,12 +1372,14 @@ namespace engine
       if ( DPS_INVALID_LSN_OFFSET != msg->completeNext.offset )
       {
          _sync->complete( msg->identity, msg->completeNext,
-                          CLS_TID( _sessionID ) ) ;
+                          CLS_TID( _sessionID ),
+                          msg->next ) ;
       }
       else
       {
          _sync->complete( msg->identity, msg->next,
-                          CLS_TID( _sessionID ) ) ;
+                          CLS_TID( _sessionID ),
+                          msg->next ) ;
       }
 
       // not ok, not reply
@@ -1398,7 +1400,10 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSSRCREPSN_HNDVIRSYNCREQ );
       MsgReplVirSyncReq *msg = ( MsgReplVirSyncReq * )header ;
-      _sync->complete( msg->from, msg->next, CLS_TID( _sessionID ) ) ;
+
+      _sync->complete( msg->from, msg->getCompleteLSN(),
+                       CLS_TID( _sessionID ), msg->getNextLSN() ) ;
+
       PD_TRACE_EXITRC ( SDB__CLSSRCREPSN_HNDVIRSYNCREQ, rc );
       return rc ;
    }
