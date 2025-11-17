@@ -1,4 +1,4 @@
-查询快照可以列出数据库中正在进行的查询信息。当 [mongroupmask][configuration] 参数设置为“slowQuery:detail”或“all:detail”时，查询耗时超过 [monslowquerythreshold][configuration] 参数所规定阈值的历史查询信息会被缓存。用户可以通过指定 [viewHistory][SnapshotOption] 选项，查看历史查询信息。
+查询快照可以列出数据库中正在进行的查询信息和历史慢查询信息。当 [mongroupmask][configuration] 参数设置为“slowQuery:detail”或“all:detail”时，查询耗时超过 [monslowquerythreshold][configuration] 参数所规定阈值的历史查询信息会被缓存。用户可以通过指定 [viewHistory][SnapshotOption] 选项，查看当前或历史查询信息。默认为查看历史慢查询信息。
 
 >**Note:**
 >
@@ -94,9 +94,34 @@ SDB_SNAP_QUERIES
 | LogOPTime              | double   | 读写同步日志的耗时，单位为毫秒                                     |
 | TransLockWaitCount     | int32    | 锁等待次数                                                         |
 | LatchWaitCount         | int32    | 闩锁等待次数                                                       |
+| SyncWaitCount          | int32    | 等待备节点同步次数                                                 |
+| SlowSyncInfo           | bson     | 慢同步等待详细信息（超过 [monslowsyncthreshold][configuration] 值的等待信息），无慢同步信息不显示     |
 | RelatedNode            | bson array | 本节点操作执行过程中发送消息到的远程节点(如果为空则不显示该字段) |
 | BlockType              | bson array | 阻塞事件类型(如果为空则不显示该字段)：FreezingWindow, DMSBlock, WaitPrimary, WaitTransRollback, WaitReelect, SyncControl, WaitFusing, NoLogSpace   |
 | LastOpInfo             | string   | 查询语句内容                                                       |
+
+
+**SlowSyncInfo 字段中信息**
+
+| 字段名                 | 类型     | 描述                                                               |
+| ---------------------- | -------- | ------------------------------------------------------------------ |
+| ReplSize               | int32    | 等待同步的副本个数                                                 |
+| SlowSyncCount          | int32    | 慢同步等待次数                                                     |
+| WaitLSN                | int64    | 慢同步等待的 LSN 号                                                |
+| Details                | bson array  | 慢同步等待的详细节点信息，为 bson 数组                          |
+| Details.NodeName       | string   | 节点名，格式为 HostName:SvcName                                    |
+| Details.NodeID         | int32    | 节点ID                                                             |
+| Details.WaitTime       | double   | 等待时间，单位为毫秒                                               |
+| Details.Synced         | boolean  | 在等待时间内是否完成指定LSN同步                                    |
+| Details.StartPoint     | bson     | 最后一次慢同步等待开始等待时刻信息                                 |
+| Details.StartPoint.DiffToWaitLSN  | int64 | 与 WaitLSN 的差值，>=0 表示落后于 WaitLSN，<0 表示同步已超过 WaitLSN |
+| Details.StartPoint.CompleteLSN | int64 | 已完成数据回放的 LSN                                          |
+| Details.StartPoint.SyncNextLSN | int64 | 已完成同步的 LSN，与 CompleteLSN 存在差值说明这些 LSN 还在回放队列中 |
+| Details.EndPoint       | bson     | 最后一次慢同步等待结束时刻信息                                     |
+| Details.EndPoint.DiffToWaitLSN    | int64 | 同 `Details.StartPoint.DiffToWaitLSN`                      |
+| Details.EndPoint.CompleteLSN   | int64 | 同 `Details.StartPoint.CompleteLSN`                           |
+| Details.EndPoint.SyncNextLSN   | int64 | 同 `Details.StartPoint.SyncNextLSN`                           |
+
 
 ## 示例
 
@@ -201,6 +226,7 @@ SDB_SNAP_QUERIES
      "LogOPTime": 0,
      "TransLockWaitCount": 0,
      "LatchWaitCount": 0,
+     "SyncWaitCount": 0,
      "LastOpInfo": "Collection:foo.bar, Matcher:{ \"a\": { \"$type\": 2, \"$et\": \"double\" } }, Selector:{}, OrderBy:{ \"_id\": 1 }, Hint:{}, Skip:0, Limit:-1, Flag:0x00004200(16896)"
    }
     ```

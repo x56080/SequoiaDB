@@ -203,6 +203,8 @@ const CHAR* msgType2String( MSG_TYPE msgType, BOOLEAN isCommand )
          return "TASK CLEAN UP" ;
       case MSG_CAT_SPLIT_FINISH_REQ :
          return "TASK FINISH" ;
+      case MSG_BS_MSG_REQ :
+         return "MSG" ;
    } ;
    return "UNKNOWN" ;
 }

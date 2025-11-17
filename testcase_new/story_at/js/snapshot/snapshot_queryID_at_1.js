@@ -53,7 +53,7 @@ function test(testPara) {
 
   cl.find();
   queryID = getNewQueryID();
-  ret = db.snapshot(SDB_SNAP_QUERIES, { QueryID: queryID });
+  ret = db.snapshot(SDB_SNAP_QUERIES, new SdbSnapshotOption().cond( { QueryID: queryID } ).options( { viewHistory:false } ) );
   if (!ret.next()) {
     tearDown();
     throw new Error("Invalid QueryID in query snapshot. It must be " + queryID);
@@ -129,7 +129,7 @@ function getQueryID() {
 
   var ret = db.snapshot(
     SDB_SNAP_QUERIES,
-    new SdbSnapshotOption().cond({ QueryID: { $regex: pattern } }).sort({ QueryID: -1 })
+    new SdbSnapshotOption().cond({ QueryID: { $regex: pattern } }).sort({ QueryID: -1 }).options( { viewHistory:false } )
   );
   curQueryID = ret.current().toObj()["QueryID"];
 

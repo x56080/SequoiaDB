@@ -5905,7 +5905,7 @@ namespace engine
       : rtnFetchBase ( MON_DUMP_DFT_BUILDER_SZ, RTN_FETCH_QUERIES )
    {
       _addInfoMask = MON_MASK_NODE_NAME | MON_MASK_NODEID ;
-      _viewArchive = FALSE ;
+      _viewArchive = TRUE ;
       _isDetail= TRUE ;
    }
 
@@ -5932,11 +5932,11 @@ namespace engine
 
       if ( _viewArchive )
       {
-         monMgr->dumpList( _cachedMonClassList, MON_CLASS_QUERY, MON_CLASS_ARCHIVED_LIST, cb ) ;
+         monMgr->dumpList( _cachedMonClassList, MON_CLASS_ARCHIVED_LIST, cb ) ;
       }
       else
       {
-         monMgr->dumpList( _cachedMonClassList, MON_CLASS_QUERY, MON_CLASS_ACTIVE_LIST, cb ) ;
+         monMgr->dumpList( _cachedMonClassList, MON_CLASS_ACTIVE_LIST, cb ) ;
       }
 
       if ( cb->isInterrupted( TRUE ) )
@@ -6107,6 +6107,7 @@ namespace engine
             builder.append( FIELD_NAME_LOG_OP_TIME, logTime ) ;
             builder.append( FIELD_NAME_TRANS_WAITLOCKCOUNT, _itr->numLockWait ) ;
             builder.append( FIELD_NAME_LATCH_WAIT_COUNT, _itr->numLatchWait ) ;
+            builder.append( FIELD_NAME_SYNC_WAITCOUNT, _itr->syncWaitCount ) ;
          }
 
          /// add nodes
@@ -6135,6 +6136,105 @@ namespace engine
                ba.append( utilEduBlockTypeToStr( (INT32)(*itrBlock) ) ) ;
             }
             ba.done() ;
+         }
+
+         /// add sync wait info
+         if ( !_itr->syncInfos.empty() )
+         {
+            clsCB *pClsCB = pmdGetKRCB()->getClsCB() ;
+            netRouteAgent *pAgent = pClsCB ? pClsCB->getReplRouteAgent() : NULL ;
+            MsgRouteID routeID = pmdGetNodeID() ;
+            _netRouteNode routeNode ;
+            CHAR nodeName [ OSS_MAX_HOSTNAME + OSS_MAX_SERVICENAME + 1 + 1 ] = {0} ;
+            UINT32 nodeNameSize = OSS_MAX_HOSTNAME + OSS_MAX_SERVICENAME + 1 ;
+
+            BSONObjBuilder bd( builder.subobjStart( FIELD_NAME_SLOWSYNC_INFO ) ) ;
+            bd.append( FIELD_NAME_W, (INT32)_itr->syncReplSize ) ;
+            bd.append( FIELD_NAME_SLOWSYNC_COUNT, (INT32)_itr->slowSyncCount ) ;
+            bd.append( FIELD_NAME_WAITLSN, (INT64)_itr->syncWaitLSN ) ;
+
+            /// first, sort
+            std::sort( _itr->syncInfos.begin(), _itr->syncInfos.end(), _monSyncWaitInfoCmp() ) ;
+
+            /// then iterator
+            ossPoolVector<monSyncWaitInfo>::iterator itSyncInfo = _itr->syncInfos.begin() ;
+
+            /// nodes array
+            BSONArrayBuilder baNodes( bd.subarrayStart( FIELD_NAME_DETAILS ) ) ;
+            while( itSyncInfo != _itr->syncInfos.end() )
+            {
+               const monSyncWaitInfo &waitInfo = *itSyncInfo ;
+               BSONObjBuilder bdNode( baNodes.subobjStart() ) ;
+
+               /// node name
+               if ( pAgent )
+               {
+                  routeID.columns.nodeID = waitInfo._nodeID ;
+                  routeID.columns.serviceID = MSG_ROUTE_LOCAL_SERVICE ;
+
+                  if ( SDB_OK == pAgent->route( routeID, routeNode ) )
+                  {
+                     monGetNodeName( nodeName, nodeNameSize, routeNode._host,
+                                     routeNode._service[ MSG_ROUTE_LOCAL_SERVICE ].c_str() ) ;
+                     bdNode.append( FIELD_NAME_NODE_NAME, nodeName ) ;
+                  }
+               }
+               /// node id
+               bdNode.append( FIELD_NAME_NODEID, (INT32)waitInfo._nodeID ) ;
+               /// wait time
+               bdNode.append( FIELD_NAME_WAITTIME, (FLOAT64)waitInfo._waitTime / 1000 ) ;
+               /// sync wait flag
+               bdNode.append( FIELD_NAME_SYNCED, waitInfo._matchSynced ? true : false ) ;
+               /// start point
+               {
+                  BSONObjBuilder bdStart( bdNode.subobjStart( FIELD_NAME_STARTPOINT ) ) ;
+                  /// lsn diff
+                  if ( (UINT64)DPS_INVALID_LSN_OFFSET != waitInfo.getCompareMatchLsn( TRUE ) )
+                  {
+                     bdStart.append( FIELD_NAME_DIFF_TO_WAITLSN,
+                                    (INT64)_itr->syncWaitLSN -
+                                    (INT64)waitInfo.getCompareMatchLsn( TRUE ) ) ;
+                  }
+                  else
+                  {
+                     bdStart.append( FIELD_NAME_DIFF_TO_WAITLSN, (INT64)-1 ) ;
+                  }
+                  /// complete lsn
+                  bdStart.append( FIELD_NAME_COMPLETE_LSN, (INT64)waitInfo._startPointCompleteOffset ) ;
+                  /// sync lsn
+                  bdStart.append( FIELD_NAME_SYNCNEXT_LSN, (INT64)waitInfo._startPointNextOffset ) ;
+                  bdStart.done() ;
+               }
+
+               /// end point
+               {
+                  BSONObjBuilder bdEnd( bdNode.subobjStart( FIELD_NAME_ENDPOINT ) ) ;
+                  /// lsn diff
+                  if ( (UINT64)DPS_INVALID_LSN_OFFSET != waitInfo.getCompareMatchLsn() )
+                  {
+                     bdEnd.append( FIELD_NAME_DIFF_TO_WAITLSN,
+                                    (INT64)_itr->syncWaitLSN -
+                                    (INT64)waitInfo.getCompareMatchLsn() ) ;
+                  }
+                  else
+                  {
+                     bdEnd.append( FIELD_NAME_DIFF_TO_WAITLSN, (INT64)-1 ) ;
+                  }
+                  /// complete lsn
+                  bdEnd.append( FIELD_NAME_COMPLETE_LSN, (INT64)waitInfo._endPointCompleteOffset ) ;
+                  /// sync lsn
+                  bdEnd.append( FIELD_NAME_SYNCNEXT_LSN, (INT64)waitInfo._endPointNextOffset ) ;
+                  bdEnd.done() ;
+               }
+
+               /// done
+               bdNode.done() ;
+
+               ++itSyncInfo ;
+            }
+            baNodes.done() ;
+
+            bd.done() ;
          }
 
          builder.append( FIELD_NAME_LASTOPINFO, _itr->queryText.c_str() ) ;
@@ -6169,7 +6269,7 @@ namespace engine
       : rtnFetchBase ( MON_DUMP_DFT_BUILDER_SZ, RTN_FETCH_LATCHWAITS )
    {
       _addInfoMask = MON_MASK_NODE_NAME ;
-      _viewArchive = FALSE ;
+      _viewArchive = TRUE ;
       _isDetail= TRUE ;
    }
 
@@ -6194,11 +6294,11 @@ namespace engine
 
       if ( _viewArchive )
       {
-         monMgr->dumpList( _cachedMonClassList, MON_CLASS_LATCH, MON_CLASS_ARCHIVED_LIST) ;
+         monMgr->dumpList( _cachedMonClassList, MON_CLASS_ARCHIVED_LIST) ;
       }
       else
       {
-         monMgr->dumpList( _cachedMonClassList, MON_CLASS_LATCH, MON_CLASS_ACTIVE_LIST) ;
+         monMgr->dumpList( _cachedMonClassList, MON_CLASS_ACTIVE_LIST) ;
       }
 
       _hitEnd = _cachedMonClassList.empty() ? TRUE : FALSE ;
@@ -6311,7 +6411,7 @@ namespace engine
       : rtnFetchBase ( MON_DUMP_DFT_BUILDER_SZ, RTN_FETCH_LOCKWAITS )
    {
       _addInfoMask = MON_MASK_NODE_NAME ;
-      _viewArchive = FALSE ;
+      _viewArchive = TRUE ;
       _isDetail= TRUE ;
    }
 
@@ -6336,11 +6436,11 @@ namespace engine
       }
       if ( _viewArchive )
       {
-         monMgr->dumpList( _cachedMonClassList, MON_CLASS_LOCK, MON_CLASS_ARCHIVED_LIST) ;
+         monMgr->dumpList( _cachedMonClassList, MON_CLASS_ARCHIVED_LIST) ;
       }
       else
       {
-         monMgr->dumpList( _cachedMonClassList, MON_CLASS_LOCK, MON_CLASS_ACTIVE_LIST) ;
+         monMgr->dumpList( _cachedMonClassList, MON_CLASS_ACTIVE_LIST) ;
       }
 
       _hitEnd = _cachedMonClassList.empty() ? TRUE : FALSE ;

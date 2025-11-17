@@ -371,6 +371,7 @@ namespace engine
             if ( monQuery )
             {
                monQuery->startBlockTimer( EDU_BLOCK_SYNCWAIT ) ;
+               monQuery->syncWaitCount++ ;
             }
 
             while ( TRUE )

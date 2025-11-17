@@ -1,6 +1,6 @@
 
 
-闩锁等待快照可以列出数据库中正在发生的闩锁等待信息。当 [mongroupmask][configuration] 参数设置为“slowQuery:detail”或“all:detail”时，该次等待记录会在线程拿到该闩锁后被归入历史闩锁等待信息。用户可以通过指定 [viewHistory][SnapshotOption] 选项，查看历史闩锁等待信息。
+闩锁等待快照可以列出数据库中正在发生的闩锁等待信息和历史慢闩等待信息。当 [mongroupmask][configuration] 参数设置为“slowQuery:detail”或“all:detail”时，该次等待记录会在线程拿到该闩锁后被归入历史闩锁等待信息。用户可以通过指定 [viewHistory][SnapshotOption] 选项，查看历史闩锁等待信息或当前闩锁等待信息，默认为查看历史闩锁等待信息。
 
 >**Note:**
 >

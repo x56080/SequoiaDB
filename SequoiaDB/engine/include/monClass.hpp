@@ -65,7 +65,7 @@ class _monAppCB ;
   { \
      try \
      { \
-        edu->getMonQueryCB()->name.assign(n); \
+        edu->getMonQueryCB()->setName( n ) ; \
      } \
      catch ( std::exception &e ) \
      { \
@@ -93,7 +93,7 @@ class _monAppCB ;
              ++it ; \
           } \
           tmpName = ss.str() ; \
-          edu->getMonQueryCB()->name.assign(tmpName.c_str()); \
+          edu->getMonQueryCB()->setName( tmpName.c_str() ); \
        } \
        catch ( std::exception &e ) \
        { \
@@ -108,7 +108,7 @@ class _monAppCB ;
   {\
      try \
      { \
-        edu->getMonQueryCB()->queryText.assign(n); \
+        edu->getMonQueryCB()->setQueryText(n); \
      } \
      catch( std::exception &e ) \
      { \
@@ -120,7 +120,7 @@ class _monAppCB ;
     if (edu->getMonQueryCB() && \
         !edu->getMonQueryCB()->queryText.empty() )\
     {\
-       edu->getMonQueryCB()->queryText.clear() ; \
+       edu->getMonQueryCB()->clearQueryText() ; \
     }\
 
 #define MONQUERY_REPLACE_QUERY_TEXT(edu, n)\
@@ -129,7 +129,7 @@ class _monAppCB ;
     {\
        try \
        { \
-          edu->getMonQueryCB()->queryText.assign(n); \
+          edu->getMonQueryCB()->setQueryText(n); \
        } \
        catch( std::exception &e ) \
        { \
@@ -186,11 +186,13 @@ UINT32 monGetOptiLevel() ;
 UINT32 monGetSlowLatchThreshold() ;
 UINT32 monGetSlowLockThreshold() ;
 UINT32 monGetSlowQueryThreshold() ;
+UINT32 monGetSlowSyncThreshold() ;
 UINT32 monGetHistExpiredTime() ;
 
 void   monUpdateConf( UINT32 queryThreshold,
                       UINT32 latchThreshold,
                       UINT32 lockThreshold,
+                      UINT32 syncThreshold,
                       UINT32 optiLevel,
                       UINT32 histExpiredTime ) ;
 
@@ -495,6 +497,98 @@ enum MON_QUERY_TICK_TYPE
 
 #define MON_QUERY_TICK_SZ              ( 14 )
 
+/*
+   _monSyncWaitInfo define
+*/
+struct _monSyncWaitInfo
+{
+   UINT16      _matchSynced ;
+   UINT8       _finished ;
+   UINT8       _matchedLsnType ;    /// 0 for complete lsn, 1 for next lsn
+   UINT32      _nodeID ;
+   UINT64      _matchSyncedTime ;   /// us
+   UINT64      _startPointNextOffset ;
+   UINT64      _startPointCompleteOffset ;
+   UINT64      _endPointNextOffset ;
+   UINT64      _endPointCompleteOffset ;
+   UINT64      _waitTime ;    /// us
+
+   _monSyncWaitInfo( UINT8 matchedLsnType = 0 )
+   {
+      _matchSynced = 0 ;
+      _finished = 0 ;
+      _matchedLsnType = matchedLsnType ;
+      _nodeID = 0 ;
+      _matchSyncedTime = 0 ;
+      _startPointNextOffset = 0 ;
+      _startPointCompleteOffset = 0 ;
+      _endPointNextOffset = 0 ;
+      _endPointCompleteOffset = 0 ;
+      _waitTime = 0 ;
+   }
+
+   void setInfo( UINT64 completeLSN, UINT64 syncLSN, UINT64 syncWaitLSN,
+                 BOOLEAN isPassed, UINT64 costTime, UINT64 curTime )
+   {
+      if ( 0 == _finished )
+      {
+         /// update end point info
+         _endPointCompleteOffset = completeLSN ;
+         _endPointNextOffset = syncLSN ;
+
+         UINT64 matchLsn = ( 0 == _matchedLsnType ? completeLSN : syncLSN ) ;
+
+         if ( (UINT64)~0 != matchLsn && matchLsn > syncWaitLSN )
+         {
+            _matchSynced = 1 ;
+            _matchSyncedTime = curTime ;
+            _finished = 1 ;
+            _waitTime += costTime ;
+         }
+         else if ( isPassed )
+         {
+            _waitTime += costTime ;
+            _finished = 1 ;
+         }
+      }
+   }
+
+   UINT64 getCompareMatchLsn( BOOLEAN isStartPoint = FALSE ) const
+   {
+      if ( !isStartPoint )
+      {
+         return 0 == _matchedLsnType ? _endPointCompleteOffset : _endPointNextOffset ;
+      }
+      return 0 == _matchedLsnType ? _startPointCompleteOffset : _startPointNextOffset ;
+   }
+
+   UINT64 getCompareMatchLsn( UINT64 completeLsn, UINT64 syncLsn ) const
+   {
+      return 0 == _matchedLsnType ? completeLsn : syncLsn ;
+   }
+
+} ;
+typedef _monSyncWaitInfo monSyncWaitInfo ;
+
+/*
+   _monSyncWaitInfoCmp define
+*/
+struct _monSyncWaitInfoCmp
+{
+   bool operator() ( const _monSyncWaitInfo &l, const _monSyncWaitInfo &r ) const
+   {
+      if ( l._matchSynced > r._matchSynced )
+      {
+         return true ;
+      }
+      else if ( l._waitTime < r._waitTime )
+      {
+         return true ;
+      }
+      return false ;
+   }
+} ;
+
 /**
  * Capture metrics about a query
  */
@@ -536,6 +630,13 @@ public:
    UINT32         numLockWait ;  /**! Total # of lock wait */
    ossPoolSet<UINT32>   nodes ;  /**! Node ID where messages were sent to */
    ossPoolSet<UINT32>  blocks ;  /**! Block types */
+   ossPoolVector<monSyncWaitInfo> syncInfos ;   /**! Sync wait info */
+   UINT64         syncWaitLSN ;  /**! Sync wait lsn offset */
+   UINT64         syncWaitBeginTime; /**! Sync wait begin time */
+   UINT32         syncWaitCount; /**! Sync wait count */
+   UINT32         slowSyncCount; /**! Slow sync count */
+   UINT16         syncReplSize;  /**! Sync repl size */
+   UINT16         slowSyncStart; /**! Whether start slow sync monitor */
    MsgRouteID      relatedNID ;  /**! coordinator node node ID */
    UINT32          relatedTID ;  /**! coordinator node edu TID */
    BOOLEAN    anchorToContext ;  /**! Whether this obj anchored to a context */
@@ -611,12 +712,27 @@ public:
       _endTS =  monClassQuery.getEndTSConst() ;
       _createTSTick = monClassQuery.getCreateTSTick() ;
       _status =  monClassQuery.getStatus() ;
-      clientInfo = monClassQuery.clientInfo.getOwned() ;
-      clientHost.assign( monClassQuery.clientHost ) ;
-      name.assign( monClassQuery.name ) ;
-      nodes = monClassQuery.nodes ;
-      blocks = monClassQuery.blocks ;
-      queryText.assign( monClassQuery.queryText ) ;
+
+      /// safe copy these members
+      {
+         ossScopedLock lock( &monClassQuery._latch ) ;
+
+         clientInfo = monClassQuery.clientInfo.getOwned() ;
+         clientHost.assign( monClassQuery.clientHost ) ;
+         name.assign( monClassQuery.name ) ;
+         nodes = monClassQuery.nodes ;
+         blocks = monClassQuery.blocks ;
+         syncInfos = monClassQuery.syncInfos ;
+         queryText.assign( monClassQuery.queryText ) ;
+      }
+
+      syncWaitLSN = monClassQuery.syncWaitLSN ;
+      syncWaitBeginTime = monClassQuery.syncWaitBeginTime ;
+      syncReplSize = monClassQuery.syncReplSize ;
+      slowSyncStart = monClassQuery.slowSyncStart ;
+      syncWaitCount = monClassQuery.syncWaitCount ;
+      slowSyncCount = monClassQuery.slowSyncCount ;
+
       _type = MON_CLASS_QUERY ;
       queryID = monClassQuery.queryID ;
 
@@ -631,6 +747,59 @@ public:
       _queryRef = 0 ;
 #endif // _DEBUG
    }
+
+   /// Begin safe operator
+
+   void setClientInfo( const BSONObj &info )
+   {
+      SDB_ASSERT( info.isOwned(), "Info must be ownned" ) ;
+      ossScopedLock lock( &_latch ) ;
+      clientInfo = info.getOwned() ;
+   }
+
+   void setName( const CHAR *pName )
+   {
+      ossScopedLock lock( &_latch ) ;
+      name.assign( pName ) ;
+   }
+
+   void setName( const ossPoolString &inName )
+   {
+      ossScopedLock lock( &_latch ) ;
+      name = inName ;
+   }
+
+   void setQueryText( const CHAR *pText )
+   {
+      ossScopedLock lock( &_latch ) ;
+      queryText.assign( pText ) ;
+   }
+
+   void setQueryText( const ossPoolString &text )
+   {
+      ossScopedLock lock( &_latch ) ;
+      queryText = text ;
+   }
+
+   void clearQueryText()
+   {
+      ossScopedLock lock( &_latch ) ;
+      queryText.clear() ;
+   }
+
+   void reserveSyncInfo( UINT32 size )
+   {
+      ossScopedLock lock( &_latch ) ;
+      syncInfos.reserve( size ) ;
+   }
+
+   void addWaitInfo2SyncInfo( const monSyncWaitInfo &info )
+   {
+      ossScopedLock lock( &_latch ) ;
+      syncInfos.push_back( info ) ;
+   }
+
+   /// End safe operator
 
    static MON_CLASS_TYPE getType () { return MON_CLASS_QUERY ; }
 
@@ -658,6 +827,12 @@ public:
       numQueryCata = 0 ;
       numLatchWait = 0 ;
       numLockWait = 0 ;
+      syncWaitLSN = ~0 ;
+      syncWaitBeginTime = 0 ;
+      syncReplSize = 1 ;
+      slowSyncStart = 0 ;
+      syncWaitCount = 0 ;
+      slowSyncCount = 0 ;
       relatedTID = 0 ;
       anchorToContext = FALSE ;
       relatedNID.value = 0 ;
@@ -692,6 +867,7 @@ public:
    {
       try
       {
+         ossScopedLock lock( &_latch ) ;
          nodes.insert( nodeID ) ;
       }
       catch( std::exception &e )
@@ -709,6 +885,7 @@ public:
       {
          try
          {
+            ossScopedLock lock( &_latch ) ;
             blocks.insert( blockType ) ;
          }
          catch( std::exception &e )
@@ -716,6 +893,126 @@ public:
             PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
          }
       }
+   }
+
+   void setSyncWaitInfo( UINT16 nodeID, UINT64 completeLSN, UINT64 syncLSN,
+                         BOOLEAN isPassed, UINT64 curTime )
+   {
+      if ( 0 != slowSyncStart )
+      {
+         UINT64 costTime = 1 ;
+
+         if ( 0 != syncWaitBeginTime && curTime > syncWaitBeginTime )
+         {
+            costTime = curTime - syncWaitBeginTime ;
+         }
+
+         ossPoolVector<monSyncWaitInfo>::iterator it = syncInfos.begin() ;
+         while( it != syncInfos.end() )
+         {
+            monSyncWaitInfo *pWaitInfo = &(*it) ;
+            if ( pWaitInfo->_nodeID == nodeID )
+            {
+               pWaitInfo->setInfo( completeLSN, syncLSN, syncWaitLSN,
+                                   isPassed, costTime, curTime ) ;
+               break ;
+            }
+            ++it ;
+         }
+      }
+   }
+
+   void updateSyncWaitInfo( const monSyncWaitInfo &waitInfo )
+   {
+      ossPoolVector<monSyncWaitInfo>::iterator it = syncInfos.begin() ;
+      while( it != syncInfos.end() )
+      {
+         monSyncWaitInfo *pWaitInfo = &(*it) ;
+         if ( pWaitInfo->_nodeID == waitInfo._nodeID )
+         {
+            /// reset matched
+            pWaitInfo->_matchSynced = waitInfo._matchSynced ;
+            pWaitInfo->_matchedLsnType = waitInfo._matchedLsnType ;
+            pWaitInfo->_matchSyncedTime = waitInfo._matchSyncedTime ;
+            pWaitInfo->_finished = waitInfo._finished ;
+            pWaitInfo->_waitTime += waitInfo._waitTime ;
+            pWaitInfo->_startPointCompleteOffset = waitInfo._startPointCompleteOffset ;
+            pWaitInfo->_startPointNextOffset = waitInfo._startPointNextOffset ;
+            pWaitInfo->_endPointCompleteOffset = waitInfo._endPointCompleteOffset ;
+            pWaitInfo->_endPointNextOffset = waitInfo._endPointNextOffset ;
+            break ;
+         }
+         ++it ;
+      }
+   }
+
+   void finishSyncWait()
+   {
+      UINT64 curTime = 0 ;
+      UINT64 costTime = ~0 ;
+      ossPoolVector<monSyncWaitInfo>::iterator it = syncInfos.begin() ;
+      while( it != syncInfos.end() )
+      {
+         monSyncWaitInfo *pWaitInfo = &(*it) ;
+         if ( 0 == pWaitInfo->_finished )
+         {
+            if ( (UINT64)~0 == costTime )
+            {
+               curTime = ossGetCurrentMicroseconds() ;
+               if ( curTime > syncWaitBeginTime )
+               {
+                  costTime = curTime - syncWaitBeginTime ;
+               }
+               else
+               {
+                  costTime = 1 ;
+               }
+            }
+            pWaitInfo->_waitTime += costTime ;
+            pWaitInfo->_finished = 1 ;
+
+            /*
+            if ( (UINT64)~0 != pWaitInfo->_endPointCompleteOffset &&
+                 pWaitInfo->_endPointCompleteOffset > syncWaitLSN )
+            {
+               pWaitInfo->_matchSynced = 1 ;
+               pWaitInfo->_matchSyncedTime = curTime ;
+            }
+            */
+         }
+         ++it ;
+      }
+      /// close start
+      slowSyncStart = 0 ;
+   }
+
+   void reBeginSyncWait()
+   {
+      ossPoolVector<monSyncWaitInfo>::iterator it = syncInfos.begin() ;
+      while( it != syncInfos.end() )
+      {
+         monSyncWaitInfo *pWaitInfo = &(*it) ;
+         /// reset not matched nodes
+         if ( 0 == pWaitInfo->_matchSynced )
+         {
+            pWaitInfo->_finished = 0 ;
+         }
+         ++it ;
+      }
+      /// set start
+      slowSyncStart = 1 ;
+      /// need reset wait begin time
+      syncWaitBeginTime = ossGetCurrentMicroseconds() ;
+   }
+
+   void beginSyncWait()
+   {
+      slowSyncStart = 1 ;
+   }
+
+   BOOLEAN isBeginSyncWait() const
+   {
+      return 0 != slowSyncStart ? TRUE : FALSE ;
    }
 
    void stopBlockTimer()
@@ -819,6 +1116,19 @@ public:
       }
    }
 
+   BOOLEAN isCurrentQueryTick( INT8 tickType, UINT64 *pQueryTickUs = NULL ) const
+   {
+      if ( _hasTickType() && tickType == _getCurTickType() )
+      {
+         if ( pQueryTickUs )
+         {
+            *pQueryTickUs = _queryTick.convertToMicroseconds() ;
+         }
+         return TRUE ;
+      }
+      return FALSE ;
+   }
+
    void incMetrics( const monClassQueryTmpData &tmpData )
    {
       dataRead += tmpData.dataRead ;
@@ -851,6 +1161,7 @@ public:
             {
                try
                {
+                  ossScopedLock lock( &_latch ) ;
                   clientHost.assign( pClient->getFromIPAddr() ) ;
                }
                catch( std::exception &e )
@@ -1069,6 +1380,8 @@ private:
    INT8    _queryTickType[ MON_QUERY_TICK_SZ ] ;
    INT8    _queryTickPos ;
    INT8    _queryTickLen ;
+
+   mutable ossSpinXLatch  _latch ;
 
 #ifdef _DEBUG
    INT32   _queryRef ;

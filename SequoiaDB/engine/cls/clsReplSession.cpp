@@ -1508,12 +1508,14 @@ namespace engine
       if ( DPS_INVALID_LSN_OFFSET != msg->completeNext.offset )
       {
          _sync->complete( msg->identity, msg->completeNext,
-                          CLS_TID( _sessionID ) ) ;
+                          CLS_TID( _sessionID ),
+                          msg->next ) ;
       }
       else
       {
          _sync->complete( msg->identity, msg->next,
-                          CLS_TID( _sessionID ) ) ;
+                          CLS_TID( _sessionID ),
+                          msg->next ) ;
       }
 
       // not ok, not reply
@@ -1535,11 +1537,14 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__CLSSRCREPSN_HNDVIRSYNCREQ );
       MsgReplVirSyncReq *msg = ( MsgReplVirSyncReq * )header ;
       ossSnprintf( _lastSyncDetail, CLS_SYNC_DETAIL_MAX_LEN,
-                   "PeerNode: (%u,%u), completed LSN: ( offset: %lld, version: %u )",
+                   "PeerNode: (%u,%u), completed LSN: ( offset: %lld, version: %u ), "
+                   "Sync LSN: ( offset: %lld, version: %u )",
                    msg->from.columns.groupID, msg->from.columns.nodeID,
-                   (INT64)msg->next.offset, msg->next.version ) ;
+                   (INT64)msg->getCompleteLSN().offset, msg->getCompleteLSN().version,
+                   (INT64)msg->getNextLSN().offset, msg->getNextLSN().version) ;
       MON_REPLACE_OP_DETAIL( eduCB()->getMonAppCB(), header->opCode, _lastSyncDetail ) ;
-      _sync->complete( msg->from, msg->next, CLS_TID( _sessionID ) ) ;
+      _sync->complete( msg->from, msg->getCompleteLSN(),
+                       CLS_TID( _sessionID ), msg->getNextLSN() ) ;
       PD_TRACE_EXITRC ( SDB__CLSSRCREPSN_HNDVIRSYNCREQ, rc );
       return rc ;
    }

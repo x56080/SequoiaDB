@@ -706,6 +706,7 @@ namespace engine
          OSS_INLINE UINT32 slowCmdThreshold() const { return _slowCmdThreshold ; }
          OSS_INLINE UINT32 slowLatchThreshold() const { return _slowLatchThreshold ; }
          OSS_INLINE UINT32 slowLockThreshold() const { return _slowLockThreshold ; }
+         OSS_INLINE UINT32 slowSyncThreshold() const { return _slowSyncThreshold ; }
          OSS_INLINE UINT32 monGroupMask() const { return _monGroupMask ; }
          OSS_INLINE UINT32 monHistEvent() const { return _monHistEvent ; }
          OSS_INLINE UINT32 monOptiLevel() const { return _monOptiLevel ; }
@@ -889,6 +890,7 @@ namespace engine
          UINT32      _slowCmdThreshold ;
          UINT32      _slowLatchThreshold ;
          UINT32      _slowLockThreshold ;
+         UINT32      _slowSyncThreshold ;
          UINT32      _monGroupMask ;
          UINT32      _monHistEvent ;
          UINT32      _monOptiLevel ;

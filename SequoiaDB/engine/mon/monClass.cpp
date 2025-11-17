@@ -378,6 +378,12 @@ static UINT32& _monGetSlowLockThreshold()
    return s_lowLock ;
 }
 
+static UINT32& _monGetSlowSyncThreshold()
+{
+   static UINT32 s_slowSync = 0 ;
+   return s_slowSync ;
+}
+
 static UINT32& _monGetOptiLevel()
 {
    static UINT32 s_optiLevel = 0 ;
@@ -400,17 +406,20 @@ UINT32 monGetOptiLevel() { return _monGetOptiLevel() ; }
 UINT32 monGetSlowLatchThreshold() { return _monGetSlowLatchThreshold() ; }
 UINT32 monGetSlowLockThreshold() { return _monGetSlowLockThreshold() ; }
 UINT32 monGetSlowQueryThreshold() { return _monGetSlowQueryThreshold() ; }
+UINT32 monGetSlowSyncThreshold() { return _monGetSlowSyncThreshold() ; }
 UINT32 monGetHistExpiredTime() { return _monGetHistExpiredTime() ; }
 
 void   monUpdateConf( UINT32 queryThreshold,
                       UINT32 latchThreshold,
                       UINT32 lockThreshold,
+                      UINT32 syncThreshold,
                       UINT32 optiLevel,
                       UINT32 histExpiredTime )
 {
    _monGetSlowQueryThreshold() = queryThreshold ;
    _monGetSlowLatchThreshold() = latchThreshold ;
    _monGetSlowLockThreshold()  = lockThreshold ;
+   _monGetSlowSyncThreshold()  = syncThreshold ;
    _monGetOptiLevel()          = optiLevel ;
    _monGetHistExpiredTime()    = histExpiredTime ;
 }

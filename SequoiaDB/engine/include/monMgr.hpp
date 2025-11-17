@@ -66,9 +66,12 @@ public:
    template<class T>
    T* registerMonitorObject()
    {
-      //TODO need to verify T is a subclass of monClass
+      T* ptr = NULL ;
       MON_CLASS_TYPE classType = T::getType() ;
-      T* ptr = _monClass[classType]->add<T>();
+      if ( classType >= MON_CLASS_QUERY && classType < MON_CLASS_MAX && _monClass[classType] )
+      {
+         ptr = _monClass[classType]->add<T>();
+      }
       return ptr ;
    }
 
@@ -81,10 +84,12 @@ public:
    template<class T>
    T* registerMonitorObject(_monClassBaseData *data)
    {
-      //TODO need to verify T is a subclass of monClass
+      T* ptr = NULL ;
       MON_CLASS_TYPE classType = T::getType() ;
-      T* ptr = _monClass[classType]->add<T>(data);
-
+      if ( classType >= MON_CLASS_QUERY && classType < MON_CLASS_MAX && _monClass[classType] )
+      {
+         ptr = _monClass[classType]->add<T>(data);
+      }
       return ptr ;
    }
 
@@ -97,10 +102,12 @@ public:
    template<class T>
    T* registerMonitorObject( const T& data )
    {
-      //TODO need to verify T is a subclass of monClass
+      T* ptr = NULL ;
       MON_CLASS_TYPE classType = T::getType() ;
-      T* ptr = _monClass[classType]->add<T>(data);
-
+      if ( classType >= MON_CLASS_QUERY && classType < MON_CLASS_MAX && _monClass[classType] )
+      {
+         ptr = _monClass[classType]->add<T>(data);
+      }
       return ptr ;
    }
 
@@ -116,7 +123,10 @@ public:
    {
       SDB_ASSERT ( NULL != obj, "removing a NULL monitor object" ) ;
       MON_CLASS_TYPE classType = obj->getType();
-      _monClass[classType]->remove(obj);
+      if ( classType >= MON_CLASS_QUERY && classType < MON_CLASS_MAX && _monClass[classType] )
+      {
+         _monClass[classType]->remove(obj);
+      }
    }
 
    /**
@@ -141,22 +151,37 @@ public:
     */
    void setMonitorLvl( MON_CLASS_TYPE classType, MON_DATA_LEVEL mode )
    {
-      _monClass[classType]->setMonitorLvl( mode ) ;
+      if ( classType >= MON_CLASS_QUERY && classType < MON_CLASS_MAX && _monClass[classType] )
+      {
+         _monClass[classType]->setMonitorLvl( mode ) ;
+      }
    }
 
    MON_DATA_LEVEL getCollectionLvl( MON_CLASS_TYPE classType )
    {
-      return _monClass[classType]->getCollectionLvl() ;
+      if ( classType >= MON_CLASS_QUERY && classType < MON_CLASS_MAX && _monClass[classType] )
+      {
+         return _monClass[classType]->getCollectionLvl() ;
+      }
+      return MON_DATA_LVL_NONE ;
    }
 
    BOOLEAN isOperational( MON_CLASS_TYPE classType ) const
    {
-      return _monClass[classType]->isOperational() ;
+      if ( classType >= MON_CLASS_QUERY && classType < MON_CLASS_MAX && _monClass[classType] )
+      {
+         return _monClass[classType]->isOperational() ;
+      }
+      return FALSE ;
    }
 
    BOOLEAN isCurOperational( MON_CLASS_TYPE classType ) const
    {
-      return _monClass[classType]->isCurOperational() ;
+      if ( classType >= MON_CLASS_QUERY && classType < MON_CLASS_MAX && _monClass[classType] )
+      {
+         return _monClass[classType]->isCurOperational() ;
+      }
+      return FALSE ;
    }
 
    /**
@@ -179,11 +204,14 @@ public:
     * @param listType the type of list to read
     */
    template <class T> void dumpList ( ossPoolVector<T> & cachedMonClassList,
-                                      MON_CLASS_TYPE classType,
                                       MON_CLASS_LIST_TYPE listType,
                                       IExecutor *cb = NULL )
    {
-      _monClass[classType]->dumpList(cachedMonClassList, listType, cb) ;
+      MON_CLASS_TYPE classType = T::getType() ;
+      if ( classType >= MON_CLASS_QUERY && classType < MON_CLASS_MAX && _monClass[classType] )
+      {
+         _monClass[classType]->dumpList(cachedMonClassList, listType, cb) ;
+      }
    }
 
    /**

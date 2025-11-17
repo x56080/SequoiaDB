@@ -122,6 +122,7 @@ namespace engine
    #define PMD_DFT_SLOWCMD_THRESHOLD   ( 5000 )
    #define PMD_DFT_SLOWLATCH_THRESHOLD ( 50 )
    #define PMD_DFT_SLOWLOCK_THRESHOLD  ( 100 )
+   #define PMD_DFT_SLOWSYNC_THRESHOLD  ( 100 )
    #define PMD_DFT_MONHISTEVENT        ( 1000 )
    #define PMD_DFT_MON_OPTI_LEVEL      ( 1 )
    #define PMD_DFT_MONHIST_EXPIREDTIME ( 2880 )
@@ -2069,6 +2070,7 @@ done:
       _slowCmdThreshold = PMD_DFT_SLOWCMD_THRESHOLD ;
       _slowLatchThreshold = PMD_DFT_SLOWLATCH_THRESHOLD ;
       _slowLockThreshold = PMD_DFT_SLOWLOCK_THRESHOLD ;
+      _slowSyncThreshold = PMD_DFT_SLOWSYNC_THRESHOLD ;
       _monGroupMask = 0 ;
       _monOptiLevel = PMD_DFT_MON_OPTI_LEVEL ;
       _monHistEvent = PMD_DFT_MONHISTEVENT ;
@@ -2646,6 +2648,10 @@ done:
       // --monslowlatchthreshold
       rdxUInt( pEX, PMD_OPTION_MON_SLOWLATCH_THRESHOLD, _slowLatchThreshold, FALSE,
                PMD_CFG_CHANGE_RUN, PMD_DFT_SLOWLATCH_THRESHOLD, FALSE ) ;
+
+      // --monslowsyncthreshold
+      rdxUInt( pEX, PMD_OPTION_MON_SLOWSYNC_THRESHOLD, _slowSyncThreshold, FALSE,
+               PMD_CFG_CHANGE_RUN, PMD_DFT_SLOWSYNC_THRESHOLD, FALSE ) ;
 
       // --monoptilevel
       rdxUInt( pEX, PMD_OPTION_MON_OPTI_LEVEL, _monOptiLevel, FALSE,

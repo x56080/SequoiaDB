@@ -37,7 +37,7 @@ function test( testPara )
       // get queryID
       var ret = sdb.snapshot(
       SDB_SNAP_QUERIES,
-      new SdbSnapshotOption().cond( { QueryID: { $regex: pattern } } ).sort( { QueryID: -1 } )
+      new SdbSnapshotOption().cond( { QueryID: { $regex: pattern } } ).sort( { QueryID: -1 } ).options( {viewHistory:false} )
       );
       var curQueryID = ret.current().toObj()["QueryID"];
       if ( "" == curQueryID )
