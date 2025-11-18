@@ -577,15 +577,18 @@ struct _monSyncWaitInfoCmp
 {
    bool operator() ( const _monSyncWaitInfo &l, const _monSyncWaitInfo &r ) const
    {
-      if ( l._matchSynced > r._matchSynced )
+      if ( l._matchSynced && ! r._matchSynced )
       {
          return true ;
       }
-      else if ( l._waitTime < r._waitTime )
+      else if ( ! l._matchSynced && r._matchSynced )
       {
-         return true ;
+         return false ;
       }
-      return false ;
+      else
+      {
+         return l._waitTime < r._waitTime ? true : false ;
+      }
    }
 } ;
 
