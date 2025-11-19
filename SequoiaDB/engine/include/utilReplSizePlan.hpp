@@ -92,7 +92,7 @@ namespace engine
                                 const UINT8 affinitiveNodes )
       {
          reset() ;
-         this->affinitiveNodes = OSS_MIN( w, OSS_MIN( affinitiveNodes, UTIL_REPL_SIZE_TWO ) ) ;
+         this->affinitiveNodes = OSS_MIN( w, affinitiveNodes ) ;
       }
 
       void setLocMajorReplSizePlan( const UINT8 w,
@@ -108,7 +108,7 @@ namespace engine
          this->primaryLocationNodes = OSS_MIN( w - this->locations + 1,
                                                0 == primaryLocationNodes ?
                                                0 : primaryLocationNodes / 2 + 1 ) ;
-         this->affinitiveNodes = OSS_MIN( w, OSS_MIN( affinitiveNodes, UTIL_REPL_SIZE_TWO ) ) ;
+         this->affinitiveNodes = OSS_MIN( w, affinitiveNodes ) ;
       }
 
       void setPryLocMajorReplSizePlan( const UINT8 w,
@@ -124,7 +124,7 @@ namespace engine
                                     0 == locations ? 0 : locations / 2 + 1 ) ;
          this->affinitiveLocations = OSS_MIN( this->locations,
                                               OSS_MIN( affinitiveLocations, UTIL_REPL_SIZE_TWO ) ) ;
-         this->affinitiveNodes = OSS_MIN( w, OSS_MIN( affinitiveNodes, UTIL_REPL_SIZE_TWO ) ) ;
+         this->affinitiveNodes = OSS_MIN( w, affinitiveNodes ) ;
       }
 
       BOOLEAN isPassed( const _utilReplSizePlan &item ) const

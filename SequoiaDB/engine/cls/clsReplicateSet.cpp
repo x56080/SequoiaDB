@@ -1238,15 +1238,26 @@ namespace engine
       _utilStackBitmap< CLS_REPLSET_MAX_NODE_SIZE > isMarked ;
       BOOLEAN needLocInfo = SDB_CONSISTENCY_NODE != strategy ;
       UINT32 remoteAliveNodeCnt = 0 ;
-      BOOLEAN isCriticalNodeMode = FALSE ;
+      BOOLEAN isCriticalLocationMode = FALSE ;
 
       ossScopedRWLock lock( &_info.mtx, SHARED ) ;
 
       if ( CLS_GROUP_MODE_CRITICAL == _info.grpMode.mode )
       {
-         nodeCnt = _info.criticalSize() ;
-         aliveCnt = _info.criticalAliveSize() ;
-         isCriticalNodeMode = TRUE ;
+         const clsGrpModeItem &grpModeItem = _info.grpMode.grpModeInfo[0] ;
+
+         // This is critical node mode, use alive node count
+         if ( INVALID_NODEID != grpModeItem.nodeID )
+         {
+            nodeCnt = _info.aliveSize() ;
+            aliveCnt = _info.aliveSize() ;
+         }
+         else
+         {
+            nodeCnt = _info.criticalSize() ;
+            aliveCnt = _info.criticalAliveSize() ;
+            isCriticalLocationMode = TRUE ;
+         }
       }
       else
       {
@@ -1264,7 +1275,7 @@ namespace engine
          {
             continue ;
          }
-         else if ( isCriticalNodeMode && !pStatus->isInCriticalMode() )
+         else if ( isCriticalLocationMode && !pStatus->isInCriticalMode() )
          {
             continue ;
          }
@@ -1302,47 +1313,51 @@ namespace engine
             continue ;
          }
 
-         if ( needLocInfo )
+         if ( MSG_INVALID_LOCATIONID != selfLocationID &&
+              MSG_INVALID_LOCATIONID != locationID )
          {
-            if ( MSG_INVALID_LOCATIONID != selfLocationID &&
-                 MSG_INVALID_LOCATIONID != locationID )
+            if ( selfLocationID == locationID )
             {
-               if ( selfLocationID == locationID )
-               {
-                  primaryLocationNodes++ ;
-                  affinitiveNodes++ ;
-               }
-               else if ( pStatus->isAffinitiveLocation )
-               {
-                  affinitiveNodes++ ;
+               primaryLocationNodes++ ;
+               affinitiveNodes++ ;
+            }
+            else if ( pStatus->isAffinitiveLocation )
+            {
+               affinitiveNodes++ ;
 
-                  if ( !isMarked.testBit( pStatus->locationIndex ) )
-                  {
-                     locations++ ;
-                     affinitiveLocations++ ;
-                     isMarked.setBit( pStatus->locationIndex ) ;
-                  }
-               }
-               else if ( !isMarked.testBit( pStatus->locationIndex ) )
+               if ( !isMarked.testBit( pStatus->locationIndex ) )
                {
                   locations++ ;
-                  remoteLocations++ ;
+                  affinitiveLocations++ ;
                   isMarked.setBit( pStatus->locationIndex ) ;
                }
+            }
+            else if ( !isMarked.testBit( pStatus->locationIndex ) )
+            {
+               locations++ ;
+               remoteLocations++ ;
+               isMarked.setBit( pStatus->locationIndex ) ;
             }
          }
       }
 
-      if ( needLocInfo && NULL != locationInfo )
+      if ( NULL != locationInfo )
       {
          UINT8 selfInc = MSG_INVALID_LOCATIONID != selfLocationID ? 1 : 0 ;
-         locationInfo->primaryLocationNodes = primaryLocationNodes + selfInc ;
-         locationInfo->locations = locations + selfInc ;
-         locationInfo->affinitiveLocations = affinitiveLocations + selfInc ;
+
+         if ( needLocInfo )
+         {
+            locationInfo->primaryLocationNodes = primaryLocationNodes + selfInc ;
+            locationInfo->locations = locations + selfInc ;
+            locationInfo->affinitiveLocations = affinitiveLocations + selfInc ;
+         }
 
          if ( isActiveLocation() && !_remoteLocationConsistency )
          {
-            locationInfo->locations -= remoteLocations ;
+            if ( needLocInfo )
+            {
+               locationInfo->locations -= remoteLocations ;
+            }
             locationInfo->affinitiveNodes = affinitiveNodes + selfInc ;
          }
       }
@@ -1352,6 +1367,11 @@ namespace engine
          if ( CLS_GROUP_MODE_CRITICAL == _info.grpMode.mode )
          {
             // cirtical mode, nodeCnt/aliveCnt already except remote
+            if ( ! isCriticalLocationMode )
+            {
+               nodeCnt -= remoteAliveNodeCnt ;
+               aliveCnt -= remoteAliveNodeCnt ;
+            }
          }
          else
          {
