@@ -719,10 +719,6 @@ namespace engine
 
       if ( 0 == size )
       {
-         if ( pRealSize )
-         {
-            *pRealSize = 0 ;
-         }
          goto done ;
       }
 
@@ -815,6 +811,10 @@ namespace engine
       }
 
    done :
+      if ( !userPtr && pRealSize )
+      {
+         *pRealSize = 0 ;
+      }
       return userPtr ;
    }
 
@@ -955,6 +955,10 @@ namespace engine
       }
 
    done:
+      if ( !newUserPtr && pRealSize )
+      {
+         *pRealSize = 0 ;
+      }
       return newUserPtr ;
    }
 

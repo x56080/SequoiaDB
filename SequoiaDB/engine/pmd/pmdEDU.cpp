@@ -637,10 +637,17 @@ namespace engine
                                  UINT32 *pRealSize )
    {
       INT32 rc = SDB_OK ;
+      CHAR *pOldBuff = *ppBuff ;
 
       *ppBuff = (CHAR*)SDB_THREAD_REALLOC2( (void*)(*ppBuff), len, pRealSize ) ;
       if ( !(*ppBuff) )
       {
+         /// need release the old memory
+         if ( pOldBuff )
+         {
+            releaseBuff( pOldBuff ) ;
+         }
+
          rc = SDB_OOM ;
          PD_LOG( PDERROR, "Failed to realloc memory, size: %u", len ) ;
          goto error ;
