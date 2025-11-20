@@ -25,11 +25,11 @@ function test ( testPara )
       insertRecs( testPara.testCL );
 
       // SDB_SNAP_QUERY
-      var ret = sdb.snapshot( SDB_SNAP_QUERIES );
+      var ret = sdb.snapshot( SDB_SNAP_QUERIES, new SdbSnapshotOption().options( {viewHistory:false} ) );
       var queryID = ret.current().toObj()["QueryID"];
       queryID = getNewQueryID(queryID);
 
-      ret = sdb.snapshot( SDB_SNAP_QUERIES, { QueryID: queryID } );
+      ret = sdb.snapshot( SDB_SNAP_QUERIES, new SdbSnapshotOption().cond( { QueryID: queryID } ).options( {viewHistory:false} ) );
       if( !ret.next() )
       {
          throw new Error( "Invalid QueryID in query snapshot. It must be " + queryID );
