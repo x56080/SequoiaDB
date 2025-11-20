@@ -79,13 +79,22 @@ INT32 msgCheckBuffer ( CHAR **ppBuffer,
 
    if ( packetLength > *bufferSize )
    {
-      INT32 newSize = ossAlign4 ( packetLength ) ;
-      if ( newSize < 0 )
+      INT32 newSize = 0 ;
+
+      if ( 0 == *bufferSize )
       {
-         PD_LOG ( PDERROR, "new buffer overflow" ) ;
-         rc = SDB_INVALIDARG ;
-         goto error ;
+         newSize = ossAlign4 ( packetLength ) ;
       }
+      else
+      {
+         newSize = OSS_MAX( ossAlign4 ( packetLength ), ossAlign4( ( *bufferSize ) << 1 ) ) ;
+      }
+
+      if ( newSize < packetLength )
+      {
+         newSize = packetLength ;
+      }
+
       if ( cb )
       {
          rc = cb->reallocBuff( newSize, ppBuffer, (UINT32*)bufferSize ) ;
