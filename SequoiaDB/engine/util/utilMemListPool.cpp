@@ -731,6 +731,10 @@ namespace engine
          _EBBSize = 0 ;
          _pEBB = NULL ;
       }
+      else if ( pRealSize )
+      {
+         *pRealSize = 0 ;
+      }
 
       return p ;
    }
