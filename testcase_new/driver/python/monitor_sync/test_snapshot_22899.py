@@ -55,7 +55,7 @@ class Snapshot_22899(testlib.SdbTestBase):
             self.db.update_config(configs=original_conf, options={})
 
     def verify_snapshot_queries(self):
-        result = self.get_snapshot_result(SDB_SNAP_QUERIES)
+        result = self.get_snapshot_result(SDB_SNAP_QUERIES, hint={"$Options": {"viewHistory": False}} )
         if len(result) < 1:
             raise Exception("SDB_SNAP_QUERIES --- FAILED, return " + format(len(result)) + " information")
 
