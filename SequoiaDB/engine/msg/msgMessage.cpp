@@ -66,6 +66,9 @@ using namespace std ;
 
 const static BSONObj __emptyObj ;
 
+#define MSG_MEM_DOUBLE_SIZE_LIMIT      ( 32 * 1024 * 1024 )       /// 32MB
+#define MSG_MEM_INC_STEP_SIZE          (  4 * 1024 * 1024 )       ///  4MB
+
 // PD_TRACE_DECLARE_FUNCTION ( SDB_MSGCHKBUFF, "msgCheckBuffer" )
 INT32 msgCheckBuffer ( CHAR **ppBuffer,
                        INT32 *bufferSize,
@@ -85,9 +88,13 @@ INT32 msgCheckBuffer ( CHAR **ppBuffer,
       {
          newSize = ossAlign4 ( packetLength ) ;
       }
-      else
+      else if ( packetLength <= MSG_MEM_DOUBLE_SIZE_LIMIT )
       {
          newSize = OSS_MAX( ossAlign4 ( packetLength ), ossAlign4( ( *bufferSize ) << 1 ) ) ;
+      }
+      else
+      {
+         newSize = OSS_MAX( ossAlign4 ( packetLength ), ossAlign4( *bufferSize + MSG_MEM_INC_STEP_SIZE ) ;
       }
 
       if ( newSize < packetLength )
