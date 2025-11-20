@@ -77,7 +77,7 @@ function checkResult ( cl, expRec )
    {
       assert.tryThrow( [SDB_DMS_EOC, SDB_DMS_CONTEXT_IS_CLOSE], function()
       {
-         cl.find().current();
+         if ( !cl.find().current() ) { throw SDB_DMS_EOC ; }
       } );
    }
    else
