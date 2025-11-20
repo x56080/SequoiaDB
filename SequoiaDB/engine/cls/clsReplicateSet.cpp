@@ -1238,6 +1238,7 @@ namespace engine
       _utilStackBitmap< CLS_REPLSET_MAX_NODE_SIZE > isMarked ;
       BOOLEAN needLocInfo = SDB_CONSISTENCY_NODE != strategy ;
       UINT32 remoteAliveNodeCnt = 0 ;
+      BOOLEAN isCriticalNodeMode = FALSE ;
       BOOLEAN isCriticalLocationMode = FALSE ;
 
       ossScopedRWLock lock( &_info.mtx, SHARED ) ;
@@ -1249,8 +1250,8 @@ namespace engine
          // This is critical node mode, use alive node count
          if ( INVALID_NODEID != grpModeItem.nodeID )
          {
-            nodeCnt = _info.aliveSize() ;
             aliveCnt = _info.aliveSize() ;
+            isCriticalNodeMode = TRUE ;
          }
          else
          {
@@ -1367,9 +1368,8 @@ namespace engine
          if ( CLS_GROUP_MODE_CRITICAL == _info.grpMode.mode )
          {
             // cirtical mode, nodeCnt/aliveCnt already except remote
-            if ( ! isCriticalLocationMode )
+            if ( isCriticalNodeMode )
             {
-               nodeCnt -= remoteAliveNodeCnt ;
                aliveCnt -= remoteAliveNodeCnt ;
             }
          }
@@ -1378,6 +1378,21 @@ namespace engine
             nodeCnt -= _info.remoteLocationNodeSize ;
             aliveCnt -= remoteAliveNodeCnt ;
          }
+      }
+
+      /// In critical node mode, need except the abnormal node
+      if ( isCriticalNodeMode )
+      {
+         if ( aliveCnt > ssCnt )
+         {
+            aliveCnt -= ssCnt ;
+         }
+         else
+         {
+            aliveCnt = 1 ;
+         }
+         ssCnt = 0 ;
+         nodeCnt = aliveCnt ;
       }
    }
 
