@@ -5125,6 +5125,14 @@ namespace engine
 
       if ( ( header->flags & FLG_LOB_EXPLAIN ) && -1 != contextID )
       {
+         // use appendObjs() and getMore() to keep buffObj memory avaliable
+         // after context was killed
+         rc = context->appendObjs( buffObj.data(), buffObj.size(), buffObj.recordNum() ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to append objects into context, "
+                      "rc: %d", rc ) ;
+         rc = context->getMore( -1, buffObj, _pEDUCB ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get objects from context, "
+                      "rc: %d", rc ) ;
          /// kill context
          context->close( _pEDUCB ) ;
          rtnCB->contextDelete( contextID, _pEDUCB ) ;
