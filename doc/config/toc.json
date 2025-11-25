@@ -3037,6 +3037,12 @@
                            "en": "listIndexes()"
                         },
                         {
+                           "id": 1432190945,
+                           "file": "listLobPieces",
+                           "cn": "listLobPieces()",
+                           "en": "listLobPieces()"
+                        },
+                        {
                            "id": 1432190841,
                            "file": "listLobs",
                            "cn": "listLobs()",
