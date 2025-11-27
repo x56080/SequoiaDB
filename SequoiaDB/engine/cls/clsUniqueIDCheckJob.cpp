@@ -36,6 +36,7 @@
 #include "rtnLocalTask.hpp"
 #include "rtn.hpp"
 #include "clsTrace.hpp"
+#include "pmdDummySession.hpp"
 
 namespace engine
 {
@@ -336,6 +337,8 @@ namespace engine
 
       rtnLTRename *pRename = (rtnLTRename*)_taskPtr.get() ;
       BOOLEAN needRemove = FALSE ;
+      BOOLEAN attachedDummySession = FALSE ;
+      pmdDummySession session( TRUE ) ;
 
       dmsStorageUnitID suID = DMS_INVALID_SUID ;
       _dmsStorageUnit *su = NULL ;
@@ -359,6 +362,12 @@ namespace engine
       else if ( PMD_IS_DB_DOWN() )
       {
          goto finish ;
+      }
+
+      if ( NULL == pExe->getSession() )
+      {
+         session.attachCB( (_pmdEDUCB*)pExe ) ;
+         attachedDummySession = TRUE ;
       }
 
       needRemove = TRUE ;
@@ -528,7 +537,8 @@ namespace engine
                                           (pmdEDUCB*)pExe,
                                           dmsCB,
                                           dpsCB,
-                                          FALSE ) ;
+                                          FALSE,
+                                          TRUE ) ;
          if ( rc )
          {
             PD_LOG( PDWARNING, "Rename collection(%s) to (%s) failed, "
@@ -553,6 +563,11 @@ namespace engine
       if ( DMS_INVALID_SUID != suID )
       {
          dmsCB->suUnlock( suID ) ;
+      }
+      if ( attachedDummySession )
+      {
+         session.detachCB() ;
+         attachedDummySession = FALSE ;
       }
       return rc ;
    error:
@@ -656,7 +671,7 @@ namespace engine
 
       if ( succeed + failed > 0 )
       {
-         PD_LOG( PDEVENT, "Start name check jos, succed: %u, failed: %u",
+         PD_LOG( PDEVENT, "Start name check jos, succeed: %u, failed: %u",
                  succeed, failed ) ;
       }
 

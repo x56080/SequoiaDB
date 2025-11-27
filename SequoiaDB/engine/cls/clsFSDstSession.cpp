@@ -1892,6 +1892,8 @@ namespace engine
          _fullNames.clear() ;
          _validCLs.clear() ;
          _mapEmptyCS.clear() ;
+         _mapRenameCS.clear() ;
+         _mapRenameCL.clear() ;
       }
 
       try
@@ -1992,38 +1994,42 @@ namespace engine
          }
 
          /// remove valid collections
-         rc = _removeValidCLs( cleanner.getUDFValidCLs() ) ;
+         if ( _mapRenameCS.empty() && _mapRenameCL.empty() )
+         {
+            rc = _removeValidCLs( cleanner.getUDFValidCLs() ) ;
+         }
+         else
+         {
+            rc = _fixValidCLsByRenameMap( cleanner.getUDFValidCLs(), _validCLs ) ;
+            if ( SDB_OK == rc )
+            {
+               rc = _removeValidCLs( _validCLs ) ;
+            }
+         }
+
          if ( rc )
          {
-            PD_LOG( PDERROR, "Session[%s]: Failed to remove valid "
-                    "collections, rc: %d", sessionName(), rc ) ;
+            PD_LOG( PDERROR, "Session[%s]: Failed to remove valid collections, rc: %d",
+                    sessionName(), rc ) ;
             _disconnect() ;
             goto done ;
          }
       }
 
-      // create empty collection space
+      /// rename collection space and collection
+      rc = _processRenameMap() ;
+      if ( rc )
       {
-         CS_INFO_TUPLES::iterator itCS = _mapEmptyCS.begin() ;
-         while ( itCS != _mapEmptyCS.end() )
-         {
-            rc = _replayer.replayCrtCS( itCS->first.c_str(),
-                                        itCS->second.csUniqueID,
-                                        itCS->second.pageSize,
-                                        itCS->second.lobPageSize,
-                                        itCS->second.type,
-                                        eduCB() ) ;
-            if ( SDB_OK != rc && SDB_DMS_CS_EXIST != rc )
-            {
-               PD_LOG( PDWARNING, "Session[%s]: create empty collection "
-                       "space[%s] failed, rc: %d", sessionName(),
-                       itCS->first.c_str(), rc ) ;
-               _disconnect() ;
-               goto done ;
-            }
-            ++itCS ;
-         }
-         _mapEmptyCS.clear() ;
+         _disconnect() ;
+         goto done ;
+      }
+
+      // create empty collection space
+      rc = _processCreateEmptyCS() ;
+      if ( rc )
+      {
+         _disconnect() ;
+         goto done ;
       }
 
       try
@@ -2475,6 +2481,165 @@ namespace engine
       _timeout = 0 ;
    }
 
+   INT32 _clsFSDstSession::_fixValidCLsByRenameMap( const vector< string > &validCLsIn,
+                                                    vector< string > &validCLsOut )
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         validCLsOut.clear() ;
+
+         MAP_STR_2_STR::iterator itRenameCS ;
+         MAP_STR_2_STR::iterator itRenameCL ;
+
+         for ( UINT32 i = 0 ; i < validCLsIn.size() ; ++i )
+         {
+            const string &clFullName = validCLsIn[i] ;
+            size_t pos = clFullName.find('.') ;
+            if ( pos != string::npos )
+            {
+               string newCLName = clFullName ;
+               string csName = clFullName.substr( 0, pos ) ;
+
+               /// first check rename cs map
+               itRenameCS = _mapRenameCS.find( csName ) ;
+               if ( itRenameCS != _mapRenameCS.end() )
+               {
+                  csName = itRenameCS->second ;
+                  newCLName = csName + clFullName.substr( pos ) ;
+               }
+
+               /// then check rename cl map
+               itRenameCL = _mapRenameCL.find( clFullName ) ;
+               if ( itRenameCL != _mapRenameCL.end() )
+               {
+                  newCLName = csName + "." + itRenameCL->second ;
+               }
+
+               validCLsOut.push_back( newCLName ) ;
+            }
+            else
+            {
+               SDB_ASSERT( FALSE, "Invalid collection name" ) ;
+            }
+         }
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur excption: %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _clsFSDstSession::_processRenameMap()
+   {
+      INT32 rc = SDB_OK ;
+      pmdKRCB *krcb = pmdGetKRCB() ;
+      SDB_DMSCB *dmsCB = krcb->getDMSCB() ;
+
+      /// process rename cl map
+      if ( !_mapRenameCL.empty() )
+      {
+         CHAR szCSName[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] = { 0 } ;
+         CHAR szCLName[ DMS_COLLECTION_NAME_SZ + 1 ] = { 0 } ;
+
+         MAP_STR_2_STR::iterator itRename = _mapRenameCL.begin() ;
+         while( itRename != _mapRenameCL.end() )
+         {
+            const string &oldName = itRename->first ;    /// full name
+            const string &newName = itRename->second ;   /// short name
+
+            rc = rtnResolveCollectionName( oldName.c_str(), oldName.length(),
+                                           szCSName, DMS_COLLECTION_SPACE_NAME_SZ,
+                                           szCLName, DMS_COLLECTION_NAME_SZ ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Session[%s]: Resolve collection name[%s] failed, rc: %d",
+                       sessionName(), oldName.c_str(), rc ) ;
+               goto error ;
+            }
+
+            rc = rtnRenameCollectionCommand( szCSName, szCLName, newName.c_str(), eduCB(),
+                                             dmsCB, NULL, FALSE, TRUE ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Session[%s]: Rename collection[%s] to [%s] failed, rc: %d",
+                       sessionName(), oldName.c_str(), newName.c_str(), rc ) ;
+               goto error ;
+            }
+
+            ++itRename ;
+         }
+         _mapRenameCL.clear() ;
+      }
+
+      /// process rename cs map
+      if ( !_mapRenameCS.empty() )
+      {
+         MAP_STR_2_STR::iterator itRename = _mapRenameCS.begin() ;
+         while( itRename != _mapRenameCS.end() )
+         {
+            const string &oldName = itRename->first ;
+            const string &newName = itRename->second ;
+            rc = rtnRenameCollectionSpaceCommand( oldName.c_str(), newName.c_str(), eduCB(),
+                                                  dmsCB, NULL, FALSE ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Session[%s]: Rename collection space[%s] to [%s] failed, rc: %d",
+                       sessionName(), oldName.c_str(), newName.c_str(), rc ) ;
+               goto error ;
+            }
+
+            ++itRename ;
+         }
+         _mapRenameCS.clear() ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _clsFSDstSession::_processCreateEmptyCS()
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( !_mapEmptyCS.empty() )
+      {
+         CS_INFO_TUPLES::iterator itCS = _mapEmptyCS.begin() ;
+         while ( itCS != _mapEmptyCS.end() )
+         {
+            rc = _replayer.replayCrtCS( itCS->first.c_str(),
+                                        itCS->second.csUniqueID,
+                                        itCS->second.pageSize,
+                                        itCS->second.lobPageSize,
+                                        itCS->second.type,
+                                        eduCB() ) ;
+            if ( SDB_OK != rc && SDB_DMS_CS_EXIST != rc )
+            {
+               PD_LOG( PDERROR, "Session[%s]: Create empty collection space[%s] failed, rc: %d",
+                       sessionName(), itCS->first.c_str(), rc ) ;
+               goto error ;
+            }
+            ++itCS ;
+         }
+         _mapEmptyCS.clear() ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    INT32 _clsFSDstSession::_extractBeginRspBody( const BSONObj &bodyObj,
                                                  INT32 &nomore,
                                                  INT32 &slice )
@@ -2524,98 +2689,186 @@ namespace engine
             goto error ;
          }
 
+         /// rename cl
+         ele = bodyObj.getField( CLS_FS_RENAME_CLNAMES ) ;
+         if ( ele.eoo() )
+         {
+            /// compatiable with old version, donothing
+         }
+         else if ( Array != ele.type() )
+         {
+            PD_LOG( PDERROR, "Session[%s]: Failed to parse renameclnames from obj[%s]",
+                    sessionName(), bodyObj.toString().c_str() ) ;
+            goto error ;
+         }
+         else
+         {
+            BSONObjIterator itr( ele.embeddedObject() ) ;
+            while( itr.more() )
+            {
+               BSONElement e = itr.next() ;
+               if ( Object != e.type() )
+               {
+                  PD_LOG( PDERROR, "Session[%s]: Parse a rename collection ele[%s] failed",
+                          sessionName(), e.toString().c_str() ) ;
+                  goto error ;
+               }
+               else
+               {
+                  BSONObj renameObj( e.embeddedObject() ) ;
+                  BSONElement oldNameEle = renameObj.getField( CLS_FS_OLDNAME ) ;
+                  BSONElement newNameEle = renameObj.getField( CLS_FS_NEWNAME ) ;
+
+                  if ( String != oldNameEle.type() || String != newNameEle.type() )
+                  {
+                     PD_LOG( PDERROR, "Session[%s]: Parse a rename collection ele[%s] failed",
+                             sessionName(), renameObj.toString().c_str() ) ;
+                     goto error ;
+                  }
+
+                  /// add to map
+                  _mapRenameCL[ oldNameEle.str() ] = newNameEle.str() ;
+                  PD_LOG( PDEVENT, "Session[%s]: Need rename collection[%s] to [%s]",
+                          sessionName(), oldNameEle.valuestr(), newNameEle.valuestr() ) ;
+               }
+            }
+         }
+
+         /// rename cs
+         ele = bodyObj.getField( CLS_FS_RENAME_CSNAMES ) ;
+         if ( ele.eoo() )
+         {
+            /// compatiable with old version, donothing
+         }
+         else if ( Array != ele.type() )
+         {
+            PD_LOG( PDERROR, "Session[%s]: Failed to parse renamecsnames from obj[%s]",
+                    sessionName(), bodyObj.toString().c_str() ) ;
+            goto error ;
+         }
+         else
+         {
+            BSONObjIterator itr( ele.embeddedObject() ) ;
+            while( itr.more() )
+            {
+               BSONElement e = itr.next() ;
+               if ( Object != e.type() )
+               {
+                  PD_LOG( PDERROR, "Session[%s]: Parse a rename collection space ele[%s] failed",
+                          sessionName(), e.toString().c_str() ) ;
+                  goto error ;
+               }
+               else
+               {
+                  BSONObj renameObj( e.embeddedObject() ) ;
+                  BSONElement oldNameEle = renameObj.getField( CLS_FS_OLDNAME ) ;
+                  BSONElement newNameEle = renameObj.getField( CLS_FS_NEWNAME ) ;
+
+                  if ( String != oldNameEle.type() || String != newNameEle.type() )
+                  {
+                     PD_LOG( PDERROR, "Session[%s]: Parse a rename collection space ele[%s] failed",
+                             sessionName(), renameObj.toString().c_str() ) ;
+                     goto error ;
+                  }
+
+                  /// add to map
+                  _mapRenameCS[ oldNameEle.str() ] = newNameEle.str() ;
+                  PD_LOG( PDEVENT, "Session[%s]: Need rename collection space[%s] to [%s]",
+                          sessionName(), oldNameEle.valuestr(), newNameEle.valuestr() ) ;
+               }
+            }
+         }
+
          // 1. empty collection space
          ele = bodyObj.getField( CLS_FS_CSNAMES ) ;
          if ( Array != ele.type() )
          {
-            PD_LOG( PDERROR, "Session[%s]: failed to parse csnames from "
-                    "obj[%s]", sessionName(), bodyObj.toString().c_str() ) ;
+            PD_LOG( PDERROR, "Session[%s]: Failed to parse csnames from obj[%s]",
+                    sessionName(), bodyObj.toString().c_str() ) ;
             goto error ;
          }
-
-         BSONObjIterator csIt( ele.embeddedObject() ) ;
-         while ( csIt.more() )
+         else
          {
-            BSONElement next = csIt.next() ;
-            if ( Object != next.type() )
+            BSONObjIterator csIt( ele.embeddedObject() ) ;
+            while ( csIt.more() )
             {
-               PD_LOG( PDERROR, "Session[%s]: parse a collection space "
-                       "ele[%s] failed", sessionName(),
-                       next.toString().c_str() ) ;
-               goto error ;
-            }
-            else
-            {
-               BSONObj csObj = next.embeddedObject() ;
-               BSONElement eleName = csObj.getField( CLS_FS_CSNAME ) ;
-               BSONElement elePageSZ = csObj.getField( CLS_FS_PAGE_SIZE ) ;
-               BSONElement eleLobPageSZ = csObj.getField( CLS_FS_LOB_PAGE_SIZE ) ;
-               BSONElement eleType = csObj.getField( CLS_FS_CS_TYPE ) ;
-               BSONElement eleID = csObj.getField( CLS_FS_CS_UNIQUEID ) ;
-               INT32 pageSz = 0 ;
-               INT32 lobPageSz = DMS_DEFAULT_LOB_PAGE_SZ ;
-               DMS_STORAGE_TYPE type = DMS_STORAGE_NORMAL ;
-               utilCSUniqueID csUniqueID = UTIL_UNIQUEID_NULL ;
-
-               if ( String != eleName.type() ||
-                    NumberInt != elePageSZ.type() )
+               BSONElement next = csIt.next() ;
+               if ( Object != next.type() )
                {
-                  PD_LOG( PDERROR, "Session[%s]: parse a collection space "
-                          "ele[%s] failed", sessionName(),
-                          next.toString().c_str() ) ;
+                  PD_LOG( PDERROR, "Session[%s]: Parse a collection space ele[%s] failed",
+                          sessionName(), next.toString().c_str() ) ;
                   goto error ;
                }
-               pageSz = elePageSZ.numberInt() ;
+               else
+               {
+                  BSONObj csObj = next.embeddedObject() ;
+                  BSONElement eleName = csObj.getField( CLS_FS_CSNAME ) ;
+                  BSONElement elePageSZ = csObj.getField( CLS_FS_PAGE_SIZE ) ;
+                  BSONElement eleLobPageSZ = csObj.getField( CLS_FS_LOB_PAGE_SIZE ) ;
+                  BSONElement eleType = csObj.getField( CLS_FS_CS_TYPE ) ;
+                  BSONElement eleID = csObj.getField( CLS_FS_CS_UNIQUEID ) ;
+                  INT32 pageSz = 0 ;
+                  INT32 lobPageSz = DMS_DEFAULT_LOB_PAGE_SZ ;
+                  DMS_STORAGE_TYPE type = DMS_STORAGE_NORMAL ;
+                  utilCSUniqueID csUniqueID = UTIL_UNIQUEID_NULL ;
 
-               if ( NumberInt != eleLobPageSZ.type() &&
-                    !eleLobPageSZ.eoo() )
-               {
-                  PD_LOG( PDERROR, "Session[%s]: wrong type of lob "
-                          "pagesize[%s] failed", sessionName(),
-                          next.toString().c_str() ) ;
-                  goto error ;
-               }
-               else if ( NumberInt == eleLobPageSZ.type() )
-               {
-                  lobPageSz = eleLobPageSZ.numberInt() ;
-               }
-
-               if ( NumberInt != eleType.type() && !eleType.eoo() )
-               {
-                  PD_LOG( PDERROR, "Session[%s]: wrong type of storage "
-                          "type[%s]", sessionName(),
-                          next.toString().c_str() ) ;
-                  goto error ;
-               }
-               else if ( NumberInt == eleType.type() )
-               {
-                  INT32 typeVal = eleType.numberInt() ;
-                  if ( typeVal >= DMS_STORAGE_NORMAL &&
-                       typeVal < DMS_STORAGE_DUMMY )
+                  if ( String != eleName.type() ||
+                       NumberInt != elePageSZ.type() )
                   {
-                     type = (DMS_STORAGE_TYPE)typeVal ;
+                     PD_LOG( PDERROR, "Session[%s]: Parse a collection space ele[%s] failed",
+                             sessionName(), next.toString().c_str() ) ;
+                     goto error ;
                   }
-                  else
+                  pageSz = elePageSZ.numberInt() ;
+
+                  if ( NumberInt != eleLobPageSZ.type() &&
+                       !eleLobPageSZ.eoo() )
                   {
-                     PD_LOG( PDERROR, "Storage type[%d] is invalid", typeVal ) ;
-                     rc = SDB_SYS ;
-                     goto done ;
+                     PD_LOG( PDERROR, "Session[%s]: Wrong type of lob pagesize[%s] failed",
+                             sessionName(), next.toString().c_str() ) ;
+                     goto error ;
                   }
-               }
+                  else if ( NumberInt == eleLobPageSZ.type() )
+                  {
+                     lobPageSz = eleLobPageSZ.numberInt() ;
+                  }
 
-               if ( NumberInt != eleID.type() )
-               {
-                  PD_LOG( PDERROR, "Session[%s]: parse a collection space "
-                          "ele[%s] failed", sessionName(),
-                          next.toString().c_str() ) ;
-                  goto error ;
-               }
-               csUniqueID = ( utilCLUniqueID )eleID.numberInt() ;
+                  if ( NumberInt != eleType.type() && !eleType.eoo() )
+                  {
+                     PD_LOG( PDERROR, "Session[%s]: Wrong type of storage type[%s]",
+                             sessionName(), next.toString().c_str() ) ;
+                     goto error ;
+                  }
+                  else if ( NumberInt == eleType.type() )
+                  {
+                     INT32 typeVal = eleType.numberInt() ;
+                     if ( typeVal >= DMS_STORAGE_NORMAL &&
+                          typeVal < DMS_STORAGE_DUMMY )
+                     {
+                        type = (DMS_STORAGE_TYPE)typeVal ;
+                     }
+                     else
+                     {
+                        PD_LOG( PDERROR, "Session[%s]: Storage type[%d] is invalid",
+                                sessionName(), typeVal ) ;
+                        rc = SDB_SYS ;
+                        goto done ;
+                     }
+                  }
 
-               _mapEmptyCS[ eleName.str() ] = clsCSInfoTuple( pageSz,
-                                                              lobPageSz,
-                                                              type,
-                                                              csUniqueID ) ;
+                  if ( NumberInt != eleID.type() )
+                  {
+                     PD_LOG( PDERROR, "Session[%s]: Parse a collection space ele[%s] failed",
+                             sessionName(), next.toString().c_str() ) ;
+                     goto error ;
+                  }
+                  csUniqueID = ( utilCLUniqueID )eleID.numberInt() ;
+
+                  _mapEmptyCS[ eleName.str() ] = clsCSInfoTuple( pageSz,
+                                                                 lobPageSz,
+                                                                 type,
+                                                                 csUniqueID ) ;
+               }
             }
          }
 
@@ -2623,9 +2876,8 @@ namespace engine
          ele = bodyObj.getField( CLS_FS_FULLNAMES ) ;
          if ( Array != ele.type() )
          {
-            PD_LOG( PDWARNING, "Session[%s]: Failed to parse collections "
-                    "from obj[%s]", sessionName(),
-                    bodyObj.toString().c_str() ) ;
+            PD_LOG( PDWARNING, "Session[%s]: Failed to parse collections from obj[%s]",
+                    sessionName(), bodyObj.toString().c_str() ) ;
             goto error ;
          }
          else
@@ -2637,17 +2889,15 @@ namespace engine
                BSONElement name ;
                if ( next.eoo() || !next.isABSONObj() )
                {
-                  PD_LOG( PDWARNING, "Session[%s]: failed to parse a "
-                          "collection from obj[%s]", sessionName(),
-                          next.toString().c_str() ) ;
+                  PD_LOG( PDWARNING, "Session[%s]: Failed to parse a collection from obj[%s]",
+                          sessionName(), next.toString().c_str() ) ;
                   goto error ;
                }
                name = next.embeddedObject().getField( CLS_FS_FULLNAME ) ;
                if ( name.eoo() || String != name.type() )
                {
-                  PD_LOG( PDWARNING, "Session[%s]: failed to parse a "
-                          "collection from obj[%s]", sessionName(),
-                          next.toString().c_str() ) ;
+                  PD_LOG( PDWARNING, "Session[%s]: failed to parse a collection from obj[%s]",
+                          sessionName(), next.toString().c_str() ) ;
                   goto error ;
                }
 
@@ -2663,9 +2913,8 @@ namespace engine
          }
          else if ( Array != ele.type() )
          {
-            PD_LOG( PDWARNING, "Session[%s]: Failed to parse valid "
-                    "collections from obj[%s]", sessionName(),
-                    bodyObj.toString().c_str() ) ;
+            PD_LOG( PDWARNING, "Session[%s]: Failed to parse valid collections from obj[%s]",
+                    sessionName(), bodyObj.toString().c_str() ) ;
             goto error ;
          }
          else
@@ -2677,24 +2926,21 @@ namespace engine
                BSONElement name ;
                if ( next.eoo() || !next.isABSONObj() )
                {
-                  PD_LOG( PDWARNING, "Session[%s]: Failed to parse a valid "
-                          "collection from obj[%s]", sessionName(),
-                          next.toString().c_str() ) ;
+                  PD_LOG( PDWARNING, "Session[%s]: Failed to parse a valid collection from obj[%s]",
+                          sessionName(), next.toString().c_str() ) ;
                   goto error ;
                }
                name = next.embeddedObject().getField( CLS_FS_FULLNAME ) ;
                if ( name.eoo() || String != name.type() )
                {
-                  PD_LOG( PDWARNING, "Session[%s]: Failed to parse a valid "
-                          "collection from obj[%s]", sessionName(),
-                          next.toString().c_str() ) ;
+                  PD_LOG( PDWARNING, "Session[%s]: Failed to parse a valid collection from obj[%s]",
+                          sessionName(), next.toString().c_str() ) ;
                   goto error ;
                }
 
                _validCLs.push_back( name.String() ) ;
-               PD_LOG( PDEVENT, "Session[%s]: Collection[%s] is valid, "
-                       "don't need to full sync", sessionName(),
-                       name.valuestr() ) ;
+               PD_LOG( PDEVENT, "Session[%s]: Collection[%s] is valid, don't need to full sync",
+                       sessionName(), name.valuestr() ) ;
             }
          }
       }
@@ -2702,6 +2948,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "Session[%s]: Occur exception: %s",
                  sessionName(), e.what() ) ;
+         rc = ossException2RC( &e ) ;
          goto error ;
       }
 
@@ -2804,6 +3051,7 @@ namespace engine
 
                   BSONObjBuilder clBuild( validCLBD.subobjStart() ) ;
                   clBuild.append( CLS_FS_FULLNAME, itCL->first ) ;
+                  clBuild.append( CLS_FS_COLLECTION_UNIQUEID, (INT64)info._clUniqueID ) ;
 
                   BSONArrayBuilder subCommitFlag(
                      clBuild.subarrayStart( CLS_FS_COMMITFLAG ) ) ;

@@ -1769,6 +1769,8 @@ namespace engine
       if ( 1 == _lastRecvSlice )
       {
          _validCLs.clear() ;
+         _mapRenameCS.clear() ;
+         _mapRenameCL.clear() ;
       }
 
       /// compatiable with old version( without obj )
@@ -1847,7 +1849,7 @@ namespace engine
          _pRepl->syncMgr()->notifyFullSync( header->routeID ) ;
 
          /// process valid collections
-         rc = _processValidCLs( _validCLs ) ;
+         rc = _processValidCLs( _validCLs, _mapRenameCS, _mapRenameCL ) ;
          if ( rc )
          {
             PD_LOG( PDWARNING, "Session[%s]: Process valid collections "
@@ -1872,7 +1874,7 @@ namespace engine
             ++sendSlice ;
             needDisconnect = FALSE ;
             rc = _constructBeginRspData( sendSlice, obj, csList, clList,
-                                         _validCLs, sendNomore ) ;
+                                         _validCLs, _mapRenameCS, _mapRenameCL, sendNomore ) ;
             if ( rc )
             {
                needDisconnect = TRUE ;
@@ -1901,6 +1903,7 @@ namespace engine
             }
             _mapOveredCLs.clear() ;
             _validCLs.clear() ;
+            _mapRenameCS.clear() ;
             _init = FALSE ;
          }
          /// Succeed
@@ -2249,6 +2252,8 @@ namespace engine
                                                    MON_CS_LIST &csList,
                                                    MON_CL_LIST &clList,
                                                    MAP_SU_STATUS &validCLs,
+                                                   MAP_STR_2_STR &mapRenameCS,
+                                                   MAP_STR_2_STR &mapRenameCL,
                                                    INT32 &nomore )
    {
       INT32 rc = SDB_OK ;
@@ -2283,6 +2288,42 @@ namespace engine
 
          b.append( CLS_FS_NOMORE, nomore ) ;
          b.append( CLS_FS_SLICE, slice ) ;
+
+         // rename collections
+         if ( !mapRenameCL.empty() )
+         {
+            BSONArrayBuilder clRenameBD( b.subarrayStart( CLS_FS_RENAME_CLNAMES ) ) ;
+            MAP_STR_2_STR::iterator itRename = mapRenameCL.begin() ;
+            while( itRename != mapRenameCL.end() )
+            {
+               BSONObjBuilder subObj( clRenameBD.subobjStart() ) ;
+               subObj.append( CLS_FS_OLDNAME, itRename->first ) ;
+               subObj.append( CLS_FS_NEWNAME, itRename->second ) ;
+               subObj.done() ;
+
+               ++itRename ;
+            }
+            clRenameBD.done() ;
+            mapRenameCL.clear() ;
+         }
+
+         // rename collectionspaces
+         if ( !mapRenameCS.empty() )
+         {
+            BSONArrayBuilder csRenameBD( b.subarrayStart( CLS_FS_RENAME_CSNAMES ) ) ;
+            MAP_STR_2_STR::iterator itRename = mapRenameCS.begin() ;
+            while( itRename != mapRenameCS.end() )
+            {
+               BSONObjBuilder subObj( csRenameBD.subobjStart() ) ;
+               subObj.append( CLS_FS_OLDNAME, itRename->first ) ;
+               subObj.append( CLS_FS_NEWNAME, itRename->second ) ;
+               subObj.done() ;
+
+               ++itRename ;
+            }
+            csRenameBD.done() ;
+            mapRenameCS.clear() ;
+         }
 
          // empty space
          BSONArrayBuilder csArrayBD( b.subarrayStart( CLS_FS_CSNAMES ) ) ;
@@ -2495,6 +2536,7 @@ namespace engine
             }
             BSONObj objCL = e.embeddedObject() ;
             BSONElement eleName = objCL.getField( CLS_FS_FULLNAME ) ;
+            BSONElement eleUniqueID = objCL.getField( CLS_FS_COLLECTION_UNIQUEID ) ;
             BSONElement eleFlag = objCL.getField( CLS_FS_COMMITFLAG ) ;
             BSONElement eleLSN = objCL.getField( CLS_FS_COMMITLSN ) ;
 
@@ -2528,6 +2570,11 @@ namespace engine
             info._idxCommitLSN = vecLSN[1].numberLong() ;
             info._lobCommitLSN = vecLSN[2].numberLong() ;
 
+            if ( NumberLong == eleUniqueID.type() )
+            {
+               info._clUniqueID = eleUniqueID.numberLong() ;
+            }
+
             validCLs[ eleName.String() ] = info ;
          }
       }
@@ -2545,20 +2592,27 @@ namespace engine
       goto done ;
    }
 
-   INT32 _clsFSSrcSession::_processValidCLs( MAP_SU_STATUS &validCLs )
+   INT32 _clsFSSrcSession::_processValidCLs( MAP_SU_STATUS &validCLs,
+                                             MAP_STR_2_STR &mapRenameCS,
+                                             MAP_STR_2_STR &mapRenameCL )
    {
       SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
       dmsStorageUnit *su = NULL ;
       dmsStorageUnitID suID = DMS_INVALID_SUID ;
       INT32 rc = SDB_OK ;
+      const CHAR *pFullName = NULL ;
       const CHAR *pCLShortName = NULL ;
       dmsMBContext *pContext = NULL ;
       UINT64 curCollection = ~0 ;
+
+      CHAR szCSName[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] = {0} ;
+      CHAR szCLName[ DMS_COLLECTION_NAME_SZ + 1 ] = {0} ;
 
       MAP_SU_STATUS::iterator it = validCLs.begin() ;
       while( it != validCLs.end() )
       {
          rtnRUInfo &info = it->second ;
+         pFullName = it->first.c_str() ;
 
          /// not all valid, remove
          if ( !info.isAllValid() )
@@ -2567,25 +2621,54 @@ namespace engine
             continue ;
          }
 
-         rc = rtnResolveCollectionNameAndLock( it->first.c_str(), dmsCB,
-                                               &su, &pCLShortName, suID ) ;
+         if ( UTIL_IS_VALID_CLUNIQUEID( info._clUniqueID ) )
+         {
+            /// parse name
+            rc = rtnResolveCollectionName( pFullName, ossStrlen(pFullName),
+                                           szCSName, DMS_COLLECTION_SPACE_NAME_SZ,
+                                           szCLName, DMS_COLLECTION_NAME_SZ ) ;
+            if ( rc )
+            {
+               PD_LOG( PDWARNING, "Session[%s]: Resolve collection name[%s] failed, rc: %d",
+                       sessionName(), pFullName, rc ) ;
+               rc = SDB_OK ;
+               validCLs.erase( it++ ) ;
+               continue ;
+            }
+
+            utilCSUniqueID csUniqueID = utilGetCSUniqueID( info._clUniqueID ) ;
+            rc = dmsCB->idToSUAndLock( csUniqueID, suID, &su, SHARED, -1 ) ;
+         }
+         else
+         {
+            rc = rtnResolveCollectionNameAndLock( pFullName, dmsCB, &su, &pCLShortName, suID ) ;
+         }
+         /// check result
          if ( rc )
          {
-            PD_LOG( PDWARNING, "Session[%s]: Lock collectionspace failed, "
-                    "rc: %d, ignored this collection[%s]", sessionName(),
-                    rc, it->first.c_str() ) ;
+            PD_LOG( PDWARNING, "Session[%s]: Lock collectionspace failed, rc: %d. "
+                    "Ignore the collection[%s, UniqueID: %llu]",
+                    sessionName(), rc, pFullName, info._clUniqueID ) ;
             validCLs.erase( it++ ) ;
             rc = SDB_OK ;
             continue ;
          }
 
          /// get mb context
-         rc = su->data()->getMBContext( &pContext, pCLShortName, SHARED ) ;
+         if ( UTIL_IS_VALID_CLUNIQUEID( info._clUniqueID ) )
+         {
+            rc = su->data()->getMBContextByID( &pContext, info._clUniqueID, SHARED ) ;
+         }
+         else
+         {
+            rc = su->data()->getMBContext( &pContext, pCLShortName, SHARED ) ;
+         }
+         /// check result
          if ( rc )
          {
             PD_LOG( PDWARNING, "Session[%s]: Get collection's mblock failed, "
-                    "rc: %d, ignored this collection[%s]", sessionName(),
-                    rc, it->first.c_str() ) ;
+                    "rc: %d, ignored this collection[%s, UniqueID: %llu]",
+                    sessionName(), rc, pFullName, info._clUniqueID ) ;
             dmsCB->suUnlock( suID ) ;
             validCLs.erase( it++ ) ;
             rc = SDB_OK ;
@@ -2608,9 +2691,10 @@ namespace engine
          if ( maxLSN != info.maxLSN() ||
               DPS_INVALID_LSN_OFFSET == maxLSN )
          {
-            PD_LOG( PDWARNING, "Session[%s]: Collection[%s]'s lsn[%lld] is "
-                    "not the same with local[%lld], ignored", sessionName(),
-                    it->first.c_str(), info.maxLSN(), maxLSN ) ;
+            PD_LOG( PDWARNING, "Session[%s]: Collection[%s, UniqueID: %llu]'s lsn[%lld] is "
+                    "not the same with local[%lld], ignored",
+                    sessionName(), pFullName, info._clUniqueID, info.maxLSN(), maxLSN ) ;
+
             su->data()->releaseMBContext( pContext ) ;
             dmsCB->suUnlock( suID ) ;
             validCLs.erase( it++ ) ;
@@ -2618,9 +2702,21 @@ namespace engine
          }
          else
          {
-            PD_LOG( PDEVENT, "Session[%s]: Collection[%s]'s lsn[%lld] is the "
-                    "same with local, add to valid list", sessionName(),
-                    it->first.c_str(), maxLSN ) ;
+            if ( UTIL_IS_VALID_CLUNIQUEID( info._clUniqueID ) &&
+                 ( 0 != ossStrcmp( szCSName, su->CSName() ) ||
+                   0 != ossStrcmp( szCLName, pContext->mbStat()->_collectionName ) ) )
+            {
+               PD_LOG( PDEVENT, "Session[%s]: Collection[%s, UniqueID: %llu]'s lsn[%lld] is the "
+                       "same with local[%s.%s], add to valid list",
+                       sessionName(), pFullName, info._clUniqueID, maxLSN,
+                       su->CSName(), pContext->mbStat()->_collectionName ) ;
+            }
+            else
+            {
+               PD_LOG( PDEVENT, "Session[%s]: Collection[%s, UniqueID: %llu]'s lsn[%lld] is the "
+                       "same with local, add to valid list",
+                       sessionName(), pFullName, info._clUniqueID, maxLSN ) ;
+            }
 
             curCollection = ossPack32To64 ( su->LogicalCSID(),
                                             pContext->clLID() ) ;
@@ -2628,6 +2724,27 @@ namespace engine
             try
             {
                _mapOveredCLs[curCollection] = 0 ;
+
+               if ( UTIL_IS_VALID_CLUNIQUEID( info._clUniqueID ) )
+               {
+                  /// check cl name
+                  if ( 0 != ossStrcmp( szCLName, pContext->mbStat()->_collectionName ) )
+                  {
+                     mapRenameCL[ pFullName ] = pContext->mbStat()->_collectionName ;
+                     PD_LOG( PDEVENT, "Session[%s]: Add rename collection[%s] to [%s]",
+                             sessionName(), pFullName, pContext->mbStat()->_collectionName ) ;
+                  }
+                  /// check cs name
+                  if ( 0 != ossStrcmp( szCSName, su->CSName() ) )
+                  {
+                     /// add rename cs map
+                     if ( mapRenameCS.insert( MAP_STR_2_STR::value_type( szCSName, su->CSName() ) ).second )
+                     {
+                        PD_LOG( PDEVENT, "Session[%s]: Add rename collectionspace[%s] to [%s]",
+                                sessionName(), szCSName, su->CSName() ) ;
+                     }
+                  }
+               }
             }
             catch( std::exception &e )
             {

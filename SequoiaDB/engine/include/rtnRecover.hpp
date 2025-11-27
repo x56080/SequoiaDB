@@ -61,6 +61,7 @@ namespace engine
       UINT64      _lobCommitLSN ;
 
       CHAR        _clName[ DMS_COLLECTION_NAME_SZ + 1 ] ;
+      utilCLUniqueID  _clUniqueID ;
 
       _rtnRUInfo()
       {
@@ -76,6 +77,7 @@ namespace engine
          _idxCommitLSN = 0 ;
          _lobCommitLSN = 0 ;
          _clName[0] = 0 ;
+         _clUniqueID = UTIL_UNIQUEID_NULL ;
       }
 
       BOOLEAN isAllValid() const

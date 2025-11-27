@@ -1051,18 +1051,6 @@ namespace engine
       rc = _tryLock( pCSName, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to lock, rc: %d", rc ) ;
 
-      /// log to .SEQUOIADB_RENAME_INFO
-      {
-         utilRenameLog aLog ( _oldName, _newName ) ;
-
-         rc = _logger.init() ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to init rename logger, rc: %d", rc ) ;
-
-         rc = _logger.log( aLog ) ;
-         PD_RC_CHECK( rc, PDERROR,
-                      "Failed to log rename info to file, rc: %d", rc ) ;
-      }
-
       /// rename cs at phase 1
 #ifdef _WINDOWS
          rc = _pDmsCB->renameCollectionSpaceP1( _oldName, _newName,
@@ -1181,6 +1169,16 @@ namespace engine
 
       if ( _status == RENAMECSPHASE_1 )
       {
+         /// log to .SEQUOIADB_RENAME_INFO
+         utilRenameLog aLog ( _oldName, _newName ) ;
+
+         rc = _logger.init() ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to init rename logger, rc: %d", rc ) ;
+
+         rc = _logger.log( aLog ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to log rename info to file, rc: %d", rc ) ;
+
 #ifdef _WINDOWS
          rc = _pDmsCB->renameCollectionSpaceP2( _oldName, _newName,
                                                 cb, _pDpsCB );

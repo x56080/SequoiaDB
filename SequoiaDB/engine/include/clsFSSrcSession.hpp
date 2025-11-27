@@ -238,19 +238,25 @@ namespace engine
                                INT32 &nomore,
                                INT32 &slice ) ;
 
-      INT32 _processValidCLs( MAP_SU_STATUS &validCLs ) ;
+      INT32 _processValidCLs( MAP_SU_STATUS &validCLs,
+                              MAP_STR_2_STR &mapRenameCS,
+                              MAP_STR_2_STR &mapRenameCL ) ;
 
       INT32 _constructBeginRspData( INT32 slice,
                                     BSONObj &obj,
                                     MON_CS_LIST &csList,
                                     MON_CL_LIST &clList,
                                     MAP_SU_STATUS &validCLs,
+                                    MAP_STR_2_STR &mapRenameCS,
+                                    MAP_STR_2_STR &mapRenameCL,
                                     INT32 &nomore ) ;
 
    private:
       _dpsMessageBlock           _lsnSearchMB ;
       INT32                      _lastRecvSlice ;
       MAP_SU_STATUS              _validCLs ;
+      MAP_STR_2_STR              _mapRenameCS ;
+      MAP_STR_2_STR              _mapRenameCL ;
    } ;
    typedef class _clsFSSrcSession clsFSSrcSession ;
 

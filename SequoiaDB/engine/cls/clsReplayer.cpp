@@ -1186,7 +1186,7 @@ namespace engine
                goto error ;
             }
             rc = rtnRenameCollectionCommand( cs, oldCl, newCl,
-                                             eduCB, _dmsCB, _dpsCB, FALSE ) ;
+                                             eduCB, _dmsCB, _dpsCB, FALSE, TRUE ) ;
             if ( SDB_DMS_NOTEXIST == rc )
             {
                INT32 rcTmp = SDB_OK ;
@@ -1880,7 +1880,7 @@ namespace engine
                goto error ;
             }
             rc = rtnRenameCollectionCommand( cs, newCl, oldCl,
-                                             eduCB, _dmsCB, _dpsCB, FALSE ) ;
+                                             eduCB, _dmsCB, _dpsCB, FALSE, TRUE ) ;
             if ( SDB_OK != rc )
             {
                PD_LOG( PDERROR, "Failed to rename cs[%s] cl %s to %s, rc: %d",

@@ -90,6 +90,8 @@ class ossPoolMap : public std::map<K, V, Compare, typename ossPoolAllocator<std:
    */
 };
 
+typedef ossPoolMap<std::string,std::string>           MAP_STR_2_STR ;
+
 /*
  * Multi map utilizing memory pool
  */

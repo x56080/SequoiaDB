@@ -2023,6 +2023,7 @@ namespace engine
             ossStrncpy( info._clName, mbStat->_collectionName,
                         DMS_COLLECTION_NAME_SZ ) ;
             info._clName[ DMS_COLLECTION_NAME_SZ ] = 0 ;
+            info._clUniqueID = mbStat->_clUniqueID ;
 
             try
             {

@@ -40,6 +40,7 @@
 #include "rtn.hpp"
 #include "rtnContextDel.hpp"
 #include "clsStorageCheckJob.hpp"
+#include "pmdDummySession.hpp"
 
 namespace engine
 {
@@ -108,6 +109,15 @@ namespace engine
       pmdEDUCB *cb = eduCB() ;
       pmdEDUEvent event ;
 
+      BOOLEAN attachedDummySession = FALSE ;
+      pmdDummySession session( TRUE ) ;
+
+      if ( NULL == cb->getSession() )
+      {
+         session.attachCB( cb ) ;
+         attachedDummySession = TRUE ;
+      }
+
       while ( !PMD_IS_DB_DOWN() && !cb->isForced() )
       {
          /*
@@ -138,6 +148,12 @@ namespace engine
 
          /// release mem
          cb->shrink() ;
+      }
+
+      if ( attachedDummySession )
+      {
+         session.detachCB() ;
+         attachedDummySession = FALSE ;
       }
 
       return SDB_OK ;
