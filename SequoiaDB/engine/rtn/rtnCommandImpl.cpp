@@ -2793,7 +2793,8 @@ retry:
                                       _pmdEDUCB *cb,
                                       SDB_DMSCB *dmsCB,
                                       SDB_DPSCB *dpsCB,
-                                      BOOLEAN blockWrite )
+                                      BOOLEAN blockWrite,
+                                      BOOLEAN sysCollection )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNRENAMECLCOMMAND ) ;
@@ -2829,7 +2830,7 @@ retry:
                    csName ) ;
 
       rc = su->data()->renameCollection ( clShortName, newCLShortName,
-                                          cb, dpsCB ) ;
+                                          cb, dpsCB, sysCollection ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to rename collection from %s to %s, rc: %d",
                    clShortName, newCLShortName, rc ) ;

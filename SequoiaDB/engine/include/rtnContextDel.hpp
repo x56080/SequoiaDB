@@ -111,6 +111,7 @@ namespace engine
       utilCSUniqueID       _csUniqueID ;
       BOOLEAN              _gotDmsCBWrite;
       BOOLEAN              _gotTransLock ;
+      BOOLEAN              _hasCallEvent ;
 
       dmsEventSUItem       _eventItem ;
       dmsDropCSOptions     _options ;

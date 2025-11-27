@@ -1134,12 +1134,26 @@ namespace engine
                break ;
             }
             // if recycle item is valid, must be reported
-            if ( ( SDB_DMS_CS_NOTEXIST == rc ) &&
-                 !( options._recycleItem.isValid() ) )
+            if ( SDB_DMS_CS_NOTEXIST == rc )
             {
-               PD_LOG( PDWARNING, "Collection space[%s] not exist when "
-                       "drop", cs ) ;
-               rc = SDB_OK ;
+               if ( !( options._recycleItem.isValid() ) )
+               {
+                  PD_LOG( PDWARNING, "Collection space[%s] not exist when drop", cs ) ;
+                  rc = SDB_OK ;
+               }
+               else
+               {
+                  const utilRecycleItem &item = options._recycleItem ;
+                  const CHAR *recycleName = item.getRecycleName() ;
+                  utilCSUniqueID csUID = (utilCSUniqueID)( options._recycleItem.getOriginID() ) ;
+
+                  if ( SDB_OK == rtnTestCollectionSpaceCommand( recycleName, _dmsCB, &csUID ) )
+                  {
+                     PD_LOG( PDWARNING, "Collectionspace[%s] has renamed to recycle[%s], ignore",
+                             cs, recycleName ) ;
+                     rc = SDB_OK ;
+                  }
+               }
             }
             break ;
          }
@@ -1238,11 +1252,36 @@ namespace engine
             rc = rtnDropCollectionCommand( cl, eduCB, _dmsCB, _dpsCB,
                                            UTIL_UNIQUEID_NULL, &options ) ;
             // if recycle item is valid, must be reported
-            if ( ( SDB_DMS_NOTEXIST == rc ) &&
-                 !( options._recycleItem.isValid() )  )
+            if ( SDB_DMS_NOTEXIST == rc )
             {
-               PD_LOG( PDWARNING, "Collection [%s] not exist when drop", cl ) ;
-               rc = SDB_OK ;
+               if ( ! ( options._recycleItem.isValid() ) )
+               {
+                  PD_LOG( PDWARNING, "Collection [%s] not exist when drop", cl ) ;
+                  rc = SDB_OK ;
+               }
+               else
+               {
+                  const utilRecycleItem &item = options._recycleItem ;
+                  utilCLUniqueID clUID = (utilCLUniqueID)( options._recycleItem.getOriginID() ) ;
+                  CHAR recyFullName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
+                  CHAR csName[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] = { 0 } ;
+                  CHAR clName[ DMS_COLLECTION_NAME_SZ + 1 ] = { 0 } ;
+
+                  if ( SDB_OK == rtnResolveCollectionName( cl, ossStrlen( cl ),
+                                                          csName, DMS_COLLECTION_SPACE_NAME_SZ,
+                                                          clName, DMS_COLLECTION_NAME_SZ ) )
+                  {
+                     ossSnprintf( recyFullName, DMS_COLLECTION_FULL_NAME_SZ, "%s.%s",
+                                  csName, item.getRecycleName() ) ;
+
+                     if ( SDB_OK == rtnTestCollectionCommand( recyFullName, _dmsCB, &clUID ) )
+                     {
+                        PD_LOG( PDWARNING, "Collection[%s] has renamed to recycle[%s], ignore",
+                                cl, recyFullName ) ;
+                        rc = SDB_OK ;
+                     }
+                  }
+               }
             }
             break ;
          }
@@ -1290,7 +1329,7 @@ namespace engine
 
             eduCB->setCurProcessName( cs, newCl ) ;
             rc = rtnRenameCollectionCommand( cs, oldCl, newCl,
-                                             eduCB, _dmsCB, _dpsCB, FALSE ) ;
+                                             eduCB, _dmsCB, _dpsCB, FALSE, TRUE ) ;
             if ( SDB_DMS_NOTEXIST == rc )
             {
                INT32 rcTmp = SDB_OK ;
@@ -2066,7 +2105,7 @@ namespace engine
                goto error ;
             }
             rc = rtnRenameCollectionCommand( cs, newCl, oldCl,
-                                             eduCB, _dmsCB, _dpsCB, FALSE ) ;
+                                             eduCB, _dmsCB, _dpsCB, FALSE, TRUE ) ;
             if ( SDB_OK != rc )
             {
                PD_LOG( PDERROR, "Failed to rename cs[%s] cl %s to %s, rc: %d",

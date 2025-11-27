@@ -46,7 +46,6 @@
 #include "dmsSUCache.hpp"
 #include "utilUniqueID.hpp"
 #include "utilRecycleItem.hpp"
-#include "utilRenameLogger.hpp"
 
 namespace engine
 {
@@ -75,11 +74,8 @@ namespace engine
    typedef struct _dmsEventSUItem
    {
       _dmsEventSUItem ()
-      : _pCSName( NULL ),
-        _suID( DMS_INVALID_SUID ),
-        _suLID( DMS_INVALID_LOGICCSID ),
-        _csUniqueID( UTIL_UNIQUEID_NULL )
       {
+         reset() ;
       }
 
       _dmsEventSUItem( const CHAR *pCSName, dmsStorageUnitID suID,
@@ -89,6 +85,14 @@ namespace engine
         _suLID( suLID ),
         _csUniqueID( UTIL_UNIQUEID_NULL )
       {
+      }
+
+      void reset()
+      {
+         _pCSName = NULL ;
+         _suID = DMS_INVALID_SUID ;
+         _suLID = DMS_INVALID_LOGICCSID ;
+         _csUniqueID = UTIL_UNIQUEID_NULL ;         
       }
 
       void init( const CHAR *pCSName,
@@ -119,12 +123,8 @@ namespace engine
    typedef struct _dmsEventCLItem
    {
       _dmsEventCLItem ()
-      : _pCLName( NULL ),
-        _logicCSID( DMS_INVALID_LOGICCSID ),
-        _mbID( DMS_INVALID_MBID ),
-        _clLID( DMS_INVALID_CLID ),
-        _mbContext( NULL )
       {
+         reset() ;
       }
 
       _dmsEventCLItem ( const CHAR *pCLName, UINT16 mbID, UINT32 clLID )
@@ -134,6 +134,15 @@ namespace engine
         _clLID( clLID ),
         _mbContext( NULL )
       {
+      }
+
+      void reset()
+      {
+         _pCLName = NULL ;
+         _logicCSID = DMS_INVALID_LOGICCSID ;
+         _mbID = DMS_INVALID_MBID ;
+         _clLID = DMS_INVALID_CLID ;
+         _mbContext = NULL ;
       }
 
       void init( const CHAR *pCLName,
@@ -331,16 +340,14 @@ namespace engine
    {
       _dmsDropCSOptions()
       : _dmsRecycleOptions(),
-        _isPrepared( FALSE ),
-        _logger()
+        _isPrepared( FALSE )
       {
       }
 
       _dmsDropCSOptions( const utilRecycleItem &recycleItem,
                          BOOLEAN needSaveItem )
       : _dmsRecycleOptions( recycleItem, needSaveItem ),
-        _isPrepared( FALSE ),
-        _logger()
+        _isPrepared( FALSE )
       {
       }
 
@@ -412,7 +419,6 @@ namespace engine
 
       bson::BSONObj _boOptions ;
       BOOLEAN       _isPrepared ;
-      utilRenameLogger _logger ;
    } dmsDropCSOptions ;
 
    /*

@@ -295,6 +295,13 @@ namespace engine
                                           BSONObj &bodyObj,
                                           MON_CS_SIM_LIST &csList,
                                           INT32 &nomore ) ;
+
+      INT32             _fixValidCLsByRenameMap( const vector<string> &validCLsIn,
+                                                 vector<string> &validCLsOut ) ;
+
+      INT32             _processRenameMap() ;
+      INT32             _processCreateEmptyCS() ;
+
    protected:
       virtual void      _begin() ;
       virtual void      _end() ;
@@ -310,6 +317,8 @@ namespace engine
    private:
       CLS_FULLSYNC_STEP    _fsStep ;
       CS_INFO_TUPLES       _mapEmptyCS ;
+      MAP_STR_2_STR        _mapRenameCS ;
+      MAP_STR_2_STR        _mapRenameCL ;
       vector<string>       _validCLs ;
       UINT32               _repeatCount ;
       BOOLEAN              _hasRegFullsyc ;

@@ -37,6 +37,7 @@
 #include "rtn.hpp"
 #include "clsTrace.hpp"
 #include "clsRecycleBinJob.hpp"
+#include "pmdDummySession.hpp"
 
 namespace engine
 {
@@ -418,6 +419,8 @@ namespace engine
       _rtnLocalTaskMgr *pLTMgr = pmdGetKRCB()->getRTNCB()->getLTMgr() ;
 
       BOOLEAN needRemove = FALSE ;
+      BOOLEAN attachedDummySession = FALSE ;
+      pmdDummySession session( TRUE ) ;
 
       /*
          When not primary, finish the light job
@@ -438,6 +441,12 @@ namespace engine
       else if ( PMD_IS_DB_DOWN() )
       {
          goto finish ;
+      }
+
+      if ( NULL == pExe->getSession() )
+      {
+         session.attachCB( (_pmdEDUCB*)pExe ) ;
+         attachedDummySession = TRUE ;
       }
 
       needRemove = TRUE ;
@@ -541,6 +550,11 @@ namespace engine
       }
 
    done:
+      if ( attachedDummySession )
+      {
+         session.detachCB() ;
+         attachedDummySession = FALSE ;
+      }
       return rc ;
 
    error:
@@ -712,7 +726,8 @@ namespace engine
                                        (pmdEDUCB*)pExe,
                                        dmsCB,
                                        dpsCB,
-                                       FALSE ) ;
+                                       FALSE,
+                                       TRUE ) ;
       PD_RC_CHECK( rc, PDWARNING, "Rename collection(%s) to (%s) failed, "
                    "rc: %d", pRename->getFrom(), pRename->getTo(), rc ) ;
 
@@ -1512,7 +1527,7 @@ namespace engine
 
       if ( succeed + failed > 0 )
       {
-         PD_LOG( PDEVENT, "Start name check jos, succed: %u, failed: %u",
+         PD_LOG( PDEVENT, "Start name check jos, succeed: %u, failed: %u",
                  succeed, failed ) ;
       }
 

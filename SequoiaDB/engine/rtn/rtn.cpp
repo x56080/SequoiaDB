@@ -473,6 +473,34 @@ namespace engine
          }
       }
 
+      /// when new meta file exist, remote it
+      {
+         CHAR fileName[ DMS_SU_FILENAME_SZ + 1 ] = { 0 } ;
+         CHAR fullFileName[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
+         BOOLEAN fileExist = FALSE ;
+
+         ossSnprintf( fileName, DMS_SU_FILENAME_SZ, "%s.%d.%s",
+                      renameLog.newName, sequence, DMS_METAFILE_NAME_POSIX ) ;
+
+         rc = utilBuildFullPath( dataPath, fileName, OSS_MAX_PATHSIZE,
+                                 fullFileName ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build full path by [%s] [%s], "
+                      "rc: %d", dataPath, fileName, rc ) ;
+
+         rc = ossFile::exists( fullFileName, fileExist ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                       "Failed to check existence of file[%s], rc: %d",
+                       fullFileName, rc ) ;
+
+         if ( fileExist )
+         {
+            ossDelete( fullFileName ) ;
+
+            PD_LOG( PDEVENT, "Remove cs meta file[%s] by rename log[old: %s, new: %s]",
+                    fullFileName, renameLog.oldName, renameLog.newName ) ;
+         }
+      }
+
    done:
       PD_TRACE_EXITRC( SDB_RTNCORRECTCS1, rc ) ;
       return rc ;
@@ -490,9 +518,9 @@ namespace engine
 
       const CHAR *pDot = NULL ;
       UINT32 csnameSize = 0 ;
-      CHAR newFileName[ DMS_SU_FILENAME_SZ + 1 ] = { 0 } ;
+      CHAR oldFileName[ DMS_SU_FILENAME_SZ + 1 ] = { 0 } ;
       CHAR curFullFileName[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
-      CHAR newFullFileName[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
+      CHAR oldFullFileName[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
       OSSFILE file ;
       CHAR *pBuff = NULL ;
       dmsStorageUnitHeader *pHeader = NULL ;
@@ -501,18 +529,18 @@ namespace engine
       BOOLEAN isOpened = FALSE ;
       BOOLEAN isChangeHeader = FALSE ;
 
-      /// We need to correct file name and header from old cs name to new cs
+      /// We need to correct file name and header from new cs name to old cs
       /// name.
 
       /// 1. get file full name
       pDot = ossStrchr ( pFileName, '.' ) ;
-      ossSnprintf( newFileName, DMS_SU_FILENAME_SZ, "%s%s",
-                   renameLog.newName, pDot ) ;
+      ossSnprintf( oldFileName, DMS_SU_FILENAME_SZ, "%s%s",
+                   renameLog.oldName, pDot ) ;
 
-      rc = utilBuildFullPath( pPath, newFileName, OSS_MAX_PATHSIZE,
-                              newFullFileName ) ;
+      rc = utilBuildFullPath( pPath, oldFileName, OSS_MAX_PATHSIZE,
+                              oldFullFileName ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to build full path by [%s] [%s], "
-                   "rc: %d", pPath, newFileName, rc ) ;
+                   "rc: %d", pPath, oldFileName, rc ) ;
 
       rc = utilBuildFullPath( pPath, pFileName, OSS_MAX_PATHSIZE,
                               curFullFileName ) ;
@@ -546,14 +574,14 @@ namespace engine
       pHeader = (dmsStorageUnitHeader*)pBuff ;
 
       //  modify name
-      if ( 0 == ossStrncmp( pHeader->_name, renameLog.oldName,
+      if ( 0 == ossStrncmp( pHeader->_name, renameLog.newName,
                             DMS_SU_NAME_SZ ) )
       {
-         ossStrncpy( pHeader->_name, renameLog.newName, DMS_SU_NAME_SZ ) ;
+         ossStrncpy( pHeader->_name, renameLog.oldName, DMS_SU_NAME_SZ ) ;
          pHeader->_name[ DMS_SU_NAME_SZ ] = 0 ;
          isChangeHeader = TRUE ;
       }
-      else if ( 0 == ossStrncmp( pHeader->_name, renameLog.newName,
+      else if ( 0 == ossStrncmp( pHeader->_name, renameLog.oldName,
                                  DMS_SU_NAME_SZ ) )
       {
          // it is ok, do nothing
@@ -585,15 +613,20 @@ namespace engine
       /// 3. rename file name
       csnameSize = pDot - pFileName ;
 
-      if ( 0 == ossStrncmp( pFileName, renameLog.oldName, csnameSize ) &&
-           ossStrlen( renameLog.oldName ) == csnameSize )
+      if ( 0 == ossStrncmp( pFileName, renameLog.newName, csnameSize ) &&
+           ossStrlen( renameLog.newName ) == csnameSize )
       {
-         rc = ossRenamePath( curFullFileName, newFullFileName ) ;
+         rc = ossRenamePath( curFullFileName, oldFullFileName ) ;
          PD_RC_CHECK( rc, PDERROR, "Rename file[%s] to [%s] failed, rc: %d",
-                      curFullFileName, newFullFileName, rc ) ;
+                      curFullFileName, oldFullFileName, rc ) ;
+
+         PD_LOG( PDEVENT, "Correct cs file[%s] to old name in path[%s] by rename "
+                 "log[old: %s, new: %s]",
+                 pFileName, pPath, renameLog.oldName, renameLog.newName ) ;
+
       }
-      else if ( 0 == ossStrncmp( pFileName, renameLog.newName, csnameSize ) &&
-                ossStrlen( renameLog.newName ) == csnameSize )
+      else if ( 0 == ossStrncmp( pFileName, renameLog.oldName, csnameSize ) &&
+                ossStrlen( renameLog.oldName ) == csnameSize )
       {
          // it is ok, do nothing
       }
@@ -605,10 +638,6 @@ namespace engine
                  pFileName, renameLog.oldName, renameLog.newName ) ;
          goto error ;
       }
-
-      PD_LOG( PDEVENT,
-              "Correct cs file[%s] in path[%s] by rename log[old: %s, new: %s]",
-              pFileName, pPath, renameLog.oldName, renameLog.newName ) ;
 
    done:
       if ( isOpened )
@@ -1110,9 +1139,9 @@ namespace engine
                                   "space file [%s] -> [%s], rc: %d",
                                   renameLog.oldName, renameLog.newName, rc ) ;
 
-                     if ( 0 == ossStrcmp( csName, renameLog.oldName ) )
+                     if ( 0 == ossStrcmp( csName, renameLog.newName ) )
                      {
-                        ossStrcpy( csName, renameLog.newName );
+                        ossStrcpy( csName, renameLog.oldName );
                      }
 
                      rc = logManager.clear( renameLog ) ;

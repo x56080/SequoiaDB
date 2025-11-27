@@ -945,9 +945,12 @@ namespace engine
                 "meta block context is not locked in exclusive",
                 item.getOriginName() ) ;
 
+      /*
+      Don't change the unique id when drop collection to recycle
       // keep collection space unique ID
       newUniqueID = utilBuildCLUniqueID( su->CSUniqueID(),
                                          UTIL_CLINNERID_LOCAL ) ;
+      */
 
       // change the start LID in meta data lock, so other mb context won't
       // get the origin name with new start LID
@@ -1104,17 +1107,6 @@ namespace engine
                       rc ) ;
          options->_blockOpID = opID ;
 
-         /// log to .SEQUOIADB_RENAME_INFO
-         utilRenameLog aLog( originName, recycleName ) ;
-
-         rc = options->_logger.init() ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to init rename logger, "
-                      "rc: %d", rc );
-
-         rc = options->_logger.log( aLog ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to log rename info to file, "
-                      "rc: %d", rc ) ;
-
          rc = _createRecycleCSTask( originName, recycleName, item, cb, taskID ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to create local task to "
                       "recycle drop collection collection, rc: %d", rc ) ;
@@ -1129,11 +1121,6 @@ namespace engine
    error:
       if ( NULL != options )
       {
-         INT32 tmpRC = options->_logger.clear() ;
-         if ( SDB_OK != tmpRC )
-         {
-            PD_LOG( PDERROR, "Failed to clear rename info, rc: %d", tmpRC ) ;
-         }
          if ( 0 != options->_blockOpID )
          {
             const utilRecycleItem &item = options->_recycleItem ;
@@ -1264,8 +1251,7 @@ namespace engine
                             item.getRecycleName(), rc ) ;
             }
 
-            rc = _recycleDropCS( su, suItem._pCSName, item, cb,
-                                 !options->_logger.isOpened() ) ;
+            rc = _recycleDropCS( su, suItem._pCSName, item, cb, TRUE ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to recycle drop collection "
                          "space [origin %s, recycle %s], rc: %d",
                          item.getOriginName(),
@@ -1327,13 +1313,6 @@ namespace engine
          }
          options->_localTaskID = 0 ;
          options->_blockOpID = 0 ;
-
-         /// remove .SEQUOIADB_RENAME_INFO
-         tmpRC = options->_logger.clear() ;
-         if ( SDB_OK != tmpRC )
-         {
-            PD_LOG( PDWARNING, "Failed to clear rename info, rc: %d", tmpRC ) ;
-         }
       }
 
       PD_TRACE_EXITRC( SDB__CLSRECYBINMGR_ONCLEANDROPCS, rc ) ;
@@ -1894,6 +1873,13 @@ namespace engine
          PD_LOG( PDDEBUG, "DB is down, stop to drop expired items" ) ;
          result = UTIL_LJOB_DO_FINISH ;
          rc = SDB_APP_INTERRUPT ;
+         goto error ;
+      }
+      else if ( !pmdIsPrimary() )
+      {
+         sleepTime = RTN_RECYCLE_CHECK_INTERVAL ;
+         result = UTIL_LJOB_DO_CONT ;
+         rc = SDB_CLS_NOT_PRIMARY ;
          goto error ;
       }
       else if ( !_recycleBinMgr->isConfValid() )

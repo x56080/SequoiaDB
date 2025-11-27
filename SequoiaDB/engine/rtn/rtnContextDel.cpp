@@ -60,6 +60,7 @@ namespace engine
       _csUniqueID = UTIL_UNIQUEID_NULL ;
       _gotDmsCBWrite = FALSE ;
       _gotTransLock = FALSE ;
+      _hasCallEvent = FALSE ;
       _hitEnd     = FALSE ;
       ossMemset( _name, 0, DMS_COLLECTION_SPACE_NAME_SZ + 1 ) ;
    }
@@ -308,6 +309,7 @@ namespace engine
 
       if ( _eventItem.isValid() && su->getEventHolder() )
       {
+         _hasCallEvent = TRUE ;
          rc = su->getEventHolder()->onCheckDropCS(
                      DMS_EVENT_MASK_ALL, _eventItem, &_options, cb, _pDpsCB ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to call check drop collection "
@@ -342,7 +344,7 @@ namespace engine
 
       // if the SU still exists, lock the SU again, call on clean event of
       // handler ( if the SU still exists, it is probably recycled
-      if ( _eventItem.isValid() )
+      if ( _eventItem.isValid() && _hasCallEvent )
       {
          dmsStorageUnit *su = NULL ;
          dmsStorageUnitID suID = DMS_INVALID_CS ;
@@ -363,6 +365,7 @@ namespace engine
 
             _pDmsCB->suUnlock( suID ) ;
          }
+         _hasCallEvent = FALSE ;
       }
 
       rcTmp = _releaseLock( cb ) ;
@@ -1112,18 +1115,6 @@ namespace engine
       rc = _tryLock( pCSName, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to lock, rc: %d", rc ) ;
 
-      /// log to .SEQUOIADB_RENAME_INFO
-      {
-         utilRenameLog aLog ( _oldName, _newName ) ;
-
-         rc = _logger.init() ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to init rename logger, rc: %d", rc ) ;
-
-         rc = _logger.log( aLog ) ;
-         PD_RC_CHECK( rc, PDERROR,
-                      "Failed to log rename info to file, rc: %d", rc ) ;
-      }
-
       /// rename cs at phase 1
       rc = _doRenameP1( cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to rename cs from [%s] to [%s] at "
@@ -1240,6 +1231,16 @@ namespace engine
 
       if ( _status == RENAMECSPHASE_1 )
       {
+         /// log to .SEQUOIADB_RENAME_INFO
+         utilRenameLog aLog ( _oldName, _newName ) ;
+
+         rc = _logger.init() ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to init rename logger, rc: %d", rc ) ;
+
+         rc = _logger.log( aLog ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to log rename info to file, rc: %d", rc ) ;
+
          rc = _doRename( cb ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to rename cs from [%s] to [%s], rc: %d",

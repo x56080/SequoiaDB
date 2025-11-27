@@ -474,7 +474,8 @@ namespace engine
                                       _pmdEDUCB *cb,
                                       SDB_DMSCB *dmsCB,
                                       SDB_DPSCB *dpsCB,
-                                      BOOLEAN blockWrite ) ;
+                                      BOOLEAN blockWrite,
+                                      BOOLEAN sysCollection = FALSE ) ;
 
    INT32 rtnTruncCollectionCommand( const CHAR *pCollection,
                                     _pmdEDUCB *cb,

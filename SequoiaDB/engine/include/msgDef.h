@@ -475,6 +475,7 @@
 #define FIELD_NAME_ACTIVATED                 "Activated"
 #define FIELD_NAME_READONLY                  "Readonly"
 #define FIELD_NAME_CSUNIQUEHWM               "CSUniqueHWM"
+#define FIELD_NAME_CLUNIQUEHWM               "CLUniqueHWM"
 #define FIELD_NAME_TASKHWM                   "TaskHWM"
 #define FIELD_NAME_IDXUNIQUEHWM              "IdxUniqueHWM"
 #define FIELD_NAME_CAT_VERSION               "CATVersion"
