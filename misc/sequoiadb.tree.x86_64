@@ -624,6 +624,8 @@ sequoiadb
 │       │   ├── insert_en.troff
 │       │   ├── listIndexes_cn.troff
 │       │   ├── listIndexes_en.troff
+│       │   ├── listLobPieces_cn.troff
+│       │   ├── listLobPieces_en.troff
 │       │   ├── listLobs_cn.troff
 │       │   ├── listLobs_en.troff
 │       │   ├── lobCount_cn.troff
