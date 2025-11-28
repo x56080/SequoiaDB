@@ -127,6 +127,8 @@ namespace engine
       UINT64                     _lastWriteTick ;
       UINT64                     _lastSyncTime ;
 
+      DPS_LSN_OFFSET             _startUpExpectLSN ;
+
    public:
       _dpsLogWrapper() ;
       virtual ~_dpsLogWrapper() ;
@@ -271,6 +273,8 @@ namespace engine
       }
 
       INT32 commit( BOOLEAN deeply, DPS_LSN *committedLsn ) ;
+
+      DPS_LSN_OFFSET getStartUpExpectLSN() const { return _startUpExpectLSN ; }
 
    public:
       INT32 prepare( dpsMergeInfo &info ) ;

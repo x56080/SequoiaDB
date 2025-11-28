@@ -63,6 +63,8 @@ namespace engine
       _writeReordNum = 0 ;
       _lastWriteTick = 0 ;
       _lastSyncTime  = 0 ;
+
+      _startUpExpectLSN = DPS_INVALID_LSN_OFFSET ;
    }
    _dpsLogWrapper::~_dpsLogWrapper()
    {
@@ -109,6 +111,7 @@ namespace engine
       }
 
       _initialized = TRUE ;
+      _startUpExpectLSN = _buf.expectLsn().offset ;
 
    done:
       PD_TRACE_EXITRC( SDB__DPSLGWRAPP_INIT, rc ) ;
