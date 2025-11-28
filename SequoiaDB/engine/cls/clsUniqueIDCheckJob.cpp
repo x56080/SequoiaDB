@@ -425,7 +425,11 @@ namespace engine
       /*
          When not primary, finish the light job
       */
-      if ( !pClsCB->isPrimary() )
+      if ( PMD_IS_DB_DOWN() )
+      {
+         goto finish ;
+      }
+      else if ( !pClsCB->isPrimary() )
       {
          if ( pmdGetTickSpanTime( _tick ) < CLS_RENAME_PRIMARY_TIMEOUT )
          {
@@ -437,10 +441,6 @@ namespace engine
          {
             goto finish ;
          }
-      }
-      else if ( PMD_IS_DB_DOWN() )
-      {
-         goto finish ;
       }
 
       if ( NULL == pExe->getSession() )
