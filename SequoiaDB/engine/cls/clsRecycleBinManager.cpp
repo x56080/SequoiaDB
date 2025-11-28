@@ -1297,7 +1297,6 @@ namespace engine
       {
          UINT64 blockID = options->_blockOpID ;
          UINT64 taskID = options->_localTaskID ;
-         INT32 tmpRC = SDB_OK ;
 
          const utilRecycleItem &item = options->_recycleItem ;
          const CHAR *originName = item.getOriginName() ;
