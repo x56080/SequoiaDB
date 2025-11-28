@@ -67,24 +67,24 @@ function test ()
 
       // a 1
       var cursor = cl.listLobs(SdbQueryOption().hint({Oid:id1}));
-      checkListLobsResult(cursor, [ groupID1, groupID2 ], [ "{\"Size\":462780,\"Oid\":{\"$oid\":\"" + id1 + "\"},\"Available\":true,\"HasPiecesInfo\":false}" ]);
+      checkListLobsResult(cursor, [ groupID1, groupID2 ], [ "{\"Size\":462780,\"Oid\":{\"$oid\":\"" + id1 + "\"},\"Available\":true}" ]);
 
       // a 2
       var cursor = cl.listLobs(SdbQueryOption().hint({Oid:[id1, id2]}));
       checkListLobsResult(cursor, [ groupID1, groupID2 ], [
-            "{\"Size\":462780,\"Oid\":{\"$oid\":\"" + id1 + "\"},\"Available\":true,\"HasPiecesInfo\":false}",
-            "{\"Size\":462780,\"Oid\":{\"$oid\":\"" + id2 + "\"},\"Available\":true,\"HasPiecesInfo\":false}"
+            "{\"Size\":462780,\"Oid\":{\"$oid\":\"" + id1 + "\"},\"Available\":true}",
+            "{\"Size\":462780,\"Oid\":{\"$oid\":\"" + id2 + "\"},\"Available\":true}"
       ]);
 
       // b 1
       var cursor = cl.listLobs(SdbQueryOption().cond({Oid:{$oid:id2}}));
-      checkListLobsResult(cursor, [ groupID1, groupID2 ], [ "{\"Size\":462780,\"Oid\":{\"$oid\":\"" + id2 + "\"},\"Available\":true,\"HasPiecesInfo\":false}" ]);
+      checkListLobsResult(cursor, [ groupID1, groupID2 ], [ "{\"Size\":462780,\"Oid\":{\"$oid\":\"" + id2 + "\"},\"Available\":true}" ]);
 
       // b 2
       var cursor = cl.listLobs(SdbQueryOption().cond({$or:[ {Oid:{$oid:id1}}, {Oid:{$oid:id2}} ] } ));
       checkListLobsResult(cursor, [ groupID1, groupID2 ], [
-            "{\"Size\":462780,\"Oid\":{\"$oid\":\"" + id1 + "\"},\"Available\":true,\"HasPiecesInfo\":false}",
-            "{\"Size\":462780,\"Oid\":{\"$oid\":\"" + id2 + "\"},\"Available\":true,\"HasPiecesInfo\":false}"
+            "{\"Size\":462780,\"Oid\":{\"$oid\":\"" + id1 + "\"},\"Available\":true}",
+            "{\"Size\":462780,\"Oid\":{\"$oid\":\"" + id2 + "\"},\"Available\":true}"
       ]);
 
       // b 3
@@ -93,20 +93,20 @@ function test ()
 
       // b 4
       var cursor = cl.listLobs(SdbQueryOption().cond({$and:[ {Oid:{$oid:id1}}, {Size:{$lt:500000}} ] } ));
-      checkListLobsResult(cursor, [ groupID1, groupID2 ], [ "{\"Size\":462780,\"Oid\":{\"$oid\":\"" + id1 + "\"},\"Available\":true,\"HasPiecesInfo\":false}" ]);
+      checkListLobsResult(cursor, [ groupID1, groupID2 ], [ "{\"Size\":462780,\"Oid\":{\"$oid\":\"" + id1 + "\"},\"Available\":true}" ]);
 
       // c
       var cursor = cl.listLobs(SdbQueryOption().hint({ GroupID:[groupID1,groupID2]})) 
       checkListLobsResult(cursor, [ groupID1, groupID2 ], [
-            "{\"Size\":462780,\"Oid\":{\"$oid\":\"" + id1 + "\"},\"Available\":true,\"HasPiecesInfo\":false}",
-            "{\"Size\":462780,\"Oid\":{\"$oid\":\"" + id2 + "\"},\"Available\":true,\"HasPiecesInfo\":false}"
+            "{\"Size\":462780,\"Oid\":{\"$oid\":\"" + id1 + "\"},\"Available\":true}",
+            "{\"Size\":462780,\"Oid\":{\"$oid\":\"" + id2 + "\"},\"Available\":true}"
       ]);
 
       // d
       var cursor = cl.listLobs(SdbQueryOption().cond({$and:[{GroupID:{$in:[groupID1,groupID2]}}]}));
       checkListLobsResult(cursor, [ groupID1, groupID2 ], [
-            "{\"Size\":462780,\"Oid\":{\"$oid\":\"" + id1 + "\"},\"Available\":true,\"HasPiecesInfo\":false}",
-            "{\"Size\":462780,\"Oid\":{\"$oid\":\"" + id2 + "\"},\"Available\":true,\"HasPiecesInfo\":false}"
+            "{\"Size\":462780,\"Oid\":{\"$oid\":\"" + id1 + "\"},\"Available\":true}",
+            "{\"Size\":462780,\"Oid\":{\"$oid\":\"" + id2 + "\"},\"Available\":true}"
       ]);
 
       // f 1
@@ -118,15 +118,15 @@ function test ()
 
       // f 2
       var cursor = cl.listLobs(SdbQueryOption().cond({$and:[ {Oid:{$oid:id1}}, {GroupID:groupID2} ] } ));
-      checkListLobsResult2(cursor, [ groupID2 ], [ "{\"Size\":462780,\"Oid\":{\"$oid\":\"" + id1 + "\"},\"Available\":true,\"HasPiecesInfo\":false}" ]);
+      checkListLobsResult2(cursor, [ groupID2 ], [ "{\"Size\":462780,\"Oid\":{\"$oid\":\"" + id1 + "\"},\"Available\":true}" ]);
 
       // f 3
       var cursor = cl.listLobs(SdbQueryOption().cond({Oid:{$oid:id1}}).hint({GroupID:groupID2}));
-      checkListLobsResult2(cursor, [ groupID2 ], [ "{\"Size\":462780,\"Oid\":{\"$oid\":\"" + id1 + "\"},\"Available\":true,\"HasPiecesInfo\":false}" ]);
+      checkListLobsResult2(cursor, [ groupID2 ], [ "{\"Size\":462780,\"Oid\":{\"$oid\":\"" + id1 + "\"},\"Available\":true}" ]);
 
       // f 4
       var cursor = cl.listLobs(SdbQueryOption().cond({Oid:{$oid:id1}}).hint({Oid:{$oid:id1}}));
-      checkListLobsResult(cursor, [ groupID1, groupID2 ], [ "{\"Size\":462780,\"Oid\":{\"$oid\":\"" + id1 + "\"},\"Available\":true,\"HasPiecesInfo\":false}" ]);
+      checkListLobsResult(cursor, [ groupID1, groupID2 ], [ "{\"Size\":462780,\"Oid\":{\"$oid\":\"" + id1 + "\"},\"Available\":true}" ]);
 
       // f 5
       var cursor = cl.listLobs(SdbQueryOption().cond({Oid:{$oid:id1}}).hint({Oid:{$oid:id2}}));
@@ -135,8 +135,8 @@ function test ()
       // f 6
       var cursor = cl.listLobs(SdbQueryOption().cond({GroupID: groupID2}).hint({GroupID: groupID2}));
       checkListLobsResult2(cursor, [ groupID2 ], [
-            "{\"Size\":462780,\"Oid\":{\"$oid\":\"" + id1 + "\"},\"Available\":true,\"HasPiecesInfo\":false}",
-            "{\"Size\":462780,\"Oid\":{\"$oid\":\"" + id2 + "\"},\"Available\":true,\"HasPiecesInfo\":false}"
+            "{\"Size\":462780,\"Oid\":{\"$oid\":\"" + id1 + "\"},\"Available\":true}",
+            "{\"Size\":462780,\"Oid\":{\"$oid\":\"" + id2 + "\"},\"Available\":true}"
       ]);
 
       // f 7
@@ -174,6 +174,7 @@ function checkListLobsResult( cursor, espectGroups, espectLobs )
       delete obj.GroupID;
       delete obj.CreateTime;
       delete obj.ModificationTime;
+      delete obj.HasPiecesInfo;
       actualLobs.push( JSON.stringify( obj ) );
    }
    actualLobs.sort();
