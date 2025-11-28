@@ -214,7 +214,8 @@ namespace engine
                             dmsStorageUnit *su,
                             dmsMBContext *mbContext,
                             const utilRecycleItem &item,
-                            pmdEDUCB *cb ) ;
+                            pmdEDUCB *cb,
+                            BOOLEAN needChageUniqueID ) ;
 
       INT32 _recycleTruncCL( const CHAR *clShortName,
                              dmsStorageUnit *su,

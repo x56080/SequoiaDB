@@ -920,7 +920,8 @@ namespace engine
                                                 dmsStorageUnit *su,
                                                 dmsMBContext *mbContext,
                                                 const utilRecycleItem &item,
-                                                pmdEDUCB *cb )
+                                                pmdEDUCB *cb,
+                                                BOOLEAN needChageUniqueID )
    {
       INT32 rc = SDB_OK ;
 
@@ -945,9 +946,12 @@ namespace engine
                 "meta block context is not locked in exclusive",
                 item.getOriginName() ) ;
 
-      // keep collection space unique ID
-      newUniqueID = utilBuildCLUniqueID( su->CSUniqueID(),
-                                         UTIL_CLINNERID_LOCAL ) ;
+      if ( needChageUniqueID )
+      {
+         // keep collection space unique ID
+         newUniqueID = utilBuildCLUniqueID( su->CSUniqueID(),
+                                            UTIL_CLINNERID_LOCAL ) ;
+      }
 
       // change the start LID in meta data lock, so other mb context won't
       // get the origin name with new start LID
@@ -995,6 +999,7 @@ namespace engine
             const utilRecycleItem &item = options->_recycleItem ;
             dmsStorageUnit *su = NULL ;
             dmsMBContext *mbContext = clItem._mbContext ;
+            BOOLEAN needChangeUID = TRUE ;
 
             dmsEventHolder *holder =
                               dynamic_cast<dmsEventHolder *>( pEventHolder ) ;
@@ -1009,6 +1014,36 @@ namespace engine
                       "storage unit from event holder",
                       item.getOriginName() ) ;
 
+            try
+            {
+               INT64 count = 0 ;
+               BSONObj matcher = BSON( FIELD_NAME_ORIGIN_ID << (INT64)item.getOriginID() <<
+                                       FIELD_NAME_RECYCLE_ID <<
+                                       BSON( "$ne" << (INT64)item.getRecycleID() ) ) ;
+               rc = _countItems( matcher, cb, count ) ;
+               if ( rc )
+               {
+                  PD_LOG( PDERROR, "Failed to count recycle item by matcher[%s], rc: %d",
+                          matcher.toString( false, false, false ).c_str(), rc ) ;
+                  goto error ;
+               }
+
+               if ( 0 == count )
+               {
+                  needChangeUID = FALSE ;
+               }
+               else
+               {
+                  needChangeUID = TRUE ;
+               }
+            }
+            catch( std::exception &e )
+            {
+               PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+               rc = ossException2RC( &e ) ;
+               goto error ;
+            }
+
             if ( options->_needSaveItem && NULL != dpsCB )
             {
                rc = saveItem( item, cb ) ;
@@ -1018,7 +1053,7 @@ namespace engine
                             item.getRecycleName(), rc ) ;
             }
 
-            rc = _recycleDropCL( clItem._pCLName, su, mbContext, item, cb ) ;
+            rc = _recycleDropCL( clItem._pCLName, su, mbContext, item, cb, needChangeUID ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to recycle drop collection "
                          "[origin %s, recycle %s], rc: %d",
                          item.getOriginName(),
