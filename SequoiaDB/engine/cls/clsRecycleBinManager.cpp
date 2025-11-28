@@ -945,12 +945,9 @@ namespace engine
                 "meta block context is not locked in exclusive",
                 item.getOriginName() ) ;
 
-      /*
-      Don't change the unique id when drop collection to recycle
       // keep collection space unique ID
       newUniqueID = utilBuildCLUniqueID( su->CSUniqueID(),
                                          UTIL_CLINNERID_LOCAL ) ;
-      */
 
       // change the start LID in meta data lock, so other mb context won't
       // get the origin name with new start LID
