@@ -24,7 +24,7 @@
 
 - merge.sh：集群合并脚本，当两个子网网络连通时，使用该脚本将之前分离的两个独立集群合并成一个大集群
 
-- config.js: 参数定义
+- config.js.sample: 参数定义模板
 
 - cluster_opr.js：集群分离、集群合并、故障节点的剔除与加入的功能实现
 
@@ -56,7 +56,9 @@
 
 2. 在两个子网中各选一台机器，作为容灾切换合并的执行机，例如 Sub1-Host1 和 Sub2-Host1。
 
-3. 根据实际配置修改机器 Sub1-Host1 和 Sub2-Host1 上 `config.js` 的参数定义部分，主要参数说明如下：
+3. 在 Sub1-Host1 和 Sub2-Host1 机器上复制容灾工具目录下的 `config.js.sample` 为 `config.js`
+
+4. 根据实际配置修改机器 Sub1-Host1 和 Sub2-Host1 上 `config.js` 的参数定义部分，主要参数说明如下：
 
 | 参数名 | 描述  |
 | ------------ | ------------- |
@@ -72,11 +74,11 @@
 | NEEDREELECT | 执行初始化脚本时是否重新选主，为了让主节点在主数据中心的几个主机上，需要设置为 true |
 | NEEDBROADCASTINITINFO | 是否将初始化脚本生成的集群信息文件分发到集群的所有主机上，如果设置为 false，分别在子网 1 及子网 2 中的机器 Sub1-Host1 和 Sub2-Host1 上执行初始化脚本 |
 
-4. 分别在子网 1 和子网 2 的机器 Sub1-Host1 和 Sub2-Host1 上执行 `init.sh`，进行初始化。
+5. 分别在子网 1 和子网 2 的机器 Sub1-Host1 和 Sub2-Host1 上执行 `init.sh`，进行初始化。
 
-5. 当子网 1 和子网 2 出现了网络分离，相互无法访问时，在子网 1 和子网 2 的机器 Sub1-Host1 和 Sub2-Host1 上执行 split.sh 进行集群分离，让子网 1 和子网 2 分离成独立的集群，此时 ACTIVE 配置为 true 的子网可以对外提供读写服务，ACTIVE 配置为 false 的子网只提供读操作。
+6. 当子网 1 和子网 2 出现了网络分离，相互无法访问时，在子网 1 和子网 2 的机器 Sub1-Host1 和 Sub2-Host1 上执行 split.sh 进行集群分离，让子网 1 和子网 2 分离成独立的集群，此时 ACTIVE 配置为 true 的子网可以对外提供读写服务，ACTIVE 配置为 false 的子网只提供读操作。
 
-6. 当子网 1 和子网 2 网络连通后，在子网 1 和子网 2 的机器 Sub1-Host1 和 Sub2-Host1 上执行 `merge.sh` 进行集群合并，将子网 1 和子网 2 分别独立的两个集群重新合并成为一个大集群。
+7. 当子网 1 和子网 2 网络连通后，在子网 1 和子网 2 的机器 Sub1-Host1 和 Sub2-Host1 上执行 `merge.sh` 进行集群合并，将子网 1 和子网 2 分别独立的两个集群重新合并成为一个大集群。
 
 故障节点的剔除与加入工具
 ----
@@ -93,7 +95,7 @@
 
 - attachGroupNode.sh：节点恢复后，加入节点脚本，当复制组内故障节点恢复后，使用该脚本将恢复后的节点重新加入复制组
 
-- config.js: 参数定义
+- config.js.sample: 参数定义模板
 
 - cluster_opr.js：集群分离、集群合并、故障节点的剔除与加入的功能实现
 
@@ -101,7 +103,9 @@
 
 1. 将整个 SequoiaDB 集群按照前期规划选定一台机器作为故障节点剔除和加入的执行机，例如：host1。
 
-2. 根据实际配置修改机器host1 上 `config.js` 的参数定义部分，主要参数说明如下：
+2. 在 host1 机器上复制容灾工具目录下的 `config.js.sample` 为 `config.js`
+
+3. 根据实际配置修改机器host1 上 `config.js` 的参数定义部分，主要参数说明如下：
 
    | 参数名 | 描述  |
    | ------------ | ------------- |
@@ -115,11 +119,11 @@
    | NEEDREELECT | 执行初始化脚本时是否重新选主，一般情况下不需重新选主，可设置为 false |
    | NEEDBROADCASTINITINFO | 是否将初始化脚本生成的集群信息文件分发到集群的所有主机上，一般设置为true，无需到每台机器上重复执行初始化脚本 |
 
-3. 在 SequoiaDB 集群环境正常的情况下，在机器 host1 上执行 `init.sh`，此时会根据 NEEDBROADCASTINITINFO 参数的配置在本地（设置成 false ）或者集群中所有机器（设置为 true ）上生成的 `datacenter_init.info` 文件，该文件中保存了当前集群信息，默认生成在集群的安装目录下。
+4. 在 SequoiaDB 集群环境正常的情况下，在机器 host1 上执行 `init.sh`，此时会根据 NEEDBROADCASTINITINFO 参数的配置在本地（设置成 false ）或者集群中所有机器（设置为 true ）上生成的 `datacenter_init.info` 文件，该文件中保存了当前集群信息，默认生成在集群的安装目录下。
 
-4. 当 SequoiaDB 集群中的部分节点发生故障导致复制组不可用（无主）时，选择一台存在 datacenter_init.info 文件的机器（如果与执行 `init.sh` 脚本的机器不同，那么同样也需要按照步骤 2 及步骤 3 对脚本中的参数进行配置），执行 `detachGroupNode.sh` 脚本，剔除不可用节点。
+5. 当 SequoiaDB 集群中的部分节点发生故障导致复制组不可用（无主）时，选择一台存在 datacenter_init.info 文件的机器（如果与执行 `init.sh` 脚本的机器不同，那么同样也需要按照步骤 2 及步骤 3 对脚本中的参数进行配置），执行 `detachGroupNode.sh` 脚本，剔除不可用节点。
 
-5. 当故障节点恢复后，选择一台存在 `datacenter_init.info` 文件的机器（如果与执行 `init.sh` 脚本的机器不同，那么同样也需要按照步骤 2 及步骤 3 对脚本中的参数进行配置），执行 `attachGroupNode.sh` 脚本，将恢复后的节点重新加入到对应复制组中。
+6. 当故障节点恢复后，选择一台存在 `datacenter_init.info` 文件的机器（如果与执行 `init.sh` 脚本的机器不同，那么同样也需要按照步骤 2 及步骤 3 对脚本中的参数进行配置），执行 `attachGroupNode.sh` 脚本，将恢复后的节点重新加入到对应复制组中。
 
 [^_^]:
     本文使用到的所有链接及引用。

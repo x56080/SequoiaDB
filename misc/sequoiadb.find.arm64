@@ -4102,7 +4102,7 @@ sequoiadb/web/app/controller/Strategy/Sdb/Strategy.js
 sequoiadb/web/app/init.js
 sequoiadb/doc/manual/Sdb/invalidateFsCache_cn.troff
 sequoiadb/doc/manual/Sdb/invalidateFsCache_en.troff
-sequoiadb/tools/dr_ha/config.js
+sequoiadb/tools/dr_ha/config.js.sample
 sequoiadb/tools/deploy/mariadb.conf
 sequoiadb/doc/manual/SdbCollection/listLobPieces_cn.troff
 sequoiadb/doc/manual/SdbCollection/listLobPieces_en.troff

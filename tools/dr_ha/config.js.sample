@@ -1,3 +1,4 @@
+/* 请复制 config.js.sample 为 config.js 后再修改配置 */
 /* 3.2 以前（不包含 3.2）版本使用本工具时要求所有机器 SequoiaDB 的安装路径相同 */
 /* 机器登入用户名定义, 3.2 及以上版本无须填写 */
 var USERNAME = "sdbadmin";
