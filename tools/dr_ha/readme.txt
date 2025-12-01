@@ -8,7 +8,9 @@
 split 和 merge 操作步骤和场景：
    1、在 SUB1 和 SUB2 上各选一台机器 SUB1-NodeA 和 SUB2-NodeA (SUB1 和 SUB2 内都有编目节点)；
 
-   2、请根据实际配置修改上述 SUB1-NodeA 和 SUB2-NodeA 中 config.js 的参数定义部分，主要参数说明如下（格式在 config.js 中有相应定义）：
+   2、复制当前容灾工具目录下的 config.js.sample 为 config.js
+
+   3、请根据实际配置修改上述 SUB1-NodeA 和 SUB2-NodeA 中 config.js 的参数定义部分，主要参数说明如下（格式在 config.js 中有相应定义）：
       USERNAME:               登入所有机器的用户名（所有机器用户名密码需要统一），3.2 及以上版本无须填写
       PASSWD:                 登入所有机器用户名对应的密码，3.2 及以上版本无须填写
       SDBUSERNAME:            登入数据库的用户名（如果数据库没有开启用户鉴权，则可以不填）
@@ -20,16 +22,18 @@ split 和 merge 操作步骤和场景：
       ACTIVE:                 当前子网是否为激活状态。如果取 false，则在 split 后，当前子网的集群为只读状态。
       NEEDREELECT:            执行 init 动作时是否重新选主，在 split 和 merge 场景中 init 时可能需要让主节点在主数据中心的几个主机上，所以需要设置为 true。
       NEEDBROADCASTINITINFO:  是否将 init 文件分发到集群的所有主机上。在 split 和 merge 场景中，需要分别去主备数据节点做 init 操作（除了保存集群信息，还有设置节点权值重新选举等动作），所以一般设置为 false 即可。
-   3、分别在上述 SUB1-NodeA 和 SUB2-NodeA 的机器上的 shell 下执行 ' sh init.sh '，进行初始化（该初始化主要是保存当前集群所有的组信息，用于 merge 时恢复集群）
+   4、分别在上述 SUB1-NodeA 和 SUB2-NodeA 的机器上的 shell 下执行 ' sh init.sh '，进行初始化（该初始化主要是保存当前集群所有的组信息，用于 merge 时恢复集群）
 
-   4、当 SUB1 和 SUB2 出现了网络分离，相互无法访问时，此时可以分别在上述 SUB1-NodeA 和 SUB2-NodeA 的机器上的 shell 下执行 ' sh split.sh ' 进行集群分离， 让 SUB1 和 SUB2 分离成独立集群，此时 ACTIVE 配置
+   5、当 SUB1 和 SUB2 出现了网络分离，相互无法访问时，此时可以分别在上述 SUB1-NodeA 和 SUB2-NodeA 的机器上的 shell 下执行 ' sh split.sh ' 进行集群分离， 让 SUB1 和 SUB2 分离成独立集群，此时 ACTIVE 配置
 为 true 的子网可以对外提供读写操作，ACTIVE 配置为 false 的子网只提供读操作；
 
-   5、当 SUB1 和 SUB2 网络连通时，可以在上述 SUB1-NodeA 或 SUB2-NodeA 的机器上的 shell 下执行 ' sh merge.sh ' 进行集群合并， 把 SUB1 和 SUB2 独立的集群重新合成一个大群集。
+   6、当 SUB1 和 SUB2 网络连通时，可以在上述 SUB1-NodeA 或 SUB2-NodeA 的机器上的 shell 下执行 ' sh merge.sh ' 进行集群合并， 把 SUB1 和 SUB2 独立的集群重新合成一个大群集。
 
 
 detachGroupNode 和 attachGroupNode 操作步骤和场景：
-   1、请根据实际配置修改 config.js 的参数定义部分，主要参数说明如下（格式在 config.js 中有相应定义）：
+   1、复制当前容灾工具目录下的 config.js.sample 为 config.js
+
+   2、请根据实际配置修改 config.js 的参数定义部分，主要参数说明如下（格式在 config.js 中有相应定义）：
       USERNAME:               登入所有机器的用户名（所有机器用户名密码需要统一），3.2 及以上版本无须填写
       PASSWD:                 登入所有机器用户名对应的密码，3.2 及以上版本无须填写
       SDBUSERNAME:            登入数据库的用户名（如果数据库没有开启用户鉴权，则可以不填）
@@ -40,8 +44,8 @@ detachGroupNode 和 attachGroupNode 操作步骤和场景：
       NEEDREELECT:            执行 init 动作时是否重新选主，在 detachGroupNode 和 attachGroupNode 的场景中，在初始化中一般不需要重新选主，设置为 false 即可。
       NEEDBROADCASTINITINFO:  是否将 init 文件分发到集群的所有主机上，在 detachGroupNode 和 attachGroupNode 的场景中，使用默认值（true）即可,这样无需到每台机器上重复做 init 操作。
 
-   2、在准备做 detachGroupNode 和 attachGroupNode 的机器上的shell下执行 ' sh init.sh '，进行初始化。
+   3、在准备做 detachGroupNode 和 attachGroupNode 的机器上的shell下执行 ' sh init.sh '，进行初始化。
    
-   3、当集群中的部分节点发生故障导致复制组不可用时，选一台存在 datacenter_init.info 的机器，执行 ' sh detachGroupNode.sh '剔除不可用节点。
+   4、当集群中的部分节点发生故障导致复制组不可用时，选一台存在 datacenter_init.info 的机器，执行 ' sh detachGroupNode.sh '剔除不可用节点。
    
-   4、当故障节点恢复后，选一台存在 datacenter_init.info 的机器，执行 ' sh attachGroupNode.sh '将节点重新加入对应复制组中。
+   5、当故障节点恢复后，选一台存在 datacenter_init.info 的机器，执行 ' sh attachGroupNode.sh '将节点重新加入对应复制组中。

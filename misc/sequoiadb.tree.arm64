@@ -2053,7 +2053,7 @@ sequoiadb
 │   ├── dr_ha
 │   │   ├── attachGroupNode.sh
 │   │   ├── cluster_opr.js
-│   │   ├── config.js
+│   │   ├── config.js.sample
 │   │   ├── detachGroupNode.sh
 │   │   ├── init.sh
 │   │   ├── merge.sh
