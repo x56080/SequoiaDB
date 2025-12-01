@@ -54,7 +54,7 @@ function test ( args )
       var beginTime = new Date();
 
       // 等待超过MinKeepTime
-      var waitTime = minKeepTime + 2;
+      var waitTime = maxKeepTime + 1;
       validateWaitTime( beginTime, waitTime );
       checkStopCriticalMode( db, srcGroup );
 
