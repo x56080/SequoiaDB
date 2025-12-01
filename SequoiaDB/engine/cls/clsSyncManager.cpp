@@ -142,6 +142,8 @@ namespace engine
       {
          map<UINT64, _clsSharingStatus>::const_iterator itr ;
 
+         ossScopedRWLock lock( &_info->mtx, SHARED ) ;
+
          for ( UINT32 i = 0 ; i < _validSync ; ++i )
          {
             /// fullsync node
@@ -156,10 +158,8 @@ namespace engine
                continue ;
             }
             /// maintenance mode
-            else if ( CLS_GROUP_MODE_MAINTENANCE == _info->localGrpMode )
+            else if ( CLS_GROUP_MODE_MAINTENANCE == _info->grpMode.mode )
             {
-               ossScopedRWLock lock( &_info->mtx, SHARED ) ;
-
                itr = _info->info.find( _notifyList[i].id.value ) ;
                if ( itr != _info->info.end() )
                {
@@ -172,21 +172,28 @@ namespace engine
                }
             }
             /// locaction cirtical mode
-            else if ( CLS_GROUP_MODE_CRITICAL == _info->localGrpMode &&
-                      INVALID_NODEID == _info->grpMode.grpModeInfo[0].nodeID )
+            else if ( CLS_GROUP_MODE_CRITICAL == _info->localGrpMode )
             {
-               ossScopedRWLock lock( &_info->mtx, SHARED ) ;
-
-               itr = _info->info.find( _notifyList[i].id.value ) ;
-               if ( itr == _info->info.end() )
+               if ( INVALID_NODEID == _info->grpMode.grpModeInfo[0].nodeID )
                {
-                  continue ;
+                  itr = _info->info.find( _notifyList[i].id.value ) ;
+                  if ( itr == _info->info.end() )
+                  {
+                     continue ;
+                  }
+
+                  const _clsSharingStatus &status = itr->second ;
+                  if ( !status.isInCriticalMode() )
+                  {
+                     continue ;
+                  }
                }
-
-               const _clsSharingStatus &status = itr->second ;
-               if ( !status.isInCriticalMode() )
+               else
                {
-                  continue ;
+                  if ( !_notifyList[i].isValid() )
+                  {
+                     continue ;
+                  }
                }
             }
 
@@ -307,7 +314,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       UINT32 sub = 0;
       BOOLEAN needWait = TRUE ;
-      BOOLEAN hasJump = FALSE ;
 
       /// if w <= 1, return
       if ( CLS_REPLSE_WRITE_ONE >= w )
@@ -337,7 +343,8 @@ namespace engine
          // if ReplSize is -1, or ReplSize is valid with FT whole mode,
          // we can degrade the ReplSize for wait sync, report node is down
          // to caller, who can adjust ReplSize if needed
-         if ( ( -1 == session.eduCB->getOrgReplSize() ) ||
+         if ( session.canReCheck ||
+              -1 == session.eduCB->getOrgReplSize() ||
               ( 1 != session.eduCB->getOrgReplSize() &&
                 isFTWhole ) )
          {
@@ -377,7 +384,7 @@ namespace engine
          }
          else
          {
-            rc = _jump( session, sub, needWait, hasJump ) ;
+            rc = _jump( session, sub, needWait ) ;
          }
       }
       else
@@ -393,7 +400,7 @@ namespace engine
       }
       else if ( needWait )
       {
-         rc = _wait( session, sub, hasJump, timeout ) ;
+         rc = _wait( session, sub, timeout ) ;
       }
 
    done:
@@ -834,7 +841,8 @@ namespace engine
             _mtxs[i].get() ;
             while ( SDB_OK == _syncList[i].pop( session ) )
             {
-               if ( -1 == session.eduCB->getOrgReplSize() ||
+               if ( session.canReCheck ||
+                    -1 == session.eduCB->getOrgReplSize() ||
                     ( 1 != session.eduCB->getOrgReplSize() &&
                       isFTWhole ) )
                {
@@ -1136,8 +1144,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSYNCMAG__WAIT, "_clsSyncManager::_wait" )
-   INT32 _clsSyncManager::_wait( _clsSyncSession &session, UINT32 sub,
-                                 BOOLEAN hasJump, INT64 timeout )
+   INT32 _clsSyncManager::_wait( _clsSyncSession &session, UINT32 sub, INT64 timeout )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSSYNCMAG__WAIT ) ;
@@ -1340,7 +1347,7 @@ namespace engine
             }
 
             BOOLEAN needWait = TRUE ;
-            rc = _jump( session, sub, needWait, hasJump ) ;
+            rc = _jump( session, sub, needWait ) ;
             if ( SDB_OK != rc )
             {
                goto done ;
@@ -1349,14 +1356,6 @@ namespace engine
             {
                goto done ;
             }
-         }
-         else if ( SDB_CLS_WAIT_SYNC_FAILED == rc )
-         {
-            if ( hasJump && pmdIsPrimary() )
-            {
-               rc = SDB_TIMEOUT ;
-            }
-            break ;
          }
          else
          {
@@ -1412,8 +1411,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSYNCMAG__JUMP, "_clsSyncManager::_jump" )
    INT32 _clsSyncManager::_jump( _clsSyncSession &session,
                                  UINT32 &sub,
-                                 BOOLEAN &needWait,
-                                 BOOLEAN &hasJump )
+                                 BOOLEAN &needWait )
    {
       PD_TRACE_ENTRY ( SDB__CLSSYNCMAG__JUMP ) ;
       INT32 rc = SDB_OK ;
@@ -1446,10 +1444,11 @@ namespace engine
             PD_LOG( PDDEBUG, "Session[LSN:%llu, ID:%lld] has jumped to "
                     "check list[sub:%d]", session.waitPlan.offset,
                     session.eduCB->getID(), sub ) ;
+            /// has jump, need set canReCheck
+            session.canReCheck = TRUE ;
             rc = _syncList[sub].push( session ) ;
             _mtxs[sub].release() ;
             needWait = TRUE ;
-            hasJump = TRUE ;
             break ;
          }
       }

@@ -278,6 +278,10 @@ namespace engine
 
             session.waitPlan = eduCB->getOperator()->getWaitplan() ;
             session.waitPlan.offset = offset ;
+            if ( session.waitPlan.isCritical )
+            {
+               session.canReCheck = TRUE ;
+            }
             return _sync.sync( session, w, timeout,
                                FT_LEVEL_WHOLE == _pFTMgr->getFTLevel() ?
                                                              TRUE : FALSE ) ;

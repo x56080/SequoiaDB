@@ -962,10 +962,11 @@ namespace engine
    public :
       utilReplSizePlan waitPlan ;
       _pmdEDUCB *eduCB ;
+      BOOLEAN   canReCheck ;
 
       /// local write has been completed.
       /// synced starts from one.
-      _clsSyncSession():waitPlan(),eduCB( NULL )
+      _clsSyncSession():waitPlan(),eduCB( NULL ), canReCheck( FALSE )
       {}
 
       BOOLEAN operator<( const _clsSyncSession &session ) const
