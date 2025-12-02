@@ -554,6 +554,7 @@ namespace engine
                        rtnContext *context ) ;
 
    INT32 rtnGetCommandEntry ( RTN_COMMAND_TYPE command,
+                              INT32 fromService,
                               const rtnQueryOptions & options,
                               pmdEDUCB *cb,
                               SDB_DMSCB *dmsCB,

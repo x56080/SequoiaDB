@@ -340,10 +340,14 @@ namespace engine
       utilCLUniqueID _clUniqueID ;
       MON_CL_DETAIL_MAP _details ;
 
+      /// assist stat info
+      UINT64         _totalLobCapacity ;
+
       _monCollection()
       {
          _name[ 0 ]  = 0 ;
          _clUniqueID = UTIL_UNIQUEID_NULL ;
+         _totalLobCapacity = 0 ;
       }
       OSS_INLINE BOOLEAN operator<(const _monCollection &r) const
       {

@@ -549,6 +549,16 @@ namespace engine
             BSONObj boDetails = boTmp.getField( FIELD_NAME_DETAILS ).Obj() ;
 
             monCollection subMonCL ;
+            BSONElement eLobCap = boTmp.getField( FIELD_NAME_LOB_CAPACITY ) ;
+            if ( eLobCap.isNumber() )
+            {
+               subMonCL._totalLobCapacity = eLobCap.numberLong() ;
+            }
+            else
+            {
+               subMonCL._totalLobCapacity = ~0 ;
+            }
+
             BSONObjIterator it( boDetails ) ;
             INT32 i = 0 ;
             while ( it.more() )

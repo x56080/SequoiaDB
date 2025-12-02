@@ -4898,6 +4898,7 @@ namespace engine
             BSONObjBuilder bobSubHint;
             bobSubHint.appendElements( boHint );
             bobSubHint.append( FIELD_NAME_COLLECTION, *iterSubCLSet ) ;
+            bobSubHint.appendBool( FIELD_NAME_ISMAINCL, true ) ;
             boSubHint = bobSubHint.obj();
          }
          catch( std::exception &e )

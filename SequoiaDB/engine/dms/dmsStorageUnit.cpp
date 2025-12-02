@@ -4323,7 +4323,6 @@ namespace engine
    INT32 _dmsStorageUnit::_dumpCLInfo ( monCollection &collection, UINT16 mbID )
    {
       INT32 rc = SDB_OK ;
-      INT64 lobCapacity = 0 ;
 
       PD_TRACE_ENTRY ( SDB__DMSSU__DUMPCLINFO_CL ) ;
 
@@ -4333,7 +4332,7 @@ namespace engine
                 "Invalid mbID [%u]", mbID ) ;
 
       mbStat = const_cast<dmsMBStatInfo*>( _pDataSu->getMBStatInfo( mbID ) ) ;
-      lobCapacity = totalSize( DMS_SU_LOB ) ;
+      collection._totalLobCapacity = totalSize( DMS_SU_LOB ) ;
 
       PD_CHECK( DMS_IS_MB_INUSE ( mbStat->_flag ), SDB_INVALIDARG, error, PDERROR,
                 "Invalid mbID [%u], metablock is not in-used", mbID ) ;
@@ -4362,7 +4361,8 @@ namespace engine
 
          info._totalLobs = mbStat->_totalLobs ;
          info._totalUsedLobSpace = (INT64)mbStat->_totalLobPages * getLobPageSize() ;
-         info._usedLobSpaceRatio = utilPercentage( info._totalUsedLobSpace, lobCapacity ) ;
+         info._usedLobSpaceRatio = utilPercentage( info._totalUsedLobSpace,
+                                                   collection._totalLobCapacity ) ;
          info._totalLobSize = mbStat->_totalLobSize ;
          info._totalOverflowRecords = mbStat->_totalOverflowRecords ;
          info._totalDeletingRecords = mbStat->_totalDeletingRecords ;
