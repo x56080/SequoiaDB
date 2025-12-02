@@ -1754,7 +1754,7 @@ namespace engine
 
       _options.setMainCLName( cb->getCurMainCLName() ) ;
 
-      rc = rtnGetCommandEntry ( type(), _options, cb, dmsCB, rtnCB,
+      rc = rtnGetCommandEntry ( type(), getFromService(), _options, cb, dmsCB, rtnCB,
                                 *pContextID ) ;
       PD_TRACE_EXITRC ( SDB__RTNGET_DOIT, rc ) ;
       return rc ;

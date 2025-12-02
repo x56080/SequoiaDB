@@ -582,7 +582,8 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNGETCOLLECTIONDETAIL, "rtnGetCollectionDetail" )
    static INT32 rtnGetCollectionDetail( const CHAR *pCollection,
                                         SDB_DMSCB *dmsCB,
-                                        rtnContextDump *context )
+                                        rtnContextDump *context,
+                                        BOOLEAN addStatAssit )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNGETCOLLECTIONDETAIL ) ;
@@ -608,7 +609,7 @@ namespace engine
       dmsCB->suUnlock( suID ) ;
       suID = DMS_INVALID_SUID ;
 
-      rc = monCollection2Obj( info, infoMask, builder ) ;
+      rc = monCollection2Obj( info, infoMask, builder, addStatAssit ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to build BSON object, rc: %d", rc ) ;
 
       rc = context->monAppend( builder.obj() ) ;
@@ -1461,6 +1462,7 @@ retry:
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNGETCOMMANDENTRY, "rtnGetCommandEntry" )
    INT32 rtnGetCommandEntry ( RTN_COMMAND_TYPE command,
+                              INT32 fromService,
                               const rtnQueryOptions & options,
                               pmdEDUCB *cb,
                               SDB_DMSCB *dmsCB,
@@ -1513,7 +1515,27 @@ retry:
             rc = rtnGetDatablocks( pCollectionName, dmsCB, cb, context ) ;
             break ;
          case CMD_GET_CL_DETAIL :
-            rc = rtnGetCollectionDetail( pCollectionName, dmsCB, context ) ;
+            {
+               BOOLEAN addStatAssit = FALSE ;
+               try
+               {
+                  BSONElement eIsMainCL = options.getHint().getField( FIELD_NAME_ISMAINCL ) ;
+                  BSONElement eAggr = options.getHint().getField( FIELD_NAME_AGGR ) ;
+
+                  if ( CMD_SPACE_SERVICE_SHARD == fromService &&
+                       ( eIsMainCL.booleanSafe() || eAggr.booleanSafe() ) )
+                  {
+                     addStatAssit = TRUE ;
+                  }
+               }
+               catch( std::exception &e )
+               {
+                  PD_LOG( PDWARNING, "Occur exception: %s", e.what() ) ;
+                  /// ignore error
+               }
+               rc = rtnGetCollectionDetail( pCollectionName, dmsCB, context, addStatAssit ) ;
+               break ;
+            }
             break ;
          case CMD_GET_INDEX_STAT :
             rc = rtnGetIndexStat( options, dmsCB, cb, rtnCB, context ) ;

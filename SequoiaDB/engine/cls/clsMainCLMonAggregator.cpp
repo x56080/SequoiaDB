@@ -215,8 +215,25 @@ namespace engine
             _detail._updateTime = sub._updateTime ;
          }
          _detail._currCompressRatio += sub._currCompressRatio ;
-         _totalLobCapacity += (UINT64)( sub._totalUsedLobSpace / sub._usedLobSpaceRatio ) ;
+
+         if ( (UINT64)~0 == subCLInfo._totalLobCapacity )
+         {
+            if ( sub._usedLobSpaceRatio < 0.00999 )
+            {
+               _totalLobCapacity += (UINT64)( sub._totalUsedLobSpace * 100 ) ;
+            }
+            else
+            {
+               _totalLobCapacity += (UINT64)( sub._totalUsedLobSpace / sub._usedLobSpaceRatio ) ;
+            }
+         }
       }
+
+      if ( (UINT64)~0 != subCLInfo._totalLobCapacity )
+      {
+         _totalLobCapacity += subCLInfo._totalLobCapacity ;
+      }
+
       ++_doneSubCLCount ;
    }
 

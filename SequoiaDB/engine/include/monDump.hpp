@@ -130,7 +130,8 @@ namespace engine
                             BSONObjBuilder &ob ) ;
 
    INT32 monCollection2Obj ( const monCollection &full, UINT32 addInfoMask,
-                             BSONObjBuilder &ob ) ;
+                             BSONObjBuilder &ob,
+                             BOOLEAN addStatAssit = FALSE ) ;
 
    INT32 monBuildStatResult( BSONObj &stat, UINT32 addInfoMask,
                              BSONObjBuilder &ob, BOOLEAN detail = FALSE ) ;
