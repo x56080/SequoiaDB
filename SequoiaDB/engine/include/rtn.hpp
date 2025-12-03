@@ -555,6 +555,7 @@ namespace engine
 
    INT32 rtnGetCommandEntry ( RTN_COMMAND_TYPE command,
                               INT32 fromService,
+                              BOOLEAN isFromMainCL,
                               const rtnQueryOptions & options,
                               pmdEDUCB *cb,
                               SDB_DMSCB *dmsCB,

@@ -76,6 +76,9 @@ namespace engine
          void  setFromService( INT32 fromService ) ;
          INT32 getFromService() const { return _fromService ; }
 
+         void    setFromMainCL( BOOLEAN fromMainCL = TRUE ) { _isFromMainCL = fromMainCL ; }
+         BOOLEAN isFromMainCL() const { return _isFromMainCL ; }
+
          BOOLEAN                 hasBuff() const ;
          const rtnContextBuf&    getBuff() const ;
 
@@ -101,6 +104,7 @@ namespace engine
 
       protected:
          INT32             _fromService ;
+         BOOLEAN           _isFromMainCL ;
          rtnContextBuf     _buff ;
 
    };

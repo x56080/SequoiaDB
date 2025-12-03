@@ -68,6 +68,7 @@ namespace engine
    _rtnCommand::_rtnCommand ()
    {
       _fromService = 0 ;
+      _isFromMainCL = FALSE ;
    }
 
    _rtnCommand::~_rtnCommand ()
@@ -1652,8 +1653,8 @@ namespace engine
 
       _options.setMainCLName( cb->getCurMainCLName() ) ;
 
-      rc = rtnGetCommandEntry ( type(), getFromService(), _options, cb, dmsCB, rtnCB,
-                                *pContextID ) ;
+      rc = rtnGetCommandEntry ( type(), getFromService(), isFromMainCL(),
+                                _options, cb, dmsCB, rtnCB, *pContextID ) ;
       PD_TRACE_EXITRC ( SDB__RTNGET_DOIT, rc ) ;
       return rc ;
    }

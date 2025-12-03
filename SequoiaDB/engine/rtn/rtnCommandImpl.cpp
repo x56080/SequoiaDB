@@ -1527,6 +1527,7 @@ retry:
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNGETCOMMANDENTRY, "rtnGetCommandEntry" )
    INT32 rtnGetCommandEntry ( RTN_COMMAND_TYPE command,
                               INT32 fromService,
+                              BOOLEAN isFromMainCL,
                               const rtnQueryOptions & options,
                               pmdEDUCB *cb,
                               SDB_DMSCB *dmsCB,
@@ -1580,11 +1581,10 @@ retry:
                BOOLEAN addStatAssit = FALSE ;
                try
                {
-                  BSONElement eIsMainCL = options.getHint().getField( FIELD_NAME_ISMAINCL ) ;
                   BSONElement eAggr = options.getHint().getField( FIELD_NAME_AGGR ) ;
 
                   if ( CMD_SPACE_SERVICE_SHARD == fromService &&
-                       ( eIsMainCL.booleanSafe() || eAggr.booleanSafe() ) )
+                       ( isFromMainCL || eAggr.booleanSafe() ) )
                   {
                      addStatAssit = TRUE ;
                   }
