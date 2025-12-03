@@ -4568,7 +4568,6 @@ namespace engine
             BSONObjBuilder bobSubHint;
             bobSubHint.appendElements( boHint );
             bobSubHint.append( FIELD_NAME_COLLECTION, *iterSubCLSet ) ;
-            bobSubHint.appendBool( FIELD_NAME_ISMAINCL, true ) ;
             boSubHint = bobSubHint.obj();
          }
          catch( std::exception &e )
@@ -4588,6 +4587,8 @@ namespace engine
                        "rc: %d", sessionName(), pCommand, rc ) ;
                break ;
             }
+            /// set from main cl
+            pCommandTmp->setFromMainCL( TRUE ) ;
 
             rc = rtnInitCommand( pCommandTmp, flags, subNumToSkip,
                                  subNumToReturn, boNewMatcher.objdata(),

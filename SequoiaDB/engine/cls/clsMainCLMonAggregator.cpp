@@ -218,6 +218,8 @@ namespace engine
 
          if ( (UINT64)~0 == subCLInfo._totalLobCapacity )
          {
+            /// compatiable with old verion, because it without LobCapaicity File
+            /// _usedLobSpaceRatio is reserved 2 decimal places, it may result 0, so protection
             if ( sub._usedLobSpaceRatio < 0.00999 )
             {
                _totalLobCapacity += (UINT64)( sub._totalUsedLobSpace * 100 ) ;
