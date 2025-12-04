@@ -59,6 +59,7 @@ function existPrimaryNode ( groupName )
 {
    var timeOut = 600;
    var doTimes = 0;
+   var period = 0;
    while( doTimes < timeOut )
    {
       var primaryNode = getPrimaryNode( groupName );
@@ -69,8 +70,15 @@ function existPrimaryNode ( groupName )
       }
       else
       {
-         sleep( 3000 );
-         break;
+         if( period > 3 )
+         {
+            break;
+         }
+         else
+         {
+            sleep( 3000 );
+            period++;
+         }
       }
    }
 
