@@ -992,7 +992,21 @@
 #define CMD_VALUE_NAME_RENAME                "rename"
 #define CMD_VALUE_NAME_RESTART               "restart"
 
-#define CLS_REPLSET_MAX_NODE_SIZE            7
+#define CLS_REPLSET_MAX_NODE_SIZE            ( 7 )
+
+/*
+   replsize info
+*/
+#define CLS_REPLSIZE_ALL_NODES               ( 0 )
+#define CLS_REPLSIZE_ALIVE_NODES             ( -1 )
+#define CLS_REPLSIZE_MAJOR_NODES             ( -2 )
+#define CLS_REPLSIZE_ALIVE_MAJOR_NODES       ( -3 )
+#define CLS_REPLSIZE_SPECIAL_MIN             CLS_REPLSIZE_ALIVE_MAJOR_NODES
+#define CLS_REPLSIZE_SPECIAL_MAX             CLS_REPLSIZE_ALIVE_NODES
+
+#define CLS_REPLSIZE_ONE                     ( 1 )
+#define CLS_REPLSIZE_CONSISTENCE_MIN         ( 2 )
+
 #define SDB_MAX_MSG_LENGTH                   ( 512 * 1024 * 1024 )
 
 #define SDB_MAX_USERNAME_LENGTH              256
@@ -1103,8 +1117,6 @@ enum SDB_LOB_MODE
 } ;
 
 #define SDB_DFT_REPLSIZE            ( 2 )
-#define SDB_MIN_REPLSIZE            ( -1 )
-#define SDB_MAX_REPLSIZE            ( 7 )
 
 #define SDB_ANALYZE_MODE_SAMPLE     ( 1 )
 #define SDB_ANALYZE_MODE_FULL       ( 2 )

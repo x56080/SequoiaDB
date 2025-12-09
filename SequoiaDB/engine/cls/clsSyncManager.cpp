@@ -296,8 +296,11 @@ namespace engine
          // if ReplSize is -1, or ReplSize is valid with FT whole mode,
          // we can degrade the ReplSize for wait sync, report node is down
          // to caller, who can adjust ReplSize if needed
-         if ( ( -1 == session.eduCB->getOrgReplSize() ) ||
-              ( 1 != session.eduCB->getOrgReplSize() && isFTWhole ) )
+         if ( w > CLS_REPLSIZE_CONSISTENCE_MIN &&
+              ( ( session.eduCB->getOrgReplSize() >= CLS_REPLSIZE_SPECIAL_MIN &&
+                  session.eduCB->getOrgReplSize() <= CLS_REPLSIZE_SPECIAL_MAX ) ||
+                ( CLS_REPLSIZE_ONE != session.eduCB->getOrgReplSize() &&
+                  isFTWhole ) ) )
          {
             rc = SDB_DATABASE_DOWN ;
          }
@@ -626,8 +629,11 @@ namespace engine
             _mtxs[i].get() ;
             while ( SDB_OK == _syncList[i].pop( session ) )
             {
-               if ( -1 == session.eduCB->getOrgReplSize() ||
-                    ( 1 != session.eduCB->getOrgReplSize() && isFTWhole ) )
+               if ( CLS_SUB_2_W( i ) > CLS_REPLSIZE_CONSISTENCE_MIN &&
+                    ( ( session.eduCB->getOrgReplSize() >= CLS_REPLSIZE_SPECIAL_MIN &&
+                        session.eduCB->getOrgReplSize() <= CLS_REPLSIZE_SPECIAL_MAX ) ||
+                      ( CLS_REPLSIZE_ONE != session.eduCB->getOrgReplSize() &&
+                        isFTWhole ) ) )
                {
                   session.eduCB->getEvent().signal( SDB_DATABASE_DOWN ) ;
                }

@@ -1148,9 +1148,28 @@ namespace engine
          {
             goto done ;
          }
-         PD_RC_CHECK( rc, PDWARNING, "Service deactive "
-                      "but received command: %s, opCode: %d, rc: %d",
-                      pCommand->name(), pMsg->opCode, rc ) ;
+
+         if ( rc )
+         {
+            /// Handling special cases when the catalog cannot elect a primary:
+            /// 1. Only for situations where there is 'SDB_CLS_NOT_PRIMARY' error, and no other primary
+            ///    exists in the cluster.
+            /// 2. The node's uptime has exceeded 'startshifttime', or 'g_startShiftTime' is set to -1.
+            /// 3. Applies only to special requests originating from catalog nodes
+            if ( pCommand->allowWhenNotPrimary( pMsg->routeID ) &&
+                 SDB_CLS_NOT_PRIMARY == rc && MSG_INVALID_ROUTEID == _pCatCB->getPrimaryNode() &&
+                 ( -1 == g_startShiftTime ||
+                   pmdDBTickSpan2Time( pmdGetDBTick() ) >= pmdGetOptionCB()->startShiftTime() ) )
+            {
+               /// allowed
+            }
+            else
+            {
+               PD_LOG( PDWARNING, "Service deactive but received command: %s, opCode: %d, rc: %d",
+                       pCommand->name(), pMsg->opCode, rc ) ;
+               goto error ;
+            }
+         }
       }
 
       if ( pCommand->needCheckDCStatus() && _pCatCB->isDCReadonly() )
@@ -1790,7 +1809,22 @@ namespace engine
       }
       else if ( rc )
       {
-         goto error ;
+         /// Handling special cases when the catalog cannot elect a primary:
+         /// 1. Only for situations where there is 'SDB_CLS_NOT_PRIMARY' error, and no other primary
+         ///    exists in the cluster.
+         /// 2. The node's uptime has exceeded 'startshifttime', or 'g_startShiftTime' is set to -1.
+         /// 3. Applies only to special requests originating from catalog nodes
+         if ( CATALOG_GROUPID == pMsg->routeID.columns.groupID &&
+              SDB_CLS_NOT_PRIMARY == rc && MSG_INVALID_ROUTEID == _pCatCB->getPrimaryNode() &&
+              ( -1 == g_startShiftTime ||
+                pmdDBTickSpan2Time( pmdGetDBTick() ) >= pmdGetOptionCB()->startShiftTime() ) )
+         {
+            /// allowed
+         }
+         else
+         {
+            goto error ;
+         }
       }
 
       rc = extractAuthMsg( &(msg->header), obj ) ;
@@ -2179,10 +2213,11 @@ namespace engine
       // 2. w is > current majority size, which means the node number of
       //    catalog group has been reduced
       INT16 curSyncW = 0 ;
-      if ( w <= 0 ||
-           w > _pCatCB->majoritySize( TRUE ) )
+      INT16 majorW = ( 1 == w ) ? 1 : _pCatCB->majoritySize( TRUE ) ;
+
+      if ( w <= 0 || w > majorW )
       {
-         curSyncW = _pCatCB->majoritySize( TRUE ) ;
+         curSyncW = majorW ;
       }
       else
       {
@@ -2211,7 +2246,7 @@ namespace engine
          rc = pRepl->sync( syncLsn, _pEDUCB, curSyncW, timeout ) ;
       }
 
-      if ( SDB_TIMEOUT == rc )
+      if ( SDB_TIMEOUT == rc || SDB_DATABASE_DOWN == rc )
       {
          // The earlier wait sync failed, don't wait for later ones in the
          // delayed list for this round
@@ -2219,22 +2254,20 @@ namespace engine
 
          rc = _delaySync( handle, firstTry, syncLsn, w,
                           pReply, pReplyData, replyDataLen ) ;
-         PD_RC_CHECK( rc, PDERROR, "Wait sync delay failed, "
-                      "w: [%d/%d], LSN: [%llu], first: [%s], rc: %d",
-                      w, curSyncW, syncLsn, firstTry ? "TRUE" : "FALSE", rc ) ;
-         PD_LOG( PDDEBUG,
-                 "Wait sync delayed: w: [%d/%d], LSN: [%llu], first: [%s]",
-                 w, curSyncW, syncLsn, firstTry ? "TRUE" : "FALSE" ) ;
+         PD_RC_CHECK( rc, PDERROR, "Wait sync delay(w: %d, curSyncW: %d, LSN: %llu, first: %s) "
+                      "failed, rc: %d", w, curSyncW, syncLsn, ( firstTry ? "TRUE" : "FALSE" ),
+                      rc ) ;
+         PD_LOG( PDDEBUG, "Wait sync delayed(w: %d, curSyncW: %d, LSN: %llu, first: %s) succeed",
+                 w, curSyncW, syncLsn, ( firstTry ? "TRUE" : "FALSE" ) ) ;
       }
       else
       {
-         PD_RC_CHECK( rc, PDERROR, "Wait sync failed, "
-                      "w: [%d/%d], LSN: [%llu], first: [%s], rc: %d",
-                      w, curSyncW, syncLsn, firstTry ? "TRUE" : "FALSE", rc ) ;
+         PD_RC_CHECK( rc, PDERROR, "Wait sync(w: %d, curSyncW: %d, LSN: %llu, first: %s) "
+                      "failed, rc: %d", w, curSyncW, syncLsn, ( firstTry ? "TRUE" : "FALSE" ),
+                      rc ) ;
 
-         PD_LOG( PDDEBUG,
-                 "Wait sync finished: w: [%d/%d], LSN: [%llu], first: [%s]",
-                 w, curSyncW, syncLsn, firstTry ? "TRUE" : "FALSE" ) ;
+         PD_LOG( PDDEBUG, "Wait sync(w: %d, curSyncW: %d, LSN: %llu, first: %s) finished",
+                 w, curSyncW, syncLsn, ( firstTry ? "TRUE" : "FALSE" ) ) ;
       }
 
    done :

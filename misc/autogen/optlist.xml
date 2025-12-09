@@ -2127,19 +2127,19 @@
       <name>PMD_OPTION_TRANS_REPLSIZE</name>
       <long>transreplsize</long>
       <description>
-        <en>The written replica number when transaction commit. Value:[-1,0,1~7], Default:2</en>
-        <cn>事务提交的写副本数，取值[-1,0,1~7]，默认为2</cn>
+        <en>The written replica number when transaction commit. Value:[-3, 7] (ref to 'replsize'), Default:2</en>
+        <cn>事务提交的写副本数，取值[-3, 7] (参考 'replsize')，默认为2</cn>
       </description>
       <reloadable>
          <en>Take effect immediately</en>
          <cn>在线生效</cn>
       </reloadable>
       <detail>
-        <en>The written replica number when transaction commit. Value:[-1,0,1~7], Default:2.</en>
-        <cn>事务提交的写副本数，取值[-1,0,1~7]，默认为2。</cn>
+        <en>The written replica number when transaction commit. Value:[-3, 7] (ref to 'replsize'), Default:2.</en>
+        <cn>事务提交的写副本数，取值[-3, 7] (参考 'replsize')，默认为2。</cn>
       </detail>
       <type>int</type>
-      <default>-1</default>
+      <default>2</default>
       <hidden>true</hidden>
    </opt>
 
@@ -3118,8 +3118,8 @@
       <name>PMD_OPTION_REPLSIZE</name>
       <long>replsize</long>
       <description>
-        <en>The number of replicas that need to be synchronized for write operations, and the default value is 2, range is [-1, 7].</en>
-        <cn>写操作需同步的副本数，默认值为 2，取值范围为 [-1, 7]</cn>
+        <en>The number of replicas that need to be synchronized for write operations, and the default value is 2, range is [-3, 7].</en>
+        <cn>写操作需同步的副本数，默认值为 2，取值范围为 [-3, 7]</cn>
       </description>
       <reloadable>
          <en>Take effect immediately</en>
@@ -3128,11 +3128,15 @@
       <detail>
         <en>The number of replicas that need to be synchronized for write operations, and the default value is 2, and the values are as follows:<fig></fig>
             ● -1: The write request needs to be synchronized to a number of active nodes in the replication group before the database write operation returns a response to the client<fig></fig>
+            ● -2: The write request needs to be synchronized to a number of major nodes in the replication group before the database write operation returns a response to the client<fig></fig>
+            ● -3: The write request needs to be synchronized to a number of major active nodes in the replication group before the database write operation returns a response to the client<fig></fig>
             ● 0: The write request needs to be synchronized to all nodes in the replication group before the database write operation returns a response to the client<fig></fig>
             ● 1~7: The write request needs to be synchronized to the specified number of nodes in the replication group before the database write operation returns a response to the client<fig></fig>
         </en>
         <cn>写操作需同步的副本数，默认值为 2，取值说明如下：<fig></fig>
             ● -1: 写请求需同步到该复制组若干活跃的节点之后，数据库写操作才返回应答给客户端<fig></fig>
+            ● -2: 写请求需同步到该复制组多数派节点之后，数据库写操作才返回应答给客户端<fig></fig>
+            ● -3: 写请求需同步到该复制组多数派活跃的节点之后，数据库写操作才返回应答给客户端<fig></fig>
             ● 0: 写请求需同步到该复制组的所有节点之后，数据库写操作才返回应答给客户端<fig></fig>
             ● 1~7: 写请求需同步到该复制组指定数量个节点之后，数据库写操作才返回应答给客户端<fig></fig>
         </cn>
