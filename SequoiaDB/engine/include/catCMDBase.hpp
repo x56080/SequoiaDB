@@ -95,6 +95,8 @@ namespace engine
       {
          return SDB_OK ;
       }
+
+      virtual BOOLEAN allowWhenNotPrimary( const MsgRouteID &routeID ) const { return FALSE ; }
    } ;
    typedef _catCMDBase catCMDBase ;
 

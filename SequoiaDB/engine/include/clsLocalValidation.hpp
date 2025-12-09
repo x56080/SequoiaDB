@@ -47,7 +47,7 @@ namespace engine
       UINT64 endTime ;
       UINT64 curSpentTime ;
       UINT64 lastSpentTime ;
-      UINT32 returnCode ;
+      INT32  returnCode ;
       BOOLEAN finishAllDiskWrite ;
 
       _clsDiskWriteCostTime()

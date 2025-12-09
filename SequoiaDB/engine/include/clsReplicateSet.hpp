@@ -215,7 +215,8 @@ namespace engine
                              INT32 &indoubtErr,
                              UINT16 &indoubtNodeID,
                              utilLocationInfo *locationInfo = NULL,
-                             const SDB_CONSISTENCY_STRATEGY strategy = SDB_CONSISTENCY_NODE ) ;
+                             const SDB_CONSISTENCY_STRATEGY strategy = SDB_CONSISTENCY_NODE,
+                             BOOLEAN *pIsCriticalNodeMode = NULL ) ;
 
          OSS_INLINE BOOLEAN isAlive ( NodeID node )
          {
@@ -278,10 +279,6 @@ namespace engine
 
             session.waitPlan = eduCB->getOperator()->getWaitplan() ;
             session.waitPlan.offset = offset ;
-            if ( session.waitPlan.isCritical )
-            {
-               session.canReCheck = TRUE ;
-            }
             return _sync.sync( session, w, timeout,
                                FT_LEVEL_WHOLE == _pFTMgr->getFTLevel() ?
                                                              TRUE : FALSE ) ;

@@ -2059,7 +2059,7 @@ done:
       _memPoolSize = 0 ;
       _memPoolThreshold = 0 ;
 
-      _transReplSize = -1 ;
+      _transReplSize = SDB_DFT_REPLSIZE ;
       _transRCCount = DPS_TRANS_RCCOUNT_DFT ;
       _transAllowLockEscalation = DPS_TRANS_ALLOWLOCKESCALATION_DFT ;
       _transMaxLockNum = DPS_TRANS_MAXLOCKNUM_DFT ;
@@ -2602,8 +2602,8 @@ done:
 
       // --transreplsize
       rdxInt( pEX, PMD_OPTION_TRANS_REPLSIZE, _transReplSize, FALSE,
-              PMD_CFG_CHANGE_RUN, 2, TRUE ) ;
-      rdvMinMax( pEX, _transReplSize, -1, CLS_REPLSET_MAX_NODE_SIZE ) ;
+              PMD_CFG_CHANGE_RUN, SDB_DFT_REPLSIZE, TRUE ) ;
+      rdvMinMax( pEX, _transReplSize, CLS_REPLSIZE_SPECIAL_MIN, CLS_REPLSET_MAX_NODE_SIZE ) ;
 
       // --transrccount
       rdxBooleanS( pEX, PMD_OPTION_TRANS_RCCOUNT, _transRCCount, FALSE,
@@ -2771,7 +2771,7 @@ done:
       rdxInt( pEX, PMD_OPTION_REPLSIZE, _replSize,
               FALSE, PMD_CFG_CHANGE_RUN,
               SDB_DFT_REPLSIZE ) ;
-      rdvMinMax( pEX, _replSize, SDB_MIN_REPLSIZE, SDB_MAX_REPLSIZE ) ;
+      rdvMinMax( pEX, _replSize, CLS_REPLSIZE_SPECIAL_MIN, CLS_REPLSET_MAX_NODE_SIZE ) ;
 
       // --consistencystrategy
       rdxInt( pEX, PMD_OPTION_CONSISTENCY_STRATEGY, (INT32&)_consistencyStrategy,

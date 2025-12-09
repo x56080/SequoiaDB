@@ -1219,7 +1219,8 @@ namespace engine
                                          INT32 &indoubtErr,
                                          UINT16 &indoubtNodeID,
                                          utilLocationInfo *locationInfo,
-                                         const SDB_CONSISTENCY_STRATEGY strategy )
+                                         const SDB_CONSISTENCY_STRATEGY strategy,
+                                         BOOLEAN *pIsCriticalNodeMode )
    {
       map<UINT64, _clsSharingStatus *>::iterator it ;
       _clsSharingStatus *pStatus = NULL ;
@@ -1393,6 +1394,11 @@ namespace engine
          }
          ssCnt = 0 ;
          nodeCnt = aliveCnt ;
+      }
+
+      if ( pIsCriticalNodeMode )
+      {
+         *pIsCriticalNodeMode = isCriticalNodeMode ;
       }
    }
 
@@ -3310,10 +3316,11 @@ namespace engine
       INT16 adjW = 0 ;
       UINT32 timeout = 0 ;
       BOOLEAN hasBlock = FALSE ;
+      BOOLEAN isCriticalNodeMode = FALSE ;
       utilLocationInfo locationInfo ;
 
       /// check valid
-      if ( w < -1 || w > CLS_REPLSET_MAX_NODE_SIZE )
+      if ( w < CLS_REPLSIZE_SPECIAL_MIN || w > CLS_REPLSET_MAX_NODE_SIZE )
       {
          rc = SDB_INVALIDARG ;
          PD_LOG( PDWARNING, "Invalid replsize: %d", w ) ;
@@ -3322,10 +3329,10 @@ namespace engine
 
       cb->setOrgReplSize( w ) ;
 
-      if ( 1 == w && ( isAfterData || !_isAllNodeFatal ) )
+      if ( CLS_REPLSIZE_ONE == w && ( isAfterData || !_isAllNodeFatal ) )
       {
          finalW = w ;
-         cb->getOperator()->setWaitplan( finalW, locationInfo, isInCriticalMode() ) ;
+         cb->getOperator()->setWaitplan( finalW, locationInfo, FALSE ) ;
          goto done ;
       }
 
@@ -3341,19 +3348,20 @@ namespace engine
 
          getDetailInfo( nodeCnt, aliveCnt, faultCnt, ssCnt, indoubtErr,
                         indoubtNodeID, &locationInfo,
-                        cb->getOperator()->getReplStrategy() ) ;
+                        cb->getOperator()->getReplStrategy(),
+                        &isCriticalNodeMode ) ;
 
          /// One node in the group
-         if ( 1 == nodeCnt )
+         if ( CLS_REPLSIZE_ONE == nodeCnt )
          {
-            finalW = 1 ;
+            finalW = CLS_REPLSIZE_ONE ;
             break ;
          }
-         else if ( 1 == w )
+         else if ( CLS_REPLSIZE_ONE == w )
          {
             if ( isAfterData || !_isAllNodeFatal )
             {
-               finalW = 1 ;
+               finalW = CLS_REPLSIZE_ONE ;
                break ;
             }
 
@@ -3379,7 +3387,7 @@ namespace engine
                case FT_LEVEL_FUSING :
                   break ;
                case FT_LEVEL_SEMI :
-                  if ( -1 == w )
+                  if ( w >= CLS_REPLSIZE_SPECIAL_MIN && w <= CLS_REPLSIZE_SPECIAL_MAX )
                   {
                      adjW = faultCnt ;
                   }
@@ -3392,7 +3400,7 @@ namespace engine
             }
          }
 
-         if ( 0 == w || w > (INT16)nodeCnt )
+         if ( CLS_REPLSIZE_ALL_NODES == w || w > (INT16)nodeCnt )
          {
             finalW = nodeCnt ;
 
@@ -3405,9 +3413,19 @@ namespace engine
                ssCnt = 0 ;
             }
          }
-         else if ( -1 == w )
+         else if ( CLS_REPLSIZE_ALIVE_NODES == w )
          {
             finalW = aliveCnt ;
+            adjW += ssCnt ;
+         }
+         else if ( CLS_REPLSIZE_MAJOR_NODES == w )
+         {
+            finalW = nodeCnt / 2 + 1 ;
+            adjW += ssCnt ;
+         }
+         else if ( CLS_REPLSIZE_ALIVE_MAJOR_NODES == w )
+         {
+            finalW = aliveCnt / 2 + 1 ;
             adjW += ssCnt ;
          }
          else
@@ -3443,12 +3461,12 @@ namespace engine
             break ;
          }
          /// down level
-         else if ( aliveCnt - faultCnt >= 2 && adjW > 0 )
+         else if ( aliveCnt - faultCnt >= CLS_REPLSIZE_CONSISTENCE_MIN && adjW > 0 )
          {
             finalW = (INT16)( aliveCnt - faultCnt - ssCnt ) ;
-            if ( finalW < 2 )
+            if ( finalW < CLS_REPLSIZE_CONSISTENCE_MIN )
             {
-               finalW = 2 ;
+               finalW = CLS_REPLSIZE_CONSISTENCE_MIN ;
             }
             break ;
          }
@@ -3468,7 +3486,7 @@ namespace engine
          timeout += OSS_ONE_SEC ;
          continue ;
       }
-      cb->getOperator()->setWaitplan( finalW, locationInfo, isInCriticalMode() ) ;
+      cb->getOperator()->setWaitplan( finalW, locationInfo, isCriticalNodeMode ) ;
 
    done:
       if ( hasBlock )

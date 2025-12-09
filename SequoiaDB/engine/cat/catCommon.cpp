@@ -8064,11 +8064,12 @@ namespace engine
             {
                /// do nothing.
             }
-            else if ( clInfo._replSize == 0 )
+            else if ( clInfo._replSize == CLS_REPLSIZE_ALL_NODES )
             {
                clInfo._replSize = CLS_REPLSET_MAX_NODE_SIZE ;
             }
-            else if ( -1 == clInfo._replSize )
+            else if ( clInfo._replSize >= CLS_REPLSIZE_SPECIAL_MIN &&
+                      clInfo._replSize <= CLS_REPLSIZE_SPECIAL_MAX )
             {
                /// do nothing
             }
@@ -9073,8 +9074,11 @@ namespace engine
          }
          else if ( 0 == ossStrcmp( e.fieldName(), CAT_CATALOG_W_NAME ) )
          {
-            if ( ( e.numberInt() >= 1 && e.numberInt() <= CLS_REPLSET_MAX_NODE_SIZE ) ||
-                 -1 == e.numberInt() )
+            if ( ( e.numberInt() >= 1 &&
+                   e.numberInt() <= CLS_REPLSET_MAX_NODE_SIZE ) ||
+                 ( e.numberInt() >= CLS_REPLSIZE_SPECIAL_MIN &&
+                   e.numberInt() <= CLS_REPLSIZE_SPECIAL_MAX )
+               )
             {
                clInfo._replSize = e.numberInt() ;
                mask |= UTIL_CL_REPLSIZE_FIELD ;

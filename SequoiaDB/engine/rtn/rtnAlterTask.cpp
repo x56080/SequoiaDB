@@ -1789,11 +1789,11 @@ namespace engine
                    SDB_INVALIDARG, error, PDERROR,
                    "Failed to get field [%s]", FIELD_NAME_W ) ;
          _replSize = argElement.numberInt() ;
-         if ( _replSize == 0 )
+         if ( CLS_REPLSIZE_ALL_NODES == _replSize )
          {
             _replSize = CLS_REPLSET_MAX_NODE_SIZE ;
          }
-         PD_CHECK( -1 <= _replSize && _replSize <= CLS_REPLSET_MAX_NODE_SIZE,
+         PD_CHECK( CLS_REPLSIZE_SPECIAL_MIN <= _replSize && _replSize <= CLS_REPLSET_MAX_NODE_SIZE,
                    SDB_INVALIDARG, error, PDERROR,
                    "Failed to get field [%s]: invalid repl size [%d]",
                    FIELD_NAME_W, _replSize ) ;

@@ -52,6 +52,8 @@ This function is used to create a collection in the specified collection space. 
         The values are as follows:
 
         - -1: The write request needs to be synchronized to a number of active nodes in the replication group before the database write operation returns a response to the client.
+        - -2: The write request needs to be synchronized to a number of major nodes in the replication group before the database write operation returns a response to the client.
+        - -3: The write request needs to be synchronized to a number of major active nodes in the replication group before the database write operation returns a response to the client.
         - 0: The write request needs to be synchronized to all nodes in the replication group before the database write operation returns a response to the client.
         - 1~7: The write request needs to be synchronized to the specified number of nodes in the replication group before the database write operation returns a response to the client.
 

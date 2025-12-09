@@ -432,6 +432,16 @@ namespace engine
          replyHeader.contextID = -1 ;
          replyHeader.numReturned = 0 ;
 
+         /// set req message group id or node id
+         if ( MSG_INVALID_ROUTEID != pmdGetNodeID().value )
+         {
+            pMsg->routeID.value = pmdGetNodeID().value ;
+         }
+         else if ( SDB_ROLE_CATALOG == pmdGetDBRole() )
+         {
+            pMsg->routeID.columns.groupID = CATALOG_GROUPID ;
+         }
+
          while ( TRUE )
          {
             ++retryTimes ;

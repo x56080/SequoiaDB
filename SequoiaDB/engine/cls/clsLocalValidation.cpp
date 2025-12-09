@@ -255,7 +255,7 @@ namespace engine
    {
       SDB_ASSERT( pFilePath, "pFilePath can't be null" ) ;
 
-      UINT32 rc = SDB_OK ;
+      INT32 rc = SDB_OK ;
       OSSFILE file ;
 
       time.beginTime = pmdGetDBTick() ;

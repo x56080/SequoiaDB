@@ -4896,5 +4896,14 @@ namespace engine
    error:
       goto done;
    }
+
+   BOOLEAN _catCMDGetUser::allowWhenNotPrimary( const MsgRouteID &routeID ) const
+   {
+      if ( CATALOG_GROUPID == routeID.columns.groupID )
+      {
+         return TRUE ;
+      }
+      return FALSE ;
+   }
 }
 

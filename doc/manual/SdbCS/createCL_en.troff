@@ -77,6 +77,14 @@ The values are as follows:
 the replication group before the database write operation returns a response to
 the client.
 .IP \[bu] 2
+\-2: The write request needs to be synchronized to a number of major nodes in
+the replication group before the database write operation returns a response to
+the client.
+.IP \[bu] 2
+\-3: The write request needs to be synchronized to a number of major active
+nodes in the replication group before the database write operation returns a
+response to the client.
+.IP \[bu] 2
 0: The write request needs to be synchronized to all nodes in the replication
 group before the database write operation returns a response to the client.
 .IP \[bu] 2

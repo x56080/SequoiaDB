@@ -187,7 +187,7 @@ namespace engine
       // UpdateTime < curTime < MinKeepTime
       else if ( curTime.time < localItem.minKeepTime.time )
       {
-         sleepTime = ( localItem.minKeepTime.time - curTime.time ) * OSS_ONE_SEC ;
+         sleepTime = ( localItem.minKeepTime.time - curTime.time ) * OSS_ONE_MILLION ;
          result = UTIL_LJOB_DO_CONT ;
       }
       // MinKeepTime <= curTime < MaxKeepTime

@@ -39,7 +39,7 @@
 
 namespace engine
 {
-   #define CLS_GROUPMODE_CHECK_INTERVAL      OSS_ONE_SEC * 60
+   #define CLS_GROUPMODE_CHECK_INTERVAL      OSS_ONE_MILLION * 30    /// 30 secs
 
    class _clsGroupInfo ;
    class _clsReplicateSet ;

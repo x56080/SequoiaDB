@@ -276,11 +276,19 @@ namespace engine
 
       INT16 ret = 1 ;
 
-      INT16 w = sdbGetReplCB()->majoritySize() ;
-
       if ( needWaitSync )
       {
-         ret = w ;
+         pmdEDUCB *cb = pmdGetThreadEDUCB() ;
+         replCB *pRepl = sdbGetReplCB() ;
+
+         if ( cb && SDB_OK == pRepl->replSizeCheck( CLS_REPLSIZE_MAJOR_NODES, ret, cb, TRUE ) )
+         {
+            /// do nothing
+         }
+         else
+         {
+            ret = pRepl->majoritySize() ;
+         }
       }
 
       return ret ;

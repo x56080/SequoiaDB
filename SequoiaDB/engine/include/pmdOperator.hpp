@@ -118,9 +118,9 @@ namespace engine
 
       void setWaitplan( UINT8 w,
                         const utilLocationInfo &info,
-                        BOOLEAN isCriticalLoc = FALSE )
+                        BOOLEAN isCriticalNodeMode = FALSE )
       {
-         _waitPlan.isCritical = isCriticalLoc ;
+         _waitPlan.isCriticalNodeMode = isCriticalNodeMode ;
 
          switch ( _replStrategy )
          {

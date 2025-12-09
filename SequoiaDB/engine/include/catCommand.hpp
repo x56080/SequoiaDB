@@ -964,6 +964,8 @@ namespace engine
          return CMD_NAME_GET_USER;
       }
 
+      virtual BOOLEAN allowWhenNotPrimary( const MsgRouteID &routeID ) const ;
+
    protected:
       BSONObj _query;
    };

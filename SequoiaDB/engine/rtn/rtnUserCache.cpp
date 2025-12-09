@@ -212,13 +212,25 @@ namespace engine
          replyHeader.contextID = -1;
          replyHeader.numReturned = 0;
 
+         MsgHeader *pMsg = ( MsgHeader* )pBuffer ;
+
+         /// set req message group id or node id
+         if ( MSG_INVALID_ROUTEID != pmdGetNodeID().value )
+         {
+            pMsg->routeID.value = pmdGetNodeID().value ;
+         }
+         else if ( SDB_ROLE_CATALOG == pmdGetDBRole() )
+         {
+            pMsg->routeID.columns.groupID = CATALOG_GROUPID ;
+         }
+
          while ( TRUE )
          {
             ++retryTimes;
-            rc = pShard->syncSend( (MsgHeader *)pBuffer, CATALOG_GROUPID, TRUE, &pRecv );
+            rc = pShard->syncSend( pMsg, CATALOG_GROUPID, TRUE, &pRecv );
             if ( SDB_OK != rc )
             {
-               rc = pShard->syncSend( (MsgHeader *)pBuffer, CATALOG_GROUPID, FALSE, &pRecv );
+               rc = pShard->syncSend( pMsg, CATALOG_GROUPID, FALSE, &pRecv );
                PD_RC_CHECK( rc, PDERROR, "Failed to send get user req to catalog, rc: %d", rc );
             }
             if ( !pRecv )

@@ -49,7 +49,7 @@ SDB_SNAP_HEALTH
 | FileDesp.LoadPercent | int32  | 节点进程占用的文件句柄的百分比 |
 | FileDesp.TotalNum    | int64  | 节点进程文件句柄限制           |
 | FileDesp.FreeNum     | int64  | 节点进程剩余的文件句柄个数     |
-| FTStatus | string | 容错状态，取值如下：<br>"NOSPC"：磁盘空间不足<br>"DEADSYNC"：节点数据不同步 <br>"SLOWNODE"：节点数据同步过慢<br>"TRANSERR"：节点事务异常 |
+| FTStatus | string | 容错状态，取值如下：<br>"NOSPC"：磁盘空间不足 <br>"DEADSYNC"：节点数据不同步 <br>"SLOWNODE"：节点数据同步过慢 <br>"DISKFAULT" ：磁盘异常 <br>"TRANSERR"：节点事务异常 |
 | StartHistory         | array     | 节点启动历史（只取最新的十条记录）                              |
 | AbnormalHistory      | array     | 节点异常后启动历史（只取最新的十条记录）                        |
 | StatusHistory        | array     | 节点历史状态（只取最新的十条记录）                              |
