@@ -271,7 +271,6 @@ namespace engine
    {
       // For sub-command inside transaction, do not wait for replicas
       // For ending transaction of commands, wait for majority number of replicas
-      INT16 w = (INT16)( sdbGetReplCB()->groupSize() / 2 + 1 ) ;
       INT16 ret = 1 ;
 
       if ( needWaitSync )
@@ -285,7 +284,7 @@ namespace engine
          }
          else
          {
-            ret = pRepl->majoritySize() ;
+            ret = (INT16)( pRepl->groupSize() / 2 + 1 ) ;
          }
       }
 
