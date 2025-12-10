@@ -1304,7 +1304,7 @@ namespace engine
                   /// need to update grpMode
                   getReplCB()->startGrpModeJob() ;
                }
-               else if ( vote->isConstantGrpMode() )
+               else // if ( vote->isConstantGrpMode() )
                {
                   vote->startCriticalModeMonitor() ;
                }

@@ -158,7 +158,7 @@ namespace engine
 
       // Check if grpMode in clsReplicaSet is valid,
       // if effective node in critical is not primary, stop critical mode
-      if ( ( INVALID_NODEID == _info->local.columns.nodeID ||
+      if ( ( INVALID_NODEID == grpItem.nodeID ||
              _info->local.columns.nodeID != grpItem.nodeID ) &&
            ( MSG_INVALID_LOCATIONID == grpItem.locationID ||
              pmdGetLocationID() != grpItem.locationID ) )

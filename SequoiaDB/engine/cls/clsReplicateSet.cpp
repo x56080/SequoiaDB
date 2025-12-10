@@ -3053,7 +3053,7 @@ namespace engine
                /// need to update grpMode
                rc = startGrpModeJob() ;
             }
-            else if ( _vote.isConstantGrpMode() )
+            else // if ( _vote.isConstantGrpMode() )
             {
                rc = _vote.startCriticalModeMonitor() ;
             }
