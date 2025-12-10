@@ -504,11 +504,16 @@ namespace engine
 
    /* 
       _clsGroupModeReqJob Implement
-    */
-   _clsGroupModeReqJob::_clsGroupModeReqJob( _clsGroupInfo *info, _clsReplicateSet *pRepl )
+   */
+   ossAtomic32 _clsGroupModeReqJob::version( 0 ) ;
+
+   _clsGroupModeReqJob::_clsGroupModeReqJob( _clsGroupInfo *info, _clsReplicateSet *pRepl, UINT64 delayMS )
    : _info( info ),
-     _repl( pRepl )
+     _repl( pRepl ),
+     _delayMS( delayMS ),
+     _localVersion( version.inc() + 1 )
    {
+      _createTick = pmdGetDBTick() ;
    }
 
    _clsGroupModeReqJob::~_clsGroupModeReqJob()
@@ -535,6 +540,27 @@ namespace engine
       vector< BSONObj > objList ;
       BOOLEAN attachedDummySession = FALSE ;
       pmdDummySession session ;
+
+      /// check version
+      if ( _localVersion < version.fetch() )
+      {
+         PD_LOG( PDDEBUG, "There is a new job executed by other thread, quit this job" ) ;
+         result = UTIL_LJOB_DO_FINISH ;
+         goto done ;
+      }
+      else if ( PMD_IS_DB_DOWN() )
+      {
+         PD_LOG( PDDEBUG, "DB is down, stop group mode monitor" ) ;
+         result = UTIL_LJOB_DO_FINISH ;
+         rc = SDB_APP_INTERRUPT ;
+         goto error ;
+      }
+      /// check delay
+      else if ( _delayMS > 0 && pmdGetTickSpanTime( _createTick ) < _delayMS )
+      {
+         sleepTime = 100000 ;    /// 100 ms
+         goto done ;
+      }
 
       if ( NULL == cb->getSession() )
       {
@@ -647,9 +673,9 @@ namespace engine
       {
          const _clsGrpModeItem &grpModeItem = grpMode.grpModeInfo[0] ;
 
-         if ( ( INVALID_NODEID != _info->local.columns.nodeID &&
+         if ( ( INVALID_NODEID != grpModeItem.nodeID &&
                 _info->local.columns.nodeID == grpModeItem.nodeID ) ||
-              ( CLS_INVALID_LOCATIONID != grpModeItem.locationID &&
+              ( MSG_INVALID_LOCATIONID != grpModeItem.locationID &&
                 pmdGetLocationID() == grpModeItem.locationID ) )
          {
             // Set shadowTime = -1, which means this node is in critical mode
@@ -691,14 +717,14 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLS_STARTGRPMODEREQ, "clsStartGroupModeReqJob" )
-   INT32 clsStartGroupModeReqJob( _clsGroupInfo *info, _clsReplicateSet *pRepl )
+   INT32 clsStartGroupModeReqJob( _clsGroupInfo *info, _clsReplicateSet *pRepl, UINT64 delayMS )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CLS_STARTGRPMODEREQ ) ;
 
       _clsGroupModeReqJob *pJob = NULL ;
 
-      pJob = SDB_OSS_NEW _clsGroupModeReqJob( info, pRepl ) ;
+      pJob = SDB_OSS_NEW _clsGroupModeReqJob( info, pRepl, delayMS ) ;
       if ( NULL == pJob )
       {
          rc = SDB_OOM ;

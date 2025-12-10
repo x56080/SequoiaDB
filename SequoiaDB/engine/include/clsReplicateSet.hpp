@@ -498,7 +498,7 @@ namespace engine
                                            BOOLEAN isLocalMode,
                                            BOOLEAN enforced = FALSE ) ;
 
-         INT32          startGrpModeJob() ;
+         INT32          startGrpModeJob( UINT64 delayMS = 0 ) ;
 
          MsgRouteID     getPrimary () ;
          MsgRouteID     getLocationPrimary () ;

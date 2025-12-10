@@ -157,7 +157,7 @@ namespace engine
    class _clsGroupModeReqJob : public _utilLightJob
    {
    public:
-      _clsGroupModeReqJob( _clsGroupInfo *info, _clsReplicateSet *pRepl ) ;
+      _clsGroupModeReqJob( _clsGroupInfo *info, _clsReplicateSet *pRepl, UINT64 delayMS = 0 ) ;
 
       virtual ~_clsGroupModeReqJob() ;
 
@@ -171,16 +171,27 @@ namespace engine
                           UINT64 &sleepTime ) ;
 
    private:
+      // Use to indicate the latest thread's job version
+      static ossAtomic32 version ;
+
+   private:
       INT32 _handleGroupModeRes( const BSONObj &grpModeInfo ) ;
 
    private:
       // This info stores group info, not location info
       _clsGroupInfo                    *_info ;
       _clsReplicateSet                 *_repl ;
+
+      UINT64                           _delayMS ;
+      UINT64                           _createTick ;
+
+      const UINT32                     _localVersion ;
    } ;
    typedef _clsGroupModeReqJob clsGroupModeReqJob ;
 
-   INT32 clsStartGroupModeReqJob( _clsGroupInfo *info, _clsReplicateSet *pRepl ) ;
+   INT32 clsStartGroupModeReqJob( _clsGroupInfo *info,
+                                  _clsReplicateSet *pRepl,
+                                  UINT64 delayMS = 0 ) ;
 
 }
 

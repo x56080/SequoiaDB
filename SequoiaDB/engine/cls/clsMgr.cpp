@@ -1301,8 +1301,9 @@ namespace engine
             {
                if ( vote->isTmpGrpMode() )
                {
-                  /// need to update grpMode
-                  getReplCB()->startGrpModeJob() ;
+                  /// need to update grpMode, need delay update, because, startCritical is
+                  /// first to reelect, then save catalog group mode
+                  getReplCB()->startGrpModeJob( 5 * OSS_ONE_SEC ) ;
                }
                else // if ( vote->isConstantGrpMode() )
                {

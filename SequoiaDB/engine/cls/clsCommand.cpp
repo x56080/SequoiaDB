@@ -1243,7 +1243,7 @@ namespace engine
       else
       {
          /// check locationID
-         if ( CLS_INVALID_LOCATIONID != _locationID &&
+         if ( MSG_INVALID_LOCATIONID != _locationID &&
               pmdGetLocationID() == _locationID &&
               repl->primaryIsMe() )
          {

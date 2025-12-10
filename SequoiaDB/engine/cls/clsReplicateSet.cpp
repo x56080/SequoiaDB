@@ -1183,9 +1183,9 @@ namespace engine
       goto done ;
    }
 
-   INT32 _clsReplicateSet::startGrpModeJob()
+   INT32 _clsReplicateSet::startGrpModeJob( UINT64 delayMS )
    {
-      return clsStartGroupModeReqJob( &_info, this ) ;
+      return clsStartGroupModeReqJob( &_info, this, delayMS ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREPSET_GETPRMY, "_clsReplicateSet::getPrimary" )
