@@ -123,6 +123,10 @@ function test ()
       delete detail.LobUsageRate;
       delete detail.AvgLobSize;
 
+      delete detail.DataCommitted ;
+      delete detail.IndexCommitted ;
+      delete detail.LobCommitted ;
+
       for ( field in detail )
       {
          if ( field in obj1 && field in detail )
