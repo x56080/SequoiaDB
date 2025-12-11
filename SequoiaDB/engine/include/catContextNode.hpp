@@ -204,6 +204,8 @@ namespace engine
 
       virtual INT32 _executeInternal ( _pmdEDUCB *cb, INT16 w ) ;
 
+      virtual INT32 _rollbackInternal ( _pmdEDUCB *cb, INT16 w ) ;
+
       virtual INT32 _buildP1Reply( BSONObjBuilder &builder ) ;
 
    private:

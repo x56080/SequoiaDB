@@ -544,13 +544,13 @@ namespace engine
       /// check version
       if ( _localVersion < version.fetch() )
       {
-         PD_LOG( PDDEBUG, "There is a new job executed by other thread, quit this job" ) ;
+         PD_LOG( PDDEBUG, "There is a new group mode job executed by other thread, quit this job" ) ;
          result = UTIL_LJOB_DO_FINISH ;
          goto done ;
       }
       else if ( PMD_IS_DB_DOWN() )
       {
-         PD_LOG( PDDEBUG, "DB is down, stop group mode monitor" ) ;
+         PD_LOG( PDDEBUG, "DB is down, stop group mode job" ) ;
          result = UTIL_LJOB_DO_FINISH ;
          rc = SDB_APP_INTERRUPT ;
          goto error ;

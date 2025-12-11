@@ -711,6 +711,9 @@ namespace engine
          {
             rc = _checkCriticalMode( TRUE ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to check critical mode, rc: %d", rc ) ;
+
+            _executeOnP1 = TRUE ;
+            _needRollback = TRUE ;
          }
          else if ( 0 == ossStrcmp( SDB_ALTER_GROUP_STOP_CRITICAL_MODE, _pActionName ) )
          {
@@ -787,6 +790,25 @@ namespace engine
       return rc ;
    error :
       goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXALTERGRP_ROLLBACK_INT, "_catCtxAlterGrp::_rollbackInternal" )
+   INT32 _catCtxAlterGrp::_rollbackInternal( _pmdEDUCB *cb, INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_CATCTXALTERGRP_ROLLBACK_INT ) ;
+
+      if ( 0 == ossStrcmp( SDB_ALTER_GROUP_START_CRITICAL_MODE, _pActionName ) )
+      {
+         rc = _stopCriticalMode() ;
+         PD_RC_CHECK( rc, PDWARNING, "Failed to rollback start critical mode, rc: %d", rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC ( SDB_CATCTXALTERGRP_ROLLBACK_INT, rc ) ;
+      return rc ;
+   error:
+      goto done ;      
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXALTERGRP__BUILDP1REPLY, "_catCtxAlterGrp::_buildP1Reply" )
