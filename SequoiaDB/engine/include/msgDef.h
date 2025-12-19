@@ -724,6 +724,12 @@
 #define FIELD_NAME_HOLDER_RELATED_GROUPID    "HolderRelatedGroupID"
 #define FIELD_NAME_WAITER_SESSIONID          "WaiterSessionID"
 #define FIELD_NAME_HOLDER_SESSIONID          "HolderSessionID"
+#define FIELD_NAME_FORCE                     "Force"
+#define FIELD_NAME_ISDESTINATION             "IsDestination"
+#define FIELD_NAME_IGNORE_DEFAULT            "IgnoreDefault"
+#define FIELD_NAME_SHOW_RUNSTATUS            "ShowRunStatus"
+#define FIELD_NAME_RUNSTATUS_WEIGHT          "RunStatusWeight"
+#define FIELD_NAME_RUNSTATUS_WEIGHT_DESP     "RunStatusWeightDesp"
 
 #define FIELD_NAME_CREATE_TIME               "CreateTime"
 #define FIELD_NAME_UPDATE_TIME               "UpdateTime"
