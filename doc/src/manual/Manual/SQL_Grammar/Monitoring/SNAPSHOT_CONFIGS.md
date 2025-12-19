@@ -19,8 +19,10 @@ $SNAPSHOT_CONFIGS
 
 | 参数名 | 类型 | 描述 | 是否必填 |
 | ------ | -------- | ---- | -------- |
-| Mode   | string  | 指定返回配置的模式，默认为“run” <br>在“run”模式下，显示当前运行时配置信息，在“local”模式下，显示配置文件中配置信息，如 { "Mode": "local" } | 否 |
-| Expand | boolean/string  | 是否扩展显示用户未配置的配置项，默认为 true，如 { "Expand": false }| 否 |
+| Mode   | string  | 指定返回配置的模式，默认为“run” <br>在“run”模式下，显示当前运行时配置信息，在“local”模式下，显示配置文件中配置信息，如 `use_option(Mode,local)` | 否 |
+| Expand | boolean/string  | 是否扩展显示用户未配置的配置项，默认为 true，如 `use_option(Expand,false)` | 否 |
+| IgnoreDefault | boolean/string | 是否忽略和默认值相同的配置项，默认为 false, 如 `use_option(IgnoreDefault,true)` | 否 |
+| ShowRunStatus | boolean/string | 是否显示节点运行状态参数（非配置参数），默认为 false，如 `use_option(ShowRunStatus,true)`。取值为 true 时，显示增加如下字段：<br> - RunStatusWeight：运行状态权值，类型：int <br> - RunStatusWeightDesp：运行状态权值描述，类型：string，如 "ActiveLocation" <br> - NodeID: 节点ID，类型：int <br> - IsPrimary：是否为主节点，类型：boolean | 否 |
 
 ##示例##
 

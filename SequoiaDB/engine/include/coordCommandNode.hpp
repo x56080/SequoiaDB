@@ -731,6 +731,7 @@ namespace engine
       private:
          UINT32              _groupID ;
          const CHAR*         _pActionName ;
+         BOOLEAN             _enforced ;
          CoordGroupInfoPtr   _groupInfoPtr ;
    } ;
    typedef _coordCMDAlterRG coordCMDAlterRG ;

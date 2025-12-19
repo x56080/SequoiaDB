@@ -136,9 +136,19 @@ namespace engine
             return _locationVote.primaryIsMe() ;
          }
 
-         OSS_INLINE BOOLEAN isActiveLocation()
+         OSS_INLINE BOOLEAN isActiveLocation() const
          {
             return _vote.hasElectionWeight( CLS_ELECTION_WEIGHT_ACTIVE_LOCATION ) ;
+         }
+
+         OSS_INLINE BOOLEAN isAffinitiveLocation() const
+         {
+            return _vote.hasElectionWeight( CLS_ELECTION_WEIGHT_AFFINITIVE_LOCATION ) ;
+         }
+
+         OSS_INLINE UINT8 getElectionWeight() const
+         {
+            return _vote.getElectionWeight() ;
          }
 
          OSS_INLINE clsBucket* getBucket ()

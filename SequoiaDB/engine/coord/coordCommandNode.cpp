@@ -3335,7 +3335,8 @@ namespace engine
                                       FALSE ) ;
    _coordCMDAlterRG::_coordCMDAlterRG()
    : _groupID( INVALID_GROUPID ),
-     _pActionName( NULL )
+     _pActionName( NULL ),
+     _enforced( FALSE )
    {
    }
 
@@ -3366,6 +3367,18 @@ namespace engine
             goto error ;
          }
          _pActionName = ele.valuestrsafe() ;
+
+         /// Get option
+         ele = queryObj.getField( FIELD_NAME_OPTIONS ) ;
+         if ( Object == ele.type() )
+         {
+            BSONObj objOption( ele.embeddedObject() ) ;
+            BSONElement eleEnforced = objOption.getField( FIELD_NAME_ENFORCED1 ) ;
+            if ( !eleEnforced.eoo() )
+            {
+               _enforced = eleEnforced.booleanSafe() ;
+            }
+         }
       }
       catch ( std::exception &e )
       {
@@ -3478,10 +3491,11 @@ namespace engine
             // Notify all group nodes to update group info in clsReplicateSet
             helper.notify2GroupNodes( _pResource, _groupID, cb ) ;
             /// wait the nodes to update group info
-            if ( 0 == ossStrcmp( CMD_VALUE_NAME_START_MAINTENANCE_MODE, _pActionName ) ||
-                 0 == ossStrcmp( CMD_VALUE_NAME_STOP_MAINTENANCE_MODE, _pActionName ) )
+            if ( !_enforced &&
+                 ( 0 == ossStrcmp( CMD_VALUE_NAME_START_MAINTENANCE_MODE, _pActionName ) ||
+                   0 == ossStrcmp( CMD_VALUE_NAME_STOP_MAINTENANCE_MODE, _pActionName ) ) )
             {
-               ossSleep( OSS_ONE_SEC ) ;
+               ossSleep( OSS_ONE_SEC >> 2 ) ;
             }
          }
          else

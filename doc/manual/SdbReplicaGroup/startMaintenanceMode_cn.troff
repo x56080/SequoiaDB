@@ -77,6 +77,19 @@ Maintenance 模式；在 MinKeepTime\-MaxKeepTime
 指定的时间后，节点将强制解除 Maintenance 模式。
 .RE
 .RE
+.IP \[bu] 2
+Enforced（ \f[I]boolean\f[] ）：是否强制开启 Maintenance 模式（保留），默认值为
+false
+.RS 2
+.PP
+该参数选填，取值如下：
+.IP \[bu] 2
+true：执行命令不进行等待。
+.IP \[bu] 2
+false：执行命令会进行一定时间等待。
+.PP
+格式：\f[C]Enforced: true\f[]
+.RE
 .SH 返回值
 .PP
 函数执行成功时，无返回值。

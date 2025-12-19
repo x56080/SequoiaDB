@@ -66,6 +66,7 @@
 #include "msgDef.h"
 #include "monMgr.hpp"
 #include "utilMath.hpp"
+#include "clsUtil.hpp"
 
 using namespace bson ;
 using namespace boost::asio::ip ;
@@ -5640,6 +5641,8 @@ namespace engine
       _addInfoMask   = 0 ;
       _isLocalMode   = FALSE ;
       _isExpand      = TRUE ;
+      _ignoreDefault = FALSE ;
+      _showRunStatus = FALSE ;
    }
 
    _monConfigsFetch::~_monConfigsFetch()
@@ -5678,6 +5681,40 @@ namespace engine
                else if ( elem.type() == bson::String )
                {
                   ossStrToBoolean( elem.valuestr(), &_isExpand ) ;
+               }
+               else if ( elem.isNumber() )
+               {
+                  _isExpand = ( 0 == elem.numberInt() ) ? FALSE : TRUE ;
+               }
+            }
+            else if ( 0 == ossStrcasecmp( elem.fieldName(), FIELD_NAME_IGNORE_DEFAULT ) )
+            {
+               if ( elem.type() == bson::Bool )
+               {
+                  _ignoreDefault = elem.boolean() ;
+               }
+               else if ( elem.type() == bson::String )
+               {
+                  ossStrToBoolean( elem.valuestr(), &_ignoreDefault ) ;
+               }
+               else if ( elem.isNumber() )
+               {
+                  _ignoreDefault = ( 0 == elem.numberInt() ) ? FALSE : TRUE ;
+               }
+            }
+            else if ( 0 == ossStrcasecmp( elem.fieldName(), FIELD_NAME_SHOW_RUNSTATUS ) )
+            {
+               if ( elem.type() == bson::Bool )
+               {
+                  _showRunStatus = elem.boolean() ;
+               }
+               else if ( elem.type() == bson::String )
+               {
+                  ossStrToBoolean( elem.valuestr(), &_showRunStatus ) ;
+               }
+               else if ( elem.isNumber() )
+               {
+                  _showRunStatus = ( 0 == elem.numberInt() ) ? FALSE : TRUE ;
                }
             }
          }
@@ -5719,30 +5756,77 @@ namespace engine
       else
       {
          _builder.reset() ;
-         BSONObjBuilder ob( _builder ) ;
-         BSONObj tmpObj ;
 
-         /// add system info
-         monAppendSystemInfo( ob, _addInfoMask ) ;
-         if ( !_isExpand )
+         try
          {
-            mask |= PMD_CFG_MASK_SKIP_UNFIELD ;
-         }
-         if ( _isLocalMode )
-         {
-            mask |= PMD_CFG_MASK_MODE_LOCAL ;
-         }
+            BSONObjBuilder ob( _builder ) ;
+            BSONObj tmpObj ;
 
-         rc = pmdGetOptionCB()->toBSON( tmpObj, mask ) ;
-         if ( rc != SDB_OK )
+            /// add system info
+            monAppendSystemInfo( ob, _addInfoMask ) ;
+            if ( !_isExpand )
+            {
+               mask |= PMD_CFG_MASK_SKIP_UNFIELD ;
+            }
+            if ( _isLocalMode )
+            {
+               mask |= PMD_CFG_MASK_MODE_LOCAL ;
+            }
+            if ( _ignoreDefault )
+            {
+               mask |= ( PMD_CFG_MASK_SKIP_HIDEDFT | PMD_CFG_MASK_SKIP_NORMALDFT ) ;
+            }
+
+            rc = pmdGetOptionCB()->toBSON( tmpObj, mask ) ;
+            if ( rc != SDB_OK )
+            {
+               PD_LOG ( PDERROR, "Failed to generate config, rc: %d", rc ) ;
+               goto error ;
+            }
+            ob.appendElements( tmpObj ) ;
+
+            /// add run status
+            if ( _showRunStatus )
+            {
+               pmdKRCB *krcb = pmdGetKRCB() ;
+
+               /// | election weight(8) | weight(8) |
+               INT32 runStatusWeight = 0 ;
+               const CHAR* runStatusWeightDesp = "" ;
+
+               if ( krcb->getClsCB() && krcb->getClsCB()->getReplCB() )
+               {
+                  replCB *replcb = krcb->getClsCB()->getReplCB() ;
+                  if ( replcb->isInMaintenanceMode() )
+                  {
+                     runStatusWeight = 0 ;
+                  }
+                  else
+                  {
+                     runStatusWeight = replcb->getElectionWeight() ;
+                     OSS_BIT_CLEAR( runStatusWeight, CLS_ELECTION_WEIGHT_REELECT_TARGET_NODE ) ;
+                     runStatusWeightDesp = clsElectionWeightToString( runStatusWeight ) ;
+
+                     runStatusWeight = ( runStatusWeight << 8 ) |
+                                       ( (INT32)( pmdGetOptionCB()->weight() ) ) ;
+                  }
+                  ob.append( FIELD_NAME_RUNSTATUS_WEIGHT, runStatusWeight ) ;
+                  ob.append( FIELD_NAME_RUNSTATUS_WEIGHT_DESP, runStatusWeightDesp ) ;
+                  ob.append( FIELD_NAME_NODEID, (INT32)pmdGetNodeID().columns.nodeID ) ;
+                  ob.appendBool( FIELD_NAME_IS_PRIMARY, replcb->primaryIsMe() ) ;
+               }
+            }
+
+            obj = ob.done() ;
+
+            _hitEnd = TRUE ;
+         }
+         catch( std::exception &e )
          {
-            PD_LOG ( PDERROR, "Failed to generate config, rc: %d", rc ) ;
+            rc = ossException2RC( &e ) ;
+            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
             goto error ;
          }
-         ob.appendElements( tmpObj ) ;
-         obj = ob.done() ;
-
-         _hitEnd = TRUE ;
       }
 
    done:

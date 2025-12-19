@@ -33,6 +33,15 @@ Specify the Maintenance mode attributes through the parameter "options":
 
     Format: `Location: "GuangZhou"`
 
+- Enforced ( *boolean* ): Whether to force to stop Maintenance mode(Reserved), the default value is "false".
+
+    This parameter is optional, and the values are as follows:
+
+    - true: Do the command with no wait.
+    - false: Do the command with some time wait.
+
+    Format: `Enforced: true`
+
 > **Note:**
 >
 > If the options parameter is missing or the options is empty {}, the command will stop Maintenance mode for all nodes in replica group.

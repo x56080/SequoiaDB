@@ -214,4 +214,25 @@ namespace engine
       return _clsGetConsistencyStrategy() ;
    }
 
+   const CHAR* clsElectionWeightToString( UINT8 electionWeight )
+   {
+      if( electionWeight & CLS_ELECTION_WEIGHT_REELECT_TARGET_NODE )
+      {
+         return "ReelectTarget" ;
+      }
+      else if ( electionWeight & CLS_ELECTION_WEIGHT_CRITICAL_NODE )
+      {
+         return "Critical" ;
+      }
+      else if ( electionWeight & CLS_ELECTION_WEIGHT_ACTIVE_LOCATION )
+      {
+         return "ActiveLocation" ;
+      }
+      else if ( electionWeight & CLS_ELECTION_WEIGHT_AFFINITIVE_LOCATION )
+      {
+         return "AffinitiveLocation" ;
+      }
+      return "" ;
+   }
+
 }

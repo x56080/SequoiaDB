@@ -57,11 +57,13 @@
 ####options选项####
 | 参数名  | 参数类型 | 对应快照 | 描述 | 是否必填 |
 | ------  | -------- | -------- | ---- | -------- |
-| Mode    |  string  | [配置快照][SNAP_CONFIGS] | 指定返回配置的模式，默认为"run"，取值如下：<br>"run"：显示当前运行时配置信息 <br>"local"：显示配置文件中配置信息<br>如{"Mode":"local"}  | 否 |
-| Expand  |  boolean/string  | [配置快照][SNAP_CONFIGS]  | 是否扩展显示用户未配置的配置项，默认为 true，如 {"Expand":false} | 否 |
-| ShowError | string | ALL | 指定是否返回错误信息，默认为"show"，取值如下： <br>"show"：显示错误信息 <br>"only"：只显示错误信息，不显示其他快照信息 <br>"ignore"：不显示错误信息 <br>如 { "ShowError: "only" }  | 否 |
-| ShowErrorMode | string | ALL | 指定返回错误信息的格式，默认为"aggr"，取值如下： <br>"aggr"：错误信息聚合为一条记录显示<br>"flat"：一个错误节点对应一条记录显示 <br>如 {"ShowErrorMode":"flat"}  | 否 |
-| viewHistory | boolean/string | [查询快照][SNAP_QUERIES]、[锁等待快照][SNAP_LOCKWAITS]、[闩锁等待快照][SNAP_LATCHWAITS]  | 显示快照中保留的慢查询相关的历史信息，默认为 true<br>当前暂时只支持显示查询快照、锁等待快照和闩锁等待快照的历史信息，如 { "viewHistory": true }   | 否 |
+| Mode    |  string  | [配置快照][SNAP_CONFIGS] | 指定返回配置的模式，默认为"run"，取值如下：<br>"run"：显示当前运行时配置信息 <br>"local"：显示配置文件中配置信息<br>如 `{"Mode":"local"}`  | 否 |
+| Expand  |  boolean/string  | [配置快照][SNAP_CONFIGS]  | 是否扩展显示用户未配置的配置项，默认为 true，如 `{"Expand":false}` | 否 |
+| IgnoreDefault |  boolean/string  | [配置快照][SNAP_CONFIGS] | 是否忽略和默认值相同的配置项，默认为 false, 如 `{"IgnoreDefault":true}` | 否 |
+| ShowRunStatus |  boolean/string  | [配置快照][SNAP_CONFIGS] | 是否显示节点运行状态参数（非配置参数），默认为 false，如 `{ "ShowRunStatus":true}`，取值为 true 时，显示增加如下字段：<br> - RunStatusWeight：运行状态权值，类型：int <br> - RunStatusWeightDesp：运行状态权值描述，类型：string，如 "ActiveLocation" <br> - NodeID: 节点ID，类型：int <br> - IsPrimary：是否为主节点，类型：boolean | 否 |
+| ShowError | string | ALL | 指定是否返回错误信息，默认为"show"，取值如下： <br>"show"：显示错误信息 <br>"only"：只显示错误信息，不显示其他快照信息 <br>"ignore"：不显示错误信息 <br>如 `{ "ShowError: "only" }`  | 否 |
+| ShowErrorMode | string | ALL | 指定返回错误信息的格式，默认为"aggr"，取值如下： <br>"aggr"：错误信息聚合为一条记录显示<br>"flat"：一个错误节点对应一条记录显示 <br>如 `{"ShowErrorMode":"flat"}`  | 否 |
+| ViewHistory | boolean/string | [查询快照][SNAP_QUERIES]、[锁等待快照][SNAP_LOCKWAITS]、[闩锁等待快照][SNAP_LATCHWAITS]  | 显示快照中保留的慢查询相关的历史信息，默认为 true<br>当前暂时只支持显示查询快照、锁等待快照和闩锁等待快照的历史信息，如 `{ "ViewHistory": true }`   | 否 |
 
 
 > **Note：**
@@ -226,7 +228,7 @@
 - 查看历史查询记录
 
    ```lang-javascript
-   > db.snapshot(SDB_SNAP_QUERIES, new SdbSnapshotOption().options({"viewHistory":true}))
+   > db.snapshot(SDB_SNAP_QUERIES, new SdbSnapshotOption().options({"ViewHistory":true}))
    ```
 
    输出结果如下：

@@ -66,6 +66,8 @@ namespace engine
 
    void clsUpdateConsistencyStrategy( SDB_CONSISTENCY_STRATEGY consistencyStrategy ) ;
    SDB_CONSISTENCY_STRATEGY clsGetConsistencyStrategy() ;
+
+   const CHAR* clsElectionWeightToString( UINT8 electionWeight ) ;
 }
 
 #endif //CLSUTIL_HPP_

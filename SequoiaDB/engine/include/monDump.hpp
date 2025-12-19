@@ -642,6 +642,8 @@ namespace engine
          UINT32                  _addInfoMask ;
          BOOLEAN                 _isLocalMode ;
          BOOLEAN                 _isExpand ;
+         BOOLEAN                 _ignoreDefault ;
+         BOOLEAN                 _showRunStatus ;
 
    } ;
    typedef _monConfigsFetch monConfigsFetch ;

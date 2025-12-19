@@ -55,6 +55,15 @@ options（ *object，必填* ）
     > - MinKeepTime 的取值应小于 MaxKeepTime。
     > - 成功开启 Maintenance 模式后，在未达到 MinKeepTime 指定的时间前，节点会一直保持 Maintenance 模式；在 MinKeepTime-MaxKeepTime 时间段内，如果节点状态正常，会自动解除 Maintenance 模式；超过 MaxKeepTime 指定的时间后，节点将强制解除 Maintenance 模式。
 
+- Enforced（ *boolean* ）：是否强制开启 Maintenance 模式（保留），默认值为 false
+
+    该参数选填，取值如下：
+
+    - true：执行命令不进行等待。
+    - false：执行命令会进行一定时间等待。
+
+    格式：`Enforced: true`
+
 ##返回值##
 
 函数执行成功时，无返回值。

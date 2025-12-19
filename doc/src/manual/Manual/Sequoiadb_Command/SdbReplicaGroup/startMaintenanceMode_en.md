@@ -55,6 +55,15 @@ Specify the Maintenance mode attributes through the parameter "options":
     > - The value of "MinKeepTime" should be less than "MaxKeepTime".
     > - After successfully starting the Maintenance mode, the replication group will remain in the Maintenance mode until the time specified by "MinKeepTime" is reached. During the period from "MinKeepTime" to "MaxKeepTime", if most nodes in the replication group are normal, the Maintenance mode will be automatically released. After the time specified by "MaxKeepTime" expires, the replication group will forcibly cancel the Maintenance mode.
 
+- Enforced ( *boolean* ): Whether to force to start Maintenance mode(Reserved), the default value is "false".
+
+    This parameter is optional, and the values are as follows:
+
+    - true: Do the command with no wait.
+    - false: Do the command with some time wait.
+
+    Format: `Enforced: true`
+
 ##RETURN VALUE##
 
 When the function executes successfully, there is no return value.

@@ -33,6 +33,15 @@ options（ *object，选填* ）
 
     格式：`Location: "GuangZhou"`
 
+- Enforced（ *boolean* ）：是否强制停止 Maintenance 模式（保留），默认值为 false
+
+    该参数选填，取值如下：
+
+    - true：执行命令不进行等待。
+    - false：执行命令会进行一定时间等待。
+
+    格式：`Enforced: true`
+
 > **Note:**
 >
 > 如不指定 options 参数，或 options 参数为空 {}，表示停止复制组中所有节点的 Maintenance 模式。

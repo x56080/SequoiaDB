@@ -37,6 +37,19 @@ This parameter takes effect only when parameter "NodeName" is not specified.
 .PP
 Format: \f[C]Location: "GuangZhou"\f[]
 .RE
+.IP \[bu] 2
+Enforced ( \f[I]boolean\f[] ): Whether to force to stop Maintenance
+mode(Reserved), the default value is "false".
+.RS 2
+.PP
+This parameter is optional, and the values are as follows:
+.IP \[bu] 2
+true: Do the command with no wait.
+.IP \[bu] 2
+false: Do the command with some time wait.
+.PP
+Format: \f[C]Enforced: true\f[]
+.RE
 .RS
 .PP
 \f[B]Note:\f[]

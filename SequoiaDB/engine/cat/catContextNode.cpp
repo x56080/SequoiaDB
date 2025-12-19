@@ -1079,8 +1079,10 @@ namespace engine
       }
 
       // If the command is stop maintenance mode and options is empty, it means stop all maintenance mode
-      if ( ! isStartMode && _option.isEmpty() )
-      {
+      if ( ! isStartMode &&
+           ( _option.isEmpty() ||
+             ( 1 == _option.nFields() && _option.hasField( FIELD_NAME_ENFORCED1 ) ) ) )
+      {         
          goto done ;
       }
 
