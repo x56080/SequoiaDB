@@ -105,6 +105,15 @@ namespace engine
 
          INT32 _rebuildDataSourceInsertMsg( pmdSubSession *pSub,
                                             _pmdEDUCB *cb ) ;
+         INT32 _getInsertSubCLNames( netIOVec *dataVec,
+                                     ossPoolVector< const CHAR * > &subCLNames ) ;
+         INT32 _rebuildDSInsertMsg4SingleSubCL( pmdSubSession *pSub,
+                                                _pmdEDUCB *cb ) ;
+         INT32 _rebuildDSInsertMsg4MultiSubCL( pmdSubSession *pSub,
+                                               _pmdEDUCB *cb,
+                                               ossPoolVector< const CHAR * > &subCLNameList ) ;
+         INT32 _rebuildDSInsertMsg4GeneralCL( pmdSubSession *pSub,
+                                              _pmdEDUCB *cb ) ;
          INT32 _rebuildDataSourceUpdateMsg( pmdSubSession *pSub,
                                             _pmdEDUCB *cb ) ;
          INT32 _rebuildDataSourceDeleteMsg( pmdSubSession *pSub,
@@ -123,6 +132,13 @@ namespace engine
                                const BSONObj &meta,
                                const pmdEDUEvent &orgEvent,
                                pmdEDUEvent &event ) ;
+         INT32 _buildSubCLInfoHint( const ossPoolVector< const CHAR * > &subCLNameList,
+                                    BSONObjBuilder &builder,
+                                    _pmdEDUCB *cb ) ;
+         INT32 _convertGetDetailEvent( const MsgOpReply *pOld,
+                                       const pmdEDUEvent &orgEvent,
+                                       pmdEDUEvent &event,
+                                       BOOLEAN &hasConvert ) ;
 
          /**
           * Some operations need to be done automatically internally, and they

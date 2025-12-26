@@ -64,6 +64,7 @@ namespace engine
 // #define UTIL_CL_AUTOINCREMENT_FIELD       ( 0x00100000 )  The same with UTIL_CL_AUTOINC_FIELD, deleted
    #define UTIL_CL_DATASOURCE_FIELD          ( 0x00800000 )
    #define UTIL_CL_NOTRANS_FIELD             ( 0x00200000 )
+   #define UTIL_CL_DS_MAINCLNAME_FIELD       ( 0x01000000 )
 
    // mask for one field of autoincrement filed attr.
    #define UTIL_CL_AUTOINC_INCREMENT_FIELD   ( 0x00000001 )

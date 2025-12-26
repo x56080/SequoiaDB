@@ -389,6 +389,7 @@ namespace engine
 
          UINT32         getDataSourceID() const ;
          const string&  getMappingName() const ;
+         const string&  getDSMainCLName() const ;
 
       protected:
          _clsCatalogSet    *next () ;
@@ -486,6 +487,7 @@ namespace engine
 
          UTIL_DS_UID       _dataSourceID ;
          string            _mapping ;
+         string            _dsMainCLName ;
 
          UINT64            _createTime ;
          UINT64            _updateTime ;

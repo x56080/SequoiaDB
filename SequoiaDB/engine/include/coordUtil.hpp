@@ -108,6 +108,14 @@ namespace engine
                              BSONObj *pNewObj = NULL,
                              BOOLEAN strictCheck = FALSE ) ;
 
+   INT32 coordValidateSubCLBounds( const clsCatalogSet &mainCLCataSet,
+                                   const BSONObj &obj,
+                                   BOOLEAN hasUpdateCatalog ) ;
+
+   INT32 coordRemoveSubCLBounds( BSONObj &obj ) ;
+
+   BSONObj coordBuildSubCLIntoObj( const BSONObj &obj,
+                                   const CoordSubCLlist &subCLList ) ;
 }
 
 #endif // COORD_UTIL_HPP__

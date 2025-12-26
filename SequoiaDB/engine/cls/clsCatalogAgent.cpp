@@ -2351,6 +2351,16 @@ namespace engine
          _mapping.clear() ;
       }
 
+      ele = catSet.getField( FIELD_NAME_DS_MAINCL_NAME ) ;
+      if ( ele.type() == String )
+      {
+         _dsMainCLName = ele.str() ;
+      }
+      else
+      {
+         _dsMainCLName.clear() ;
+      }
+
       // create time
       ele = catSet.getField( FIELD_NAME_CREATE_TIME ) ;
       if ( ele.type() == String )
@@ -3414,6 +3424,11 @@ namespace engine
    const string& _clsCatalogSet::getMappingName() const
    {
       return _mapping ;
+   }
+
+   const string& _clsCatalogSet::getDSMainCLName() const
+   {
+      return _dsMainCLName ;
    }
 
    INT32 _clsCatalogSet::findSubCLNames( const BSONObj &matcher,

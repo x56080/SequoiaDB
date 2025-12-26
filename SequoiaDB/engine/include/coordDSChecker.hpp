@@ -114,10 +114,11 @@ namespace engine
       ~_coordDSCLChecker() ;
 
       INT32 check( CoordDataSourcePtr dsPtr, const CHAR *name, pmdEDUCB *cb,
-                   BOOLEAN &exist ) ;
+                   BOOLEAN &exist, std::string *mainCLName = NULL ) ;
 
    } ;
    typedef _coordDSCLChecker coordDSCLChecker ;
+
 }
 
 #endif /* COORD_DSCHECKER_HPP__ */
