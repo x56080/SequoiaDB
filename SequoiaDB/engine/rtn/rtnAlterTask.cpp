@@ -1018,6 +1018,63 @@ namespace engine
    }
 
    /*
+      _rtnCLDataSourceArgument implement
+    */
+   _rtnCLDataSourceArgument::_rtnCLDataSourceArgument ()
+   : _dsMainCLName( NULL )
+   {
+   }
+
+   _rtnCLDataSourceArgument::_rtnCLDataSourceArgument ( const bson::BSONObj & argument )
+   : _rtnAlterTaskArgument( argument ),
+     _dsMainCLName( NULL )
+   {
+   }
+
+   _rtnCLDataSourceArgument::_rtnCLDataSourceArgument ( const rtnCLDataSourceArgument & argument )
+   : _rtnAlterTaskArgument( argument ),
+     _dsMainCLName( NULL )
+   {
+   }
+
+   _rtnCLDataSourceArgument::~_rtnCLDataSourceArgument ()
+   {
+   }
+
+   rtnCLDataSourceArgument & _rtnCLDataSourceArgument::operator = ( const rtnCLDataSourceArgument & argument )
+   {
+      _rtnAlterTaskArgument::operator=( argument ) ;
+      _dsMainCLName = argument._dsMainCLName ;
+      return ( *this ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCLDSARG_PARSEARG, "_rtnCLDataSourceArgument::parseArgument" )
+   INT32 _rtnCLDataSourceArgument::parseArgument ()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__RTNCLDSARG_PARSEARG ) ;
+
+      BSONElement argElement ;
+
+      if ( _argument.hasField( FIELD_NAME_DS_MAINCL_NAME ) )
+      {
+         argElement = _argument.getField( FIELD_NAME_DS_MAINCL_NAME ) ;
+         PD_CHECK( argElement.type() == bson::String, SDB_INVALIDARG, error, PDERROR,
+                   "Failed to get field [%s]", FIELD_NAME_DS_MAINCL_NAME ) ;
+         _dsMainCLName = argElement.valuestr() ;
+         parsedArgumentMask( UTIL_CL_DS_MAINCLNAME_FIELD ) ;
+      }
+
+   done :
+      PD_TRACE_EXITRC( SDB__RTNCLDSARG_PARSEARG, rc ) ;
+      return rc ;
+
+   error :
+      goto done ;
+   }
+
+   /*
       _rtnAlterCLTask implement
     */
    _rtnAlterCLTask::_rtnAlterCLTask ( const rtnAlterTaskSchema & schema,
@@ -1614,6 +1671,7 @@ namespace engine
      _compressArgument( argument, TRUE ),
      _repairCheckArgument( argument ),
      _extOptionArgument( argument ),
+     _dataSourceArgument( argument ),
      _autoRebalance( FALSE ),
      _autoIndexID( TRUE ),
      _idIdxUniqID( UTIL_UNIQUEID_NULL ),
@@ -1696,6 +1754,13 @@ namespace engine
 
       parsedArgumentMask( _extOptionArgument.getArgumentMask(),
                           _extOptionArgument.getArgumentCount() ) ;
+
+      rc = _dataSourceArgument.parseArgument() ;
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to parse data source argument, rc: %d", rc ) ;
+
+      parsedArgumentMask( _dataSourceArgument.getArgumentMask(),
+                          _dataSourceArgument.getArgumentCount() ) ;
 
       if ( _argument.hasField( FIELD_NAME_AUTOINCREMENT ) )
       {

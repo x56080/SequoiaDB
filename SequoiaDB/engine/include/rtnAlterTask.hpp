@@ -519,6 +519,33 @@ namespace engine
    } ;
 
    /*
+      _rtnCLDataSourceArgument define
+    */
+   class _rtnCLDataSourceArgument ;
+   typedef class _rtnCLDataSourceArgument rtnCLDataSourceArgument ;
+
+   class _rtnCLDataSourceArgument : public _rtnAlterTaskArgument
+   {
+      public :
+         _rtnCLDataSourceArgument () ;
+         _rtnCLDataSourceArgument ( const bson::BSONObj & argument ) ;
+         _rtnCLDataSourceArgument ( const rtnCLDataSourceArgument & argument ) ;
+         virtual ~_rtnCLDataSourceArgument () ;
+
+         rtnCLDataSourceArgument & operator = ( const rtnCLDataSourceArgument & argument ) ;
+
+         INT32 parseArgument () ;
+
+         OSS_INLINE const CHAR * getDSMainCLName() const
+         {
+            return _dsMainCLName ;
+         }
+
+      protected :
+         const CHAR * _dsMainCLName ;
+   } ;
+
+   /*
       _rtnCLRepairCheckArgument define
     */
    class _rtnCLRepairCheckArgument ;
@@ -892,6 +919,17 @@ namespace engine
             return _noTrans ;
          }
 
+         OSS_INLINE BOOLEAN containDataSourceArgument () const
+         {
+            return _dataSourceArgument.getArgumentMask() !=
+                  RTN_ALTER_TASK_FLAG_EMPTY ;
+         }
+
+         OSS_INLINE const rtnCLDataSourceArgument & getDataSourceArgument () const
+         {
+            return _dataSourceArgument ;
+         }
+
          OSS_INLINE utilIdxUniqueID getIdIdxUniqueID () const
          {
             return _idIdxUniqID ;
@@ -905,6 +943,7 @@ namespace engine
          rtnCLCompressArgument      _compressArgument ;
          rtnCLRepairCheckArgument   _repairCheckArgument ;
          rtnCLExtOptionArgument     _extOptionArgument ;
+         rtnCLDataSourceArgument    _dataSourceArgument ;
          autoIncFieldsList          _autoIncFieldList ;
 
          BOOLEAN         _autoRebalance ;

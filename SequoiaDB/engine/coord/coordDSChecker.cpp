@@ -1074,7 +1074,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__COORDRDSCLCHECKER_CHECK, "_coordDSCLChecker::check" )
    INT32 _coordDSCLChecker::check( CoordDataSourcePtr dsPtr, const CHAR *name,
-                                   pmdEDUCB *cb, BOOLEAN &exist )
+                                   pmdEDUCB *cb, BOOLEAN &exist, std::string *pMainCLName )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__COORDRDSCLCHECKER_CHECK ) ;
@@ -1117,47 +1117,55 @@ namespace engine
 
       try
       {
+         BSONObj result ;
          BSONObj dummyObj ;
          BSONObj query = BSON( FIELD_NAME_NAME << name ) ;
          rc = msgBuildQueryCMDMsg( ( CHAR **)&msg, &buffLen,
-                                   CMD_ADMIN_PREFIX CMD_NAME_TEST_COLLECTION,
+                                   CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_CATA,
                                    query, dummyObj, dummyObj, dummyObj,
-                                   0, cb ) ;
-         PD_RC_CHECK( rc, PDERROR, "Build test collection command failed[%d]",
+                                   0, cb, -1 ) ;
+         PD_RC_CHECK( rc, PDERROR, "Build snapshot catalog command failed[%d]",
                       rc ) ;
 
-         ((MsgOpQuery *)msg)->numToReturn = -1 ;
+         ((MsgOpQuery *)msg)->flags = FLG_QUERY_WITH_RETURNDATA | FLG_QUERY_CLOSE_EOF_CTX ;
          rc = connection.syncSend( msg, recvEvent, cb, OSS_SOCKET_DFT_TIMEOUT,
                                    COORD_SDB_CONNECTION_FORCE_TIMEOUT ) ;
-         PD_RC_CHECK( rc, PDERROR, "Send test collection command to data "
+         PD_RC_CHECK( rc, PDERROR, "Send snapshot catalog command to data "
                       "source node[%s:%s] failed[%d]",
                       address.getHost(), address.getService(), rc ) ;
 
          rc = msgExtractReply( (CHAR *)(recvEvent._Data), &flag, &contextID,
                                &startFrom, &numReturned, resultSet ) ;
-         PD_RC_CHECK( rc, PDERROR, "Extract test collection reply failed[%d]",
+         PD_RC_CHECK( rc, PDERROR, "Extract snapshot catalog reply failed[%d]",
                       rc ) ;
-         if ( SDB_OK == flag )
+         if ( SDB_OK != flag )
          {
-            exist = TRUE ;
-            goto done  ;
+            rc = flag ;
+            PD_LOG( PDERROR, "snapshot catalog of collection[%s] on "
+                    "data source failed[%d]", name, rc ) ;
+            goto error ;
          }
-         else if ( SDB_DMS_NOTEXIST == flag )
+         if ( resultSet.empty() )
          {
             exist = FALSE ;
-            goto done ;
+            if ( pMainCLName != NULL )
+            {
+               pMainCLName->clear() ;
+            }
          }
          else
          {
-            rc = flag ;
-            PD_LOG( PDERROR, "Test collection[%s] on data source failed[%d]",
-                    name, rc ) ;
-            goto error ;
+            exist = TRUE ;
+            if ( pMainCLName != NULL )
+            {
+               result = resultSet.at( 0 ) ;
+               *pMainCLName = result.getField( FIELD_NAME_MAINCLNAME ).valuestrsafe() ;
+            }
          }
       }
       catch ( std::exception &e )
       {
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
          PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
          goto error ;
       }
@@ -1204,4 +1212,5 @@ namespace engine
    error:
       goto done ;
    }
+
 }

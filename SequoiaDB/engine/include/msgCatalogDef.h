@@ -104,11 +104,13 @@
 #define CAT_COMPRESSOR_LZ4                VALUE_NAME_LZ4
 #define CAT_IS_MAINCL                     FIELD_NAME_ISMAINCL
 #define CAT_MAINCL_NAME                   FIELD_NAME_MAINCLNAME
+#define CAT_DS_MAINCL_NAME                FIELD_NAME_DS_MAINCL_NAME
 #define CAT_SUBCL_NAME                    FIELD_NAME_SUBCLNAME
 #define CAT_LOWBOUND_NAME                 FIELD_NAME_LOWBOUND
 #define CAT_UPBOUND_NAME                  FIELD_NAME_UPBOUND
 #define CAT_OPTIONS_NAME                  FIELD_NAME_OPTIONS
 #define CAT_GROUP_SPECIFIED               FIELD_NAME_GROUP
+#define CAT_UPDATE                        FIELD_NAME_UPDATE
 #define CAT_SHARDING_TYPE                 FIELD_NAME_SHARDTYPE
 #define CAT_SHARDING_TYPE_HASH            FIELD_NAME_SHARDTYPE_HASH
 #define CAT_SHARDING_TYPE_RANGE           FIELD_NAME_SHARDTYPE_RANGE
@@ -169,7 +171,7 @@
 
 #define CAT_ASSIGNGROUP_FOLLOW            "$follow"
 #define CAT_ASSIGNGROUP_RANDOM            "$random"
-#define CAT_DATASOURCE_GROUPNAME          "$null"
+#define CAT_DATASOURCE_GROUPNAME          VALUE_NAME_DATASOURCE_GROUPNAME
 
 #define CAT_DELAY_REPLY_TYPE_NAME         "DELAYEVENT"
 #define CAT_DELAY_REPLY_MSG_NAME          "DELAYREPLY"

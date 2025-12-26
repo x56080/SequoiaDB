@@ -768,11 +768,18 @@ namespace engine
          {
             rc = _modifier.hint( hint ) ;
             PD_RC_CHECK( rc, PDERROR, "Get hint for insertion from hint "
-                         "modifier failed[%d]", rc ) ;
+                         "modifier failed, rc: %d", rc ) ;
          }
          else
          {
             hint = BSONObj( _pHint ) ;
+         }
+
+         if ( !hint.isEmpty() && hint.hasField( FIELD_NAME_SUB_COLLECTIONS ) )
+         {
+            rc = coordRemoveSubCLBounds( hint ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to rebuild hint object, rc: %d", rc ) ;
+            _vecObject.push_back( hint ) ;
          }
 
          iov.push_back( netIOV( GET_INSERT_HINT_MARK_PTR( _pHint ),
@@ -977,20 +984,33 @@ namespace engine
                                             pInsertMsg->nameLength + 1, 4 ) -
                     sizeof( MsgHeader ) ) ;
 
+      INT32 flag = 0 ;
+      const CHAR *pCollectionName = NULL ;
+      const CHAR *pInsertor = NULL ;
+      const CHAR *pHint = NULL ;
+      INT32 count = 0 ;
+
+      rc = msgExtractInsert( (const CHAR *)inMsg.msg(), &flag,
+                              &pCollectionName,
+                              &pInsertor, count, &pHint ) ;
+      PD_RC_CHECK( rc, PDERROR, "Extrace insert msg failed, rc: %d", rc ) ;
+
+      if ( pHint )
+      {
+         BSONObj boHint( pHint ) ;
+         if ( boHint.hasField( FIELD_NAME_SUB_COLLECTIONS ) )
+         {
+            rc = coordValidateSubCLBounds(
+                  *cataSel.getCataPtr()->getCatalogSet(), boHint,
+                  cataSel.hasUpdated() ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to parse data source sub collection info, "
+                         "rc: %d", rc ) ;
+         }
+      }
+
       if ( _grpSubCLDatas.size() == 0 )
       {
-         INT32 flag = 0 ;
-         const CHAR *pCollectionName = NULL ;
-         const CHAR *pInsertor = NULL ;
-         const CHAR *pHint = NULL ;
-         INT32 count = 0 ;
-
-         rc = msgExtractInsert( (const CHAR *)inMsg.msg(), &flag,
-                                &pCollectionName,
-                                &pInsertor, count, &pHint ) ;
-         PD_RC_CHECK( rc, PDERROR, "Extrace insert msg failed, rc: %d",
-                      rc ) ;
-
          rc = shardDataByGroup( cataSel.getCataPtr(), count, pInsertor,
                                 cb, _grpSubCLDatas ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to shard data by group, rc: %d",

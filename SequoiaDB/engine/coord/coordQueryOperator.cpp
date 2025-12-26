@@ -253,6 +253,7 @@ namespace engine
 
       CoordGroupSubCLMap &grpSubCl = cataSel.getGroup2SubsMap() ;
       CoordGroupSubCLMap::iterator it ;
+      BOOLEAN hasHintRebuilt = FALSE ;
 
       _optimize( inMsg, options, result ) ;
 
@@ -288,6 +289,19 @@ namespace engine
          goto error ;
       }
 
+      if ( !objHint.isEmpty() && objHint.hasField( FIELD_NAME_SUB_COLLECTIONS ) )
+      {
+         rc = coordValidateSubCLBounds(
+               *cataSel.getCataPtr()->getCatalogSet(), objHint,
+               cataSel.hasUpdated() ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to parse data source sub collection info, "
+                      "rc: %d", rc ) ;
+         rc = coordRemoveSubCLBounds( objHint ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to rebuild hint object, rc: %d", rc ) ;
+         hasHintRebuilt = TRUE ;
+      }
+
       it = grpSubCl.begin() ;
       while( it != grpSubCl.end() )
       {
@@ -306,9 +320,12 @@ namespace engine
          newQuery = _buildNewQuery( objQuery, subCLLst ) ;
          // 2.1 add to buff
          UINT32 roundLen = ossRoundUpToMultipleX( newQuery.objsize(), 4 ) ;
-         if ( buffPos + roundLen > buffLen )
+         UINT32 allocLen = roundLen ;
+         allocLen += ( hasHintRebuilt ?
+               ossRoundUpToMultipleX( objHint.objsize(), 4 ) : 0 ) ;
+         if ( buffPos + allocLen > buffLen )
          {
-            UINT32 alignLen = ossRoundUpToMultipleX( roundLen,
+            UINT32 alignLen = ossRoundUpToMultipleX( allocLen,
                                                      DMS_PAGE_SIZE4K ) ;
             rc = cb->allocBuff( alignLen, &pBuff, &buffLen ) ;
             PD_RC_CHECK( rc, PDERROR, "Alloc buff[%u] failed, rc: %d",
@@ -324,11 +341,27 @@ namespace engine
          iovec.push_back( ioItem ) ;
 
          // 3. last vec
-         ioItem.iovBase = objSelector.objdata() ;
-         ioItem.iovLen = ossRoundUpToMultipleX( objSelector.objsize(), 4 ) +
-                         ossRoundUpToMultipleX( objOrderby.objsize(), 4 ) +
-                         objHint.objsize() ;
-         iovec.push_back( ioItem ) ;
+         if ( !hasHintRebuilt )
+         {
+            ioItem.iovBase = objSelector.objdata() ;
+            ioItem.iovLen = ossRoundUpToMultipleX( objSelector.objsize(), 4 ) +
+                            ossRoundUpToMultipleX( objOrderby.objsize(), 4 ) +
+                            objHint.objsize() ;
+            iovec.push_back( ioItem ) ;
+         }
+         else
+         {
+            ioItem.iovBase = objSelector.objdata() ;
+            ioItem.iovLen = ossRoundUpToMultipleX( objSelector.objsize(), 4 ) +
+                            ossRoundUpToMultipleX( objOrderby.objsize(), 4 ) ;
+            iovec.push_back( ioItem ) ;
+
+            ossMemcpy( &pBuff[ buffPos ], objHint.objdata(), objHint.objsize() ) ;
+            ioItem.iovBase = &pBuff[ buffPos ] ;
+            ioItem.iovLen = objHint.objsize() ;
+            buffPos += ossRoundUpToMultipleX( objHint.objsize(), 4 ) ;
+            iovec.push_back( ioItem ) ;
+         }
 
          ++it ;
       }
@@ -361,27 +394,8 @@ namespace engine
                                                 const CoordSubCLlist &subCLList )
    {
       PD_TRACE_ENTRY ( COORD_QUERYOPERATOR__BUILDNEWQUERY ) ;
-      BSONObj retObj ;
-      BSONObjBuilder builder( query.objsize() +
-                              subCLList.size() * COORD_SUBCL_NAME_DFT_LEN) ;
-      builder.appendElements( query ) ;
-
-      /*
-         Append array, as { SubCLName : [ "a.a", "b.a" ] }
-      */
-      BSONArrayBuilder babSubCL( builder.subarrayStart( CAT_SUBCL_NAME ) ) ;
-      CoordSubCLlist::const_iterator iterCL = subCLList.begin();
-      while( iterCL != subCLList.end() )
-      {
-         babSubCL.append( *iterCL ) ;
-         ++iterCL ;
-      }
-      babSubCL.done() ;
-
-      retObj = builder.obj() ;
-
+      BSONObj retObj = coordBuildSubCLIntoObj( query, subCLList ) ;
       PD_TRACE_EXIT ( COORD_QUERYOPERATOR__BUILDNEWQUERY ) ;
-
       return retObj ;
    }
 

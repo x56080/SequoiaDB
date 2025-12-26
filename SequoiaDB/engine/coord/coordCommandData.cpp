@@ -2597,11 +2597,44 @@ namespace engine
                                                        CHAR **ppMsgBuf,
                                                        INT32 *pBufSize )
    {
-      pMsg->opCode = MSG_CAT_CREATE_COLLECTION_REQ ;
-      *ppMsgBuf = (CHAR*)pMsg ;
-      *pBufSize = pMsg->messageLength ;
+      INT32 rc = SDB_OK ;
+      if ( _dsMainCLName.empty() )
+      {
+         pMsg->opCode = MSG_CAT_CREATE_COLLECTION_REQ ;
+         *ppMsgBuf = (CHAR*)pMsg ;
+         *pBufSize = pMsg->messageLength ;
+      }
+      else
+      {
+         BSONObjBuilder builder ;
+         BSONObj boQuery ;
+         BSONObj emptyObj ;
 
+         try
+         {
+            builder.appendElements( pArgs->_boQuery ) ;
+            builder.append( FIELD_NAME_DS_MAINCL_NAME, _dsMainCLName ) ;
+            boQuery = builder.obj() ;
+         }
+         catch ( std::exception &e )
+         {
+            rc = ossException2RC( &e ) ;
+            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+            goto error ;
+         }
+
+         rc = msgBuildQueryCMDMsg( ppMsgBuf, pBufSize,
+                                   CMD_ADMIN_PREFIX CMD_NAME_CREATE_COLLECTION,
+                                   boQuery, emptyObj, emptyObj, emptyObj,
+                                   pMsg->requestID, cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build query command, rc: %d", rc ) ;
+
+         ((MsgHeader *) *ppMsgBuf)->opCode = MSG_CAT_CREATE_COLLECTION_REQ ;
+      }
+   done:
       return SDB_OK ;
+   error:
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION( COORD_CRTCL_GENDATAMSG, "_coordCMDCreateCollection::_generateDataMsg" )
@@ -2788,7 +2821,7 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Get information of data source[%s] "
                       "failed[%d]", dsName, rc ) ;
 
-         rc = clChecker.check( dsPtr, clName, cb, exist ) ;
+         rc = clChecker.check( dsPtr, clName, cb, exist, &_dsMainCLName ) ;
          PD_RC_CHECK( rc, PDERROR, "Check existence of collection[%s] on data "
                       "source[%s] failed[%d]", clName, dsName, rc ) ;
       }

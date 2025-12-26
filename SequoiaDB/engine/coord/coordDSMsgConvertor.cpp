@@ -568,6 +568,191 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__COORDDSMSGCONVERTOR__BUILDSUBCLINFOHINT, "_coordDSMsgConvertor::_buildSubCLInfoHint" )
+   INT32 _coordDSMsgConvertor::_buildSubCLInfoHint( const ossPoolVector< const CHAR * > &subCLNameList,
+                                                    BSONObjBuilder &builder,
+                                                    pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__COORDDSMSGCONVERTOR__BUILDSUBCLINFOHINT ) ;
+      try
+      {
+         BSONArrayBuilder arrayBuilder( builder.subarrayStart( FIELD_NAME_SUB_COLLECTIONS ) ) ;
+         for ( UINT32 i = 0 ; i < subCLNameList.size() ; ++i )
+         {
+            BSONObjBuilder subBuilder( arrayBuilder.subobjStart() ) ;
+            coordResource *pResource = sdbGetCoordCB()->getResource() ;
+            const CHAR *subCLName = subCLNameList.at( i ) ;
+            string mappingName ;
+            CoordCataInfoPtr subCataInfo ;
+            string mainCLName ;
+            CoordCataInfoPtr mainCataInfo ;
+            BSONObj lowBound ;
+            BSONObj upBound ;
+
+            rc = pResource->getOrUpdateCataInfo( subCLName, subCataInfo, cb ) ;
+            PD_RC_CHECK( rc, PDERROR, "Get catalogue information of "
+                        "collection[%s] failed[%d]", subCLName, rc ) ;
+
+            mainCLName = subCataInfo->getCatalogSet()->getMainCLName() ;
+            rc = pResource->getOrUpdateCataInfo( mainCLName.c_str(),
+                                                 mainCataInfo, cb ) ;
+            PD_RC_CHECK( rc, PDERROR, "Get catalogue information of "
+                        "collection[%s] failed[%d]", mainCLName.c_str(), rc ) ;
+            rc = mainCataInfo->getCatalogSet()->getSubCLBounds( subCLName,
+                                                                lowBound,
+                                                                upBound ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to get sub collection[%s] bounds, rc: %d",
+                         subCLName, rc ) ;
+
+            if ( subCataInfo->getMappingName().size() > 0 )
+            {
+               mappingName = subCataInfo->getMappingName() ;
+               subCLName = mappingName.c_str() ;
+            }
+            subBuilder.append( FIELD_NAME_NAME, subCLName ) ;
+            subBuilder.append( FIELD_NAME_LOWBOUND, lowBound ) ;
+            subBuilder.append( FIELD_NAME_UPBOUND, upBound ) ;
+            subBuilder.done() ;
+         }
+         arrayBuilder.done() ;
+      }
+      catch ( exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Exception occurs: %s", e.what() ) ;
+         goto error ;
+      }
+   done:
+      PD_TRACE_EXITRC( SDB__COORDDSMSGCONVERTOR__BUILDSUBCLINFOHINT, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__COORDDSMSGCONVERTOR__CONVERTGETDETAILEVENT, "_coordDSMsgConvertor::_convertGetDetailEvent" )
+   INT32 _coordDSMsgConvertor::_convertGetDetailEvent( const MsgOpReply *pOld,
+                                                       const pmdEDUEvent &orgEvent,
+                                                       pmdEDUEvent &event,
+                                                       BOOLEAN &hasConvert )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__COORDDSMSGCONVERTOR__CONVERTGETDETAILEVENT ) ;
+      UINT32 newSize = 0 ;
+      CHAR *pNewMsg = NULL ;
+
+      INT32 flag = SDB_OK ;
+      INT64 contextID = -1 ;
+      INT32 startFrom = 0 ;
+      INT32 numReturned = 0 ;
+      vector<BSONObj> resultSet ;
+      INT32 offset = 0 ;
+
+      try
+      {
+         hasConvert = FALSE ;
+
+         rc = msgExtractReply( (CHAR *)pOld, &flag, &contextID, &startFrom,
+                               &numReturned, resultSet ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to extract reply msg, rc = %d", rc ) ;
+
+         if ( 0 == numReturned )
+         {
+            goto done ;
+         }
+
+         newSize = pOld->header.messageLength +
+               ( numReturned * ossStrlen( VALUE_NAME_DATASOURCE_GROUPNAME ) ) ;
+         pNewMsg = (CHAR*)SDB_THREAD_ALLOC( newSize ) ;
+         if ( !pNewMsg )
+         {
+            rc = SDB_OOM ;
+            PD_LOG( PDERROR, "Allocate memory[%u] failed", newSize ) ;
+            goto error ;
+         }
+         ossMemset( pNewMsg, 0, newSize ) ;
+
+         /// copy header
+         ossMemcpy( pNewMsg, (void*)pOld, sizeof( MsgOpReply ) ) ;
+         offset = ossAlign4 ( sizeof ( MsgOpReply ) ) ;
+
+         /// convert GroupName to "$null"
+         for ( UINT32 i = 0 ; i < resultSet.size() ; ++i )
+         {
+            BSONObjBuilder builder ;
+            BSONObjIterator it1( resultSet[i] ) ;
+            while ( it1.more() )
+            {
+               BSONElement elem1 = it1.next() ;
+               if ( 0 != ossStrcmp( elem1.fieldName(), FIELD_NAME_DETAILS ) )
+               {
+                  builder.append( elem1 ) ;
+                  continue ;
+               }
+               vector< BSONElement > detailsArray = elem1.Array() ;
+               BSONArrayBuilder subBuilder( builder.subarrayStart( FIELD_NAME_DETAILS ) ) ;
+               for ( UINT32 j = 0 ; j < detailsArray.size() ; ++j )
+               {
+                  BSONObjBuilder subBuilder2( subBuilder.subobjStart() ) ;
+                  BSONObj detail = detailsArray[j].Obj() ;
+                  BSONObjIterator it2( detail ) ;
+                  while ( it2.more() )
+                  {
+                     BSONElement elem2 = it2.next() ;
+                     if ( 0 == ossStrcmp( elem2.fieldName(), FIELD_NAME_GROUPNAME ) )
+                     {
+                        subBuilder2.append( FIELD_NAME_GROUPNAME,
+                                            VALUE_NAME_DATASOURCE_GROUPNAME ) ;
+                     }
+                     else if ( 0 == ossStrcmp( elem2.fieldName(), FIELD_NAME_NODE_NAME ) )
+                     {
+                        subBuilder2.append( FIELD_NAME_NODE_NAME,
+                                            VALUE_NAME_DATASOURCE_GROUPNAME ) ;
+                     }
+                     else
+                     {
+                        subBuilder2.append( elem2 ) ;
+                     }
+                  }
+                  subBuilder2.done() ;
+               }
+               subBuilder.done() ;
+            }
+            BSONObj newResult = builder.obj() ;
+            ossMemcpy( pNewMsg + offset,
+                       newResult.objdata(), newResult.objsize() ) ;
+            offset += ossAlign4( newResult.objsize() ) ;
+         }
+
+         /// change length
+         ((MsgHeader*)pNewMsg)->messageLength = offset ;
+
+         event._Data = pNewMsg ;
+         event._eventType = orgEvent._eventType ;
+         event._dataMemType = PMD_EDU_MEM_THREAD ;
+
+         pNewMsg = NULL ;
+         hasConvert = TRUE ;
+      }
+      catch ( exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Exception occurs: %s", e.what() ) ;
+         goto error ;
+      }
+
+   done:
+      if ( pNewMsg )
+      {
+         SDB_THREAD_FREE( pNewMsg ) ;
+      }
+      PD_TRACE_EXITRC( SDB__COORDDSMSGCONVERTOR__CONVERTGETDETAILEVENT, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__COORDDSMSGCONVERTOR_CONVERTREPLY, "_coordDSMsgConvertor::convertReply" )
    INT32 _coordDSMsgConvertor::convertReply( _pmdSubSession *pSub,
                                              _pmdEDUCB *cb,
@@ -604,6 +789,9 @@ namespace engine
             PD_LOG( PDERROR, "Build new event failed, rc: %d", rc ) ;
             goto error ;
          }
+
+         /// make a fake context ID to reply lob open request
+         ((MsgOpReply*)newEvent._Data)->contextID = 1 ;
 
          hasConvert = TRUE ;
       }
@@ -663,6 +851,16 @@ namespace engine
               ( pQueryMsg->flags & FLG_QUERY_EXPLAIN ) )
          {
             pReply->startFrom = RTN_CTX_EXPLAIN_PROCESSOR ;
+         }
+         else if ( '$' == pQueryMsg->name[0] &&
+                   0 == ossStrcmp( pQueryMsg->name + 1, CMD_NAME_GET_CL_DETAIL ) )
+         {
+            rc = _convertGetDetailEvent( pReply, orgEvent, newEvent, hasConvert ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Convert event failed, rc: %d", rc ) ;
+               goto error ;
+            }
          }
       }
 
@@ -743,9 +941,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB__COORDDSMSGCONVERTOR__REBUILDDATASOURCEINSERTMSG ) ;
       MsgHeader *msg = pSub->getReqMsg() ;
       netIOVec *dataVec = pSub->getIODatas() ;
-      CHAR *buff = NULL ;
-      coordResource *pResource = sdbGetCoordCB()->getResource() ;
-      CoordCataInfoPtr catInfo ;
+      ossPoolVector< const CHAR * > subCLNames ;
 
       if ( MSG_BS_TRANS_INSERT_REQ == msg->opCode )
       {
@@ -758,151 +954,431 @@ namespace engine
          // using bulk insertion to insert into a sharded collection or a main
          // collection. As a sharded collection is not allowed to use data
          // source, it may only be a main collection here.
-         const CHAR *subCLName = NULL ;
-         UINT32 offset = 0 ;
-         netIOVec::iterator itr = dataVec->begin() ; // Point to fixed item.
-         ++itr ; // Now point to collection information object.
-         netIOV clInfo = *itr ;
+         rc = _getInsertSubCLNames( dataVec, subCLNames ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to parse sub collection names from "
+                      "insert message, rc: %d", rc ) ;
 
-         try
+         if ( 1 == subCLNames.size() )
          {
-            UINT32 newMsgLen = 0 ;
-            BSONObj clInfoObj( (CHAR *)clInfo.iovBase ) ;
-            subCLName = clInfoObj.getStringField( FIELD_NAME_SUBCLNAME ) ;
-            if ( ossStrlen( subCLName ) > 0 )
-            {
-               // If field SubCLName exists, it's insertion on main
-               // collection.
-               UINT32 dataLen = pSub->getIODataLen() ;
-               UINT32 totalLen = sizeof( MsgHeader ) + dataLen ;
-
-               rc = pResource->getOrUpdateCataInfo( subCLName, catInfo, cb ) ;
-               PD_RC_CHECK( rc, PDERROR, "Get Catalogue information of "
-                            "collection[%s] failed[%d]", subCLName, rc ) ;
-
-               buff = ( CHAR * )SDB_OSS_MALLOC( totalLen ) ;
-               if ( !buff )
-               {
-                  rc = SDB_OOM ;
-                  PD_LOG( PDERROR, "Allocate memory for message failed[%d]",
-                          rc ) ;
-                  goto error ;
-               }
-               ossMemset( buff, 0, totalLen ) ;
-               MsgOpInsert *insertMsg = (MsgOpInsert *)buff;
-
-               const string& mapping = catInfo->getMappingName() ;
-               *insertMsg = *(MsgOpInsert *)msg ;
-               if ( mapping.size() > 0 )
-               {
-                  ossStrncpy( insertMsg->name, mapping.c_str(), mapping.size() ) ;
-                  insertMsg->nameLength = mapping.size() ;
-               }
-               else
-               {
-                  ossStrncpy( insertMsg->name, subCLName, ossStrlen( subCLName ) ) ;
-                  insertMsg->nameLength = ossStrlen( subCLName ) ;
-               }
-
-               // If the cl information object is not aligned by 4, there is one
-               // filling item in the dataVec(refer to
-               // _coordInsertOperator::buildInsertMsg). So we need to skip the
-               // that item.
-               if ( !ossIsAligned4( itr->iovLen ) )
-               {
-                  ++itr ;  // Now point to the filling item.
-                  SDB_ASSERT( itr->iovLen < 4,
-                              "Item length should be less than 4" ) ;
-               }
-               ++itr ;  // Now point to the first record.
-
-               offset = ossRoundUpToMultipleX( offsetof(MsgOpInsert, name)
-                                               + insertMsg->nameLength + 1,
-                                               4 ) ;
-               insertMsg->header.messageLength = offset ;
-
-               while ( itr != dataVec->end() )
-               {
-                  ossMemcpy( buff + offset, itr->iovBase, itr->iovLen ) ;
-                  offset = ossRoundUpToMultipleX( offset + itr->iovLen, 4 ) ;
-                  insertMsg->header.messageLength += itr->iovLen ;
-                  ++itr ;
-               }
-
-               newMsgLen = ( (MsgHeader *)buff)->messageLength ;
-               *(MsgHeader *)buff = *msg ;
-               ((MsgHeader *)buff)->messageLength = newMsgLen ;
-
-               pSub->setReqMsg( (MsgHeader *)buff,  PMD_EDU_MEM_ALLOC ) ;
-               buff = NULL ;
-            }
+            rc = _rebuildDSInsertMsg4SingleSubCL( pSub, cb ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to build data source insert "
+                         "message for single sub collection, rc: %d", rc ) ;
          }
-         catch ( std::exception &e )
+         else
          {
-            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
-            rc = ossException2RC( &e ) ;
-            goto error ;
+            rc = _rebuildDSInsertMsg4MultiSubCL( pSub, cb, subCLNames ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to build data source insert "
+                         "message for multiple sub collections, rc: %d", rc ) ;
          }
       }
       else
       {
-         MsgOpInsert *insertMsg = (MsgOpInsert *)msg ;
-         rc = pResource->getOrUpdateCataInfo( insertMsg->name, catInfo, cb ) ;
-         PD_RC_CHECK( rc, PDERROR, "Get catalogue of collection[%s] failed[%d]",
-                      insertMsg->name, rc ) ;
-         const string& mappingName = catInfo->getMappingName() ;
-         if ( 0 != ossStrcmp( mappingName.c_str(), insertMsg->name ) )
+         rc = _rebuildDSInsertMsg4GeneralCL( pSub, cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build data source insert "
+                        "message for general collection, rc: %d", rc ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__COORDDSMSGCONVERTOR__REBUILDDATASOURCEINSERTMSG,
+                       rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__COORDDSMSGCONVERTOR__GETINSERTSUBCLNAMES, "_coordDSMsgConvertor::_getInsertSubCLNames" )
+   INT32 _coordDSMsgConvertor::_getInsertSubCLNames(
+         netIOVec *dataVec,
+         ossPoolVector< const CHAR *> &subCLNames )
+   {
+      INT32 rc = 0 ;
+      PD_TRACE_ENTRY( SDB__COORDDSMSGCONVERTOR__GETINSERTSUBCLNAMES ) ;
+
+      /*
+         message format:
+         | MsgOpInsert header | cl name | fixed
+         | cl info A | fixed | insert object 1 | ... | insert object N
+         | cl info B | fixed | insert object 1 | ... | insert object M |
+         ...
+         | hint mark | hint object |
+
+         cl info:
+         | SubObjNum | SubObjSize | SubCLName |
+
+         fixed: the fixed item is used for 4-bytes alignment
+         hint mark: 4-bytes of zero to mark that next object is hint.
+      */
+      try
+      {
+         netIOVec::iterator itr = dataVec->begin() ; // Point to fixed item.
+         ++itr ; // Now point to collection information object.
+         subCLNames.clear() ;
+
+         while ( itr != dataVec->end() )
          {
-            // Different name mapping, need to change the name in the message.
-            if ( mappingName.size() == (UINT32)insertMsg->nameLength )
+            netIOV clInfo = *itr ;
+            UINT32 objSize = *(UINT32 *)clInfo.iovBase ;
+            if ( 0 == objSize ) // hint mark, the end of message
             {
-               ossStrncpy( insertMsg->name, mappingName.c_str(),
-                           mappingName.size() ) ;
+               break ;
             }
-            else
+            BSONObj clInfoObj( (CHAR *)clInfo.iovBase ) ;
+            UINT32 leftSize = 0 ;
+            const CHAR *subCLName =
+                  clInfoObj.getField( FIELD_NAME_SUBCLNAME ).valuestrsafe() ;
+            subCLNames.push_back( subCLName ) ;
+            INT32 objectsSize =
+                  clInfoObj.getField( FIELD_NAME_SUBOBJSSIZE ).numberInt() ;
+            if ( objectsSize <= 0 )
             {
-               UINT32 newMsgLen = 0 ;
-               MsgOpInsert *newInsertMsg = NULL ;
-               UINT32 size = insertMsg->header.messageLength +
-                             ossRoundUpToMultipleX( mappingName.size() -
-                                                    insertMsg->nameLength, 4 ) ;
-               buff = (CHAR *)SDB_OSS_MALLOC( size ) ;
-               PD_CHECK( buff, SDB_OOM, error, PDERROR, "Allocate for data "
-                         "source message failed[%d]", SDB_OOM ) ;
-               ossMemset( buff, 0, size ) ;
-               newInsertMsg = (MsgOpInsert *)buff ;
-
-               UINT32 bodyOffset = ossRoundUpToMultipleX(
-                     offsetof(MsgOpInsert, name) + insertMsg->nameLength + 1,
-                     4 ) ;
-               CHAR *body = (CHAR *)msg + bodyOffset ;
-               UINT32 bodyLen = insertMsg->header.messageLength - bodyOffset ;
-               *newInsertMsg = *insertMsg ;
-               ossStrncpy( newInsertMsg->name, mappingName.c_str(),
-                           mappingName.size() ) ;
-               newInsertMsg->nameLength = mappingName.size() ;
-               UINT32 newBodyOffset = ossRoundUpToMultipleX(
-                     offsetof(MsgOpInsert, name) + newInsertMsg->nameLength + 1,
-                     4 ) ;
-               ossMemcpy( buff + newBodyOffset, body, bodyLen ) ;
-               newInsertMsg->header.messageLength = newBodyOffset + bodyLen ;
-
-               newMsgLen = ( (MsgHeader *)newInsertMsg)->messageLength ;
-               *(MsgHeader *)newInsertMsg = *msg ;
-               ((MsgHeader *)newInsertMsg)->messageLength = newMsgLen ;
-
-               pSub->setReqMsg( (MsgHeader *)newInsertMsg, PMD_EDU_MEM_ALLOC ) ;
-               buff = NULL ;
+               break ;
             }
+
+            leftSize += ( 4 - ( clInfoObj.objsize() % 4 ) ) ;
+            leftSize += ossRoundUpToMultipleX( objectsSize, 4 ) ;
+            while ( itr++ != dataVec->end() )
+            {
+               netIOV iov = *itr ;
+               leftSize -= iov.iovLen ;
+               if ( leftSize <= 0 )
+               {
+                  SDB_ASSERT( 0 == leftSize, "Wrong size" ) ;
+                  break ;
+               }
+            }
+            ++itr ;
+         }
+      }
+      catch ( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+   done:
+      PD_TRACE_EXIT( SDB__COORDDSMSGCONVERTOR__GETINSERTSUBCLNAMES ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__COORDDSMSGCONVERTOR__REBUILDDSINSERTMSG4SINGLESUBCL, "_coordDSMsgConvertor::_rebuildDSInsertMsg4SingleSubCL" )
+   INT32 _coordDSMsgConvertor::_rebuildDSInsertMsg4SingleSubCL( pmdSubSession *pSub,
+                                                                _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__COORDDSMSGCONVERTOR__REBUILDDSINSERTMSG4SINGLESUBCL ) ;
+
+      MsgHeader *msg = pSub->getReqMsg() ;
+      netIOVec *dataVec = pSub->getIODatas() ;
+      coordResource *pResource = sdbGetCoordCB()->getResource() ;
+      CoordCataInfoPtr catInfo ;
+      void *buff = NULL ;
+
+      try
+      {
+         netIOVec::iterator itr = dataVec->begin() ; // Point to fixed item.
+         ++itr ; // Now point to collection information object.
+         netIOV clInfo = *itr ;
+         UINT32 offset = 0 ;
+
+         BSONObj clInfoObj( (CHAR *)clInfo.iovBase ) ;
+         const CHAR *subCLName = clInfoObj.getStringField( FIELD_NAME_SUBCLNAME ) ;
+
+         // If field SubCLName exists, it's insertion on main
+         // collection.
+         UINT32 totalLen = 0 ;
+         MsgOpInsert *insertMsg = NULL ;
+         string mapping ;
+
+         rc = pResource->getOrUpdateCataInfo( subCLName, catInfo, cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Get Catalogue information of "
+                        "collection[%s] failed[%d]", subCLName, rc ) ;
+
+         mapping = catInfo->getMappingName() ;
+         insertMsg = (MsgOpInsert *)msg;
+         totalLen = msg->messageLength ;
+         if ( mapping.size() > (UINT32) insertMsg->nameLength )
+         {
+            totalLen += ossRoundUpToMultipleX(
+                  mapping.size() - insertMsg->nameLength, 4 ) ;
+         }
+
+         buff = ( CHAR * )SDB_THREAD_ALLOC( totalLen ) ;
+         if ( !buff )
+         {
+            rc = SDB_OOM ;
+            PD_LOG( PDERROR, "Allocate memory for message failed[%d]",
+                     rc ) ;
+            goto error ;
+         }
+         ossMemset( buff, 0, totalLen ) ;
+         insertMsg = (MsgOpInsert *)buff;
+
+         *insertMsg = *(MsgOpInsert *)msg ;
+         if ( mapping.size() > 0 )
+         {
+            ossStrncpy( insertMsg->name, mapping.c_str(), mapping.size() ) ;
+            insertMsg->nameLength = mapping.size() ;
+         }
+         else
+         {
+            ossStrncpy( insertMsg->name, subCLName, ossStrlen( subCLName ) ) ;
+            insertMsg->nameLength = ossStrlen( subCLName ) ;
+         }
+
+         // If the cl information object is not aligned by 4, there is one
+         // filling item in the dataVec(refer to
+         // _coordInsertOperator::buildInsertMsg). So we need to skip the
+         // that item.
+         if ( !ossIsAligned4( itr->iovLen ) )
+         {
+            ++itr ;  // Now point to the filling item.
+            SDB_ASSERT( itr->iovLen < 4,
+                        "Item length should be less than 4" ) ;
+         }
+         ++itr ;  // Now point to the first record.
+
+         offset = ossRoundUpToMultipleX( offsetof(MsgOpInsert, name)
+                                          + insertMsg->nameLength + 1,
+                                          4 ) ;
+
+         while ( itr != dataVec->end() )
+         {
+            ossMemcpy( (CHAR *) buff + offset, itr->iovBase, itr->iovLen ) ;
+            offset = ossRoundUpToMultipleX( offset + itr->iovLen, 4 ) ;
+            ++itr ;
+         }
+         insertMsg->header.messageLength = offset ;
+
+         pSub->setReqMsg( (MsgHeader *)buff,  PMD_EDU_MEM_THREAD ) ;
+         buff = NULL ;
+      }
+      catch ( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+   done:
+      if ( buff )
+      {
+         SDB_THREAD_FREE( buff ) ;
+      }
+      PD_TRACE_EXITRC( SDB__COORDDSMSGCONVERTOR__REBUILDDSINSERTMSG4SINGLESUBCL,
+                       rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__COORDDSMSGCONVERTOR__REBUILDDSINSERTMSG4MULTISUBCL, "_coordDSMsgConvertor::_rebuildDSInsertMsg4MultiSubCL" )
+   INT32 _coordDSMsgConvertor::_rebuildDSInsertMsg4MultiSubCL( pmdSubSession *pSub,
+                                                               _pmdEDUCB *cb,
+                                                               ossPoolVector< const CHAR * > &subCLNameList )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__COORDDSMSGCONVERTOR__REBUILDDSINSERTMSG4MULTISUBCL ) ;
+
+      MsgHeader *msg = pSub->getReqMsg() ;
+      netIOVec *dataVec = pSub->getIODatas() ;
+      coordResource *pResource = sdbGetCoordCB()->getResource() ;
+      CoordCataInfoPtr catInfo ;
+      void *buff = NULL ;
+
+      try
+      {
+         netIOVec::iterator itr = dataVec->begin() ; // Point to fixed item.
+         ++itr ; // Now point to collection information object.
+         netIOV clInfo = *itr ;
+         UINT32 offset = 0 ;
+         BSONObjBuilder hintBuilder ;
+
+         BSONObj clInfoObj( (CHAR *)clInfo.iovBase ) ;
+         const CHAR *subCLName = clInfoObj.getStringField( FIELD_NAME_SUBCLNAME ) ;
+         SINT32 subObjsSize = clInfoObj.getIntField( FIELD_NAME_SUBOBJSSIZE ) ;
+
+         UINT32 totalLen = msg->messageLength ;
+         MsgOpInsert *insertMsg = (MsgOpInsert *) msg ;
+         string dsMainCLName ;
+
+         rc = pResource->getOrUpdateCataInfo( subCLName, catInfo, cb ) ;
+         PD_RC_CHECK( rc, PDERROR, "Get Catalogue information of "
+                        "collection[%s] failed[%d]", subCLName, rc ) ;
+
+         dsMainCLName = catInfo->getDSMainCLName() ;
+         if ( dsMainCLName.size() > (UINT32) insertMsg->nameLength )
+         {
+            totalLen += ossRoundUpToMultipleX(
+                  dsMainCLName.size() - insertMsg->nameLength, 4 ) ;
+         }
+
+         rc = _buildSubCLInfoHint( subCLNameList, hintBuilder, cb ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to build sub collection info hint, rc: %d",
+                      rc ) ;
+         totalLen += ossAlign4( hintBuilder.len() ) ;
+
+         buff = ( CHAR * )SDB_THREAD_ALLOC( totalLen ) ;
+         if ( !buff )
+         {
+            rc = SDB_OOM ;
+            PD_LOG( PDERROR, "Allocate memory for message failed[%d]",
+                     rc ) ;
+            goto error ;
+         }
+         ossMemset( buff, 0, totalLen ) ;
+         insertMsg = (MsgOpInsert *)buff;
+         *insertMsg = *(MsgOpInsert *)msg ;
+         ossStrncpy( insertMsg->name, dsMainCLName.c_str(), dsMainCLName.size() ) ;
+         insertMsg->nameLength = dsMainCLName.size() ;
+
+         // If the cl information object is not aligned by 4, there is one
+         // filling item in the dataVec(refer to
+         // _coordInsertOperator::buildInsertMsg). So we need to skip the
+         // that item.
+         if ( !ossIsAligned4( itr->iovLen ) )
+         {
+            ++itr ;  // Now point to the filling item.
+            SDB_ASSERT( itr->iovLen < 4,
+                        "Item length should be less than 4" ) ;
+         }
+         ++itr ;  // Now point to the first record.
+
+         offset = ossRoundUpToMultipleX( offsetof(MsgOpInsert, name)
+                                         + insertMsg->nameLength + 1,
+                                         4 ) ;
+
+         while ( itr != dataVec->end() )
+         {
+            INT32 objSize = *(INT32 *)itr->iovBase ;
+            if ( 0 == objSize )
+            {
+               BSONObj hint( ((CHAR *)itr->iovBase) + MSG_HINT_MARK_LEN ) ;
+               hintBuilder.appendElements( hint ) ;
+               break ;
+            }
+
+            // Switch to next sub collection area
+            if ( subObjsSize <= 0 )
+            {
+               // Now point to collection information object.
+               SDB_ASSERT( subObjsSize == 0, "Wrong length" ) ;
+               BSONObj clInfoObj2( (CHAR *)itr->iovBase ) ;
+               subObjsSize = clInfoObj2.getIntField( FIELD_NAME_SUBOBJSSIZE ) ;
+               ++itr ; // skip collection information object.
+               if ( !ossIsAligned4( itr->iovLen ) )
+               {
+                  ++itr ;  // skip the filling item.
+               }
+            }
+
+            ossMemcpy( (CHAR *) buff + offset, itr->iovBase, itr->iovLen ) ;
+            offset = ossRoundUpToMultipleX( offset + itr->iovLen, 4 ) ;
+            insertMsg->header.messageLength = offset ;
+            subObjsSize -= itr->iovLen ;
+            ++itr ;
+         }
+
+         // Append sub cl list to hint to ensure existence
+         {
+            OSS_BIT_SET( insertMsg->flags, FLG_INSERT_HASHINT ) ;
+            offset += MSG_HINT_MARK_LEN ;
+
+            BSONObj newHint = hintBuilder.obj() ;
+            ossMemcpy( (CHAR *) buff + offset, newHint.objdata(), newHint.objsize() ) ;
+            offset = ossRoundUpToMultipleX( offset + newHint.objsize(), 4 ) ;
+            insertMsg->header.messageLength = offset ;
+         }
+
+         pSub->setReqMsg( (MsgHeader *)buff,  PMD_EDU_MEM_THREAD ) ;
+         buff = NULL ;
+      }
+      catch ( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+   done:
+      if ( buff )
+      {
+         SDB_THREAD_FREE( buff ) ;
+      }
+      PD_TRACE_EXITRC( SDB__COORDDSMSGCONVERTOR__REBUILDDSINSERTMSG4MULTISUBCL,
+                       rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__COORDDSMSGCONVERTOR__REBUILDDSINSERTMSG4GENERALCL, "_coordDSMsgConvertor::_rebuildDSInsertMsg4GeneralCL" )
+   INT32 _coordDSMsgConvertor::_rebuildDSInsertMsg4GeneralCL( pmdSubSession *pSub,
+                                                              _pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__COORDDSMSGCONVERTOR__REBUILDDSINSERTMSG4GENERALCL ) ;
+
+      MsgHeader *msg = pSub->getReqMsg() ;
+      coordResource *pResource = sdbGetCoordCB()->getResource() ;
+      CoordCataInfoPtr catInfo ;
+      string mappingName ;
+      void *buff = NULL ;
+
+      MsgOpInsert *insertMsg = (MsgOpInsert *)msg ;
+      rc = pResource->getOrUpdateCataInfo( insertMsg->name, catInfo, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Get catalogue of collection[%s] failed[%d]",
+                     insertMsg->name, rc ) ;
+      mappingName = catInfo->getMappingName() ;
+      if ( 0 != ossStrcmp( mappingName.c_str(), insertMsg->name ) )
+      {
+         // Different name mapping, need to change the name in the message.
+         if ( mappingName.size() == (UINT32)insertMsg->nameLength )
+         {
+            ossStrncpy( insertMsg->name, mappingName.c_str(),
+                        mappingName.size() ) ;
+         }
+         else
+         {
+            MsgOpInsert *newInsertMsg = NULL ;
+            UINT32 size = insertMsg->header.messageLength ;
+            if ( mappingName.size() > (UINT32) insertMsg->nameLength )
+            {
+               size += ossRoundUpToMultipleX(
+                     mappingName.size() - insertMsg->nameLength, 4 ) ;
+            }
+            buff = (CHAR *)SDB_THREAD_ALLOC( size ) ;
+            PD_CHECK( buff, SDB_OOM, error, PDERROR, "Allocate for data "
+                        "source message failed[%d]", SDB_OOM ) ;
+            ossMemset( buff, 0, size ) ;
+            newInsertMsg = (MsgOpInsert *)buff ;
+
+            UINT32 bodyOffset = ossRoundUpToMultipleX(
+                  offsetof(MsgOpInsert, name) + insertMsg->nameLength + 1,
+                  4 ) ;
+            CHAR *body = (CHAR *)msg + bodyOffset ;
+            UINT32 bodyLen = insertMsg->header.messageLength - bodyOffset ;
+            *newInsertMsg = *insertMsg ;
+            ossStrncpy( newInsertMsg->name, mappingName.c_str(),
+                        mappingName.size() ) ;
+            newInsertMsg->nameLength = mappingName.size() ;
+            UINT32 newBodyOffset = ossRoundUpToMultipleX(
+                  offsetof(MsgOpInsert, name) + newInsertMsg->nameLength + 1,
+                  4 ) ;
+            ossMemcpy( (CHAR *) buff + newBodyOffset, body, bodyLen ) ;
+            newInsertMsg->header.messageLength = newBodyOffset + bodyLen ;
+
+            pSub->setReqMsg( (MsgHeader *)newInsertMsg, PMD_EDU_MEM_THREAD ) ;
+            buff = NULL ;
          }
       }
 
    done:
       if ( buff )
       {
-         SDB_OSS_FREE( buff ) ;
+         SDB_THREAD_FREE( buff ) ;
       }
-      PD_TRACE_EXITRC( SDB__COORDDSMSGCONVERTOR__REBUILDDATASOURCEINSERTMSG,
+      PD_TRACE_EXITRC( SDB__COORDDSMSGCONVERTOR__REBUILDDSINSERTMSG4GENERALCL,
                        rc ) ;
       return rc ;
    error:
@@ -939,9 +1415,11 @@ namespace engine
             if ( selector.hasField( FIELD_NAME_SUBCLNAME ) )
             {
                MsgOpUpdate *origMsg = (MsgOpUpdate *)pSub->getReqMsg() ;
-               const CHAR *subCLName = NULL ;
+               ossPoolVector< const CHAR * > subCLNameList ;
                BSONObj newSelector ;
-               BSONObjBuilder builder ;
+               BSONObj newHint ;
+               BSONObjBuilder selBuilder ;
+               BSONObjBuilder hintBuilder ;
                BSONObjIterator selItr( selector ) ;
 
                ++itr ; // Now point to updator
@@ -954,29 +1432,63 @@ namespace engine
                   if ( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_SUBCLNAME ) )
                   {
                      BSONObjIterator selItr( ele.embeddedObject() ) ;
-                     BSONElement clEle = selItr.next() ;
-                     subCLName = clEle.valuestrsafe() ;
+                     while ( selItr.more() )
+                     {
+                        BSONElement clEle = selItr.next() ;
+                        subCLNameList.push_back( clEle.valuestrsafe() ) ;
+                     }
                   }
                   else
                   {
-                     builder.append( ele ) ;
+                     selBuilder.append( ele ) ;
                   }
                }
-               newSelector = builder.done() ;
-               rc = pResource->getOrUpdateCataInfo( subCLName, cataInfo, cb ) ;
-               PD_RC_CHECK( rc, PDERROR, "Get catalogue information of "
-                            "collection[%s] failed[%d]", subCLName, rc ) ;
-               if ( cataInfo->getMappingName().size() > 0 )
-               {
-                  subCLName = cataInfo->getMappingName().c_str() ;
-               }
+               newSelector = selBuilder.done() ;
 
-               rc = msgBuildUpdateMsg( &newMsg, &msgLen, subCLName,
-                                       origMsg->flags,
-                                       origMsg->header.requestID, &newSelector,
-                                       &updator, &hint ) ;
-               PD_RC_CHECK( rc, PDERROR, "Build update message for data source "
-                            "failed[%d]", rc ) ;
+               SDB_ASSERT( !subCLNameList.empty(), "sub cl name array is empty" ) ;
+               if ( subCLNameList.size() == 1 )
+               {
+                  const CHAR * subCLName = subCLNameList.at( 0 ) ;
+                  string mappingName ;
+                  rc = pResource->getOrUpdateCataInfo( subCLName, cataInfo, cb ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Get catalogue information of "
+                              "collection[%s] failed[%d]", subCLName, rc ) ;
+                  if ( cataInfo->getMappingName().size() > 0 )
+                  {
+                     mappingName = cataInfo->getMappingName() ;
+                     subCLName = mappingName.c_str() ;
+                  }
+
+                  rc = msgBuildUpdateMsg( &newMsg, &msgLen, subCLName,
+                                          origMsg->flags,
+                                          origMsg->header.requestID, &newSelector,
+                                          &updator, &hint, cb ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Build update message for data source "
+                               "failed[%d]", rc ) ;
+               }
+               else
+               {
+                  string dsMainCLName ;
+                  const CHAR *subCLName = subCLNameList.at( 0 ) ;
+                  rc = pResource->getOrUpdateCataInfo( subCLName, cataInfo, cb ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Get catalogue information of "
+                              "collection[%s] failed[%d]", subCLName, rc ) ;
+                  dsMainCLName = cataInfo->getDSMainCLName() ;
+
+                  rc = _buildSubCLInfoHint( subCLNameList, hintBuilder, cb ) ;
+                  PD_RC_CHECK( rc, PDERROR,
+                               "Failed to build sub collection info hint, rc: %d",
+                               rc ) ;
+                  hintBuilder.appendElements( hint ) ;
+                  newHint = hintBuilder.obj() ;
+
+                  rc = msgBuildUpdateMsg( &newMsg, &msgLen, dsMainCLName.c_str(),
+                                          origMsg->flags,
+                                          origMsg->header.requestID, &newSelector,
+                                          &updator, &newHint, cb ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Build update message for data source "
+                               "failed[%d]", rc ) ;
+               }
             }
          }
          else
@@ -1003,7 +1515,7 @@ namespace engine
                                        cataInfo->getMappingName().c_str(),
                                        origUpdateMsg->flags,
                                        origUpdateMsg->header.requestID,
-                                       &selector, &updator, &hint ) ;
+                                       &selector, &updator, &hint, cb ) ;
                PD_RC_CHECK( rc, PDERROR, "Rebuild update message for data "
                                          "source failed[%d]", rc ) ;
             }
@@ -1013,7 +1525,7 @@ namespace engine
             UINT32 newMsgLen = ( (MsgHeader *)newMsg)->messageLength ;
             *(MsgHeader *)newMsg = *msg ;
             ((MsgHeader *)newMsg)->messageLength = newMsgLen ;
-            pSub->setReqMsg( (MsgHeader *)newMsg, PMD_EDU_MEM_ALLOC ) ;
+            pSub->setReqMsg( (MsgHeader *)newMsg, PMD_EDU_MEM_THREAD ) ;
             newMsg = NULL ;
          }
       }
@@ -1069,10 +1581,12 @@ namespace engine
             if ( deletor.hasField( FIELD_NAME_SUBCLNAME ) )
             {
                MsgOpDelete *origMsg = (MsgOpDelete *)pSub->getReqMsg() ;
-               const CHAR *subCLName = NULL ;
+               ossPoolVector< const CHAR * > subCLNameList ;
                BSONObj hint( (CHAR *)itr->iovBase ) ;
                BSONObj newDeletor ;
-               BSONObjBuilder builder ;
+               BSONObj newHint ;
+               BSONObjBuilder delBuilder ;
+               BSONObjBuilder hintBuilder ;
                BSONObjIterator delItr( deletor ) ;
                while ( delItr.more() )
                {
@@ -1080,29 +1594,63 @@ namespace engine
                   if ( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_SUBCLNAME ) )
                   {
                      BSONObjIterator delItr( ele.embeddedObject() ) ;
-                     BSONElement clEle = delItr.next() ;
-                     subCLName = clEle.valuestrsafe() ;
+                     while ( delItr.more() )
+                     {
+                        BSONElement clEle = delItr.next() ;
+                        subCLNameList.push_back( clEle.valuestrsafe() ) ;
+                     }
                   }
                   else
                   {
-                     builder.append( ele ) ;
+                     delBuilder.append( ele ) ;
                   }
                }
-               newDeletor = builder.done() ;
-               rc = pResource->getOrUpdateCataInfo( subCLName, cataInfo, cb ) ;
-               PD_RC_CHECK( rc, PDERROR, "Get catalogue information of "
-                            "collection[%s] failed[%d]", subCLName, rc ) ;
-               if ( cataInfo->getMappingName().size() > 0 )
-               {
-                  subCLName = cataInfo->getMappingName().c_str() ;
-               }
+               newDeletor = delBuilder.done() ;
 
-               rc = msgBuildDeleteMsg( &newMsg, &msgLen, subCLName,
-                                       origMsg->flags,
-                                       origMsg->header.requestID, &newDeletor,
-                                       &hint ) ;
-               PD_RC_CHECK( rc, PDERROR, "Build delete message for data source "
-                                         "failed[%d]", rc ) ;
+               SDB_ASSERT( !subCLNameList.empty(), "sub cl name array is empty" ) ;
+               if ( subCLNameList.size() == 1 )
+               {
+                  const CHAR *subCLName = subCLNameList.at( 0 ) ;
+                  string mappingName ;
+                  rc = pResource->getOrUpdateCataInfo( subCLName, cataInfo, cb ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Get catalogue information of "
+                              "collection[%s] failed[%d]", subCLName, rc ) ;
+                  if ( cataInfo->getMappingName().size() > 0 )
+                  {
+                     mappingName = cataInfo->getMappingName() ;
+                     subCLName = mappingName.c_str() ;
+                  }
+
+                  rc = msgBuildDeleteMsg( &newMsg, &msgLen, subCLName,
+                                          origMsg->flags,
+                                          origMsg->header.requestID, &newDeletor,
+                                          &hint, cb ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Build delete message for data source "
+                                          "failed[%d]", rc ) ;
+               }
+               else
+               {
+                  string dsMainCLName ;
+                  const CHAR *subCLName = subCLNameList.at( 0 ) ;
+                  rc = pResource->getOrUpdateCataInfo( subCLName, cataInfo, cb ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Get catalogue information of "
+                              "collection[%s] failed[%d]", subCLName, rc ) ;
+                  dsMainCLName = cataInfo->getDSMainCLName() ;
+
+                  rc = _buildSubCLInfoHint( subCLNameList, hintBuilder, cb ) ;
+                  PD_RC_CHECK( rc, PDERROR,
+                               "Failed to build sub collection info hint, rc: %d",
+                               rc ) ;
+                  hintBuilder.appendElements( hint ) ;
+                  newHint = hintBuilder.obj() ;
+
+                  rc = msgBuildDeleteMsg( &newMsg, &msgLen, dsMainCLName.c_str(),
+                                          origMsg->flags,
+                                          origMsg->header.requestID, &newDeletor,
+                                          &newHint, cb ) ;
+                  PD_RC_CHECK( rc, PDERROR, "Build delete message for data source "
+                                          "failed[%d]", rc ) ;
+               }
             }
          }
          else
@@ -1126,7 +1674,7 @@ namespace engine
                                        cataInfo->getMappingName().c_str(),
                                        origDeleteMsg->flags,
                                        origDeleteMsg->header.requestID,
-                                       &deletor, &hint ) ;
+                                       &deletor, &hint, cb ) ;
                PD_RC_CHECK( rc, PDERROR, "Rebuild delete message for data "
                                          "source failed[%d]", rc ) ;
             }
@@ -1136,7 +1684,7 @@ namespace engine
             UINT32 newMsgLen = ( (MsgHeader *)newMsg)->messageLength ;
             *(MsgHeader *)newMsg = *msg ;
             ((MsgHeader *)newMsg)->messageLength = newMsgLen ;
-            pSub->setReqMsg( (MsgHeader *)newMsg, PMD_EDU_MEM_ALLOC ) ;
+            pSub->setReqMsg( (MsgHeader *)newMsg, PMD_EDU_MEM_THREAD ) ;
             newMsg = NULL ;
          }
       }
@@ -1206,12 +1754,14 @@ namespace engine
                BSONObj query( (CHAR *)itr->iovBase ) ;
                if ( query.hasField( FIELD_NAME_SUBCLNAME ) )
                {
-                  const CHAR *subCLName = NULL ;
+                  ossPoolVector< const CHAR* >  subCLNameList ;
                   BSONObj matcher ;
                   BSONObj selector ;
                   BSONObj orderBy ;
                   BSONObj hint ;
-                  BSONObjBuilder builder ;
+                  BSONObj newHint ;
+                  BSONObjBuilder matchBuilder ;
+                  BSONObjBuilder hintBuilder ;
                   BSONObjIterator queryItr( query ) ;
 
                   if ( dataVec->size() > 2 )
@@ -1231,32 +1781,67 @@ namespace engine
                      if ( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_SUBCLNAME ) )
                      {
                         BSONObjIterator subItr( ele.embeddedObject()) ;
-                        BSONElement clEle = subItr.next() ;
-                        subCLName = clEle.valuestrsafe() ;
+                        while ( subItr.more() )
+                        {
+                           BSONElement clEle = subItr.next() ;
+                           subCLNameList.push_back( clEle.valuestrsafe() ) ;
+                        }
                      }
                      else
                      {
-                        builder.append( ele ) ;
+                        matchBuilder.append( ele ) ;
                      }
                   }
-                  matcher = builder.done() ;
-                  rc = pResource->getOrUpdateCataInfo( subCLName,
-                                                       cataInfo, cb ) ;
-                  PD_RC_CHECK( rc, PDERROR, "Get catalogue information of "
-                               "collection[%s] failed[%d]", subCLName, rc ) ;
-                  if ( cataInfo->getMappingName().size() > 0 )
-                  {
-                     subCLName = cataInfo->getMappingName().c_str() ;
-                  }
+                  matcher = matchBuilder.done() ;
 
-                  rc = msgBuildQueryMsg( &newMsg, &msgLen, subCLName,
-                                         origQuery->flags,
-                                         origQuery->header.requestID,
-                                         origQuery->numToSkip,
-                                         origQuery->numToReturn,
-                                         &matcher, &selector, &orderBy, &hint ) ;
-                  PD_RC_CHECK( rc, PDERROR, "Build query message failed[%d]",
-                               rc ) ;
+                  SDB_ASSERT( !subCLNameList.empty(), "sub cl name array is empty" ) ;
+                  if ( subCLNameList.size() == 1 )
+                  {
+                     const CHAR *subCLName = subCLNameList.at( 0 ) ;
+                     string mappingName ;
+                     rc = pResource->getOrUpdateCataInfo( subCLName, cataInfo, cb ) ;
+                     PD_RC_CHECK( rc, PDERROR, "Get catalogue information of "
+                                 "collection[%s] failed[%d]", subCLName, rc ) ;
+                     if ( cataInfo->getMappingName().size() > 0 )
+                     {
+                        mappingName = cataInfo->getMappingName() ;
+                        subCLName = mappingName.c_str() ;
+                     }
+
+                     rc = msgBuildQueryMsg( &newMsg, &msgLen, subCLName,
+                                            origQuery->flags,
+                                            origQuery->header.requestID,
+                                            origQuery->numToSkip,
+                                            origQuery->numToReturn,
+                                            &matcher, &selector, &orderBy, &hint, cb ) ;
+                     PD_RC_CHECK( rc, PDERROR, "Build query message failed[%d]",
+                                  rc ) ;
+                  }
+                  else
+                  {
+                     string dsMainCLName ;
+                     const CHAR *subCLName = subCLNameList.at( 0 ) ;
+                     rc = pResource->getOrUpdateCataInfo( subCLName, cataInfo, cb ) ;
+                     PD_RC_CHECK( rc, PDERROR, "Get catalogue information of "
+                                  "collection[%s] failed[%d]", subCLName, rc ) ;
+                     dsMainCLName = cataInfo->getDSMainCLName() ;
+
+                     rc = _buildSubCLInfoHint( subCLNameList, hintBuilder, cb ) ;
+                     PD_RC_CHECK( rc, PDERROR,
+                                  "Failed to build sub collection info hint, rc: %d",
+                                  rc ) ;
+                     hintBuilder.appendElements( hint ) ;
+                     newHint = hintBuilder.obj() ;
+
+                     rc = msgBuildQueryMsg( &newMsg, &msgLen, dsMainCLName.c_str(),
+                                            origQuery->flags,
+                                            origQuery->header.requestID,
+                                            origQuery->numToSkip,
+                                            origQuery->numToReturn,
+                                            &matcher, &selector, &orderBy, &newHint, cb ) ;
+                     PD_RC_CHECK( rc, PDERROR, "Build query message failed[%d]",
+                                  rc ) ;
+                  }
                }
             }
             else
@@ -1293,7 +1878,7 @@ namespace engine
                                             flags, origQuery->header.requestID,
                                             numToSkip, numToReturn,
                                             &queryObj, &selectorObj,
-                                            &orderByObj, &hintObj ) ;
+                                            &orderByObj, &hintObj, cb ) ;
                      PD_RC_CHECK( rc, PDERROR, "Build query message failed[%d]",
                                   rc ) ;
                   }
@@ -1304,7 +1889,7 @@ namespace engine
                UINT32 newMsgLen = ( (MsgHeader *)newMsg )->messageLength ;
                *(MsgHeader *)newMsg = *msg ;
                ((MsgHeader *)newMsg)->messageLength = newMsgLen ;
-               pSub->setReqMsg( (MsgHeader *)newMsg, PMD_EDU_MEM_ALLOC ) ;
+               pSub->setReqMsg( (MsgHeader *)newMsg, PMD_EDU_MEM_THREAD ) ;
                newMsg = NULL ;
             }
          }
@@ -1469,8 +2054,10 @@ namespace engine
          const CHAR *clName = NULL ;
          // Name of sub collection, if the original operation is on a main
          // collection.
-         const CHAR *subCLName = NULL ;
-         const CHAR *mappingName = NULL ;
+         ossPoolVector< const CHAR * > subCLNameList ;
+         const CHAR *targetName = NULL ;
+         string mappingName ;
+         string dsMainCLName ;
          BOOLEAN doOnMainCL = FALSE ;
          BSONObj origQueryObj( query ) ;
          BSONObj queryObj( query ) ;
@@ -1488,7 +2075,10 @@ namespace engine
                // Currently we only support one data source sub collectioin
                // attached on a local main collection.
                BSONObjIterator subItr( ele.embeddedObject()) ;
-               subCLName = subItr.next().valuestr() ;
+               while ( subItr.more() )
+               {
+                  subCLNameList.push_back( subItr.next().valuestr() ) ;
+               }
                doOnMainCL = TRUE ;
             }
             else if ( 0 == ossStrcmp( ele.fieldName(),
@@ -1516,6 +2106,40 @@ namespace engine
                   clName = ele.valuestr() ;
                   targetInHint = TRUE ;
                }
+            }
+         }
+
+         {
+            BSONObjIterator hintItr( hintObj ) ;
+            while ( hintItr.more() )
+            {
+               BSONElement ele = hintItr.next() ;
+               if ( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_COLLECTION ) &&
+                    targetInHint )
+               {
+                  // This field may be moved into query object. Ignore it now.
+                  continue ;
+               }
+               else if ( 0 == ossStrcmp( cmdName,
+                                         CMD_ADMIN_PREFIX CMD_NAME_GET_CL_DETAIL ) &&
+                         0 == ossStrcmp( ele.fieldName(), FIELD_NAME_HINT ) )
+               {
+                  BSONObjBuilder subBuilder( hintBuilder.subobjStart( FIELD_NAME_HINT ) ) ;
+                  BSONObjIterator subItr( ele.Obj() ) ;
+                  while ( subItr.more() )
+                  {
+                     BSONElement subEle = subItr.next() ;
+                     if ( 0 == ossStrcmp( subEle.fieldName(), FIELD_NAME_AGGR ) )
+                     {
+                        // Always set aggr as true, because data source is one
+                        // virtual data group.
+                        continue ;
+                     }
+                     subBuilder.append( subEle ) ;
+                  }
+                  subBuilder.appendBool( FIELD_NAME_AGGR, TRUE ) ;
+                  subBuilder.done() ;
+               }
                else
                {
                   hintBuilder.append( ele ) ;
@@ -1531,16 +2155,62 @@ namespace engine
             goto done ;
          }
 
-         if ( subCLName )
+         if ( doOnMainCL )
          {
-            clName = subCLName ;
-         }
+            SDB_ASSERT( !subCLNameList.empty(), "sub cl name array is empty" ) ;
+            if ( subCLNameList.size() == 1 )
+            {
+               clName = subCLNameList.at( 0 ) ;
 
-         // Get information of the collection. It may be a normal collection or
-         // a sub collection.
-         rc = pResource->getOrUpdateCataInfo( clName, cataInfo, cb ) ;
-         PD_RC_CHECK( rc, PDERROR, "Get catalogue information of "
-                      "collection[%s] failed[%d]", clName, rc ) ;
+               // Get information of the collection. It may be a normal collection or
+               // a sub collection.
+               rc = pResource->getOrUpdateCataInfo( clName, cataInfo, cb ) ;
+               PD_RC_CHECK( rc, PDERROR, "Get catalogue information of "
+                           "collection[%s] failed[%d]", clName, rc ) ;
+
+               // There are two scenarios that the message needs to be rebuilt:
+               // 1. The operation is on the main collection.
+               // 2. The operation target name and the mapping name are not the same.
+               if ( cataInfo->getMappingName().size() > 0 )
+               {
+                  mappingName = cataInfo->getMappingName() ;
+                  targetName = mappingName.c_str() ;
+               }
+               else
+               {
+                  targetName = clName ;
+               }
+            }
+            else
+            {
+               const CHAR *subCLName = subCLNameList.at( 0 ) ;
+               rc = pResource->getOrUpdateCataInfo( subCLName, cataInfo, cb ) ;
+               PD_RC_CHECK( rc, PDERROR, "Get catalogue information of "
+                            "collection[%s] failed[%d]", subCLName, rc ) ;
+               dsMainCLName = cataInfo->getDSMainCLName() ;
+
+               rc = _buildSubCLInfoHint( subCLNameList, hintBuilder, cb ) ;
+               PD_RC_CHECK( rc, PDERROR,
+                            "Failed to build sub collection info hint, rc: %d",
+                            rc ) ;
+               targetName = dsMainCLName.c_str() ;
+            }
+         }
+         else
+         {
+            rc = pResource->getOrUpdateCataInfo( clName, cataInfo, cb ) ;
+            PD_RC_CHECK( rc, PDERROR, "Get catalogue information of "
+                        "collection[%s] failed[%d]", clName, rc ) ;
+            if ( cataInfo->getMappingName().size() > 0 )
+            {
+               mappingName = cataInfo->getMappingName() ;
+               targetName = mappingName.c_str() ;
+            }
+            else
+            {
+               targetName = clName ;
+            }
+         }
 
          if ( 0 == ossStrcmp( cmdName,
                               CMD_ADMIN_PREFIX CMD_NAME_LIST_LOBS ) )
@@ -1568,36 +2238,27 @@ namespace engine
             }
          }
 
-         // There are two scenarios that the message needs to be rebuilt:
-         // 1. The operation is on the main collection.
-         // 2. The operation target name and the mapping name are not the same.
-         mappingName = cataInfo->getMappingName().c_str() ;
-
          if ( doOnMainCL || hintToQuery ||
-              ( 0 != ossStrcmp( clName, mappingName ) ) )
+              ( 0 != ossStrcmp( clName, targetName ) ) )
          {
             BSONObj selectObj( selector ) ;
             BSONObj orderbyObj( orderby ) ;
 
             if ( targetInQuery || hintToQuery )
             {
-               queryBuilder.append( FIELD_NAME_COLLECTION, mappingName ) ;
-               if ( hintToQuery )
-               {
-                  // reset hint
-                  hintBuilder.reset() ;
-               }
+               queryBuilder.append( FIELD_NAME_COLLECTION, targetName ) ;
             }
             else if ( targetInHint )
             {
-               hintBuilder.append( FIELD_NAME_COLLECTION, mappingName ) ;
+               hintBuilder.append( FIELD_NAME_COLLECTION, targetName ) ;
             }
+
             queryObj = queryBuilder.done() ;
             hintObj = hintBuilder.done() ;
 
             rc = msgBuildQueryCMDMsg( &newMsg, &buffSize, cmdName, queryObj,
                                       selectObj, orderbyObj, hintObj,
-                                      0, NULL ) ;
+                                      0, cb ) ;
             PD_RC_CHECK( rc, PDERROR, "Build command message failed[%d]", rc ) ;
 
             {
@@ -1613,7 +2274,7 @@ namespace engine
             PD_LOG( PDDEBUG, "After conversion, the message for data source "
                     "is: %s", msg2String( (MsgHeader *)newMsg).c_str() ) ;
 
-            pSub->setReqMsg( (MsgHeader *)newMsg, PMD_EDU_MEM_ALLOC ) ;
+            pSub->setReqMsg( (MsgHeader *)newMsg, PMD_EDU_MEM_THREAD ) ;
             newMsg = NULL ;
          }
       }
@@ -1801,7 +2462,7 @@ namespace engine
             newMetaSize = 0 ;
          }
 
-         pNewMsg = (MsgOpLob *)SDB_OSS_MALLOC( newMsgSize ) ;
+         pNewMsg = (MsgOpLob *)SDB_THREAD_ALLOC( newMsgSize ) ;
          PD_CHECK( NULL != pNewMsg, SDB_OOM, error, PDERROR,
                    "Failed to allocate new message with size [%d]",
                    newMsgSize ) ;
@@ -1838,7 +2499,7 @@ namespace engine
          pNewMsg->header.messageLength = newMsgSize ;
          pNewMsg->bsonLen = newMetaSize ;
 
-         pSub->setReqMsg( (MsgHeader *)pNewMsg, PMD_EDU_MEM_ALLOC ) ;
+         pSub->setReqMsg( (MsgHeader *)pNewMsg, PMD_EDU_MEM_THREAD ) ;
 
 #if defined (_DEBUG)
          if ( MSG_BS_LOB_WRITE_REQ == pNewMsg->header.opCode )
@@ -1885,7 +2546,7 @@ namespace engine
    done:
       if ( pNewMsg )
       {
-         SDB_OSS_FREE( pNewMsg ) ;
+         SDB_THREAD_FREE( pNewMsg ) ;
       }
       PD_TRACE_EXITRC( SDB__COORDDSMSGCONVERTOR__REBUILDDATASOURCELOBMSG, rc ) ;
       return rc ;

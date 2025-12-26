@@ -546,6 +546,8 @@ namespace engine
       BSONObj _boSubCL ;
       BSONObj _lowBound ;
       BSONObj _upBound ;
+      std::string _dsMainCLName ;
+      BOOLEAN _needUpdateDsMainCL ;
    } ;
 
    typedef class _catCtxLinkCL catCtxLinkCL ;

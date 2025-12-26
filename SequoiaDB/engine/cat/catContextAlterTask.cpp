@@ -1153,6 +1153,15 @@ namespace engine
                    CAT_NOTRANS, _dataName.c_str() ) ;
       }
 
+      if ( localTask->containDataSourceArgument() )
+      {
+         PD_CHECK( cataSet.getDataSourceID() != UTIL_INVALID_DS_UID,
+                   SDB_OPTION_NOT_SUPPORT, error, PDERROR,
+                   "Failed to check attribute [%s]: collection [%s] is not a "
+                   "mapping of the data source", CAT_DS_MAINCL_NAME,
+                   _dataName.c_str() ) ;
+      }
+
    done :
       PD_TRACE_EXITRC( SDB_CATCTXALTERCLTASK__CHKSETATTR, rc ) ;
       return rc ;
@@ -1755,6 +1764,46 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXALTERCLTASK__BLDDSFLD, "_catCtxAlterCLTask::_buildDataSourceFields" )
+   INT32 _catCtxAlterCLTask::_buildDataSourceFields ( clsCatalogSet & cataSet,
+                                                      const rtnCLDataSourceArgument & argument,
+                                                      UINT32 & attribute,
+                                                      BSONObjBuilder & setBuilder,
+                                                      BSONObjBuilder & unsetBuilder )
+   {
+      INT32 rc = SDB_OK ;
+      const CHAR *name = argument.getDSMainCLName() ;
+      UINT32 nameLength = ossStrlen( name ) ;
+
+      PD_TRACE_ENTRY( SDB_CATCTXALTERCLTASK__BLDDSFLD ) ;
+
+      PD_CHECK( cataSet.getDataSourceID() != UTIL_INVALID_DS_UID,
+                SDB_INVALIDARG, error, PDERROR,
+                "Failed to check data source arguments: collection [%s] is not "
+                "a mapping of the data source", _dataName.c_str() ) ;
+
+      if ( nameLength > 0 )
+      {
+         PD_CHECK( ossStrchr( name, '.' ) != NULL &&
+                   nameLength < DMS_COLLECTION_FULL_NAME_SZ,
+                   SDB_INVALIDARG, error, PDERROR,
+                   "Failed to check data source arguments: main collection name"
+                   "[%s] is invalid", name ) ;
+
+         setBuilder.append( CAT_DS_MAINCL_NAME, name ) ;
+      }
+      else
+      {
+         unsetBuilder.append( CAT_DS_MAINCL_NAME, 1 ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB_CATCTXALTERCLTASK__BLDDSFLD, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXALTERCLTASK__BLDSETATTR, "_catCtxAlterCLTask::_buildSetAttributeFields" )
    INT32 _catCtxAlterCLTask::_buildSetAttributeFields ( clsCatalogSet & cataSet,
                                                         UINT32 & attribute,
@@ -1922,6 +1971,15 @@ namespace engine
             unsetBuilder.append( CAT_REPAIRCHECK, 1 ) ;
          }
       }
+
+      if ( localTask->containDataSourceArgument() )
+      {
+         rc = _buildDataSourceFields( cataSet, localTask->getDataSourceArgument(),
+                                      attribute, setBuilder, unsetBuilder ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to build capped fields, rc: %d", rc ) ;
+      }
+
 
    done :
       PD_TRACE_EXITRC( SDB_CATCTXALTERCLTASK__BLDSETATTR, rc ) ;

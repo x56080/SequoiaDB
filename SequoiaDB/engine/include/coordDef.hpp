@@ -345,6 +345,11 @@ namespace engine
          return _catlogSet.getMappingName() ;
       }
 
+      const string& getDSMainCLName() const
+      {
+         return _catlogSet.getDSMainCLName() ;
+      }
+
       UINT64 getLastAccessTime() const
       {
          return _lastAccessTime ;

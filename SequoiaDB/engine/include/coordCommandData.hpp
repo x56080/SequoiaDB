@@ -594,7 +594,8 @@ namespace engine
           */
          INT32 _testCLOnDataSource( const CHAR *dsName, const CHAR *clName,
                                     BOOLEAN &exist, pmdEDUCB *cb ) ;
-
+      private:
+         std::string _dsMainCLName ;
    } ;
    typedef _coordCMDCreateCollection coordCMDCreateCollection ;
 

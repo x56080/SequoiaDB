@@ -3063,14 +3063,18 @@ namespace engine
                    "Failed to extract alter job: not support multiple tasks" ) ;
 
          /*
-          * If altering collection which is using data source, the only allowed
-          * operation is to increase version of the table.
+          * If altering collection which is using data source, the allowed
+          * operation list is:
+          * 1. increase version of the table.
+          * 2. alter data source main collection name.
           */
          if ( meta.hasField( FIELD_NAME_DATASOURCE_ID ) &&
               ( 1 == _alterJob.getAlterTasks().size() ) )
          {
             rtnAlterTask *task = _alterJob.getAlterTasks().front() ;
-            if ( RTN_ALTER_CL_INC_VERSION != task->getActionType() )
+            if (!( RTN_ALTER_CL_INC_VERSION == task->getActionType() || // (1)
+                   (RTN_ALTER_CL_SET_ATTRIBUTES == task->getActionType() && // (2)
+                    UTIL_CL_DS_MAINCLNAME_FIELD == task->getArgumentMask() ) ) )
             {
                rc = SDB_OPERATION_INCOMPATIBLE ;
                PD_LOG_MSG( PDERROR, "Not allowed to alter a collection which is"
@@ -3854,7 +3858,7 @@ namespace engine
                    _subCLName.c_str(), tmpMainCLName.c_str() ) ;
 
       // Check if multiple collections on data source are being linked to the
-      // main collection. Currently this is not supported.
+      // main collection.
       rc = catCheckLinkMultiDSCollection( _boTarget, _boSubCL, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Check multiple collections on data source "
                    "attached to main collection failed[%d]", rc ) ;

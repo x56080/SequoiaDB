@@ -104,6 +104,7 @@ namespace engine
       clsAutoIncSet _autoIncSet ;
       UTIL_DS_UID _dsUID ;
       CHAR        _fullMapping[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] ;
+      CHAR        _dsMainCLName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] ;
 
       /// ref info
       ossPoolVector<BSONObj>  _vecCataInfo ;
@@ -147,6 +148,7 @@ namespace engine
          _autoIncSet.clear() ;
          _autoFromRef         = FALSE ;
          ossMemset( _fullMapping, 0, DMS_COLLECTION_FULL_NAME_SZ + 1 ) ;
+         ossMemset( _dsMainCLName, 0, DMS_COLLECTION_FULL_NAME_SZ + 1 ) ;
          _vecCataInfo.clear() ;
          _vecCataInfoGrpID.clear() ;
          _refMode             = REF_MODE_RESHARD ;

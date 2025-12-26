@@ -46,6 +46,7 @@
 #include "pdSecure.hpp"
 #include "mthModifier.hpp"
 #include "catLocation.hpp"
+#include <boost/algorithm/string.hpp>
 
 using namespace bson ;
 
@@ -6458,12 +6459,15 @@ namespace engine
 
          cataEle = boMainCL.getField( FIELD_NAME_CATALOGINFO ) ;
          {
+            BOOLEAN hasSameDSSubCL = FALSE ;
             const CHAR *subCLName = NULL ;
             BSONElement idEle ;
             BSONObjIterator itr( cataEle.embeddedObject() ) ;
+            const CHAR *myDSMainCLName =
+                  boSubCL.getStringField( FIELD_NAME_DS_MAINCL_NAME ) ;
             // Check the field 'DataSourceID' in each sub cl metadata record.
             // If it exists and its value is the same with the current cl,
-            // return error.
+            // check whether data source main collection name is the same.
             while ( itr.more() )
             {
                subObj = itr.next().Obj() ;
@@ -6474,11 +6478,77 @@ namespace engine
                idEle = subCLObj.getField( FIELD_NAME_DATASOURCE_ID ) ;
                if ( !idEle.eoo() && idEle.valuesEqual( myIDEle ) )
                {
+                  const CHAR *otherDSMainCLName =
+                        subCLObj.getStringField( FIELD_NAME_DS_MAINCL_NAME ) ;
+                  if ( 0 != ossStrcmp( myDSMainCLName, otherDSMainCLName ) )
+                  {
+                     rc = SDB_OPTION_NOT_SUPPORT ;
+                     PD_LOG_MSG( PDERROR, "Sub collections of one data source "
+                                 "required the same main collection. "
+                                 "Main collection of [%s] is [%s], "
+                                 "but main collection of [%s] is [%s].",
+                                 boSubCL.getStringField( FIELD_NAME_NAME ),
+                                 myDSMainCLName,
+                                 subCLName,
+                                 otherDSMainCLName ) ;
+                     goto error ;
+                  }
+                  hasSameDSSubCL = TRUE ;
+               }
+            }
+
+            if ( hasSameDSSubCL )
+            {
+               // check if main collection exists
+               if ( 0 == ossStrlen( myDSMainCLName ) )
+               {
+                  rc = SDB_OPTION_NOT_SUPPORT ;
+                  PD_LOG_MSG( PDERROR, "To attach more than one sub-collections, "
+                              "there must be a main collection on data source" ) ;
+                  goto error ;
+               }
+
+               // old version ( < 3.4.16 || 5.8.6 ) doesn't support multiple sub cl
+               BSONObj matcher ;
+               BSONObj dummyObj ;
+               BSONObj obj ;
+               UTIL_DS_UID dsID = myIDEle.numberInt() ;
+
+               INT32 versionMajor = 0 ;
+               INT32 versionMinor = 0 ;
+               INT32 versionFix = 0 ;
+
+               matcher = BSON( FIELD_NAME_ID << dsID ) ;
+               rc = catGetOneObj( CAT_DATASOURCE_COLLECTION, dummyObj, matcher,
+                                  dummyObj, cb, obj ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to get data source[%d] info, rc: %d",
+                            dsID, rc ) ;
+
+               ossSscanf( obj.getField( FIELD_NAME_DSVERSION ).valuestrsafe(),
+                          "%d.%d.%d",
+                          &versionMajor,
+                          &versionMinor,
+                          &versionFix ) ;
+
+               if ( ( versionMajor <= 2 ) ||
+                     ( ( versionMajor == 3 ) &&
+                        ( ( versionMinor < 4 ) ||
+                        ( ( versionMinor == 4 ) &&
+                           ( versionFix < 16 ) ) ||
+                        ( versionMinor == 6 ) ) ) ||
+                     ( ( versionMajor == 5 ) &&
+                        ( ( versionMinor < 8 ) ||
+                        ( ( versionMinor == 8 ) &&
+                           ( versionFix < 6 ) ) ) ) )
+               {
                   rc = SDB_OPTION_NOT_SUPPORT ;
                   PD_LOG_MSG( PDERROR, "Main collection can not attach more "
                               "then one sub collection mapping to the same "
-                              "data source[%d]", rc ) ;
-                  goto error ;
+                              "data source( version: %d.%d.%d ), rc: %d",
+                              versionMajor,
+                              versionMinor,
+                              versionFix,
+                              rc ) ;
                }
             }
          }
@@ -8398,6 +8468,14 @@ namespace engine
             PD_CHECK( ossStrlen(origMapping) > 0, SDB_INVALIDARG, error,
                       PDERROR, "Mapping value is invalid" ) ;
          }
+         else if ( 0 == ossStrcmp( eleTmp.fieldName(), FIELD_NAME_DS_MAINCL_NAME ) )
+         {
+            PD_LOG_MSG_CHECK( String == eleTmp.type(), SDB_INVALIDARG, error,
+                              PDERROR, "Field [%s] type [%d] error",
+                              FIELD_NAME_DS_MAINCL_NAME, eleTmp.type() ) ;
+            ossStrncpy( clInfo._dsMainCLName, eleTmp.valuestrsafe(),
+                        DMS_COLLECTION_FULL_NAME_SZ ) ;
+         }
          else if ( 0 == ossStrcmp( eleTmp.fieldName(), FIELD_NAME_REFMODE ) ||
                    0 == ossStrcmp( eleTmp.fieldName(), FIELD_NAME_REFOBJ ) ||
                    0 == ossStrcmp( eleTmp.fieldName(), FIELD_NAME_REFFROM ) )
@@ -8869,6 +8947,10 @@ namespace engine
          if ( ossStrlen( clInfo._fullMapping ) > 0 )
          {
             builder.append( FIELD_NAME_MAPPING, clInfo._fullMapping ) ;
+         }
+         if ( ossStrlen( clInfo._dsMainCLName ) > 0 )
+         {
+            builder.append( FIELD_NAME_DS_MAINCL_NAME, clInfo._dsMainCLName ) ;
          }
       }
 

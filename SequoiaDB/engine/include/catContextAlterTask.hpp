@@ -179,6 +179,12 @@ namespace engine
                                        bson::BSONObjBuilder & setBuilder,
                                        bson::BSONObjBuilder & unsetBuilder ) ;
 
+         INT32 _buildDataSourceFields ( clsCatalogSet & cataSet,
+                                        const rtnCLDataSourceArgument & argument,
+                                        UINT32 & attribute,
+                                        bson::BSONObjBuilder & setBuilder,
+                                        bson::BSONObjBuilder & unsetBuilder ) ;
+
          INT32 _buildSetAttributeFields ( clsCatalogSet & cataSet,
                                           UINT32 & attribute,
                                           bson::BSONObjBuilder & setBuilder,

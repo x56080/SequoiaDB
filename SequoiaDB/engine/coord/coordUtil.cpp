@@ -728,5 +728,153 @@ namespace engine
       goto done ;
    }
 
+   INT32 coordValidateSubCLBounds( const clsCatalogSet &mainCLCataSet,
+                                   const BSONObj &obj,
+                                   BOOLEAN hasUpdateCatalog )
+   {
+      INT32 rc = SDB_OK ;
+      try
+      {
+         BSONElement elem = obj.getField( FIELD_NAME_SUB_COLLECTIONS ) ;
+         if ( elem.type() == bson::Array )
+         {
+            BSONObj subCLObjs = elem.Obj() ;
+            BSONObjIterator iter( subCLObjs ) ;
+            while ( iter.more() )
+            {
+               BSONObj subCLObj = iter.next().Obj() ;
+               const CHAR *subCLName =
+                     subCLObj.getField( FIELD_NAME_NAME ).valuestrsafe() ;
+               BSONObj argLowBound =
+                     subCLObj.getField( FIELD_NAME_LOWBOUND ).Obj() ;
+               BSONObj argUpBound =
+                     subCLObj.getField( FIELD_NAME_UPBOUND ).Obj() ;
+               BSONObj myLowBound ;
+               BSONObj myUpBound ;
+               rc = mainCLCataSet.getSubCLBounds( subCLName, myLowBound, myUpBound ) ;
+               if ( SDB_CAT_NO_MATCH_CATALOG == rc )
+               {
+                  rc = SDB_DMS_NOTEXIST ;
+                  PD_LOG_MSG( PDERROR, "Collection [%s] is required by "
+                              "data source, but doesn't exist", subCLName ) ;
+                  goto error ;
+               }
+               if ( !argLowBound.equal( myLowBound ) ||
+                    !argUpBound.equal( myUpBound ) )
+               {
+                  rc = SDB_BOUND_INVALID ;
+                  PD_LOG_MSG( PDERROR, "Sub collection [%s] of data source required "
+                              "the same attach bounds", subCLName ) ;
+                  goto error ;
+               }
+            }
+         }
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception happened: %s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
+   done:
+      return rc ;
+   error:
+      // try updating catalog once to avoid expiration
+      if ( !hasUpdateCatalog )
+      {
+         rc = SDB_CLS_COORD_NODE_CAT_VER_OLD ;
+      }
+      goto done ;
+   }
+
+   INT32 coordRemoveSubCLBounds( BSONObj &obj )
+   {
+      INT32 rc = SDB_OK ;
+      try
+      {
+         BSONObjBuilder builder( obj.objsize() ) ;
+         BSONObjIterator it( obj ) ;
+         while ( it.more() )
+         {
+            BSONElement elem = it.next() ;
+            if ( 0 != ossStrcmp( elem.fieldName(),
+                                 FIELD_NAME_SUB_COLLECTIONS ) )
+            {
+               builder.append( elem ) ;
+            }
+         }
+         obj = builder.obj() ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception happened: %s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   BSONObj coordBuildSubCLIntoObj( const BSONObj &obj,
+                                   const CoordSubCLlist &subCLList )
+   {
+      BSONObj retObj ;
+      BOOLEAN hasConstraint = FALSE ;
+      BSONObj constraintObj ;
+      BSONObjBuilder builder( obj.objsize() +
+                              subCLList.size() * COORD_SUBCL_NAME_DFT_LEN) ;
+      BSONObjIterator iterQuery( obj ) ;
+      while ( iterQuery.more() )
+      {
+         BSONElement elem = iterQuery.next() ;
+         if ( 0 == ossStrcmp( elem.fieldName(), CAT_SUBCL_NAME ) )
+         {
+            hasConstraint = TRUE ;
+            constraintObj = elem.embeddedObject() ;
+         }
+         else
+         {
+            builder.append( elem ) ;
+         }
+      }
+
+      /*
+         Append array, as { SubCLName : [ "a.a", "b.a" ] }
+      */
+      BSONArrayBuilder babSubCL( builder.subarrayStart( CAT_SUBCL_NAME ) ) ;
+      CoordSubCLlist::const_iterator iterCL = subCLList.begin();
+      while( iterCL != subCLList.end() )
+      {
+         // There is constraint from data source
+         // kick the sub collection that not in constraint list
+         if ( hasConstraint )
+         {
+            BSONObjIterator iterObj( constraintObj ) ;
+            BOOLEAN match = FALSE ;
+            while ( iterObj.more() )
+            {
+               const char *name = iterObj.next().valuestrsafe() ;
+               if ( 0 == ossStrcmp( name, iterCL->c_str() ) )
+               {
+                  match = TRUE ;
+                  break ;
+               }
+            }
+            if ( !match )
+            {
+               continue ;
+            }
+         }
+         babSubCL.append( *iterCL ) ;
+         ++iterCL ;
+      }
+      babSubCL.done() ;
+
+      retObj = builder.obj() ;
+      return retObj ;
+   }
+
 }
 

@@ -346,6 +346,20 @@ namespace engine
          CHAR *pBuff             = NULL ;
          UINT32 buffLen          = 0 ;
          UINT32 buffPos          = 0 ;
+         BOOLEAN hasHintRebuilt  = FALSE ;
+
+         if ( !boHint.isEmpty() && boHint.hasField( FIELD_NAME_SUB_COLLECTIONS ) )
+         {
+            rc = coordValidateSubCLBounds(
+                  *cataSel.getCataPtr()->getCatalogSet(), boHint,
+                  cataSel.hasUpdated() ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to parse data source sub collection info, "
+                         "rc: %d", rc ) ;
+            rc = coordRemoveSubCLBounds( boHint ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to rebuild hint object, rc: %d", rc ) ;
+            hasHintRebuilt = TRUE ;
+         }
 
          it = grpSubCl.begin() ;
          while( it != grpSubCl.end() )
@@ -366,9 +380,12 @@ namespace engine
             boNew = _buildNewDeletor( boDeletor, subCLLst ) ;
             // 2.1 add to buff
             UINT32 roundLen = ossRoundUpToMultipleX( boNew.objsize(), 4 ) ;
-            if ( buffPos + roundLen > buffLen )
+            UINT32 allocLen = roundLen ;
+            allocLen += ( hasHintRebuilt ?
+                  ossRoundUpToMultipleX( boHint.objsize(), 4 ) : 0 ) ;
+            if ( buffPos + allocLen > buffLen )
             {
-               UINT32 alignLen = ossRoundUpToMultipleX( roundLen,
+               UINT32 alignLen = ossRoundUpToMultipleX( allocLen,
                                                         DMS_PAGE_SIZE4K ) ;
                rc = cb->allocBuff( alignLen, &pBuff, &buffLen ) ;
                PD_RC_CHECK( rc, PDERROR, "Alloc buff[%u] failed, rc: %d",
@@ -383,9 +400,20 @@ namespace engine
             iovec.push_back( ioItem ) ;
 
             // 3. hinter vec
-            ioItem.iovBase = boHint.objdata() ;
-            ioItem.iovLen = boHint.objsize() ;
-            iovec.push_back( ioItem ) ;
+            if ( !hasHintRebuilt )
+            {
+               ioItem.iovBase = boHint.objdata() ;
+               ioItem.iovLen = boHint.objsize() ;
+               iovec.push_back( ioItem ) ;
+            }
+            else
+            {
+               ossMemcpy( &pBuff[ buffPos ], boHint.objdata(), boHint.objsize() ) ;
+               ioItem.iovBase = &pBuff[ buffPos ] ;
+               ioItem.iovLen = boHint.objsize() ;
+               buffPos += ossRoundUpToMultipleX( boHint.objsize(), 4 ) ;
+               iovec.push_back( ioItem ) ;
+            }
 
             ++it ;
          }
@@ -418,24 +446,8 @@ namespace engine
    BSONObj _coordDeleteOperator::_buildNewDeletor( const BSONObj &deletor,
                                                    const CoordSubCLlist &subCLList )
    {
-      BSONObjBuilder builder( deletor.objsize() +
-                              subCLList.size() * COORD_SUBCL_NAME_DFT_LEN ) ;
-
-      builder.appendElements( deletor ) ;
-
-      /*
-         Append array, as { SubCLName : [ "a.a", "b.a" ] }
-      */
-      BSONArrayBuilder babSubCL( builder.subarrayStart( CAT_SUBCL_NAME ) ) ;
-      CoordSubCLlist::const_iterator iterCL = subCLList.begin();
-      while( iterCL != subCLList.end() )
-      {
-         babSubCL.append( *iterCL ) ;
-         ++iterCL ;
-      }
-      babSubCL.done() ;
-
-      return builder.obj() ;
+      BSONObj retObj = coordBuildSubCLIntoObj( deletor, subCLList ) ;
+      return retObj ;
    }
 
    void _coordDeleteOperator::_onNodeReply( INT32 processType,

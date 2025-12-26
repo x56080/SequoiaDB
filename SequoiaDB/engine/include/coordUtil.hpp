@@ -125,6 +125,14 @@ namespace engine
                                  BOOLEAN &hasFailedGroup,
                                  const vector<BSONObj> &replyObjs ) ;
 
+   INT32 coordValidateSubCLBounds( const clsCatalogSet &mainCLCataSet,
+                                   const BSONObj &obj,
+                                   BOOLEAN hasUpdateCatalog ) ;
+
+   INT32 coordRemoveSubCLBounds( BSONObj &obj ) ;
+
+   BSONObj coordBuildSubCLIntoObj( const BSONObj &obj,
+                                   const CoordSubCLlist &subCLList ) ;
 }
 
 #endif // COORD_UTIL_HPP__
