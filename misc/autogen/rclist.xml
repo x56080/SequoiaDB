@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <rclist>
    <conslist>
       <constant>
@@ -1667,10 +1667,10 @@
       </code>
 
       <code>
-         <name>SDB_ERROR_RESERVED_2</name> <!-- SDB_CAT_GRP_NOT_EXIST -->
+         <name>SDB_CLS_PRIMARY_ALREADY_EXIST</name>
          <description>
-            <en>Reserved</en> <!-- Group does not exist -->
-            <cn>保留</cn> <!-- 分区组不存在 -->
+            <en>Primary already exist</en>
+            <cn>主已存在</cn>
          </description>
       </code>
 
