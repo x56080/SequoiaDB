@@ -5,7 +5,6 @@
  * @CreateTime    : 2025.10.22
  ******************************************************************************/
 testConf.skipStandAlone = true;
-testConf.skipTest = false;
 
 main( test );
 
