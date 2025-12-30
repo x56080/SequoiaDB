@@ -266,7 +266,8 @@ function init()
       cs.createCL( TMP_CL_CATA_MAIN_CL_INFO ) ;
       cs.createCL( TMP_CL_DATA_CLUSTER_CL_INFO ) ;
       cs.createCL( TMP_CL_LOCAL_CL_INFO ) ;
-      cs.createCL( TMP_CL_DATA_INDEX_INFO ) ;
+      cl = cs.createCL( TMP_CL_DATA_INDEX_INFO ) ;
+      cl.createIndex( "clFullName_idx", { ClFullName: 1 } ) ;
       cs.createCL( TMP_CL_CATA_INDEX_INFO ) ;
       cs.createCL( TMP_CL_DATA_INDEX_CHECK_INFO ) ;
       cs.createCL( TMP_CL_DATA_INDEX_CHECK_INFO_TMP ) ;

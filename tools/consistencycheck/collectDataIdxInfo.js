@@ -77,6 +77,22 @@ catch( e )
 
 collectDataIndexInfo() ;
 
+function canRetrySnapIndexes( errNodes )
+{
+   for ( i in errNodes )
+   {
+      var errNode = errNodes[i] ;
+      if ( -338 == errNode.ErrInfo.errno )
+      {
+         return true ;
+      }
+      else
+      {
+         return false ;
+      }
+   }
+}
+
 function collectDataIndexInfo()
 {
    /*
@@ -138,51 +154,83 @@ function collectDataIndexInfo()
       var rc = cataClusterCl.find( { "DataClFullName": { "$isnull": 1 } }, { "ClFullName": 1, "MainClName": 1 } ).skip( skip ).limit( limit ).sort( { "ClFullName": 1, "MainClName": 1 } ) ;
       while( rc.next() )
       {
+         var tryTime = 10 ;
+         var needRetry = false ;
          var obj = rc.current().toObj() ;
          var mainClName = obj.MainClName ;
          var clFullName = obj.ClFullName ;
          var csName = clFullName.split(".")[0] ;
          var clName = clFullName.split(".")[1] ;
          var cl = db.getCS( csName ).getCL( clName ) ;
-         var rc1 = cl.snapshotIndexes( { RawData: true }, { NodeName: 1, GroupName: 1, IndexDef: 1 } ) ;
-         while ( rc1.next() )
+         var rc1 ;
+
+         while ( tryTime >= 0 )
          {
-            var obj1 = rc1.current().toObj() ;
-
-            if ( undefined == obj1.IndexDef )
+            needRetry = false ;
+            rc1 = cl.snapshotIndexes( { RawData: true }, { NodeName: 1, GroupName: 1, IndexDef: 1 } ) ;
+            while ( rc1.next() )
             {
-               errMsg = "Failed to collect data index info[PID: " + pid + ", errMsg: " + JSON.stringify( obj1 ) + "]\n" ;
-               file.write( errMsg ) ;
-               throw new Error( errMsg ) ;
+               var obj1 = rc1.current().toObj() ;
+
+               if ( undefined == obj1.IndexDef )
+               {
+                  errMsg = "Failed to collect data index info[PID: " + pid + ", errMsg: " + JSON.stringify( obj1 ) + "]\n" ;
+                  file.write( errMsg ) ;
+
+                  if ( tryTime <= 0 || !canRetrySnapIndexes( obj1.ErrNodes ) )
+                  {
+                     throw new Error( errMsg ) ;
+                  }
+
+                  file.write( "Sleep 1s and try agant later\n" ) ;
+
+                  // Need to remove all indexes info of current cl before retry
+                  dataIndexInfoCl.insert( batchRecords ) ;
+                  batchRecords = [] ;
+                  dataIndexInfoCl.remove( { "ClFullName": clFullName } )
+
+                  sleep( 1000 ) ;
+                  tryTime-- ;
+                  rc1.close() ;
+                  needRetry = true ;
+
+                  break ;
+               }
+
+               delete obj1.IndexDef._id ;
+               obj1.IndexName = obj1.IndexDef.name ;
+               delete obj1.IndexDef.name ;
+               obj1.ClFullName = clFullName ;
+               obj1.MainClName = mainClName ;
+               obj1.DataClFullName = clFullName ;
+               obj1.IndexDataType = 0 ;
+
+               if ( undefined == obj1.IndexDef.UniqueID )
+               {
+                  obj1.UniqueID = "" ;
+               }
+               else
+               {
+                  obj1.UniqueID = obj1.IndexDef.UniqueID ;
+               }
+               obj1.NodeInfo = { "NodeName": obj1.NodeName, "IndexName": obj1.IndexName,
+                                 "UniqueID": obj1.UniqueID, "IndexDef": obj1.IndexDef } ;
+
+               batchRecords.push( obj1 ) ;
+
+               if ( batchRecords.length > BATCH_NUM )
+               {
+                  dataIndexInfoCl.insert( batchRecords ) ;
+                  batchRecords = [] ;
+               }
             }
 
-            delete obj1.IndexDef._id ;
-            obj1.IndexName = obj1.IndexDef.name ;
-            delete obj1.IndexDef.name ;
-            obj1.ClFullName = clFullName ;
-            obj1.MainClName = mainClName ;
-            obj1.DataClFullName = clFullName ;
-            obj1.IndexDataType = 0 ;
-
-            if ( undefined == obj1.IndexDef.UniqueID )
+            if ( !needRetry )
             {
-               obj1.UniqueID = "" ;
-            }
-            else
-            {
-               obj1.UniqueID = obj1.IndexDef.UniqueID ;
-            }
-            obj1.NodeInfo = { "NodeName": obj1.NodeName, "IndexName": obj1.IndexName,
-                              "UniqueID": obj1.UniqueID, "IndexDef": obj1.IndexDef } ;
-
-            batchRecords.push( obj1 ) ;
-
-            if ( batchRecords.length > BATCH_NUM )
-            {
-               dataIndexInfoCl.insert( batchRecords ) ;
-               batchRecords = [] ;
+               break ;
             }
          }
+
          clCount++ ;
 
          if ( clCount == collectionNum )
