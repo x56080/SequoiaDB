@@ -1,4 +1,4 @@
-1##NAME##
+##NAME##
 
 lastest - Set search() to search only logs from a recent time period.
 

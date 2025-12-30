@@ -162,3 +162,57 @@ sdbadmin，密码为 sdbadmin
 \f[]
 .fi
 .RE
+.RS
+.PP
+\f[B]Note:\f[]
+.PP
+用户使用 \f[C]DiagLog()\f[] 函数搜索时，指定额外条件会影响搜索速度。
+.PP
+指定以下搜索条件时，函数内部可以优化搜索方法，可以加快搜索速度:
+.IP \[bu] 2
+lastFile() 设置 search() 仅搜索最近的日志文件
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+error() 设置 search() 中搜索的错误码
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+diaglevel() 设置 search() 中过滤的日志级别
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+keypattern() 设置 search() 中搜索的关键字
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+pid() 设置 search() 中搜索的 pid
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+tid() 设置 search() 中搜索的 tid
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+limit() 限制 search() 返回的结果条数
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+original() 设置 search() 返回的结果为原始日志格式
+.PP
+指定以下搜索条件时，会使工具无法使用除 limit 以外的任何优化，搜索速度会很慢:
+.IP \[bu] 2
+after() 设置 search() 结果上下文的下文条数
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+before() 设置 search() 结果上下文的上文条数
+.RE

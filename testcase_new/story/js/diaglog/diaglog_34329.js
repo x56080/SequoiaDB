@@ -16,6 +16,7 @@ function collect( diaglog, compress )
         log = diaglog.collect().keypattern( 'rc: ' ).lastFile( 1 ).compress( compress );
         fileName = log.run();
     } catch (error) {
+        println("[ERROR] Failed on diaglog.collect().keypattern( 'rc: ' ).lastFile( 1 ).compress( compress )");
         throw e;
     }
     diaglog.reset();
@@ -72,6 +73,7 @@ function testPath( diaglog, logPath1, logPath2 )
         rc = cmd.run( 'diff -q ' + fileName1 + '/error_count.csv ' + fileName2 + '/error_count.csv > /dev/null 2>&1; echo $?' ).trimRight( '\n' );
         assert.equal( rc, '0' );
     } catch ( e ) {
+        println("[ERROR] Failed on diaglog.analyze().path()");
         throw e;
     }
     diaglog.reset();
@@ -92,6 +94,7 @@ function testOutput( diaglog, logPath )
         rc = File.exist( fileName + '/error_count.csv' );
         assert.equal( rc, true );
     } catch ( e ) {
+        println("[ERROR] Failed on diaglog.analyze().path( " + logPath + " ).output( '" + WORKDIR + "/diaglog_34329' )");
         throw e;
     }
 
@@ -105,6 +108,7 @@ function testOutput( diaglog, logPath )
         rc = File.exist( fileName + '/error_count.csv' );
         assert.equal( rc, true );
     } catch ( e ) {
+        println("[ERROR] Failed on diaglog.analyze().path( " + logPath + ".tar.gz ).output( '" + WORKDIR + "/diaglog_34329' )");
         throw e;
     }
 
@@ -128,6 +132,89 @@ function testOutput( diaglog, logPath )
         rc = cmd.run( 'ls -d /tmp/sequoiadb/analyze/diaglog_*.auto | wc -l' ).trimRight( '\n' );
         assert.equal( rc, '10' );
     } catch ( e ) {
+        println("[ERROR] Failed on diaglog.analyze().path( " + logPath + " ).run()");
+        throw e;
+    }
+    diaglog.reset();
+}
+
+function testFormat( diaglog, logPath1 )
+{
+    var log;
+    var fileName1;
+    try {
+        // 分析前面收集的日志
+        diaglog.reset();
+        log = diaglog.analyze().path( logPath1 );
+        fileName1 = log.run();
+
+        // 校验格式
+        var file = new File( fileName1 + '/error_time.csv', 0644, SDB_FILE_READONLY );
+        var isFirstLine = true 
+        var preTime = "9999-12-31-01.01.01.000000";
+        var curTime = "";
+        var count = 0;
+        try {
+            while ( line = file.readLine().trimRight( '\n' ) ) {
+                if ( isFirstLine ) {
+                    assert.equal( line, 'HostName,ServiceName,GroupName,Error,Time' );
+                    isFirstLine = false;
+                } else {
+                    count++;
+                    assert.equal( line.split(',').length, 5 );
+                    // 按时间降序
+                    curTime = line.split(',')[4];
+                    rc = curTime <= preTime;
+                    assert.equal( rc, true );
+                    preTime = curTime;
+                }
+            }
+        } catch ( e  ) {
+            if ( -9 != e ) {
+                println("[ERROR] Failed on testFormat()");
+                println('curTime:' + curTime);
+                println('preTime:' + preTime);
+                println('fileName: ' + fileName1 + '/error_time.csv');
+                throw e ;
+            }
+        } finally {
+            file.close() ;
+        }
+        // 必须有结果
+        assert.notEqual( count, 0 );
+
+        var file = new File( fileName1 + '/error_count.csv', 0644, SDB_FILE_READONLY );
+        var isFirstLine = true;
+        var count = 0;
+        var errorObj = {};
+        try {
+            while ( line = file.readLine().trimRight( '\n' ) ) {
+                if ( isFirstLine ) {
+                    assert.equal( line, 'HostName,ServiceName,GroupName,Error,Count' );
+                    isFirstLine = false;
+                } else {
+                    count++;
+                    var array = line.split(',');
+                    assert.equal( array.length, 5 );
+                    // 不会出现重复的 ERROR
+                    var key = array[0] + '_' + array[1] + '_' + array[2] + '_' + array[3];
+                    assert.notEqual( errorObj[key], 1 );
+                    errorObj[key] = 1;
+                }
+            }
+        } catch ( e  ) {
+            if ( -9 != e ) {
+                println("[ERROR] Failed on testFormat()");
+                println("array: " + JSON.stringify(array));
+                println("errorObj: " + JSON.stringify(errorObj));
+                throw e ;
+            }
+        } finally {
+            file.close() ;
+        }
+        // 必须有结果
+        assert.notEqual( count, 0 );
+    } catch ( e ) {
         throw e;
     }
     diaglog.reset();
@@ -146,6 +233,9 @@ function test()
 
         // output
         testOutput( diaglog, logPath1 );
+
+        // 校验格式
+        testFormat( diaglog, logPath1);
 
         File.remove( WORKDIR + '/diaglog_34329' );
     } catch (e) {

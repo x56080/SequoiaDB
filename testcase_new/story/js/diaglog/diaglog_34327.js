@@ -16,8 +16,9 @@ function testLastFile( diaglog )
         diaglog.reset();
         log = diaglog.search().lastFile( 1 ).keypattern( 'rc: ' ).limit( 10 );
         fileName = log.run();
-        testSortWithoutOriginal( diaglog );
+        testWithoutOriginal( diaglog );
     } catch ( e ) {
+        println("[ERROR] Failed on diaglog.search().lastFile( 1 ).keypattern( 'rc: ' ).limit( 10 )");
         throw e;
     }
     // 等于 0, 预期失败
@@ -45,10 +46,11 @@ function testLastest( diaglog )
     // 大于 0, 预期成功
     try {
         diaglog.reset();
-        log = diaglog.search().lastFile( 1 ).keypattern( 'rc: ' ).limit( 10 );
+        log = diaglog.search().lastest( 60 ).keypattern( 'rc: ' ).limit( 10 );
         fileName = log.run();
-        testSortWithoutOriginal( diaglog );
+        testWithoutOriginal( diaglog );
     } catch ( e ) {
+        println("[ERROR] Failed on diaglog.search().lastest( 60 ).keypattern( 'rc: ' ).limit( 10 )");
         throw e;
     }
     // 等于 0, 预期失败
@@ -96,8 +98,9 @@ function testTimeBegin( diaglog )
         fileName = log.run();
         log = diaglog.search().timeBegin( 'Dec 15, 2025' ).keypattern( 'rc: ' ).limit( 10 );
         fileName = log.run();
-        testSortWithoutOriginal( diaglog );
+        testWithoutOriginal( diaglog );
     } catch ( e ) {
+        println("[ERROR] Failed on diaglog.search().timeBegin(...)");
         throw e;
     }
     // 非字符串, 预期失败
@@ -143,8 +146,9 @@ function testTimeEnd( diaglog )
         fileName = log.run();
         log = diaglog.search().timeEnd( 'Dec 15, 9999' ).keypattern( 'rc: ' ).limit( 10 );
         fileName = log.run();
-        testSortWithoutOriginal( diaglog );
+        testWithoutOriginal( diaglog );
     } catch ( e ) {
+        println("[ERROR] Failed on diaglog.search().timeEnd(...)");
         throw e;
     }
     // 非字符串, 预期失败
@@ -176,10 +180,11 @@ function testError( diaglog )
         fileName = log.run();
         log = diaglog.search().error( -79 ).limit( 10 );
         fileName = log.run();
-        testSortWithoutOriginal( diaglog );
+        testWithoutOriginal( diaglog );
         log = diaglog.search().error( -10000 ).limit( 1 );
         fileName = log.run();
     } catch ( e ) {
+        println("[ERROR] Failed on diaglog.search().error(...)");
         throw e;
     }
     // 等于 0, 预期失败
@@ -217,8 +222,9 @@ function testDiagLevel( diaglog )
         fileName = log.run();
         log = diaglog.search().diaglevel( 4 ).keypattern( 'rc: ' ).limit( 10 );
         fileName = log.run();
-        testSortWithoutOriginal( diaglog );
+        testWithoutOriginal( diaglog );
     } catch ( e ) {
+        println("[ERROR] Failed on diaglog.search().diaglevel(...)");
         throw e;
     }
     // 非 0-4, 预期失败
@@ -243,8 +249,9 @@ function testKeypattern( diaglog )
         diaglog.reset();
         log = diaglog.search().keypattern( 'Session' ).limit( 10 );
         fileName = log.run();
-        testSortWithoutOriginal( diaglog );
+        testWithoutOriginal( diaglog );
     } catch ( e ) {
+        println("[ERROR] Failed on diaglog.search().keypattern( 'Session' ).limit( 10 )");
         throw e;
     }
     // 非字符串, 预期失败
@@ -265,6 +272,7 @@ function testTid( diaglog )
         log = diaglog.search().tid( 12345 ).limit( 1 );
         fileName = log.run();
     } catch ( e ) {
+        println("[ERROR] Failed on diaglog.tid( 12345 ).limit( 1 )");
         throw e;
     }
     // 等于 0, 预期失败
@@ -295,6 +303,7 @@ function testPid( diaglog )
         log = diaglog.search().pid( 12345 ).limit( 1 );
         fileName = log.run();
     } catch ( e ) {
+        println("[ERROR] Failed on diaglog.search().pid( 12345 ).limit( 1 )");
         throw e;
     }
     // 等于 0, 预期失败
@@ -330,6 +339,7 @@ function testLimit( diaglog )
         }
         assert.equal(i, 100);
     } catch ( e ) {
+        println("[ERROR] Failed on diaglog.search().keypattern( 'a' )");
         throw e;
     }
     // 大于 0, 预期成功
@@ -343,6 +353,7 @@ function testLimit( diaglog )
         }
         assert.equal(i, 1);
     } catch ( e ) {
+        println("[ERROR] Failed on diaglog.search().keypattern( 'a' ).limit( 1 )");
         throw e;
     }
     // 等于 -1, 预期成功
@@ -350,7 +361,7 @@ function testLimit( diaglog )
         diaglog.reset();
         log = diaglog.search().lastFile( 1 ).error( -79 ).limit( -1 );
         fileName = log.run();
-    } catch ( e ) {
+    } catch ( e ) {println("[ERROR] Failed on diaglog.search().lastFile( 1 ).error( -79 ).limit( -1 )");
         throw e;
     }
     // 等于 0, 预期失败
@@ -375,18 +386,23 @@ function testOriginal( diaglog )
 {
     var log ;
     var fileName ;
-    // 结果为 7 行
+    // 结果为多行
     try {
         diaglog.reset();
         log = diaglog.search().keypattern( 'a' ).limit( 1 ).original();
         fileName = log.run();
-        var result = diaglog.next().trimRight( '\n' ).split( '\n' );
-        assert.equal( result.length, 7 );
+        var array = diaglog.next().trimRight( '\n' ).split( 'Message:' );
+        var result = array[0].split( '\n' );
+        assert.equal( result.length, 6 );
+        var message = array[1];
+        assert.notEqual( message, '' );
+        assert.notEqual( message, '\n' );
 
         log = diaglog.search().keypattern( 'a' ).limit( 10 ).original();
         fileName = log.run();
-        testSortWithOriginal( diaglog );
+        testWithOriginal( diaglog );
     } catch ( e ) {
+        println("[ERROR] Failed on diaglog.search().original(...), filename: " + fileName);
         throw e;
     }
     // 结果为 1 行
@@ -397,6 +413,7 @@ function testOriginal( diaglog )
         var result = diaglog.next().trimRight( '\n' ).split( '\n' );
         assert.equal( result.length, 1 );
     } catch ( e ) {
+        println("[ERROR] Failed on diaglog.search().original(...)");
         throw e;
     }
 }
@@ -410,11 +427,12 @@ function testAfter( diaglog )
         diaglog.reset();
         log = diaglog.search().keypattern( 'rc: ' ).after( 1 ).limit( 10 );
         fileName = log.run();
-        testSortWithoutOriginal( diaglog );
+        testWithoutOriginal( diaglog );
 
         log = diaglog.search().error( -79 ).after( 0 ).limit( 10 );
         fileName = log.run();
     } catch ( e ) {
+        println("[ERROR] Failed on diaglog.search().after(...)");
         throw e;
     }
     // 小于 0, 预期失败
@@ -439,11 +457,12 @@ function testBefore( diaglog )
         diaglog.reset();
         log = diaglog.search().keypattern( 'rc: ' ).before( 1 ).limit( 10 );
         fileName = log.run();
-        testSortWithoutOriginal( diaglog );
+        testWithoutOriginal( diaglog );
 
         log = diaglog.search().error( -79 ).before( 0 ).limit( 10 );
         fileName = log.run();
     } catch ( e ) {
+        println("[ERROR] Failed on diaglog.search().before(...)");
         throw e;
     }
     // 小于 0, 预期失败
@@ -469,19 +488,21 @@ function testNext ( diaglog )
         log = diaglog.search().error( -79 ).limit( 100 );
         fileName = log.run();
     } catch ( e ) {
+        println("[ERROR] Failed on diaglog.search().error( -79 ).limit( 100 )");
         throw e;
     }
     // 空, 预期成功
     try {
         result = diaglog.next() ;
     } catch ( e ) {
+        println("[ERROR] Failed on diaglog.next()");
         throw e;
     }
     // 大于 1, 预期成功
     try {
         result = diaglog.next( 1 ) ;
         result = diaglog.next( 2 ) ;
-    } catch ( e ) {
+    } catch ( e ) {println("[ERROR] Failed on diaglog.next(...)");
         throw e;
     }
 
@@ -512,8 +533,9 @@ function testMultiple ( diaglog )
         diaglog.reset();
         log = diaglog.search().timeBegin( '2025-09-15T12:01:01.123456Z' ).timeEnd( '9999-09-15T12:01:01.123456Z' ).keypattern( 'rc: ' ).limit( 10 );
         fileName = log.run();
-        testSortWithoutOriginal( diaglog );
+        testWithoutOriginal( diaglog );
     } catch ( e ) {
+        println("[ERROR] Failed on diaglog.search().timeBegin( '2025-09-15T12:01:01.123456Z' ).timeEnd( '9999-09-15T12:01:01.123456Z' ).keypattern( 'rc: ' ).limit( 10 )");
         throw e;
     }
 
@@ -522,8 +544,9 @@ function testMultiple ( diaglog )
         diaglog.reset();
         log = diaglog.search().error( -79 ).keypattern( 'rc: ' ).limit( 10 );
         fileName = log.run();
-        testSortWithoutOriginal( diaglog );
+        testWithoutOriginal( diaglog );
     } catch ( e ) {
+        println("[ERROR] Failed on diaglog.search().error( -79 ).keypattern( 'rc: ' ).limit( 10 )");
         throw e;
     }
 
@@ -546,6 +569,7 @@ function testOutput( diaglog )
         rc = cmd.run( 'ls -d /tmp/sequoiadb/search/cluster*.auto | wc -l' ).trimRight( '\n' );
         assert.equal( rc, '10' );
     } catch ( e ) {
+        println("[ERROR] Failed on check tmp/sequoiadb/search/cluster*.auto");
         throw e;
     }
 
@@ -611,6 +635,7 @@ function testOutput( diaglog )
         rc = cmd.run( 'ls -d ' + WORKDIR + '/diaglog_34327/* | wc -l' ).trimRight( '\n' );
         assert.equal( rc, '11' );
     } catch ( e ) {
+        println("[ERROR] Failed on check " + WORKDIR + "/diaglog_34327/*");
         throw e;
     }
 
@@ -647,6 +672,7 @@ function testPath( diaglog )
         log = diaglog.search().error( -79 ).limit( 1 ).path( dataPath + '/diaglog' );
         fileName = log.run();
     } catch ( e ) {
+        println("[ERROR] Failed on diaglog.search().error( -79 ).limit( 1 ).path( '" + dataPath + "/diaglog' )");
         throw e;
     } finally {
         if ( null != oma ){
@@ -659,6 +685,7 @@ function testPath( diaglog )
         log = diaglog.search().error( -79 ).limit( 1 ).path( '/tmp' );
         fileName = log.run();
     } catch ( e ) {
+        println("[ERROR] Failed on diaglog.search().error( -79 ).limit( 1 ).path( '/tmp' )");
         throw e;
     }    
 
@@ -689,42 +716,63 @@ function testPath( diaglog )
     diaglog.reset();
 }
 
-function testSortWithoutOriginal( diaglog )
+function testWithoutOriginal( diaglog )
 {
-    // 检查简要模式下查询的结果是否按时间降序
+    // 检查简要模式下查询的结果是否按时间降序，以及各字段内容是否正常有值
     try {
         var line = "";
         var preTime = "999999999999999999999999999";
         var curTime = "";
+        var array = [];
         var rc;
         while ( line = diaglog.next() )
         {
-            curTime = line.split(',')[3];
-            rc = curTime < preTime;
+            array = line.split(',');
+            rc = array.length >= 5;
+            assert.equal( rc, true );
+            for ( i in array ){
+                assert.notEqual( array[i], "");
+            }
+            curTime = array[3];
+            rc = curTime <= preTime;
             assert.equal( rc, true );
             preTime = curTime;
         }
     } catch ( e ) {
+        println("[ERROR] Failed on testWithoutOriginal()");
+        println('array: ' + JSON.stringify(array));
+        println('preTime: ' + preTime);
         throw e ;
     }
 }
 
-function testSortWithOriginal( diaglog )
+function testWithOriginal( diaglog )
 {
-    // 检查原始模式下查询的结果是否按时间降序
+    // 检查原始模式下查询的结果是否按时间降序，以及各行内容是否正常有值
     try {
         var line = "";
         var preTime = "999999999999999999999999999";
         var curTime = "";
+        var array = [];
         var rc;
         while ( line = diaglog.next() )
         {
-            curTime = line.split('\n')[1].split(' ')[0];
-            rc = curTime < preTime;
+            array = line.split('\n');
+            rc = array.length >= 7;
+            assert.equal( rc, true );
+            for (let i = 0; i < 7; i++){
+                assert.notEqual( array[i], "" );
+            }
+
+            curTime = array[1].split(' ')[0];
+            rc = curTime <= preTime;
             assert.equal( rc, true );
             preTime = curTime;
         }
     } catch ( e ) {
+        println("[ERROR] Failed on testWithOriginal()");
+        println('array: ' + JSON.stringify(array));
+        println('preTime: ' + preTime);
         throw e ;
     }
 }
@@ -785,7 +833,12 @@ function test()
         // 多个参数复合测试
         testMultiple( diaglog );
 
-        File.remove( WORKDIR + '/diaglog_34327' );
+        try {
+            File.remove( WORKDIR + '/diaglog_34327' );
+        } catch (e) {
+            println("[ERROR] Failed on remove '" + WORKDIR + "/diaglog_34327'");
+            throw e;
+        }
     } catch (e) {
         throw e;
     } finally {

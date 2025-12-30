@@ -4,7 +4,7 @@
 .TH "lastest" "1" "" "SequoiaDB User Manuals" ""
 .hy
 .PP
-1##NAME##
+.SH NAME
 .PP
 lastest \- Set search() to search only logs from a recent time period.
 .SH SYNOPSIS

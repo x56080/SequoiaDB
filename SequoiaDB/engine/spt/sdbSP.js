@@ -4606,7 +4606,7 @@ DiagLog.prototype._searchFromCollect = function() {
 
             idInfo[groupName] = { "GroupID": groupID } ;
             idInfo[hostName + ":" + serviceName] = { "NodeID": nodeID } ;
-            if ( ! this._checkLocation( locationObj, idInfo ) ) { continue ;}
+            if ( 'standalone' != role && ! this._checkLocation( locationObj, idInfo ) ) { continue ;}
             isSearch = true ;
    
             this._hostName = hostName ;
@@ -4789,7 +4789,15 @@ DiagLog.prototype._searchCluster = function() {
    var isSearch = false ;
    var logTool = this._logTool ;
 
-   if ( '' != this._locationNodeID || '' != this._locationGroupID )
+   // skip standalone nodes
+   try {
+      var isStandalone = db.exec('select role from $SNAPSHOT_CONFIGS limit 1').current().toObj().role ;
+   } catch ( e ) {
+      setLastErrMsg( 'Failed to get info from "select role from $SNAPSHOT_CONFIGS", error: ' + getLastErrMsg() ) ;
+      throw e ;
+   }
+
+   if ( ( '' != this._locationNodeID || '' != this._locationGroupID ) && 'standalone' != isStandalone )
    {
       try
       {
@@ -4865,16 +4873,26 @@ DiagLog.prototype._searchCluster = function() {
             } else if ( 'SYSCatalogGroup' == current.GroupName[i] )
             {
                locationObj["Role"] = 'catalog' ;
-            } else
+            } else if ( '' != current.GroupName[i] )
             {
                locationObj["Role"] = 'data' ;
+            } else
+            {
+               locationObj["Role"] = 'standalone' ;
             }
-            if ( ! this._checkLocation( locationObj, idInfo ) ) { continue ;}
+            if ( 'standalone' != isStandalone && ! this._checkLocation( locationObj, idInfo ) ) { continue ;}
             isSearch = true ;
 
             this._hostName = HostName ;
             this._serviceName = ServiceNameArray[i] ;
-            this._role = current.GroupName[i] ;
+            if ( '' != current.GroupName[i] )
+            {
+               this._role = current.GroupName[i] ;
+            } else
+            {
+               this._role = 'standalone' ;
+               locationObj["GroupName"] = 'standalone'
+            }
             this._path = diagpathObj[HostName + ":" + ServiceNameArray[i]];
             this._output = clusterOutput + HostName + "_" + ServiceNameArray[i] ;
             this._searchFile( cmd ) ;
@@ -5405,6 +5423,11 @@ DiagLog.prototype._collectTrapAndCore = function ( db, collectOutput ) {
          {
             var coreArray = [] ;
             var trapArray = [] ;
+            var GroupName = current.GroupName[i] ;
+            if ( '' == GroupName )
+            {
+               GroupName = 'standalone' ;
+            }
             if ( this._core )
             {
                try
@@ -5441,7 +5464,7 @@ DiagLog.prototype._collectTrapAndCore = function ( db, collectOutput ) {
                if ( '' == collectArray[j] ) { continue ; }
                var collectNameArray = collectArray[j].split( '/' ) ;
                srcFile = current.HostName + ':' + omaSvcName + '@' + collectArray[j] ;
-               dstFile = dstDir + '/' + current.HostName + '_' + current.ServiceName[i] + '_' + current.GroupName[i] + '_' + collectNameArray[ collectNameArray.length - 1 ] ;
+               dstFile = dstDir + '/' + current.HostName + '_' + current.ServiceName[i] + '_' + GroupName + '_' + collectNameArray[ collectNameArray.length - 1 ] ;
                this._scp( srcFile, dstFile ) ;
             }
          }
@@ -5466,8 +5489,11 @@ DiagLog.prototype._getSnapshot = function ( db, snapshot, filename, ignore, hist
       cursor = db.exec( 'select * from ' + snapshot ) ;
    } catch ( e )
    {
+      // ignore standalone nodes
+      if ( -159 == e )
+      {}
       // some snapshots may not exist in earlier versions
-      if ( -6 == e && ignore )
+      else if ( -6 == e && ignore )
       {} else
       {
          setLastErrMsg( 'Failed to select * from ' + snapshot + ', error: ' + getLastErrMsg() );
@@ -5520,8 +5546,11 @@ DiagLog.prototype._getSnapshot = function ( db, snapshot, filename, ignore, hist
          cursor = db.exec( 'select * from ' + snapshot + ' /*+use_option(viewHistory,true)*/' ) ;
       } catch ( e )
       {
+         // ignore standalone nodes
+         if ( -159 == e )
+         {}
          // some snapshots may not exist in earlier versions
-         if ( -6 == e && ignore )
+         else if ( -6 == e && ignore )
          {} else
          {
             setLastErrMsg( 'Failed to select * from ' + snapshot + ', error: ' + getLastErrMsg() );
@@ -5731,29 +5760,63 @@ DiagLog.prototype._collect = function() {
       var cursor ;
       try
       {
-         cursor = db.exec('select Group,GroupID,GroupName from $LIST_GROUP split by Group') ;
-         while ( cursor.next() )
-         {
-            var current = cursor.current().toObj() ;
-            var info = {} ;
-            info['NodeID'] = current.Group.NodeID ;
-            info['GroupID'] = current.GroupID ;
-            info['GroupName'] = current.GroupName ;
-            if ( 'SYSCoord' == current.GroupName )
+         // skip standalone nodes
+         try {
+            var isStandalone = db.exec('select role from $SNAPSHOT_CONFIGS limit 1').current().toObj().role ;
+         } catch ( e ) {
+            setLastErrMsg( 'Failed to get info from "select role from $SNAPSHOT_CONFIGS", error: ' + getLastErrMsg() ) ;
+            throw e ;
+         }
+         if ( 'standalone' != isStandalone ) {
+            try
             {
-               info["Role"] = 'coord' ;
-            } else if ( 'SYSCatalogGroup' == current.GroupName )
+               cursor = db.exec('select Group,GroupID,GroupName from $LIST_GROUP split by Group') ;
+               while ( cursor.next() )
+               {
+                  var current = cursor.current().toObj() ;
+                  var info = {} ;
+                  info['NodeID'] = current.Group.NodeID ;
+                  info['GroupID'] = current.GroupID ;
+                  info['GroupName'] = current.GroupName ;
+                  if ( 'SYSCoord' == current.GroupName )
+                  {
+                     info["Role"] = 'coord' ;
+                  } else if ( 'SYSCatalogGroup' == current.GroupName )
+                  {
+                     info["Role"] = 'catalog' ;
+                  } else
+                  {
+                     info["Role"] = 'data' ;
+                  }
+                  nodeInfoObj[current.Group.HostName + ':' + current.Group.Service[0].Name] = info ;
+               }
+            } catch ( e )
             {
-               info["Role"] = 'catalog' ;
-            } else
-            {
-               info["Role"] = 'data' ;
+               setLastErrMsg( 'Failed to get info from "select Group,GroupID,GroupName from $LIST_GROUP split by Group", error: ' + getLastErrMsg() );
+               throw e ;
             }
-            nodeInfoObj[current.Group.HostName + ':' + current.Group.Service[0].Name] = info ;
+         } else {
+            try
+            {
+               cursor = db.exec('select HostName,ServiceName,GroupName from $SNAPSHOT_DB') ;
+               while ( cursor.next() )
+               {
+                  var current = cursor.current().toObj() ;
+                  var info = {} ;
+                  info['NodeID'] = 0 ;
+                  info['GroupID'] = 0 ;
+                  info['GroupName'] = 'standalone' ;
+                  info["Role"] = 'standalone' ;
+                  nodeInfoObj[current.HostName + ':' + current.ServiceName] = info ;
+               }
+            } catch ( e )
+            {
+               setLastErrMsg( 'Failed to get info from "select HostName,ServiceName,GroupName from $SNAPSHOT_DB", error: ' + getLastErrMsg() );
+               throw e ;
+            }
          }
       } catch ( e )
       {
-         setLastErrMsg( 'Failed to get info from "select Group,GroupID,GroupName from $LIST_GROUP split by Group", error: ' + getLastErrMsg() );
          throw e ;
       } finally
       {

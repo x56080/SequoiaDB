@@ -156,3 +156,61 @@ Use the CipherUser object to connect to SequoiaDB on the specified machine.
 \f[]
 .fi
 .RE
+.RS
+.PP
+\f[B]Note:\f[]
+.PP
+When users user the \f[C]DiagLog()\f[] for searching, specifying additional
+conditions will affect the search speed.
+.PP
+When specifying the following search conditions, the search method can be
+optiomzied to speed up the search process:
+.IP \[bu] 2
+lastFile() Set search() to only search recent log files
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+error() Set the error code for the search() function
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+diaglevel() Set the log level to filter in search()
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+keypattern() Set the keywords to search in search()
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+pid() Set the pid for the search() function
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+tid() Set the tid for the search() function
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+limit() Limit the number of results returned by search()
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+original() Set the search() function to return the raw log format
+.PP
+When specifying the following search conditions, the search method will not be
+able to use any optimizations beyond the limit(), and the search speed will be
+very sloe:
+.IP \[bu] 2
+after() Set the number of items below the search() result context
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+before() Set the number of items preceding the search() result context
+.RE

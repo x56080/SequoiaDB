@@ -18,6 +18,9 @@ function testCore( diaglog, db, coreFileNameArray )
             var ServiceName = current.ServiceName;
             var GroupName = current.GroupName;
             var DatabasePath = current.Disk.DatabasePath;
+            if ( '' == GroupName ) {
+                GroupName = 'standalone' ;
+            }
             coreFileNameArray.push( HostName + '_' + ServiceName + '_' + GroupName + '_diaglog_test.core');
             var remote = new Remote( HostName, CMSVCNAME );
             var cmd = remote.getCmd();
@@ -27,6 +30,7 @@ function testCore( diaglog, db, coreFileNameArray )
         }
         cursor.close();
     } catch ( e ) {
+        println("[ERROR] Failed on generate core file");
         throw e;
     } finally {
         if ( null != remote ){
@@ -42,17 +46,14 @@ function testCore( diaglog, db, coreFileNameArray )
         log = diaglog.collect().core();
         fileName = log.run();
     } catch ( e ) {
+        println("[ERROR] Failed on diaglog.collect().core()");
         throw e;
     }
 
-    try {
-        // 检查 core 文件是否被收集
-        for ( let i = 0; i < coreFileNameArray.length; i++ ) {
-            var rc = File.exist(  fileName + '/trap_core_snapshot/' + coreFileNameArray[i] );
-            assert.equal( rc, true );
-        }
-    } catch ( e ) {
-        throw e;
+    // 检查 core 文件是否被收集
+    for ( let i = 0; i < coreFileNameArray.length; i++ ) {
+        var rc = File.exist(  fileName + '/trap_core_snapshot/' + coreFileNameArray[i] );
+        assert.equal( rc, true );
     }
     diaglog.reset();
 }
@@ -69,6 +70,9 @@ function testTrap( diaglog, db, trapFileNameArray )
             var ServiceName = current.ServiceName;
             var GroupName = current.GroupName;
             var DatabasePath = current.Disk.DatabasePath;
+            if ( '' == GroupName ) {
+                GroupName = 'standalone' ;
+            }
             trapFileNameArray.push( HostName + '_' + ServiceName + '_' + GroupName + '_diaglog_test.trap');
             var remote = new Remote( HostName, CMSVCNAME );
             var cmd = remote.getCmd();
@@ -78,6 +82,7 @@ function testTrap( diaglog, db, trapFileNameArray )
         }
         cursor.close();
     } catch ( e ) {
+        println("[ERROR] Failed on generate trap file");
         throw e;
     } finally {
         if ( null != remote ){
@@ -93,17 +98,14 @@ function testTrap( diaglog, db, trapFileNameArray )
         log = diaglog.collect().trap();
         fileName = log.run();
     } catch ( e ) {
+        println("[ERROR] Failed on diaglog.collect().trap()");
         throw e;
     }
 
-    try {
-        // 检查 trap 文件是否被收集
-        for ( let i = 0; i < trapFileNameArray.length; i++ ) {
-            var rc = File.exist(  fileName + '/trap_core_snapshot/' + trapFileNameArray[i] );
-            assert.equal( rc, true );
-        }
-    } catch ( e ) {
-        throw e;
+    // 检查 trap 文件是否被收集
+    for ( let i = 0; i < trapFileNameArray.length; i++ ) {
+        var rc = File.exist(  fileName + '/trap_core_snapshot/' + trapFileNameArray[i] );
+        assert.equal( rc, true );
     }
     diaglog.reset();
 }
@@ -216,6 +218,7 @@ function testSnapShot( diaglog, localCmd )
         rc = File.exist( fileName + '/trap_core_snapshot/snapshot_transdeadlock' );
         assert.equal( rc, true );
     } catch ( e ) {
+        println("[ERROR] Failed on diaglog.collect().snasphot()");
         throw e;
     }
     diaglog.reset();
@@ -285,6 +288,7 @@ function testAll( diaglog, coreFileNameArray, trapFileNameArray )
         rc = File.exist( fileName + '/trap_core_snapshot/snapshot_transdeadlock' );
         assert.equal( rc, true );
     } catch ( e ) {
+        println("[ERROR] Failed on diaglog.collect().all()");
         throw e;
     }
     diaglog.reset();
@@ -320,6 +324,7 @@ function testCompress( diaglog ) {
         File.remove( fileName );
         File.remove( fileName + '.zip' );
     } catch ( e ) {
+        println("[ERROR] Failed on diaglog.collect().compress()");
         throw e;
     }
 
@@ -372,6 +377,7 @@ function testPath( diaglog )
         rc = File.exist( WORKDIR + '/diaglog_34328/abcde' );
         assert.equal( rc, true );
     } catch ( e ) {
+        println("[ERROR] Failed on diaglog.collect().error( -16 ).limit( 1 ).path( '" + WORKDIR + "/diaglog_34328/abcde' )");
         throw e;
     }
 
@@ -393,6 +399,65 @@ function testPath( diaglog )
         log = diaglog.collect().error( -16 ).limit( 1 ).path( '' );
     } );
     diaglog.reset();
+}
+
+function removeCoreAndTrap(coreFileNameArray, trapFileNameArray)
+{
+    // HostName + '_' + ServiceName + '_' + GroupName + '_diaglog_test.core
+    try {
+        for (let i = 0; i < coreFileNameArray.length; i++) {
+            var array = coreFileNameArray[i].split('_');
+            var HostName = array[0];
+            var ServiceName = array[1];
+            var cursor = db.exec( 'select diagpath from $SNAPSHOT_CONFIGS where NodeName="' + HostName + ':' + ServiceName + '"' );
+            while ( cursor.next() ) {
+                var diagpath = cursor.current().toObj().diagpath;
+                var remote = new Remote( HostName, CMSVCNAME );
+                var cmd = remote.getCmd();
+                // 删除 core 文件
+                cmd.run( 'rm -f ' + diagpath + '/diaglog_test.core' );
+                remote.close();
+            }
+            cursor.close();
+        }
+    } catch ( e ) {
+        throw e;
+    } finally {
+        if ( null != remote ){
+            remote.close();
+        }
+        if ( null != cursor ){
+            cursor.close();
+        }
+    }
+
+    // HostName + '_' + ServiceName + '_' + GroupName + '_diaglog_test.tarp
+    try {
+        for (let i = 0; i < trapFileNameArray.length; i++) {
+            var array = trapFileNameArray[i].split('_');
+            var HostName = array[0];
+            var ServiceName = array[1];
+            var cursor = db.exec( 'select diagpath from $SNAPSHOT_CONFIGS where NodeName="' + HostName + ':' + ServiceName + '"' );
+            while ( cursor.next() ) {
+                var diagpath = cursor.current().toObj().diagpath;
+                var remote = new Remote( HostName, CMSVCNAME );
+                var cmd = remote.getCmd();
+                // 删除 core 文件
+                cmd.run( 'rm -f ' + diagpath + '/diaglog_test.trap' );
+                remote.close();
+            }
+            cursor.close();
+        }
+    } catch ( e ) {
+        throw e;
+    } finally {
+        if ( null != remote ){
+            remote.close();
+        }
+        if ( null != cursor ){
+            cursor.close();
+        }
+    }
 }
 
 function test()
@@ -420,6 +485,9 @@ function test()
 
         // path
         testPath( diaglog );
+
+        // remove core and trap
+        removeCoreAndTrap(coreFileNameArray, trapFileNameArray);
 
         File.remove( WORKDIR + '/diaglog_34328' );
     } catch (e) {

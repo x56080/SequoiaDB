@@ -69,3 +69,23 @@ v5.8 及以上版本
     > var a = CipherUser( "sdbadmin" ).cipherFile( "/home/sdbadmin/passwd" )
  	>var diaglog = new DiagLog( "sdbserver1", 11810, a )
     ```
+
+>**Note:**
+>
+> 用户使用 `DiagLog()` 函数搜索时，指定额外条件会影响搜索速度。
+>
+> 指定以下搜索条件时，函数内部可以优化搜索方法，可以加快搜索速度:
+>
+> - lastFile() 设置 search() 仅搜索最近的日志文件  
+> - error() 设置 search() 中搜索的错误码  
+> - diaglevel() 设置 search() 中过滤的日志级别  
+> - keypattern() 设置 search() 中搜索的关键字  
+> - pid() 设置 search() 中搜索的 pid  
+> - tid() 设置 search() 中搜索的 tid  
+> - limit() 限制 search() 返回的结果条数  
+> - original() 设置 search() 返回的结果为原始日志格式  
+>
+> 指定以下搜索条件时，会使工具无法使用除 limit 以外的任何优化，搜索速度会很慢:
+>
+> - after() 设置 search() 结果上下文的下文条数  
+> - before() 设置 search() 结果上下文的上文条数  

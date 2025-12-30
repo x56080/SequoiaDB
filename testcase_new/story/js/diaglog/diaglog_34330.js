@@ -12,6 +12,8 @@ function test()
         var diaglog = new DiagLog( COORDHOSTNAME, COORDSVCNAME );
         var log;
         var fileName;
+        var fileName1;
+        var fileName2;
         var rc;
         try {
             // 搜索日志
@@ -37,9 +39,14 @@ function test()
             assert.equal( rc, true );
 
             // 测试不 reset 是否能沿用续用变量
+            // 限制时间为当前时间之前，保证搜索的日志结果相同
+            var date = new Date();
+            date.setHours(date.getHours() - 2);
+            var timeStr = date.toString();
+
             diaglog.reset();
-            log = diaglog.search().keypattern( 'rc: ' ).lastFile( 1 );
-            var fileName1 = log.run();
+            log = diaglog.search().keypattern( 'rc: ' ).lastFile( 1 ).timeEnd( timeStr );
+            fileName1 = log.run();
             rc = File.exist( fileName1 );
             assert.equal( rc, true );
 
@@ -51,7 +58,7 @@ function test()
             assert.equal( rc, true );
 
             log = diaglog.search().path( fileName );
-            var fileName2 = log.run();
+            fileName2 = log.run();
             rc = File.exist( fileName2 );
             assert.equal( rc, true );
 
@@ -68,6 +75,9 @@ function test()
             rc = File.exist( fileName + '/error_count.csv' );
             assert.equal( rc, true );
         } catch ( e ) {
+            println('filename: ' + fileName);
+            println('filename1: ' + fileName1);
+            println('filename2: ' + fileName2);
             throw e;
         }
     } catch (e) {

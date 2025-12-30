@@ -62,3 +62,23 @@ when exception happen, use [getLastError()](manual/Manual/Sequoiadb_Command/Glob
     > var a = CipherUser( "sdbadmin" ).cipherFile( "/home/sdbadmin/passwd" )
  	>var diaglog = new DiagLog( "sdbserver1", 11810, a )
     ```
+
+>**Note:**
+>
+> When users user the `DiagLog()` for searching, specifying additional conditions will affect the search speed. 
+>
+> When specifying the following search conditions, the search method can be optiomzied to speed up the search process:
+>
+> - lastFile() Set search() to only search recent log files  
+> - error() Set the error code for the search() function  
+> - diaglevel() Set the log level to filter in search()  
+> - keypattern() Set the keywords to search in search()  
+> - pid() Set the pid for the search() function  
+> - tid() Set the tid for the search() function  
+> - limit() Limit the number of results returned by search()  
+> - original() Set the search() function to return the raw log format  
+>
+> When specifying the following search conditions, the search method will not be able to use any optimizations beyond the limit(), and the search speed will be very sloe:
+>
+> - after() Set the number of items below the search() result context  
+> - before() Set the number of items preceding the search() result context  
