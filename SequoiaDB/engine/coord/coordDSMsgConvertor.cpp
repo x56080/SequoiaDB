@@ -1150,6 +1150,7 @@ namespace engine
             ++itr ;
          }
          insertMsg->header.messageLength = offset ;
+         insertMsg->version = 0 ;
 
          pSub->setReqMsg( (MsgHeader *)buff,  PMD_EDU_MEM_THREAD ) ;
          buff = NULL ;
@@ -1254,7 +1255,21 @@ namespace engine
             INT32 objSize = *(INT32 *)itr->iovBase ;
             if ( 0 == objSize )
             {
-               BSONObj hint( ((CHAR *)itr->iovBase) + MSG_HINT_MARK_LEN ) ;
+               CHAR *ptr = NULL ;
+               if ( itr->iovLen <= MSG_HINT_MARK_LEN )
+               {
+                  ++itr ;
+                  if ( itr == dataVec->end() )
+                  {
+                     break ;
+                  }
+                  ptr = (CHAR *)itr->iovBase ;
+               }
+               else
+               {
+                  ptr = ((CHAR *)itr->iovBase) + MSG_HINT_MARK_LEN ;
+               }
+               BSONObj hint( ptr ) ;
                hintBuilder.appendElements( hint ) ;
                break ;
             }
@@ -1289,6 +1304,7 @@ namespace engine
             ossMemcpy( (CHAR *) buff + offset, newHint.objdata(), newHint.objsize() ) ;
             offset = ossRoundUpToMultipleX( offset + newHint.objsize(), 4 ) ;
             insertMsg->header.messageLength = offset ;
+            insertMsg->version = 0 ;
          }
 
          pSub->setReqMsg( (MsgHeader *)buff,  PMD_EDU_MEM_THREAD ) ;
@@ -1367,6 +1383,7 @@ namespace engine
                   4 ) ;
             ossMemcpy( (CHAR *) buff + newBodyOffset, body, bodyLen ) ;
             newInsertMsg->header.messageLength = newBodyOffset + bodyLen ;
+            newInsertMsg->version = 0 ;
 
             pSub->setReqMsg( (MsgHeader *)newInsertMsg, PMD_EDU_MEM_THREAD ) ;
             buff = NULL ;
@@ -1525,6 +1542,7 @@ namespace engine
             UINT32 newMsgLen = ( (MsgHeader *)newMsg)->messageLength ;
             *(MsgHeader *)newMsg = *msg ;
             ((MsgHeader *)newMsg)->messageLength = newMsgLen ;
+            ((MsgOpUpdate *)newMsg)->version = 0 ;
             pSub->setReqMsg( (MsgHeader *)newMsg, PMD_EDU_MEM_THREAD ) ;
             newMsg = NULL ;
          }
@@ -1684,6 +1702,7 @@ namespace engine
             UINT32 newMsgLen = ( (MsgHeader *)newMsg)->messageLength ;
             *(MsgHeader *)newMsg = *msg ;
             ((MsgHeader *)newMsg)->messageLength = newMsgLen ;
+            ((MsgOpDelete *)newMsg)->version = 0 ;
             pSub->setReqMsg( (MsgHeader *)newMsg, PMD_EDU_MEM_THREAD ) ;
             newMsg = NULL ;
          }
@@ -1889,6 +1908,7 @@ namespace engine
                UINT32 newMsgLen = ( (MsgHeader *)newMsg )->messageLength ;
                *(MsgHeader *)newMsg = *msg ;
                ((MsgHeader *)newMsg)->messageLength = newMsgLen ;
+               ((MsgOpQuery *)newMsg)->version = 0 ;
                pSub->setReqMsg( (MsgHeader *)newMsg, PMD_EDU_MEM_THREAD ) ;
                newMsg = NULL ;
             }
@@ -2269,6 +2289,7 @@ namespace engine
                ((MsgOpQuery *)newMsg)->flags = pQueryMsg->flags ;
                ((MsgOpQuery *)newMsg)->numToSkip = pQueryMsg->numToSkip ;
                ((MsgOpQuery *)newMsg)->numToReturn = pQueryMsg->numToReturn ;
+               ((MsgOpQuery *)newMsg)->version = 0 ;
             }
 
             PD_LOG( PDDEBUG, "After conversion, the message for data source "
