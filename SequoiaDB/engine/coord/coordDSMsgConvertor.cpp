@@ -1100,8 +1100,11 @@ namespace engine
          totalLen = msg->messageLength ;
          if ( mapping.size() > (UINT32) insertMsg->nameLength )
          {
-            totalLen += ossRoundUpToMultipleX(
-                  mapping.size() - insertMsg->nameLength, 4 ) ;
+            UINT32 oldHeaderLen = ossAlign4( offsetof( MsgOpInsert, name ) +
+                                             insertMsg->nameLength + 1 ) ;
+            UINT32 newHeaderLen = ossAlign4( offsetof( MsgOpInsert, name ) +
+                                             mapping.size() + 1 ) ;
+            totalLen += ( newHeaderLen - oldHeaderLen ) ;
          }
 
          buff = ( CHAR * )SDB_THREAD_ALLOC( totalLen ) ;
@@ -1210,8 +1213,11 @@ namespace engine
          dsMainCLName = catInfo->getDSMainCLName() ;
          if ( dsMainCLName.size() > (UINT32) insertMsg->nameLength )
          {
-            totalLen += ossRoundUpToMultipleX(
-                  dsMainCLName.size() - insertMsg->nameLength, 4 ) ;
+            UINT32 oldHeaderLen = ossAlign4( offsetof( MsgOpInsert, name ) +
+                                             insertMsg->nameLength + 1 ) ;
+            UINT32 newHeaderLen = ossAlign4( offsetof( MsgOpInsert, name ) +
+                                             dsMainCLName.size() + 1 ) ;
+            totalLen += ( newHeaderLen - oldHeaderLen ) ;
          }
 
          rc = _buildSubCLInfoHint( subCLNameList, hintBuilder, cb ) ;
@@ -1360,8 +1366,11 @@ namespace engine
             UINT32 size = insertMsg->header.messageLength ;
             if ( mappingName.size() > (UINT32) insertMsg->nameLength )
             {
-               size += ossRoundUpToMultipleX(
-                     mappingName.size() - insertMsg->nameLength, 4 ) ;
+               UINT32 oldHeaderLen = ossAlign4( offsetof( MsgOpInsert, name ) +
+                                                insertMsg->nameLength + 1 ) ;
+               UINT32 newHeaderLen = ossAlign4( offsetof( MsgOpInsert, name ) +
+                                                mappingName.size() + 1 ) ;
+               size += ( newHeaderLen - oldHeaderLen ) ;
             }
             buff = (CHAR *)SDB_THREAD_ALLOC( size ) ;
             PD_CHECK( buff, SDB_OOM, error, PDERROR, "Allocate for data "
