@@ -127,7 +127,9 @@ namespace engine
 
    INT32 coordValidateSubCLBounds( const clsCatalogSet &mainCLCataSet,
                                    const BSONObj &obj,
-                                   BOOLEAN hasUpdateCatalog ) ;
+                                   BOOLEAN hasUpdateCatalog,
+                                   BOOLEAN strict = TRUE,
+                                   BOOLEAN *pExistCLBounds = NULL ) ;
 
    INT32 coordRemoveSubCLBounds( BSONObj &obj ) ;
 

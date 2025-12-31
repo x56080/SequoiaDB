@@ -350,9 +350,10 @@ namespace engine
 
          if ( !boHint.isEmpty() && boHint.hasField( FIELD_NAME_SUB_COLLECTIONS ) )
          {
-            rc = coordValidateSubCLBounds(
-                  *cataSel.getCataPtr()->getCatalogSet(), boHint,
-                  cataSel.hasUpdated() ) ;
+            rc = coordValidateSubCLBounds( *cataSel.getCataPtr()->getCatalogSet(),
+                                           boHint,
+                                           cataSel.hasUpdated(),
+                                           TRUE ) ;
             PD_RC_CHECK( rc, PDERROR,
                          "Failed to parse data source sub collection info, "
                          "rc: %d", rc ) ;
@@ -381,8 +382,7 @@ namespace engine
             // 2.1 add to buff
             UINT32 roundLen = ossRoundUpToMultipleX( boNew.objsize(), 4 ) ;
             UINT32 allocLen = roundLen ;
-            allocLen += ( hasHintRebuilt ?
-                  ossRoundUpToMultipleX( boHint.objsize(), 4 ) : 0 ) ;
+            allocLen += ( hasHintRebuilt ? ossRoundUpToMultipleX( boHint.objsize(), 4 ) : 0 ) ;
             if ( buffPos + allocLen > buffLen )
             {
                UINT32 alignLen = ossRoundUpToMultipleX( allocLen,
@@ -420,9 +420,8 @@ namespace engine
       }
       catch( std::exception &e )
       {
-         PD_LOG( PDERROR, "Parse delete message occur exception: %s",
-                 e.what() ) ;
-         rc = SDB_SYS ;
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
          goto error ;
       }
 

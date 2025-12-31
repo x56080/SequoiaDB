@@ -984,58 +984,69 @@ namespace engine
                                             pInsertMsg->nameLength + 1, 4 ) -
                     sizeof( MsgHeader ) ) ;
 
-      INT32 flag = 0 ;
-      const CHAR *pCollectionName = NULL ;
-      const CHAR *pInsertor = NULL ;
-      const CHAR *pHint = NULL ;
-      INT32 count = 0 ;
-
-      rc = msgExtractInsert( (const CHAR *)inMsg.msg(), &flag,
-                              &pCollectionName,
-                              &pInsertor, count, &pHint ) ;
-      PD_RC_CHECK( rc, PDERROR, "Extrace insert msg failed, rc: %d", rc ) ;
-
-      if ( pHint )
+      try
       {
-         BSONObj boHint( pHint ) ;
-         if ( boHint.hasField( FIELD_NAME_SUB_COLLECTIONS ) )
+         if ( _pHint )
          {
-            rc = coordValidateSubCLBounds(
-                  *cataSel.getCataPtr()->getCatalogSet(), boHint,
-                  cataSel.hasUpdated() ) ;
-            PD_RC_CHECK( rc, PDERROR,
-                         "Failed to parse data source sub collection info, "
-                         "rc: %d", rc ) ;
+            BSONObj boHint( _pHint ) ;
+            if ( boHint.hasField( FIELD_NAME_SUB_COLLECTIONS ) )
+            {
+               rc = coordValidateSubCLBounds( *cataSel.getCataPtr()->getCatalogSet(),
+                                              boHint,
+                                              cataSel.hasUpdated(),
+                                              TRUE ) ;
+               PD_RC_CHECK( rc, PDERROR,
+                            "Failed to parse data source sub collection info, "
+                            "rc: %d", rc ) ;
+            }
+         }
+
+         if ( _grpSubCLDatas.size() == 0 )
+         {
+            INT32 flag = 0 ;
+            const CHAR *pCollectionName = NULL ;
+            const CHAR *pInsertor = NULL ;
+            const CHAR *pHint = NULL ;
+            INT32 count = 0 ;
+
+            rc = msgExtractInsert( (const CHAR *)inMsg.msg(), &flag,
+                                   &pCollectionName,
+                                   &pInsertor, count, &pHint ) ;
+            PD_RC_CHECK( rc, PDERROR, "Extrace insert msg failed, rc: %d",
+                         rc ) ;
+
+            rc = shardDataByGroup( cataSel.getCataPtr(), count, pInsertor,
+                                   cb, _grpSubCLDatas ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to shard data by group, rc: %d",
+                         rc ) ;
+         }
+         else
+         {
+            rc = reshardData( cataSel.getCataPtr(), cb, _grpSubCLDatas ) ;
+            PD_RC_CHECK( rc, PDERROR, "Re-shard data failed, rc: %d", rc ) ;
+         }
+
+         // build msg
+         inMsg._datas.clear() ;
+
+         rc = buildInsertMsg( fixed, _grpSubCLDatas, _vecObject, inMsg._datas ) ;
+         PD_RC_CHECK( rc, PDERROR, "Build insert msg failed, rc: %d", rc ) ;
+
+         // clear send groups
+         options._groupLst.clear() ;
+         // build group list
+         it = inMsg._datas.begin() ;
+         while( it != inMsg._datas.end() )
+         {
+            options._groupLst[ it->first ] = it->first ;
+            ++it ;
          }
       }
-
-      if ( _grpSubCLDatas.size() == 0 )
+      catch( std::exception &e )
       {
-         rc = shardDataByGroup( cataSel.getCataPtr(), count, pInsertor,
-                                cb, _grpSubCLDatas ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to shard data by group, rc: %d",
-                      rc ) ;
-      }
-      else
-      {
-         rc = reshardData( cataSel.getCataPtr(), cb, _grpSubCLDatas ) ;
-         PD_RC_CHECK( rc, PDERROR, "Re-shard data failed, rc: %d", rc ) ;
-      }
-
-      // build msg
-      inMsg._datas.clear() ;
-
-      rc = buildInsertMsg( fixed, _grpSubCLDatas, _vecObject, inMsg._datas ) ;
-      PD_RC_CHECK( rc, PDERROR, "Build insert msg failed, rc: %d", rc ) ;
-
-      // clear send groups
-      options._groupLst.clear() ;
-      // build group list
-      it = inMsg._datas.begin() ;
-      while( it != inMsg._datas.end() )
-      {
-         options._groupLst[ it->first ] = it->first ;
-         ++it ;
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         goto error ;
       }
 
    done:

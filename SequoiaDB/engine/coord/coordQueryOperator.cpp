@@ -281,89 +281,95 @@ namespace engine
          objSelector = BSONObj( pFieldSelector ) ;
          objOrderby = BSONObj( pOrderBy ) ;
          objHint = BSONObj( pHint ) ;
+
+         if ( !objHint.isEmpty() && objHint.hasField( FIELD_NAME_SUB_COLLECTIONS ) )
+         {
+            BOOLEAN existCLBound = FALSE ;
+            rc = coordValidateSubCLBounds( *cataSel.getCataPtr()->getCatalogSet(),
+                                           objHint,
+                                           cataSel.hasUpdated(),
+                                           FALSE,
+                                           &existCLBound ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to parse data source sub collection info, "
+                         "rc: %d", rc ) ;
+
+            if ( existCLBound )
+            {
+               rc = coordRemoveSubCLBounds( objHint ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to rebuild hint object, rc: %d", rc ) ;
+               hasHintRebuilt = TRUE ;
+            }
+         }
+
+         it = grpSubCl.begin() ;
+         while( it != grpSubCl.end() )
+         {
+            CoordSubCLlist &subCLLst = it->second ;
+
+            netIOVec &iovec = inMsg._datas[ it->first ] ;
+            netIOV ioItem ;
+
+            // 1. first vec
+            ioItem.iovBase = (CHAR*)inMsg.msg() + sizeof( MsgHeader ) ;
+            ioItem.iovLen = ossRoundUpToMultipleX ( offsetof(MsgOpQuery, name) +
+                            pQueryMsg->nameLength + 1, 4 ) - sizeof( MsgHeader ) ;
+            iovec.push_back( ioItem ) ;
+
+            // 2. new query vec
+            newQuery = _buildNewQuery( objQuery, subCLLst ) ;
+            // 2.1 add to buff
+            UINT32 roundLen = ossRoundUpToMultipleX( newQuery.objsize(), 4 ) ;
+            UINT32 allocLen = roundLen ;
+            allocLen += ( hasHintRebuilt ? ossRoundUpToMultipleX( objHint.objsize(), 4 ) : 0 ) ;
+            if ( buffPos + allocLen > buffLen )
+            {
+               UINT32 alignLen = ossRoundUpToMultipleX( allocLen,
+                                                        DMS_PAGE_SIZE4K ) ;
+               rc = cb->allocBuff( alignLen, &pBuff, &buffLen ) ;
+               PD_RC_CHECK( rc, PDERROR, "Alloc buff[%u] failed, rc: %d",
+                            alignLen, rc ) ;
+               _vecBlock.push_back( pBuff ) ;
+               buffPos = 0 ;
+            }
+            ossMemcpy( &pBuff[ buffPos ], newQuery.objdata(),
+                       newQuery.objsize() ) ;
+            ioItem.iovBase = &pBuff[ buffPos ] ;
+            ioItem.iovLen = roundLen ;
+            buffPos += roundLen ;
+            iovec.push_back( ioItem ) ;
+
+            // 3. last vec
+            if ( !hasHintRebuilt )
+            {
+               ioItem.iovBase = objSelector.objdata() ;
+               ioItem.iovLen = ossRoundUpToMultipleX( objSelector.objsize(), 4 ) +
+                               ossRoundUpToMultipleX( objOrderby.objsize(), 4 ) +
+                               objHint.objsize() ;
+               iovec.push_back( ioItem ) ;
+            }
+            else
+            {
+               ioItem.iovBase = objSelector.objdata() ;
+               ioItem.iovLen = ossRoundUpToMultipleX( objSelector.objsize(), 4 ) +
+                               ossRoundUpToMultipleX( objOrderby.objsize(), 4 ) ;
+               iovec.push_back( ioItem ) ;
+
+               ossMemcpy( &pBuff[ buffPos ], objHint.objdata(), objHint.objsize() ) ;
+               ioItem.iovBase = &pBuff[ buffPos ] ;
+               ioItem.iovLen = objHint.objsize() ;
+               buffPos += ossRoundUpToMultipleX( objHint.objsize(), 4 ) ;
+               iovec.push_back( ioItem ) ;
+            }
+
+            ++it ;
+         }
       }
       catch( std::exception &e )
       {
-         PD_LOG( PDERROR, "Extrace query msg occur exception: %s", e.what() ) ;
-         rc = SDB_INVALIDARG ;
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
          goto error ;
-      }
-
-      if ( !objHint.isEmpty() && objHint.hasField( FIELD_NAME_SUB_COLLECTIONS ) )
-      {
-         rc = coordValidateSubCLBounds(
-               *cataSel.getCataPtr()->getCatalogSet(), objHint,
-               cataSel.hasUpdated() ) ;
-         PD_RC_CHECK( rc, PDERROR,
-                      "Failed to parse data source sub collection info, "
-                      "rc: %d", rc ) ;
-         rc = coordRemoveSubCLBounds( objHint ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to rebuild hint object, rc: %d", rc ) ;
-         hasHintRebuilt = TRUE ;
-      }
-
-      it = grpSubCl.begin() ;
-      while( it != grpSubCl.end() )
-      {
-         CoordSubCLlist &subCLLst = it->second ;
-
-         netIOVec &iovec = inMsg._datas[ it->first ] ;
-         netIOV ioItem ;
-
-         // 1. first vec
-         ioItem.iovBase = (CHAR*)inMsg.msg() + sizeof( MsgHeader ) ;
-         ioItem.iovLen = ossRoundUpToMultipleX ( offsetof(MsgOpQuery, name) +
-                         pQueryMsg->nameLength + 1, 4 ) - sizeof( MsgHeader ) ;
-         iovec.push_back( ioItem ) ;
-
-         // 2. new query vec
-         newQuery = _buildNewQuery( objQuery, subCLLst ) ;
-         // 2.1 add to buff
-         UINT32 roundLen = ossRoundUpToMultipleX( newQuery.objsize(), 4 ) ;
-         UINT32 allocLen = roundLen ;
-         allocLen += ( hasHintRebuilt ?
-               ossRoundUpToMultipleX( objHint.objsize(), 4 ) : 0 ) ;
-         if ( buffPos + allocLen > buffLen )
-         {
-            UINT32 alignLen = ossRoundUpToMultipleX( allocLen,
-                                                     DMS_PAGE_SIZE4K ) ;
-            rc = cb->allocBuff( alignLen, &pBuff, &buffLen ) ;
-            PD_RC_CHECK( rc, PDERROR, "Alloc buff[%u] failed, rc: %d",
-                         alignLen, rc ) ;
-            _vecBlock.push_back( pBuff ) ;
-            buffPos = 0 ;
-         }
-         ossMemcpy( &pBuff[ buffPos ], newQuery.objdata(),
-                    newQuery.objsize() ) ;
-         ioItem.iovBase = &pBuff[ buffPos ] ;
-         ioItem.iovLen = roundLen ;
-         buffPos += roundLen ;
-         iovec.push_back( ioItem ) ;
-
-         // 3. last vec
-         if ( !hasHintRebuilt )
-         {
-            ioItem.iovBase = objSelector.objdata() ;
-            ioItem.iovLen = ossRoundUpToMultipleX( objSelector.objsize(), 4 ) +
-                            ossRoundUpToMultipleX( objOrderby.objsize(), 4 ) +
-                            objHint.objsize() ;
-            iovec.push_back( ioItem ) ;
-         }
-         else
-         {
-            ioItem.iovBase = objSelector.objdata() ;
-            ioItem.iovLen = ossRoundUpToMultipleX( objSelector.objsize(), 4 ) +
-                            ossRoundUpToMultipleX( objOrderby.objsize(), 4 ) ;
-            iovec.push_back( ioItem ) ;
-
-            ossMemcpy( &pBuff[ buffPos ], objHint.objdata(), objHint.objsize() ) ;
-            ioItem.iovBase = &pBuff[ buffPos ] ;
-            ioItem.iovLen = objHint.objsize() ;
-            buffPos += ossRoundUpToMultipleX( objHint.objsize(), 4 ) ;
-            iovec.push_back( ioItem ) ;
-         }
-
-         ++it ;
       }
 
    done:

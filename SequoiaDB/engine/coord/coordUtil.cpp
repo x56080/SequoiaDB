@@ -730,43 +730,100 @@ namespace engine
 
    INT32 coordValidateSubCLBounds( const clsCatalogSet &mainCLCataSet,
                                    const BSONObj &obj,
-                                   BOOLEAN hasUpdateCatalog )
+                                   BOOLEAN hasUpdateCatalog,
+                                   BOOLEAN strict,
+                                   BOOLEAN *pExistCLBounds )
    {
       INT32 rc = SDB_OK ;
+      BOOLEAN canTransError = FALSE ;
+
+      if ( pExistCLBounds )
+      {
+         *pExistCLBounds = FALSE ;
+      }
+
       try
       {
+         const CHAR *subCLName = NULL ;
+         BSONObj argLowBound ;
+         BSONObj argUpBound ;
+         BSONObj myLowBound ;
+         BSONObj myUpBound ;
+
          BSONElement elem = obj.getField( FIELD_NAME_SUB_COLLECTIONS ) ;
-         if ( elem.type() == bson::Array )
+         if ( Array == elem.type() )
          {
-            BSONObj subCLObjs = elem.Obj() ;
-            BSONObjIterator iter( subCLObjs ) ;
+            BSONObjIterator iter( elem.embeddedObject() ) ;
             while ( iter.more() )
             {
-               BSONObj subCLObj = iter.next().Obj() ;
-               const CHAR *subCLName =
-                     subCLObj.getField( FIELD_NAME_NAME ).valuestrsafe() ;
-               BSONObj argLowBound =
-                     subCLObj.getField( FIELD_NAME_LOWBOUND ).Obj() ;
-               BSONObj argUpBound =
-                     subCLObj.getField( FIELD_NAME_UPBOUND ).Obj() ;
-               BSONObj myLowBound ;
-               BSONObj myUpBound ;
+               BSONElement eSub = iter.next() ;
+               BSONObj subCLObj ;
+               BSONElement eName, eLowBound, eUpBound ;
+
+               if ( Object != eSub.type() )
+               {
+                  if ( strict )
+                  {
+                     rc = SDB_INVALIDARG ;
+                     PD_LOG( PDERROR, "Param[%s] invalid", elem.toString().c_str() ) ;
+                     goto error;
+                  }
+                  else
+                  {
+                     goto done ;
+                  }
+               }
+
+               subCLObj = eSub.embeddedObject() ;
+               eName = subCLObj.getField( FIELD_NAME_NAME ) ;
+               eLowBound = subCLObj.getField( FIELD_NAME_LOWBOUND ) ;
+               eUpBound = subCLObj.getField( FIELD_NAME_UPBOUND ) ;
+
+               if ( String != eName.type() ||
+                    Object != eLowBound.type() ||
+                    Object != eUpBound.type() )
+               {
+                  if ( strict )
+                  {
+                     rc = SDB_INVALIDARG ;
+                     PD_LOG( PDERROR, "Param[%s] invalid", elem.toString().c_str() ) ;
+                     goto error ;
+                  }
+                  else
+                  {
+                     goto done ;
+                  }
+               }
+
+               subCLName = eName.valuestr() ;
+               argLowBound = eLowBound.embeddedObject() ;
+               argUpBound = eUpBound.embeddedObject() ;
+
+               /// get from catalog
                rc = mainCLCataSet.getSubCLBounds( subCLName, myLowBound, myUpBound ) ;
                if ( SDB_CAT_NO_MATCH_CATALOG == rc )
                {
                   rc = SDB_DMS_NOTEXIST ;
+                  canTransError = TRUE ;
                   PD_LOG_MSG( PDERROR, "Collection [%s] is required by "
                               "data source, but doesn't exist", subCLName ) ;
                   goto error ;
                }
+
                if ( !argLowBound.equal( myLowBound ) ||
                     !argUpBound.equal( myUpBound ) )
                {
                   rc = SDB_BOUND_INVALID ;
+                  canTransError = TRUE ;
                   PD_LOG_MSG( PDERROR, "Sub collection [%s] of data source required "
                               "the same attach bounds", subCLName ) ;
                   goto error ;
                }
+            }
+
+            if ( pExistCLBounds )
+            {
+               *pExistCLBounds = TRUE ;
             }
          }
       }
@@ -776,11 +833,12 @@ namespace engine
          PD_LOG( PDERROR, "Unexpected exception happened: %s, rc: %d", e.what(), rc ) ;
          goto error ;
       }
+
    done:
       return rc ;
    error:
       // try updating catalog once to avoid expiration
-      if ( !hasUpdateCatalog )
+      if ( !hasUpdateCatalog && canTransError )
       {
          rc = SDB_CLS_COORD_NODE_CAT_VER_OLD ;
       }
@@ -821,20 +879,14 @@ namespace engine
                                    const CoordSubCLlist &subCLList )
    {
       BSONObj retObj ;
-      BOOLEAN hasConstraint = FALSE ;
-      BSONObj constraintObj ;
+
       BSONObjBuilder builder( obj.objsize() +
                               subCLList.size() * COORD_SUBCL_NAME_DFT_LEN) ;
       BSONObjIterator iterQuery( obj ) ;
       while ( iterQuery.more() )
       {
          BSONElement elem = iterQuery.next() ;
-         if ( 0 == ossStrcmp( elem.fieldName(), CAT_SUBCL_NAME ) )
-         {
-            hasConstraint = TRUE ;
-            constraintObj = elem.embeddedObject() ;
-         }
-         else
+         if ( 0 != ossStrcmp( elem.fieldName(), CAT_SUBCL_NAME ) )
          {
             builder.append( elem ) ;
          }
@@ -847,26 +899,6 @@ namespace engine
       CoordSubCLlist::const_iterator iterCL = subCLList.begin();
       while( iterCL != subCLList.end() )
       {
-         // There is constraint from data source
-         // kick the sub collection that not in constraint list
-         if ( hasConstraint )
-         {
-            BSONObjIterator iterObj( constraintObj ) ;
-            BOOLEAN match = FALSE ;
-            while ( iterObj.more() )
-            {
-               const char *name = iterObj.next().valuestrsafe() ;
-               if ( 0 == ossStrcmp( name, iterCL->c_str() ) )
-               {
-                  match = TRUE ;
-                  break ;
-               }
-            }
-            if ( !match )
-            {
-               continue ;
-            }
-         }
          babSubCL.append( *iterCL ) ;
          ++iterCL ;
       }
