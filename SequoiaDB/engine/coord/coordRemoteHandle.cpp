@@ -64,14 +64,18 @@ namespace engine
       UINT32 pos = 0 ;
       MsgHeader *pOldHeader = pSub->getReqMsg() ;
       CHAR *pBuff = NULL ;
+      INT32 orgLen = 0 ;
 
       if ( pSub->getIODatas()->size() > 0 )
+      {         
+         orgLen = sizeof( MsgHeader ) + pSub->getIODataLen() ;
+      }
+      else
       {
-         pOldHeader->messageLength = sizeof( MsgHeader ) +
-                                     pSub->getIODataLen() ;
+         orgLen = pOldHeader->messageLength ;
       }
 
-      totalLen = pHeader->messageLength + pOldHeader->messageLength ;
+      totalLen = pHeader->messageLength + orgLen ;
 
       if ( MSG_PACKET != pOldHeader->opCode )
       {
@@ -122,9 +126,11 @@ namespace engine
          {
             if ( MSG_PACKET != pOldHeader->opCode )
             {
-               ossMemcpy( pBuff + pos, (void*)pOldHeader,
+               MsgHeader *pTmpHeader = ( MsgHeader* )( pBuff + pos ) ;
+               ossMemcpy( (void*)pTmpHeader, (void*)pOldHeader,
                           sizeof( MsgHeader ) ) ;
                pos += sizeof( MsgHeader ) ;
+               pTmpHeader->messageLength = orgLen ;
             }
 
             netIOVec *pIOVec = pSub->getIODatas() ;

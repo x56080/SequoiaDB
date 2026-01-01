@@ -589,7 +589,9 @@ namespace engine
          void   inheritStat( const _clsGroupItem *pItem,
                              UINT32 falutTimeout = NET_NODE_FAULT_TIMEOUT ) ;
 
-         UINT32 getLocationID( const CHAR* pLocation ) ;
+         UINT32 getLocationID( const CHAR* pLocation ) const ;
+
+         ossPoolString getLocationName( UINT32 locationID ) const ;
 
          INT32  updateLocationPrimary( const MsgRouteID& primaryID,
                                        const UINT32 locationID ) ;

@@ -4534,7 +4534,7 @@ namespace engine
       }
    }
 
-   UINT32 _clsGroupItem::getLocationID( const CHAR* pLocation )
+   UINT32 _clsGroupItem::getLocationID( const CHAR* pLocation ) const
    {
       UINT32 locationID = MSG_INVALID_LOCATIONID ;
 
@@ -4552,6 +4552,16 @@ namespace engine
       }
 
       return locationID ;
+   }
+
+   ossPoolString _clsGroupItem::getLocationName( UINT32 locationID ) const
+   {
+      CLS_LOC_INFO_MAP::const_iterator itr = _mapLocInfo.find( locationID ) ;
+      if ( itr != _mapLocInfo.end() )
+      {
+         return itr->second._location ;
+      }
+      return ossPoolString() ;
    }
 
    /*

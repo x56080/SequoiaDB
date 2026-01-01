@@ -24,9 +24,9 @@ SdbReplicaGroup
 
         格式：`Seconds: 30`
 
-    - NodeID（ *number* ）：期望当选主节点的节点 ID
+    - NodeID（ *number* or *number array* ）：期望当选主节点的节点 ID
 
-        格式：`NodeID: 1000`
+        格式：`NodeID: 1000` 或 `NodeID: [1000,1001]`
 
     - HostName（ *string* ）：期望当选主节点的主机名
 
@@ -40,6 +40,12 @@ SdbReplicaGroup
 
         格式：`ServiceName: "11820"`
 
+    - Location（ *string* ）：期望指定该位置集节点当选主节点
+
+        如果指定了参数 NodeID，HostName，ServiceName 任一一个，该参数不生效。
+
+        格式：`Location: "sz"`
+
     - Level（ *number* ）：重选举等待级别，取值：[1,3]，缺省为 3
 
         - 1: 等待当前写操作结束，并阻塞后续写操作
@@ -47,6 +53,13 @@ SdbReplicaGroup
         - 3: 等待事务结束
 
         格式：`Level: 3`
+
+    - Mode（ *number* ）：节点指定模式，默认为 1
+
+        - 0: 排除模式，排除批定的节点当选为主节点
+        - 1: 指定模式，指定的节点当选为主节点
+
+        格式：`Mode: 1`
 
 > **Note:**  
 >

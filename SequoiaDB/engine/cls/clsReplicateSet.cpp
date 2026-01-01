@@ -2808,7 +2808,7 @@ namespace engine
    INT32 _clsReplicateSet::reelect( CLS_REELECTION_LEVEL lvl,
                                     INT32 seconds,
                                     pmdEDUCB *cb,
-                                    UINT16 destID )
+                                    const SET_UINT16 &setDestID )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CLSREPSET_REELECT ) ;
@@ -2817,7 +2817,7 @@ namespace engine
          goto done ;
       }
 
-      rc = _reelection.run( lvl, seconds, cb, destID ) ;
+      rc = _reelection.run( lvl, seconds, cb, setDestID ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Replica Group: failed to reelect:%d", rc ) ;
@@ -2848,7 +2848,7 @@ namespace engine
    INT32 _clsReplicateSet::locationReelect( CLS_REELECTION_LEVEL lvl,
                                             INT32 seconds,
                                             pmdEDUCB *cb,
-                                            UINT16 destID )
+                                            const SET_UINT16 &setDestID )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CLSREPSET_LOCATIONREELECT ) ;
@@ -2858,7 +2858,7 @@ namespace engine
          goto done ;
       }
 
-      rc = _locationReelection.run( lvl, seconds, cb, destID ) ;
+      rc = _locationReelection.run( lvl, seconds, cb, setDestID ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Location Set: failed to reelect:%d", rc ) ;

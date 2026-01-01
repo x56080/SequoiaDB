@@ -901,13 +901,11 @@ namespace engine
             }
             break ;
          }
-         else if ( 0 >= lsn.compareOffset( _notifyList[i].offset ) )
+         else if ( 0 == ensureNodeID &&
+                   0 >= lsn.compareOffset( _notifyList[i].offset ) )
          {
             res = TRUE ;
-            if ( 0 == ensureNodeID )
-            {
-               break ;
-            }
+            break ;
          }
       }
       PD_TRACE_EXIT( SDB__CLSSYNCMAG_ATLEASTONE ) ;

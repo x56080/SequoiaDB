@@ -899,13 +899,11 @@ namespace engine
                }
                break ;
             }
-            else if ( 0 >= lsn.compareOffset( pStatus->beat.endLsn ) )
+            else if ( 0 == ensureNodeID &&
+                      0 >= lsn.compareOffset( pStatus->beat.endLsn ) )
             {
                res = TRUE ;
-               if ( 0 == ensureNodeID )
-               {
-                  break ;
-               }
+               break ;
             }
 
             ++it ;
@@ -1080,6 +1078,12 @@ namespace engine
       CLS_REELECTION_LEVEL_2 = 2,   /// wait write context(lob) operations
       CLS_REELECTION_LEVEL_3 = 3,   /// wait transactions
       CLS_REELECTION_LEVEL_MAX
+   } ;
+
+   enum CLS_REELECTION_MODE
+   {
+      CLS_REELECTION_MODE_EXCLUDE   = 0,
+      CLS_REELECTION_MODE_INCLUDE   = 1
    } ;
 
 }

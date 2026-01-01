@@ -568,32 +568,32 @@ namespace engine
 
    protected:
       INT32 _parseNodeInfo( const BSONObj &optionsObj,
-                            MsgRouteID &nodeID,
+                            SET_UINT64 &outNodes,
                             pmdEDUCB *cb ) ;
 
       virtual INT32 _parseExtraArgs( const BSONElement &e ) ;
 
-      virtual INT32 _checkExtraArgs( pmdEDUCB *cb ) ;
+      virtual INT32 _checkExtraArgs( pmdEDUCB *cb, BOOLEAN &needExtGetNodes ) ;
 
-      virtual INT32 _getNotifyNode( MsgRouteID& nodeID,
-                                    const UINT16 tmpNodeID,
+      virtual INT32 _getNotifyNode( SET_UINT64 &outNodes,
+                                    const SET_UINT16 &inNodes,
                                     const CHAR* hostName,
                                     const CHAR* svcName ) = 0 ;
 
       virtual INT32 _buildNotifyMsg( CHAR **ppBuffer,
                                      INT32 *bufferSize,
-                                     const MsgRouteID &nodeID,
+                                     const SET_UINT64 &setNodeID,
                                      pmdEDUCB *cb ) = 0 ;
 
       INT32 _buildReelectMsg( CHAR **ppBuffer,
                               INT32 *bufferSize,
                               const BSONObj &optionsObj,
-                              const MsgRouteID &nodeID,
+                              const SET_UINT64 &setNodeID,
                               const CHAR* cmdName,
                               pmdEDUCB *cb ) ;
 
       void _notifyReelect2DestNode( MsgHeader *pMsg,
-                                    const MsgRouteID &nodeID,
+                                    const SET_UINT64 &setNodeID,
                                     pmdEDUCB *cb ) ;
 
       virtual INT32 _reelect( MsgHeader *pMsg,
@@ -605,6 +605,7 @@ namespace engine
    protected:
       CoordGroupInfoPtr _groupInfoPtr ;
       BOOLEAN           _updatedGrpInfo ;
+      INT32             _mode ;
       const CHAR*       _groupName ;
    } ;
    typedef _coordCMDReelectBase coordCMDReelect ;
@@ -620,14 +621,18 @@ namespace engine
       virtual ~_coordCMDReelectGroup() ;
 
    protected:
-      virtual INT32 _getNotifyNode( MsgRouteID& nodeID,
-                                    const UINT16 tmpNodeID,
+      virtual INT32 _parseExtraArgs( const BSONElement &e ) ;
+
+      virtual INT32 _checkExtraArgs( pmdEDUCB *cb, BOOLEAN &needExtGetNodes ) ;
+
+      virtual INT32 _getNotifyNode( SET_UINT64 &outNodes,
+                                    const SET_UINT16 &inNodes,
                                     const CHAR* hostName,
                                     const CHAR* svcName ) ;
 
       virtual INT32 _buildNotifyMsg( CHAR **ppBuffer,
                                      INT32 *bufferSize,
-                                     const MsgRouteID &nodeID,
+                                     const SET_UINT64 &setNodeID,
                                      pmdEDUCB *cb ) ;
 
       virtual INT32 _reelect( MsgHeader *pMsg,
@@ -635,6 +640,10 @@ namespace engine
                               rtnContextBuf *buf ) ;
 
       virtual BOOLEAN _allowInTransaction() const { return FALSE ; }
+
+   private:
+      const CHAR*          _location ;
+      UINT32               _locationID ;
 
    } ;
    typedef _coordCMDReelectGroup coordCMDReelectGroup ;
@@ -652,16 +661,16 @@ namespace engine
    protected:
       virtual INT32 _parseExtraArgs( const BSONElement &e ) ;
 
-      virtual INT32 _checkExtraArgs( pmdEDUCB *cb ) ;
+      virtual INT32 _checkExtraArgs( pmdEDUCB *cb, BOOLEAN &needExtGetNodes ) ;
 
-      virtual INT32 _getNotifyNode( MsgRouteID& nodeID,
-                                    const UINT16 tmpNodeID,
+      virtual INT32 _getNotifyNode( SET_UINT64 &outNodes,
+                                    const SET_UINT16 &inNodes,
                                     const CHAR* hostName,
                                     const CHAR* svcName ) ;
 
       virtual INT32 _buildNotifyMsg( CHAR **ppBuffer,
                                      INT32 *bufferSize,
-                                     const MsgRouteID &nodeID,
+                                     const SET_UINT64 &setNodeID,
                                      pmdEDUCB *cb ) ;
 
       virtual INT32 _reelect( MsgHeader *pMsg,

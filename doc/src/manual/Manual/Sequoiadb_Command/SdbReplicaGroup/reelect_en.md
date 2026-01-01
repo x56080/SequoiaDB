@@ -25,9 +25,9 @@ Reelect the master node in the replica group.
 
         Format: `Seconds: 30`
 
-    - NodeID ( *number* ): The node ID of the desired primary node.
+    - NodeID ( *number* or *number array* ): The node ID(s) of the desired primary node.
 
-        Format: `NodeID: 1000`
+        Format: `NodeID: 1000` or `NodeID: [1000, 1010]`
 
     - HostName ( *string* ): The hostname of the desired primary node.
 
@@ -41,6 +41,12 @@ Reelect the master node in the replica group.
 
         Format: `ServiceName: "11820"`
 
+    - Location ( *string* ): The location of the desired primary node.
+
+        If any of the parameters "NodeID", "HostName", "ServiceName" is specified, this parameter will not take effect.
+
+        Format: `Location: "gz"`
+
     - Level ( *number* ): Reelect waiting level, value range: [1,3]. Default is 3.
 
         - 1: Wait for the current write operations to complete and block subsequent write operations.
@@ -48,6 +54,13 @@ Reelect the master node in the replica group.
         - 3: Wait for transactions to complete.
 
         Format: `Level: 3`
+
+    - Mode ( *number* ): Node specification mode. Default is 1.
+
+        - 0: indicates exclusion mode(excludes specified nodes from being primary)
+        - 1: indicates designation mode(specified nodes become primary)
+
+        Format: `Mode: 1`
 
 **Note:**
 

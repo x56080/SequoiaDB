@@ -273,7 +273,7 @@ namespace engine
    protected:
       BOOLEAN _isDestNotify ;
       INT32 _timeout ;
-      UINT16 _nodeID ;
+      SET_UINT16 _setNodeID ;
       CLS_REELECTION_LEVEL _level ;
    } ;
 

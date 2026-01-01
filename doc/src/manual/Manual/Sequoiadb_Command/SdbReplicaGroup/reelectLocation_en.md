@@ -28,9 +28,9 @@ This function is used to reelect the primary node of the specified position set 
 
         Format: `Seconds: 50`
 
-    - NodeID ( *number* ): The node ID of the desired primary node.
+    - NodeID ( *number* or *number array* ): The node ID(s) of the desired primary node.
 
-        Format: `NodeID: 1000`
+        Format: `NodeID: 1000` or `NodeID: [1000, 1010]`
 
     - HostName ( *string* ): The hostname of the desired primary node.
 
@@ -43,6 +43,13 @@ This function is used to reelect the primary node of the specified position set 
         If the parameter "NodeID" is specified, this parameter will not take effect.
 
         Format: `ServiceName: "11820"`
+
+    - Mode ( *number* ): Node specification mode. Default is 1.
+
+        - 0: indicates exclusion mode(excludes specified nodes from being primary)
+        - 1: indicates designation mode(specified nodes become primary)
+
+        Format: `Mode: 1`
 
 >**Note:**
 >

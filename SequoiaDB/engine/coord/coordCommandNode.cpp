@@ -2586,6 +2586,7 @@ namespace engine
    */
    _coordCMDReelectBase::_coordCMDReelectBase():
    _updatedGrpInfo( FALSE ),
+   _mode( CLS_REELECTION_MODE_INCLUDE ),
    _groupName( NULL )
    {
    }
@@ -2595,16 +2596,16 @@ namespace engine
    }
 
    INT32 _coordCMDReelectBase::_parseNodeInfo( const BSONObj &optionsObj,
-                                               MsgRouteID &nodeID,
+                                               SET_UINT64 &outNodes,
                                                pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
 
       UINT16 tmpNodeID = 0 ;
+      SET_UINT16 setNodeID ;
       const CHAR *pHostName = "" ;
       const CHAR *pSvcName = "" ;
-
-      nodeID.value = 0 ;
+      BOOLEAN needExtGetNodes = FALSE ;
 
       BSONElement e ;
       BSONObjIterator itr( optionsObj ) ;
@@ -2612,14 +2613,51 @@ namespace engine
       {
          e = itr.next() ;
 
-         if ( 0 == ossStrcasecmp( FIELD_NAME_NODEID, e.fieldName() ) )
+         if ( 0 == ossStrcasecmp( FIELD_NAME_NODEID, e.fieldName() ) ||
+              0 == ossStrcasecmp( FIELD_NAME_NODEIDS, e.fieldName() ) )
          {
-            if ( !e.isNumber() || 0 == e.numberInt() )
+            if ( e.isNumber() )
+            {
+               tmpNodeID = e.numberInt() ;
+               if ( 0 == tmpNodeID )
+               {
+                  rc = SDB_INVALIDARG ;
+                  break ;
+               }
+               setNodeID.insert( tmpNodeID ) ;
+            }
+            else if ( Array == e.type() )
+            {
+               BSONObjIterator itrSub( e.embeddedObject() ) ;
+               while( itrSub.more() )
+               {
+                  BSONElement eSub = itrSub.next() ;
+                  if ( eSub.isNumber() )
+                  {
+                     tmpNodeID = eSub.numberInt() ;
+                     if ( 0 == tmpNodeID )
+                     {
+                        rc = SDB_INVALIDARG ;
+                        break ;
+                     }
+                     setNodeID.insert( tmpNodeID ) ;
+                  }
+                  else
+                  {
+                     rc = SDB_INVALIDARG ;
+                     break ;
+                  }
+               }
+               if ( rc )
+               {
+                  break ;
+               }
+            }
+            else
             {
                rc = SDB_INVALIDARG ;
                break ;
             }
-            tmpNodeID = e.numberInt() ;
          }
          else if ( 0 == ossStrcasecmp( FIELD_NAME_HOST, e.fieldName() ) )
          {
@@ -2649,16 +2687,29 @@ namespace engine
             }
             _groupName = e.valuestr() ;
          }
-         else if ( 0 == ossStrcmp( FIELD_NAME_REELECTION_TIMEOUT,
-                                   e.fieldName() ) ||
-                   0 == ossStrcmp( FIELD_NAME_REELECTION_LEVEL,
-                                   e.fieldName() ) )
+         else if ( 0 == ossStrcasecmp( FIELD_NAME_REELECTION_TIMEOUT,
+                                       e.fieldName() ) ||
+                   0 == ossStrcasecmp( FIELD_NAME_REELECTION_LEVEL,
+                                       e.fieldName() ) )
          {
             /// ignore
          }
-         else if ( 0 == ossStrcmp( FIELD_NAME_NODE_LOCATIONID, e.fieldName() ) )
+         /// Mode
+         else if ( 0 == ossStrcasecmp( FIELD_NAME_MODE, e.fieldName() ) )
          {
-            /// only for system
+            if ( !e.isNumber() )
+            {
+               rc = SDB_INVALIDARG ;
+               break ;
+            }
+            if ( CLS_REELECTION_MODE_EXCLUDE == e.numberInt() )
+            {
+               _mode = CLS_REELECTION_MODE_EXCLUDE ;
+            }
+            else
+            {
+               _mode = CLS_REELECTION_MODE_INCLUDE ;
+            }
          }
          else
          {
@@ -2680,10 +2731,10 @@ namespace engine
          goto error ;
       }
 
-      rc = _checkExtraArgs( cb ) ;
+      rc = _checkExtraArgs( cb, needExtGetNodes ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to check node info, rc: %d", rc ) ;
 
-      if ( 0 != tmpNodeID || *pHostName || *pSvcName )
+      if ( !setNodeID.empty() || *pHostName || *pSvcName || needExtGetNodes )
       {
          /// update group info
          if ( !_updatedGrpInfo )
@@ -2697,7 +2748,7 @@ namespace engine
             }
          }
 
-         rc = _getNotifyNode( nodeID, tmpNodeID, pHostName, pSvcName ) ;
+         rc = _getNotifyNode( outNodes, setNodeID, pHostName, pSvcName ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "Failed to get target primary nodeID" ) ;
@@ -2717,16 +2768,16 @@ namespace engine
       return SDB_INVALIDARG ;
    }
 
-   INT32 _coordCMDReelectBase::_checkExtraArgs( pmdEDUCB *cb )
+   INT32 _coordCMDReelectBase::_checkExtraArgs( pmdEDUCB *cb, BOOLEAN &needExtGetNodes )
    {
+      needExtGetNodes = FALSE ;
       return SDB_OK ;
    }
-
 
    INT32 _coordCMDReelectBase::_buildReelectMsg( CHAR **ppBuffer,
                                                  INT32 *bufferSize,
                                                  const BSONObj &optionsObj,
-                                                 const MsgRouteID &nodeID,
+                                                 const SET_UINT64 &setNodeID,
                                                  const CHAR* cmdName,
                                                  pmdEDUCB *cb )
    {
@@ -2739,12 +2790,36 @@ namespace engine
       BSONObjBuilder hintBuilder ;
       BSONObj hintObj ;
 
+      MsgRouteID nodeID ;
+
       // Build query obj
-      optionBuilder.append( FIELD_NAME_NODEID, (INT32)nodeID.columns.nodeID ) ;
+      // for compatiable with old version, FIELD_NAME_NODEID push the first node,
+      // and FIELD_NAME_NODEIDS push the array nodeid
+      if ( ! setNodeID.empty() )
+      {
+         nodeID.value = *(setNodeID.begin()) ;
+         optionBuilder.append( FIELD_NAME_NODEID, (INT32)nodeID.columns.nodeID ) ;
+
+         if ( setNodeID.size() > 1 )
+         {
+            BSONArrayBuilder subArray( optionBuilder.subarrayStart( FIELD_NAME_NODEIDS ) ) ;
+            SET_UINT64::const_iterator citrNode = setNodeID.begin() ;
+            while( citrNode != setNodeID.end() )
+            {
+               nodeID.value = *citrNode ;
+               subArray.append( (INT32)nodeID.columns.nodeID ) ;
+               ++citrNode ;
+            }
+            subArray.done() ;
+         }
+      }
+
       while ( itr.more() )
       {
          BSONElement e = itr.next() ;
-         if ( 0 == ossStrcmp( e.fieldName(), FIELD_NAME_NODEID ) )
+         if ( 0 == ossStrcasecmp( e.fieldName(), FIELD_NAME_NODEID ) ||
+              0 == ossStrcasecmp( e.fieldName(), FIELD_NAME_NODEIDS ) ||
+              0 == ossStrcasecmp( e.fieldName(), FIELD_NAME_MODE ) )
          {
             continue ;
          }
@@ -2762,22 +2837,50 @@ namespace engine
    }
 
    void _coordCMDReelectBase::_notifyReelect2DestNode( MsgHeader *pMsg,
-                                                       const MsgRouteID &nodeID,
+                                                       const SET_UINT64 &setNodeID,
                                                        pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
       pmdRemoteSession *pRemote = _groupSession.getSession() ;
       pmdSubSession *pSub = NULL ;
+      MsgRouteID nodeID ;
+
+      BOOLEAN allSendFailed = TRUE ;
+      INT32 rcTmp = SDB_OK ;
+
+      SET_UINT64::const_iterator citr = setNodeID.begin() ;
 
       _groupSession.clear() ;
-      pSub = pRemote->addSubSession( nodeID.value ) ;
-      pSub->setReqMsg( pMsg, PMD_EDU_MEM_NONE ) ;
 
-      rc = pRemote->sendMsg( pSub ) ;
-      if ( rc )
+      while( citr != setNodeID.end() )
       {
-         PD_LOG( PDWARNING, "Send message to node[%s] failed, rc: %d",
-                 routeID2String( pSub->getNodeID() ).c_str(), rc ) ;
+         nodeID.value = *citr ;
+         nodeID.columns.serviceID = MSG_ROUTE_SHARD_SERVCIE ;
+
+         pSub = pRemote->addSubSession( nodeID.value ) ;
+         pSub->setReqMsg( pMsg, PMD_EDU_MEM_NONE ) ;
+
+         rc = pRemote->sendMsg( pSub ) ;
+         if ( rc )
+         {
+            PD_LOG( PDWARNING, "Send message to node[%s] failed, rc: %d",
+                    routeID2String( pSub->getNodeID() ).c_str(), rc ) ;
+            rcTmp = rc ;
+
+            /// remote the sub session
+            pRemote->delSubSession( nodeID.value ) ;
+         }
+         else
+         {
+            allSendFailed = FALSE ;
+         }
+         ++citr ;
+      }
+
+      /// when all send failed
+      if ( allSendFailed )
+      {
+         rc = rcTmp ;
          goto done ;
       }
 
@@ -2812,7 +2915,7 @@ namespace engine
 
       MsgHeader *pNotifyMsg = NULL ;
       MsgHeader *pReelectMsg = pMsg ;
-      MsgRouteID nodeID ;
+      SET_UINT64 outNodes ;
 
       contextID = -1 ;
 
@@ -2834,20 +2937,24 @@ namespace engine
       try
       {
          BSONObj optionsObj( pQuery ) ;
-         rc = _parseNodeInfo( optionsObj, nodeID, cb ) ;
+         rc = _parseNodeInfo( optionsObj, outNodes, cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to parse node info, rc: %d", rc ) ;
 
-         if ( MSG_INVALID_ROUTEID != nodeID.value )
+         if ( ! outNodes.empty() )
          {
-            rc = _buildNotifyMsg( &pNotifyBuffer, &notifyBuffSize, nodeID, cb ) ;
+            rc = _buildNotifyMsg( &pNotifyBuffer, &notifyBuffSize, outNodes, cb ) ;
             if ( rc )
             {
                PD_LOG( PDWARNING, "Build message failed, rc: %d", rc ) ;
                goto done ;
             }
             pNotifyMsg = ( MsgHeader* )pNotifyBuffer ;
+         }
 
-            rc = _buildReelectMsg( &pReelectBuffer, &reelctBuffSize, optionsObj, nodeID, cmdName, cb ) ;
+         if ( ! outNodes.empty() || CLS_REELECTION_MODE_EXCLUDE == _mode )
+         {
+            rc = _buildReelectMsg( &pReelectBuffer, &reelctBuffSize, optionsObj,
+                                   outNodes, cmdName, cb ) ;
             if ( rc )
             {
                PD_LOG( PDWARNING, "Build message failed, rc: %d", rc ) ;
@@ -2866,10 +2973,9 @@ namespace engine
       // Notify to destination node
       // No need to notify to dest node when ( 3.4.13, 5.8.4, 5.12 ) and above.
       // This for compatible with old versions
-      if ( MSG_INVALID_ROUTEID != nodeID.value )
+      if ( ! outNodes.empty() )
       {
-         nodeID.columns.serviceID = MSG_ROUTE_SHARD_SERVCIE ;
-         _notifyReelect2DestNode( pNotifyMsg, nodeID, cb ) ;
+         _notifyReelect2DestNode( pNotifyMsg, outNodes, cb ) ;
       }
 
       // Reelect command
@@ -2903,14 +3009,127 @@ namespace engine
                                       TRUE ) ;
    _coordCMDReelectGroup::_coordCMDReelectGroup()
    {
+      _location = NULL ;
+      _locationID = MSG_INVALID_LOCATIONID ;
    }
 
    _coordCMDReelectGroup::~_coordCMDReelectGroup()
    {
    }
 
-   INT32 _coordCMDReelectGroup::_getNotifyNode( MsgRouteID& nodeID,
-                                                const UINT16 tmpNodeID,
+   INT32 _coordCMDReelectGroup::_parseExtraArgs( const BSONElement &e )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( 0 == ossStrcasecmp( FIELD_NAME_NODE_LOCATION, e.fieldName() ) )
+      {
+         if ( String != e.type() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "Location type[%d] is not String", e.type() ) ;
+            goto error ;
+         }
+         else if ( !*e.valuestr() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "Location name can't be null string" ) ;
+            goto error ;
+         }
+         else if ( MSG_LOCATION_NAMESZ < e.valuestrsize() - 1 )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "Size of location name is greater than 256B" ) ;
+            goto error ;
+         }
+         _location = e.valuestr() ;
+      }
+      else if ( 0 == ossStrcasecmp( FIELD_NAME_NODE_LOCATIONID, e.fieldName() ) )
+      {
+         if ( !e.isNumber() || MSG_INVALID_LOCATIONID == e.numberInt() )
+         {
+            PD_LOG_MSG( PDERROR, "Invalid param[%s]", e.toString().c_str() ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+         _locationID = e.numberInt() ;
+      }
+      else
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "Param[%s] is unknown", e.fieldName() ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _coordCMDReelectGroup::_checkExtraArgs( pmdEDUCB *cb, BOOLEAN &needExtGetNodes )
+   {
+      INT32 rc = SDB_OK ;
+
+      /// check location whether exist
+      if ( ( _location && *_location ) || MSG_INVALID_LOCATIONID != _locationID )
+      {
+         BOOLEAN locationExist = FALSE ;
+
+         /// Update group info
+         if ( !_updatedGrpInfo )
+         {
+            _updatedGrpInfo = TRUE ;
+            rc = _pResource->updateGroupInfo( _groupName, _groupInfoPtr, cb ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Update group[%s] info failed, rc: %d",
+                       _groupName, rc ) ;
+               goto error ;
+            }
+         }
+
+         if ( MSG_INVALID_LOCATIONID != _locationID )
+         {
+            ossPoolString locationName = _groupInfoPtr->getLocationName( _locationID ) ;
+            if ( !locationName.empty() )
+            {
+               locationExist = TRUE ;
+            }
+         }
+
+         /// when location not exist
+         if ( ! locationExist && ( _location && *_location ) )
+         {
+            _locationID = _groupInfoPtr->getLocationID( _location ) ;
+            if ( MSG_INVALID_LOCATIONID != _locationID )
+            {
+               locationExist = TRUE ;
+            }
+         }
+
+         // Check and make sure Location/LocationID is valid
+         if ( !locationExist )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "Location doesn't exist" ) ;
+            goto error ;
+         }
+
+         needExtGetNodes = TRUE ;
+      }
+      else
+      {
+         needExtGetNodes = FALSE ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _coordCMDReelectGroup::_getNotifyNode( SET_UINT64 &outNodes,
+                                                const SET_UINT16 &inNodes,
                                                 const CHAR* hostName,
                                                 const CHAR* svcName )
    {
@@ -2921,43 +3140,65 @@ namespace engine
 
       while ( NULL != ( pItem = _groupInfoPtr->nodeItemByPos( pos++ ) ) )
       {
-         if ( 0 != tmpNodeID )
+         if ( ! inNodes.empty() )
          {
-            if ( pItem->_id.columns.nodeID == tmpNodeID )
+            if ( inNodes.find( pItem->_id.columns.nodeID ) != inNodes.end() )
             {
-               nodeID.value = pItem->_id.value ;
-               break ;
+               outNodes.insert( pItem->_id.value ) ;
             }
          }
          else if ( *hostName )
          {
             if ( 0 == ossStrcmp( hostName, pItem->_host ) &&
-                  ( !*svcName || 0 == ossStrcmp( svcName,
-                     pItem->_service[ MSG_ROUTE_LOCAL_SERVICE ].c_str() ) ) )
+                  ( !*svcName ||
+                    0 == ossStrcmp( svcName, pItem->_service[ MSG_ROUTE_LOCAL_SERVICE ].c_str() ) ) )
             {
-               nodeID.value = pItem->_id.value ;
-               break ;
+               outNodes.insert( pItem->_id.value ) ;
             }
          }
-         else if ( *svcName && 0 == ossStrcmp( svcName,
-                     pItem->_service[ MSG_ROUTE_LOCAL_SERVICE ].c_str() ) )
+         else if ( *svcName &&
+                   0 == ossStrcmp( svcName, pItem->_service[ MSG_ROUTE_LOCAL_SERVICE ].c_str() ) )
          {
-            nodeID.value = pItem->_id.value ;
-            break ;
+            outNodes.insert( pItem->_id.value ) ;
+         }
+         else if ( MSG_INVALID_LOCATIONID != _locationID &&
+                   pItem->_locationID == _locationID )
+         {
+            outNodes.insert( pItem->_id.value ) ;
          }
       }
 
-      if ( 0 == nodeID.value )
+      if ( outNodes.empty() )
       {
          rc = SDB_CLS_NODE_NOT_EXIST ;
+         goto error ;
       }
 
+      if ( CLS_REELECTION_MODE_EXCLUDE == _mode )
+      {
+         SET_UINT64 tmpNodes = outNodes ;
+         pos = 0 ;
+         outNodes.clear() ;
+
+         while ( NULL != ( pItem = _groupInfoPtr->nodeItemByPos( pos++ ) ) )
+         {
+            /// when not found
+            if ( tmpNodes.find( pItem->_id.value ) == tmpNodes.end() )
+            {
+               outNodes.insert( pItem->_id.value ) ;
+            }
+         }
+      }
+
+   done:
       return rc ;
+   error:
+      goto done ;
    }
 
    INT32 _coordCMDReelectGroup::_buildNotifyMsg( CHAR **ppBuffer,
                                                  INT32 *bufferSize,
-                                                 const MsgRouteID &nodeID,
+                                                 const SET_UINT64 &setNodeID,
                                                  pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
@@ -3020,19 +3261,19 @@ namespace engine
 
       if ( 0 == ossStrcmp( FIELD_NAME_LOCATION, e.fieldName() ) )
       {
-         if ( e.eoo() || !*e.valuestr() )
-         {
-            rc = SDB_INVALIDARG ;
-            PD_LOG_MSG( PDERROR, "Location name can't be null string" ) ;
-            goto error ;
-         }
          if ( String != e.type() )
          {
             rc = SDB_INVALIDARG ;
             PD_LOG_MSG( PDERROR, "Location type[%d] is not String", e.type() ) ;
             goto error ;
          }
-         if ( MSG_LOCATION_NAMESZ < e.valuestrsize() - 1 )
+         else if ( !*e.valuestr() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "Location name can't be null string" ) ;
+            goto error ;
+         }
+         else if ( MSG_LOCATION_NAMESZ < e.valuestrsize() - 1 )
          {
             rc = SDB_INVALIDARG ;
             PD_LOG_MSG( PDERROR, "Size of location name is greater than 256B" ) ;
@@ -3053,9 +3294,11 @@ namespace engine
       goto done ;
    }
 
-   INT32 _coordCMDReelectLocation::_checkExtraArgs( pmdEDUCB *cb )
+   INT32 _coordCMDReelectLocation::_checkExtraArgs( pmdEDUCB *cb, BOOLEAN &needExtGetNodes )
    {
       INT32 rc = SDB_OK ;
+
+      needExtGetNodes = FALSE ;
 
       // Check and make sure location is not null or ""
       if ( NULL == _location || '\0' == _location[0] )
@@ -3093,8 +3336,8 @@ namespace engine
       goto done ;
    }
 
-   INT32 _coordCMDReelectLocation::_getNotifyNode( MsgRouteID& nodeID,
-                                                   const UINT16 tmpNodeID,
+   INT32 _coordCMDReelectLocation::_getNotifyNode( SET_UINT64 &outNodes,
+                                                   const SET_UINT16 &inNodes,
                                                    const CHAR* hostName,
                                                    const CHAR* svcName )
    {
@@ -3106,46 +3349,54 @@ namespace engine
       // The selected node's location should also be matched
       while ( NULL != ( pItem = _groupInfoPtr->nodeItemByPos( pos++ ) ) )
       {
-         if ( 0 != tmpNodeID )
+         if ( ! inNodes.empty() )
          {
-            if ( pItem->_id.columns.nodeID == tmpNodeID )
+            if ( inNodes.find( pItem->_id.columns.nodeID ) != inNodes.end() &&
+                 pItem->_locationID == _locationID )
             {
-               if ( pItem->_locationID == _locationID )
-               {
-                  nodeID.value = pItem->_id.value ;
-                  break ;
-               }
-               else
-               {
-                  rc = SDB_INVALIDARG ;
-                  PD_LOG_MSG( PDERROR, "Node:[%u] is not in location[%s]",
-                              nodeID.columns.nodeID, _location ) ;
-                  goto error ;
-               }
+               outNodes.insert( pItem->_id.value ) ;
             }
          }
          else if ( *hostName )
          {
             if ( pItem->_locationID == _locationID &&
                  0 == ossStrcmp( hostName, pItem->_host ) &&
-                 ( !*svcName || 0 == ossStrcmp( svcName,
-                   pItem->_service[ MSG_ROUTE_LOCAL_SERVICE ].c_str() ) ) )
+                 ( !*svcName ||
+                   0 == ossStrcmp( svcName, pItem->_service[ MSG_ROUTE_LOCAL_SERVICE ].c_str() ) ) )
             {
-               nodeID.value = pItem->_id.value ;
-               break ;
+               outNodes.insert( pItem->_id.value ) ;
             }
          }
-         else if ( pItem->_locationID == _locationID && *svcName &&
+         else if ( pItem->_locationID == _locationID &&
+                   *svcName &&
                    0 == ossStrcmp( svcName, pItem->_service[ MSG_ROUTE_LOCAL_SERVICE ].c_str() ) )
          {
-            nodeID.value = pItem->_id.value ;
-            break ;
+            outNodes.insert( pItem->_id.value ) ;
          }
       }
 
-      if ( 0 == nodeID.value )
+      if ( outNodes.empty() )
       {
+         PD_LOG_MSG( PDERROR, "Node is not in location[%s]", _location ) ;
          rc = SDB_CLS_NODE_NOT_EXIST ;
+         goto error ;
+      }
+
+      if ( CLS_REELECTION_MODE_EXCLUDE == _mode )
+      {
+         SET_UINT64 tmpNodes = outNodes ;
+         pos = 0 ;
+         outNodes.clear() ;
+      
+         while ( NULL != ( pItem = _groupInfoPtr->nodeItemByPos( pos++ ) ) )
+         {
+            /// when not found
+            if ( pItem->_locationID == _locationID &&
+                 tmpNodes.find( pItem->_id.value ) == tmpNodes.end() )
+            {
+               outNodes.insert( pItem->_id.value ) ;
+            }
+         }
       }
 
    done:
@@ -3156,7 +3407,7 @@ namespace engine
 
    INT32 _coordCMDReelectLocation::_buildNotifyMsg( CHAR **ppBuffer,
                                                     INT32 *bufferSize,
-                                                    const MsgRouteID &nodeID,
+                                                    const SET_UINT64 &setNodeID,
                                                     pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
