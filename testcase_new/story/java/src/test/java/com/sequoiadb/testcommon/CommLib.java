@@ -920,4 +920,39 @@ public class CommLib {
                 testClassName.getTestClass().getName() + " coord:" + coord );
         return new Sequoiadb( coord, "", "" );
     }
+
+    /**
+     * @description: 获取group下的所有节点，以[{"hostName":hostName,"svcName":svcName,"nodeID":nodeID}]形式返回
+     * @param db
+     *            db连接
+     * @param groupName
+     *            需要获取的group名
+     * @return
+     */
+    public static List< BasicBSONObject > getGroupNodes( Sequoiadb db,
+            String groupName ) {
+
+        List< BasicBSONObject > nodeAddrs = new ArrayList<>();
+        try {
+            ReplicaGroup tmpArray = db.getReplicaGroup( groupName );
+            BasicBSONObject doc = ( BasicBSONObject ) tmpArray.getDetail();
+            BasicBSONList groups = ( BasicBSONList ) doc.get( "Group" );
+
+            for ( int i = 0; i < groups.size(); ++i ) {
+                BasicBSONObject group = ( BasicBSONObject ) groups.get( i );
+                String hostName = group.getString( "HostName" );
+                BasicBSONList service = ( BasicBSONList ) group
+                        .get( "Service" );
+                BasicBSONObject srcInfo = ( BasicBSONObject ) service.get( 0 );
+                String svcName = srcInfo.getString( "Name" );
+                String nodeID = group.getString( "NodeID" );
+                nodeAddrs.add( new BasicBSONObject( "hostName", hostName )
+                        .append( "svcName", svcName )
+                        .append( "nodeID", nodeID ) );
+            }
+        } catch ( BaseException e ) {
+            throw e;
+        }
+        return nodeAddrs;
+    }
 }
