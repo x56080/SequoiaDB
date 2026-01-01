@@ -2887,8 +2887,8 @@ namespace engine
       rc = pRemote->waitReply1( TRUE ) ;
       if ( rc )
       {
-         PD_LOG( PDWARNING, "Recieve reply message from node[%s] failed, "
-                 "rc: %d", routeID2String( pSub->getNodeID() ).c_str(), rc ) ;
+         PD_LOG( PDWARNING, "Recieve reply message from nodes failed, "
+                 "rc: %d", rc ) ;
          goto done ;
       }
 
