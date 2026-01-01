@@ -438,7 +438,6 @@ namespace engine
    :_timeout( CLS_REELECT_COMMAND_TIMEOUT_DFT ),
     _level( CLS_REELECTION_LEVEL_3 )
    {
-      _nodeID = 0 ;
       _isDestNotify = FALSE ;
    }
 
@@ -472,6 +471,7 @@ namespace engine
       {
          BSONElement e ;
          obj = BSONObj( pMatcherBuff ) ;
+         BSONObjIterator itr( obj ) ;
 
          if ( obj.isEmpty() )
          {
@@ -479,46 +479,77 @@ namespace engine
             goto done ;
          }
 
-         e = obj.getField( FIELD_NAME_REELECTION_TIMEOUT ) ;
-         if ( !e.eoo() )
+         while( itr.more() )
          {
-            if ( !e.isNumber() )
+            e = itr.next() ;
+            if ( 0 == ossStrcasecmp( FIELD_NAME_REELECTION_TIMEOUT, e.fieldName() ) )
             {
-               PD_LOG( PDERROR, "Param[%s] is not number in object[%s]",
-                       FIELD_NAME_REELECTION_TIMEOUT,
-                       obj.toString( FALSE, TRUE ).c_str() ) ;
-               rc = SDB_INVALIDARG ;
-               goto error ;
+               if ( !e.isNumber() )
+               {
+                  rc = SDB_INVALIDARG ;
+                  break ;
+               }
+               _timeout = e.numberInt() ;
             }
-            _timeout = e.numberInt() ;
+            else if ( 0 == ossStrcasecmp( FIELD_NAME_REELECTION_LEVEL, e.fieldName() ) )
+            {
+               if ( !e.isNumber() )
+               {
+                  rc = SDB_INVALIDARG ;
+                  break ;
+               }
+               _level = ( CLS_REELECTION_LEVEL )((INT32)e.numberInt()) ;
+            }
+            else if ( 0 == ossStrcasecmp( FIELD_NAME_NODEID, e.fieldName() ) ||
+                      0 == ossStrcasecmp( FIELD_NAME_NODEIDS, e.fieldName() ) )
+            {
+               if ( e.isNumber() )
+               {
+                  if ( 0 == e.numberInt() )
+                  {
+                     rc = SDB_INVALIDARG ;
+                     break ;
+                  }
+                  _setNodeID.insert( e.numberInt() ) ;
+               }
+               else if ( Array == e.type() )
+               {
+                  BSONObjIterator itrSub( e.embeddedObject() ) ;
+                  while( itrSub.more() )
+                  {
+                     BSONElement eSub = itrSub.next() ;
+                     if ( eSub.isNumber() )
+                     {
+                        if ( 0 == eSub.numberInt() )
+                        {
+                           rc = SDB_INVALIDARG ;
+                           break ;
+                        }
+                        _setNodeID.insert( eSub.numberInt() ) ;
+                     }
+                     else
+                     {
+                        rc = SDB_INVALIDARG ;
+                        break ;
+                     }
+                  }
+                  if ( rc )
+                  {
+                     break ;
+                  }
+               }
+               else
+               {
+                  rc = SDB_INVALIDARG ;
+                  break ;
+               }
+            }
          }
 
-         e = obj.getField( FIELD_NAME_REELECTION_LEVEL ) ;
-         if ( !e.eoo() )
+         if ( rc )
          {
-            if ( !e.isNumber() )
-            {
-               PD_LOG( PDERROR, "Param[%s] is not number in object[%s]",
-                       FIELD_NAME_REELECTION_LEVEL,
-                       obj.toString( FALSE, TRUE ).c_str() ) ;
-               rc = SDB_INVALIDARG ;
-               goto error ;
-            }
-            _level = ( CLS_REELECTION_LEVEL )((INT32)e.numberInt()) ;
-         }
-
-         e = obj.getField( FIELD_NAME_NODEID ) ;
-         if ( !e.eoo() )
-         {
-            if ( !e.isNumber() )
-            {
-               PD_LOG( PDERROR, "Param[%s] is not number in object[%s]",
-                       FIELD_NAME_NODEID,
-                       obj.toString( FALSE, TRUE ).c_str() ) ;
-               rc = SDB_INVALIDARG ;
-               goto error ;
-            }
-            _nodeID = (UINT16)e.numberInt() ;
+            PD_LOG_MSG( PDERROR, "Param[%s] is invalid", e.fieldName() ) ;
+            goto error ;
          }
       }
       catch ( std::exception &e )
@@ -570,7 +601,7 @@ namespace engine
       }
       else
       {
-         rc = repl->reelect( _level, _timeout, cb, _nodeID ) ;
+         rc = repl->reelect( _level, _timeout, cb, _setNodeID ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "failed to reelect:%d", rc ) ;

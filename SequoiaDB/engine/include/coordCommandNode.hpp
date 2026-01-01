@@ -574,9 +574,12 @@ namespace engine
                                         const BSONObj &obj,
                                         pmdEDUCB *cb,
                                         const CHAR *& pGroupName,
-                                        MsgRouteID &nodeID ) ;
+                                        SET_UINT64 &outNodes ) ;
 
-         void           _notifyReelect2Dest( UINT64 nodeID, pmdEDUCB *cb ) ;
+         void           _notifyReelect2Dest( const SET_UINT64 &setNodeID, pmdEDUCB *cb ) ;
+
+      private:
+         INT32          _mode ;
    } ;
    typedef _coordCMDReelection coordCMDReelection ;
 

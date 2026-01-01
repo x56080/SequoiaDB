@@ -437,7 +437,7 @@ namespace engine
          INT32 reelect( CLS_REELECTION_LEVEL lvl,
                         UINT32 seconds,
                         pmdEDUCB *cb,
-                        UINT16 destID = 0 ) ;
+                        const SET_UINT16 &setDestID ) ;
 
          void reelectionDone( BOOLEAN change2Primary = FALSE ) ;
 

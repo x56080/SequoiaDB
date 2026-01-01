@@ -1746,7 +1746,7 @@ namespace engine
    INT32 _clsReplicateSet::reelect( CLS_REELECTION_LEVEL lvl,
                                     UINT32 seconds,
                                     pmdEDUCB *cb,
-                                    UINT16 destID )
+                                    const SET_UINT16 &setDestID )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CLSREPSET_REELECT ) ;
@@ -1755,7 +1755,7 @@ namespace engine
          goto done ;
       }
 
-      rc = _reelection.run( lvl, seconds, cb, destID ) ;
+      rc = _reelection.run( lvl, seconds, cb, setDestID ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to reelect:%d", rc ) ;

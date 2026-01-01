@@ -24,9 +24,9 @@ SdbReplicaGroup
 
         格式：`Seconds: 30`
 
-    - NodeID（ *number* ）：期望当选主节点的节点 ID
+    - NodeID（ *number* or *number array* ）：期望当选主节点的节点 ID
 
-        格式：`NodeID: 1000`
+        格式：`NodeID: 1000` 或 `NodeID: [1000,1001]`
 
     - HostName（ *string* ）：期望当选主节点的主机名
 
@@ -47,6 +47,13 @@ SdbReplicaGroup
         - 3: 等待事务结束
 
         格式：`Level: 3`
+
+    - Mode（ *number* ）：节点指定模式，默认为 1
+
+        - 0: 排除模式，排除批定的节点当选为主节点
+        - 1: 指定模式，指定的节点当选为主节点
+
+        格式：`Mode: 1`
 
 > **Note:**  
 >

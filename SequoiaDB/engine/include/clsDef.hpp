@@ -464,13 +464,11 @@ namespace engine
                }
                break ;
             }
-            else if ( 0 >= lsn.compareOffset( pStatus->beat.endLsn ) )
+            else if ( 0 == ensureNodeID &&
+                      0 >= lsn.compareOffset( pStatus->beat.endLsn ) )
             {
                res = TRUE ;
-               if ( 0 == ensureNodeID )
-               {
-                  break ;
-               }
+               break ;
             }
 
             ++it ;
@@ -634,6 +632,13 @@ namespace engine
           (shadowWeight) :\
          ( (weight) < (shadowWeight) ?\
            (shadowWeight) : (weight) ))
+
+   enum CLS_REELECTION_MODE
+   {
+      CLS_REELECTION_MODE_EXCLUDE   = 0,
+      CLS_REELECTION_MODE_INCLUDE   = 1
+   } ;
+
 }
 
 #endif // CLSDEF_HPP_

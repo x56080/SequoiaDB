@@ -127,6 +127,7 @@ class ossPoolMultiSet : public std::multiset<K, Compare, typename ossPoolAllocat
 
 typedef ossPoolSet<UINT64>             SET_UINT64 ;
 typedef ossPoolSet<UINT32>             SET_UINT32 ;
+typedef ossPoolSet<UINT16>             SET_UINT16 ;
 
 /*
  * List utilizing memory pool

@@ -153,7 +153,7 @@ namespace engine
    INT32 _clsReelection::run( CLS_REELECTION_LEVEL lvl,
                               UINT32 seconds,
                               pmdEDUCB *cb,
-                              UINT16 destID )
+                              const SET_UINT16 &setDestID )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CLSREELECTION_RUN ) ;
@@ -184,7 +184,7 @@ namespace engine
          goto error ;
       }
       /// is self
-      else if ( 0 != destID && destID == pmdGetNodeID().columns.nodeID )
+      else if ( setDestID.find( pmdGetNodeID().columns.nodeID ) != setDestID.end() )
       {
          // restore
          _vote->setShadowWeight( CLS_ELECTION_WEIGHT_USR_MIN ) ;
@@ -198,8 +198,8 @@ namespace engine
          goto error ;
       }
 
-      PD_LOG( PDEVENT, "Run reelect(Level:%d, Seconds:%d, DestID: %u)",
-              (INT32)lvl, seconds, destID ) ;
+      PD_LOG( PDEVENT, "Run reelect(Level:%d, Seconds:%d, DestID: %s)",
+              (INT32)lvl, seconds, _nodesToString( setDestID ).c_str() ) ;
 
       _event.reset() ;
       resetEvent = TRUE ;
@@ -213,30 +213,48 @@ namespace engine
 
       /// we need at least one replication done.
       /// otherwise this node will still be the primary.
-      rc = _wait4Replica( timePassed, seconds, cb, destID ) ;
+      rc = _wait4Replica( timePassed, seconds, cb, setDestID ) ;
       if ( rc )
       {
          goto error ;   
       }
 
-      if ( 0 != destID )
+      if ( ! setDestID.empty() )
       {
          MsgRouteID routeID = pmdGetNodeID() ;
+         BOOLEAN allNtyFailed = TRUE ;
+         INT32 rcTmp = SDB_OK ;
 
-         /// notify dest node reelect begin
-         notifyMsg.isLocation = 0 ;
-         notifyMsg.type = CLS_REELECT_NOTIFY_BEGIN ;
-         notifyMsg.timeout = ( timePassed + 10 < (UINT32)seconds ) ?
-            ( seconds - timePassed + 5 ) * OSS_ONE_SEC : 10 * OSS_ONE_SEC ;
-
-         routeID.columns.nodeID = destID ;
-         routeID.columns.serviceID = MSG_ROUTE_REPL_SERVICE ;
-
-         rc = _pAgent->syncSend( routeID, &(notifyMsg.header) ) ;
-         if ( rc )
+         SET_UINT16::const_iterator citr = setDestID.begin() ;
+         while( citr != setDestID.end() )
          {
-            PD_LOG_MSG( PDERROR, "Send reelect notify-begin to node(%u) failed, rc: %d",
-                        destID, rc ) ;
+            /// notify dest node reelect begin
+            notifyMsg.isLocation = 0 ;
+            notifyMsg.type = CLS_REELECT_NOTIFY_BEGIN ;
+            notifyMsg.timeout = ( timePassed + 10 < (UINT32)seconds ) ?
+               ( seconds - timePassed + 5 ) * OSS_ONE_SEC : 10 * OSS_ONE_SEC ;
+
+            routeID.columns.nodeID = *citr ;
+            routeID.columns.serviceID = MSG_ROUTE_REPL_SERVICE ;
+
+            rc = _pAgent->syncSend( routeID, &(notifyMsg.header) ) ;
+            if ( rc )
+            {
+               PD_LOG_MSG( PDERROR, "Send reelect notify-begin to node(%u) failed, rc: %d",
+                           *citr, rc ) ;
+               rcTmp = rc ;
+            }
+            else
+            {
+               allNtyFailed = FALSE ;
+            }
+
+            ++citr ;
+         }
+
+         if ( allNtyFailed )
+         {
+            rc = rcTmp ;
             goto error ;
          }
          else
@@ -253,22 +271,28 @@ namespace engine
       }
 
    done:
-      if ( 0 != destID && needNtyEnd )
+      if ( ! setDestID.empty() && needNtyEnd )
       {
          /// notify dest node reelect done
          MsgRouteID routeID = pmdGetNodeID() ;
-         /// notify dest node reelect done
-         notifyMsg.isLocation = 0 ;
-         notifyMsg.type = CLS_REELECT_NOTIFY_END ;
-         notifyMsg.timeout = 0 ;
-         routeID.columns.nodeID = destID ;
-         routeID.columns.serviceID = MSG_ROUTE_REPL_SERVICE ;
-         INT32 rcTmp = _pAgent->syncSend( routeID, &(notifyMsg.header) ) ;
-         if ( rcTmp )
+
+         SET_UINT16::const_iterator citr = setDestID.begin() ;
+         while( citr != setDestID.end() )
          {
-            PD_LOG( PDWARNING, "Send reelect notify-end to node(%u) failed, rc: %d",
-                    destID, rcTmp ) ;
-            /// ignore error
+            /// notify dest node reelect done
+            notifyMsg.isLocation = 0 ;
+            notifyMsg.type = CLS_REELECT_NOTIFY_END ;
+            notifyMsg.timeout = 0 ;
+            routeID.columns.nodeID = *citr ;
+            routeID.columns.serviceID = MSG_ROUTE_REPL_SERVICE ;
+            INT32 rcTmp = _pAgent->syncSend( routeID, &(notifyMsg.header) ) ;
+            if ( rcTmp )
+            {
+               PD_LOG( PDWARNING, "Send reelect notify-end to node(%u) failed, rc: %d",
+                       *citr, rcTmp ) ;
+               /// ignore error
+            }
+            ++citr ;
          }
       }
       if ( resetEvent )
@@ -583,6 +607,89 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION (SDB__CLSREELECTION__WAIT4REPLICA1, "_clsReelection::_wait4Replica" )
+   INT32 _clsReelection::_wait4Replica( UINT32 &timePassed,
+                                        UINT32 timeout,
+                                        pmdEDUCB *cb,
+                                        const SET_UINT16 &setDestID )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__CLSREELECTION__WAIT4REPLICA1 ) ;
+      DPS_LSN lsn = pmdGetKRCB()->getDPSCB()->expectLsn() ;
+      UINT32 waitTimes = 0 ;
+
+      while ( timePassed <= timeout )
+      {
+         if ( cb->isInterrupted() )
+         {
+            rc = SDB_APP_INTERRUPT ;
+            goto error ;
+         }
+
+         if ( ! setDestID.empty() )
+         {
+            SET_UINT16::const_iterator citr = setDestID.begin() ;
+            while( citr != setDestID.end() )
+            {
+               if ( _syncMgr->atLeastOne( lsn.offset, *citr ) )
+               {
+                  goto done ;
+               }
+               ++citr ;
+            }
+         }
+         else
+         {
+            if ( _syncMgr->atLeastOne( lsn.offset, 0 ) )
+            {
+               goto done ;
+            }
+         }
+
+         if ( timePassed < timeout )
+         {
+            ossSleep( 100 ) ;
+            ++waitTimes ;
+         }
+         else
+         {
+            break ;
+         }
+
+         if ( waitTimes >= 10 )
+         {
+            ++timePassed ;
+            waitTimes = 0 ;
+         }
+      }
+
+      if ( timeout <= timePassed )
+      {
+         rc = SDB_TIMEOUT ;
+
+         if ( timeout > 0 )
+         {
+            if ( setDestID.empty() )
+            {
+               PD_LOG_MSG( PDERROR, "Wait a replica-node for lsn(%lld) timeout", lsn.offset ) ;
+            }
+            else
+            {
+               PD_LOG_MSG( PDERROR, "Wait the replica-node(%s) for lsn(%lld) timeout",
+                           _nodesToString( setDestID ).c_str(), lsn.offset ) ;
+            }
+         }
+
+         goto error ;
+      } 
+
+   done:
+      PD_TRACE_EXITRC( SDB__CLSREELECTION__WAIT4REPLICA1, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION (SDB__CLSREELECTION__WAIT4REPLICA, "_clsReelection::_wait4Replica" )
    INT32 _clsReelection::_wait4Replica( UINT32 &timePassed,
                                         UINT32 timeout,
@@ -648,6 +755,49 @@ namespace engine
       return rc ;
    error:
       goto done ;
+   }
+
+   string _clsReelection::_nodesToString( const SET_UINT16 &setDestID )
+   {
+      string strNode ;
+
+      try
+      {
+         std::stringstream ss ;
+         if ( setDestID.size() <= 0 )
+         {
+            ss << (UINT16)0 ;
+         }
+         else if ( 1 == setDestID.size() )
+         {
+            ss << *( setDestID.begin() ) ;
+         }
+         else
+         {
+            SET_UINT16::const_iterator citr = setDestID.begin() ;
+            UINT32 tmpCount = 0 ;
+            ss << "[" ;
+            while( citr != setDestID.end() )
+            {
+               if ( tmpCount > 0 )
+               {
+                  ss << ", " ;
+               }
+               ss << *citr ;
+               ++citr ;
+               ++tmpCount ;
+            }
+            ss << "]" ;
+         }
+         strNode = ss.str() ;
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDWARNING, "Occur exception: %s", e.what() ) ;
+         /// ignore error
+      }
+
+      return strNode ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION (SDB__CLSREELECTION__STEPDOWN, "_clsReelection::_stepDown" )

@@ -28,10 +28,10 @@ Seconds（ \f[I]number\f[] ）：选举的超时时间，默认值为 30，单�
 格式：\f[C]Seconds: 30\f[]
 .RE
 .IP \[bu] 2
-NodeID（ \f[I]number\f[] ）：期望当选主节点的节点 ID
+NodeID（ \f[I]number\f[] or \f[I]number array\f[] ）：期望当选主节点的节点 ID
 .RS 2
 .PP
-格式：\f[C]NodeID: 1000\f[]
+格式：\f[C]NodeID: 1000\f[] 或 \f[C]NodeID: [1000,1001]\f[]
 .RE
 .IP \[bu] 2
 HostName（ \f[I]string\f[] ）：期望当选主节点的主机名
@@ -60,6 +60,16 @@ Level（ \f[I]number\f[] ）：重选举等待级别，取值：[1,3]，缺省�
 3: 等待事务结束
 .PP
 格式：\f[C]Level: 3\f[]
+.RE
+.IP \[bu] 2
+Mode（ \f[I]number\f[] ）：节点指定模式，默认为 1
+.RS 2
+.IP \[bu] 2
+0: 排除模式，排除批定的节点当选为主节点
+.IP \[bu] 2
+1: 指定模式，指定的节点当选为主节点
+.PP
+格式：\f[C]Mode: 1\f[]
 .RE
 .RE
 .RS

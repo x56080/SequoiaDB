@@ -29,10 +29,11 @@ is second.
 Format: \f[C]Seconds: 30\f[]
 .RE
 .IP \[bu] 2
-NodeID ( \f[I]number\f[] ): The node ID of the desired primary node.
+NodeID ( \f[I]number\f[] or \f[I]number array\f[] ): The node ID(s) of the
+desired primary node.
 .RS 2
 .PP
-Format: \f[C]NodeID: 1000\f[]
+Format: \f[C]NodeID: 1000\f[] or \f[C]NodeID: [1000, 1010]\f[]
 .RE
 .IP \[bu] 2
 HostName ( \f[I]string\f[] ): The hostname of the desired primary node.
@@ -63,6 +64,17 @@ operations.
 3: Wait for transactions to complete.
 .PP
 Format: \f[C]Level: 3\f[]
+.RE
+.IP \[bu] 2
+Mode ( \f[I]number\f[] ): Node specification mode.
+Default is 1.
+.RS 2
+.IP \[bu] 2
+0: indicates exclusion mode(excludes specified nodes from being primary)
+.IP \[bu] 2
+1: indicates designation mode(specified nodes become primary)
+.PP
+Format: \f[C]Mode: 1\f[]
 .RE
 .RE
 .PP

@@ -71,7 +71,7 @@ namespace engine
       INT32 run( CLS_REELECTION_LEVEL lvl,
                  UINT32 seconds,
                  pmdEDUCB *cb,
-                 UINT16 destID = 0 ) ;
+                 const SET_UINT16 &setDestID ) ;
 
       INT32 runAsync( CLS_REELECTION_LEVEL lvl,
                       INT32 waitMS,
@@ -92,6 +92,11 @@ namespace engine
       INT32 _wait4Replica( UINT32 &timePassed,
                            UINT32 timeout,
                            pmdEDUCB *cb,
+                           const SET_UINT16 &setDestID ) ;
+
+      INT32 _wait4Replica( UINT32 &timePassed,
+                           UINT32 timeout,
+                           pmdEDUCB *cb,
                            UINT16 destID ) ;
 
       INT32 _stepDown( UINT32 &timePassed,
@@ -102,6 +107,8 @@ namespace engine
                    UINT32 timeout,
                    pmdEDUCB *cb,
                    BOOLEAN canSetBlock ) ;
+
+      string _nodesToString( const SET_UINT16 &setDestID ) ;
 
    private:
       _clsVoteMachine *_vote ;
