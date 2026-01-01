@@ -2851,7 +2851,7 @@ namespace engine
          nodeID.value = *citr ;
          nodeID.columns.serviceID = MSG_ROUTE_SHARD_SERVCIE ;
 
-         pSub = pRemote->addSubSession( nodeID ) ;
+         pSub = pRemote->addSubSession( nodeID.value ) ;
          pSub->setReqMsg( ( MsgHeader* )pMsgBuff, PMD_EDU_MEM_NONE ) ;
 
          rc = pRemote->sendMsg( pSub ) ;
