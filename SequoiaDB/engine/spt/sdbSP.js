@@ -5708,12 +5708,12 @@ DiagLog.prototype._collect = function() {
    {
       collectOutputDir += '0' + (now.getMonth() + 1) ;
    }
-   if ( now.getUTCDate() > 9 )
+   if ( now.getDate() > 9 )
    {
-      collectOutputDir += (now.getUTCDate()) + "_" ;
+      collectOutputDir += (now.getDate()) + "_" ;
    } else
    {
-      collectOutputDir += '0' + (now.getUTCDate()) + "_" ;
+      collectOutputDir += '0' + (now.getDate()) + "_" ;
    }
    if ( now.getHours() > 9 )
    {

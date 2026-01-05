@@ -78,23 +78,23 @@ function testTimeBegin( diaglog )
     // 合法时间字符串, 预期成功
     try {
         diaglog.reset();
-        log = diaglog.search().timeBegin( '2025-09-15T12:01:01.123456Z' ).error( -79 ).limit( 1 );
+        log = diaglog.search().timeBegin( '2025-09-15T12:01:01.123456Z' ).keypattern( 'a' ).limit( 1 );
         fileName = log.run();
-        log = diaglog.search().timeBegin( '2025-09-15T12:01:01Z' ).error( -79 ).limit( 1 );
+        log = diaglog.search().timeBegin( '2025-09-15T12:01:01Z' ).keypattern( 'a' ).limit( 1 );
         fileName = log.run();
-        log = diaglog.search().timeBegin( '2025-09-15T12:01Z' ).error( -79 ).limit( 1 );
+        log = diaglog.search().timeBegin( '2025-09-15T12:01Z' ).keypattern( 'a' ).limit( 1 );
         fileName = log.run();
-        log = diaglog.search().timeBegin( '2025-09-15T12:01:01' ).error( -79 ).limit( 1 );
+        log = diaglog.search().timeBegin( '2025-09-15T12:01:01' ).keypattern( 'a' ).limit( 1 );
         fileName = log.run();
-        log = diaglog.search().timeBegin( '2025-09-15' ).error( -79 ).limit( 1 );
+        log = diaglog.search().timeBegin( '2025-09-15' ).keypattern( 'a' ).limit( 1 );
         fileName = log.run();
-        log = diaglog.search().timeBegin( '2025-09' ).error( -79 ).limit( 1 );
+        log = diaglog.search().timeBegin( '2025-09' ).keypattern( 'a' ).limit( 1 );
         fileName = log.run();
-        log = diaglog.search().timeBegin( '2025' ).error( -79 ).limit( 1 );
+        log = diaglog.search().timeBegin( '2025' ).keypattern( 'a' ).limit( 1 );
         fileName = log.run();
-        log = diaglog.search().timeBegin( '09/15/2025' ).error( -79 ).limit( 1 );
+        log = diaglog.search().timeBegin( '09/15/2025' ).keypattern( 'a' ).limit( 1 );
         fileName = log.run();
-        log = diaglog.search().timeBegin( 'Dec 15, 2025 12:01:01' ).error( -79 ).limit( 1 );
+        log = diaglog.search().timeBegin( 'Dec 15, 2025 12:01:01' ).keypattern( 'a' ).limit( 1 );
         fileName = log.run();
         log = diaglog.search().timeBegin( 'Dec 15, 2025' ).keypattern( 'rc: ' ).limit( 10 );
         fileName = log.run();
@@ -128,21 +128,21 @@ function testTimeEnd( diaglog )
     // 合法时间字符串, 预期成功
     try {
         diaglog.reset();
-        log = diaglog.search().timeEnd( '9999-09-15T12:01:01.123456Z' ).error( -79 ).limit( 1 );
+        log = diaglog.search().timeEnd( '9999-09-15T12:01:01.123456Z' ).keypattern( 'a' ).limit( 1 );
         fileName = log.run();
-        log = diaglog.search().timeEnd( '9999-09-15T12:01:01Z' ).error( -79 ).limit( 1 );
+        log = diaglog.search().timeEnd( '9999-09-15T12:01:01Z' ).keypattern( 'a' ).limit( 1 );
         fileName = log.run();
-        log = diaglog.search().timeEnd( '9999-09-15T12:01Z' ).error( -79 ).limit( 1 );
+        log = diaglog.search().timeEnd( '9999-09-15T12:01Z' ).keypattern( 'a' ).limit( 1 );
         fileName = log.run();
-        log = diaglog.search().timeEnd( '9999-09-15' ).error( -79 ).limit( 1 );
+        log = diaglog.search().timeEnd( '9999-09-15' ).keypattern( 'a' ).limit( 1 );
         fileName = log.run();
-        log = diaglog.search().timeEnd( '9999-09' ).error( -79 ).limit( 1 );
+        log = diaglog.search().timeEnd( '9999-09' ).keypattern( 'a' ).limit( 1 );
         fileName = log.run();
-        log = diaglog.search().timeEnd( '9999' ).error( -79 ).limit( 1 );
+        log = diaglog.search().timeEnd( '9999' ).keypattern( 'a' ).limit( 1 );
         fileName = log.run();
-        log = diaglog.search().timeEnd( '09/15/9999' ).error( -79 ).limit( 1 );
+        log = diaglog.search().timeEnd( '09/15/9999' ).keypattern( 'a' ).limit( 1 );
         fileName = log.run();
-        log = diaglog.search().timeEnd( 'Dec 15, 9999 12:01:01' ).error( -79 ).limit( 1 );
+        log = diaglog.search().timeEnd( 'Dec 15, 9999 12:01:01' ).keypattern( 'a' ).limit( 1 );
         fileName = log.run();
         log = diaglog.search().timeEnd( 'Dec 15, 9999' ).keypattern( 'rc: ' ).limit( 10 );
         fileName = log.run();
@@ -176,12 +176,12 @@ function testError( diaglog )
     // 小于 0, 预期成功
     try {
         diaglog.reset();
-        log = diaglog.search().error( -1 ).limit( 1 );
+        log = diaglog.search().error( -1 ).limit( 1 ).lastFile(1);
         fileName = log.run();
-        log = diaglog.search().error( -79 ).limit( 10 );
+        log = diaglog.search().error( -16 ).limit( 10 );
         fileName = log.run();
         testWithoutOriginal( diaglog );
-        log = diaglog.search().error( -10000 ).limit( 1 );
+        log = diaglog.search().error( -10000 ).limit( 1 ).lastFile(1);
         fileName = log.run();
     } catch ( e ) {
         println("[ERROR] Failed on diaglog.search().error(...)");
@@ -212,13 +212,13 @@ function testDiagLevel( diaglog )
     // 0-4, 预期成功
     try {
         diaglog.reset();
-        log = diaglog.search().diaglevel( 0 ).error( -79 ).limit( 1 );
+        log = diaglog.search().diaglevel( 0 ).keypattern( 'a' ).limit( 1 );
         fileName = log.run();
-        log = diaglog.search().diaglevel( 1 ).error( -79 ).limit( 1 );
+        log = diaglog.search().diaglevel( 1 ).keypattern( 'a' ).limit( 1 );
         fileName = log.run();
-        log = diaglog.search().diaglevel( 2 ).error( -79 ).limit( 1 );
+        log = diaglog.search().diaglevel( 2 ).keypattern( 'a' ).limit( 1 );
         fileName = log.run();
-        log = diaglog.search().diaglevel( 3 ).error( -79 ).limit( 1 );
+        log = diaglog.search().diaglevel( 3 ).keypattern( 'a' ).limit( 1 );
         fileName = log.run();
         log = diaglog.search().diaglevel( 4 ).keypattern( 'rc: ' ).limit( 10 );
         fileName = log.run();
@@ -359,9 +359,9 @@ function testLimit( diaglog )
     // 等于 -1, 预期成功
     try {
         diaglog.reset();
-        log = diaglog.search().lastFile( 1 ).error( -79 ).limit( -1 );
+        log = diaglog.search().lastFile( 1 ).keypattern( 'a' ).limit( -1 );
         fileName = log.run();
-    } catch ( e ) {println("[ERROR] Failed on diaglog.search().lastFile( 1 ).error( -79 ).limit( -1 )");
+    } catch ( e ) {println("[ERROR] Failed on diaglog.search().lastFile( 1 ).keypattern( 'a' ).limit( -1 )");
         throw e;
     }
     // 等于 0, 预期失败
@@ -429,7 +429,7 @@ function testAfter( diaglog )
         fileName = log.run();
         testWithoutOriginal( diaglog );
 
-        log = diaglog.search().error( -79 ).after( 0 ).limit( 10 );
+        log = diaglog.search().keypattern( 'a' ).after( 0 ).limit( 10 );
         fileName = log.run();
     } catch ( e ) {
         println("[ERROR] Failed on diaglog.search().after(...)");
@@ -459,7 +459,7 @@ function testBefore( diaglog )
         fileName = log.run();
         testWithoutOriginal( diaglog );
 
-        log = diaglog.search().error( -79 ).before( 0 ).limit( 10 );
+        log = diaglog.search().keypattern( 'a' ).before( 0 ).limit( 10 );
         fileName = log.run();
     } catch ( e ) {
         println("[ERROR] Failed on diaglog.search().before(...)");
@@ -485,10 +485,10 @@ function testNext ( diaglog )
     var result ;
     try {
         diaglog.reset();
-        log = diaglog.search().error( -79 ).limit( 100 );
+        log = diaglog.search().keypattern( 'a' ).limit( 100 );
         fileName = log.run();
     } catch ( e ) {
-        println("[ERROR] Failed on diaglog.search().error( -79 ).limit( 100 )");
+        println("[ERROR] Failed on diaglog.search().keypattern( 'a' ).limit( 100 )");
         throw e;
     }
     // 空, 预期成功
@@ -542,11 +542,11 @@ function testMultiple ( diaglog )
     // 同时指定错误和关键字搜索，预期成功
     try {
         diaglog.reset();
-        log = diaglog.search().error( -79 ).keypattern( 'rc: ' ).limit( 10 );
+        log = diaglog.search().error( -16 ).keypattern( 'rc: ' ).limit( 10 );
         fileName = log.run();
         testWithoutOriginal( diaglog );
     } catch ( e ) {
-        println("[ERROR] Failed on diaglog.search().error( -79 ).keypattern( 'rc: ' ).limit( 10 )");
+        println("[ERROR] Failed on diaglog.search().error( -16 ).keypattern( 'rc: ' ).limit( 10 )");
         throw e;
     }
 
@@ -577,57 +577,57 @@ function testOutput( diaglog )
     var fileName;
     try {
         diaglog.reset();
-        log = diaglog.search().error( -79 ).limit( 1 ).output(  WORKDIR + '/diaglog_34327/result_1' );
+        log = diaglog.search().keypattern( 'a' ).limit( 1 ).output(  WORKDIR + '/diaglog_34327/result_1' );
         fileName = log.run();
         rc = File.exist( fileName );
         assert.equal( rc, true );
 
-        log = diaglog.search().error( -79 ).limit( 1 ).output(  WORKDIR + '/diaglog_34327/result_2' );
+        log = diaglog.search().keypattern( 'a' ).limit( 1 ).output(  WORKDIR + '/diaglog_34327/result_2' );
         fileName = log.run();
         rc = File.exist( fileName );
         assert.equal( rc, true );
     
-        log = diaglog.search().error( -79 ).limit( 1 ).output(  WORKDIR + '/diaglog_34327/result_3' );
+        log = diaglog.search().keypattern( 'a' ).limit( 1 ).output(  WORKDIR + '/diaglog_34327/result_3' );
         fileName = log.run();
         rc = File.exist( fileName );
         assert.equal( rc, true );
 
-        log = diaglog.search().error( -79 ).limit( 1 ).output(  WORKDIR + '/diaglog_34327/result_4' );
+        log = diaglog.search().keypattern( 'a' ).limit( 1 ).output(  WORKDIR + '/diaglog_34327/result_4' );
         fileName = log.run();
         rc = File.exist( fileName );
         assert.equal( rc, true );
 
-        log = diaglog.search().error( -79 ).limit( 1 ).output(  WORKDIR + '/diaglog_34327/result_5' );
+        log = diaglog.search().keypattern( 'a' ).limit( 1 ).output(  WORKDIR + '/diaglog_34327/result_5' );
         fileName = log.run();
         rc = File.exist( fileName );
         assert.equal( rc, true );
 
-        log = diaglog.search().error( -79 ).limit( 1 ).output(  WORKDIR + '/diaglog_34327/result_6' );
+        log = diaglog.search().keypattern( 'a' ).limit( 1 ).output(  WORKDIR + '/diaglog_34327/result_6' );
         fileName = log.run();
         rc = File.exist( fileName );
         assert.equal( rc, true );
 
-        log = diaglog.search().error( -79 ).limit( 1 ).output(  WORKDIR + '/diaglog_34327/result_7' );
+        log = diaglog.search().keypattern( 'a' ).limit( 1 ).output(  WORKDIR + '/diaglog_34327/result_7' );
         fileName = log.run();
         rc = File.exist( fileName );
         assert.equal( rc, true );
 
-        log = diaglog.search().error( -79 ).limit( 1 ).output(  WORKDIR + '/diaglog_34327/result_8' );
+        log = diaglog.search().keypattern( 'a' ).limit( 1 ).output(  WORKDIR + '/diaglog_34327/result_8' );
         fileName = log.run();
         rc = File.exist( fileName );
         assert.equal( rc, true );
 
-        log = diaglog.search().error( -79 ).limit( 1 ).output(  WORKDIR + '/diaglog_34327/result_9' );
+        log = diaglog.search().keypattern( 'a' ).limit( 1 ).output(  WORKDIR + '/diaglog_34327/result_9' );
         fileName = log.run();
         rc = File.exist( fileName );
         assert.equal( rc, true );
 
-        log = diaglog.search().error( -79 ).limit( 1 ).output(  WORKDIR + '/diaglog_34327/result_10' );
+        log = diaglog.search().keypattern( 'a' ).limit( 1 ).output(  WORKDIR + '/diaglog_34327/result_10' );
         fileName = log.run();
         rc = File.exist( fileName );
         assert.equal( rc, true );
 
-        log = diaglog.search().error( -79 ).limit( 1 ).output(  WORKDIR + '/diaglog_34327/result_11' );
+        log = diaglog.search().keypattern( 'a' ).limit( 1 ).output(  WORKDIR + '/diaglog_34327/result_11' );
         fileName = log.run();
         rc = File.exist( fileName );
         assert.equal( rc, true );
@@ -669,10 +669,10 @@ function testPath( diaglog )
         var oma = new Oma( COORDHOSTNAME, CMSVCNAME );
         var dataPath = JSON.parse( oma.listNodes()[0] ).dbpath;
         diaglog.reset();
-        log = diaglog.search().error( -79 ).limit( 1 ).path( dataPath + '/diaglog' );
+        log = diaglog.search().keypattern( 'a' ).limit( 1 ).path( dataPath + '/diaglog' );
         fileName = log.run();
     } catch ( e ) {
-        println("[ERROR] Failed on diaglog.search().error( -79 ).limit( 1 ).path( '" + dataPath + "/diaglog' )");
+        println("[ERROR] Failed on diaglog.search().keypattern( 'a' ).limit( 1 ).path( '" + dataPath + "/diaglog' )");
         throw e;
     } finally {
         if ( null != oma ){
