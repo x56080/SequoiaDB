@@ -33,6 +33,7 @@ SDB_SNAP_CATALOG
 | AutoSplit           | boolean | 集合是否开启自动切分功能 ( 仅数据库分区集合显示 )      |
 | IsMainCL            | boolean | 集合是否为表分区中的主表 ( 仅表分区集合显示 )    |
 | MainCLName          | string | 集合在表分区中所关联的主表名 ( 仅表分区集合显示 )|
+| DSMainCLName        | string | 集合在[数据源][datasource]端所关联的主表名 ( 仅数据源表分区集合显示 )|
 | CataInfo.ID         | int32  | 子表挂载的顺序 ID ( 内部使用 ) |
 | CataInfo.SubCLName  | string | 子表名 ( 仅表分区集合显示 )  |
 | CataInfo.GroupID    | int32  | 复制组 ID                    |

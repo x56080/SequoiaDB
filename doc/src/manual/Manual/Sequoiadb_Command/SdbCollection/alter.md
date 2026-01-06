@@ -98,9 +98,13 @@ options ( *object，必填* )
 
     格式：`AutoIncrement: <option>`
     
-- AutoIndexId ( *Bool* )：标识是否创建 $id 索引，默认值是 true
+- AutoIndexId ( *boolean* )：标识是否创建 $id 索引
 
     格式：`AutoIndexId: true | false`
+
+- DSMainCLName ( *string* )：集合在[数据源][datasource]端所关联的主表名
+
+    仅数据源表作为子集合挂载时有效。如果集合在数据源端所关联的主表名与实际不符，可以使用该选项进行修正。
 
     > **Note:**
     >
@@ -170,3 +174,4 @@ v1.12 及以上版本
 [faq]:manual/FAQ/faq_sdb.md
 [date_compression]:manual/Distributed_Engine/Architecture/compression_encryption.md
 [consistency_strategy]:manual/Distributed_Engine/Architecture/Location/consistency_strategy.md
+[datasource]:manual/Distributed_Engine/Architecture/datasource.md

@@ -137,10 +137,16 @@ Generated。属性具体功能请参考自增字段介绍。
 格式：\f[C]AutoIncrement: <option>\f[]
 .RE
 .IP \[bu] 2
-AutoIndexId ( \f[I]Bool\f[] )：标识是否创建 $id 索引，默认值是 true
+AutoIndexId ( \f[I]boolean\f[] )：标识是否创建 $id 索引
 .RS 2
 .PP
 格式：\f[C]AutoIndexId: true | false\f[]
+.RE
+.IP \[bu] 2
+DSMainCLName ( \f[I]string\f[] )：集合在数据源端所关联的主表名
+.RS 2
+.PP
+仅数据源表作为子集合挂载时有效。如果集合在数据源端所关联的主表名与实际不符，可以使用该选项进行修正。
 .RS
 .PP
 \f[B]Note:\f[]

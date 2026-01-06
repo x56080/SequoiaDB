@@ -99,6 +99,14 @@ Modify the collection properties through the options parameter:
 
     Format: `AutoIncrement: <option>`
 
+- AutoIndexId ( *boolean* )：Identifies whether to create $id index.
+
+    格式：`AutoIndexId: true | false`
+
+- DSMainCLName ( *string* )：The related main collection name of collection at data source.
+
+    Only valid when a data source collection is attached as a sub-collection. If the main-collection name related with collection at data source end does not match the actual name, this option can be used to correct it.
+
     > **Note:**
     >
     > - The specific way of using each option can refers to [createCL()][createCL].
@@ -167,3 +175,4 @@ v1.12 and above
 [faq]:manual/FAQ/faq_sdb.md
 [date_compression]:manual/Distributed_Engine/Architecture/compression_encryption.md
 [consistency_strategy]:manual/Distributed_Engine/Architecture/Location/consistency_strategy.md
+[datasource]:manual/Distributed_Engine/Architecture/datasource.md
