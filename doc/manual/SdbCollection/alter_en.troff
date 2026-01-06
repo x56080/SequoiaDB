@@ -170,6 +170,33 @@ Format: \f[C]AutoIncrement: {Field: <Field name>, ...}\f[] or
 \f[C]AutoIncrement: [{Field: <Field name1>, ...}, {Field: <Field name2>, ...}, ...]\f[]
 .RE
 .IP \[bu] 2
+AutoIndexId ( \f[I]boolean\f[] )：Identifies whether to create $id index.
+.RS 2
+.PP
+格式：\f[C]AutoIndexId: true | false\f[]
+.RE
+.IP \[bu] 2
+DSMainCLName ( \f[I]string\f[] )：The related main collection name of collection
+at data source.
+.RS 2
+.PP
+Only valid when a data source collection is attached as a sub\-collection.
+If the main\-collection name related with collection at data source end does not
+match the actual name, this option can be used to correct it.
+.RS
+.PP
+\f[B]Note:\f[]
+.IP \[bu] 2
+The specific way of using each option can refers to createCL().
+.IP \[bu] 2
+The partition collection cannot modify the attributes related to the partition,
+such as "ShardingKey", "Partition".
+.IP \[bu] 2
+"EnsureShardingIndex" and "AutoSplit" are only effective for the current
+operation, and only effective when modifying partition properties, such as
+"ShardingKey".
+.RE
+.IP \[bu] 2
 AutoIndexId ( \f[I]boolean\f[] ): Whether to automatically create a unique index
 named "$id" based on the field "_id", and the default value is "true", which me
 ans automatically created.

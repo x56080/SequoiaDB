@@ -102,9 +102,19 @@ Modify the collection properties through the parameter "options":
 
     Format: `AutoIncrement: {Field: <Field name>, ...}` or `AutoIncrement: [{Field: <Field name1>, ...}, {Field: <Field name2>, ...}, ...]`
 
-- AutoIndexId ( *boolean* ): Whether to automatically create a unique index named "$id" based on the field "_id", and the default value is "true", which me ans automatically created.
+- AutoIndexId ( *boolean* )：Identifies whether to create $id index.
 
-    Format: `AutoIndexId: false`
+    格式：`AutoIndexId: true | false`
+
+- DSMainCLName ( *string* )：The related main collection name of collection at data source.
+
+    Only valid when a data source collection is attached as a sub-collection. If the main-collection name related with collection at data source end does not match the actual name, this option can be used to correct it.
+
+    > **Note:**
+    >
+    > - The specific way of using each option can refers to [createCL()][createCL].
+    > - The partition collection cannot modify the attributes related to the partition, such as "ShardingKey", "Partition".
+    > - "EnsureShardingIndex" and "AutoSplit" are only effective for the current operation, and only effective when modifying partition properties, such as "ShardingKey".
 
 ##RETURN VALUE##
 
@@ -165,3 +175,4 @@ v1.12 and above
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [faq]:manual/FAQ/faq_sdb.md
 [date_compression]:manual/Distributed_Engine/Architecture/compression_encryption.md
+[datasource]:manual/Distributed_Engine/Architecture/datasource.md

@@ -142,11 +142,27 @@ AutoIncrement ( \f[I]object\f[] )：自增字段的属性
 \f[C]AutoIncrement: [{Field: <字段名1>, ...}, {Field: <字段名2>, ...}, ...]\f[]
 .RE
 .IP \[bu] 2
-AutoIndexId ( \f[I]boolean\f[] )：是否根据字段 _id
-自动创建名为"$id"的唯一索引，默认值为 true，表示自动创建
+AutoIndexId ( \f[I]boolean\f[] )：标识是否创建 $id 索引
 .RS 2
 .PP
-格式：\f[C]AutoIndexId: false\f[]
+格式：\f[C]AutoIndexId: true | false\f[]
+.RE
+.IP \[bu] 2
+DSMainCLName ( \f[I]string\f[] )：集合在数据源端所关联的主表名
+.RS 2
+.PP
+仅数据源表作为子集合挂载时有效。如果集合在数据源端所关联的主表名与实际不符，可以使用该选项进行修正。
+.RS
+.PP
+\f[B]Note:\f[]
+.IP \[bu] 2
+各个选项的具体使用方式见 db.collectionspace.createCL()。
+.IP \[bu] 2
+分区集合不能修改与分区相关的属性，如 ShardingKey、Partition 等。
+.IP \[bu] 2
+EnsureShardingIndex 和 AutoSplit 仅对当前该次操作生效，仅当修改分区属性，如
+ShardingKey 等时有效。
+.RE
 .RE
 .SH 返回值
 .PP

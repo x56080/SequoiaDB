@@ -102,9 +102,19 @@ options ( *object，必填* )
 
     格式：`AutoIncrement: {Field: <字段名>, ...}` 或 `AutoIncrement: [{Field: <字段名1>, ...}, {Field: <字段名2>, ...}, ...]`
 
-- AutoIndexId ( *boolean* )：是否根据字段 _id 自动创建名为"$id"的唯一索引，默认值为 true，表示自动创建
+- AutoIndexId ( *boolean* )：标识是否创建 $id 索引
 
     格式：`AutoIndexId: false`
+
+- DSMainCLName ( *string* )：集合在[数据源][datasource]端所关联的主表名
+
+    仅数据源表作为子集合挂载时有效。如果集合在数据源端所关联的主表名与实际不符，可以使用该选项进行修正。
+
+    > **Note:**
+    >
+    > - 各个选项的具体使用方式见 [db.collectionspace.createCL()][createCL]。
+    > - 分区集合不能修改与分区相关的属性，如 ShardingKey、Partition 等。
+    > - EnsureShardingIndex 和 AutoSplit 仅对当前该次操作生效，仅当修改分区属性，如 ShardingKey 等时有效。
 
 ##返回值##
 
@@ -165,3 +175,4 @@ v1.12 及以上版本
 [getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
 [faq]:manual/FAQ/faq_sdb.md
 [date_compression]:manual/Distributed_Engine/Architecture/compression_encryption.md
+[datasource]:manual/Distributed_Engine/Architecture/datasource.md
