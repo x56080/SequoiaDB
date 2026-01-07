@@ -145,6 +145,23 @@ namespace engine
          INT64  _seekSize ;
    } ;
 
+   class _remoteFileTellPositon : public _remoteExec
+   {
+      DECLARE_OACMD_AUTO_REGISTER()
+      public:
+         _remoteFileTellPositon() ;
+         ~_remoteFileTellPositon() ;
+
+         INT32 init( const CHAR * pInfomation ) ;
+
+         const CHAR *name() ;
+
+         INT32 doit( BSONObj &retObj ) ;
+
+      private:
+         UINT32 _FID ;
+   } ;
+
    /*
       _remoteFileClose define
    */

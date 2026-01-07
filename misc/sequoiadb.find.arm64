@@ -836,6 +836,8 @@ sequoiadb/doc/manual/File/seek_cn.troff
 sequoiadb/doc/manual/File/isDir_cn.troff
 sequoiadb/doc/manual/File/writeContent_en.troff
 sequoiadb/doc/manual/File/truncate_cn.troff
+sequoiadb/doc/manual/File/tellPosition_en.troff
+sequoiadb/doc/manual/File/tellPosition_cn.troff
 sequoiadb/doc/manual/Sdbtool
 sequoiadb/doc/manual/Sdbtool/listNodes_en.troff
 sequoiadb/doc/manual/Sdbtool/listNodes_cn.troff

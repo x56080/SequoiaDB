@@ -55,6 +55,7 @@ namespace engine
 
 JS_MEMBER_FUNC_DEFINE( _sptUsrFile, read )
 JS_MEMBER_FUNC_DEFINE( _sptUsrFile, seek )
+JS_MEMBER_FUNC_DEFINE( _sptUsrFile, tellPosition )
 JS_MEMBER_FUNC_DEFINE( _sptUsrFile, write )
 JS_MEMBER_FUNC_DEFINE( _sptUsrFile, truncate )
 JS_MEMBER_FUNC_DEFINE( _sptUsrFile, readLine )
@@ -95,6 +96,7 @@ JS_BEGIN_MAPPING( _sptUsrFile, "File" )
    JS_ADD_MEMBER_FUNC_WITHATTR( "_writeContent", writeContent, 0 )
    JS_ADD_MEMBER_FUNC_WITHATTR( "_close", close, 0 )
    JS_ADD_MEMBER_FUNC_WITHATTR( "_seek", seek, 0 )
+   JS_ADD_MEMBER_FUNC_WITHATTR( "_tellPosition", tellPosition, 0 )
    JS_ADD_MEMBER_FUNC_WITHATTR( "_getInfo", getInfo, 0 )
    JS_ADD_MEMBER_FUNC_WITHATTR( "_toString", toString, 0 )
    JS_ADD_STATIC_FUNC_WITHATTR( "_getFileObj", getFileObj, 0 )
@@ -664,6 +666,29 @@ JS_MAPPING_END()
          detail = BSON( SPT_ERR << err ) ;
          goto error ;
       }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sptUsrFile::tellPosition( const _sptArguments &arg,
+                                    _sptReturnVal &rval,
+                                    bson::BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+      INT64 position = 0 ;
+      string err ;
+
+      rc = _fileCommon.tellPosition( position,  err ) ;
+      if( rc )
+      {
+         detail = BSON( SPT_ERR << err ) ;
+         goto error ;
+      }
+
+      rval.getReturnVal().setValue( position ) ;
 
    done:
       return rc ;

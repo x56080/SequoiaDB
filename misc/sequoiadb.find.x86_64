@@ -809,6 +809,8 @@ sequoiadb/doc/manual/File/remove_cn.troff
 sequoiadb/doc/manual/File/move_en.troff
 sequoiadb/doc/manual/File/isDir_en.troff
 sequoiadb/doc/manual/File/truncate_en.troff
+sequoiadb/doc/manual/File/tellPosition_en.troff
+sequoiadb/doc/manual/File/tellPosition_cn.troff
 sequoiadb/doc/manual/File/move_cn.troff
 sequoiadb/doc/manual/File/mkdir_en.troff
 sequoiadb/doc/manual/File/getSize_en.troff

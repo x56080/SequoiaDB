@@ -77,6 +77,8 @@ namespace engine
       INT32 seek( INT64 seekSize, const bson::BSONObj &optionObj,
                   std::string &err ) ;
 
+      INT32 tellPosition( INT64 &position, std::string &err ) ;
+
       INT32 close( std::string &err ) ;
 
       static INT32 remove( const std::string &path, std::string &err ) ;
