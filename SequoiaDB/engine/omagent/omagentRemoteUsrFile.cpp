@@ -65,6 +65,7 @@ namespace engine
    #define OMA_REMOTE_FIELD_NAME_IS_EMPTY       "IsEmpty"
    #define OMA_REMOTE_FIELD_NAME_MD5            "MD5"
    #define OMA_REMOTE_FIELD_NAME_IS_BINARY      "IsBinary"
+   #define OMA_REMOTE_FIELD_NAME_POSITION       "Position"
 
    // function to get current thread omagent session
    static omaSession* _getThreadOmaSession()
@@ -501,6 +502,92 @@ namespace engine
          PD_LOG_MSG( PDERROR, "%s", err.c_str() ) ;
          goto error ;
       }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   /*
+      _remoteFileTellPositon implement
+   */
+   IMPLEMENT_OACMD_AUTO_REGISTER( _remoteFileTellPositon )
+
+   _remoteFileTellPositon::_remoteFileTellPositon(): _FID( 0 )
+   {
+   }
+
+   _remoteFileTellPositon::~_remoteFileTellPositon()
+   {
+   }
+
+   INT32 _remoteFileTellPositon::init( const CHAR * pInfomation )
+   {
+      INT32 rc = SDB_OK ;
+      rc = _remoteExec::init( pInfomation ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get argument, rc: %d", rc ) ;
+
+      // get FID
+      if( FALSE == _matchObj.hasField( OMA_REMOTE_FIELD_NAME_FID ) )
+      {
+         rc = SDB_OUT_OF_BOUND ;
+         PD_LOG_MSG( PDERROR, "FID must be config" ) ;
+         goto error ;
+      }
+      if( NumberInt != _matchObj.getField( OMA_REMOTE_FIELD_NAME_FID ).type() )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "FID must be numberInt" ) ;
+         goto error ;
+      }
+      _FID = _matchObj.getIntField( OMA_REMOTE_FIELD_NAME_FID ) ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   const CHAR* _remoteFileTellPositon::name()
+   {
+      return OMA_REMOTE_FILE_TELLPOSITION ;
+   }
+
+   INT32 _remoteFileTellPositon::doit( BSONObj &retObj )
+   {
+      INT32 rc = SDB_OK ;
+      omaSession *pAgentSession = NULL ;
+      _sptUsrFileCommon *fileCommon = NULL ;
+      string err ;
+      BSONObjBuilder bob ;
+      INT64 position = 0 ;
+
+      pAgentSession = _getThreadOmaSession() ;
+      if( NULL == pAgentSession )
+      {
+         rc = SDB_SYS ;
+         PD_LOG_MSG( PDERROR, "Failed to get omagent session" ) ;
+         goto error ;
+      }
+
+      fileCommon = pAgentSession->getFileObjByID( _FID ) ;
+      if( NULL == fileCommon )
+      {
+         rc = SDB_IO ;
+         PD_LOG_MSG( PDERROR, "File is not opened" ) ;
+         goto error ;
+      }
+
+      rc = fileCommon->tellPosition( position, err ) ;
+      if( SDB_OK != rc )
+      {
+         PD_LOG_MSG( PDERROR, "%s", err.c_str() ) ;
+         goto error ;
+      }
+
+      bob.append( OMA_REMOTE_FIELD_NAME_POSITION, position ) ;
+      retObj = bob.obj() ;
 
    done:
       return rc ;

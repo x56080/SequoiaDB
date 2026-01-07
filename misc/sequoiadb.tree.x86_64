@@ -306,6 +306,8 @@ sequoiadb
 │       │   ├── write_cn.troff
 │       │   ├── writeContent_cn.troff
 │       │   ├── writeContent_en.troff
+│       │   ├── tellPosition_en.troff
+│       │   ├── tellPosition_cn.troff
 │       │   └── write_en.troff
 │       ├── FileContent
 │       │   ├── clear_cn.troff

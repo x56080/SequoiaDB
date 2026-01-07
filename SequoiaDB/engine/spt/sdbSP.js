@@ -2760,6 +2760,22 @@ File.prototype.seek = function( offset, where ) {
    }
 }
 
+File.prototype.tellPosition = function ()
+{
+   var result ;
+   if ( undefined != this._remote )
+   {
+      var recvObj = this._remote._runCommand( "file tell position", {}, { "FID": this._FID }, {} ) ;
+      result = recvObj.toObj().Position ;
+   }
+   else
+   {
+      result = this._tellPosition() ;
+   }
+
+   return result ;
+}
+
 File.prototype.close = function() {
    if ( undefined == this._remote )
    {

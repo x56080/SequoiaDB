@@ -327,6 +327,7 @@ namespace engine
    INT32 _sptUsrFileCommon::truncate( INT64 size, string &err )
    {
       INT32 rc = SDB_OK ;
+      INT64 position = 0 ;
 
       if ( !_file.isOpened() )
       {
@@ -336,11 +337,64 @@ namespace engine
          goto error ;
       }
 
+      if ( size < 0 )
+      {
+         PD_LOG( PDERROR, "Truncate size must be greater than or equal to 0" ) ;
+         err = "Truncate size must be greater than or equal to 0" ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      rc = tellPosition( position, err ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
       rc = ossTruncateFile( &_file, size ) ;
       if ( rc )
       {
          err = getErrDesp( rc ) ;
          PD_LOG( PDERROR, "Failed to truncate file:%d", rc ) ;
+         goto error ;
+      }
+
+      if ( position > size )
+      {
+         rc = ossSeek( &_file, size, OSS_SEEK_SET ) ;
+         if ( SDB_OK != rc )
+         {
+            err = getErrDesp( rc ) ;
+            PD_LOG( PDERROR, "Failed to seek:%d", rc ) ;
+            goto error ;
+         }
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sptUsrFileCommon::tellPosition( INT64 &position, std::string &err )
+   {
+      INT32 rc = SDB_OK ;
+
+      position = 0 ;
+
+      if ( !_file.isOpened() )
+      {
+         PD_LOG( PDERROR, "The file is not opened." ) ;
+         err = "File is not opened" ;
+         rc = SDB_IO ;
+         goto error ;
+      }
+
+      rc = ossSeek( &_file, 0, OSS_SEEK_CUR, &position ) ;
+      if ( SDB_OK != rc )
+      {
+         err = getErrDesp( rc ) ;
+         PD_LOG( PDERROR, "Failed to seek, rc: %d", rc ) ;
          goto error ;
       }
 
@@ -600,7 +654,7 @@ namespace engine
       {
          isExist = TRUE ;
       }
-      
+
       rc = ossFileCopy( src.c_str(), dst.c_str(), permission, isReplace ) ;
       if ( !isExist && SDB_OK == rc )
       {
