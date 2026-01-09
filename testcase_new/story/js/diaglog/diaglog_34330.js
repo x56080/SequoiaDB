@@ -39,9 +39,9 @@ function test()
             assert.equal( rc, true );
 
             // 测试不 reset 是否能沿用续用变量
-            // 限制时间为当前时间之前，保证搜索的日志结果相同
+            // 限制时间为当前时间之前 5 分钟，以保证搜索的日志结果相同
             var date = new Date();
-            date.setHours(date.getHours() - 2);
+            date.setMinutes(date.getMinutes() - 5);
             var timeStr = date.toString();
 
             diaglog.reset();

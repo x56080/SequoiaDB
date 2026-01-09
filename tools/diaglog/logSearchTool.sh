@@ -65,6 +65,23 @@ normalize_time() {
     return 0
 }
 
+# 变为标准格式如 2026-01-01-12.01.01
+standard_time() {
+    local str="${1}"
+    if ! [[ $str =~ ^[0-9]{14}$ ]]; then
+        echo "[ERROR] Failed to parse time: $1" >&2
+        return 1
+    fi
+    local year="${str:0:4}"
+    local month="${str:4:2}"
+    local day="${str:6:2}"
+    local hour="${str:8:2}"
+    local minutes="${str:10:2}"
+    local seconds="${str:12:2}"
+    echo "${year}-${month}-${day}-${hour}.${minutes}.${seconds}"
+    return 0
+}
+
 filename_to_time() {
     local filename=$1
     if [[ "$filename" =~ \.([0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{2}:[0-9]{2}:[0-9]{2})$ ]]; then
@@ -147,16 +164,18 @@ while true; do
             shift 2
             ;;
         -s|--start)
-            START_TIMESTR="$2"
             ((CONDITION_COUNT++))
             START_TIME=$(normalize_time "$2")
+            test $? -ne 0 && exit 1
+            START_TIMESTR=$(standard_time "$START_TIME")
             test $? -ne 0 && exit 1
             shift 2
             ;;
         -e|--end)
-            END_TIMESTR="$2"
             ((CONDITION_COUNT++))
             END_TIME=$(normalize_time "$2")
+            test $? -ne 0 && exit 1
+            END_TIMESTR=$(standard_time "$END_TIME")
             test $? -ne 0 && exit 1
             shift 2
             ;;

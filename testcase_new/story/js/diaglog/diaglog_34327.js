@@ -19,6 +19,7 @@ function testLastFile( diaglog )
         testWithoutOriginal( diaglog );
     } catch ( e ) {
         println("[ERROR] Failed on diaglog.search().lastFile( 1 ).keypattern( 'rc: ' ).limit( 10 )");
+        println('fileName: ' + fileName);
         throw e;
     }
     // 等于 0, 预期失败
@@ -51,6 +52,7 @@ function testLastest( diaglog )
         testWithoutOriginal( diaglog );
     } catch ( e ) {
         println("[ERROR] Failed on diaglog.search().lastest( 60 ).keypattern( 'rc: ' ).limit( 10 )");
+        println('fileName: ' + fileName);
         throw e;
     }
     // 等于 0, 预期失败
@@ -101,6 +103,7 @@ function testTimeBegin( diaglog )
         testWithoutOriginal( diaglog );
     } catch ( e ) {
         println("[ERROR] Failed on diaglog.search().timeBegin(...)");
+        println('fileName: ' + fileName);
         throw e;
     }
     // 非字符串, 预期失败
@@ -149,6 +152,7 @@ function testTimeEnd( diaglog )
         testWithoutOriginal( diaglog );
     } catch ( e ) {
         println("[ERROR] Failed on diaglog.search().timeEnd(...)");
+        println('fileName: ' + fileName);
         throw e;
     }
     // 非字符串, 预期失败
@@ -185,6 +189,7 @@ function testError( diaglog )
         fileName = log.run();
     } catch ( e ) {
         println("[ERROR] Failed on diaglog.search().error(...)");
+        println('fileName: ' + fileName);
         throw e;
     }
     // 等于 0, 预期失败
@@ -225,6 +230,7 @@ function testDiagLevel( diaglog )
         testWithoutOriginal( diaglog );
     } catch ( e ) {
         println("[ERROR] Failed on diaglog.search().diaglevel(...)");
+        println('fileName: ' + fileName);
         throw e;
     }
     // 非 0-4, 预期失败
@@ -252,6 +258,7 @@ function testKeypattern( diaglog )
         testWithoutOriginal( diaglog );
     } catch ( e ) {
         println("[ERROR] Failed on diaglog.search().keypattern( 'Session' ).limit( 10 )");
+        println('fileName: ' + fileName);
         throw e;
     }
     // 非字符串, 预期失败
@@ -273,6 +280,7 @@ function testTid( diaglog )
         fileName = log.run();
     } catch ( e ) {
         println("[ERROR] Failed on diaglog.tid( 12345 ).limit( 1 )");
+        println('fileName: ' + fileName);
         throw e;
     }
     // 等于 0, 预期失败
@@ -304,6 +312,7 @@ function testPid( diaglog )
         fileName = log.run();
     } catch ( e ) {
         println("[ERROR] Failed on diaglog.search().pid( 12345 ).limit( 1 )");
+        println('fileName: ' + fileName);
         throw e;
     }
     // 等于 0, 预期失败
@@ -331,7 +340,7 @@ function testLimit( diaglog )
     // 不使用本函数，默认返回 100 条
     try {
         diaglog.reset();
-        log = diaglog.search().keypattern( 'a' );
+        log = diaglog.search().keypattern( ' ' );
         fileName = log.run();
         var i = 0;
         while ( diaglog.next() ) {
@@ -339,7 +348,8 @@ function testLimit( diaglog )
         }
         assert.equal(i, 100);
     } catch ( e ) {
-        println("[ERROR] Failed on diaglog.search().keypattern( 'a' )");
+        println("[ERROR] Failed on diaglog.search().keypattern( ' ' ), test default limit(100)");
+        println('fileName: ' + fileName);
         throw e;
     }
     // 大于 0, 预期成功
@@ -354,6 +364,7 @@ function testLimit( diaglog )
         assert.equal(i, 1);
     } catch ( e ) {
         println("[ERROR] Failed on diaglog.search().keypattern( 'a' ).limit( 1 )");
+        println('fileName: ' + fileName);
         throw e;
     }
     // 等于 -1, 预期成功
@@ -403,6 +414,7 @@ function testOriginal( diaglog )
         testWithOriginal( diaglog );
     } catch ( e ) {
         println("[ERROR] Failed on diaglog.search().original(...), filename: " + fileName);
+        println('fileName: ' + fileName);
         throw e;
     }
     // 结果为 1 行
@@ -414,6 +426,7 @@ function testOriginal( diaglog )
         assert.equal( result.length, 1 );
     } catch ( e ) {
         println("[ERROR] Failed on diaglog.search().original(...)");
+        println('fileName: ' + fileName);
         throw e;
     }
 }
@@ -433,6 +446,7 @@ function testAfter( diaglog )
         fileName = log.run();
     } catch ( e ) {
         println("[ERROR] Failed on diaglog.search().after(...)");
+        println('fileName: ' + fileName);
         throw e;
     }
     // 小于 0, 预期失败
@@ -463,6 +477,7 @@ function testBefore( diaglog )
         fileName = log.run();
     } catch ( e ) {
         println("[ERROR] Failed on diaglog.search().before(...)");
+        println('fileName: ' + fileName);
         throw e;
     }
     // 小于 0, 预期失败
@@ -496,13 +511,16 @@ function testNext ( diaglog )
         result = diaglog.next() ;
     } catch ( e ) {
         println("[ERROR] Failed on diaglog.next()");
+        println('fileName: ' + fileName);
         throw e;
     }
     // 大于 1, 预期成功
     try {
         result = diaglog.next( 1 ) ;
         result = diaglog.next( 2 ) ;
-    } catch ( e ) {println("[ERROR] Failed on diaglog.next(...)");
+    } catch ( e ) {
+        println("[ERROR] Failed on diaglog.next(...)");
+        println('fileName: ' + fileName);
         throw e;
     }
 
@@ -536,6 +554,7 @@ function testMultiple ( diaglog )
         testWithoutOriginal( diaglog );
     } catch ( e ) {
         println("[ERROR] Failed on diaglog.search().timeBegin( '2025-09-15T12:01:01.123456Z' ).timeEnd( '9999-09-15T12:01:01.123456Z' ).keypattern( 'rc: ' ).limit( 10 )");
+        println('fileName: ' + fileName);
         throw e;
     }
 
@@ -547,6 +566,7 @@ function testMultiple ( diaglog )
         testWithoutOriginal( diaglog );
     } catch ( e ) {
         println("[ERROR] Failed on diaglog.search().error( -16 ).keypattern( 'rc: ' ).limit( 10 )");
+        println('fileName: ' + fileName);
         throw e;
     }
 
@@ -673,6 +693,7 @@ function testPath( diaglog )
         fileName = log.run();
     } catch ( e ) {
         println("[ERROR] Failed on diaglog.search().keypattern( 'a' ).limit( 1 ).path( '" + dataPath + "/diaglog' )");
+        println('fileName: ' + fileName);
         throw e;
     } finally {
         if ( null != oma ){
