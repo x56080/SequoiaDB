@@ -49,17 +49,18 @@ using namespace std ;
 
 namespace engine
 {
-   const INT8 DPS_LSN_START_FROM_HEAD = 0;
-   const INT8 DPS_LSN_NOT_START_FROM_HEAD = -1;
 
+   /*
+      _dpsLogPage define
+   */
    class _dpsLogPage : public SDBObject
    {
       private:
-         monRWMutex _mtx;
-         _dpsMessageBlock *_mb;
-         UINT32 _pageNumber;
-         INT8 _startPage;
-         DPS_LSN _beginLSN ;
+         monRWMutex           _mtx;
+         _dpsMessageBlock     *_mb;
+         UINT32               _pageNumber;
+         BYTE                 _dirtyFlag ;
+         DPS_LSN              _beginLSN ;
 
       public:
          _dpsLogPage();
@@ -88,38 +89,30 @@ namespace engine
 
          OSS_INLINE void clear()
          {
-            _startPage = DPS_LSN_START_FROM_HEAD ;
+            _dirtyFlag = 0 ;
             _mb->clear();
-            return ;
          }
 
-         OSS_INLINE void setStartFlag( INT8 flag )
+         OSS_INLINE void invalidate()
          {
-            _startPage = flag;
-            return;
+            clear() ;
+            _beginLSN.reset() ;
          }
 
-         OSS_INLINE INT8 getStartFlag() const
+         OSS_INLINE void zeroLastData()
          {
-            return _startPage;
-         }
-
-         OSS_INLINE void setLsn( const DPS_LSN &lsn , UINT32 offset )
-         {
-            ossMemcpy( _mb->offset( offset ), ( CHAR * )&lsn,
-                       sizeof(DPS_LSN) );
-            return;
-         }
-
-         OSS_INLINE DPS_LSN getLsn( UINT32 offset )
-         {
-            return *( (DPS_LSN *)_mb->offset( offset ) );
+            if ( _mb )
+            {
+               _mb->invalidateData() ;
+               makeDirty() ;
+            }
          }
 
          OSS_INLINE void setBeginLSN ( const DPS_LSN &lsn )
          {
             _beginLSN = lsn  ;
          }
+
          OSS_INLINE DPS_LSN getBeginLSN ()
          {
             return _beginLSN ;
@@ -133,7 +126,6 @@ namespace engine
          OSS_INLINE void setNumber( UINT32 number )
          {
             _pageNumber = number;
-            return;
          }
 
          OSS_INLINE UINT32 getNumber()
@@ -141,41 +133,54 @@ namespace engine
             return _pageNumber;
          }
 
+         OSS_INLINE BOOLEAN isDirty() const
+         {
+            return _dirtyFlag != 0 ? TRUE : FALSE ;
+         }
+
+         OSS_INLINE void makeDirty()
+         {
+            _dirtyFlag = 1 ;
+         }
+
+         OSS_INLINE void clearDirty()
+         {
+            _dirtyFlag = 0 ;
+         }
+
          OSS_INLINE void lockShared()
          {
             _mtx.lock_r();
-            return ;
          }
 
          OSS_INLINE void unlockShared()
          {
             _mtx.release_r() ;
-            return ;
          }
 
          OSS_INLINE void lock()
          {
             _mtx.lock_w() ;
-            return ;
          }
 
          OSS_INLINE void unlock()
          {
             _mtx.release_w() ;
-            return ;
          }
 
       public:
-         //INT32 insert( const CHAR *src, UINT32 len );
 
-         INT32 fill( UINT32 offset, const CHAR *src, UINT32 len );
+         INT32 fill( UINT32 offset, const CHAR *src, UINT32 len, BOOLEAN setDirty = TRUE );
 
-         INT32 allocate( UINT32 len, UINT64 &offset );
+         void  truncate( UINT32 offset ) ;
 
-         INT32 allocate( UINT32 len );
+         INT32 reserve( UINT32 len, UINT64 &offset, BOOLEAN setDirty = TRUE );
+
+         INT32 reserve( UINT32 len, BOOLEAN setDirty = TRUE );
    };
 
    typedef class _dpsLogPage dpsLogPage;
 }
-#endif
+
+#endif // DPSLOGPAGE_HPP_
 

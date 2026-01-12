@@ -50,6 +50,12 @@ namespace engine
    /*
       DMS TOOL FUNCTIONS:
    */
+   dmsObjectStat* dmsGetGlobalObjectStat()
+   {
+      static dmsObjectStat s_dmsObjectStat ;
+      return &s_dmsObjectStat ;
+   }
+
    BOOLEAN dmsAccessAndFlagCompatiblity ( UINT16 collectionFlag,
                                           DMS_ACCESS_TYPE accessType )
    {

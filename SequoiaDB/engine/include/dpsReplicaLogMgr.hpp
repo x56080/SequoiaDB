@@ -108,6 +108,8 @@ namespace engine
 
       UINT64                     _pageFlushCount ;
       DPS_LSN                    _pageFlushedBeginLSN ;
+      UINT64                     _lastWriteMetaTick ;
+      BOOLEAN                    _writeMetaPending ;
 
    public:
       _dpsReplicaLogMgr();
@@ -189,6 +191,8 @@ namespace engine
          return 0 !=_lastCommitted.compare( _currentLsn ) ? TRUE : FALSE ;
       }
 
+      BOOLEAN isWriteMetaPending() const ;
+
       void regEventHandler( dpsEventHandler *pEventHandler ) ;
       void unregEventHandler( dpsEventHandler *pEventHandler ) ;
 
@@ -219,7 +223,7 @@ namespace engine
       INT32 flushAll() ;
 
       /// committedLsn should be allocated by user
-      INT32 commit( BOOLEAN deeply, DPS_LSN *committedLsn ) ;
+      INT32 commit( BOOLEAN deeply, DPS_LSN *committedLsn, BOOLEAN updateMeta = FALSE ) ;
 
       INT32 checkSyncControl( UINT32 reqLen, _pmdEDUCB *cb ) ;
 
@@ -315,6 +319,11 @@ namespace engine
          return _logger.invalidateFsCache( pExpiredMs ) ;
       }
 
+      const dpsMetaFileContent& getMetaContent() const
+      {
+         return _metaFile.getContent() ;
+      }
+
    private:
       void _allocate( UINT32 len,
                       dpsPageMeta &allocated ) ;
@@ -337,7 +346,7 @@ namespace engine
                           const DPS_LSN_VER &version ) ;
       INT32 _restore ( const DPS_LSN &fastStartLsn = DPS_LSN() ) ;
 
-      INT32 _restoreMeta() ;
+      INT32 _restoreMeta( BOOLEAN metaContentValid ) ;
 
       UINT32 _decPageID ( UINT32 pageID )
       {

@@ -113,6 +113,8 @@ namespace engine
       UINT32 count = 0 ;
       UINT32 tmpIndex = 0 ;
       DPS_LSN_OFFSET checkLsn = DPS_INVALID_LSN_OFFSET ;
+      DPS_LSN_VER    checkVer = DPS_INVALID_LSN_VERSION ;
+      UINT32         checkLen = 0 ;
 
       // make sure path + OSS_FILE_SEP + DPS_LOG_FILE_PREFIX + xxx + 0
       // is less or equal to OSS_MAX_PATHSIZE
@@ -168,6 +170,9 @@ namespace engine
       tmpIndex = _work ;
       while ( count++ < _logFileNum )
       {
+         checkVer = DPS_INVALID_LSN_VERSION ;
+         checkLen = 0 ;
+
          pFile = _files[tmpIndex] ;
          /// calc file's valid length
          /// work file
@@ -178,6 +183,8 @@ namespace engine
                length = ( content._curLsnOffset + content._curLsnLength ) %
                         _logFileSz ;
                checkLsn = content._curLsnOffset ;
+               checkVer = content._curLsnVersion ;
+               checkLen = content._curLsnLength ;
             }
             else
             {
@@ -248,7 +255,8 @@ namespace engine
             BOOLEAN isValid = FALSE ;
             fileFullPath[0] = 0 ;
             rc = pFile->validateLsn( checkLsn, isValid,
-                                     fileFullPath, sizeof(fileFullPath)-1 ) ;
+                                     fileFullPath, sizeof(fileFullPath)-1,
+                                     checkVer, checkLen ) ;
             if ( rc )
             {
                PD_LOG( PDERROR, "Validate last lsn[%lld] in file[%d] failed, rc: %d",

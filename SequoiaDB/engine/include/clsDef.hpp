@@ -947,6 +947,18 @@ namespace engine
 
          return lsn ;
       }
+
+      CLS_NODE_SERVICE_STATUS getNodeStatus( UINT64 nodeID ) const
+      {
+         map<UINT64, _clsSharingStatus>::const_iterator cit = info.find( nodeID ) ;
+         if ( cit != info.end() )
+         {
+            const _clsSharingStatus *pStatus = &(cit->second) ;
+            return pStatus->beat.serviceStatus ;
+         }
+         SDB_ASSERT( FALSE, "Node not found" ) ;
+         return SERVICE_UNKNOWN ;
+      }
    } ;
 
    enum CLS_ELECTION_ROUND

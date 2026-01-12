@@ -36,6 +36,7 @@
 *******************************************************************************/
 #include "dpsMetaFile.hpp"
 #include "utilStr.hpp"
+#include "dms.hpp"
 
 namespace engine
 {
@@ -108,14 +109,35 @@ namespace engine
       goto done ;
    }
 
-   INT32 _dpsMetaFile::stop( DPS_LSN_OFFSET oldestTransLSN,
+   INT32 _dpsMetaFile::save( DPS_LSN_OFFSET oldestTransLSN,
                              UINT32 beginFile,
                              UINT32 workFile,
                              const DPS_LSN &curLSN,
                              UINT32 curLsnLength,
-                             const DPS_LSN &memBeginLSN )
+                             const DPS_LSN &memBeginLSN,
+                             BOOLEAN force )
    {
       INT32 rc = SDB_OK ;
+      dmsObjectStat *pGlobalDmsStat = dmsGetGlobalObjectStat() ;
+
+      ossScopedLock lock( &_latch ) ;
+
+      if ( !_invalidateStatus &&
+           !force &&
+           _content._oldestLSNOffset == oldestTransLSN &&
+           _content._beginFile == beginFile &&
+           _content._workFile == workFile &&
+           _content._curLsnVersion == curLSN.version &&
+           _content._curLsnOffset == curLSN.offset &&
+           _content._curLsnLength == curLsnLength &&
+           _content._memBeginLsnVer == memBeginLSN.version &&
+           _content._memBeginLsnOffset == memBeginLSN.offset &&
+           pGlobalDmsStat->_csNum.compare( _content._csNum ) &&
+           pGlobalDmsStat->_clNum.compare( _content._clNum ) )
+      {
+         /// no need write
+         goto done ;
+      }
 
       _content._oldestLSNOffset = oldestTransLSN ;
       _content._beginFile = beginFile ;
@@ -125,6 +147,8 @@ namespace engine
       _content._curLsnLength = curLsnLength ;
       _content._memBeginLsnVer = memBeginLSN.version ;
       _content._memBeginLsnOffset = memBeginLSN.offset ;
+      _content._csNum = pGlobalDmsStat->_csNum.fetch() ;
+      _content._clNum = pGlobalDmsStat->_clNum.fetch() ;
 
       rc = writeContent() ;
       if ( SDB_OK == rc )
@@ -135,7 +159,9 @@ namespace engine
                                           "WorkFile: %d, "
                                           "CurLsn: %d.%lld, "
                                           "CurLsnLength: %u, "
-                                          "MemBeginLsn: %d.%lld ) succeed",
+                                          "MemBeginLsn: %d.%lld, "
+                                          "CSNum: %d, "
+                                          "CLNum: %d ) succeed",
                  _content._oldestLSNOffset,
                  _content._beginFile,
                  _content._workFile,
@@ -143,7 +169,9 @@ namespace engine
                  _content._curLsnOffset,
                  _content._curLsnLength,
                  _content._memBeginLsnVer,
-                 _content._memBeginLsnOffset ) ;
+                 _content._memBeginLsnOffset,
+                 _content._csNum,
+                 _content._clNum ) ;
       }
       else
       {
@@ -152,7 +180,9 @@ namespace engine
                                           "WorkFile: %d, "
                                           "CurLsn: %d.%lld, "
                                           "CurLsnLength: %u, "
-                                          "MemBeginLsn: %d.%lld ) "
+                                          "MemBeginLsn: %d.%lld, "
+                                          "CSNum: %d, "
+                                          "CLNum: %d ) "
                                           "failed, rc: %d",
                  _content._oldestLSNOffset,
                  _content._beginFile,
@@ -162,9 +192,12 @@ namespace engine
                  _content._curLsnLength,
                  _content._memBeginLsnVer,
                  _content._memBeginLsnOffset,
+                 _content._csNum,
+                 _content._clNum,
                  rc ) ;
       }
 
+   done:
       return rc ;
    }
 
@@ -208,7 +241,9 @@ namespace engine
                                        "WorkFile: %d, "
                                        "CurLsn: %d.%lld, "
                                        "CurLsnLength: %u, "
-                                       "MemBeginLsn: %d.%lld ) succeed",
+                                       "MemBeginLsn: %d.%lld, "
+                                       "CSNum: %d, "
+                                       "CLNum: %d ) succeed",
               _content._oldestLSNOffset,
               _content._beginFile,
               _content._workFile,
@@ -216,7 +251,9 @@ namespace engine
               _content._curLsnOffset,
               _content._curLsnLength,
               _content._memBeginLsnVer,
-              _content._memBeginLsnOffset ) ;
+              _content._memBeginLsnOffset,
+              _content._csNum,
+              _content._clNum ) ;
 
    done:
       return rc ;
@@ -278,7 +315,8 @@ namespace engine
       INT32 rc = SDB_OK ;
       SINT64 written = 0 ;
 
-      SINT64 toWrite = sizeof( _content ) ;
+      SINT64 toWrite = ossAlignX( DPS_METAFILE_CONTENT_VALID_LEN, 512 ) ;
+      SDB_ASSERT( toWrite <= (SINT64)sizeof(_content), "Invalid write size" ) ;
       rc = ossSeekAndWriteN( &_file, DPS_METAFILE_HEADER_LEN,
                              ( const CHAR* ) &_content, toWrite, written ) ;
       PD_RC_CHECK( rc, PDERROR, "Write content failed, rc: %d", rc ) ;
@@ -328,15 +366,20 @@ namespace engine
 
       if ( !_invalidateStatus )
       {
-         _content.resetStatus() ;
-         rc =  writeContent() ;
-         if ( SDB_OK == rc )
+         ossScopedLock lock( &_latch ) ;
+
+         if ( !_invalidateStatus )
          {
-            _invalidateStatus = TRUE ;
-         }
-         else
-         {
-            PD_LOG( PDERROR, "Invalidate dps meta status failed, rc: %d", rc ) ;
+            _content.resetStatus() ;
+            rc =  writeContent() ;
+            if ( SDB_OK == rc )
+            {
+               _invalidateStatus = TRUE ;
+            }
+            else
+            {
+               PD_LOG( PDERROR, "Invalidate dps meta status failed, rc: %d", rc ) ;
+            }
          }
       }
 

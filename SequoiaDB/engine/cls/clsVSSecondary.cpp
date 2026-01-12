@@ -66,7 +66,13 @@ namespace engine
       }
       else if ( MSG_CLS_BALLOT == header->opCode )
       {
-         g_startShiftTime = -1 ; // some node begin vote
+         if ( !isLocation() && g_startShiftTime > 0 )
+         {
+            g_startShiftTime = -1 ; // some node begin vote
+            PD_LOG( PDEVENT, "%s Vote: Has recieved vote require from node(%u), "
+                    "disable startup grace period",
+                    getScopeName(), header->routeID.columns.nodeID ) ;
+         }
 
          const _MsgClsElectionBallot *msg = ( const _MsgClsElectionBallot * ) header ;
          if ( CLS_ELECTION_ROUND_STAGE_ONE == msg->round )
@@ -100,22 +106,38 @@ namespace engine
    void _clsVSSecondary::handleTimeout( const UINT32 &millisec,
                                         INT32 &next )
    {
+      INT32 startShiftTime = g_startShiftTime ;
       PD_TRACE_ENTRY ( SDB__CLSVSSD_HDTMOUT ) ;
       _timeout() += millisec ;
 
-      if ( g_startShiftTime > 0 && _info()->isAllNodeBeat() )
+      if ( _info()->isAllNodeBeat() )
       {
-         g_startShiftTime = -1 ; // recieve all node sharing-beat
+         startShiftTime = -1 ;
+
+         if ( !isLocation() && g_startShiftTime > 0 )
+         {
+            g_startShiftTime = -1 ; // recieve all node sharing-beat
+            PD_LOG( PDEVENT, "%s Vote: Has recieved all nodes beat, disable startup grace period",
+                    getScopeName() ) ;
+         }
       }
 
-      if ( ( g_startShiftTime < 0 || g_startShiftTime <= (INT32)_timeout() ) &&
+      if ( ( startShiftTime < 0 || startShiftTime <= (INT32)_timeout() ) &&
            CLS_VOTE_CS_TIME <= _timeout() )
       {
          if ( _hasPrint )
          {
             PD_LOG( PDEVENT, "%s Vote: begin to vote...", getScopeName() ) ;
          }
-         g_startShiftTime = -1 ;
+
+         startShiftTime = -1 ;
+
+         if ( !isLocation() && g_startShiftTime > 0 )
+         {
+            PD_LOG( PDEVENT, "%s Vote: The startup grace period(%u secs) has timeout, disable it",
+                    getScopeName(), g_startShiftTime / OSS_ONE_SEC ) ;
+            g_startShiftTime = -1 ;
+         }
          next = CLS_ELECTION_STATUS_VOTE ;
       }
       else
@@ -123,9 +145,10 @@ namespace engine
          if ( !_hasPrint && CLS_VOTE_CS_TIME <= _timeout() )
          {
             _hasPrint = TRUE ;
-            PD_LOG( PDEVENT, "%s Vote: with waiting %u seconds or when all nodes beat "
-                    "here, then begin to vote", getScopeName(),
-                    ( g_startShiftTime - (INT32)_timeout() ) / 1000 ) ;
+            PD_LOG( PDEVENT, "%s Vote: Wait for up to %u seconds or until all nodes started, "
+                    "then begin to vote. You can change the wait time by modifying the "
+                    "parameter 'startshifttime'", getScopeName(),
+                    ( startShiftTime - (INT32)_timeout() ) / OSS_ONE_SEC ) ;
          }
          next = id() ;
       }
@@ -142,7 +165,12 @@ namespace engine
 
       if ( _info()->groupSize() == 1 )
       {
-         g_startShiftTime = -1 ;
+         if ( !isLocation() && g_startShiftTime > 0 )
+         {
+            g_startShiftTime = -1 ;
+            PD_LOG( PDEVENT, "%s Vote: Group has only 1 node, disable startup grace period",
+                    getScopeName() ) ;
+         }
          next = CLS_ELECTION_STATUS_VOTE ;
       }
       else

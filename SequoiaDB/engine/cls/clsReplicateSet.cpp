@@ -1422,6 +1422,18 @@ namespace engine
       return isNormal ;
    }
 
+   CLS_NODE_SERVICE_STATUS _clsReplicateSet::getNodeStatus( UINT64 nodeID )
+   {
+      ossScopedRWLock lock( &(_info.mtx), SHARED ) ;
+
+      if ( _info.local.value == nodeID )
+      {
+         /// self
+         return pmdGetStartup().isOK() ? SERVICE_NORMAL : SERVICE_ABNORMAL ;
+      }
+      return _info.getNodeStatus( nodeID ) ;      
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREPSET_GETPRIMARYINFO, "_clsReplicateSet::getPrimaryInfo" )
    BOOLEAN _clsReplicateSet::getPrimaryInfo( _clsSharingStatus &primaryInfo )
    {
@@ -1953,6 +1965,13 @@ namespace engine
                else if ( CLS_NODE_STOP == status.beat.nodeRunStat )
                {
                   status.timeout = pmdGetOptionCB()->sharingBreakTime() ;
+                  /// update location info
+                  map<UINT64, _clsSharingStatus>::iterator itrLocation ;
+                  itrLocation = _locationInfo.info.find( itr->first ) ;
+                  if ( itrLocation != _locationInfo.info.end() )
+                  {
+                     itrLocation->second.timeout = status.timeout ;
+                  }
                }
             }
          }
@@ -2636,11 +2655,18 @@ namespace engine
                  ( CLS_NODE_STOP == status.beat.nodeRunStat ?
                    "shutdown" : "break" ) ) ;
       }
+
       itr->second.resetStatus() ;
 
-      // Use UDP to send heartBeat
-      if ( fromUDP )
+      /// when node is stop, disable UDP heartbeat, then send heartbeat whill report
+      /// error, and then set timeout to sharingbreak value
+      if ( CLS_NODE_STOP == itr->second.beat.nodeRunStat )
       {
+         itr->second.setUDPUnavailable() ;
+      }
+      else if ( fromUDP )
+      {
+         // Use UDP to send heartBeat
          itr->second.setUDPSupported() ;
       }
 

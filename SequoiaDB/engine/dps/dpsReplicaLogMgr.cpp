@@ -65,6 +65,11 @@ namespace engine
 
    static UINT32 DPS_SUB_BIT = 0 ;
 
+   #define DPS_UPDATE_META_INTERVAL                ( 600 * OSS_ONE_SEC )   /// 10 mins
+
+   /*
+      _dpsReplicaLogMgr impelement
+   */
    _dpsReplicaLogMgr::_dpsReplicaLogMgr()
    :_queue( NULL ), _logger(this), _pages(NULL),
     _mtx( MON_LATCH_DPSREPLICALOGMGR_MTX ),
@@ -81,6 +86,8 @@ namespace engine
       _transCB = NULL ;
       _incVerVal = DPS_INC_VER_ZERO ;
       _pageFlushCount = 0 ;
+      _lastWriteMetaTick = 0 ;
+      _writeMetaPending = FALSE ;
    }
 
    _dpsReplicaLogMgr::~_dpsReplicaLogMgr()
@@ -128,23 +135,28 @@ namespace engine
 
       // allocate page queue
       // NOTE: maximum queue length is page number, so we use a circular buffer
-      _queue =
-            SDB_OSS_NEW DPS_PAGE_QUEUE( DPS_QUEUE_CONTAINER( &_queueBuffer ) ) ;
+      _queue = SDB_OSS_NEW DPS_PAGE_QUEUE( DPS_QUEUE_CONTAINER( &_queueBuffer ) ) ;
       PD_CHECK( NULL != _queue, SDB_OOM, error, PDERROR,
                 "Failed to allocate page queue with page number [%u]",
                 pageNum ) ;
 
       // free in destructor
       _pages = SDB_OSS_NEW _dpsLogPage[pageNum];
-      if ( ( NULL == _pages ) || ( _pages && NULL == _pages->mb() ) )
+      if ( NULL == _pages )
       {
          rc = SDB_OOM;
-         PD_LOG (PDERROR, "new _dpsLogPage[%d]] failed, rc: %d", pageNum, rc );
+         PD_LOG (PDERROR, "Allocate log pages[%d] failed, rc: %d", pageNum, rc );
          goto error;
       }
       // set ID for each page
       for ( UINT32 i = 0; i < pageNum; i++ )
       {
+         if ( NULL == _pages[i].mb() )
+         {
+            rc = SDB_OOM ;
+            PD_LOG( PDERROR, "Allocate page's memory block failed" ) ;
+            goto error ;
+         }
          _pages[i].setNumber( i );
       }
       _totalSize = DPS_DEFAULT_PAGE_SIZE * pageNum;
@@ -184,10 +196,12 @@ namespace engine
          if ( SDB_OK == rc )
          {
             _lastCommitted = _currentLsn ;
-            PD_LOG ( PDEVENT, "Dps restore succeed, file lsn[%lld], buff "
-                     "lsn[%lld], current lsn[%lld], expect lsn[%lld]",
-                     _logger.getStartLSN().offset, _getStartLsn().offset,
-                     _currentLsn.offset, _lsn.offset ) ;
+            PD_LOG ( PDEVENT, "Dps restore succeed, file lsn[%u.%lld], buff "
+                     "lsn[%u.%lld], current lsn[%u.%lld], expect lsn[%u.%lld]",
+                     _logger.getStartLSN().version, _logger.getStartLSN().offset,
+                     _getStartLsn().version, _getStartLsn().offset,
+                     _currentLsn.version, _currentLsn.offset,
+                     _lsn.version, _lsn.offset ) ;
          }
          else
          {
@@ -197,7 +211,7 @@ namespace engine
          }
       }
 
-      rc = _restoreMeta() ;
+      rc = _restoreMeta( metaContent.isStatusValid() ) ;
       PD_RC_CHECK( rc, PDERROR, "Restore meta failed, rc: %d", rc ) ;
 
    done:
@@ -226,11 +240,12 @@ namespace engine
       _queueBuffer.finiBuffer() ;
    }
 
-   INT32 _dpsReplicaLogMgr::_restoreMeta()
+   INT32 _dpsReplicaLogMgr::_restoreMeta( BOOLEAN metaContentValid )
    {
       INT32 rc = SDB_OK ;
       DPS_LSN_OFFSET metaFileLSNOffset = DPS_INVALID_LSN_OFFSET ;
       DPS_LSN startLsn ;
+      BOOLEAN needInvalidate = FALSE ;
       metaFileLSNOffset = _metaFile.getCacheLSN() ;
 
       startLsn = getStartLsn( FALSE ) ;
@@ -241,15 +256,55 @@ namespace engine
                  "and currentLsn(%llu), rewrite it to startLsn",
                  metaFileLSNOffset, startLsn.offset, _currentLsn.offset ) ;
 
+         needInvalidate = TRUE ;
+
          // meta file's trans lsn is out of bound
          rc = _metaFile.writeOldestLSNOffset( startLsn.offset ) ;
          PD_RC_CHECK( rc, PDERROR, "Write oldest lsn failed, rc: %d", rc ) ;
       }
 
-      rc = _metaFile.invalidateStatus() ;
-      if ( rc )
+      if ( !needInvalidate )
       {
-         goto error ;
+         dpsMetaFileContent tmpContent ;
+
+         tmpContent._beginFile = _logger.getBeginPos() ;
+         tmpContent._workFile = _logger.getWorkPos() ;
+         tmpContent._curLsnVersion = _currentLsn.version ;
+         tmpContent._curLsnOffset = _currentLsn.offset ;
+
+         if ( DPS_INVALID_LSN_OFFSET != _currentLsn.offset &&
+              DPS_INVALID_LSN_OFFSET != _lsn.offset &&
+              _lsn.offset > _currentLsn.offset )
+         {
+            tmpContent._curLsnLength = _lsn.offset - _currentLsn.offset ;
+         }
+
+         /// compare with meta's content
+         dpsMetaFileContent savedContent = _metaFile.getContent() ;
+
+         /// the same
+         if ( tmpContent._beginFile == savedContent._beginFile &&
+              tmpContent._workFile == savedContent._workFile &&
+              tmpContent._curLsnVersion == savedContent._curLsnVersion &&
+              tmpContent._curLsnOffset == savedContent._curLsnOffset &&
+              tmpContent._curLsnLength == savedContent._curLsnLength )
+         {
+            needInvalidate = FALSE ;
+         }
+         /// not the same
+         else
+         {
+            needInvalidate = TRUE ;
+         }
+      }
+
+      if ( needInvalidate )
+      {
+         rc = _metaFile.invalidateStatus() ;
+         if ( rc )
+         {
+            goto error ;
+         }
       }
 
    done:
@@ -322,14 +377,13 @@ namespace engine
 
       {
          //reset the idle size
-         UINT32 fileIdleSize = file->getIdleSize() +
-                              (&_pages[_work])->getLength() ;
+         UINT32 fileIdleSize = file->getIdleSize() + _pages[_work].getLength() ;
          if ( fileIdleSize % DPS_DEFAULT_PAGE_SIZE != 0 )
          {
             PD_LOG( PDERROR, "File[%s] idle size[%u] is not multi-times of "
                     "page size, cur page info[%u, %s]",
                     file->toString().c_str(), fileIdleSize,
-                    _work, (&_pages[_work])->toString().c_str() ) ;
+                    _work, _pages[_work].toString().c_str() ) ;
             rc = SDB_SYS ;
             SDB_ASSERT( FALSE, "Idle size error" ) ;
             goto error ;
@@ -413,6 +467,9 @@ namespace engine
             info.getEDUCB()->unsetBlock() ;
             hasBlock = FALSE ;
          }
+         /// invalidate meta
+         _metaFile.invalidateStatus() ;
+         /// lock _mtx
          scopedMtx.lock() ;
       }
 
@@ -663,7 +720,6 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__DPSRPCMGR__MVPAGES );
       UINT32 page = ( offset / DPS_DEFAULT_PAGE_SIZE ) % _pageNum ;
       UINT32 pageOffset = offset % DPS_DEFAULT_PAGE_SIZE ;
-      DPS_LSN invalidLsn ;
 
       //out of range clear all pages
       if ( _currentLsn.invalid() ||
@@ -673,8 +729,7 @@ namespace engine
          UINT32 i = 0 ;
          while ( i < _pageNum )
          {
-            (&_pages[i])->setBeginLSN( invalidLsn ) ;
-            (&_pages[i])->mb()->writePtr ( 0 ) ;
+            _pages[i].invalidate() ;
             ++i ;
          }
 
@@ -685,7 +740,7 @@ namespace engine
          DPS_LSN lastLSN ;
          lastLSN.offset = offset ;
          lastLSN.version = version ;
-         (&_pages[_work])->setBeginLSN( lastLSN ) ;
+         _pages[_work].setBeginLSN( lastLSN ) ;
 
          _currentLsn.offset = DPS_INVALID_LSN_OFFSET ;
          _currentLsn.version = DPS_INVALID_LSN_VERSION ;
@@ -694,15 +749,13 @@ namespace engine
       {
          while ( _work != page )
          {
-            (&_pages[_work])->setBeginLSN ( invalidLsn ) ;
-
+            _pages[_work].invalidate() ;
             _work = _decPageID ( _work ) ;
          }
 
          //read current lsn
          dpsLogRecordHeader header ;
-         rc = _parse ( _work, pageOffset, sizeof (dpsLogRecordHeader),
-                      (CHAR*)&header ) ;
+         rc = _parse ( _work, pageOffset, sizeof (dpsLogRecordHeader), (CHAR*)&header ) ;
          if ( SDB_OK != rc || offset != header._lsn )
          {
             PD_LOG ( PDERROR, "Move pages failed[rc:%d], header[lsn:%lld, "
@@ -719,8 +772,7 @@ namespace engine
          _currentLsn.version = version ;
       }
 
-      (&_pages[_work])->mb()->writePtr ( pageOffset ) ;
-      (&_pages[_work])->mb()->invalidateData() ;
+      _pages[_work].truncate( pageOffset ) ;
       _idleSize.init ( _totalSize - pageOffset ) ;
 
       _lsn.offset = offset ;
@@ -794,8 +846,8 @@ namespace engine
          }
       }
 
-      _idleSize.add ( (&_pages[_work])->getLength() ) ;
-      (&_pages[_work])->clear() ;
+      _idleSize.add( _pages[_work].getLength() ) ;
+      _pages[_work].clear() ;
 
       rc = _movePages ( offset, version ) ;
       if ( SDB_OK != rc )
@@ -805,8 +857,8 @@ namespace engine
 
       //in the exist range and at the last work(not flush)
       //the file can not move
-      if ( offset >= tmpBeginOffset && offset <= tmpLsnOffset
-         && tmpWork == _work && !tmpCurLsn.invalid() )
+      if ( offset >= tmpBeginOffset && offset <= tmpLsnOffset &&
+           tmpWork == _work && !tmpCurLsn.invalid() )
       {
          goto done ;
       }
@@ -829,14 +881,13 @@ namespace engine
       else //reset file idle size
       {
          _dpsLogFile *file = _logger.getWorkLogFile() ;
-         UINT32 fileIdleSize = file->getIdleSize() +
-                               (&_pages[_work])->getLength() ;
+         UINT32 fileIdleSize = file->getIdleSize() + _pages[_work].getLength() ;
          if ( fileIdleSize % DPS_DEFAULT_PAGE_SIZE != 0 )
          {
             PD_LOG( PDERROR, "File[%s] idle size[%u] is not multi-times of "
                     "page size, cur page info[%u, %s]",
                     file->toString().c_str(), fileIdleSize,
-                    _work, (&_pages[_work])->toString().c_str() ) ;
+                    _work, _pages[_work].toString().c_str() ) ;
             rc = SDB_SYS ;
             SDB_ASSERT( FALSE, "Idle size error" ) ;
             goto error ;
@@ -939,7 +990,7 @@ namespace engine
       }
 
       // exclusive lock the page
-      (&_pages[pageSub])->lock() ;
+      _pages[pageSub].lock() ;
       pageLocked = TRUE ;
       // release metadata
       scopedMtx.release() ;
@@ -997,7 +1048,7 @@ namespace engine
          rc = _parse ( pageSub, offset, len, mb->writePtr() ) ;
       }
 
-      (&_pages[pageSub])->unlock() ;
+      _pages[pageSub].unlock() ;
       pageLocked = FALSE ;
 
       if ( rc )
@@ -1011,7 +1062,7 @@ namespace engine
    done :
       if ( pageLocked )
       {
-         (&_pages[pageSub])->unlock() ;
+         _pages[pageSub].unlock() ;
       }
       PD_TRACE_EXITRC ( SDB__DPSRPCMGR__SEARCH, rc );
       return rc ;
@@ -1175,7 +1226,7 @@ namespace engine
          // is it large enough to allocate all? otherwise allocate rest
          INT32 allocLen = pageIdle < needAlloc ? pageIdle : needAlloc;
          // reserve space in the page
-         WORK_PAGE->allocate( allocLen );
+         WORK_PAGE->reserve( allocLen, !_restoreFlag );
          // how much data still left?
          needAlloc -= allocLen;
 
@@ -1320,7 +1371,7 @@ namespace engine
          dpsLogPage *page = PAGE(workSub) ;
          pageIdle = page->getBufSize() - offset ;
          cpylen = pageIdle < needcpy ? pageIdle : needcpy ;
-         page->fill( offset, src + srcOffset, cpylen ) ;
+         page->fill( offset, src + srcOffset, cpylen, !_restoreFlag ) ;
 
          needcpy -= cpylen ;
          srcOffset += cpylen ;
@@ -1361,8 +1412,8 @@ namespace engine
          // to avoid concurrency issue we should flush transBeginLSN before
          // _flushPage() which will decrease _queSize
          _pageFlushCount++ ;
-         // same as _pageFlushCount % 0x4000 == 0
-         if ( ( _pageFlushCount & 0x3FFF ) == 0 )
+         // same as _pageFlushCount % 0x1000 == 0
+         if ( ( _pageFlushCount & 0x0FFF ) == 0 )
          {
             _flushOldestTransBeginLSN() ;
          }
@@ -1473,14 +1524,18 @@ namespace engine
       if ( 0 != WORK_PAGE->getLength() )
       {
          page = WORK_PAGE;
-         // fill the rest to '0'
-         ossMemset( page->mb()->writePtr(), 0, page->getLastSize() ) ;
-         _queSize.inc() ;
-         rc = _flushPage( page, TRUE );
-         if ( rc )
+
+         if ( page->isDirty() )
          {
-            PD_LOG ( PDERROR, "Failed to flush page, rc = %d", rc ) ;
-            goto error ;
+            // fill the rest to '0'
+            page->zeroLastData() ;
+            _queSize.inc() ;
+            rc = _flushPage( page, TRUE );
+            if ( rc )
+            {
+               PD_LOG ( PDERROR, "Failed to flush page, rc = %d", rc ) ;
+               goto error ;
+            }
          }
       }
 
@@ -1506,12 +1561,13 @@ namespace engine
             curLsnLength = _lsn.offset - _currentLsn.offset ;
          }
 
-         _metaFile.stop( offset,
+         _metaFile.save( offset,
                          _logger.getBeginPos(),
                          _logger.getWorkPos(),
                          _currentLsn,
                          curLsnLength,
-                         _getStartLsn() ) ;
+                         _getStartLsn(),
+                         TRUE ) ;
       }
 
    done :
@@ -1530,12 +1586,16 @@ namespace engine
       UINT32 curFileId = 0 ;
       UINT32 curLogicalFileId = 0 ;
       PD_TRACE_ENTRY ( SDB__DPSRPCMGR__FLUSHPAGE );
-      SDB_ASSERT ( page, "page can't be NULL" ) ;
+
+      SDB_ASSERT ( page, "page is NULL" ) ;
+
       UINT32 length = 0 ;
       DPS_LSN pageBeginLSN ;
       // note in tearDown it may call _flushPage with non-full page
       page->lock();
       page->unlock();
+
+      SDB_ASSERT ( page->isDirty(), "page is not dirty" ) ;
 
       pageBeginLSN = page->getBeginLSN() ;
       if ( !pageBeginLSN.invalid() )
@@ -1625,11 +1685,12 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION (SDB__DPSRPCMGR_COMMIT, "_dpsReplicaLogMgr::commit" )
-   INT32 _dpsReplicaLogMgr::commit( BOOLEAN deeply, DPS_LSN *committedLsn )
+   INT32 _dpsReplicaLogMgr::commit( BOOLEAN deeply, DPS_LSN *committedLsn, BOOLEAN updateMeta )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DPSRPCMGR_COMMIT ) ;
       _dpsLogPage *work = NULL ;
+      DPS_LSN tmpCurLsn ;
       ossScopedLock scopedWriteMtx( &_writeMutex, FALSE ) ;
       ossScopedLock scopedMtx( &_mtx, FALSE ) ;
 
@@ -1637,7 +1698,9 @@ namespace engine
       scopedWriteMtx.lock() ;
 
       work = WORK_PAGE ;
-      if ( 0 ==_lastCommitted.compare( _currentLsn ) )
+      if ( 0 ==_lastCommitted.compare( _currentLsn ) &&
+           !updateMeta &&
+           !_writeMetaPending )
       {
          goto done ;
       }
@@ -1651,17 +1714,21 @@ namespace engine
       work->lock() ;
       work->unlock() ;
 
-      if ( 0 != work->getLength() )
+      if ( 0 != work->getLength() && work->isDirty() )
       {
-         ossMemset( work->mb()->writePtr(), 0, work->getLastSize() ) ;
+         /// zero last data
+         work->zeroLastData() ;
          rc = _logger.flush( work->mb(), work->getBeginLSN(), TRUE ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG ( PDERROR, "Failed to flush page, rc = %d", rc ) ;
             goto error ;
          }
+         /// should clear dirty
+         work->clearDirty() ;
       }
 
+      tmpCurLsn = _currentLsn ;
       scopedWriteMtx.release() ;
 
       rc = _logger.sync() ;
@@ -1672,8 +1739,54 @@ namespace engine
       }
 
       scopedMtx.lock() ;
-      _lastCommitted = _currentLsn ;
-      scopedMtx.release() ;
+      _lastCommitted = tmpCurLsn ;
+
+      /// when no write, flush meta
+      if ( 0 == _currentLsn.compare( tmpCurLsn ) )
+      {
+         if ( updateMeta || pmdGetTickSpanTime( _lastWriteMetaTick ) >= DPS_UPDATE_META_INTERVAL )
+         {
+            DPS_LSN_OFFSET offset = DPS_INVALID_LSN_OFFSET ;
+            UINT32 curLsnLength = 0 ;
+
+            if ( _transCB )
+            {
+               offset = _transCB->getOldestBeginLsn() ;
+            }
+
+            if ( offset == DPS_INVALID_LSN_OFFSET )
+            {
+               offset = _currentLsn.offset ;
+            }
+
+            if ( DPS_INVALID_LSN_OFFSET != _currentLsn.offset &&
+                 DPS_INVALID_LSN_OFFSET != _lsn.offset &&
+                 _lsn.offset > _currentLsn.offset )
+            {
+               curLsnLength = _lsn.offset - _currentLsn.offset ;
+            }
+
+            _metaFile.save( offset,
+                            _logger.getBeginPos(),
+                            _logger.getWorkPos(),
+                            _currentLsn,
+                            curLsnLength,
+                            _getStartLsn(),
+                            FALSE ) ;
+
+            /// update write tick
+            _lastWriteMetaTick = pmdGetDBTick() ;
+            _writeMetaPending = FALSE ;
+         }
+         else
+         {
+            _writeMetaPending = TRUE ;
+         }
+      }
+      else
+      {
+         _writeMetaPending = FALSE ;
+      }
 
    done:
       if ( NULL != committedLsn )
@@ -1684,6 +1797,16 @@ namespace engine
       return rc ;
    error:
       goto done ;
+   }
+
+   BOOLEAN _dpsReplicaLogMgr::isWriteMetaPending() const
+   {
+      if ( _writeMetaPending &&
+           pmdGetTickSpanTime( _lastWriteMetaTick ) >= DPS_UPDATE_META_INTERVAL )
+      {
+         return TRUE ;
+      }
+      return FALSE ;
    }
 }
 

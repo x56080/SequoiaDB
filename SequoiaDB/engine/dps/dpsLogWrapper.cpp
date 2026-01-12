@@ -65,6 +65,8 @@ namespace engine
       _lastSyncTime  = 0 ;
 
       _startUpExpectLSN = DPS_INVALID_LSN_OFFSET ;
+
+      _electionLsnAdvantageThreshold = -1 ;
    }
    _dpsLogWrapper::~_dpsLogWrapper()
    {
@@ -109,6 +111,8 @@ namespace engine
             goto error ;
          }
       }
+
+      _electionLsnAdvantageThreshold = optCB->electionLsnAdvantageThreshold() ;
 
       _initialized = TRUE ;
       _startUpExpectLSN = _buf.expectLsn().offset ;
@@ -244,6 +248,7 @@ namespace engine
       _dpslocal = optCB->isDpsLocal() ;
       _syncInterval = optCB->getSyncInterval() ;
       _syncRecordNum = optCB->getSyncRecordNum() ;
+      _electionLsnAdvantageThreshold = optCB->electionLsnAdvantageThreshold() ;
       dpsGetGlobalLogConfig().updateConf( optCB->logTimeOn(),
                                           optCB->logWriteMod() ) ;
       _buf.setFsCacheExpiredMs( optCB->getFsCacheExpiredMs() ) ;
@@ -576,7 +581,7 @@ namespace engine
       return _buf.isInRestore() ;
    }
 
-   INT32 _dpsLogWrapper::commit( BOOLEAN deeply, DPS_LSN *committedLsn )
+   INT32 _dpsLogWrapper::commit( BOOLEAN deeply, DPS_LSN *committedLsn, BOOLEAN updateMeta )
    {
       ossTimestamp t ;
       ossGetCurrentTime( t ) ;
@@ -584,7 +589,7 @@ namespace engine
       /// clear write info
       _writeReordNum = 0 ;
 
-      return _buf.commit( deeply, committedLsn ) ;
+      return _buf.commit( deeply, committedLsn, updateMeta ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSLGWRAPP_PREPARE, "prepare" )
@@ -647,7 +652,7 @@ namespace engine
       force = FALSE ;
       PD_TRACE_ENTRY( SDB__DPSLGWRAPP_CANSYNC ) ;
 
-      if ( !_buf.hasDirty() )
+      if ( !_buf.hasDirty() && !_buf.isWriteMetaPending() )
       {
          /// nothing
       }

@@ -147,7 +147,7 @@ namespace engine
       INT32 _launch( const DPS_LSN &lsn,
                      const _MsgRouteID &id,
                      const CLS_ELECTION_ROUND &round ) ;
-      void _broadcastAlives( void *msg ) ;
+      UINT32 _broadcastAlives( void *msg ) ;
    private:
       _clsGroupInfo *_groupInfo ;
       _netRouteAgent *_agent ;

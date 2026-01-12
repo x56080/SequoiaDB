@@ -513,6 +513,7 @@ namespace engine
          MsgRouteID     getPrimary () ;
          MsgRouteID     getLocationPrimary () ;
          BOOLEAN        isSendNormal( UINT64 nodeID ) ;
+         CLS_NODE_SERVICE_STATUS getNodeStatus( UINT64 nodeID ) ;
 
          ossEvent*      getFaultEvent() ;
          ossEvent*      getSyncEmptyEvent() ;

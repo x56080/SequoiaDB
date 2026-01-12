@@ -638,6 +638,14 @@ namespace engine
          OSS_INLINE BOOLEAN isDpsLocal() const { return _dpslocal ; }
          OSS_INLINE UINT32 sharingBreakTime() const { return _sharingBreakTime ; }
          OSS_INLINE UINT32 startShiftTime() const { return _startShiftTime * OSS_ONE_SEC ; }
+         OSS_INLINE INT64  electionLsnAdvantageThreshold() const
+         {
+            if ( _electionLsnAdvantageThreshold > 0 )
+            {
+               return (INT64)_electionLsnAdvantageThreshold * 1048576 ;
+            }
+            return _electionLsnAdvantageThreshold ;
+         }
          OSS_INLINE BOOLEAN isTraceOn() const { return _traceOn ; }
          OSS_INLINE UINT32 traceBuffSize() const { return _traceBufSz ; }
          OSS_INLINE BOOLEAN useDirectIOInLob() const { return _directIOInLob ; }
@@ -815,6 +823,7 @@ namespace engine
          BOOLEAN     _transUseRBS ;
          UINT32      _sharingBreakTime ;
          UINT32      _startShiftTime ;
+         INT32       _electionLsnAdvantageThreshold ;
          UINT32      _logBuffSize ;
          CHAR        _catAddrLine[ OSS_MAX_PATHSIZE + 1 ] ;
          CHAR        _dmsTmpBlkPath[ OSS_MAX_PATHSIZE + 1 ] ;

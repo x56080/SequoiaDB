@@ -43,6 +43,64 @@
 
 namespace engine
 {
+
+   static INT32 _compareLsnWithStatus( const DPS_LSN &left, BOOLEAN leftNormal,
+                                       const DPS_LSN &right, BOOLEAN rightNormal,
+                                       DPS_LSN_OFFSET abnormalThreshold )
+   {
+      INT32 cmp = 0 ;
+
+      if ( leftNormal && !rightNormal )
+      {
+         DPS_LSN tmpLsn = right ;
+         cmp = left.compareVersion( tmpLsn.version ) ;
+         if ( cmp <= 0 )
+         {
+            if ( DPS_INVALID_LSN_OFFSET != tmpLsn.offset )
+            {
+               if ( tmpLsn.offset >= abnormalThreshold )
+               {
+                  tmpLsn.offset -= abnormalThreshold ;
+               }
+               else
+               {
+                  tmpLsn.offset = DPS_INVALID_LSN_OFFSET ;
+               }
+            }
+            cmp = left.compareOffset( tmpLsn ) ;
+         }
+      }
+      else if ( !leftNormal && rightNormal )
+      {
+         DPS_LSN tmpLsn = left ;
+         cmp = tmpLsn.compareVersion( right.version ) ;
+         if ( cmp >= 0 )
+         {
+            if ( DPS_INVALID_LSN_OFFSET != tmpLsn.offset )
+            {
+               if ( tmpLsn.offset >= abnormalThreshold )
+               {
+                  tmpLsn.offset -= abnormalThreshold ;
+               }
+               else
+               {
+                  tmpLsn.offset = DPS_INVALID_LSN_OFFSET ;
+               }
+            }
+            cmp = tmpLsn.compareOffset( right ) ;
+         }
+      }
+      else
+      {
+         cmp = left.compare( right ) ;
+      }
+
+      return cmp ;
+   }
+
+   /*
+      _clsVoteStatus implement
+   */
    _clsVoteStatus::_clsVoteStatus( _clsGroupInfo *info,
                                    _netRouteAgent *agent,
                                    INT32 id ):
@@ -103,14 +161,6 @@ namespace engine
          rc = SDB_CLS_VOTE_FAILED ;
          goto error ;
       }
-      else if ( !pmdGetStartup().isOK() &&
-                !_info()->isAllNodeAbnormal( 0 ) )
-      {
-         PD_LOG ( PDWARNING, "Start type isn't normal, can't initial voting "
-                  "until all nodes had been started" ) ;
-         rc = SDB_CLS_VOTE_FAILED ;
-         goto error ;
-      }
       else if ( SDB_OK != sdbGetReplCB()->getSyncEmptyEvent()->wait( 0 ) )
       {
          PD_LOG( PDWARNING, "Repl sync log is running, "
@@ -142,6 +192,9 @@ namespace engine
 
       // launch
       {
+         UINT32 broadCount = 0 ;
+         BOOLEAN localAbnormal = FALSE ;
+         INT64 abnormalThreshold = _logger->electionLsnAdvantageThreshold() ;
          DPS_LSN lsn = _logger->expectLsn() ;
          _MsgClsElectionBallot msg ;
          msg.weights = lsn ;
@@ -152,19 +205,35 @@ namespace engine
             // Add locationID to ballot msg
             msg.locationID = _groupInfo->localLocationID ;
          }
+         map<UINT64, _clsSharingStatus *>::const_iterator itr ;
 
-         map<UINT64, _clsSharingStatus *>::const_iterator itr = _groupInfo->alives.begin() ;
+         if ( !pmdGetStartup().isOK() )
+         {
+            localAbnormal = TRUE ;
+
+            if ( _logger->getCurrentLsn().invalid() && !_groupInfo->isAllNodeBeat() )
+            {
+               PD_LOG( PDWARNING, "Start type isn't normal and LSN is invalid"
+                       "(maybe not complete fullsync), can't inital voting "
+                       "until all nodes had been started") ;
+               rc = SDB_CLS_VOTE_FAILED ;
+               goto error ;
+            }
+         }
+
+         itr = _groupInfo->alives.begin() ;
 
          // Local node is in enforced critical mode, only replica group's election is effective
          if ( ! isLocation() &&
               CLS_GROUP_MODE_CRITICAL == _groupInfo->localGrpMode &&
-              CLS_IS_MAJORITY( _groupInfo->criticalAliveSize(), _groupInfo->criticalSize() ) )
+              _groupInfo->enforcedGrpMode )
          {
             while ( _groupInfo->alives.end() != itr )
             {
                const _clsSharingStatus* status = ( itr++ )->second ;
                // If local is normal but iterator node is abnormal, continue
-               if ( SERVICE_ABNORMAL == status->beat.serviceStatus && pmdGetStartup().isOK() )
+               if ( SERVICE_ABNORMAL == status->beat.serviceStatus && !localAbnormal &&
+                    abnormalThreshold < 0 )
                {
                   continue ;
                }
@@ -176,7 +245,9 @@ namespace engine
                   continue ;
                }
                // If iterator node is in critical node and lsn is greater than local's, stop initializing vote
-               else if ( 0 > lsn.compare( status->beat.endLsn ) )
+               else if ( _compareLsnWithStatus( lsn, !localAbnormal, status->beat.endLsn,
+                                                SERVICE_NORMAL == status->beat.serviceStatus,
+                                                abnormalThreshold ) < 0 )
                {
                   PD_LOG ( PDDEBUG, "%s Vote: DSP lsn is not max, can't initial voting",
                            getScopeName() ) ;
@@ -189,12 +260,20 @@ namespace engine
          {
             for ( ; itr != _groupInfo->alives.end(); ++itr )
             {
-               // if my bs is ok, but peer is not ok, skip
-               if ( SERVICE_ABNORMAL == itr->second->beat.serviceStatus && pmdGetStartup().isOK() )
+               const _clsSharingStatus* status = itr->second ;
+               // If local is normal but iterator node is abnormal, continue
+               if ( SERVICE_ABNORMAL == status->beat.serviceStatus && !localAbnormal &&
+                    abnormalThreshold < 0 )
                {
                   continue ;
                }
-               if ( 0 > lsn.compare( itr->second->beat.endLsn ) )
+               else if ( status->isInMaintenanceMode() )
+               {
+                  continue ;
+               }
+               else if ( _compareLsnWithStatus( lsn, !localAbnormal, status->beat.endLsn,
+                                                SERVICE_NORMAL == status->beat.serviceStatus,
+                                                abnormalThreshold ) < 0 )
                {
                   PD_LOG ( PDDEBUG, "%s Vote: DSP lsn is not max, can't initial voting",
                            getScopeName() ) ;
@@ -204,9 +283,9 @@ namespace engine
             }
          }
 
-         _broadcastAlives( &msg ) ;
-         PD_LOG( PDEVENT, "%s Vote: broadcast vote[round:%d] to all alive nodes",
-                 getScopeName(), round ) ;
+         broadCount = _broadcastAlives( &msg ) ;
+         PD_LOG( PDEVENT, "%s Vote: broadcast vote[round:%d] to all alive nodes, succeed:%u",
+                 getScopeName(), round, broadCount ) ;
       }
 
    done:
@@ -229,6 +308,7 @@ namespace engine
       map<UINT64, _clsSharingStatus >::iterator itrInfo ;
       BOOLEAN peerAbnormal = FALSE ;
       BOOLEAN localAbnormal = FALSE ;
+      INT64 abnormalThreshold = 0 ;
       DPS_LSN local ;
 
       // Add locationID to ballot msg
@@ -286,6 +366,7 @@ namespace engine
          SDB_ASSERT( NULL != _logger, "logger should not be NULL" ) ;
       }
       local = _logger->expectLsn() ;
+      abnormalThreshold = _logger->electionLsnAdvantageThreshold() ;
 
       // Local node is in enforced critical mode
       if ( ! isLocation() &&
@@ -297,7 +378,8 @@ namespace engine
          {
             const _clsSharingStatus* status = ( itr++ )->second ;
             // If peer is normal but iterator node is abnormal, continue
-            if ( ! peerAbnormal && SERVICE_ABNORMAL == status->beat.serviceStatus )
+            if ( ! peerAbnormal && SERVICE_ABNORMAL == status->beat.serviceStatus &&
+                 abnormalThreshold < 0 )
             {
                continue ;
             }
@@ -307,7 +389,9 @@ namespace engine
                continue ;
             }
             // If iterator node is in critical node and lsn is greater than peer's, accept error
-            else if ( 0 > lsn.compare( status->beat.endLsn ) )
+            else if ( _compareLsnWithStatus( lsn, !peerAbnormal, status->beat.endLsn,
+                                             SERVICE_NORMAL == status->beat.serviceStatus,
+                                             abnormalThreshold ) < 0 )
             {
                goto accepterr ;
             }
@@ -319,25 +403,35 @@ namespace engine
          map<UINT64, _clsSharingStatus *>::const_iterator itr = _groupInfo->alives.begin() ;
          for ( ; itr != _groupInfo->alives.end(); ++itr )
          {
-            if ( !peerAbnormal &&
-                 SERVICE_ABNORMAL == itr->second->beat.serviceStatus )
+            const _clsSharingStatus* status = itr->second ;
+            // If peer is normal but iterator node is abnormal, continue
+            if ( ! peerAbnormal && SERVICE_ABNORMAL == status->beat.serviceStatus &&
+                 abnormalThreshold < 0 )
             {
                continue ;
             }
-            /// find anyone's lsn > request's lsn. refuse.
-            else if ( 0 > lsn.compare( itr->second->beat.endLsn ) )
+            else if ( status->isInMaintenanceMode() )
+            {
+               continue ;
+            }
+            // If node lsn is greater than peer's, accept error
+            else if ( _compareLsnWithStatus( lsn, !peerAbnormal, status->beat.endLsn,
+                                             SERVICE_NORMAL == status->beat.serviceStatus,
+                                             abnormalThreshold ) < 0 )
             {
                goto accepterr ;
             }
          }
       }
 
-      /* when 1) self is business ok
-              2) peer node is abnormal
+      /* when 1) self is business ok or
+              2) peer node is abnormal or
+              3) abnormalThreshold >= 0
          need to judge self lsn */
-      if ( !localAbnormal || peerAbnormal )
+      if ( !localAbnormal || peerAbnormal || abnormalThreshold >= 0 )
       {
-         INT32 cRc = local.compare( lsn ) ;
+         INT32 cRc = _compareLsnWithStatus( local, !localAbnormal, lsn,
+                                            !peerAbnormal, abnormalThreshold ) ;
          /// local < lsn. accept
          if ( 0 > cRc )
          {
@@ -437,15 +531,20 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSVTSTUS__BCALIVES, "_clsVoteStatus::_broadcastAlives" )
-   void _clsVoteStatus::_broadcastAlives( void *msg )
+   UINT32 _clsVoteStatus::_broadcastAlives( void *msg )
    {
+      UINT32 count = 0 ;
       PD_TRACE_ENTRY ( SDB__CLSVTSTUS__BCALIVES ) ;
       map<UINT64, _clsSharingStatus *>::iterator itr = _groupInfo->alives.begin() ;
       for ( ; itr != _groupInfo->alives.end(); ++itr )
       {
-         _agent->syncSend( itr->second->beat.identity, (MsgHeader *)msg ) ;
+         if ( SDB_OK == _agent->syncSend( itr->second->beat.identity, (MsgHeader *)msg ) )
+         {
+            ++count ;
+         }
       }
       PD_TRACE_EXIT ( SDB__CLSVTSTUS__BCALIVES ) ;
+      return count ;
    }
 
    BOOLEAN _clsVoteStatus::_isAccepted()

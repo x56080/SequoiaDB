@@ -148,12 +148,7 @@ namespace engine
       _timeout() += millisec ;
       if ( CLS_VOTE_CS_TIME <= _timeout() )
       {
-         if ( !pmdGetStartup().isOK() &&
-              _info()->isAllNodeAbnormal( 0 ) )
-         {
-            next = CLS_ELECTION_STATUS_SEC ;
-         }
-         else if ( _isAccepted() )
+         if ( _isAccepted() )
          {
             next = CLS_ELECTION_STATUS_ANNOUNCE ;
 
@@ -196,7 +191,7 @@ namespace engine
       _accepted() = 0 ;
       _criticalAccepted() = 0 ;
 
-      if ( _info()->groupSize() == 1 && pmdGetStartup().isOK() )
+      if ( _info()->groupSize() == 1 )
       {
          next = CLS_ELECTION_STATUS_ANNOUNCE ;
       }

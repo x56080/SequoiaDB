@@ -39,6 +39,7 @@
 #include "core.hpp"
 #include "oss.hpp"
 #include "utilUniqueID.hpp"
+#include "ossAtomic.hpp"
 
 #include <string>
 #include <set>
@@ -400,6 +401,23 @@ namespace engine
       DMS_STORAGE_CAPPED,
       DMS_STORAGE_DUMMY
    } ;
+
+   /*
+      _dmsObjectStat define
+   */
+   struct _dmsObjectStat
+   {
+      ossAtomic32    _csNum ;
+      ossAtomic32    _clNum ;
+
+      _dmsObjectStat()
+      :_csNum( 0 ), _clNum( 0 )
+      {
+      }
+   } ;
+   typedef _dmsObjectStat dmsObjectStat ;
+
+   dmsObjectStat* dmsGetGlobalObjectStat() ;
 
    /*
       DMS Other define
