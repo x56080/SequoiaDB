@@ -470,7 +470,8 @@ namespace engine
          {
             _cscbIDMap.erase( csUniqueID ) ;
          }
-
+         /// set su to null
+         cscb->_su = NULL ;
          SDB_OSS_DEL cscb ;
          cscb = NULL ;
       }
