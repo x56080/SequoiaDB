@@ -42,6 +42,7 @@
 #include "ossIO.hpp"
 #include "ossUtil.hpp"
 #include "dpsLogDef.hpp"
+#include "ossLatch.hpp"
 
 using namespace std ;
 
@@ -54,6 +55,7 @@ namespace engine
    #define DPS_METAFILE_HEADER_LEN             (64 * 1024)
 
    #define DPS_METAFILE_CONTENT_LEN            (4 * 1024)
+   #define DPS_METAFILE_CONTENT_VALID_LEN      (56)
 
    #define DPS_METAFILE_VERSION1       (1)
 
@@ -97,8 +99,10 @@ namespace engine
       DPS_LSN_VER    _memBeginLsnVer ;
       UINT32         _reserved ;
       DPS_LSN_OFFSET _memBeginLsnOffset ;
-      // 48 == sizeof(_dpsMetaFileContent)
-      CHAR           _padding [ DPS_METAFILE_CONTENT_LEN - 48 ] ;
+      UINT32         _csNum ;
+      UINT32         _clNum ;
+      // DPS_METAFILE_CONTENT_VALID_LEN == sizeof(_dpsMetaFileContent)
+      CHAR           _padding [ DPS_METAFILE_CONTENT_LEN - DPS_METAFILE_CONTENT_VALID_LEN ] ;
 
       _dpsMetaFileContent ( DPS_LSN_OFFSET offset = DPS_INVALID_LSN_OFFSET )
       {
@@ -121,6 +125,9 @@ namespace engine
          _curLsnOffset     = DPS_INVALID_LSN_OFFSET ;
          _memBeginLsnVer   = DPS_INVALID_LSN_VERSION ;
          _memBeginLsnOffset= DPS_INVALID_LSN_OFFSET ;
+
+         _csNum            = ~0 ;
+         _clNum            = ~0 ;
       }
 
       void  reset()
@@ -147,6 +154,24 @@ namespace engine
          return TRUE ;
       }
 
+      bool operator==( const _dpsMetaFileContent &rhs ) const
+      {
+         if ( _oldestLSNOffset == rhs._oldestLSNOffset &&
+              _beginFile == rhs._beginFile &&
+              _workFile == rhs._workFile &&
+              _curLsnVersion == rhs._curLsnVersion &&
+              _curLsnLength == rhs._curLsnLength &&
+              _curLsnOffset == rhs._curLsnOffset &&
+              _memBeginLsnVer == rhs._memBeginLsnVer &&
+              _memBeginLsnOffset == rhs._memBeginLsnOffset &&
+              _csNum == rhs._csNum &&
+              _clNum == rhs._clNum )
+         {
+            return true ;
+         }
+         return false ;
+      }
+
    } ;
 
    typedef _dpsMetaFileContent dpsMetaFileContent ;
@@ -164,12 +189,13 @@ namespace engine
 
    public:
       INT32 init( const CHAR *parentDir ) ;
-      INT32 stop( DPS_LSN_OFFSET oldestTransLSN,
+      INT32 save( DPS_LSN_OFFSET oldestTransLSN,
                   UINT32 beginFile,
                   UINT32 workFile,
                   const DPS_LSN &curLSN,
                   UINT32 curLsnLength,
-                  const DPS_LSN &memBeginLSN ) ;
+                  const DPS_LSN &memBeginLSN,
+                  BOOLEAN force = FALSE ) ;
 
       INT32 invalidateStatus() ;
       INT32 writeOldestLSNOffset( DPS_LSN_OFFSET offset,
@@ -179,7 +205,7 @@ namespace engine
       BOOLEAN        isCacheLSNValid() const ;
       BOOLEAN        hasInvalidateStatus() const { return _invalidateStatus ; }
 
-      dpsMetaFileContent  getContent() const { return _content ; }
+      const dpsMetaFileContent&  getContent() const { return _content ; }
 
    private:
       INT32 _initNewFile() ;
@@ -193,6 +219,7 @@ namespace engine
       _dpsMetaFileHeader _header ;
       dpsMetaFileContent _content ;
       BOOLEAN            _invalidateStatus ;
+      ossSpinXLatch      _latch ;
    } ;
 }
 

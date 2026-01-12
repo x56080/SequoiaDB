@@ -390,7 +390,7 @@
              2. 如果不指定则默认为svcname+5。</cn>
       </detail>
       <typeofweb>str</typeofweb>
-     <hidden>true</hidden>
+      <hidden>true</hidden>
    </opt>
 
    <opt>
@@ -438,6 +438,7 @@
              2. 如果不指定，则默认为"SYSTEM|DDL|DCL", ALL取值表示开启所有,NONE关闭全部。<fig></fig>
              3. 更详细的内容可参考[审计日志](manual/Distributed_Engine/Maintainance/DiagLog/auditlog.md)</cn>
       </detail>
+      <default>SYSTEM|DDL|DCL</default>
       <typeofweb>str</typeofweb>
    </opt>
 
@@ -577,6 +578,7 @@
          <cn>重启生效</cn>
       </reloadable>
       <type>int</type>
+      <default>0</default>
       <detail>
          <en>The number of pre-loaders, default:0, value range:[0,100]</en>
          <cn>页面预加载代理数据，默认值为0，取值范围：[0,100]</cn>
@@ -596,6 +598,7 @@
          <cn>重启生效</cn>
       </reloadable>
       <type>int</type>
+      <default>0</default>
       <detail>
          <en>The maximum number of prefetchers, default:0, value range:[0,1000]</en>
          <cn>数据预取代理池最大数量,默认值:0,取值范围:[0,1000]</cn>
@@ -635,6 +638,7 @@
          <cn>在线生效</cn>
       </reloadable>
       <type>int</type>
+      <default>10</default>
       <detail>
          <en>The maximum number of repl-sync threads, default:10, value range:[0, 200], 0:disable concurrent repl-sync</en>
          <cn>日志同步最大并发数量，默认值:10,取值范围:[0,200], 0表示不启用日志并发同步</cn>
@@ -654,6 +658,7 @@
          <cn>重启生效</cn>
       </reloadable>
       <type>int</type>
+      <default>1024</default>
       <detail>
          <en>The number of pages ( in 64KB ) for replica log memory ( default:1024, value range:[512,1024000] ), the size should be smaller than log space</en>
          <cn>复制日志内存页面数,默认值:1024,取值范围:[512,1024000],但日志总内存大小不能超过日志总文件大小;每个页面大小为64KB</cn>
@@ -695,6 +700,7 @@
          <cn>下次查询生效</cn>
       </reloadstrategy>
       <type>int</type>
+      <default>256</default>
       <detail>
          <en>Size of the sorting buf(MB), default:256, min value:128, value range[128, 2^31 - 1]</en>
          <cn>排序缓存大小(MB),默认值256,最小值128,取值范围[128, 2^31 - 1]</cn>
@@ -710,6 +716,7 @@
          <cn>哈希连接缓存大小(MB),默认值128,最小值64,取值范围[64, 2^31 - 1]</cn>
       </description>
       <type>int</type>
+      <default>128</default>
       <reloadable>
          <en>Take effect immediately</en>
          <cn>在线生效</cn>
@@ -752,6 +759,7 @@
              3. keepnormal和keepall的区别在于，当有节点异常时keepall会降低主节点的处理速度，而keepnormal不受异常节点的影响。<fig></fig>
              4. 如果不指定，默认为keepnormal。</cn>
       </detail>
+      <default>keepnormal</default>
       <typeofweb>str</typeofweb>
    </opt>
 
@@ -766,7 +774,12 @@
          <en>Take effect after restart</en>
          <cn>重启生效</cn>
       </reloadable>
+      <detail>
+         <en>Repl bucket size ( must be the power of 2 ), default is 32, value range:[1,4096]</en>
+         <cn>日志并发同步桶大小,必须为2的幂,默认值为32,取值范围:[1,4096]</cn>
+      </detail>
       <type>int</type>
+      <default>32</default>
       <hidden>true</hidden>
    </opt>
 
@@ -781,6 +794,11 @@
          <en>Take effect immediately</en>
          <cn>在线生效</cn>
       </reloadable>
+      <detail>
+         <en>Enable memory debug, default:false</en>
+         <cn>打开内存调试,默认为false</cn>
+      </detail>
+      <default>false</default>
       <hidden>true</hidden>
    </opt>
 
@@ -795,6 +813,11 @@
          <en>Take effect immediately</en>
          <cn>在线生效</cn>
       </reloadable>
+      <detail>
+         <en>Enable memory debug verify when dump memory, default:false</en>
+         <cn>打开内存调试校验,默认为false</cn>
+      </detail>
+      <default>false</default>
       <hidden>true</hidden>
    </opt>
 
@@ -809,6 +832,11 @@
          <en>Take effect immediately</en>
          <cn>在线生效</cn>
       </reloadable>
+      <detail>
+         <en>Memory debug mask,value list:OSS,POOL,TC or ALL. Use '|' join multiple values, ALL enable all mask. Default:OSS|POOL</en>
+         <cn>内存调试掩码，取值 OSS,POOL,TC 或 ALL, 可以使用'|'连接多个值，ALL表示开启所有，默认:OSS|POOL</cn>
+      </detail>
+      <default>OSS|POOL</default>
       <hidden>true</hidden>
    </opt>
 
@@ -823,6 +851,11 @@
          <en>Take effect immediately</en>
          <cn>在线生效</cn>
       </reloadable>
+      <detail>
+         <en>Enable memory debugging details, default:false</en>
+         <cn>打开内存详细项的调试校验，默认为false</cn>
+      </detail>
+      <default>false</default>
       <hidden>true</hidden>
    </opt>
 
@@ -837,7 +870,12 @@
          <en>Take effect immediately</en>
          <cn>在线生效</cn>
       </reloadable>
+      <detail>
+         <en>Memory debug segment size,default:0, if not zero, the value range:[8,4194304]</en>
+         <cn>内存调试段大小,默认为0,当为不0时,取值范围:[8,4194304]</cn>
+      </detail>
       <type>int</type>
+      <default>0</default>
       <hidden>true</hidden>
    </opt>
 
@@ -856,12 +894,17 @@
       <long>dpslocal</long>
       <description>
          <en>Log the operation from local port, default:false</en>
-         <cn>是否记录来自本地端口的操作,默认为false</cn>
+         <cn>本地端口进行数据变更操作是否写同步日志,默认为false</cn>
       </description>
       <reloadable>
          <en>Take effect after restart</en>
          <cn>重启生效</cn>
       </reloadable>
+      <detail>
+         <en>Log the operation from local port, default:false</en>
+         <cn>本地端口进行数据变更操作是否写同步日志,默认为false</cn>
+      </detail>
+      <default>false</default>
       <hidden>true</hidden>
    </opt>
 
@@ -876,6 +919,11 @@
          <en>Take effect after restart</en>
          <cn>重启生效</cn>
       </reloadable>
+      <detail>
+         <en>Turn on trace when starting, default:false</en>
+         <cn>是否启动时开启跟踪,默认为false</cn>
+      </detail>
+      <default>false</default>
       <hidden>true</hidden>
    </opt>
 
@@ -890,7 +938,12 @@
          <en>Take effect after restart</en>
          <cn>重启生效</cn>
       </reloadable>
+      <detail>
+         <en>Trace buffer size(MB), default:256, value range:[1,1024]</en>
+         <cn>启动时开启跟踪的缓冲区大小(MB),默认值:256,取值范围:[1,1024]</cn>
+      </detail>
       <type>int</type>
+      <default>256</default>
       <hidden>true</hidden>
    </opt>
 
@@ -905,7 +958,12 @@
          <en>Take effect immediately</en>
          <cn>在线生效</cn>
       </reloadable>
+      <detail>
+         <en>The timeout period for heartbeat in each replica group ( in ms ), default:7000, value range:[5000,300000] </en>
+         <cn>判定心跳中断的时间(ms),默认值:7000,取值范围:[5000,300000]</cn>
+      </detail>
       <type>int</type>
+      <default>7000</default>
       <hidden>true</hidden>
    </opt>
 
@@ -920,23 +978,55 @@
          <en>Take effect immediately</en>
          <cn>在线生效</cn>
       </reloadable>
-     <type>int</type>
-     <hidden>true</hidden>
+      <detail>
+         <en>Index scan step, default is 100, range:[1, 10000]</en>
+         <cn>索引扫描步长,默认值为100,取值范围:[1,10000]</cn>
+      </detail>
+      <type>int</type>
+      <default>100</default>
+      <hidden>true</hidden>
    </opt>
 
    <opt>
       <name>PMD_OPTION_START_SHIFT_TIME</name>
       <long>startshifttime</long>
       <description>
-         <en>Nodes starting shift time(sec), default:600, value range:[0,7200]</en>
-         <cn>节点起动漂移时间(sec),默认值:600,取值范围:[0,7200]</cn>
+         <en>Node startup grace period(sec), default:600, value range:[0,7200]</en>
+         <cn>节点起动等待期(sec),默认值:600,取值范围:[0,7200]</cn>
       </description>
       <reloadable>
          <en>Take effect immediately</en>
          <cn>在线生效</cn>
       </reloadable>
-       <type>int</type>
-      <hidden>true</hidden>
+      <detail>
+         <en>Node startup grace period(sec), default:600, value range:[0,7200].If a node cannot establish hearbeats with all other nodes in its data group within this period after startup, it will not trigger leader election.</en>
+         <cn>节点起动等待期(sec),默认值:600,取值范围:[0,7200]。节点起动后，在该时间内未和同数据组其它节点建立心跳，则不发起选主。</cn>
+      </detail>
+      <type>int</type>
+      <default>600</default>
+      <typeofweb>num</typeofweb>
+   </opt>
+
+   <opt>
+      <name>PMD_OPTION_ELECTION_LSN_ADVANTAGE_THRESHOLD</name>
+      <long>electionlsnadvantagethreshold</long>
+      <description>
+         <en>The minimum LSN lead required for an unhealthy node to be considered ahead of a healthy node during primary election; if the lead is below this threshold, the unhealthy node is treated as behind even if its LSN is numerically larger. Unit:MB, Range:[-1,10485760], Default:512</en>
+         <cn>故障节点参与选主时LSN的最小领先阈值，若领先不足该阈值，则即使其LSN数值更大，也按落后处理。单位：MB，取值范围：[-1,10485760]，默认为512</cn>
+      </description>
+      <reloadable>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
+      </reloadable>
+      <detail>
+         <en>The minimum LSN lead required for an unhealthy node to be considered ahead of a healthy node during primary election; if the lead is below this threshold, the unhealthy node is treated as behind even if its LSN is numerically larger. Unit:MB, Range:[-1,10485760], Default:512.<fig></fig>
+         -1:Unhealthy nodes are excluded from election.</en>
+         <cn>故障节点参与选主时LSN的最小领先阈值，若领先不足该阈值，则即使其LSN数值更大，也按落后处理。单位：MB，取值范围：[-1,10485760]，默认为512。<fig></fig>
+         -1：表示故障节点不参与选主。</cn>
+      </detail>
+      <type>int</type>
+      <default>512</default>
+      <typeofweb>num</typeofweb>
    </opt>
 
    <opt>
@@ -1338,6 +1428,14 @@
          <en>Enable foreign access protocol.Module name 'fapmongo2','fapmongo3' and 'fapmongo4' is supportted</en>
          <cn>开启第三方驱动接入.支持'fapmongo2'、'fapmongo3'和'fapmongo4'选项</cn>
       </description>
+      <reloadable>
+         <en>Take effect after restart</en>
+         <cn>重启生效</cn>
+      </reloadable>
+      <detail>
+         <en>Enable foreign access protocol.Module name 'fapmongo2','fapmongo3' and 'fapmongo4' is supportted</en>
+         <cn>开启第三方驱动接入.支持'fapmongo2'、'fapmongo3'和'fapmongo4'选项</cn>
+      </detail>
      <hidden>true</hidden>
    </opt>
 
@@ -1794,7 +1892,16 @@
          <en>The interval(hour) for Cluster to check data storage files ( in hour ), default:0, 0 means disable checking, value range:[0, 240]</en>
          <cn>检查数据文件一致性的间隔(小时),默认值: 0, 0 表示不进行检查，取值范围:[0, 240]</cn>
       </description>
+      <reloadable>
+         <en>Take effect immediately</en>
+         <cn>在线生效</cn>
+      </reloadable>
+      <detail>
+         <en>The interval(hour) for Cluster to check data storage files ( in hour ), default:0, 0 means disable checking, value range:[0, 240]</en>
+         <cn>检查数据文件一致性的间隔(小时),默认值: 0, 0 表示不进行检查，取值范围:[0, 240]</cn>
+      </detail>
       <type>int</type>
+      <default>0</default>
       <hidden>true</hidden>
    </opt>
 
@@ -2140,7 +2247,7 @@
       </detail>
       <type>int</type>
       <default>2</default>
-      <hidden>true</hidden>
+      <typeofweb>num</typeofweb>
    </opt>
 
    <opt>
@@ -2349,7 +2456,7 @@
       </detail>
       <type>int</type>
       <default>8192</default>
-      <hidden>true</hidden>
+      <typeofweb>num</typeofweb>
    </opt>
 
    <opt>

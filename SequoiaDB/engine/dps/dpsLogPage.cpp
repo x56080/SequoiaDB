@@ -37,8 +37,12 @@
 #include "dpsLogPage.hpp"
 #include "pdTrace.hpp"
 #include "dpsTrace.hpp"
+
 namespace engine
 {
+   /*
+      _dpsLogPage implement
+   */
    _dpsLogPage::_dpsLogPage()
    :_mtx( MON_LATCH_DPSLOGPAGE_MTX, RW_SHARDWRITE )
    {
@@ -47,11 +51,10 @@ namespace engine
       _mb = SDB_OSS_NEW _dpsMessageBlock( DPS_DEFAULT_PAGE_SIZE );
       if ( NULL == _mb )
       {
-         pdLog(PDERROR, __FUNC__, __FILE__, __LINE__,
-               "new _dpsMessageBlock failed!");
+         PD_LOG( PDERROR, "Alocate message block failed" ) ;
       }
       _pageNumber = 0 ;
-      _startPage = DPS_LSN_START_FROM_HEAD;
+      _dirtyFlag  = 0 ;
    }
 
    _dpsLogPage::_dpsLogPage( UINT32 size )
@@ -61,19 +64,21 @@ namespace engine
       _mb = SDB_OSS_NEW _dpsMessageBlock( size );
       if ( NULL == _mb )
       {
-         pdLog(PDERROR, __FUNC__, __FILE__, __LINE__,
-               "new _dpsMessageBlock failed!");
+         PD_LOG( PDERROR, "Alocate message block failed" ) ;
       }
 
       _pageNumber = 0 ;
-      _startPage = DPS_LSN_START_FROM_HEAD;
+      _dirtyFlag  = 0 ;
    }
 
    _dpsLogPage::~_dpsLogPage()
    {
       lock();
       if ( _mb )
-         SDB_OSS_DEL _mb;
+      {
+         SDB_OSS_DEL _mb ;
+         _mb = NULL ;
+      }
       _mb = NULL;
       unlock();
    }
@@ -82,7 +87,7 @@ namespace engine
    {
       stringstream ss ;
       ss << "PageNumber: " << _pageNumber
-         << ", StartPage: " << (INT32)_startPage
+         << "DirtyFlag: " << _dirtyFlag
          << ", BeginLSNV" << _beginLSN.version
          << ", BeginLSNO" << _beginLSN.offset
          << ", Length: " << getLength()
@@ -91,95 +96,98 @@ namespace engine
       return ss.str() ;
    }
 
-/*
-   // insert something into the log page
-   INT32 _dpsLogPage::insert( const CHAR *src, UINT32 len )
-   {
-      INT32 rc = SDB_OK;
-      UINT64 offset = 0;
-      // preallocate space from the page
-      rc = allocate( len, offset );
-      if ( rc )
-      {
-         pdLog ( PDERROR, __FUNC__, __FILE__, __LINE__,
-                 "Failed to allocate %d from offset %lld, rc = %d",
-                 len, offset, rc ) ;
-         goto error;
-      }
-      // fill up the data into given offset
-      rc = fill( offset, src, len );
-      if ( rc )
-      {
-         pdLog ( PDERROR, __FUNC__, __FILE__, __LINE__,
-                 "Failed to fill, rc = %d", rc ) ;
-         goto error ;
-      }
-   done :
-      return rc ;
-   error :
-      goto done ;
-   }
-*/
    // fill up data into log page
-   PD_TRACE_DECLARE_FUNCTION ( SDB__DPSLGPAGE, "_dpsLogPage::fill" )
-   INT32 _dpsLogPage::fill( UINT32 offset, const CHAR *src, UINT32 len )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSLGPAGE_FILL, "_dpsLogPage::fill" )
+   INT32 _dpsLogPage::fill( UINT32 offset, const CHAR *src, UINT32 len, BOOLEAN setDirty )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB__DPSLGPAGE );
+      PD_TRACE_ENTRY ( SDB__DPSLGPAGE_FILL );
       if ( !_mb )
       {
          _mb = SDB_OSS_NEW _dpsMessageBlock( DPS_DEFAULT_PAGE_SIZE );
          if ( NULL == _mb )
          {
-            pdLog(PDERROR, __FUNC__, __FILE__, __LINE__,
-                  "new _dpsMessageBlock failed!");
+            PD_LOG( PDERROR, "Alocate message block failed" ) ;
             rc = SDB_OOM ;
             goto error ;
          }
       }
       ossMemcpy ( _mb->offset( offset ), src, len ) ;
+
+      if ( setDirty )
+      {
+         makeDirty() ;
+      }
+
    done :
-      PD_TRACE_EXITRC ( SDB__DPSLGPAGE, rc );
+      PD_TRACE_EXITRC ( SDB__DPSLGPAGE_FILL, rc );
       return rc ;
    error :
       goto done ;
    }
 
-   // reserve space from a given page
-   PD_TRACE_DECLARE_FUNCTION ( SDB__DPSLGPAGE2, "_dpsLogPage::allocate" )
-   INT32 _dpsLogPage::allocate( UINT32 len )
+   void _dpsLogPage::truncate( UINT32 offset )
+   {
+      if ( _mb && _mb->size() > offset )
+      {
+         /// set write prt
+         _mb->writePtr( offset ) ;
+         /// invalidate last data
+         _mb->invalidateData() ;
+         /// make dirty
+         makeDirty() ;
+      }
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSLGPAGE_RESERVE, "_dpsLogPage::reserve" )
+   INT32 _dpsLogPage::reserve( UINT32 len, BOOLEAN setDirty )
    {
       INT32 rc = SDB_OK;
-      PD_TRACE_ENTRY ( SDB__DPSLGPAGE2 );
+      PD_TRACE_ENTRY ( SDB__DPSLGPAGE_RESERVE ) ;
+
       if ( !_mb )
       {
          _mb = SDB_OSS_NEW _dpsMessageBlock( DPS_DEFAULT_PAGE_SIZE );
          if ( NULL == _mb )
          {
-            pdLog(PDERROR, __FUNC__, __FILE__, __LINE__,
-                  "new _dpsMessageBlock failed!");
+            PD_LOG( PDERROR, "Alocate message block failed" ) ;
             rc = SDB_OOM ;
             goto error ;
          }
       }
-      // make sure we get enough space
-      SDB_ASSERT ( getLastSize() >= len, "len is greater than buffer size" ) ;
-      // change current writing position
-      _mb->writePtr( len + _mb->length() );
+
+      if ( getLastSize() >= len )
+      {
+         // change current writing position
+         _mb->writePtr( len + _mb->length() ) ;
+      }
+      else
+      {
+         SDB_ASSERT( FALSE, "Invalid len" ) ;
+         rc = SDB_OSS_UP_TO_LIMIT ;
+         PD_LOG( PDERROR, "Last size(%d) is less than len(%d), rc: %d",
+                 getLastSize(), len ) ;
+         goto error ;
+      }
+
+      if ( setDirty )
+      {
+         makeDirty() ;
+      }
 
    done :
-      PD_TRACE_EXITRC ( SDB__DPSLGPAGE2, rc );
+      PD_TRACE_EXITRC ( SDB__DPSLGPAGE_RESERVE, rc );
       return rc ;
    error :
       goto done ;
    }
 
    // allocate and return the offset
-   INT32 _dpsLogPage::allocate( UINT32 len, UINT64 &offset )
+   INT32 _dpsLogPage::reserve( UINT32 len, UINT64 &offset, BOOLEAN setDirty )
    {
       offset = getLength();
-
-      return allocate(len);
+      return reserve( len, setDirty ) ;
    }
+
 }
 

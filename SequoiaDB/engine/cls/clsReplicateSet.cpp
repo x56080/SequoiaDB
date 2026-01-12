@@ -874,6 +874,18 @@ namespace engine
       return ;
    }
 
+   CLS_NODE_SERVICE_STATUS _clsReplicateSet::getNodeStatus( UINT64 nodeID )
+   {
+      ossScopedRWLock lock( &(_info.mtx), SHARED ) ;
+
+      if ( _info.local.value == nodeID )
+      {
+         /// self
+         return pmdGetStartup().isOK() ? SERVICE_NORMAL : SERVICE_ABNORMAL ;
+      }
+      return _info.getNodeStatus( nodeID ) ;      
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREPSET_HNDEVENT, "_clsReplicateSet::handleEvent" )
    INT32 _clsReplicateSet::handleEvent( pmdEDUEvent *event )
    {
@@ -1613,8 +1625,15 @@ namespace engine
       itr->second.deadtime = 0 ;
       itr->second.sendFailedTimes = 0 ;
 
-      if ( fromUDP )
+      /// when node is stop, disable UDP heartbeat, then send heartbeat whill report
+      /// error, and then set timeout to sharingbreak value
+      if ( CLS_NODE_STOP == itr->second.beat.nodeRunStat )
       {
+         itr->second.setUDPUnavailable() ;
+      }
+      else if ( fromUDP )
+      {
+         // Use UDP to send heartBeat
          itr->second.setUDPSupported() ;
       }
 

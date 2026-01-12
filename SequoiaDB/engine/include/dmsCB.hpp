@@ -348,6 +348,8 @@ namespace engine
       DMS_HANDLER_LIST           _handlers ;
 
    private:
+      BOOLEAN _isAllCollectionSpaceValid() const ;
+
       void  _logCSCBNameMap () ;
 
       INT32 _CSCBNameInsert ( const CHAR *pName,

@@ -2182,7 +2182,7 @@ namespace engine
       /// commit log
       if ( !syncSpecCS )
       {
-         rc = dpsCB->commit( sync, &commitLSN ) ;
+         rc = dpsCB->commit( sync, &commitLSN, TRUE ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "Failed to commit dps log: %d", rc ) ;

@@ -129,6 +129,8 @@ namespace engine
 
       DPS_LSN_OFFSET             _startUpExpectLSN ;
 
+      INT64                      _electionLsnAdvantageThreshold ;
+
    public:
       _dpsLogWrapper() ;
       virtual ~_dpsLogWrapper() ;
@@ -267,9 +269,11 @@ namespace engine
          return _buf.checkSeondarySyncControl( reqLen, cb ) ;
       }
 
-      INT32 commit( BOOLEAN deeply, DPS_LSN *committedLsn ) ;
+      INT32 commit( BOOLEAN deeply, DPS_LSN *committedLsn, BOOLEAN updateMeta = FALSE ) ;
 
       DPS_LSN_OFFSET getStartUpExpectLSN() const { return _startUpExpectLSN ; }
+
+      INT64 electionLsnAdvantageThreshold() const { return _electionLsnAdvantageThreshold ; }
 
    public:
       INT32 prepare( dpsMergeInfo &info ) ;

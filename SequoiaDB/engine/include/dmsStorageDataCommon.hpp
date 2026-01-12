@@ -1678,6 +1678,7 @@ namespace engine
 
          /// set bitmap
          _slotBitmap.setBit( mbID ) ;
+         dmsGetGlobalObjectStat()->_clNum.inc() ;
       }
       catch( std::exception &e )
       {
@@ -1881,6 +1882,7 @@ namespace engine
       {
          /// unset bit
          _slotBitmap.clearBit( it->second ) ;
+         dmsGetGlobalObjectStat()->_clNum.dec() ;
          const CHAR *tp = (*it).first ;
          _collectionNameMap.erase( it ) ;
          SDB_OSS_FREE( const_cast<CHAR *>(tp) ) ;
@@ -1899,6 +1901,7 @@ namespace engine
       {
          SDB_OSS_FREE( const_cast<CHAR *>(it->first) ) ;
       }
+      dmsGetGlobalObjectStat()->_clNum.sub( _collectionNameMap.size() ) ;
       _collectionNameMap.clear() ;
       _collectionIDMap.clear() ;
       _slotBitmap.resetBitmap() ;

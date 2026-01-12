@@ -338,7 +338,9 @@ namespace engine
    INT32 _dpsLogFile::validateLsn( DPS_LSN_OFFSET lsnOffset,
                                    BOOLEAN &isValid,
                                    CHAR *pErrMsgBuf,
-                                   UINT32 buffSize )
+                                   UINT32 buffSize,
+                                   DPS_LSN_VER expectVer,
+                                   UINT32 expectLen )
    {
       INT32 rc = SDB_OK ;
       BOOLEAN hasSetRestore = FALSE ;
@@ -399,6 +401,29 @@ namespace engine
       {
          ossSnprintf( pErrMsgBuf, buffSize, "LSN length[%d] is not 4 bytes aligned, "
                       "invalid LSN", logHeader._length ) ;
+         goto done ;
+      }
+      else if ( DPS_INVALID_LSN_VERSION != expectVer &&
+                logHeader._version != expectVer )
+      {
+         ossSnprintf( pErrMsgBuf, buffSize, "LSN version[%u] is not the same with expect[%u], "
+                      "invalid LSN", logHeader._version, expectVer ) ;
+         goto done ;
+      }
+      else if ( 0 != expectLen && logHeader._length != expectLen )
+      {
+         ossSnprintf( pErrMsgBuf, buffSize, "LSN length[%u] is not the same with expect[%u], "
+                      "invalid LSN", logHeader._length, expectLen ) ;
+         goto done ;
+      }
+      else if ( DPS_INVALID_LSN_OFFSET != logHeader._preLsn &&
+                ( logHeader._lsn <= logHeader._preLsn ||
+                  logHeader._lsn - logHeader._preLsn < sizeof( dpsLogRecordHeader ) ||
+                  logHeader._lsn - logHeader._preLsn > DPS_RECORD_MAX_LEN ||
+                  ( logHeader._lsn - logHeader._preLsn ) % sizeof( UINT32 ) != 0 ) )
+      {
+         ossSnprintf( pErrMsgBuf, buffSize, "LSN prev-lsn[%lld] is incorrect, invalid LSN",
+                      logHeader._preLsn ) ;
          goto done ;
       }
 
@@ -582,11 +607,15 @@ namespace engine
       CHAR *lastRecord = NULL ;
       UINT32 lastLen = 0 ;
       CHAR *pBlockBuf = NULL ;
+      DPS_LSN_OFFSET prevLsn = DPS_INVALID_LSN_OFFSET ;
+      DPS_LSN_VER prevVersion = DPS_INVALID_LSN_VERSION ;
 
       _inRestore = TRUE ;
 
       offSet = _logHeader._firstLSN.offset % _fileSize ;
       baseOffset = _logHeader._firstLSN.offset - offSet ;
+
+      prevVersion = _logHeader._firstLSN.version ;
 
       /// prepare buff
       pBlockBuf = (CHAR*)SDB_OSS_MALLOC( DPS_LOG_BLOCK_SZ ) ;
@@ -628,26 +657,52 @@ namespace engine
             }
             else if ( offSet + pLsnHeader->_length > _fileSize )
             {
-               PD_LOG ( PDEVENT, "LSN length[%d] is over the file "
-                        "size[offSet:%lld]", pLsnHeader->_length, offSet ) ;
+               PD_LOG ( PDEVENT, "LSN[%lld]'s length[%d] is over the file "
+                        "size[offSet:%lld], invalid LSN",
+                        pLsnHeader->_lsn, pLsnHeader->_length, offSet ) ;
                break ;
             }
             else if ( pLsnHeader->_length < sizeof (dpsLogRecordHeader) )
             {
-               PD_LOG ( PDEVENT, "LSN length[%d] less than min[%d], invalid LSN",
-                        pLsnHeader->_length, sizeof (dpsLogRecordHeader) ) ;
+               PD_LOG ( PDEVENT, "LSN[%lld]'s length[%d] less than min[%d], invalid LSN",
+                        pLsnHeader->_lsn, pLsnHeader->_length, sizeof (dpsLogRecordHeader) ) ;
                break ;
             }
             else if ( pLsnHeader->_length > DPS_RECORD_MAX_LEN )
             {
-               PD_LOG( PDEVENT, "LSN length[%d] more than max[%d], invalid LSN",
-                       pLsnHeader->_length, DPS_RECORD_MAX_LEN ) ;
+               PD_LOG( PDEVENT, "LSN[%lld]'s length[%d] more than max[%d], invalid LSN",
+                       pLsnHeader->_lsn, pLsnHeader->_length, DPS_RECORD_MAX_LEN ) ;
                break ;
             }
             else if ( pLsnHeader->_length % sizeof( UINT32 ) != 0 )
             {
-               PD_LOG( PDEVENT, "LSN length[%d] is not 4 bytes aligned, "
-                       "invalid LSN", pLsnHeader->_length ) ;
+               PD_LOG( PDEVENT, "LSN[%lld]'s length[%d] is not 4 bytes aligned, "
+                       "invalid LSN", pLsnHeader->_lsn, pLsnHeader->_length ) ;
+               break ;
+            }
+            else if ( DPS_INVALID_LSN_OFFSET != prevLsn &&
+                      pLsnHeader->_preLsn != prevLsn )
+            {
+               PD_LOG( PDEVENT, "LSN[%lld]'s prev-lsn is not the same[%lld!=%lld], "
+                       "invalid LSN", pLsnHeader->_lsn, pLsnHeader->_preLsn, prevLsn ) ;
+               break ;
+            }
+            else if ( DPS_INVALID_LSN_VERSION != prevVersion &&
+                      pLsnHeader->_version < prevVersion )
+            {
+               PD_LOG( PDEVENT, "LSN[%lld]'s version[%u] is less than prev lsn's version[%u], "
+                       "invalid LSN", pLsnHeader->_lsn, pLsnHeader->_version, prevVersion ) ;
+               break ;
+            }
+            else if ( DPS_INVALID_LSN_OFFSET == prevLsn &&
+                      DPS_INVALID_LSN_OFFSET != pLsnHeader->_preLsn &&
+                      ( pLsnHeader->_lsn <= pLsnHeader->_preLsn ||
+                        pLsnHeader->_lsn - pLsnHeader->_preLsn < sizeof( dpsLogRecordHeader ) ||
+                        pLsnHeader->_lsn - pLsnHeader->_preLsn > DPS_RECORD_MAX_LEN ||
+                        ( pLsnHeader->_lsn - pLsnHeader->_preLsn ) % sizeof( UINT32 ) != 0 ) )
+            {
+               PD_LOG( PDEVENT, "LSN[%lld]'s prev-lsn[%lld] is incorrect, invalid LSN",
+                       pLsnHeader->_lsn, pLsnHeader->_preLsn ) ;
                break ;
             }
 
@@ -656,6 +711,9 @@ namespace engine
             offsetInBuf += pLsnHeader->_length ;
             offSet += pLsnHeader->_length ;
             lastLen = pLsnHeader->_length ;
+
+            prevLsn = pLsnHeader->_lsn ;
+            prevVersion = pLsnHeader->_version ;
 
             if ( offsetInBuf + sizeof( dpsLogRecordHeader ) > readLen )
             {

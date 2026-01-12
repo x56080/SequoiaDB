@@ -220,6 +220,22 @@ namespace engine
 
       if ( !pmdGetKRCB()->isRestore() )
       {
+         if ( !pmdGetStartup().isOK() )
+         {
+            SDB_DPSCB *dpsCB = pmdGetKRCB()->getDPSCB() ;
+            const dpsMetaFileContent &metaContent = dpsCB->getLogMgr()->getMetaContent() ;
+
+            if ( metaContent.isStatusValid() &&
+                 dmsGetGlobalObjectStat()->_csNum.compare( metaContent._csNum ) &&
+                 dmsGetGlobalObjectStat()->_clNum.compare( metaContent._clNum ) &&
+                 _isAllCollectionSpaceValid() )
+            {
+               PD_LOG( PDEVENT, "All collectionspaces and logs are valid, "
+                       "then set database normal" ) ;
+               pmdGetStartup().ok( TRUE ) ;
+            }
+         }
+
          rc = dmsStartRecycleRecordJob( NULL ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Start recycle record job thread failed, rc: %d",
@@ -327,6 +343,36 @@ namespace engine
       }
    }
 
+   BOOLEAN _SDB_DMSCB::_isAllCollectionSpaceValid() const
+   {
+      CSCB_MAP_CONST_ITER it ;
+
+      for ( it = _cscbNameMap.begin(); it != _cscbNameMap.end() ; ++it )
+      {
+         SDB_DMS_CSCB *suCB = _cscbVec[ it->second ] ;
+
+         if ( suCB )
+         {
+            if ( suCB->_su->data() && suCB->_su->data()->isCrashed() )
+            {
+               return FALSE ;
+            }
+            else if ( suCB->_su->index() && suCB->_su->index()->isCrashed() )
+            {
+               return FALSE ;
+            }
+            else if ( suCB->_su->lob() &&
+                      suCB->_su->lob()->isOpened() &&
+                      suCB->_su->lob()->isCrashed() )
+            {
+               return FALSE ;
+            }
+         }
+      }
+
+      return TRUE ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB__LGCSCBNMMAP, "_SDB_DMSCB::_logCSCBNameMap" )
    void _SDB_DMSCB::_logCSCBNameMap ()
    {
@@ -371,17 +417,45 @@ namespace engine
       suID = _freeList.front() ;
       su->_setCSID( suID ) ;
       su->_setLogicalCSID( _logicalSUID++ ) ;
-      _freeList.pop() ;
-      _cscbNameMap[cscb->_name] = suID ;
-      _cscbVec[suID] = cscb ;
-      if ( UTIL_IS_VALID_CSUNIQUEID( csUniqueID ) )
+
+      try
       {
-         _cscbIDMap[csUniqueID] = suID ;
+         _cscbNameMap[cscb->_name] = suID ;
+         _cscbVec[suID] = cscb ;
+         if ( UTIL_IS_VALID_CSUNIQUEID( csUniqueID ) )
+         {
+            _cscbIDMap[csUniqueID] = suID ;
+         }
+
+         _freeList.pop() ;
+         cscb = NULL ;
+
+         dmsGetGlobalObjectStat()->_csNum.inc() ;
       }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         goto error ;
+      }
+
    done :
       PD_TRACE_EXITRC ( SDB__SDB_DMSCB__CSCBNMINST, rc );
       return rc ;
    error :
+      if ( cscb )
+      {
+         _cscbNameMap.erase( cscb->_name ) ;
+         if ( UTIL_IS_VALID_CSUNIQUEID( csUniqueID ) )
+         {
+            _cscbIDMap.erase( csUniqueID ) ;
+         }
+
+         /// set su to null
+         cscb->_su = NULL ;
+         SDB_OSS_DEL cscb ;
+         cscb = NULL ;
+      }
       goto done ;
    }
 
@@ -1031,6 +1105,17 @@ namespace engine
       // we don't erase it, it may cause core dump.
       csUniqueID = pCSCB->_su->CSUniqueID() ;
 
+      try
+      {
+         _freeList.push( suID ) ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         goto error ;
+      }
+
       _tmpCscbVec[ suID ] = NULL ;
       _tmpCscbStatusVec[ suID ] = DMS_CSCB_STATUS_NONE ;
       _cscbNameMap.erase( pName ) ;
@@ -1038,7 +1123,7 @@ namespace engine
       {
          _cscbIDMap.erase( csUniqueID ) ;
       }
-      _freeList.push( suID ) ;
+      dmsGetGlobalObjectStat()->_csNum.dec() ;
 
       // log here
       csLID = pCSCB->_su->LogicalCSID() ;
@@ -1062,10 +1147,12 @@ namespace engine
       if ( isLocked )
       {
          _mutex.release () ;
+         isLocked = FALSE ;
       }
       if ( isReserved )
       {
          pTransCB->releaseLogSpace( logRecSize, cb );
+         isReserved = FALSE ;
       }
       PD_TRACE_EXITRC ( SDB__SDB_DMSCB__CSCBNMREMVP2, rc );
       return rc ;
@@ -1100,6 +1187,7 @@ namespace engine
       }
       _cscbNameMap.clear() ;
       _cscbIDMap.clear() ;
+      dmsGetGlobalObjectStat()->_csNum.swap( 0 ) ;
       PD_TRACE_EXIT ( SDB__SDB_DMSCB__CSCBNMMAPCLN );
    }
 
@@ -1944,6 +2032,12 @@ namespace engine
          _mutex.release() ;
          isLocked = FALSE ;
       }
+
+      if ( rc )
+      {
+         goto error ;
+      }
+
       if ( isCreate )
       {
          su->getEventHolder()->onCreateCS( DMS_EVENT_MASK_ALL, cb, dpsCB ) ;

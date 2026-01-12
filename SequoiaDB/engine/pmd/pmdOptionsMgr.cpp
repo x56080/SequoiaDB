@@ -81,6 +81,7 @@ namespace engine
    #define PMD_DFT_REPL_BUCKET_SIZE    (32)
    #define PMD_DFT_INDEX_SCAN_STEP     (100)
    #define PMD_DFT_START_SHIFT_TIME    (600)
+   #define PMD_DFT_ELECTION_LSN_ADVANTAGE_THRESHOLD   ( 512 )
    #define PMD_MAX_NUMPAGECLEAN        (50)
    #define PMD_MIN_PAGECLEANINTERVAL   (1000)
    #define PMD_DFT_OVERFLOW_RETIO      (12)
@@ -1939,6 +1940,7 @@ done:
       _transTimeout        = DPS_TRANS_DFT_TIMEOUT ;
       _sharingBreakTime    = PMD_OPTION_BRK_TIME_DEFAULT ;
       _startShiftTime      = PMD_DFT_START_SHIFT_TIME ;
+      _electionLsnAdvantageThreshold = PMD_DFT_ELECTION_LSN_ADVANTAGE_THRESHOLD ;
       _logBuffSize         = DPS_DFT_LOG_BUF_SZ ;
       _sortBufSz           = PMD_DEFAULT_SORTBUF_SZ ;
       _hjBufSz             = PMD_DEFAULT_HJ_SZ ;
@@ -2328,8 +2330,12 @@ done:
       rdvMinMax( pEX, _sharingBreakTime, 5000, 300000, TRUE ) ;
       // --startshifttime
       rdxUInt( pEX, PMD_OPTION_START_SHIFT_TIME, _startShiftTime, FALSE,
-               PMD_CFG_CHANGE_RUN, PMD_DFT_START_SHIFT_TIME, TRUE ) ;
+               PMD_CFG_CHANGE_RUN, PMD_DFT_START_SHIFT_TIME, FALSE ) ;
       rdvMinMax( pEX, _startShiftTime, 0, 7200, TRUE ) ;
+      // --electionlsnadvantagethreshold
+      rdxInt( pEX, PMD_OPTION_ELECTION_LSN_ADVANTAGE_THRESHOLD, _electionLsnAdvantageThreshold, FALSE,
+              PMD_CFG_CHANGE_RUN, PMD_DFT_ELECTION_LSN_ADVANTAGE_THRESHOLD, FALSE ) ;
+      rdvMinMax( pEX, _electionLsnAdvantageThreshold, -1, 10485760, TRUE ) ;
       // --catalogaddr
       rdxString( pEX, PMD_OPTION_CATALOG_ADDR, _catAddrLine,
                  sizeof(_catAddrLine), FALSE, PMD_CFG_CHANGE_FORBIDDEN, "" ) ;
@@ -2537,7 +2543,7 @@ done:
 
       // --mempoolsize
       rdxUInt( pEX, PMD_OPTION_MEMPOOL_SIZE, _memPoolSize, FALSE,
-               PMD_CFG_CHANGE_RUN, 8192, TRUE ) ;
+               PMD_CFG_CHANGE_RUN, 8192, FALSE ) ;
 
       // --mempoolthreshold
       rdxUInt( pEX, PMD_OPTION_MEMPOOL_THRESHOLD, _memPoolThreshold, FALSE,
@@ -2545,7 +2551,7 @@ done:
 
       // --transreplsize
       rdxInt( pEX, PMD_OPTION_TRANS_REPLSIZE, _transReplSize, FALSE,
-              PMD_CFG_CHANGE_RUN, SDB_DFT_REPLSIZE, TRUE ) ;
+              PMD_CFG_CHANGE_RUN, SDB_DFT_REPLSIZE, FALSE ) ;
       rdvMinMax( pEX, _transReplSize, CLS_REPLSIZE_SPECIAL_MIN, CLS_REPLSET_MAX_NODE_SIZE ) ;
 
       // --transrccount

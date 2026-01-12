@@ -157,7 +157,9 @@ namespace engine
       INT32 validateLsn( DPS_LSN_OFFSET lsnOffset,
                          BOOLEAN &isValid,
                          CHAR *pErrMsgBuf,
-                         UINT32 buffSize ) ;
+                         UINT32 buffSize,
+                         DPS_LSN_VER expectVer = DPS_INVALID_LSN_VERSION,
+                         UINT32 expectLen = 0 ) ;
 
       // write into file
       INT32 write ( const CHAR *content, UINT32 len ) ;
