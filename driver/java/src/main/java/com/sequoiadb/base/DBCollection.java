@@ -2788,7 +2788,7 @@ public class DBCollection {
     public ObjectId createLobID(Date d) throws BaseException {
         BSONObject createLobID = null;
         if (null != d) {
-            SimpleDateFormat sdf = new SimpleDateFormat("YYYY-MM-dd-HH.mm.ss");
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd-HH.mm.ss");
             createLobID = new BasicBSONObject(DBLobImpl.FIELD_NAME_LOB_CREATE_TIME, sdf.format(d));
         }
 
