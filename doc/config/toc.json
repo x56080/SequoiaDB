@@ -4225,242 +4225,242 @@
                         {
                            "id": 1560930214,
                            "file": "addAHostMap",
-                           "cn": "addAHostMap",
-                           "en": "addAHostMap"
+                           "cn": "addAHostMap()",
+                           "en": "addAHostMap()"
                         },
                         {
                            "id": 1560930347,
                            "file": "addGroup",
-                           "cn": "addGroup",
-                           "en": "addGroup"
+                           "cn": "addGroup()",
+                           "en": "addGroup()"
                         },
                         {
                            "id": 1560930348,
                            "file": "addUser",
-                           "cn": "addUser",
-                           "en": "addUser"
+                           "cn": "addUser()",
+                           "en": "addUser()"
                         },
                         {
                            "id": 1560930349,
                            "file": "delAHostMap",
-                           "cn": "delAHostMap",
-                           "en": "delAHostMap"
+                           "cn": "delAHostMap()",
+                           "en": "delAHostMap()"
                         },
                         {
                            "id": 1560930350,
                            "file": "delGroup",
-                           "cn": "delGroup",
-                           "en": "delGroup"
+                           "cn": "delGroup()",
+                           "en": "delGroup()"
                         },
                         {
                            "id": 1560930351,
                            "file": "delUser",
-                           "cn": "delUser",
-                           "en": "delUser"
+                           "cn": "delUser()",
+                           "en": "delUser()"
                         },
                         {
                            "id": 1560931317,
                            "file": "getAHostMap",
-                           "cn": "getAHostMap",
-                           "en": "getAHostMap"
+                           "cn": "getAHostMap()",
+                           "en": "getAHostMap()"
                         },
                         {
                            "id": 1560931318,
                            "file": "getCpuInfo",
-                           "cn": "getCpuInfo",
-                           "en": "getCpuInfo"
+                           "cn": "getCpuInfo()",
+                           "en": "getCpuInfo()"
                         },
                         {
                            "id": 1560931747,
                            "file": "getCurrentUser",
-                           "cn": "getCurrentUser",
-                           "en": "getCurrentUser"
+                           "cn": "getCurrentUser()",
+                           "en": "getCurrentUser()"
                         },
                         {
                            "id": 1560931319,
                            "file": "getDiskInfo",
-                           "cn": "getDiskInfo",
-                           "en": "getDiskInfo"
+                           "cn": "getDiskInfo()",
+                           "en": "getDiskInfo()"
                         },
                         {
                            "id": 1560931320,
                            "file": "getEWD",
-                           "cn": "getEWD",
-                           "en": "getEWD"
+                           "cn": "getEWD()",
+                           "en": "getEWD()"
                         },
                         {
                            "id": 1560931321,
                            "file": "getHostName",
-                           "cn": "getHostName",
-                           "en": "getHostName"
+                           "cn": "getHostName()",
+                           "en": "getHostName()"
                         },
                         {
                            "id": 1560931322,
                            "file": "getHostsMap",
-                           "cn": "getHostsMap",
-                           "en": "getHostsMap"
+                           "cn": "getHostsMap()",
+                           "en": "getHostsMap()"
                         },
                         {
                            "id": 1560931323,
                            "file": "getIpTablesInfo",
-                           "cn": "getIpTablesInfo",
-                           "en": "getIpTablesInfo"
+                           "cn": "getIpTablesInfo()",
+                           "en": "getIpTablesInfo()"
                         },
                         {
                            "id": 1560931324,
                            "file": "getMemInfo",
-                           "cn": "getMemInfo",
-                           "en": "getMemInfo"
+                           "cn": "getMemInfo()",
+                           "en": "getMemInfo()"
                         },
                         {
                            "id": 1560931325,
                            "file": "getNetcardInfo",
-                           "cn": "getNetcardInfo",
-                           "en": "getNetcardInfo"
+                           "cn": "getNetcardInfo()",
+                           "en": "getNetcardInfo()"
                         },
                         {
                            "id": 1560931326,
                            "file": "getPID",
-                           "cn": "getPID",
-                           "en": "getPID"
+                           "cn": "getPID()",
+                           "en": "getPID()"
                         },
                         {
                            "id": 1560931327,
                            "file": "getProcUlimitConfigs",
-                           "cn": "getProcUlimitConfigs",
-                           "en": "getProcUlimitConfigs"
+                           "cn": "getProcUlimitConfigs()",
+                           "en": "getProcUlimitConfigs()"
                         },
                         {
                            "id": 1560931328,
                            "file": "getReleaseInfo",
-                           "cn": "getReleaseInfo",
-                           "en": "getReleaseInfo"
+                           "cn": "getReleaseInfo()",
+                           "en": "getReleaseInfo()"
                         },
                         {
                            "id": 1560931329,
                            "file": "getSystemConfigs",
-                           "cn": "getSystemConfigs",
-                           "en": "getSystemConfigs"
+                           "cn": "getSystemConfigs()",
+                           "en": "getSystemConfigs()"
                         },
                         {
                            "id": 1560931330,
                            "file": "getTID",
-                           "cn": "getTID",
-                           "en": "getTID"
+                           "cn": "getTID()",
+                           "en": "getTID()"
                         },
                         {
                            "id": 1560931331,
                            "file": "getUserEnv",
-                           "cn": "getUserEnv",
-                           "en": "getUserEnv"
+                           "cn": "getUserEnv()",
+                           "en": "getUserEnv()"
                         },
                         {
                            "id": 1560931332,
                            "file": "isGroupExist",
-                           "cn": "isGroupExist",
-                           "en": "isGroupExist"
+                           "cn": "isGroupExist()",
+                           "en": "isGroupExist()"
                         },
                         {
                            "id": 1560931333,
                            "file": "isProcExist",
-                           "cn": "isProcExist",
-                           "en": "isProcExist"
+                           "cn": "isProcExist()",
+                           "en": "isProcExist()"
                         },
                         {
                            "id": 1560931334,
                            "file": "isUserExist",
-                           "cn": "isUserExist",
-                           "en": "isUserExist"
+                           "cn": "isUserExist()",
+                           "en": "isUserExist()"
                         },
                         {
                            "id": 1560931335,
                            "file": "killProcess",
-                           "cn": "killProcess",
-                           "en": "killProcess"
+                           "cn": "killProcess()",
+                           "en": "killProcess()"
                         },
                         {
                            "id": 1560931336,
                            "file": "listAllUsers",
-                           "cn": "listAllUsers",
-                           "en": "listAllUsers"
+                           "cn": "listAllUsers()",
+                           "en": "listAllUsers()"
                         },
                         {
                            "id": 1560931337,
                            "file": "listGroups",
-                           "cn": "listGroups",
-                           "en": "killProcess"
+                           "cn": "listGroups()",
+                           "en": "killProcess()"
                         },
                         {
                            "id": 1560931338,
                            "file": "listLoginUsers",
-                           "cn": "listLoginUsers",
-                           "en": "listLoginUsers"
+                           "cn": "listLoginUsers()",
+                           "en": "listLoginUsers()"
                         },
                         {
                            "id": 1560931339,
                            "file": "listProcess",
-                           "cn": "listProcess",
-                           "en": "listProcess"
+                           "cn": "listProcess()",
+                           "en": "listProcess()"
                         },
                         {
                            "id": 1560931340,
                            "file": "ping",
-                           "cn": "ping",
-                           "en": "ping"
+                           "cn": "ping()",
+                           "en": "ping()"
                         },
                         {
                            "id": 1560931341,
                            "file": "runService",
-                           "cn": "runService",
-                           "en": "runService"
+                           "cn": "runService()",
+                           "en": "runService()"
                         },
                         {
                            "id": 1560931342,
                            "file": "setProcUlimitConfigs",
-                           "cn": "setProcUlimitConfigs",
-                           "en": "setProcUlimitConfigs"
+                           "cn": "setProcUlimitConfigs()",
+                           "en": "setProcUlimitConfigs()"
                         },
                         {
                            "id": 1560931343,
                            "file": "setUserConfigs",
-                           "cn": "setUserConfigs",
-                           "en": "setUserConfigs"
+                           "cn": "setUserConfigs()",
+                           "en": "setUserConfigs()"
                         },
                         {
                            "id": 1560931344,
                            "file": "snapshotCpuInfo",
-                           "cn": "snapshotCpuInfo",
-                           "en": "snapshotCpuInfo"
+                           "cn": "snapshotCpuInfo()",
+                           "en": "snapshotCpuInfo()"
                         },
                         {
                            "id": 1560931345,
                            "file": "snapshotDiskInfo",
-                           "cn": "snapshotDiskInfo",
-                           "en": "snapshotDiskInfo"
+                           "cn": "snapshotDiskInfo()",
+                           "en": "snapshotDiskInfo()"
                         },
                         {
                            "id": 1560931346,
                            "file": "snapshotMemInfo",
-                           "cn": "snapshotMemInfo",
-                           "en": "snapshotMemInfo"
+                           "cn": "snapshotMemInfo()",
+                           "en": "snapshotMemInfo()"
                         },
                         {
                            "id": 1560931347,
                            "file": "snapshotNetcardInfo",
-                           "cn": "snapshotNetcardInfo",
-                           "en": "snapshotNetcardInfo"
+                           "cn": "snapshotNetcardInfo()",
+                           "en": "snapshotNetcardInfo()"
                         },
                         {
                            "id": 1560931348,
                            "file": "sniffPort",
-                           "cn": "sniffPort",
-                           "en": "sniffPort"
+                           "cn": "sniffPort()",
+                           "en": "sniffPort()"
                         },
                         {
                            "id": 1560931349,
                            "file": "type",
-                           "cn": "type",
-                           "en": "type"
+                           "cn": "type()",
+                           "en": "type()"
                         }
                      ]
                   },
@@ -4643,38 +4643,38 @@
                         {
                            "id": 1552489119,
                            "file": "SdbSnapshotOption",
-                           "cn": "SdbSnapshotOption",
-                           "en": "SdbSnapshotOption"
+                           "cn": "SdbSnapshotOption()",
+                           "en": "SdbSnapshotOption()"
                         },
                         {
                            "id": 1552489127,
                            "file": "SdbQueryOption",
-                           "cn": "SdbQueryOption",
-                           "en": "SdbQueryOption"
+                           "cn": "SdbQueryOption()",
+                           "en": "SdbQueryOption()"
                         },
                         {
                            "id": 1557109995,
                            "file": "SdbTraceOption",
-                           "cn": "SdbTraceOption",
-                           "en": "SdbTraceOption"
+                           "cn": "SdbTraceOption()",
+                           "en": "SdbTraceOption()"
                         },
                         {
                            "id": 1562923945,
                            "file": "CLCount",
-                           "cn": "CLCount",
-                           "en": "CLCount"
+                           "cn": "CLCount()",
+                           "en": "CLCount()"
                         },
                         {
                            "id": 1591345466,
                            "file": "User",
-                           "cn": "User",
-                           "en": "User"
+                           "cn": "User()",
+                           "en": "User()"
                         },
                         {
                            "id": 1591345553,
                            "file": "CipherUser",
-                           "cn": "CipherUser",
-                           "en": "CipherUser"
+                           "cn": "CipherUser()",
+                           "en": "CipherUser()"
                         }
                      ]
                   },
@@ -4687,68 +4687,68 @@
                         {
                            "id": 1440658407,
                            "file": "BinData",
-                           "cn": "BinData",
-                           "en": "BinData"
+                           "cn": "BinData()",
+                           "en": "BinData()"
                         },
                         {
                            "id": 1562588920,
                            "file": "BSONArray",
-                           "cn": "BSONArray",
-                           "en": "BSONArray"
+                           "cn": "BSONArray()",
+                           "en": "BSONArray()"
                         },
                         {
                            "id": 1562923944,
                            "file": "BSONObj",
-                           "cn": "BSONObj",
-                           "en": "BSONObj"
-                        },   
+                           "cn": "BSONObj()",
+                           "en": "BSONObj()"
+                        },
                         {
                            "id": 1440658409,
                            "file": "MaxKey",
-                           "cn": "MaxKey",
-                           "en": "MaxKey"
+                           "cn": "MaxKey()",
+                           "en": "MaxKey()"
                         },
                         {
                            "id": 1440658408,
                            "file": "MinKey",
-                           "cn": "MinKey",
-                           "en": "MinKey"
-                        },                  
+                           "cn": "MinKey()",
+                           "en": "MinKey()"
+                        },
                         {
                            "id": 1562588927,
                            "file": "NumberDecimal",
-                           "cn": "NumberDecimal",
-                           "en": "NumberDecimal"
+                           "cn": "NumberDecimal()",
+                           "en": "NumberDecimal()"
                         },
                         {
                            "id": 1440658410,
                            "file": "NumberLong",
-                           "cn": "NumberLong",
-                           "en": "NumberLong"
+                           "cn": "NumberLong()",
+                           "en": "NumberLong()"
                         },
                         {
                            "id": 1440658403,
                            "file": "OID",
-                           "cn": "OID",
-                           "en": "OID"
+                           "cn": "OID()",
+                           "en": "OID()"
                         },
                         {
                            "id": 1440658406,
                            "file": "Regex",
-                           "cn": "Regex",
-                           "en": "Regex"
+                           "cn": "Regex()",
+                           "en": "Regex()"
                         },
                         {
                            "id": 1440658405,
                            "file": "SdbDate",
-                           "cn": "SdbDate",
-                           "en": "SdbDate"
+                           "cn": "SdbDate()",
+                           "en": "SdbDate()"
                         },
                         {
                            "id": 1440658404,
                            "file": "Timestamp",
-                           "cn": "Timestamp",
-                           "en": "Timestamp"
+                           "cn": "Timestamp()",
+                           "en": "Timestamp()"
                         }
                      ]
                   },
