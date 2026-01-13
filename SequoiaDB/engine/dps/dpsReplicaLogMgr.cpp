@@ -829,6 +829,7 @@ namespace engine
          }
          PD_LOG( PDEVENT, "Reset oldest lsn because of dps move" ) ;
       }
+      _metaFile.invalidateStatus() ;
 
       tmpWork = _work ;
       tmpCurLsn = _currentLsn ;
