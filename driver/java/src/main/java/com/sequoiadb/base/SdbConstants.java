@@ -123,6 +123,7 @@ final class SdbConstants {
     final static String FIELD_NAME_ADDRESS = "Address";
     final static String FIELD_NAME_USER = "User";
     final static String FIELD_NAME_PASSWD = "Password";
+    final static String FIELD_NAME_TEXTPASSWD = "TextPasswd";
     final static String FIELD_NAME_TYPE = "Type";
 
     final static String FIELD_NAME_ENABLE = "Enable";

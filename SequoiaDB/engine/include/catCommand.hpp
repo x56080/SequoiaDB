@@ -58,6 +58,7 @@ namespace engine
       const CHAR *_addresses ;
       const CHAR *_user ;
       const CHAR *_password ;
+      const CHAR *_cipherText ;
       const CHAR *_errCtlLevel ;
       INT32       _accessMode ;
       INT32       _errFilterMask ;
@@ -81,6 +82,7 @@ namespace engine
          _addresses = NULL ;
          _user = NULL ;
          _password = NULL ;
+         _cipherText = NULL ;
          _errCtlLevel = VALUE_NAME_LOW ;
          _accessMode = DS_ACCESS_DEFAULT ;
          _errFilterMask = DS_ERR_FILTER_NONE ;
@@ -101,6 +103,7 @@ namespace engine
             builder.append( FIELD_NAME_ADDRESS, _addresses ) ;
             builder.append( FIELD_NAME_USER, _user ? _user : "" ) ;
             builder.append( FIELD_NAME_PASSWD, _password ? _password : "" ) ;
+            builder.append( FIELD_NAME_CIPHER_TEXT, _cipherText ? _cipherText : "" ) ;
             builder.append( FIELD_NAME_ERRORCTLLEVEL, _errCtlLevel ) ;
             builder.append( FIELD_NAME_ACCESSMODE, _accessMode ) ;
             const CHAR *desc = NULL ;
@@ -154,6 +157,7 @@ namespace engine
       }
 
    private:
+      CHAR _cipherTextBuffer[SDB_MAX_PASSWORD_LENGTH + 1] ;
       catDSInfo _dsInfo ;
    } ;
    typedef _catCMDCreateDataSource catCMDCreateDataSource ;

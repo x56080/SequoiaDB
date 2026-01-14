@@ -254,6 +254,8 @@
 #define FIELD_NAME_CONNECTTIMESTAMP          "ConnectTimestamp"
 #define FIELD_NAME_USER                      "User"
 #define FIELD_NAME_PASSWD                    "Password"
+#define FIELD_NAME_TEXTPASSWD                "TextPasswd"
+#define FIELD_NAME_CIPHER_TEXT               "CipherText"
 #define FIELD_NAME_SYS                       "Sys"
 #define FIELD_NAME_IDLE                      "Idle"
 #define FIELD_NAME_IOWAIT                    "IOWait"
@@ -1167,7 +1169,7 @@
 #define SDB_AUTH_USER                        "User"
 #define SDB_AUTH_PASSWD                      "Passwd"
 #define SDB_AUTH_OLDPASSWD                   "OldPasswd"
-#define SDB_AUTH_TEXTPASSWD                  "TextPasswd"
+#define SDB_AUTH_TEXTPASSWD                  FIELD_NAME_TEXTPASSWD
 #define SDB_AUTH_EXTENDPASSWD                "ExtendPasswd"
 #define SDB_AUTH_SALT                        "Salt"
 #define SDB_AUTH_ITERATIONCOUNT              "IterationCount"

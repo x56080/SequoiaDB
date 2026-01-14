@@ -302,6 +302,44 @@ do                                                            \
       goto done ;
    }
 
+   static INT32 sdbBuildDataSourcePassword( BSONObjBuilder &bob,
+                                            const CHAR *password,
+                                            INT8 version,
+                                            INT8 subVersion,
+                                            INT8 fixVersion )
+   {
+      INT32 rc = SDB_OK ;
+      CHAR md5[ SDB_MD5_VALUE_BUF_LEN ] = { 0 } ;
+
+      rc = md5Encrypt( password, md5, SDB_MD5_VALUE_BUF_LEN ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+      bob.append( FIELD_NAME_PASSWD, md5 ) ;
+      if ( ( version <= 2 ) ||
+            ( ( version == 3 ) &&
+               ( ( subVersion < 4 ) ||
+               ( ( subVersion == 4 ) &&
+                  ( fixVersion < 16 ) ) ||
+               ( subVersion == 6 ) ) ) ||
+            ( ( version == 5 ) &&
+               ( ( subVersion < 8 ) ||
+               ( ( subVersion == 8 ) &&
+                  ( fixVersion < 6 ) ) ) ) )
+      {
+         // ignore, feature not supported
+      }
+      else
+      {
+         bob.append( FIELD_NAME_TEXTPASSWD, password ) ;
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    SDB_EXPORT void sdbSetErrorOnReplyCallback( ERROR_ON_REPLY_FUNC func )
    {
       _sdbErrorOnReplyCallback = func ;
@@ -9518,14 +9556,15 @@ do                                                            \
             BSONElement ele = itr.next() ;
             if ( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_PASSWD ) )
             {
-               CHAR md5[ SDB_MD5_VALUE_BUF_LEN ] = { 0 } ;
-               rc = md5Encrypt( ele.valuestrsafe(), md5,
-                                SDB_MD5_VALUE_BUF_LEN ) ;
-               if ( rc )
+               rc = sdbBuildDataSourcePassword( subBuilder,
+                                                ele.valuestrsafe(),
+                                                _connection->_version,
+                                                _connection->_subVersion,
+                                                _connection->_fixVersion ) ;
+               if ( rc != SDB_OK )
                {
                   goto error ;
                }
-               subBuilder.append( FIELD_NAME_PASSWD, md5 ) ;
             }
             else
             {
@@ -14029,14 +14068,13 @@ do                                                            \
          bob.append( FIELD_NAME_ADDRESS, addresses ) ;
          if ( user )
          {
-            CHAR md5[ SDB_MD5_VALUE_BUF_LEN ] = { 0 } ;
             bob.append( FIELD_NAME_USER, user ) ;
-            rc = md5Encrypt( password, md5, SDB_MD5_VALUE_BUF_LEN ) ;
-            if ( rc )
+            rc = sdbBuildDataSourcePassword( bob, password, _version,
+                                             _subVersion, _fixVersion ) ;
+            if ( rc != SDB_OK )
             {
                goto error ;
             }
-            bob.append( FIELD_NAME_PASSWD, md5 ) ;
          }
          if ( type )
          {

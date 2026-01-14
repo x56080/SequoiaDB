@@ -42,6 +42,7 @@
 #include "catTrace.hpp"
 #include "authCB.hpp"
 #include "rtnContextDump.hpp"
+#include "utilCipher.hpp"
 
 using namespace bson ;
 
@@ -183,6 +184,7 @@ namespace engine
 
    _catCMDCreateDataSource::_catCMDCreateDataSource()
    {
+      ossMemset( _cipherTextBuffer, 0, sizeof( _cipherTextBuffer ) ) ;
    }
 
    _catCMDCreateDataSource::~_catCMDCreateDataSource()
@@ -236,6 +238,16 @@ namespace engine
                          "Type of field[%s] is not string, rc: %d",
                          fieldName, rc ) ;
                _dsInfo._password = e.valuestr() ;
+            }
+            else if ( 0 == ossStrcmp( fieldName, FIELD_NAME_TEXTPASSWD ) )
+            {
+               PD_CHECK( String == e.type(), SDB_INVALIDARG, error, PDERROR,
+                         "Type of field[%s] is not string, rc: %d",
+                         fieldName, rc ) ;
+               rc = utilCipherEncrypt( e.valuestr(), NULL, _cipherTextBuffer,
+                                       sizeof( _cipherTextBuffer ) ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to encrypt password, rc: %d", rc ) ;
+               _dsInfo._cipherText = _cipherTextBuffer ;
             }
             else if ( 0 == ossStrcmp( fieldName, FIELD_NAME_TYPE ) )
             {
@@ -720,6 +732,32 @@ namespace engine
                   if ( 0 != ossStrcmp( currEle.valuestr(), e.valuestr() ) )
                   {
                      _optionBuilder.append( e ) ;
+                  }
+               }
+               else if ( 0 == ossStrcmp( fieldName, FIELD_NAME_TEXTPASSWD ) )
+               {
+                  CHAR *currPassword = NULL ;
+                  CHAR passwordBuffer[SDB_MAX_PASSWORD_LENGTH + 1] = { 0 } ;
+                  PD_CHECK( String == e.type(), SDB_INVALIDARG, error, PDERROR,
+                            "Type of field[%s] is not string, rc: %d",
+                            fieldName, rc ) ;
+
+                  currEle = currentMeta.getField( FIELD_NAME_CIPHER_TEXT ) ;
+                  if ( String == currEle.type() )
+                  {
+                     rc = utilCipherDecrypt( currEle.valuestr(), NULL, passwordBuffer ) ;
+                     PD_RC_CHECK( rc, PDERROR, "Failed to decrypt password, rc: %d", rc ) ;
+                     currPassword = passwordBuffer ;
+                  }
+
+                  if ( !currPassword || // old version might not have this field
+                       0 != ossStrcmp( e.valuestr(), currPassword ) )
+                  {
+                     CHAR cipherText[SDB_MAX_PASSWORD_LENGTH + 1] = { 0 } ;
+                     rc = utilCipherEncrypt( e.valuestr(), NULL, cipherText,
+                                             sizeof( cipherText ) ) ;
+                     PD_RC_CHECK( rc, PDERROR, "Failed to encrypt password, rc: %d", rc ) ;
+                     _optionBuilder.append( FIELD_NAME_CIPHER_TEXT, cipherText ) ;
                   }
                }
                else if ( 0 == ossStrcmp( fieldName, FIELD_NAME_DSVERSION ) )

@@ -108,6 +108,25 @@ public class DataSource {
             if (key.equals(SdbConstants.FIELD_NAME_PASSWD)){
                 String pwd = Helper.md5((String)option.get(key));
                 obj.put(key, pwd);
+                DBVersion dbVersion = sequoiadb.getDBVersion();
+                int version = dbVersion.getVersion();
+                int subVersion = dbVersion.getSubVersion();
+                int fixVersion = dbVersion.getFixVersion();
+                if ( ( version <= 2 ) ||
+                    ( ( version == 3 ) &&
+                        ( ( subVersion < 4 ) ||
+                        ( ( subVersion == 4 ) &&
+                            ( fixVersion < 16 ) ) ||
+                        ( subVersion == 6 ) ) ) ||
+                    ( ( version == 5 ) &&
+                        ( ( subVersion < 8 ) ||
+                        ( ( subVersion == 8 ) &&
+                            ( fixVersion < 6 ) ) ) ) ) {
+                    // ignore, feature not supported
+                } else {
+                    obj.put(SdbConstants.FIELD_NAME_TEXTPASSWD,
+                            (String)option.get(key));
+                }
             }else {
                 obj.put(key, option.get(key));
             }
