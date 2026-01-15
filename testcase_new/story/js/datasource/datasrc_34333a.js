@@ -72,6 +72,18 @@ function test ()
    {
       mainCL.remove({ a: { $gt: 1 } });
    } );
+   result = mainCL.insert([ { a: 2 } ]);
+   assert.equal( result.toString(),
+         '{ "InsertedNum": 1, "DuplicatedNum": 0, "ModifiedNum": 0 }');
+   result = mainCL.update({ $set: { b: 1 } }, { a: { $et: 2 } });
+   assert.equal( result.toString(),
+         '{ "UpdatedNum": 1, "ModifiedNum": 1, "InsertedNum": 0 }');
+   result = mainCL.find({ a: { $et: 2 } });
+   assert.equal( result.next().toString(),
+         '{ "a": 2, "b": 1 }');
+   result = mainCL.remove({ a: { $et: 2 } });
+   assert.equal( result.toString(),
+         '{ "DeletedNum": 1 }');
    datasrcDB.getCS( dsCSName ).renameCL(
          dsMainCLName1 + "_ren", dsMainCLName1 );
 
@@ -93,6 +105,18 @@ function test ()
    {
       mainCL.remove({ a: { $gt: 1 } });
    } );
+   result = mainCL.insert([ { a: 2 } ]);
+   assert.equal( result.toString(),
+         '{ "InsertedNum": 1, "DuplicatedNum": 0, "ModifiedNum": 0 }');
+   result = mainCL.update({ $set: { b: 1 } }, { a: { $et: 2 } });
+   assert.equal( result.toString(),
+         '{ "UpdatedNum": 1, "ModifiedNum": 1, "InsertedNum": 0 }');
+   result = mainCL.find({ a: { $et: 2 } });
+   assert.equal( result.next().toString(),
+         '{ "a": 2, "b": 1 }');
+   result = mainCL.remove({ a: { $et: 2 } });
+   assert.equal( result.toString(),
+         '{ "DeletedNum": 1 }');
 
    // 3. attach to other data source main cl
    var mainCL2 = datasrcDB.getCS( dsCSName ).getCL( dsMainCLName2 );
@@ -114,6 +138,19 @@ function test ()
    {
       mainCL.remove({ a: { $gt: 1 } });
    } );
+   result = mainCL.insert([ { a: 2 } ]);
+   assert.equal( result.toString(),
+         '{ "InsertedNum": 1, "DuplicatedNum": 0, "ModifiedNum": 0 }');
+   result = mainCL.update({ $set: { b: 1 } }, { a: { $et: 2 } });
+   assert.equal( result.toString(),
+         '{ "UpdatedNum": 1, "ModifiedNum": 1, "InsertedNum": 0 }');
+   result = mainCL.find({ a: { $et: 2 } });
+   assert.equal( result.next().toString(),
+         '{ "a": 2, "b": 1 }');
+   result = mainCL.remove({ a: { $et: 2 } });
+   assert.equal( result.toString(),
+         '{ "DeletedNum": 1 }');
+
    // 4. data source attach bounds mismatch
    mainCL2.detachCL( dsCSName + "." + clName3 );
    mainCL1.attachCL( dsCSName + "." + clName3,
@@ -134,6 +171,18 @@ function test ()
    {
       mainCL.remove({ a: { $gt: 1 } });
    } );
+   result = mainCL.insert([ { a: 2 } ]);
+   assert.equal( result.toString(),
+         '{ "InsertedNum": 1, "DuplicatedNum": 0, "ModifiedNum": 0 }');
+   result = mainCL.update({ $set: { b: 1 } }, { a: { $et: 2 } });
+   assert.equal( result.toString(),
+         '{ "UpdatedNum": 1, "ModifiedNum": 1, "InsertedNum": 0 }');
+   result = mainCL.find({ a: { $et: 2 } });
+   assert.equal( result.next().toString(),
+         '{ "a": 2, "b": 1 }');
+   result = mainCL.remove({ a: { $et: 2 } });
+   assert.equal( result.toString(),
+         '{ "DeletedNum": 1 }');
 
    // restore
    mainCL1.detachCL( dsCSName + "." + clName3 );
@@ -143,6 +192,19 @@ function test ()
    mainCL.update({ $set: { b: 1 } }, { a: { $gt: 1 } });
    println( mainCL.find({ a: { $gt: 1 } }) );
    mainCL.remove({ a: { $gt: 1 } });
+
+   result = mainCL.insert([ { a: 2 } ]);
+   assert.equal( result.toString(),
+         '{ "InsertedNum": 1, "DuplicatedNum": 0, "ModifiedNum": 0 }');
+   result = mainCL.update({ $set: { b: 1 } }, { a: { $et: 2 } });
+   assert.equal( result.toString(),
+         '{ "UpdatedNum": 1, "ModifiedNum": 1, "InsertedNum": 0 }');
+   result = mainCL.find({ a: { $et: 2 } });
+   assert.equal( result.next().toString(),
+         '{ "a": 2, "b": 1 }');
+   result = mainCL.remove({ a: { $et: 2 } });
+   assert.equal( result.toString(),
+         '{ "DeletedNum": 1 }');
 
    commDropCS( datasrcDB, dsCSName );
    commDropCS( db, csName );
