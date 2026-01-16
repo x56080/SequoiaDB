@@ -35,17 +35,11 @@ function testPath( diaglog, logPath1, logPath2 )
         diaglog.reset();
         log = diaglog.analyze().path( logPath1 );
         fileName1 = log.run();
-        rc = File.exist( fileName1 + '/error_time.csv' );
-        assert.equal( rc, true );
-        rc = File.exist( fileName1 + '/error_count.csv' );
-        assert.equal( rc, true );
+        testCsv(fileName1);
 
         log = diaglog.analyze().path( logPath1 + '.tar.gz' );
         fileName2 = log.run();
-        rc = File.exist( fileName2 + '/error_time.csv' );
-        assert.equal( rc, true );
-        rc = File.exist( fileName2 + '/error_count.csv' );
-        assert.equal( rc, true );
+        testCsv(fileName2);
 
         // 要求结果一致
         rc = cmd.run( 'diff -q ' + fileName1 + '/error_time.csv ' + fileName2 + '/error_time.csv > /dev/null 2>&1; echo $?' ).trimRight( '\n' );
@@ -53,19 +47,13 @@ function testPath( diaglog, logPath1, logPath2 )
         rc = cmd.run( 'diff -q ' + fileName1 + '/error_count.csv ' + fileName2 + '/error_count.csv > /dev/null 2>&1; echo $?' ).trimRight( '\n' );
         assert.equal( rc, '0' );
 
-        log = diaglog.analyze().path( logPath2 );
+        log = diaglog.analyze().path( logPath2 + '/' );
         fileName1 = log.run();
-        rc = File.exist( fileName1 + '/error_time.csv' );
-        assert.equal( rc, true );
-        rc = File.exist( fileName1 + '/error_count.csv' );
-        assert.equal( rc, true );
+        testCsv(fileName1);
 
         log = diaglog.analyze().path( logPath2 + '.zip' );
         fileName2 = log.run();
-        rc = File.exist( fileName2 + '/error_time.csv' );
-        assert.equal( rc, true );
-        rc = File.exist( fileName2 + '/error_count.csv' );
-        assert.equal( rc, true );
+        testCsv(fileName2);
 
         // 要求结果一致
         rc = cmd.run( 'diff -q ' + fileName1 + '/error_time.csv ' + fileName2 + '/error_time.csv > /dev/null 2>&1; echo $?' ).trimRight( '\n' );
@@ -89,10 +77,7 @@ function testOutput( diaglog, logPath )
         diaglog.reset();
         log = diaglog.analyze().path( logPath ).output( WORKDIR + '/diaglog_34329' );
         fileName = log.run();
-        rc = File.exist( fileName + '/error_time.csv' );
-        assert.equal( rc, true );
-        rc = File.exist( fileName + '/error_count.csv' );
-        assert.equal( rc, true );
+        testCsv(fileName);
     } catch ( e ) {
         println("[ERROR] Failed on diaglog.analyze().path( " + logPath + " ).output( '" + WORKDIR + "/diaglog_34329' )");
         throw e;
@@ -103,10 +88,7 @@ function testOutput( diaglog, logPath )
         diaglog.reset();
         log = diaglog.analyze().path( logPath + '.tar.gz' ).output( WORKDIR + '/diaglog_34329' );
         fileName = log.run();
-        rc = File.exist( fileName + '/error_time.csv' );
-        assert.equal( rc, true );
-        rc = File.exist( fileName + '/error_count.csv' );
-        assert.equal( rc, true );
+        testCsv(fileName);
     } catch ( e ) {
         println("[ERROR] Failed on diaglog.analyze().path( " + logPath + ".tar.gz ).output( '" + WORKDIR + "/diaglog_34329' )");
         throw e;
@@ -126,6 +108,7 @@ function testOutput( diaglog, logPath )
         diaglog.analyze().path( logPath ).run();
         diaglog.analyze().path( logPath ).run();
         diaglog.analyze().path( logPath ).run();
+        testCsv(fileName);
 
         var cmd = new Cmd();
         // 前面多次执行未指定输出目录，此时临时目录下应存在 10 个目录（上限）
@@ -138,19 +121,19 @@ function testOutput( diaglog, logPath )
     diaglog.reset();
 }
 
-function testFormat( diaglog, logPath1 )
+function testCsv( path )
 {
-    var log;
-    var fileName1;
+    // 检查 analyze 产生的 csv 格式是否正常
     try {
-        // 分析前面收集的日志
-        diaglog.reset();
-        log = diaglog.analyze().path( logPath1 );
-        fileName1 = log.run();
+        // 检查文件是否存在
+        rc = File.exist( path + '/error_time.csv' );
+        assert.equal( rc, true );
+        rc = File.exist( path + '/error_count.csv' );
+        assert.equal( rc, true );
 
         // 校验格式
-        var file = new File( fileName1 + '/error_time.csv', 0644, SDB_FILE_READONLY );
-        var isFirstLine = true 
+        var file = new File( path + '/error_time.csv', 0644, SDB_FILE_READONLY );
+        var isFirstLine = true;
         var preTime = "9999-12-31-01.01.01.000000";
         var curTime = "";
         var count = 0;
@@ -171,10 +154,10 @@ function testFormat( diaglog, logPath1 )
             }
         } catch ( e  ) {
             if ( -9 != e ) {
-                println("[ERROR] Failed on testFormat()");
+                println("[ERROR] Failed on testCsv()");
                 println('curTime:' + curTime);
                 println('preTime:' + preTime);
-                println('fileName: ' + fileName1 + '/error_time.csv');
+                println('fileName: ' + path + '/error_time.csv');
                 throw e ;
             }
         } finally {
@@ -183,7 +166,7 @@ function testFormat( diaglog, logPath1 )
         // 必须有结果
         assert.notEqual( count, 0 );
 
-        var file = new File( fileName1 + '/error_count.csv', 0644, SDB_FILE_READONLY );
+        var file = new File( path + '/error_count.csv', 0644, SDB_FILE_READONLY );
         var isFirstLine = true;
         var count = 0;
         var errorObj = {};
@@ -204,7 +187,7 @@ function testFormat( diaglog, logPath1 )
             }
         } catch ( e  ) {
             if ( -9 != e ) {
-                println("[ERROR] Failed on testFormat()");
+                println("[ERROR] Failed on testCsv()");
                 println("array: " + JSON.stringify(array));
                 println("errorObj: " + JSON.stringify(errorObj));
                 throw e ;
@@ -214,10 +197,9 @@ function testFormat( diaglog, logPath1 )
         }
         // 必须有结果
         assert.notEqual( count, 0 );
-    } catch ( e ) {
+    } catch (e) {
         throw e;
     }
-    diaglog.reset();
 }
 
 function test()
@@ -233,9 +215,6 @@ function test()
 
         // output
         testOutput( diaglog, logPath1 );
-
-        // 校验格式
-        testFormat( diaglog, logPath1);
 
         File.remove( WORKDIR + '/diaglog_34329' );
     } catch (e) {

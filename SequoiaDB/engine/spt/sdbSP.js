@@ -4342,6 +4342,12 @@ DiagLog.prototype.compress = function( compress ) {
 }
 
 DiagLog.prototype._search = function() {
+   // close current open result file in DiagLog.next()
+   if ( '' != this._logFile ) {
+      this._logFile.close() ;
+      this._logFile = '' ;
+   }
+
    if ( ! this._needSearch )
    {
       setLastErrMsg( 'No searchable conditions, such as "error()", "keypattern()", "tid()" or "pid()"' ) ;
@@ -4352,19 +4358,24 @@ DiagLog.prototype._search = function() {
    {
       if ( '' != this._path )
       {
-         if ( '' != this._path && ( ! File.exist( this._path ) || File.isFile( this._path ) ) )
-         {
-            setLastErrMsg( "path must be exist" ) ;
-            throw SDB_FNE ;
-         }
-
-         var regex = new RegExp( '^/.*/diaglog_[0-9]{8}_[0-9]{6}(\.auto)?((?:\.zip)|(?:\.tar.gz))?$' ) ;
+         var regex = new RegExp( '^/.*/diaglog_[0-9]{8}_[0-9]{6}(\.auto)?((?:\.zip)|(?:\.tar.gz)|(?:\/))?$' ) ;
          if ( regex.test( this._path ) )
          {
-            // package from collect
+            // search from collect
+            if ( ! File.exist( this._path ) )
+            {
+               setLastErrMsg( "path " + this._path + " must be exist" ) ;
+               throw SDB_FNE ;
+            }
             return this._searchFromCollect() ;
          } else
          {
+            // search normal diaglog directory
+            if ( ! File.exist( this._path ) || ! File.isDir( this._path ) )
+            {
+               setLastErrMsg( "path " + this._path + " must be a directory" ) ;
+               throw SDB_FNE ;
+            }
             return this._searchFile() ;
          }
       } else
@@ -4550,23 +4561,23 @@ DiagLog.prototype._checkLocation = function( locationObj, idInfo ) {
 DiagLog.prototype._searchFromCollect = function() {
    var path = this._path ;
    var pathArray = path.split( '/' ) ;
+   var output = '' ;
 
    try
    {
       var cmd = new Cmd() ;
-      var now = new Date( new Date().getTime() + 8 * 60 * 60 * 1000 );
-      if ( /.*\.zip$/.test( path ) )
-      {
-         cmd.run( 'unzip ' + path + ' -d ' + output ) ;
-         path = _tmpDir + '/' + pathArray[pathArray.length - 1].replace( /\.zip$/, '' ) ;
-      } else if  ( /.*\.tar\.gz$/.test( path ) )
-      {
-         cmd.run( 'tar -xzf ' + path + ' -C ' + output ) ;
-         path = _tmpDir + '/' + pathArray[pathArray.length - 1].replace( /\.tar.gz$/, '' ) ;
-      }
+      var now = new Date( new Date().getTime() + 8 * 60 * 60 * 1000 ) ;
    } catch ( e )
    {
       throw e ;
+   }
+
+   if ( '' != this._output )
+   {
+      output = this._output ;
+   } else
+   {
+      output = this._tmpDir + '/search/cluster_' +  now.toJSON().replace('Z', '').replace( 'T', '-' ) + '.auto' ;
    }
 
    // remove old dir if more than 10
@@ -4582,16 +4593,30 @@ DiagLog.prototype._searchFromCollect = function() {
    // auto generate output dir with current time
    try
    {
-      File.mkdir( this._tmpDir + '/search/cluster_' + now.toJSON().replace('Z', '').replace( 'T', '-' ) + '.auto/', 0777 ) ;
+      File.mkdir( output, 0777 ) ;
    } catch ( e )
    {
-      setLastErrMsg( 'Failed to mkdir "' + this._tmpDir + '/search/cluster_' + now.toJSON().replace('Z', '').replace( 'T', '-' ) + '.auto/", error: ' + getLastErrMsg() );
-      throw e;  
+      setLastErrMsg( 'Failed to mkdir "' + output + '", error: ' + getLastErrMsg() ) ;
+      throw e ;
+   }
+
+   try {
+      if ( /.*\.zip$/.test( path ) )
+      {
+         cmd.run( 'unzip -o ' + path + ' -d ' + output ) ;
+         path = output + '/' + pathArray[pathArray.length - 1].replace( /\.zip$/, '' ) ;
+      } else if  ( /.*\.tar\.gz$/.test( path ) )
+      {
+         cmd.run( 'tar -xzf ' + path + ' -C ' + output ) ;
+         path = output + '/' + pathArray[pathArray.length - 1].replace( /\.tar.gz$/, '' ) ;
+      }
+   } catch ( e ) {
+      setLastErrMsg( 'Failed to unzip "' + path + '", error: ' + getLastErrMsg() ) ;
+      throw e ;
    }
 
    this._nohup = true ;
-   var output = this._output ;
-   var clusterOutput = this._tmpDir + '/search/cluster_' + now.toJSON().replace('Z', '').replace( 'T', '-' ) + '.auto/diaglog_'  ;
+   var clusterOutput = output + '/diaglog_' ;
    var outputFileArray = [] ;
 
    try
@@ -4672,13 +4697,7 @@ DiagLog.prototype._searchFromCollect = function() {
    }
 
    // merge result
-   if ( '' != output )
-   {
-      this._output = output ;
-   } else
-   {
-      this._output = clusterOutput + 'result' ;
-   }
+   this._output = clusterOutput + 'result' ;
    this._outputFile = this._output ;
 
    try
@@ -4689,6 +4708,7 @@ DiagLog.prototype._searchFromCollect = function() {
          File.mkdir( resultDir, 0777 ) ;
       }
       var resultFile = new File( this._output, 0644, SDB_FILE_READWRITE | SDB_FILE_CREATE ) ;
+      resultFile.truncate() ;
       var content = "";
       for ( var i = 0; i < outputFileArray.length; i++ )
       {
@@ -4979,6 +4999,7 @@ DiagLog.prototype._searchCluster = function() {
          File.mkdir( resultDir, 0777 ) ;
       }
       var resultFile = new File( this._output, 0644, SDB_FILE_READWRITE | SDB_FILE_CREATE ) ;
+      resultFile.truncate() ;
       var content = "";
       for ( var i = 0; i < outputFileArray.length; i++ )
       {
@@ -5217,7 +5238,7 @@ DiagLog.prototype.next = function( num ) {
          this._loopFile = false ;
          return ;
       }
-   
+
       if ( this._readFile != this._outputFile && '' != this._logFile ) {
          this._logFile.close() ;
          this._logFile = '' ;
@@ -5682,8 +5703,24 @@ DiagLog.prototype._collect = function() {
    var collectOutput = '' ;
    var collectOutputDir = 'diaglog_' ;
    var autoGenerate = '' ;
+   this._output = '' ;
    if ( '' != this._path )
    {
+      try
+      {
+         if ( File.exist( this._path ) )
+         {
+            var isDir = File.isDir( this._path );
+            if ( !isDir )
+            {
+               setLastErrMsg( 'In the collect(), the value of the path() must be a directory' ) ;
+               throw SDB_INVALIDARG ;
+            }
+         }
+
+      } catch ( e ) {
+         throw e ;
+      }
       collectOutput += this._path ;
       this._path = '' ;
    } else
@@ -5971,7 +6008,7 @@ DiagLog.prototype._analyze = function() {
       {
          if ( /.*\.zip$/.test( this._path ) )
          {
-            cmd.run( 'unzip ' + this._path + ' -d ' + output ) ;
+            cmd.run( 'unzip -o ' + this._path + ' -d ' + output ) ;
             this._path = output + '/' + pathArray[pathArray.length - 1].replace( /\.zip$/, '' ) ;
          } else if  ( /.*\.tar\.gz$/.test( this._path ) )
          {
@@ -5988,6 +6025,7 @@ DiagLog.prototype._analyze = function() {
       try
       {
          var countFile = new File( countCsv, 0644, SDB_FILE_READWRITE | SDB_FILE_CREATE ) ;
+         countFile.truncate() ;
       } catch ( e )
       {
          setLastErrMsg( 'Failed to touch csv ' + countCsv + ', error: ' + getLastErrMsg() );
@@ -5997,6 +6035,7 @@ DiagLog.prototype._analyze = function() {
       try
       {
          var timeFile = new File( timeCsv, 0644, SDB_FILE_READWRITE | SDB_FILE_CREATE ) ;
+         timeFile.truncate() ;
       } catch ( e )
       {
          setLastErrMsg( 'Failed to touch csv ' + timeCsv + ', error: ' + getLastErrMsg() );
@@ -6029,11 +6068,14 @@ DiagLog.prototype._analyze = function() {
             var fullFileName = this._path + "/" + hostName + "/" + nodeFile ;
             try
             {
-               var timeErrorArray = cmd.run( "awk '/(rc = |rc: )-[0-9]+$/{if(NR>5) print lines[NR-5]$0} {lines[NR]=$0}' " + fullFileName + "/* | sed 's#\\([^ ]*\\) .*\\(-[0-9][0-9]*\\)$#\\1 \\2#g'").trimRight( '\n' ).split( '\n' ) ;
+               var timeErrorArray = cmd.run( "awk '/(rc=|rc: )-[0-9]+\\]?$/{if(NR>5) print lines[NR-5]$0} {lines[NR]=$0}' " + fullFileName + "/* | sed 's#\\([^ ]*\\) .*\\(-[0-9][0-9]*\\)$#\\1 \\2#g'").trimRight( '\n' ).split( '\n' ) ;
                for ( var k = 0; k < timeErrorArray.length; k++ )
                {
-                  var timeError = timeErrorArray[k].split( ' ' ) ;
-                  timeFile.write( hostName + ',' + serviceName + ',' + groupName + ',' + timeError[1] + ',' + timeError[0] + '\n' ) ;
+                  if ( '' != timeErrorArray[k] )
+                  {
+                     var timeError = timeErrorArray[k].split( ' ' ) ;
+                     timeFile.write( hostName + ',' + serviceName + ',' + groupName + ',' + timeError[1] + ',' + timeError[0] + '\n' ) ;
+                  }
                }
             } catch ( e )
             {

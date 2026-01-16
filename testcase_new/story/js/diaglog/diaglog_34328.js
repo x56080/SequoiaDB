@@ -381,6 +381,13 @@ function testPath( diaglog )
         throw e;
     }
 
+    // 指定为存在的文件，预期失败
+    assert.tryThrow( SDB_INVALIDARG, function()
+    {
+        log = diaglog.collect().error( -16 ).limit( 1 ).path( fileName + '.tar.gz' );
+        log.run();
+    } );
+
     // 指定非字符串，预期失败
     assert.tryThrow( SDB_INVALIDARG, function()
     {

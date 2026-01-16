@@ -348,10 +348,25 @@ function testLimit( diaglog )
         }
         assert.equal(i, 100);
     } catch ( e ) {
+        try {
+            var db = new Sdb( COORDHOSTNAME, COORDSVCNAME );
+            var diagpath = db.exec( 'select diagpath from $SNAPSHOT_CONFIGS where role = "role"' ).current().toObj().diagpath;
+            var cmd = new Cmd();
+            cmd.run('cp -r ' + diagpath + ' /hdd/sequoiadb/');
+        } catch ( e ) {
+            println("[ERROR] Failed to cp diaglog to /hdd/sequoiadb/");
+        } finally {
+            cursor.close();
+            db.close();
+        }
+
         println("[ERROR] Failed on diaglog.search().keypattern( ' ' ), test default limit(100)");
         println('fileName: ' + fileName);
+        println('time: ' + Date());
+        println('diaglog: ' + JSON.stringify(diaglog));
         throw e;
     }
+
     // 大于 0, 预期成功
     try {
         diaglog.reset();
@@ -654,6 +669,19 @@ function testOutput( diaglog )
 
         rc = cmd.run( 'ls -d ' + WORKDIR + '/diaglog_34327/* | wc -l' ).trimRight( '\n' );
         assert.equal( rc, '11' );
+    } catch ( e ) {
+        println("[ERROR] Failed on check " + WORKDIR + "/diaglog_34327/*");
+        throw e;
+    }
+
+    // 搜索读取后再次搜索，结果写入同一文件
+    try {
+        log = diaglog.search().keypattern( 'a' ).limit( 1 ).output(  WORKDIR + '/diaglog_34327/result_12' );
+        fileName = log.run();
+        diaglog.next();
+        log = diaglog.search().keypattern( 'a' ).limit( 1 ).output(  WORKDIR + '/diaglog_34327/result_12' );
+        fileName = log.run();
+        diaglog.next();
     } catch ( e ) {
         println("[ERROR] Failed on check " + WORKDIR + "/diaglog_34327/*");
         throw e;
