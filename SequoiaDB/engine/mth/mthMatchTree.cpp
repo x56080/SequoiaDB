@@ -40,6 +40,7 @@
 #include "mthTrace.hpp"
 #include "rtnCB.hpp"
 #include <string>
+#include "pdSecure.hpp"
 
 using namespace bson ;
 
@@ -492,7 +493,8 @@ namespace engine
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "add child failed:parent=%s,child=%s,rc=%d",
-                 parent->toString().c_str(), node->toString().c_str(), rc ) ;
+                 PD_SECURE_STR(parent->toString()), 
+                 PD_SECURE_STR(node->toString()), rc ) ;
          goto error ;
       }
       hasAddToTree = TRUE ;
@@ -538,7 +540,8 @@ namespace engine
 
       rc = parent->addChild( node ) ;
       PD_RC_CHECK( rc, PDERROR, "add child failed:parent=%s,child=%s,rc=%d",
-                   parent->toString().c_str(), node->toString().c_str(), rc ) ;
+                   PD_SECURE_STR(parent->toString()), 
+                   PD_SECURE_STR(node->toString()), rc ) ;
 
       hasAddToTree = TRUE ;
 
@@ -610,7 +613,8 @@ namespace engine
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "add child failed:parent=%s,child=%s,rc=%d",
-                 parent->toString().c_str(), node->toString().c_str(), rc ) ;
+                 PD_SECURE_STR(parent->toString()), 
+                 PD_SECURE_STR(node->toString()), rc ) ;
          goto error ;
       }
       hasAddToTree = TRUE ;
@@ -689,7 +693,7 @@ namespace engine
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to _addRegExOp:ele=%s,rc=%d",
-                 ele.toString().c_str(), rc ) ;
+                 PD_SECURE_STR(ele.toString()), rc ) ;
          goto error ;
       }
 
@@ -712,7 +716,7 @@ namespace engine
       {
          rc = SDB_INVALIDARG ;
          PD_LOG ( PDERROR, "operator can not in the head:ele=%s",
-                  ele.toString().c_str() ) ;
+                  PD_SECURE_STR(ele.toString()) ) ;
          goto error ;
       }
 
@@ -781,8 +785,8 @@ namespace engine
                if ( SDB_OK != rc )
                {
                   PD_LOG( PDERROR, "add child failed:parent=%s,child=%s,"
-                          "rc=%d", parent->toString().c_str(),
-                          child->toString().c_str(), rc ) ;
+                          "rc=%d", PD_SECURE_STR(parent->toString()),
+                          PD_SECURE_STR(child->toString()), rc ) ;
                   mthGetMatchNodeFactory()->releaseNode( child ) ;
                   goto error ;
                }
@@ -825,7 +829,7 @@ namespace engine
       {
          rc = SDB_INVALIDARG ;
          PD_LOG ( PDERROR, "LogicAnd's element type must be Array:ele=%s,rc=%d",
-                  ele.toString().c_str(), rc );
+                  PD_SECURE_STR(ele.toString()), rc );
          goto error ;
       }
 
@@ -851,7 +855,8 @@ namespace engine
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "add child failed:parent=%s,child=%s,rc=%d",
-                 parent->toString().c_str(), logicAnd->toString().c_str(),
+                 PD_SECURE_STR(parent->toString()), 
+                 PD_SECURE_STR(logicAnd->toString()),
                  rc ) ;
          goto error ;
       }
@@ -862,7 +867,7 @@ namespace engine
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "_pareseLogicElemnts failed:ele=%s,rc=%d",
-                 ele.toString().c_str(), rc ) ;
+                 PD_SECURE_STR(ele.toString()), rc ) ;
          goto error ;
       }
 
@@ -893,7 +898,7 @@ namespace engine
       {
          rc = SDB_INVALIDARG ;
          PD_LOG ( PDERROR, "LogicAnd's element type must be Array:ele=%s,rc=%d",
-                  ele.toString().c_str(), rc );
+                  PD_SECURE_STR(ele.toString()), rc );
          goto error ;
       }
 
@@ -919,7 +924,8 @@ namespace engine
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "add child failed:parent=%s,child=%s,rc=%d",
-                 parent->toString().c_str(), logicOr->toString().c_str(),
+                 PD_SECURE_STR(parent->toString()), 
+                 PD_SECURE_STR(logicOr->toString()),
                  rc ) ;
          goto error ;
       }
@@ -930,7 +936,7 @@ namespace engine
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "_pareseLogicElemnts failed:ele=%s,rc=%d",
-                 ele.toString().c_str(), rc ) ;
+                 PD_SECURE_STR(ele.toString()), rc ) ;
          goto error ;
       }
 
@@ -961,7 +967,7 @@ namespace engine
       {
          rc = SDB_INVALIDARG ;
          PD_LOG ( PDERROR, "LogicAnd's element type must be Array:ele=%s,rc=%d",
-                  ele.toString().c_str(), rc );
+                  PD_SECURE_STR(ele.toString()), rc );
          goto error ;
       }
 
@@ -987,7 +993,8 @@ namespace engine
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "add child failed:parent=%s,child=%s,rc=%d",
-                 parent->toString().c_str(), logicNot->toString().c_str(),
+                 PD_SECURE_STR(parent->toString()), 
+                 PD_SECURE_STR(logicNot->toString()),
                  rc ) ;
          goto error ;
       }
@@ -998,7 +1005,7 @@ namespace engine
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "_pareseLogicElemnts failed:ele=%s,rc=%d",
-                 ele.toString().c_str(), rc ) ;
+                 PD_SECURE_STR(ele.toString()), rc ) ;
          goto error ;
       }
 
@@ -1033,7 +1040,7 @@ namespace engine
             if ( SDB_OK != rc )
             {
                PD_LOG( PDERROR, "_pareseLogicAnd failed:ele=%s,rc=%d",
-                       ele.toString().c_str(), rc ) ;
+                       PD_SECURE_STR(ele.toString()), rc ) ;
                goto error ;
             }
          }
@@ -1044,7 +1051,7 @@ namespace engine
             if ( SDB_OK != rc )
             {
                PD_LOG( PDERROR, "_pareseLogicOr failed:ele=%s,rc=%d",
-                       ele.toString().c_str(), rc ) ;
+                       PD_SECURE_STR(ele.toString()), rc ) ;
                goto error ;
             }
          }
@@ -1055,7 +1062,7 @@ namespace engine
             if ( SDB_OK != rc )
             {
                PD_LOG( PDERROR, "_pareseLogicNot failed:ele=%s,rc=%d",
-                       ele.toString().c_str(), rc ) ;
+                       PD_SECURE_STR(ele.toString()), rc ) ;
                goto error ;
             }
          }
@@ -1063,7 +1070,7 @@ namespace engine
          {
             rc = SDB_INVALIDARG ;
             PD_LOG ( PDERROR, "unsupported logic operation:ele=%s,rc=%d",
-                     ele.toString().c_str(), rc ) ;
+                     PD_SECURE_STR(ele.toString()), rc ) ;
             goto error ;
          }
       }
@@ -1076,7 +1083,7 @@ namespace engine
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "_addOperator failed:ele=%s,rc=%d",
-                    ele.toString().c_str(), rc ) ;
+                    PD_SECURE_STR(ele.toString()), rc ) ;
             goto error ;
          }
       }
@@ -1167,7 +1174,7 @@ namespace engine
                   {
                      rc = SDB_INVALIDARG ;
                      PD_LOG( PDERROR, "Inner operator %s is invalid",
-                             ele.toString( TRUE, TRUE ).c_str() ) ;
+                             PD_SECURE_STR(ele.toString( TRUE, TRUE ))) ;
                      goto error ;
                   }
                }
@@ -1201,7 +1208,7 @@ namespace engine
             {
                rc = SDB_INVALIDARG ;
                PD_LOG( PDERROR, "Inner $options %s is invalid",
-                       ele.toString( TRUE, TRUE ).c_str() ) ;
+                       PD_SECURE_STR(ele.toString( TRUE, TRUE )) ) ;
                goto error ;
             }
             break ;
@@ -1287,7 +1294,7 @@ namespace engine
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "add function failed:fieldName=%s,ele=%s,rc=%d",
-                    fieldName, ele.toString().c_str(), rc ) ;
+                    fieldName, PD_SECURE_STR(ele.toString()), rc ) ;
             goto error ;
          }
 
@@ -1312,7 +1319,7 @@ namespace engine
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "add function failed:fieldName=%s,ele=%s,rc=%d",
-                    fieldName, ele.toString().c_str(), rc ) ;
+                    fieldName, PD_SECURE_STR(ele.toString()), rc ) ;
             goto error ;
          }
 
@@ -1352,7 +1359,7 @@ namespace engine
             rc = SDB_INVALIDARG ;
             PD_LOG( PDERROR, "regex's type should be String type:fieldName=%s,"
                     "innerEle=%s,type=%d", ele.fieldName(),
-                    innerEle.toString().c_str(), innerEle.type() ) ;
+                    PD_SECURE_STR(innerEle.toString()), innerEle.type() ) ;
             goto error ;
          }
          if ( EN_MATCH_OPERATOR_REGEX == nodeType )
@@ -1409,7 +1416,7 @@ namespace engine
             // EN_MATCH_OPERATOR_END
             rc = SDB_INVALIDARG ;
             PD_LOG( PDERROR, "unreconigzed operator:embEle=%s,rc=%d",
-                    innerEle.toString().c_str(), rc ) ;
+                    PD_SECURE_STR(innerEle.toString()), rc ) ;
             goto error ;
          }
       }
@@ -1425,7 +1432,7 @@ namespace engine
             rc = SDB_INVALIDARG ;
             PD_LOG( PDERROR,
                     "Unsupported inner matching operator [%s]",
-                    innerEle.toString( TRUE, TRUE ).c_str() ) ;
+                    PD_SECURE_STR(innerEle.toString( TRUE, TRUE ))) ;
             goto error ;
          }
 
@@ -1552,7 +1559,7 @@ namespace engine
          // do not allow mix format
          rc = SDB_INVALIDARG ;
          PD_LOG( PDERROR, "object's element do not allow exist mix op keys and "
-                 "normal keys:ele=%s,rc=%d", ele.toString().c_str(), rc ) ;
+                 "normal keys:ele=%s,rc=%d", PD_SECURE_STR(ele.toString()), rc ) ;
          goto error ;
       }
       else
