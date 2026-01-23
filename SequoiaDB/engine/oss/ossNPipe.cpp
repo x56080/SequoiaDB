@@ -1217,6 +1217,7 @@ INT32 ossReadNamedPipe ( OSSNPIPE &handle,
    INT32 rc = SDB_OK ;
    PD_TRACE_ENTRY ( SDB_OSSRDNP );
    fd_set fds ;
+   INT64 hasRead = 0 ;
    ssize_t readSize ;
    struct timeval selectTimeout ;
    if ( OSS_BIT_TEST ( handle._state, OSS_NPIPE_BLOCK_WITH_TIMEOUT ) &&
@@ -1242,26 +1243,43 @@ INT32 ossReadNamedPipe ( OSSNPIPE &handle,
          goto error ;
       }
    }
-   do
+   while ( bufSize > 0 )
    {
-      readSize = read ( handle._handle, pBuffer, bufSize ) ;
-   } while ( -1 == readSize && ( rc = ossGetLastError() ) == EINTR ) ;
+      do
+      {
+         readSize = read ( handle._handle, pBuffer + hasRead, bufSize ) ;
+      } while ( -1 == readSize && ( rc = ossGetLastError() ) == EINTR ) ;
 
-   if ( 0 == readSize )
-   {
-      rc = SDB_EOF ;
-      goto done ;
-   }
-   if ( -1 == readSize )
-   {
-      rc = ossGetLastError () ;
-      PD_LOG ( PDERROR, "Failed to read from pipe %s, errno = %d",
-               handle._name, rc ) ;
-      goto error ;
+      if ( 0 == readSize )
+      {
+         if ( 0 == hasRead )
+         {
+            rc = SDB_EOF ;
+            goto done ;
+         }
+         else
+         {
+            break ;
+         }
+      }
+      else if ( -1 == readSize )
+      {
+         rc = ossGetLastError () ;
+         PD_LOG ( PDERROR, "Failed to read from pipe %s, errno = %d",
+                  handle._name, rc ) ;
+         goto error ;
+      }
+      else
+      {
+         hasRead += readSize ;
+         bufSize -= readSize ;
+      }
    }
 
    if ( bufRead )
-      *bufRead = readSize ;
+   {
+      *bufRead = hasRead ;
+   }
    rc = SDB_OK ;
 done :
    PD_TRACE_EXITRC ( SDB_OSSRDNP, rc );
@@ -1298,29 +1316,44 @@ INT32 ossWriteNamedPipe ( OSSNPIPE &handle,
    {
       goto done ;
    }
-   do
+
+   while ( bufSize > 0 )
    {
       len = bufSize > handle._bufSize ? handle._bufSize : bufSize ;
-      writeSize = write ( handle._handle, &pBuffer[hasWrite], len ) ;
+      do
+      {
+         writeSize = write ( handle._handle, &pBuffer[hasWrite], len ) ;
+         if ( 0 == writeSize )
+         {
+            break ;
+         }
+      } while ( -1 == writeSize && ( rc = ossGetLastError()) == EINTR ) ;
+
       if ( writeSize > 0 )
       {
          bufSize -= writeSize ;
          hasWrite += writeSize ;
       }
-      if ( bufSize <= 0 )
+      else if ( 0 == writeSize )
       {
-         break ;
+         rc = SDB_SYS ;
+         PD_LOG ( PDERROR, "Failed to write to pipe %s, 0 byte written",
+                  handle._name ) ;
+         goto error ;
       }
-   } while ( -1 == writeSize && ( rc = ossGetLastError()) == EINTR ) ;
-   if ( -1 == writeSize )
-   {
-      rc = ossGetLastError () ;
-      PD_LOG ( PDERROR, "Failed to write to pipe %s, errno = %d",
-               handle._name, rc ) ;
-      goto error ;
+      else if ( -1 == writeSize )
+      {
+         rc = ossGetLastError () ;
+         PD_LOG ( PDERROR, "Failed to write to pipe %s, errno = %d",
+                  handle._name, rc ) ;
+         goto error ;
+      }
    }
+
    if ( bufWrite )
+   {
       *bufWrite = hasWrite ;
+   }
    rc = SDB_OK ;
 done :
    PD_TRACE_EXITRC ( SDB__OSSWTNP, rc );
