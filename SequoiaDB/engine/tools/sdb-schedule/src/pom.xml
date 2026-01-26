@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.sequoiadb</groupId>
+    <artifactId>sdb-schedule</artifactId>
+    <version>${revision}</version>
+    <packaging>pom</packaging>
+    <name>Sequoiadb Schedule</name>
+    <description>Sequoiadb Schedule Server</description>
+    <modules>
+        <module>./project/server/schedule-server</module>
+        <module>./project/common/tools</module>
+        <module>./project/assembly</module>
+        <module>./project/common/common</module>
+    </modules>
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>2.7.12</version>
+    </parent>
+
+    <properties>
+        <maven.compiler.source>8</maven.compiler.source>
+        <maven.compiler.target>8</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <revision>5.8.6</revision>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>2.7.12</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.sequoiadb</groupId>
+                <artifactId>sequoiadb-driver</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>1.18.26</version>
+                <optional>true</optional>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-starter-openfeign</artifactId>
+                <version>3.1.9</version>
+            </dependency>
+
+            <!-- 可选：Jackson 编解码器 -->
+            <dependency>
+                <groupId>io.github.openfeign</groupId>
+                <artifactId>feign-jackson</artifactId>
+                <version>11.10</version>
+            </dependency>
+
+            <!-- 可选：Apache HttpClient 底层实现 -->
+            <dependency>
+                <groupId>io.github.openfeign</groupId>
+                <artifactId>feign-httpclient</artifactId>
+                <version>11.10</version>
+            </dependency>
+            <dependency>
+                <groupId>com.sequoiadb</groupId>
+                <artifactId>schedule-server</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.sequoiadb</groupId>
+                <artifactId>sdb-schedule-tools</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+        </dependencies>
+
+
+    </dependencyManagement>
+
+</project>

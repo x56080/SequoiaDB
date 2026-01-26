@@ -1845,6 +1845,56 @@
                      ]
                   },
                   {
+                     "id": 1769392594,
+                     "dir": "Data_Archiving",
+                     "cn": "数据归档",
+                     "en": "Data Archiving",
+                     "contents": [
+                        {
+                           "id": 1769392595,
+                           "file": "install_requirement",
+                           "cn": "软硬件配置要求",
+                           "en": "Install Requirement"
+                        },
+                        {
+                           "id": 1769392596,
+                           "file": "deploy",
+                           "cn": "安装部署",
+                           "en": "Deploy"
+                        },
+                        {
+                           "id": 1769392597,
+                           "file": "architecture",
+                           "cn": "系统概述",
+                           "en": "Architecture"
+                        },
+                        {
+                           "id": 1769392598,
+                           "file": "tools",
+                           "cn": "运维工具",
+                           "en": "Tools"
+                        },
+                        {
+                           "id": 1769392599,
+                           "file": "node_config",
+                           "cn": "节点配置",
+                           "en": "Node Config"
+                        },
+                        {
+                           "id": 1769392845,
+                           "file": "web_guide",
+                           "cn": "Web使用指南",
+                           "en": "Web Guide"
+                        },
+                        {
+                           "id": 1769392846,
+                           "file": "special_cases",
+                           "cn": "特殊情况处理指南",
+                           "en": "special Cases"
+                        }
+                     ]
+                  },
+                  {
                      "id": 1629289093,
                      "file": "deadlock_detector",
                      "cn": "死锁检测",

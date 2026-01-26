@@ -138,6 +138,9 @@ class CompileBaseModuleMgr:
       self.compile_spark3(db_version)
       self.compile_flink(db_version)
 
+   def compile_tools(self, db_version):
+      self.compile_sdb_schedule(db_version)
+
    def compile_pg_connector(self):
       print_log('Begine compile postgresql connector')
       pg_connector_dir = os.path.join(self.root_dir, 'driver/postgresql')
@@ -169,6 +172,13 @@ class CompileBaseModuleMgr:
       self.set_pom_version(db_version, s3_dir)
       self.run_in_dir(compile_s3_cmd, s3_dir, self.jdk_env)
       print_log('Finish compile sequoias3')
+
+   def compile_sdb_schedule(self, db_version):
+      print_log('Begine compile sdb-schedule')
+      sdb_schedule_dir = os.path.join(self.root_dir, 'SequoiaDB/engine/tools/sdb-schedule')
+      compile_sdb_schedule_cmd = 'python build.py {}'.format(db_version)
+      self.run_in_dir(compile_sdb_schedule_cmd, sdb_schedule_dir, self.jdk_env)
+      print_log('Finish compile sdb-schedule') 
 
    def compile_spark(self, db_version):
       print_log('Begine compile spark connector')

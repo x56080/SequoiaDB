@@ -266,7 +266,7 @@ def package_db(opt_mgr, ver):
             'lib', 'license', 'packet', 'postgresql', 'python', 'samples', 'tools/server/php',
             'tools/sequoias3', 'tools/sequoias3/java', 'tools/sequoiafs', 'tools/consistencycheck', 'web',
             'www', 'spark', 'flink', 'plugins', 'plugins/SequoiaSQL', 'lib/phplib', 'CSharp',
-            'tools/script', 'tools/expect']
+            'tools/script', 'tools/expect', 'tools/sdb-schedule']
    for dir in dirs:
       os.makedirs(os.path.join(install_dir, dir))
 
@@ -314,6 +314,7 @@ def package_db(opt_mgr, ver):
    copy_file(os.path.join(ROOT_DIR, 'SequoiaDB/engine/tools/sequoias3/sequoias3.sh'), os.path.join(install_dir, 'tools/sequoias3'))
    copy_file(os.path.join(ROOT_DIR, 'SequoiaDB/engine/tools/sequoias3/README.txt'), os.path.join(install_dir, 'tools/sequoias3'))
    copy_file(os.path.join(ROOT_DIR, 'SequoiaDB/engine/tools/sequoias3/driver/java/target/sequoias3-client*.jar'), os.path.join(install_dir, 'tools/sequoias3/java'))
+   copy_file(os.path.join(ROOT_DIR, 'SequoiaDB/engine/tools/sdb-schedule/src/project/assembly/target/sdb-schedule-*-release.tar.gz'), os.path.join(install_dir, 'tools/sdb-schedule'))
    copy_file(os.path.join(ROOT_DIR, 'driver/postgresql/sdb_fdw.so'), os.path.join(install_dir, 'postgresql'))
    copy_file(os.path.join(ROOT_DIR, 'driver/postgresql/sdb_fdw--1.0.sql'), os.path.join(install_dir, 'postgresql'))
    copy_file(os.path.join(ROOT_DIR, 'driver/postgresql/sdb_fdw.control'), os.path.join(install_dir, 'postgresql'))
@@ -555,6 +556,7 @@ def main():
    db_version = ver.get_version()
    compile_base_mgr.compile_driver(db_version)
    compile_base_mgr.compile_connector(db_version)
+   compile_base_mgr.compile_tools(db_version)
 
    if opt_mgr.get_install_dir():
       package_db(opt_mgr, ver)

@@ -4108,3 +4108,5 @@ sequoiadb/tools/dr_ha/config.js.sample
 sequoiadb/tools/deploy/mariadb.conf
 sequoiadb/doc/manual/SdbCollection/listLobPieces_cn.troff
 sequoiadb/doc/manual/SdbCollection/listLobPieces_en.troff
+sequoiadb/tools/sdb-schedule
+sequoiadb/tools/sdb-schedule/sdb-schedule-${SYS_VERSION}-release.tar.gz
