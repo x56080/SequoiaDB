@@ -1265,9 +1265,17 @@ INT32 ossReadNamedPipe ( OSSNPIPE &handle,
       else if ( -1 == readSize )
       {
          rc = ossGetLastError () ;
-         PD_LOG ( PDERROR, "Failed to read from pipe %s, errno = %d",
-                  handle._name, rc ) ;
-         goto error ;
+         if ( EAGAIN == rc && hasRead > 0 )
+         {
+            rc = SDB_OK ;
+            break ;
+         }
+         else
+         {
+            PD_LOG ( PDERROR, "Failed to read from pipe %s, errno = %d",
+                     handle._name, rc ) ;
+            goto error ;
+         }
       }
       else
       {
