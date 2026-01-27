@@ -558,7 +558,7 @@ namespace engine
          handler = dynamic_cast< netUDPEventHandler * >( eh.get() ) ;
          SDB_ASSERT( NULL != handler, "handler is invalid" ) ;
 
-         handler->readCallback( message ) ;
+         handler->readCallback( _buffer, _bufferSize ) ;
       }
 
       if ( SDB_OK != asyncRead() )
