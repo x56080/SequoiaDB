@@ -105,7 +105,6 @@ namespace engine
          rc = v.run() ;
          if ( SDB_OK != rc )
          {
-            ftReportErr( rc ) ;
             PD_LOG( PDERROR, "Failed to run local validation: %d", rc ) ;
          }
 
