@@ -84,7 +84,7 @@ namespace engine
       virtual UINT16 localPort() const ;
       virtual UINT16 remotePort() const ;
 
-      void readCallback( MsgHeader *message ) ;
+      void readCallback( CHAR *buffer, UINT32 bufferSize ) ;
       void setRouteID( const MsgRouteID &routeID ) ;
 
       OSS_INLINE const netUDPEndPoint &getRemoteEndPoint() const

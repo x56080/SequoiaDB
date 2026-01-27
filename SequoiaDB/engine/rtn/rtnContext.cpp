@@ -46,7 +46,7 @@ using namespace bson ;
 
 namespace engine
 {
-   #define RTN_CONTEXT_MAX_BUFF_SIZE         ( 5 * RTN_RESULTBUFFER_SIZE_MAX )
+   #define RTN_CONTEXT_MAX_BUFF_SIZE         ( 4 * RTN_RESULTBUFFER_SIZE_MAX )
    #define RTN_CTX_PREPARE_MORE_DATA_INIT    (1024 * 4)     /* 4KB */
    #define RTN_CTX_PREPARE_MORE_DATA_MAX     (1024 * 512)   /* 512KB */
    // minimum timeout for prepare more 4ms

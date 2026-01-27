@@ -262,10 +262,24 @@ namespace engine
       return _remoteEndPoint.port() ;
    }
 
-   void _netUDPEventHandler::readCallback( MsgHeader *message )
+   void _netUDPEventHandler::readCallback( CHAR *buffer, UINT32 bufferSize )
    {
       _lastRecvTick = pmdGetDBTick() ;
       _lastBeatTick = _lastRecvTick ;
+      MsgHeader *message = (MsgHeader *) buffer ;
+      UINT32 minMsgLen = (SDB_PROTOCOL_VER_CUR == _peerVersion) ?
+                          sizeof(MsgHeader) : sizeof(MsgHeaderV1) ;
+
+      if ( minMsgLen > (UINT32)message->messageLength ||
+           bufferSize < (UINT32)message->messageLength )
+      {
+         PD_LOG( PDERROR, "Connection[Handle:%d, Node:%s] received invalid "
+                 "message[%s] from %s:%d", _handle,
+                 routeID2String( _id ).c_str(),
+                 msg2String( message, MSG_MASK_ALL, 0 ).c_str(),
+                 remoteAddr().c_str(), remotePort() ) ;
+         goto error_close ;
+      }
 
       if ( SDB_PROTOCOL_VER_2 == _peerVersion )
       {
