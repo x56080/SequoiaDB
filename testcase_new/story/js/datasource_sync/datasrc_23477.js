@@ -20,8 +20,6 @@ function test ()
    var subCLName1 = "subCL_23477a";
    var subCLName2 = "subCL_23477b";
 
-   var datasrcDB = new Sdb( datasrcIp, datasrcPort, userName, passwd );
-
    commDropCS( datasrcDB, srcCSName );
    clearDataSource( csName, dataSrcName );
    commCreateCS( datasrcDB, srcCSName );
