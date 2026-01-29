@@ -19,7 +19,6 @@ function test ()
    var dsMainCLName2 = "main_34333_2";
    var dsCSName = "datasrcCS_34333";
 
-   var datasrcDB = new Sdb( datasrcIp, datasrcPort, userName, passwd ); 
    commDropCS( datasrcDB, dsCSName );
    clearDataSource( csName, dataSrcName );
 
@@ -72,13 +71,14 @@ function test ()
    {
       mainCL.remove({ a: { $gt: 1 } });
    } );
+   jsonFormat(false);
    result = mainCL.insert([ { a: 2 } ]);
    assert.equal( result.toString(),
          '{ "InsertedNum": 1, "DuplicatedNum": 0, "ModifiedNum": 0 }');
    result = mainCL.update({ $set: { b: 1 } }, { a: { $et: 2 } });
    assert.equal( result.toString(),
          '{ "UpdatedNum": 1, "ModifiedNum": 1, "InsertedNum": 0 }');
-   result = mainCL.find({ a: { $et: 2 } });
+   result = mainCL.find({ a: { $et: 2 } }, { _id: { $include: 0 } });
    assert.equal( result.next().toString(),
          '{ "a": 2, "b": 1 }');
    result = mainCL.remove({ a: { $et: 2 } });
@@ -111,7 +111,7 @@ function test ()
    result = mainCL.update({ $set: { b: 1 } }, { a: { $et: 2 } });
    assert.equal( result.toString(),
          '{ "UpdatedNum": 1, "ModifiedNum": 1, "InsertedNum": 0 }');
-   result = mainCL.find({ a: { $et: 2 } });
+   result = mainCL.find({ a: { $et: 2 } }, { _id: { $include: 0 } });
    assert.equal( result.next().toString(),
          '{ "a": 2, "b": 1 }');
    result = mainCL.remove({ a: { $et: 2 } });
@@ -144,7 +144,7 @@ function test ()
    result = mainCL.update({ $set: { b: 1 } }, { a: { $et: 2 } });
    assert.equal( result.toString(),
          '{ "UpdatedNum": 1, "ModifiedNum": 1, "InsertedNum": 0 }');
-   result = mainCL.find({ a: { $et: 2 } });
+   result = mainCL.find({ a: { $et: 2 } }, { _id: { $include: 0 } });
    assert.equal( result.next().toString(),
          '{ "a": 2, "b": 1 }');
    result = mainCL.remove({ a: { $et: 2 } });
@@ -177,7 +177,7 @@ function test ()
    result = mainCL.update({ $set: { b: 1 } }, { a: { $et: 2 } });
    assert.equal( result.toString(),
          '{ "UpdatedNum": 1, "ModifiedNum": 1, "InsertedNum": 0 }');
-   result = mainCL.find({ a: { $et: 2 } });
+   result = mainCL.find({ a: { $et: 2 } }, { _id: { $include: 0 } });
    assert.equal( result.next().toString(),
          '{ "a": 2, "b": 1 }');
    result = mainCL.remove({ a: { $et: 2 } });
@@ -199,7 +199,7 @@ function test ()
    result = mainCL.update({ $set: { b: 1 } }, { a: { $et: 2 } });
    assert.equal( result.toString(),
          '{ "UpdatedNum": 1, "ModifiedNum": 1, "InsertedNum": 0 }');
-   result = mainCL.find({ a: { $et: 2 } });
+   result = mainCL.find({ a: { $et: 2 } }, { _id: { $include: 0 } });
    assert.equal( result.next().toString(),
          '{ "a": 2, "b": 1 }');
    result = mainCL.remove({ a: { $et: 2 } });

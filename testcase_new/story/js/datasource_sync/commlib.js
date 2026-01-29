@@ -6,4 +6,3 @@
  * @LastEditors   : liuli
  ******************************************************************************/
 import( "../lib/datasource_commlib.js" );
-testConf.skipTest = true; // CI-1687 数据源用例下线

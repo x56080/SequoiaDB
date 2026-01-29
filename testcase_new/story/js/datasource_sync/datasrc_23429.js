@@ -13,7 +13,6 @@ function test ()
    var csName = "cs_23429";
    var csName1 = "cs_23429b";
    var clName = "cl_23429";
-   var datasrcDB = new Sdb( datasrcIp, datasrcPort, userName, passwd );
    commDropCS( datasrcDB, csName );
    commDropCS( db, csName1 );
    clearDataSource( csName, dataSrcName );

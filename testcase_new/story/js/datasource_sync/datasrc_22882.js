@@ -17,8 +17,6 @@ function test ()
    var srcCSName = "datasrcCS_22882";
    var mainCLName = "mainCL_22882";
    var subCLName = "subCL_22882";
-   var datasrcDB = new Sdb( datasrcIp, datasrcPort, userName, passwd );
-   var datasrcDB1 = new Sdb( datasrcIp1, datasrcPort, userName, passwd );
    commDropCS( datasrcDB, srcCSName );
    commDropCS( datasrcDB1, srcCSName );
    clearDataSource( csName, dataSrcName );

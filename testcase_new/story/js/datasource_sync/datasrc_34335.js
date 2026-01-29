@@ -17,7 +17,6 @@ function test ()
    var clName3 = "cl_34335_3";
    var dsMainCLName1 = "main_34335_1";
 
-   var datasrcDB = new Sdb( datasrcIp, datasrcPort, userName, passwd ); 
    commDropCS( datasrcDB, csName );
    clearDataSource( csName, dataSrcName );
 
