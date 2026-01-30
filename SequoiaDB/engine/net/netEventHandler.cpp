@@ -630,7 +630,7 @@ namespace engine
 
       if ( NET_EVENT_HANDLER_STATE_HEADER == _state )
       {
-         UINT32 minMsgLen = (SDB_PROTOCOL_VER_2 == _peerVersion) ?
+         UINT32 minMsgLen = (SDB_PROTOCOL_VER_CUR == _peerVersion) ?
                             sizeof(MsgHeader) : sizeof(MsgHeaderV1) ;
 
          /// error header
@@ -735,7 +735,7 @@ namespace engine
             // If peer node protocol version is 1, we can not print the message
             // like this, as the structure of the message is different. Once all
             // nodes in the cluster finish upgrading, the message can be logged.
-            if ( SDB_PROTOCOL_VER_2 == _peerVersion )
+            if ( SDB_PROTOCOL_VER_CUR == _peerVersion )
             {
                PD_LOG( PDDEBUG, "Connection[Handle:%d, Node:%s] received "
                                 "message[%s] from %s:%d", _handle,

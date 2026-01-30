@@ -351,7 +351,7 @@ namespace engine
 
    BOOLEAN _pmdLocalSession::_clientVersionMatch() const
    {
-      return ( SDB_PROTOCOL_VER_2 == _clientVer ) ;
+      return ( SDB_PROTOCOL_VER_CUR == _clientVer ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_PMDLOCALSN__PREPROCESSMSG, "_pmdLocalSession::_preprocessMsg" )
@@ -427,7 +427,7 @@ namespace engine
       _replyHeader.header.requestID   = pMsg->requestID ;
       _replyHeader.header.TID         = pMsg->TID ;
       _replyHeader.header.routeID     = pmdGetNodeID() ;
-      _replyHeader.header.version     = SDB_PROTOCOL_VER_2 ;
+      _replyHeader.header.version     = SDB_PROTOCOL_VER_CUR ;
       _replyHeader.header.flags       = 0 ;
       _replyHeader.header.globalID    = pMsg->globalID ;
       ossMemset( _replyHeader.header.reserve, 0,
