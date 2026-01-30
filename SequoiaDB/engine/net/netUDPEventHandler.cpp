@@ -274,7 +274,7 @@ namespace engine
          goto error_close ;
       }
 
-      if ( SDB_PROTOCOL_VER_2 == _peerVersion )
+      if ( SDB_PROTOCOL_VER_CUR == _peerVersion )
       {
          PD_LOG( PDDEBUG, "UDP connection[Handle:%d] received "
                           "message[%s] from %s:%d", _handle,

@@ -236,7 +236,7 @@ namespace engine
 
       // Rest request is not affacted by the common message formant change. So
       // we always think it's in the 'new' format.
-      _client.setClientVersion( SDB_PROTOCOL_VER_2 ) ;
+      _client.setClientVersion( SDB_PROTOCOL_VER_CUR ) ;
 
       while ( !_pEDUCB->isDisconnected() && !_socket.isClosed() )
       {
@@ -4316,7 +4316,7 @@ namespace engine
          sqlMsg->header.opCode        = MSG_BS_SQL_REQ ;
          sqlMsg->header.messageLength = sizeof( MsgOpSql ) + sqlLen ;
          sqlMsg->header.eye           = MSG_COMM_EYE_DEFAULT ;
-         sqlMsg->header.version       = SDB_PROTOCOL_VER_2 ;
+         sqlMsg->header.version       = SDB_PROTOCOL_VER_CUR ;
          sqlMsg->header.flags         = 0 ;
          sqlMsg->header.routeID.value = 0 ;
          sqlMsg->header.TID           = ossGetCurrentThreadID() ;

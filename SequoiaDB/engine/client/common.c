@@ -1054,7 +1054,7 @@ INT32 clientBuildUpdateMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    pUpdate->header.opCode              = opCode ;
    pUpdate->header.messageLength       = packetLength ;
    pUpdate->header.eye                 = MSG_COMM_EYE_DEFAULT ;
-   pUpdate->header.version             = SDB_PROTOCOL_VER_2 ;
+   pUpdate->header.version             = SDB_PROTOCOL_VER_CUR ;
    pUpdate->header.flags               = FLAG_RESULT_DETAIL ;
    pUpdate->header.routeID.value       = clientDefaultRouteID ;
    pUpdate->header.TID                 = tid ;
@@ -1370,7 +1370,7 @@ INT32 clientBuildInsertMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    pInsert->header.opCode        = MSG_BS_INSERT_REQ ;
    pInsert->header.messageLength = packetLength ;
    pInsert->header.eye           = MSG_COMM_EYE_DEFAULT ;
-   pInsert->header.version       = SDB_PROTOCOL_VER_2 ;
+   pInsert->header.version       = SDB_PROTOCOL_VER_CUR ;
    pInsert->header.flags         = FLAG_RESULT_DETAIL ;
    pInsert->header.routeID.value = 0 ;
    pInsert->header.TID           = ossGetCurrentThreadID() ;
@@ -1493,7 +1493,7 @@ INT32 clientBuildQueryMsg  ( CHAR **ppBuffer, INT32 *bufferSize,
    pQuery->header.opCode         = MSG_BS_QUERY_REQ ;
    pQuery->header.messageLength  = packetLength ;
    pQuery->header.eye            = MSG_COMM_EYE_DEFAULT ;
-   pQuery->header.version        = SDB_PROTOCOL_VER_2 ;
+   pQuery->header.version        = SDB_PROTOCOL_VER_CUR ;
    pQuery->header.flags          = 0 ;
    pQuery->header.routeID.value  = 0 ;
    pQuery->header.TID            = ossGetCurrentThreadID() ;
@@ -1837,7 +1837,7 @@ INT32 clientBuildDeleteMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    pDelete->header.opCode        = MSG_BS_DELETE_REQ ;
    pDelete->header.messageLength = packetLength ;
    pDelete->header.eye           = MSG_COMM_EYE_DEFAULT ;
-   pDelete->header.version       = SDB_PROTOCOL_VER_2 ;
+   pDelete->header.version       = SDB_PROTOCOL_VER_CUR ;
    pDelete->header.flags         = 0 ;
    pDelete->header.routeID.value = 0 ;
    pDelete->header.TID           = ossGetCurrentThreadID() ;
@@ -2035,7 +2035,7 @@ INT32 clientBuildAggrRequest1( CHAR **ppBuffer, INT32 *bufferSize,
    ossEndianConvertIf( nameLength, pAggr->nameLength, endianConvert );
    pAggr->header.messageLength = packetLength;
    pAggr->header.eye = MSG_COMM_EYE_DEFAULT ;
-   pAggr->header.version = SDB_PROTOCOL_VER_2 ;
+   pAggr->header.version = SDB_PROTOCOL_VER_CUR ;
    pAggr->header.flags = FLAG_RESULT_DETAIL ;
    pAggr->header.opCode = MSG_BS_AGGREGATE_REQ ;
    pAggr->header.routeID.value = 0;
@@ -2141,7 +2141,7 @@ INT32 clientBuildAggrRequest( CHAR **ppBuffer, INT32 *bufferSize,
    pAggr->header.opCode        = MSG_BS_AGGREGATE_REQ ;
    pAggr->header.messageLength = packetLength ;
    pAggr->header.eye           = MSG_COMM_EYE_DEFAULT ;
-   pAggr->header.version       = SDB_PROTOCOL_VER_2 ;
+   pAggr->header.version       = SDB_PROTOCOL_VER_CUR ;
    pAggr->header.flags         = 0 ;
    pAggr->header.routeID.value = 0 ;
    pAggr->header.TID           = ossGetCurrentThreadID() ;
@@ -2339,7 +2339,7 @@ INT32 clientBuildLobMsg( CHAR **ppBuffer, INT32 *bufferSize,
    msg->header.opCode = msgType ;
    msg->header.messageLength = packetLength ;
    msg->header.eye = MSG_COMM_EYE_DEFAULT ;
-   msg->header.version = SDB_PROTOCOL_VER_2 ;
+   msg->header.version = SDB_PROTOCOL_VER_CUR ;
    msg->header.flags = 0 ;
    msg->header.routeID.value = clientDefaultRouteID ;
    msg->header.TID = ossGetCurrentThreadID() ;
@@ -2600,7 +2600,7 @@ INT32 clientBuildAuthCrtMsg( CHAR **ppBuffer, INT32 *bufferSize,
    msg->header.opCode        = MSG_AUTH_CRTUSR_REQ ;
    msg->header.messageLength = sizeof( MsgAuthCrtUsr ) + bsonSize ;
    msg->header.eye           = MSG_COMM_EYE_DEFAULT ;
-   msg->header.version       = SDB_PROTOCOL_VER_2 ;
+   msg->header.version       = SDB_PROTOCOL_VER_CUR ;
    msg->header.flags         = 0 ;
    msg->header.routeID.value = 0 ;
    msg->header.TID           = ossGetCurrentThreadID() ;
@@ -3123,7 +3123,7 @@ INT32 clientBuildGetMoreMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    pGetMore->header.opCode        = MSG_BS_GETMORE_REQ ;
    pGetMore->header.messageLength = packetLength ;
    pGetMore->header.eye           = MSG_COMM_EYE_DEFAULT ;
-   pGetMore->header.version       = SDB_PROTOCOL_VER_2 ;
+   pGetMore->header.version       = SDB_PROTOCOL_VER_CUR ;
    pGetMore->header.flags         = 0 ;
    pGetMore->header.routeID.value = 0 ;
    pGetMore->header.TID           = ossGetCurrentThreadID() ;
@@ -3170,7 +3170,7 @@ INT32 clientBuildKillContextsMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    pKC->header.opCode        = MSG_BS_KILL_CONTEXT_REQ ;
    pKC->header.messageLength = packetLength ;
    pKC->header.eye           = MSG_COMM_EYE_DEFAULT ;
-   pKC->header.version       = SDB_PROTOCOL_VER_2 ;
+   pKC->header.version       = SDB_PROTOCOL_VER_CUR ;
    pKC->header.flags         = 0 ;
    pKC->header.routeID.value = 0 ;
    pKC->header.TID           = ossGetCurrentThreadID() ;
@@ -3222,7 +3222,7 @@ INT32 clientBuildInterruptMsg ( CHAR **ppBuffer, INT32 *bufferSize,
                                            ( *ppBuffer ) ;
    killAllContexts->header.messageLength = len ;
    killAllContexts->header.eye           = MSG_COMM_EYE_DEFAULT ;
-   killAllContexts->header.version       = SDB_PROTOCOL_VER_2 ;
+   killAllContexts->header.version       = SDB_PROTOCOL_VER_CUR ;
    killAllContexts->header.flags         = 0 ;
    killAllContexts->header.opCode = isSelf ? MSG_BS_INTERRUPTE_SELF :
                                     MSG_BS_INTERRUPTE ;
@@ -3307,7 +3307,7 @@ INT32 clientBuildDisconnectMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    pDisconnect->header.opCode        = MSG_BS_DISCONNECT ;
    pDisconnect->header.messageLength = packetLength ;
    pDisconnect->header.eye           = MSG_COMM_EYE_DEFAULT ;
-   pDisconnect->header.version       = SDB_PROTOCOL_VER_2 ;
+   pDisconnect->header.version       = SDB_PROTOCOL_VER_CUR ;
    pDisconnect->header.flags         = 0 ;
    pDisconnect->header.routeID.value = 0 ;
    pDisconnect->header.TID           = ossGetCurrentThreadID() ;
@@ -3358,7 +3358,7 @@ INT32 clientBuildSqlMsg( CHAR **ppBuffer, INT32 *bufferSize,
       sqlMsg->header.opCode        = MSG_BS_SQL_REQ ;
       sqlMsg->header.messageLength = sizeof( MsgOpSql ) + sqlLen ;
       sqlMsg->header.eye           = MSG_COMM_EYE_DEFAULT ;
-      sqlMsg->header.version       = SDB_PROTOCOL_VER_2 ;
+      sqlMsg->header.version       = SDB_PROTOCOL_VER_CUR ;
       sqlMsg->header.flags         = 0 ;
       sqlMsg->header.routeID.value = 0 ;
       sqlMsg->header.TID           = ossGetCurrentThreadID() ;
@@ -3460,7 +3460,7 @@ INT32 clientBuildAuthVer0Msg( CHAR **ppBuffer, INT32 *bufferSize,
    msg->header.opCode        = MSG_AUTH_VERIFY_REQ ;
    msg->header.messageLength = sizeof( MsgAuthentication ) + bsonSize ;
    msg->header.eye           = MSG_COMM_EYE_DEFAULT ;
-   msg->header.version       = SDB_PROTOCOL_VER_2 ;
+   msg->header.version       = SDB_PROTOCOL_VER_CUR ;
    msg->header.flags         = FLAG_RESULT_DETAIL ;
    msg->header.routeID.value = 0 ;
    msg->header.TID           = ossGetCurrentThreadID() ;
@@ -3590,7 +3590,7 @@ INT32 clientBuildAuthVer1Step1Msg( CHAR **ppBuffer, INT32 *bufferSize,
    msg                       = ( MsgAuthentication * )(*ppBuffer) ;
    msg->header.requestID     = reqID ;
    msg->header.eye           = MSG_COMM_EYE_DEFAULT ;
-   msg->header.version       = SDB_PROTOCOL_VER_2 ;
+   msg->header.version       = SDB_PROTOCOL_VER_CUR ;
    msg->header.flags         = 0 ;
    msg->header.opCode        = MSG_AUTH_VERIFY1_REQ ;
    msg->header.messageLength = sizeof( MsgAuthentication ) + bsonSize ;
@@ -3749,7 +3749,7 @@ INT32 clientBuildAuthVer1Step2Msg( CHAR **ppBuffer, INT32 *bufferSize,
    msg->header.opCode        = MSG_AUTH_VERIFY1_REQ ;
    msg->header.messageLength = sizeof( MsgAuthentication ) + bsonSize ;
    msg->header.eye           = MSG_COMM_EYE_DEFAULT ;
-   msg->header.version       = SDB_PROTOCOL_VER_2 ;
+   msg->header.version       = SDB_PROTOCOL_VER_CUR ;
    msg->header.flags         = 0 ;
    msg->header.routeID.value = 0 ;
    msg->header.TID           = ossGetCurrentThreadID() ;
@@ -3852,7 +3852,7 @@ INT32 clientBuildAuthDelMsg( CHAR **ppBuffer, INT32 *bufferSize,
    msg->header.TID           = ossGetCurrentThreadID() ;
    msg->header.messageLength = sizeof( MsgAuthDelUsr ) + bsonSize ;
    msg->header.eye           = MSG_COMM_EYE_DEFAULT ;
-   msg->header.version       = SDB_PROTOCOL_VER_2 ;
+   msg->header.version       = SDB_PROTOCOL_VER_CUR ;
    msg->header.flags         = 0 ;
    ossMemset( &(msg->header.globalID), 0, sizeof(msg->header.globalID) ) ;
    ossMemset( msg->header.reserve, 0, sizeof(msg->header.reserve) ) ;
@@ -3924,7 +3924,7 @@ INT32 clientBuildTransactionBegMsg( CHAR **ppBuffer, INT32 *bufferSize,
    transBeginMsg->header.opCode        = MSG_BS_TRANS_BEGIN_REQ ;
    transBeginMsg->header.messageLength = sizeof( MsgOpTransBegin ) + 0 ;
    transBeginMsg->header.eye           = MSG_COMM_EYE_DEFAULT ;
-   transBeginMsg->header.version       = SDB_PROTOCOL_VER_2 ;
+   transBeginMsg->header.version       = SDB_PROTOCOL_VER_CUR ;
    transBeginMsg->header.flags         = 0 ;
    transBeginMsg->header.routeID.value = 0 ;
    transBeginMsg->header.TID           = ossGetCurrentThreadID() ;
@@ -3982,7 +3982,7 @@ INT32 clientBuildTransactionCommitMsg( CHAR **ppBuffer, INT32 *bufferSize,
    transCommitMsg->header.opCode        = MSG_BS_TRANS_COMMIT_REQ ;
    transCommitMsg->header.messageLength = len ;
    transCommitMsg->header.eye           = MSG_COMM_EYE_DEFAULT ;
-   transCommitMsg->header.version       = SDB_PROTOCOL_VER_2 ;
+   transCommitMsg->header.version       = SDB_PROTOCOL_VER_CUR ;
    transCommitMsg->header.flags         = 0 ;
    transCommitMsg->header.routeID.value = 0 ;
    transCommitMsg->header.TID           = ossGetCurrentThreadID() ;
@@ -4073,7 +4073,7 @@ INT32 clientBuildTransactionRollbackMsg( CHAR **ppBuffer, INT32 *bufferSize,
    transRollbackMsg->header.opCode        = MSG_BS_TRANS_ROLLBACK_REQ ;
    transRollbackMsg->header.messageLength = sizeof( MsgOpTransBegin ) + 0 ;
    transRollbackMsg->header.eye           = MSG_COMM_EYE_DEFAULT ;
-   transRollbackMsg->header.version       = SDB_PROTOCOL_VER_2 ;
+   transRollbackMsg->header.version       = SDB_PROTOCOL_VER_CUR ;
    transRollbackMsg->header.flags         = 0 ;
    transRollbackMsg->header.routeID.value = 0 ;
    transRollbackMsg->header.TID           = ossGetCurrentThreadID() ;
@@ -4182,7 +4182,7 @@ INT32 clientExtractSysInfoReply ( CHAR *pBuffer, BOOLEAN *endianConvert,
             ( 0 == ossStrncmp( reply->fingerprint,
                                (const CHAR *)digest,
                                sizeof(reply->fingerprint) ) ) ?
-            SDB_PROTOCOL_VER_2 : SDB_PROTOCOL_VER_1 ;
+            SDB_PROTOCOL_VER_CUR : SDB_PROTOCOL_VER_1 ;
    }
    if ( endianConvert )
    {
@@ -4253,7 +4253,7 @@ INT32 clientBuildTestMsg( CHAR **ppBuffer, INT32 *bufferSize,
    msgOpMsg->header.opCode        = MSG_BS_MSG_REQ ;
    msgOpMsg->header.messageLength = len ;
    msgOpMsg->header.eye           = MSG_COMM_EYE_DEFAULT ;
-   msgOpMsg->header.version       = SDB_PROTOCOL_VER_2 ;
+   msgOpMsg->header.version       = SDB_PROTOCOL_VER_CUR ;
    msgOpMsg->header.flags         = 0 ;
    msgOpMsg->header.routeID.value = 0 ;
    msgOpMsg->header.TID           = ossGetCurrentThreadID() ;
@@ -4596,7 +4596,7 @@ void clientMsgHeaderUpgrade( const MsgHeaderV1 *msgHeader,
    newMsgHeader->messageLength = msgHeader->messageLength +
                                 ( sizeof(MsgHeader) - sizeof(MsgHeaderV1) ) ;
    newMsgHeader->eye = MSG_COMM_EYE_DEFAULT ;
-   newMsgHeader->version = SDB_PROTOCOL_VER_2 ;
+   newMsgHeader->version = SDB_PROTOCOL_VER_CUR ;
    newMsgHeader->flags = 0 ;
    newMsgHeader->opCode = msgHeader->opCode ;
    newMsgHeader->TID = msgHeader->TID ;
