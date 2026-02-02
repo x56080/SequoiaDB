@@ -350,13 +350,18 @@ function testLimit( diaglog )
     } catch ( e ) {
         try {
             var db = new Sdb( COORDHOSTNAME, COORDSVCNAME );
-            var diagpath = db.exec( 'select diagpath from $SNAPSHOT_CONFIGS where role = "role"' ).current().toObj().diagpath;
-            var cmd = new Cmd();
-            cmd.run('cp -r ' + diagpath + ' /hdd/sequoiadb/');
+            var cursor = db.exec( 'select diagpath from $SNAPSHOT_CONFIGS where role = ""' );
+            while (cursor.next()) {
+                var diagpath = cursor.current().toObj().diagpath;
+                var cmd = new Cmd();
+                cmd.run('cp -r ' + diagpath + ' /hdd/sequoiadb/');
+            }
         } catch ( e ) {
             println("[ERROR] Failed to cp diaglog to /hdd/sequoiadb/");
         } finally {
-            cursor.close();
+            if (null != cursor) {
+                cursor.close();
+            }
             db.close();
         }
 
@@ -604,7 +609,7 @@ function testOutput( diaglog )
         rc = cmd.run( 'ls -d /tmp/sequoiadb/search/cluster*.auto | wc -l' ).trimRight( '\n' );
         assert.equal( rc, '10' );
     } catch ( e ) {
-        println("[ERROR] Failed on check tmp/sequoiadb/search/cluster*.auto");
+        println("[ERROR] Failed on check /tmp/sequoiadb/search/cluster*.auto");
         throw e;
     }
 
