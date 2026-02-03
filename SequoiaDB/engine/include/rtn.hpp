@@ -673,7 +673,8 @@ namespace engine
 
    INT32    rtnAggregate( const CHAR *pCollectionName, bson::BSONObj &objs,
                           INT32 objNum, SINT32 flags, pmdEDUCB *cb,
-                          SDB_DMSCB *dmsCB, SINT64 &contextID ) ;
+                          SDB_DMSCB *dmsCB, SINT64 &contextID,
+                          BOOLEAN &needRollback, BSONObjBuilder *pBuilder ) ;
 
    INT32 rtnExplain( rtnQueryOptions &options,
                      pmdEDUCB *cb, SDB_DMSCB *dmsCB,

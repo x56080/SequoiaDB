@@ -106,19 +106,11 @@ namespace engine
          pNewAdd->globalID = pOldHeader->globalID ;
          pos += pHeader->messageLength ;
 
-         if ( MSG_PACKET == pOldHeader->opCode )
-         {
-            ossMemcpy( (void*)pMsgPacket, (void*)pOldHeader,
-                       sizeof( MsgHeader ) ) ;
-         }
-         else
-         {
-            pMsgPacket->opCode = MSG_PACKET ;
-            pMsgPacket->requestID = pOldHeader->requestID ;
-            pMsgPacket->routeID.value = pOldHeader->routeID.value ;
-            pMsgPacket->TID = pOldHeader->TID ;
-            pMsgPacket->globalID = pOldHeader->globalID ;
-         }
+         /// copy the old header to new packet msg
+         ossMemcpy( (void*)pMsgPacket, (void*)pOldHeader,
+                    sizeof( MsgHeader ) ) ;
+         /// set packet msg opcode and length
+         pMsgPacket->opCode = MSG_PACKET ;
          pMsgPacket->messageLength = totalLen ;
 
          /// old

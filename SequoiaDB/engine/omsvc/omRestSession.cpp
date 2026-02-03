@@ -165,12 +165,12 @@ namespace engine
       goto done ;
    }
 
-   INT32 _omRestSession::_queryTable( const string &tableName, 
-                                      const BSONObj &selector, 
+   INT32 _omRestSession::_queryTable( const string &tableName,
+                                      const BSONObj &selector,
                                       const BSONObj &matcher,
-                                      const BSONObj &order, 
+                                      const BSONObj &order,
                                       const BSONObj &hint, SINT32 flag,
-                                      SINT64 numSkip, SINT64 numReturn, 
+                                      SINT64 numSkip, SINT64 numReturn,
                                       list<BSONObj> &records )
    {
       INT32 rc         = SDB_OK ;
@@ -178,11 +178,11 @@ namespace engine
       pmdKRCB *krcb    = pmdGetKRCB() ;
       SDB_DMSCB *dmscb = krcb->getDMSCB() ;
       SDB_RTNCB *rtncb = krcb->getRTNCB() ;
-      rc = rtnQuery( tableName.c_str(), selector, matcher, order, hint, flag, 
+      rc = rtnQuery( tableName.c_str(), selector, matcher, order, hint, flag,
                      eduCB(), numSkip, numReturn, dmscb, rtncb, contextID );
       if ( rc )
       {
-         PD_LOG_MSG( PDERROR, "fail to query table:name=%s,rc=%d", 
+         PD_LOG_MSG( PDERROR, "fail to query table:name=%s,rc=%d",
                      tableName.c_str(), rc ) ;
          goto error ;
       }
@@ -199,7 +199,7 @@ namespace engine
                contextID = -1 ;
                PD_LOG_MSG( PDERROR, "failed to get record from table:name=%s,"
                            "rc=%d", tableName.c_str(), rc ) ;
-               goto error ;   
+               goto error ;
             }
 
             rc = SDB_OK ;
@@ -230,7 +230,7 @@ namespace engine
       list<BSONObj> records ;
 
       matcher = BSON( OM_CLUSTER_FIELD_NAME << pClusterName ) ;
-      rc = _queryTable( OM_CS_DEPLOY_CL_CLUSTER, selector, matcher, order, 
+      rc = _queryTable( OM_CS_DEPLOY_CL_CLUSTER, selector, matcher, order,
                         hint, 0, 0, -1, records ) ;
       if ( SDB_OK == rc && records.size() == 1 )
       {
@@ -256,14 +256,14 @@ namespace engine
       if ( !_isClusterExist( pClusterName ) )
       {
          rc = SDB_OM_CLUSTER_NOT_EXIST ;
-         PD_LOG_MSG( PDERROR, "cluster does not exist:cluster=%s", 
+         PD_LOG_MSG( PDERROR, "cluster does not exist:cluster=%s",
                      pClusterName ) ;
          goto error ;
       }
 
-      matcher = BSON( OM_BUSINESS_FIELD_CLUSTERNAME << pClusterName 
+      matcher = BSON( OM_BUSINESS_FIELD_CLUSTERNAME << pClusterName
                       << OM_BUSINESS_FIELD_NAME << pBusinessName ) ;
-      rc = _queryTable( OM_CS_DEPLOY_CL_BUSINESS, selector, matcher, order, 
+      rc = _queryTable( OM_CS_DEPLOY_CL_BUSINESS, selector, matcher, order,
                         hint, 0, 0, -1, records ) ;
       if ( rc )
       {
@@ -276,7 +276,7 @@ namespace engine
       if ( records.size() != 1 )
       {
          rc = SDB_OM_BUSINESS_NOT_EXIST ;
-         PD_LOG_MSG( PDERROR, "business[%s] do not exist in cluster[%s]", 
+         PD_LOG_MSG( PDERROR, "business[%s] do not exist in cluster[%s]",
                      pBusinessName, pClusterName ) ;
          goto error ;
       }
@@ -301,7 +301,7 @@ namespace engine
       string user ;
       string passwd ;
 
-      rc = _getBusinessInfo( pClusterName, pBusinessName, businessType, 
+      rc = _getBusinessInfo( pClusterName, pBusinessName, businessType,
                              deployMode ) ;
       if ( SDB_OK != rc )
       {
@@ -336,8 +336,8 @@ namespace engine
             PD_LOG( PDERROR, "get business auth failed:rc=%d", rc ) ;
             goto error ;
          }
-      
-         md5::md5( ( const void * )tmpPasswd.c_str(), 
+
+         md5::md5( ( const void * )tmpPasswd.c_str(),
                    tmpPasswd.length(), digest) ;
          passwd = md5::digestToString( digest ) ;
       }
@@ -362,7 +362,7 @@ namespace engine
             goto error ;
          }
 
-         rc = _queryTable( OM_CS_DEPLOY_CL_CONFIGURE, selector, matcher, order, 
+         rc = _queryTable( OM_CS_DEPLOY_CL_CONFIGURE, selector, matcher, order,
                            hint, 0, 0, -1, records ) ;
          if ( rc )
          {
@@ -375,7 +375,7 @@ namespace engine
          {
             rc = SDB_INVALIDARG ;
             PD_LOG_MSG( PDERROR, "get business configure info failed:"
-                        "cluster=%s,business=%s", pClusterName, 
+                        "cluster=%s,business=%s", pClusterName,
                         pBusinessName ) ;
             goto error ;
          }
@@ -387,7 +387,7 @@ namespace engine
             if ( confEle.type() != Array )
             {
                rc = SDB_INVALIDARG ;
-               PD_LOG( PDERROR, "ele is not array type:type=%d", 
+               PD_LOG( PDERROR, "ele is not array type:type=%d",
                        confEle.type() ) ;
                goto error ;
             }
@@ -398,19 +398,19 @@ namespace engine
                if ( ele.type() != Object )
                {
                   rc = SDB_INVALIDARG ;
-                  PD_LOG( PDERROR, "ele is not Object type:type=%d", 
+                  PD_LOG( PDERROR, "ele is not Object type:type=%d",
                           ele.type() ) ;
                   goto error ;
                }
                BSONObj oneConfig = ele.embeddedObject() ;
                string role = oneConfig.getStringField( OM_CONF_DETAIL_ROLE ) ;
-               if ( role == SDB_ROLE_STANDALONE_STR 
+               if ( role == SDB_ROLE_STANDALONE_STR
                     || role == SDB_ROLE_COORD_STR )
                {
                   _omNodeInfo node ;
-                  node.hostName = 
+                  node.hostName =
                            iter->getStringField( OM_CONFIGURE_FIELD_HOSTNAME ) ;
-                  node.service  = 
+                  node.service  =
                            oneConfig.getStringField( OM_CONF_DETAIL_SVCNAME ) ;
                   node.user     = user ;
                   node.passwd   = passwd ;
@@ -425,7 +425,7 @@ namespace engine
                   nodeList.push_back( node ) ;
                }
             }
-            
+
             iter++ ;
          }
       }
@@ -557,7 +557,7 @@ namespace engine
          goto error ;
       }
 
-      rc = _getBusinessAccessNode( request, pClusterName, pBusinessName, 
+      rc = _getBusinessAccessNode( request, pClusterName, pBusinessName,
                                    nodeList ) ;
       if ( rc )
       {
@@ -593,7 +593,7 @@ namespace engine
          goto error ;
       }
 
-      rtnCode = transProcessor->processMsg( msg, contextBuff, contextID, 
+      rtnCode = transProcessor->processMsg( msg, contextBuff, contextID,
                                             needReplay, needRollback,
                                             retBuilder ) ;
       if ( rtnCode )
@@ -807,6 +807,8 @@ namespace engine
       if ( NULL == pCommand )
       {
          rc = SDB_OOM ;
+         PD_LOG( PDERROR, "Allocate omForwardPluginCommand failed, rc: %d", rc ) ;
+         _sendOpError2Web( rc, pAdptor, response, this, eduCB() ) ;
          goto error ;
       }
 
@@ -831,6 +833,15 @@ namespace engine
       restAdaptor *pAdaptor = sdbGetPMDController()->getRestAdptor() ;
       string clusterName ;
       string businessName ;
+      BOOLEAN hasDoInMsg = FALSE ;
+
+      rc = _onMsgBegin( NULL ) ;
+      if ( rc )
+      {
+         _sendOpError2Web( rc, pAdaptor, response, this, _pEDUCB ) ;
+         goto error ;
+      }
+      hasDoInMsg = TRUE ;
 
       clusterName  = request.getHeader( OM_REST_HEAD_CLUSTERNAME ) ;
       businessName = request.getHeader( OM_REST_HEAD_BUSINESSNAME ) ;
@@ -868,6 +879,10 @@ namespace engine
       }
 
    done:
+      if ( hasDoInMsg )
+      {
+         _onMsgEnd( rc, NULL ) ;
+      }
       return rc ;
    error:
       goto done ;
@@ -899,7 +914,7 @@ namespace engine
       if ( OM_LOGIN_REQ != subCommand && OM_CHECK_SESSION_REQ != subCommand &&
            !isAuthOK() )
       {
-         // except login_rep and check_seesion_req, other commands can only 
+         // except login_rep and check_seesion_req, other commands can only
          // execute in authrity status
          rc = SDB_PMD_SESSION_NOT_EXIST ;
          PD_LOG( PDERROR, "session does not exist:rc=%d", rc ) ;

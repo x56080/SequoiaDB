@@ -299,7 +299,7 @@ namespace engine
       }
 
       match = BSON( FIELD_NAME_PREFERRED_INSTANCE_LEGACY << preferedInstance ) ;
-      rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0, 0, -1, &match, 
+      rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0, 0, -1, &match,
                              NULL, NULL, NULL ) ;
       if ( SDB_OK != rc )
       {

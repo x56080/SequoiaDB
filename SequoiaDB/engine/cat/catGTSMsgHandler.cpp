@@ -296,12 +296,8 @@ namespace engine
          goto error ;
       }
 
+      msgFillReplyByReq( reply, msg ) ;
       reply.header.messageLength = sizeof( MsgOpReply ) + buf.size() ;
-      reply.header.opCode = MAKE_REPLY_TYPE( msg->opCode ) ;
-      reply.header.requestID = msg->requestID ;
-      reply.header.routeID.value = 0 ;
-      reply.header.TID = msg->TID ;
-      reply.header.globalID = msg->globalID ;
       reply.flags = rc ;
       reply.contextID = -1 ;
       reply.numReturned = buf.recordNum() ;
@@ -330,16 +326,8 @@ namespace engine
       return rc ;
    error:
       {
-         reply.header.messageLength = sizeof( MsgOpReply ) ;
-         reply.header.opCode = MAKE_REPLY_TYPE( msg->opCode ) ;
-         reply.header.requestID = msg->requestID ;
-         reply.header.routeID.value = 0 ;
-         reply.header.TID = msg->TID ;
-         reply.header.globalID = msg->globalID ;
+         msgFillReplyByReq( reply, msg ) ;
          reply.flags = rc ;
-         reply.contextID = -1 ;
-         reply.numReturned = 0 ;
-         reply.startFrom = 0 ;
          if ( SDB_CLS_NOT_PRIMARY == rc )
          {
             reply.startFrom = _primaryID.columns.nodeID ;

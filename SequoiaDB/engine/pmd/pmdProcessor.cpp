@@ -195,7 +195,7 @@ namespace engine
                rc = _onKillContextsReqMsg( msg ) ;
                break ;
             case MSG_BS_SQL_REQ :
-               rc = _onSQLMsg( msg, contextID, getDPSCB(),
+               rc = _onSQLMsg( msg, contextBuff, contextID, getDPSCB(),
                                needRollback, builder ) ;
                break ;
             case MSG_BS_TRANS_BEGIN_REQ :
@@ -209,7 +209,7 @@ namespace engine
                rc = _onTransRollbackMsg( getDPSCB() ) ;
                break ;
             case MSG_BS_AGGREGATE_REQ :
-               rc = _onAggrReqMsg( msg, contextID ) ;
+               rc = _onAggrReqMsg( msg, contextBuff, contextID, needRollback, builder ) ;
                break ;
             case MSG_BS_LOB_OPEN_REQ :
                rc = _onOpenLobMsg( msg, getDPSCB(), contextID, contextBuff ) ;
@@ -658,7 +658,7 @@ namespace engine
             authActionSet actions;
             actions.addAction( ACTION_TYPE_insert );
             if ( OSS_BIT_TEST( FLG_INSERT_REPLACEONDUP, flag ) ||
-                 OSS_BIT_TEST( FLG_INSERT_UPDATEONDUP, flag ) ) 
+                 OSS_BIT_TEST( FLG_INSERT_UPDATEONDUP, flag ) )
             {
                actions.addAction( ACTION_TYPE_update );
             }
@@ -1270,6 +1270,7 @@ namespace engine
    }
 
    INT32 _pmdDataProcessor::_onSQLMsg( MsgHeader *msg,
+                                       rtnContextBuf &buffObj,
                                        INT64 &contextID,
                                        SDB_DPSCB *dpsCB,
                                        BOOLEAN &needRollback,
@@ -1278,6 +1279,7 @@ namespace engine
       const CHAR *sql = NULL ;
       INT32 rc = SDB_OK ;
       SQL_CB *sqlcb = pmdGetKRCB()->getSqlCB() ;
+      rtnContextPtr pContext ;
 
       rc = msgExtractSql( (const CHAR*)msg, &sql ) ;
       PD_RC_CHECK( rc, PDERROR, "Session[%s] extract sql msg failed, rc: %d",
@@ -1292,6 +1294,17 @@ namespace engine
       if ( rc )
       {
          goto error ;
+      }
+
+      /// post process
+      if ( -1 != contextID &&
+           SDB_OK == _pRTNCB->contextFind( contextID, pContext ) )
+      {
+         pContext->setPrepareMoreData( TRUE ) ;
+         if ( getClient()->getClientVersion() >= SDB_PROTOCOL_VER_2 )
+         {
+            pContext->enableCloseOnEOF() ;
+         }
       }
 
    done:
@@ -1397,13 +1410,18 @@ namespace engine
       goto done;
    }
 
-   INT32 _pmdDataProcessor::_onAggrReqMsg( MsgHeader *msg, INT64 &contextID )
+   INT32 _pmdDataProcessor::_onAggrReqMsg( MsgHeader *msg,
+                                           _rtnContextBuf &buffObj,
+                                           INT64 &contextID,
+                                           BOOLEAN &needRollback,
+                                           BSONObjBuilder &builder )
    {
       INT32 rc    = SDB_OK ;
       const CHAR *pObjs = NULL ;
       INT32 count = 0 ;
       INT32 flags = 0 ;
       const CHAR *pCollectionName = NULL ;
+      rtnContextPtr pContext ;
 
       rc = msgExtractAggrRequest( (const CHAR*)msg, &pCollectionName,
                                   &pObjs, count, &flags ) ;
@@ -1442,7 +1460,7 @@ namespace engine
          MON_LOCK_OP( eduCB()->getMonAppCB() ) ;
 
          rc = rtnAggregate( pCollectionName, objs, count, flags, eduCB(),
-                            _pDMSCB, contextID ) ;
+                            _pDMSCB, contextID, needRollback, &builder ) ;
 
          /// AUDIT
          PD_AUDIT_OP( AUDIT_DQL, msg->opCode, AUDIT_OBJ_CL,
@@ -1456,6 +1474,44 @@ namespace engine
                  getSession()->sessionName(), e.what() ) ;
          rc = SDB_INVALIDARG ;
          goto error ;
+      }
+
+      /// post process
+      if ( ( ( flags & FLG_QUERY_WITH_RETURNDATA ) ||
+             ( flags & FLG_QUERY_CLOSE_EOF_CTX ) ||
+             ( flags & FLG_QUERY_PREPARE_MORE ) ) &&
+           ( -1 != contextID &&
+             SDB_OK == _pRTNCB->contextFind( contextID, pContext ) ) )
+      {
+         if ( flags & FLG_QUERY_PREPARE_MORE )
+         {
+            pContext->setPrepareMoreData( TRUE ) ;
+         }
+         if ( flags & FLG_QUERY_CLOSE_EOF_CTX )
+         {
+            pContext->enableCloseOnEOF() ;
+         }
+         if ( ( flags & FLG_QUERY_WITH_RETURNDATA ) &&
+              0 == buffObj.recordNum() )
+         {
+            rc = pContext->getMore( -1, buffObj, eduCB() ) ;
+            if ( rc || pContext->eof() )
+            {
+               _pRTNCB->contextDelete( contextID, eduCB() ) ;
+               contextID = -1 ;
+            }
+      
+            if ( SDB_DMS_EOC == rc )
+            {
+               rc = SDB_OK ;
+            }
+            else if ( rc )
+            {
+               PD_LOG( PDERROR, "Session[%s] failed to aggregate with return "
+                       "data, rc: %d", getSession()->sessionName(), rc ) ;
+               goto error ;
+            }
+         }
       }
 
    done:
@@ -2051,14 +2107,7 @@ namespace engine
          }
          case MSG_BS_SQL_REQ :
          {
-            coordSqlOperator opr ;
-            rc = opr.init( pResource, eduCB() ) ;
-            PD_RC_CHECK( rc, PDERROR, "Init operator[%s] failed, rc: %d",
-                         opr.getName(), rc ) ;
-            rc = opr.execute( msg, eduCB(), contextID, &contextBuff ) ;
-            /// needRollback call must after opr.execute, because the sql
-            /// command is parsed in execute
-            needRollback = opr.needRollback() ;
+            rc = _onSqlReqMsg( msg, contextBuff, contextID, needRollback ) ;
             break ;
          }
          case MSG_BS_DELETE_REQ :
@@ -2103,12 +2152,7 @@ namespace engine
          }
          case MSG_BS_AGGREGATE_REQ :
          {
-            coordAggrOperator opr ;
-            rc = opr.init( pResource, eduCB() ) ;
-            PD_RC_CHECK( rc, PDERROR, "Init operator[%s] failed, rc: %d",
-                         opr.getName(), rc ) ;
-            needRollback = opr.needRollback() ;
-            rc = opr.execute( msg, eduCB(), contextID, &contextBuff ) ;
+            rc = _onAggrReqMsg( msg, contextBuff, contextID, needRollback ) ;
             break ;
          }
          case MSG_BS_LOB_OPEN_REQ :
@@ -2398,8 +2442,9 @@ namespace engine
             }
             else if ( rc )
             {
-               PD_LOG( PDERROR, "Failed to query with return data, "
-                       "rc: %d", rc ) ;
+               PD_LOG( PDERROR, "Session[%s] failed to query with return "
+                       "data, rc: %d", getSession()->sessionName(), rc ) ;
+               goto error ;
             }
          }
       }
@@ -2409,6 +2454,121 @@ namespace engine
       {
          pFactory->release( pOpr ) ;
       }
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _pmdCoordProcessor::_onAggrReqMsg( MsgHeader *msg,
+                                            _rtnContextBuf &buffObj,
+                                            INT64 &contextID,
+                                            BOOLEAN &needRollback )
+   {
+      INT32 rc = SDB_OK ;
+      coordResource *pResource = NULL ;
+      rtnContextPtr pContext ;
+      const MsgOpAggregate *pAggr = (const MsgOpAggregate *)msg ;
+      INT32 flags = pAggr->flags ;
+      pResource = sdbGetResourceContainer()->getResource() ;
+
+      coordAggrOperator opr ;
+      rc = opr.init( pResource, eduCB() ) ;
+      PD_RC_CHECK( rc, PDERROR, "Init operator[%s] failed, rc: %d",
+                   opr.getName(), rc ) ;
+      rc = opr.execute( msg, eduCB(), contextID, &buffObj ) ;
+      /// should call opr.needRollback() after execute. because
+      /// the func 'needRollback()' is take effect in execute()
+      needRollback = opr.needRollback() ;
+
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Execute operator[%s] failed, rc: %d",
+                 opr.getName(), rc ) ;
+         goto error ;
+      }
+
+      // query with return data
+      if ( ( ( flags & FLG_QUERY_WITH_RETURNDATA ) ||
+             ( flags & FLG_QUERY_CLOSE_EOF_CTX ) ||
+             ( flags & FLG_QUERY_PREPARE_MORE ) ) &&
+           -1 != contextID &&
+           SDB_OK == _pRTNCB->contextFind( contextID, pContext ) )
+      {
+         if ( flags & FLG_QUERY_PREPARE_MORE )
+         {
+            pContext->setPrepareMoreData( TRUE ) ;
+         }
+         if ( flags & FLG_QUERY_CLOSE_EOF_CTX )
+         {
+            pContext->enableCloseOnEOF() ;
+         }
+         if ( ( flags & FLG_QUERY_WITH_RETURNDATA ) &&
+              0 == buffObj.recordNum() )
+         {
+            rc = pContext->getMore( -1, buffObj, eduCB() ) ;
+            if ( rc || pContext->eof() )
+            {
+               _pRTNCB->contextDelete( contextID, eduCB() ) ;
+               contextID = -1 ;
+            }
+
+            if ( SDB_DMS_EOC == rc )
+            {
+               rc = SDB_OK ;
+            }
+            else if ( rc )
+            {
+               PD_LOG( PDERROR, "Session[%s] failed to aggregate with return "
+                       "data, rc: %d", getSession()->sessionName(), rc ) ;
+               goto error ;
+            }
+         }
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _pmdCoordProcessor::_onSqlReqMsg( MsgHeader *msg,
+                                           _rtnContextBuf &buffObj,
+                                           INT64 &contextID,
+                                           BOOLEAN &needRollback )
+   {
+      INT32 rc = SDB_OK ;
+      coordResource *pResource = NULL ;
+      rtnContextPtr pContext ;
+      pResource = sdbGetResourceContainer()->getResource() ;
+
+      coordSqlOperator opr ;
+      rc = opr.init( pResource, eduCB() ) ;
+      PD_RC_CHECK( rc, PDERROR, "Init operator[%s] failed, rc: %d",
+                   opr.getName(), rc ) ;
+      rc = opr.execute( msg, eduCB(), contextID, &buffObj ) ;
+      /// needRollback call must after opr.execute, because the sql
+      /// command is parsed in execute
+      needRollback = opr.needRollback() ;
+
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Execute operator[%s] failed, rc: %d",
+                 opr.getName(), rc ) ;
+         goto error ;
+      }
+
+      /// post process
+      if ( -1 != contextID &&
+           SDB_OK == _pRTNCB->contextFind( contextID, pContext ) )
+      {
+         pContext->setPrepareMoreData( TRUE ) ;
+         if ( getClient()->getClientVersion() >= SDB_PROTOCOL_VER_2 )
+         {
+            pContext->enableCloseOnEOF() ;
+         }
+      }
+
+   done:
       return rc ;
    error:
       goto done ;

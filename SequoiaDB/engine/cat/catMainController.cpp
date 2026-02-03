@@ -1363,16 +1363,13 @@ namespace engine
       {
          // send reply
          MsgOpReply replyHeader ;
-         replyHeader.header.messageLength = sizeof( MsgOpReply ) ;
-         replyHeader.header.opCode = MAKE_REPLY_TYPE( pMsg->opCode ) ;
-         replyHeader.header.TID = pMsg->TID ;
-         replyHeader.header.routeID.value = 0 ;
-         replyHeader.header.requestID = pMsg->requestID ;
-         replyHeader.header.globalID = pMsg->globalID ;
+
+          msgFillReplyByReq( replyHeader, pMsg ) ;
          replyHeader.contextID = contextID ;
          replyHeader.flags = rc ;
          replyHeader.startFrom = 0 ;
          replyHeader.numReturned = 0 ;
+
          if( SDB_CLS_NOT_PRIMARY == rc )
          {
             replyHeader.startFrom = _pCatCB->getPrimaryNode() ;
@@ -1576,13 +1573,9 @@ namespace engine
    done :
       if ( !isDelayed() )
       {
+         msgFillReplyByReq( msgReply, pMsgHeader ) ;
          msgReply.header.messageLength = sizeof( MsgOpReply ) +
                                          buffObj.size() ;
-         msgReply.header.opCode = MAKE_REPLY_TYPE( pMsgHeader->opCode );
-         msgReply.header.TID = pMsgHeader->TID;
-         msgReply.header.routeID.value = 0;
-         msgReply.header.requestID = pMsgHeader->requestID;
-         msgReply.header.globalID = pMsgHeader->globalID ;
          msgReply.contextID = contextID ;
          msgReply.startFrom = (INT32)buffObj.getStartFrom() ;
          msgReply.numReturned = buffObj.recordNum() ;
@@ -1771,16 +1764,8 @@ namespace engine
             rc = SDB_UNKNOWN_MESSAGE ;
 
             MsgOpReply reply ;
-            reply.header.opCode = MAKE_REPLY_TYPE( pMsg->opCode ) ;
-            reply.header.messageLength = sizeof( MsgOpReply ) ;
-            reply.header.requestID = pMsg->requestID ;
-            reply.header.routeID.value = 0 ;
-            reply.header.TID = pMsg->TID ;
-            reply.header.globalID = pMsg->globalID ;
+            msgFillReplyByReq( reply, pMsg ) ;
             reply.flags = rc ;
-            reply.contextID = -1 ;
-            reply.numReturned = 1 ;
-            reply.startFrom = 0 ;
 
             _pCatCB->sendReply( handle, &reply, rc ) ;
             break ;
@@ -1811,15 +1796,7 @@ namespace engine
       BOOLEAN hasDec = FALSE ;
 
       /// init reply
-      reply.contextID               = -1;
-      reply.numReturned             = 0;
-      reply.startFrom               = 0;
-      reply.header.messageLength    = sizeof( MsgOpReply ) ;
-      reply.header.opCode           = MAKE_REPLY_TYPE(pMsg->opCode) ;
-      reply.header.requestID        = pMsg->requestID;
-      reply.header.routeID.value    = 0 ;
-      reply.header.TID              = pMsg->TID ;
-      reply.header.globalID         = pMsg->globalID ;
+      msgFillReplyByReq( reply, pMsg ) ;
 
       _pCatCB->incPacketLevel() ;
 
@@ -1905,16 +1882,7 @@ namespace engine
       BOOLEAN bIsDelay = FALSE ;
 
       /// fill reply header
-      reply.header.messageLength = sizeof( MsgAuthCrtReply ) ;
-      reply.header.opCode = MAKE_REPLY_TYPE( pMsg->opCode ) ;
-      reply.header.requestID = pMsg->requestID ;
-      reply.header.routeID.value = 0 ;
-      reply.header.TID = pMsg->TID ;
-      reply.header.globalID = pMsg->globalID ;
-      reply.contextID = -1 ;
-      reply.flags = SDB_OK ;
-      reply.numReturned = 0 ;
-      reply.startFrom = 0 ;
+      msgFillReplyByReq( reply, pMsg ) ;
 
       rc = _pCatCB->primaryCheck( _pEDUCB, TRUE, bIsDelay, TRUE ) ;
       if ( bIsDelay )
@@ -1981,16 +1949,7 @@ namespace engine
       BOOLEAN bIsDelay = FALSE ;
 
       /// fill reply header
-      reply.header.messageLength = sizeof( MsgAuthReply ) ;
-      reply.header.opCode = MAKE_REPLY_TYPE( pMsg->opCode ) ;
-      reply.header.requestID = pMsg->requestID ;
-      reply.header.routeID.value = 0 ;
-      reply.header.TID = pMsg->TID ;
-      reply.header.globalID = pMsg->globalID ;
-      reply.contextID = -1 ;
-      reply.flags = SDB_OK ;
-      reply.numReturned = 0 ;
-      reply.startFrom = 0 ;
+      msgFillReplyByReq( reply, pMsg ) ;
 
       if ( !_pAuthCB->authEnabled() )
       {
@@ -2076,16 +2035,7 @@ namespace engine
       BOOLEAN bIsDelay = FALSE ;
 
       /// fill reply header
-      reply.header.messageLength = sizeof( MsgAuthDelReply ) ;
-      reply.header.opCode = MAKE_REPLY_TYPE( pMsg->opCode ) ;
-      reply.header.requestID = pMsg->requestID ;
-      reply.header.routeID.value = 0 ;
-      reply.header.TID = pMsg->TID ;
-      reply.header.globalID = pMsg->globalID ;
-      reply.contextID = -1 ;
-      reply.flags = SDB_OK ;
-      reply.numReturned = 0 ;
-      reply.startFrom = 0 ;
+      msgFillReplyByReq( reply, pMsg ) ;
 
       // primary check
       rc = _pCatCB->primaryCheck( _pEDUCB, TRUE, bIsDelay, TRUE ) ;

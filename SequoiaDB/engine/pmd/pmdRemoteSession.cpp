@@ -1786,7 +1786,7 @@ namespace engine
          {
             pMsg->header.messageLength = sizeof( MsgOpReply ) ;
             pMsg->header.eye = MSG_COMM_EYE_DEFAULT ;
-            pMsg->header.version = SDB_PROTOCOL_VER_2 ;
+            pMsg->header.version = SDB_PROTOCOL_VER_CUR ;
             pMsg->header.flags = 0 ;
             pMsg->header.opCode = MSG_BS_DISCONNECT ;
             // WARNING: could not use incCurRequestID()

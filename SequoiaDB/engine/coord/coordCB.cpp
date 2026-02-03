@@ -854,12 +854,7 @@ retry :
    void _CoordCB::_onMsgBegin( NET_HANDLE handle, MsgHeader *pMsg )
    {
       // set reply header ( except flags, length )
-      _replyHeader.numReturned          = 0 ;
-      _replyHeader.startFrom            = 0 ;
-      _replyHeader.header.opCode        = MAKE_REPLY_TYPE( pMsg->opCode ) ;
-      _replyHeader.header.requestID     = pMsg->requestID ;
-      _replyHeader.header.TID           = pMsg->TID ;
-      _replyHeader.header.routeID.value = 0 ;
+      msgFillReplyByReq( _replyHeader, pMsg ) ;
 
       if ( MSG_BS_INTERRUPTE      == pMsg->opCode ||
            MSG_BS_INTERRUPTE_SELF == pMsg->opCode ||

@@ -3086,12 +3086,7 @@ namespace engine
       BSONObj retObj ;
       MsgOpReply reply ;
 
-      reply.header.opCode = MAKE_REPLY_TYPE( msg->opCode ) ;
-      reply.header.messageLength = sizeof( MsgOpReply ) ;
-      reply.header.requestID = msg->requestID ;
-      reply.header.routeID.value = MSG_INVALID_ROUTEID ;
-      reply.header.TID = msg->TID ;
-      reply.contextID = -1 ;
+      msgFillReplyByReq( reply, msg ) ;
 
       /// check primary
       if ( !pReplCB->primaryIsMe() )
@@ -3331,13 +3326,8 @@ namespace engine
                 "Failed to allocate memory for reply message, size: %d",
                 replySize ) ;
 
+      msgFillReplyByReq( *replyMessage, request ) ;
       replyMessage->header.messageLength = replySize ;
-      replyMessage->header.opCode = MAKE_REPLY_TYPE( request->opCode ) ;
-      replyMessage->header.TID = request->TID ;
-      replyMessage->header.routeID.value = 0 ;
-      replyMessage->header.requestID = request->requestID ;
-      replyMessage->flags = SDB_OK ;
-      replyMessage->startFrom = 0 ;
       replyMessage->numReturned = returnNum ;
       if ( returnNum > 0 )
       {

@@ -203,6 +203,25 @@ OSS_INLINE BOOLEAN msgIsInsertFlagValid( INT32 flags )
    return result ;
 }
 
+OSS_INLINE void msgFillReplyByReq( MsgOpReply &reply, const MsgHeader *pReq,
+                                   UINT64 routeID = MSG_INVALID_ROUTEID )
+{
+   reply.contextID               = -1 ;
+   reply.numReturned             = 0 ;
+   reply.startFrom               = 0 ;
+   reply.header.messageLength    = sizeof( MsgOpReply ) ;
+   reply.header.eye              = MSG_COMM_EYE_DEFAULT ;
+   reply.header.opCode           = MAKE_REPLY_TYPE(pReq->opCode) ;
+   reply.header.requestID        = pReq->requestID ;
+   reply.header.TID              = pReq->TID ;
+   reply.header.routeID.value    = routeID ;
+   reply.header.version          = SDB_PROTOCOL_VER_CUR ;
+   reply.header.flags            = 0 ;
+   reply.header.globalID         = pReq->globalID ;
+   ossMemset( reply.header.reserve, 0, sizeof(reply.header.reserve) ) ;
+   reply.returnMask              = 0 ;
+}
+
 /*
  * Extract Commit Message from pBuffer
  * in pBuffer

@@ -1192,14 +1192,9 @@ namespace engine
       }
       else
       {
+         msgFillReplyByReq( _replyHeader, msg ) ;
          //Build reply message
          _replyHeader.header.opCode = MAKE_REPLY_TYPE( opCode ) ;
-         _replyHeader.header.messageLength = sizeof ( MsgOpReply ) ;
-         _replyHeader.header.requestID = msg->requestID ;
-         _replyHeader.header.globalID = msg->globalID ;
-         _replyHeader.header.TID = msg->TID ;
-         _replyHeader.header.routeID.value = 0 ;
-
          _replyHeader.header.messageLength += buffObj.size() ;
          _replyHeader.flags = rc ;
          _replyHeader.contextID = contextID ;
@@ -2705,9 +2700,8 @@ namespace engine
                       ( -1 != contextID ) )
             {
                rtnContextPtr context ;
-               if ( SDB_OK == _pRtnCB->contextFind( contextID,
-                                                    context,
-                                                    _pEDUCB ) )
+               rc = _pRtnCB->contextFind( contextID, context, _pEDUCB ) ;
+               if ( SDB_OK == rc )
                {
                   if ( flags & FLG_QUERY_CLOSE_EOF_CTX )
                   {
@@ -2736,8 +2730,7 @@ namespace engine
                }
                else
                {
-                  PD_LOG ( PDERROR, "Context %lld does not exist", contextID ) ;
-                  rc = SDB_RTN_CONTEXT_NOTEXIST ;
+                  PD_LOG ( PDERROR, "Found context(%lld) failed, rc: %d", contextID, rc ) ;
                   goto error ;
                }
             }

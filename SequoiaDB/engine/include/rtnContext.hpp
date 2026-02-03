@@ -739,18 +739,21 @@ namespace engine
 
       void release()
       {
-         // set the last LSN of context from executor
-         if ( ( NULL != get() ) &&
-              ( get()->isOpened() ) &&
-              ( get()->isWrite() ) &&
-              ( get()->getDPSCB() ) &&
-              ( NULL != _pExecutor ) &&
-              ( DPS_INVALID_LSN_OFFSET != _pExecutor->getEndLsn() ) &&
-              ( ( DPS_INVALID_LSN_OFFSET == get()->getEndLSN() ) ||
-                ( _pExecutor->getEndLsn() > get()->getEndLSN() ) ) )
+         if ( NULL != get() && get()->isOpened() )
          {
-            get()->setEndLSN( _pExecutor->getEndLsn() ) ;
+            // set the last LSN of context from executor
+            if ( get()->isWrite() && get()->getDPSCB() && NULL != _pExecutor &&
+                 DPS_INVALID_LSN_OFFSET != _pExecutor->getEndLsn() &&
+                 ( DPS_INVALID_LSN_OFFSET == get()->getEndLSN() ||
+                   _pExecutor->getEndLsn() > get()->getEndLSN() ) )
+            {
+               get()->setEndLSN( _pExecutor->getEndLsn() ) ;
+            }
+
+            /// update the last process tick
+            get()->updateLastProcessTick() ;
          }
+
          rtnContextInternalPtr::release() ;
       }
 

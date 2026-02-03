@@ -365,9 +365,9 @@ namespace engine
       {
          if ( cb && !cb->contextFind( contextID ) )
          {
-            PD_LOG ( PDWARNING, "Context %lld does not owned by "
-                     "current session", contextID ) ;
-            rc = SDB_RTN_CONTEXT_NOTEXIST ;
+            PD_LOG_MSG  ( PDWARNING, "Context %lld does not owned by "
+                          "current session", contextID ) ;
+            rc = SDB_RTN_CONTEXT_NOTOWNED ;
          }
          else
          {
@@ -398,7 +398,6 @@ namespace engine
          if ( type == tempContext->getType() )
          {
             context = tempContext ;
-            _setGlobalID( cb, context ) ;
          }
          else
          {

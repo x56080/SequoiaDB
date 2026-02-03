@@ -108,6 +108,8 @@ namespace engine
                              const BSONObj &hint,
                              _pmdEDUCB *cb,
                              SINT64 &contextID,
+                             BOOLEAN &needRollback,
+                             BSONObjBuilder *pBuilder,
                              INT32  clientVer,
                              INT32* pCataVer )
    {
@@ -159,19 +161,23 @@ namespace engine
                      "invalid container type!" );
       }
 
-      // 5. create context
-      SDB_ASSERT( QGM_PLAN_TYPE_RETURN == pContainer->type(),
-                  "invalid container type!" );
-      rc = createContext( pContainer, cb, contextID );
-      PD_RC_CHECK( rc, PDERROR, "failed to create context(rc=%d)", rc );
-
-      containerOwnned = FALSE ;
+      // 5. if it is a query. create context.
+      if ( QGM_PLAN_TYPE_RETURN == pContainer->type() )
+      {
+         rc = createContext( pContainer, cb, contextID );
+         PD_RC_CHECK( rc, PDERROR, "failed to create context, rc: %d", rc );
+         containerOwnned = FALSE ;
+      }
 
       // 6.execute
       pContainer->setClientVersion( clientVer ) ;
 
       rc = pContainer->execute( cb );
-
+      needRollback = pContainer->needRollback() ;
+      if ( pBuilder )
+      {
+         pContainer->buildRetInfo( *pBuilder ) ;
+      }
       if( NULL != pCataVer )
       {
          *pCataVer = pContainer->getCatalogVersion() ;
@@ -197,6 +203,7 @@ namespace engine
       if ( pContainer && containerOwnned )
       {
          SDB_OSS_DEL pContainer;
+         pContainer = NULL ;
       }
       return rc;
    error:
@@ -204,11 +211,6 @@ namespace engine
       {
          pmdGetKRCB()->getRTNCB()->contextDelete( contextID, cb ) ;
          contextID = -1 ;
-      }
-      if ( pContainer && containerOwnned )
-      {
-         SDB_OSS_DEL pContainer ;
-         pContainer = NULL ;
       }
       goto done;
    }
@@ -374,6 +376,7 @@ namespace engine
       INT32 rc = SDB_OK ;
 
       SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
+      BOOLEAN needRollback = FALSE ;
       SINT64 aggrContextID = -1 ;
       monDataSetFetch *dsFetch = NULL ;
       BSONObj obj ;
@@ -392,7 +395,7 @@ namespace engine
       rc = pmdGetKRCB()->getAggrCB()->build( obj, objNum,
                                              pInnerCmd,
                                              hint,
-                                             cb, aggrContextID ) ;
+                                             cb, aggrContextID, needRollback ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to build context, rc: %d", rc ) ;

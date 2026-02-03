@@ -1395,12 +1395,7 @@ namespace engine
       BOOLEAN delayLockFailed = TRUE ;
 
       // init reply msg
-      replyHeader.header.messageLength = sizeof( MsgOpReply ) ;
-      replyHeader.contextID = -1 ;
-      replyHeader.flags = SDB_OK ;
-      replyHeader.numReturned = 0 ;
-      replyHeader.startFrom = 0 ;
-      _fillRspHeader( &(replyHeader.header), &(pQueryReq->header) ) ;
+      msgFillReplyByReq( replyHeader, pMsg ) ;
 
       if ( MSG_CAT_TASK_START_REQ == opCode ||
            MSG_CAT_SPLIT_CHGMETA_REQ == opCode ||
@@ -1580,16 +1575,6 @@ namespace engine
          replyHeader.startFrom = _pCatCB->getPrimaryNode() ;
       }
       goto done ;
-   }
-
-   void catCatalogueManager::_fillRspHeader( MsgHeader * rspMsg,
-                                             const MsgHeader * reqMsg )
-   {
-      rspMsg->opCode = MAKE_REPLY_TYPE( reqMsg->opCode ) ;
-      rspMsg->requestID = reqMsg->requestID ;
-      rspMsg->routeID.value = 0 ;
-      rspMsg->TID = reqMsg->TID ;
-      rspMsg->globalID = reqMsg->globalID ;
    }
 
    INT16 catCatalogueManager::_majoritySize()
