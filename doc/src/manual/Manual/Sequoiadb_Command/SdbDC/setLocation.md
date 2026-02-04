@@ -4,7 +4,7 @@ setLocation - 修改集群中节点的位置信息
 
 ##语法##
 
-**SdbDC.setLocation(<hostName>, <location>)**
+**SdbDC.setLocation(\<hostName\>, \<location\>)**
 
 ##类别##
 
