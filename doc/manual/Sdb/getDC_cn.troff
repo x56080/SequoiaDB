@@ -5,7 +5,7 @@
 .hy
 .SH 名称
 .PP
-getDC \- 获取数据中心对象
+getDC \- 获取集群对象
 .SH 语法
 .PP
 \f[B]db.getDC()\f[]
@@ -14,8 +14,8 @@ getDC \- 获取数据中心对象
 Sdb
 .SH 描述
 .PP
-该函数用于获取数据中心对象。通过该方法可以获得一个 SdbDC
-对象，用于管理和控制数据中心的状态、位置信息以及运行模式。
+该函数用于获取集群对象。通过该方法可以获得一个 SdbDC
+对象，用于管理和控制集群的状态、位置信息以及运行模式。
 .SH 参数
 .PP
 无
@@ -70,30 +70,26 @@ T}
 v3.0 及以上版本
 .SH 示例
 .PP
-\f[B]示例1：\f[] 获取数据中心对象
+\f[B]示例1：\f[] 获取集群对象
 .IP
 .nf
 \f[C]
 > var dc = db.getDC()
-> dc
-datacenter1
 \f[]
 .fi
 .PP
-\f[B]示例2：\f[] 获取数据中心对象并激活
+\f[B]示例2：\f[] 激活集群
 .IP
 .nf
 \f[C]
-> var dc = db.getDC()
 > dc.activate()
 \f[]
 .fi
 .PP
-\f[B]示例3：\f[] 获取数据中心详细信息
+\f[B]示例3：\f[] 获取详细信息
 .IP
 .nf
 \f[C]
-> var dc = db.getDC()
 > dc.getDetail()
 {
   "Activated": true,

@@ -5,7 +5,7 @@
 .hy
 .SH 名称
 .PP
-disableReadonly \- 禁用只读模式
+disableReadonly \- 停止只读模式
 .SH 语法
 .PP
 \f[B]SdbDC.disableReadonly()\f[]
@@ -14,7 +14,7 @@ disableReadonly \- 禁用只读模式
 SdbDC
 .SH 描述
 .PP
-该函数用于禁用数据中心的只读模式。禁用后，数据中心将恢复正常的读写操作。
+该函数用于停止集群的只读模式。停止后，集群将恢复正常的读写操作。
 .SH 参数
 .PP
 无
@@ -69,7 +69,7 @@ T}
 v3.0 及以上版本
 .SH 示例
 .PP
-\f[B]示例1：\f[] 禁用数据中心只读模式
+\f[B]示例1：\f[] 停止集群只读模式
 .IP
 .nf
 \f[C]

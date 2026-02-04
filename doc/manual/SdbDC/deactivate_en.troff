@@ -5,7 +5,7 @@
 .hy
 .SH NAME
 .PP
-deactivate \- deactivate data center
+deactivate \- deactivate cluster
 .SH SYNOPSIS
 .PP
 \f[B]SdbDC.deactivate()\f[]
@@ -14,9 +14,9 @@ deactivate \- deactivate data center
 SdbDC
 .SH DESCRIPTION
 .PP
-This function is used to deactivate the data center.
-After deactivation, the data center will stop working and no longer accept read
-and write operations.
+This function is used to deactivate the cluster.
+After deactivation, the cluster will stop working and no longer accept read and
+write operations.
 .SH PARAMETERS
 .PP
 None
@@ -80,7 +80,7 @@ For more details, refer to Troubleshooting.
 v3.0 and above
 .SH EXAMPLES
 .PP
-\f[B]Example 1:\f[] Deactivate data center
+\f[B]Example 1:\f[] Deactivate cluster
 .IP
 .nf
 \f[C]

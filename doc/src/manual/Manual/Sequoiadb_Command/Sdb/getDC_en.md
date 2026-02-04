@@ -1,6 +1,6 @@
 ##NAME##
 
-getDC - get data center object
+getDC - get cluster object
 
 ##SYNOPSIS##
 
@@ -12,7 +12,7 @@ Sdb
 
 ##DESCRIPTION##
 
-This function is used to get the data center object. Through this method, you can obtain an SdbDC object for managing and controlling the status, location information, and operating modes of the data center.
+This function is used to get the cluster object. Through this method, you can obtain an SdbDC object for managing and controlling the status, location information, and operating modes of the cluster.
 
 ##PARAMETERS##
 
@@ -40,25 +40,21 @@ v3.0 and above
 
 ##EXAMPLES##
 
-**Example 1:** Get data center object
+**Example 1:** Get cluster object
 
 ```lang-javascript
 > var dc = db.getDC()
-> dc
-datacenter1
 ```
 
-**Example 2:** Get data center object and activate
+**Example 2:** Activate cluster
 
 ```lang-javascript
-> var dc = db.getDC()
 > dc.activate()
 ```
 
-**Example 3:** Get data center detailed information
+**Example 3:** Get cluster detailed information
 
 ```lang-javascript
-> var dc = db.getDC()
 > dc.getDetail()
 {
   "Activated": true,

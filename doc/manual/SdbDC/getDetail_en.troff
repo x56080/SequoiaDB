@@ -5,7 +5,7 @@
 .hy
 .SH NAME
 .PP
-getDetail \- get data center detailed information
+getDetail \- get cluster detailed information
 .SH SYNOPSIS
 .PP
 \f[B]SdbDC.getDetail()\f[]
@@ -14,15 +14,15 @@ getDetail \- get data center detailed information
 SdbDC
 .SH DESCRIPTION
 .PP
-This function is used to get detailed information of the data center, including
-the status, configuration and statistical information of the data center.
+This function is used to get detailed information of the cluster, including the
+status and core configuration of the cluster.
 .SH PARAMETERS
 .PP
 None
 .SH RETURN VALUE
 .PP
 When the function executes successfully, it returns a BSON object containing
-detailed information of the data center.
+detailed information of the cluster.
 .PP
 When the function fails, an exception will be thrown and an error message will
 be printed.
@@ -80,7 +80,7 @@ For more details, refer to Troubleshooting.
 v3.0 and above
 .SH EXAMPLES
 .PP
-\f[B]Example 1:\f[] Get data center detailed information
+\f[B]Example 1:\f[] Get cluster detailed information
 .IP
 .nf
 \f[C]

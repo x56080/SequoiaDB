@@ -1,6 +1,6 @@
 ##NAME##
 
-getDetail - get data center detailed information
+getDetail - get cluster detailed information
 
 ##SYNOPSIS##
 
@@ -12,7 +12,7 @@ SdbDC
 
 ##DESCRIPTION##
 
-This function is used to get detailed information of the data center, including the status, configuration and statistical information of the data center.
+This function is used to get detailed information of the cluster, including the status and core configuration of the cluster.
 
 ##PARAMETERS##
 
@@ -20,7 +20,7 @@ None
 
 ##RETURN VALUE##
 
-When the function executes successfully, it returns a BSON object containing detailed information of the data center.
+When the function executes successfully, it returns a BSON object containing detailed information of the cluster.
 
 When the function fails, an exception will be thrown and an error message will be printed.
 
@@ -40,7 +40,7 @@ v3.0 and above
 
 ##EXAMPLES##
 
-**Example 1:** Get data center detailed information
+**Example 1:** Get cluster detailed information
 
 ```lang-javascript
 > var dc = db.getDC()

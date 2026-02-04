@@ -1,6 +1,6 @@
 ##NAME##
 
-deactivate - deactivate data center
+deactivate - deactivate cluster
 
 ##SYNOPSIS##
 
@@ -12,7 +12,7 @@ SdbDC
 
 ##DESCRIPTION##
 
-This function is used to deactivate the data center. After deactivation, the data center will stop working and no longer accept read and write operations.
+This function is used to deactivate the cluster. After deactivation, the cluster will stop working and no longer accept read and write operations.
 
 ##PARAMETERS##
 
@@ -40,7 +40,7 @@ v3.0 and above
 
 ##EXAMPLES##
 
-**Example 1:** Deactivate data center
+**Example 1:** Deactivate cluster
 
 ```lang-javascript
 > var dc = db.getDC()

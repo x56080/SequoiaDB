@@ -14,9 +14,9 @@ enableReadonly \- enable readonly mode
 SdbDC
 .SH DESCRIPTION
 .PP
-This function is used to enable readonly mode for the data center.
-After enabling, the data center will only allow read operations and reject all
-write operations.
+This function is used to enable readonly mode for the cluster.
+After enabling, the cluster will only allow read operations and reject all write
+operations.
 .SH PARAMETERS
 .PP
 None
@@ -80,7 +80,7 @@ For more details, refer to Troubleshooting.
 v3.0 and above
 .SH EXAMPLES
 .PP
-\f[B]Example 1:\f[] Enable readonly mode for data center
+\f[B]Example 1:\f[] Enable readonly mode for cluster
 .IP
 .nf
 \f[C]

@@ -32,6 +32,7 @@ Sdb 类主要用于连接和操作 SequoiaDB 巨杉数据库，包含的函数�
 | [getCoordRG()][getCoordRG] | 获取协调复制组的引用 |
 | [getCS()][getCS] | 获取指定集合空间 |
 | [getDataSource()][getDataSource] | 获取数据源的引用 |
+| [getDC()][getDC] | 获取集群对象 |
 | [getDomain()][getDomain] | 获取指定域 |
 | [getRecycleBin()][getRecycleBin] | 获取回收站的引用 |
 | [getRG()][getRG] | 获取指定复制组 |
@@ -109,6 +110,7 @@ Sdb 类主要用于连接和操作 SequoiaDB 巨杉数据库，包含的函数�
 [getCoordRG]:manual/Manual/Sequoiadb_Command/Sdb/getCoordRG.md
 [getCS]:manual/Manual/Sequoiadb_Command/Sdb/getCS.md
 [getDataSource]:manual/Manual/Sequoiadb_Command/Sdb/getDataSource.md
+[getDC]:manual/Manual/Sequoiadb_Command/Sdb/getDC.md
 [getDomain]:manual/Manual/Sequoiadb_Command/Sdb/getDomain.md
 [getRecycleBin]:manual/Manual/Sequoiadb_Command/Sdb/getRecycleBin.md
 [getRG]:manual/Manual/Sequoiadb_Command/Sdb/getRG.md

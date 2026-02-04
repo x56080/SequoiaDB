@@ -5,7 +5,7 @@
 .hy
 .SH NAME
 .PP
-activate \- activate data center
+activate \- activate cluster
 .SH SYNOPSIS
 .PP
 \f[B]SdbDC.activate()\f[]
@@ -14,9 +14,9 @@ activate \- activate data center
 SdbDC
 .SH DESCRIPTION
 .PP
-This function is used to activate the data center.
-After activation, the data center will start working normally and can accept
-read and write operations.
+This function is used to activate the cluster.
+After activation, the cluster will start working normally and can accept read
+and write operations.
 .SH PARAMETERS
 .PP
 None
@@ -80,7 +80,7 @@ For more details, refer to Troubleshooting.
 v3.0 and above
 .SH EXAMPLES
 .PP
-\f[B]Example 1:\f[] Activate data center
+\f[B]Example 1:\f[] Activate cluster
 .IP
 .nf
 \f[C]

@@ -12,7 +12,7 @@ SdbDC
 
 ##DESCRIPTION##
 
-This function is used to disable readonly mode for the data center. After disabling, the data center will resume normal read and write operations.
+This function is used to disable readonly mode for the cluster. After disabling, the cluster will resume normal read and write operations.
 
 ##PARAMETERS##
 
@@ -40,7 +40,7 @@ v3.0 and above
 
 ##EXAMPLES##
 
-**Example 1:** Disable readonly mode for data center
+**Example 1:** Disable readonly mode for cluster
 
 ```lang-javascript
 > var dc = db.getDC()

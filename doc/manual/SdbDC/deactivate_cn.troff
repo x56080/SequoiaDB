@@ -5,7 +5,7 @@
 .hy
 .SH 名称
 .PP
-deactivate \- 停用数据中心
+deactivate \- 停用集群
 .SH 语法
 .PP
 \f[B]SdbDC.deactivate()\f[]
@@ -14,7 +14,7 @@ deactivate \- 停用数据中心
 SdbDC
 .SH 描述
 .PP
-该函数用于停用数据中心。停用后，数据中心将停止工作，不再接受读写操作。
+该函数用于停用集群。停用后，集群不再接受读写操作。
 .SH 参数
 .PP
 无
@@ -69,7 +69,7 @@ T}
 v3.0 及以上版本
 .SH 示例
 .PP
-\f[B]示例1：\f[] 停用数据中心
+\f[B]示例1：\f[] 停用集群
 .IP
 .nf
 \f[C]

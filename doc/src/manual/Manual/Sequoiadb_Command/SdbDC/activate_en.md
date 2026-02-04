@@ -1,6 +1,6 @@
 ##NAME##
 
-activate - activate data center
+activate - activate cluster
 
 ##SYNOPSIS##
 
@@ -12,7 +12,7 @@ SdbDC
 
 ##DESCRIPTION##
 
-This function is used to activate the data center. After activation, the data center will start working normally and can accept read and write operations.
+This function is used to activate the cluster. After activation, the cluster will start working normally and can accept read and write operations.
 
 ##PARAMETERS##
 
@@ -40,7 +40,7 @@ v3.0 and above
 
 ##EXAMPLES##
 
-**Example 1:** Activate data center
+**Example 1:** Activate cluster
 
 ```lang-javascript
 > var dc = db.getDC()

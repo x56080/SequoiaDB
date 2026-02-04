@@ -5,7 +5,7 @@
 .hy
 .SH NAME
 .PP
-getDC \- get data center object
+getDC \- get cluster object
 .SH SYNOPSIS
 .PP
 \f[B]db.getDC()\f[]
@@ -14,9 +14,9 @@ getDC \- get data center object
 Sdb
 .SH DESCRIPTION
 .PP
-This function is used to get the data center object.
+This function is used to get the cluster object.
 Through this method, you can obtain an SdbDC object for managing and controlling
-the status, location information, and operating modes of the data center.
+the status, location information, and operating modes of the cluster.
 .SH PARAMETERS
 .PP
 None
@@ -80,30 +80,26 @@ For more details, refer to Troubleshooting.
 v3.0 and above
 .SH EXAMPLES
 .PP
-\f[B]Example 1:\f[] Get data center object
+\f[B]Example 1:\f[] Get cluster object
 .IP
 .nf
 \f[C]
 > var dc = db.getDC()
-> dc
-datacenter1
 \f[]
 .fi
 .PP
-\f[B]Example 2:\f[] Get data center object and activate
+\f[B]Example 2:\f[] Activate cluster
 .IP
 .nf
 \f[C]
-> var dc = db.getDC()
 > dc.activate()
 \f[]
 .fi
 .PP
-\f[B]Example 3:\f[] Get data center detailed information
+\f[B]Example 3:\f[] Get cluster detailed information
 .IP
 .nf
 \f[C]
-> var dc = db.getDC()
 > dc.getDetail()
 {
   "Activated": true,
