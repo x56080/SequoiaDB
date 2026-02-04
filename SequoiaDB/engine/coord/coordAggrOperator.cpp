@@ -158,7 +158,10 @@ namespace engine
             *buf = rtnContextBuf( retBuilder.obj() ) ;
          }
 
-         if ( SDB_CLIENT_CATA_VER_OLD == rc && CATALOG_INVALID_VERSION != cataVer )
+         /// 1. when ddl succed, need return cataVer
+         /// 2. when error=SDB_CLIENT_CATA_VER_OLD, need return the cataVer
+         /// so when cataVer valid, return it         
+         if ( CATALOG_INVALID_VERSION != cataVer )
          {
             buf->setStartFrom( cataVer );
          }
