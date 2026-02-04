@@ -135,6 +135,12 @@ namespace engine
                                             const BSONObj &objQuery,
                                             BSONObjBuilder &retObjBuilder,
                                             const BOOLEAN &isStartMode ) ;
+      INT32 processCmdAlterCriticalMode( const NET_HANDLE &handle,
+                                         _clsDCMgr *pDCMgr,
+                                         const BSONObj &objQuery,
+                                         BSONObjBuilder &retObjBuilder,
+                                         const BOOLEAN &isStartMode ) ;
+
 
    protected:
       INT32 _mapData2DCMgr( _clsDCMgr *pDCMgr ) ;
@@ -149,9 +155,21 @@ namespace engine
                                    const UINT32 &groupID,
                                    const BOOLEAN &isStartMode,
                                    clsGroupMode &groupMode,
-                                   ossPoolString *pHostName ) ;
+                                   ossPoolString &hostName,
+                                   BOOLEAN &matchAll,
+                                   BOOLEAN &ignored ) ;
+
+      INT32 _checkCriticalMode( const BSONObj &option,
+                                const BSONObj &groupObj,
+                                const UINT32 &groupID,
+                                const BOOLEAN &isStartMode,
+                                clsGroupMode &groupMode,
+                                ossPoolString &hostName,
+                                BOOLEAN &matchAll,
+                                BOOLEAN &ignored ) ;
 
       INT32 _buildGroupModeInfo( const BSONObj &groupObj,
+                                 BOOLEAN isStartMode,
                                  const ossPoolString &hostName,
                                  clsGroupMode &groupMode ) ;
 

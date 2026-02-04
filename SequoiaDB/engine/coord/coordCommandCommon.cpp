@@ -106,6 +106,21 @@ namespace engine
          goto error ;
       }
 
+      // Ignore the node in maintenance mode
+      if ( _supportMaintenanceMode() )
+      {
+         try
+         {
+            ignoreRCList.insert( SDB_CLS_NODE_IN_MAINTENANCE ) ;
+         }
+         catch( std::exception &e )
+         {
+            rc = ossException2RC( &e ) ;
+            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+            goto error ;
+         }
+      }
+
       rc = executeOnNodes( pMsg, cb, ctrlParam, _getControlMask(),
                            faileds, _useContext() ? &pContext : NULL,
                            this, &ignoreRCList, &sucNodes ) ;

@@ -41,7 +41,7 @@ namespace engine
    */
    #define PMD_LJOB_CONTROL_INTERVAL         ( 500 )     /// ms
    #define PMD_LJOB_INTERVAL                 ( 1000 )    /// ms
-   #define PMD_LJOB_MIN_EXE_NUM              ( 1 )
+   #define PMD_LJOB_MIN_EXE_NUM              ( 2 )
    #define PMD_LJOB_DFT_MAX_EXE_NUM          ( 10 )
    #define PMD_LJOB_IDLE_TIMEOUT             ( 300 * OSS_ONE_SEC )
    #define PMD_LJOB_PER_AGENT_POWER          ( 12 )      /// 2^12
@@ -49,6 +49,7 @@ namespace engine
 
    #define PMD_LJOB_EXE_TIME_SLICE           ( 1000 )    // ms
    #define PMD_LJOB_EXE_COUNT_SLICE          ( 10 )
+   #define PMD_LJOB_EXE_WARNING_TIME         ( 2000000 ) // ms
 
    /*
       _pmdLightJobMgr implement
@@ -378,6 +379,12 @@ namespace engine
 
                sliceTime += job.lastCost() ;
                ++sliceCount ;
+
+               if ( job.lastCost() > PMD_LJOB_EXE_WARNING_TIME )
+               {
+                  PD_LOG( PDWARNING, "The light job(%s) takes up to %llu (us) to execute",
+                          job.getJob()->name(), job.lastCost() ) ;
+               }
 
                if ( UTIL_LJOB_DO_CONT != result )
                {

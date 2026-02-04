@@ -41,22 +41,22 @@ function test ()
          group.startMaintenanceMode( slaveNodeName );
       } );
 
-      assert.tryThrow( SDB_OUT_OF_BOUND, function()
+      assert.tryThrow( SDB_INVALIDARG, function()
       {
          group.startMaintenanceMode( {} );
       } );
 
-      assert.tryThrow( SDB_OUT_OF_BOUND, function()
+      assert.tryThrow( SDB_INVALIDARG, function()
       {
          group.startMaintenanceMode( { MinKeepTime: 1, MaxKeepTime: 2 } );
       } );
 
-      assert.tryThrow( SDB_OUT_OF_BOUND, function()
+      assert.tryThrow( SDB_INVALIDARG, function()
       {
          group.startMaintenanceMode( { NodeName: slaveNodeName, MinKeepTime: 1 } );
       } );
 
-      assert.tryThrow( SDB_OUT_OF_BOUND, function()
+      assert.tryThrow( SDB_INVALIDARG, function()
       {
          group.startMaintenanceMode( { NodeName: slaveNodeName, MaxKeepTime: 2 } );
       } );

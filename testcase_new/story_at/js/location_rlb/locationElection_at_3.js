@@ -37,29 +37,42 @@ function test() {
   // Step 0: get rg, nodeList and replPrimary
   var rg = db.getRG(groupName);
   var nodeList = commGetGroupNodes(db, groupName);
-  var replPrimary = rg.getMaster();
-  var replprimaryName = replPrimary.getHostName() + ":" + replPrimary.getServiceName();
+  
+  if ( nodeList.length < 3 )
+  {
+      return ;
+  }
+  
+  var replPrimaryName = getReplPrimaryName(rg);
+  var replPrimary = rg.getNode( replPrimaryName );
+  var detachednode = null ;
 
-  //Step 1: set location for three nodes and check location primary in location1
-  var locNodelList = getSlaveList(nodeList, replprimaryName);
-  setLocationForNodes(rg, locNodelList, location);
-  var primary1 = checkAndGetLocationHasPrimary(db, groupName, location, 34);
+  try {
+      //Step 1: set location for three nodes and check location primary in location1
+      var locNodelList = getSlaveList(nodeList, replPrimaryName);
+      setLocationForNodes(rg, locNodelList, location);
+      var primary1 = checkAndGetLocationHasPrimary(db, groupName, location, 34);
 
-  // Step 2: stop a slave node, and check location primary
-  var slaveList = getSlaveList(locNodelList, primary1);
-  var slaveNode = rg.getNode(slaveList[0].HostName, slaveList[0].svcname);
-  slaveNode.stop();
-  checkAndGetLocationHasPrimary(db, groupName, location, 34);
+      // Step 2: stop a slave node, and check location primary
+      slaveList = getSlaveList(locNodelList, primary1);
+      var slaveNode = rg.getNode(slaveList[0].HostName, slaveList[0].svcname);
+      slaveNode.stop();
+      checkAndGetLocationHasPrimary(db, groupName, location, 34);
 
-  // Step 3: detach another slave node, and check location primary
-  detachNode(rg, slaveList[1].HostName, slaveList[1].svcname, { KeepData: true });
-  checkLocationHasNoPrimary(db, groupName, location, 34);
+      // Step 3: detach another slave node, and check location primary
+      detachednode = slaveList[1] ;
+      detachNode(rg, detachednode.HostName, detachednode.svcname, { KeepData: true });
+      checkLocationHasNoPrimary(db, groupName, location, 34);
 
-  // Step 4: set location for the last node
-  replPrimary.setLocation(location);
-  checkAndGetLocationHasPrimary(db, groupName, location, 34);
-
-  // Reset group info
-  attachNode(rg, slaveList[1].HostName, slaveList[1].svcname, { KeepData: true });
-  setLocationForNodes(rg, nodeList, "");
+      // Step 4: set location for the last node
+      replPrimary.setLocation(location);
+      checkAndGetLocationHasPrimary(db, groupName, location, 34);
+  } finally {
+      // Reset group info
+      if ( detachednode )
+      {
+         attachNode(rg, detachednode.HostName, detachednode.svcname, { KeepData: true });
+      }
+      setLocationForNodes(rg, nodeList, "");
+  }
 }

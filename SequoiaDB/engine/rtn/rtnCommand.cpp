@@ -115,6 +115,15 @@ namespace engine
       return NULL ;
    }
 
+   BOOLEAN _rtnCommand::allowInMaintenanceMode()
+   {
+      if ( writable() || NULL == collectionFullName() )
+      {
+         return TRUE ;
+      }
+      return FALSE ;
+   }
+
    _rtnCmdBuilder::_rtnCmdBuilder ()
    {
       _pCmdInfoRoot = NULL ;

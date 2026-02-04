@@ -14,15 +14,16 @@ function test ()
    var groupName = commGetDataGroupNames( db )[0];
    var group = db.getRG( groupName );
    var slaveNodeNames = getGroupSlaveNodeName( db, groupName );
+   
+   if ( slaveNodeNames.length < 2 )
+   {
+       return ;
+   }
 
    try
    {
       // 停止所有备节点
-      for( var i in slaveNodeNames )
-      {
-         var slaveNode = group.getNode( slaveNodeNames[i] );
-         slaveNode.stop();
-      }
+      stopNodes( db, group, slaveNodeNames ) ;
 
       // group循环获取主节点，最终报错
       var timeout = 30;
@@ -60,9 +61,12 @@ function test ()
          group.getMaster();
       } )
 
-      // 另一个节点也启动运维模式
-      options = { NodeName: slaveNodeNames[1], MinKeepTime: 10, MaxKeepTime: 20 };
-      group.startMaintenanceMode( options );
+      // 其它备节点也启动运维模式
+      for ( var i = 1 ; i < slaveNodeNames.length ; ++i )
+      {
+          options = { NodeName: slaveNodeNames[i], MinKeepTime: 10, MaxKeepTime: 20 };
+          group.startMaintenanceMode( options );
+      }
 
       // 等待选主
       var timeout = 30;

@@ -123,20 +123,25 @@ namespace engine
       if ( 0 == ossStrcasecmp( CMD_VALUE_NAME_SET_ACTIVE_LOCATION, pAction ) ||
            0 == ossStrcasecmp( CMD_VALUE_NAME_SET_LOCATION, pAction ) ||
            0 == ossStrcasecmp( CMD_VALUE_NAME_START_MAINTENANCE_MODE, pAction ) ||
-           0 == ossStrcasecmp( CMD_VALUE_NAME_STOP_MAINTENANCE_MODE, pAction ) )
+           0 == ossStrcasecmp( CMD_VALUE_NAME_STOP_MAINTENANCE_MODE, pAction ) ||
+           0 == ossStrcasecmp( CMD_VALUE_NAME_START_CRITICAL_MODE, pAction ) ||
+           0 == ossStrcasecmp( CMD_VALUE_NAME_STOP_CRITICAL_MODE, pAction ) )
       {
          coordNodeCMDHelper helper ;
-         BOOLEAN hasFailedGroup = FALSE ;
+         BSONObj objResult ;
 
-         // Remove failed groups in allgropus
-         rc = coordRemoveFailedGroup( datagroups, hasFailedGroup, replyObjs ) ;
+         /// notify
+         helper.notify2NodesByGroups( _pResource, datagroups, cb ) ;
+
+         /// build result
+         rc = coordBuildBatchLocationResultObj( datagroups, replyObjs, objResult ) ;
          if ( rc )
          {
-            PD_LOG( PDWARNING, "Failed to parse failed group list, rc: %d", rc ) ;
+            PD_LOG_MSG( PDERROR, "Failed to build result information, rc: %d", rc ) ;
+            goto error ;
          }
-         rc = hasFailedGroup ? SDB_COORD_NOT_ALL_DONE : SDB_OK ;
 
-         helper.notify2NodesByGroups( _pResource, datagroups, cb ) ;
+         *buf = _rtnContextBuf( objResult ) ;
       }
       else
       {

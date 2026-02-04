@@ -22,6 +22,11 @@ function test ( args )
 
    // 获取group中的主备节点
    var slaveNodes = getGroupSlaveNodeName( db, srcGroup );
+   
+   if ( slaveNodes.length < 2 )
+   {
+       return ;
+   }
 
    // 获取主节点
    var rg = db.getRG( srcGroup );
@@ -33,17 +38,17 @@ function test ( args )
    var salveNodeID1 = slaveNode1.getNodeDetail().split( ":" )[0];
    var salveNodeID2 = slaveNode2.getNodeDetail().split( ":" )[0];
 
-   // 节点设置Location
-   masterNode.setLocation( location1 );
-   slaveNode1.setLocation( location1 );
-   slaveNode2.setLocation( location2 );
-
    // 获取 group2 nodeName
    var rg2 = db.getRG( srcGroup2 );
    var masterNode2 = rg2.getMaster();
    var group2NodeName = masterNode2.getHostName() + ":" + masterNode2.getServiceName();
    try
    {
+      // 节点设置Location
+      masterNode.setLocation( location1 );
+      slaveNode1.setLocation( location1 );
+      slaveNode2.setLocation( location2 );
+
       // 1-1 校验option ，有效值
       var options = { NodeName: masterNodeName, MinKeepTime: 5, MaxKeepTime: 15 };
       rg.startCriticalMode( options );
@@ -56,27 +61,27 @@ function test ( args )
       } );
 
       // 1-3 校验option ，无效值，不指定任何参数
-      assert.tryThrow( SDB_OUT_OF_BOUND, function()
+      assert.tryThrow( [ SDB_OUT_OF_BOUND, SDB_INVALIDARG ], function()
       {
          rg.startCriticalMode();
       } );
 
       // 1-4 校验option ，无效值，同时不指定NodeName和Location
-      assert.tryThrow( SDB_OUT_OF_BOUND, function()
+      assert.tryThrow( SDB_INVALIDARG, function()
       {
          var options = { MinKeepTime: 5, MaxKeepTime: 15 };
          rg.startCriticalMode( options );
       } );
 
       // 1-5 校验option ，无效值，不指定MinKeepTime
-      assert.tryThrow( SDB_OUT_OF_BOUND, function()
+      assert.tryThrow( SDB_INVALIDARG, function()
       {
          var options = { NodeName: masterNodeName, MaxKeepTime: 15 };
          rg.startCriticalMode( options );
       } );
 
       // 1-6 校验option ，无效值，不指定MaxKeepTime
-      assert.tryThrow( SDB_OUT_OF_BOUND, function()
+      assert.tryThrow( SDB_INVALIDARG, function()
       {
          var options = { NodeName: masterNodeName, MinKeepTime: 5 };
          rg.startCriticalMode( options );
@@ -222,14 +227,13 @@ function test ( args )
 
       // 恢复环境
       rg.stopCriticalMode();
-
-      masterNode.setLocation( "" );
-      slaveNode1.setLocation( "" );
-      slaveNode2.setLocation( "" );
    }
    finally
    {
-      rg.start();
+      masterNode.setLocation( "" );
+      slaveNode1.setLocation( "" );
+      slaveNode2.setLocation( "" );
+
       commCheckBusinessStatus( db );
    }
 }

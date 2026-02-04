@@ -170,6 +170,8 @@ namespace engine
       BOOLEAN needNtyEnd = FALSE ;
       MsgClsReelectNotify notifyMsg ;
 
+      SET_UINT16 setTmpDestID ;
+
       // Save location tag to prevent local location changing during exexuting this function
       BOOLEAN isLocation = _isLocation() ;
 
@@ -201,6 +203,13 @@ namespace engine
          PD_LOG( PDERROR, "only primary node can reelect" ) ;
          goto error ;
       }
+      // include self
+      else if ( setDestID.find( pmdGetNodeID().columns.nodeID ) != setDestID.end() )
+      {
+         // restore
+         _vote->resetShadowWeight() ;
+         goto done ;
+      }
       // If location primary is replica group primary, do nothing
       else if ( isLocation && pmdIsPrimary() )
       {
@@ -209,13 +218,52 @@ namespace engine
                      "supported in primary location set" ) ;
          goto error ;
       }
-      // include self
-      else if ( setDestID.find( pmdGetNodeID().columns.nodeID ) != setDestID.end() )
+
+      /// check the all nodes whether in maintenance mode or not
+      if ( !setDestID.empty() )
       {
-         // restore
-         _vote->setShadowWeight( CLS_ELECTION_WEIGHT_USR_MIN ) ;
-         _vote->resetElectionWeight( CLS_ELECTION_WEIGHT_REELECT_TARGET_NODE ) ;
-         goto done ;
+         try
+         {
+            ossScopedRWLock lock( &(_info->mtx), SHARED ) ;
+
+            if ( _info->groupSize() > 0 )
+            {
+               MsgRouteID routeID = _info->local ;
+               map<UINT64, _clsSharingStatus>::const_iterator citrInfo ;
+               SET_UINT16::const_iterator citr = setDestID.begin() ;
+               while( citr != setDestID.end() )
+               {
+                  routeID.columns.nodeID = *citr ;
+                  citrInfo = _info->info.find( routeID.value ) ;
+                  if ( citrInfo != _info->info.end() )
+                  {
+                     const _clsSharingStatus &statusItem = citrInfo->second ;
+                     if ( ! statusItem.isInMaintenanceMode() )
+                     {
+                        setTmpDestID.insert( *citr ) ;
+                     }
+                  }
+                  ++citr ;
+               }
+
+               if ( setTmpDestID.empty() )
+               {
+                  PD_LOG_MSG( PDERROR, "Can not reelect to maintenance node" ) ;
+                  rc = SDB_OPERATION_CONFLICT ;
+                  goto error ;
+               }
+            }
+            else
+            {
+               setTmpDestID = setDestID ;
+            }
+         }
+         catch( std::exception &e )
+         {
+            rc = ossException2RC( &e ) ;
+            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+            goto error ;
+         }
       }
 
       if ( !ossCompareAndSwap32( &_level, CLS_REELECTION_LEVEL_NONE, lvl ) )
@@ -226,7 +274,7 @@ namespace engine
       }
 
       PD_LOG( PDEVENT, "Run reelect(Level:%d, Seconds:%d, DestID: %s)",
-              (INT32)lvl, seconds, _nodesToString( setDestID ).c_str() ) ;
+              (INT32)lvl, seconds, _nodesToString( setTmpDestID ).c_str() ) ;
 
       _event.reset() ;
       resetEvent = TRUE ;
@@ -253,25 +301,25 @@ namespace engine
       /// otherwise this node will still be the primary.
       if ( isLocation )
       {
-         rc = _wait4ReplicaByBeat( timePassed, seconds, cb, setDestID ) ;
+         rc = _wait4ReplicaByBeat( timePassed, seconds, cb, setTmpDestID ) ;
       }
       else
       {
-         rc = _wait4Replica( timePassed, seconds, cb, setDestID ) ;
+         rc = _wait4Replica( timePassed, seconds, cb, setTmpDestID ) ;
       }
       if ( rc )
       {
          goto error ;   
       }
 
-      if ( ! setDestID.empty() )
+      if ( ! setTmpDestID.empty() )
       {
          MsgRouteID routeID = pmdGetNodeID() ;
          BOOLEAN allNtyFailed = TRUE ;
          INT32 rcTmp = SDB_OK ;
 
-         SET_UINT16::const_iterator citr = setDestID.begin() ;
-         while( citr != setDestID.end() )
+         SET_UINT16::const_iterator citr = setTmpDestID.begin() ;
+         while( citr != setTmpDestID.end() )
          {
             /// notify dest node reelect begin
             notifyMsg.isLocation = isLocation ? 1 : 0 ;
@@ -316,13 +364,13 @@ namespace engine
       }
 
    done:
-      if ( ! setDestID.empty() && needNtyEnd )
+      if ( ! setTmpDestID.empty() && needNtyEnd )
       {
          /// notify dest node reelect done
          MsgRouteID routeID = pmdGetNodeID() ;
 
-         SET_UINT16::const_iterator citr = setDestID.begin() ;
-         while( citr != setDestID.end() )
+         SET_UINT16::const_iterator citr = setTmpDestID.begin() ;
+         while( citr != setTmpDestID.end() )
          {
             /// notify dest node reelect done
             notifyMsg.isLocation = isLocation ? 1 : 0 ;
@@ -389,8 +437,7 @@ namespace engine
       else if ( 0 != destID && destID == pmdGetNodeID().columns.nodeID )
       {
          // restore
-         _vote->setShadowWeight( CLS_ELECTION_WEIGHT_USR_MIN ) ;
-         _vote->resetElectionWeight( CLS_ELECTION_WEIGHT_REELECT_TARGET_NODE ) ;
+         _vote->resetShadowWeight() ;
          goto done ;
       }
 

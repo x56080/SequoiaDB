@@ -24,16 +24,16 @@ function test ()
 
    try
    {
+      var minKeepTime = 1;
+      var maxKeepTime = 2;
       // 备节点故障
       for( var i in slaveNodeNames )
       {
-         var options = { NodeName: slaveNodeNames[i], MinKeepTime: 1, MaxKeepTime: 3 };
+         var options = { NodeName: slaveNodeNames[i], MinKeepTime: minKeepTime, MaxKeepTime: maxKeepTime };
          group.startMaintenanceMode( options );
          var slaveNode = group.getNode( slaveNodeNames[i] );
          slaveNode.stop();
       }
-      var minKeepTime = 1;
-      var maxKeepTime = 3;
       var beginTime = new Date();
       checkGroupNodeInMaintenanceMode( db, srcGroupName, slaveNodeNames );
 
@@ -47,15 +47,15 @@ function test ()
 
       // 一个节点恢复，等待超过最小保持时间
       slaveNode1.start();
-      var waitTime = minKeepTime + 1;
+      var waitTime = minKeepTime + 0.2;
       validateWaitTime( beginTime, waitTime );
 
       dbcl.insert( docs );
 
       // 超过最大保持时间
-      var waitTime = maxKeepTime + 1;
+      var waitTime = maxKeepTime + 0.2;
       validateWaitTime( beginTime, waitTime );
-      assert.tryThrow( SDB_CLS_NODE_NOT_ENOUGH, function()
+      assert.tryThrow( [ SDB_CLS_NOT_PRIMARY, SDB_CLS_NODE_NOT_ENOUGH ], function()
       {
          dbcl.insert( docs );
       } );

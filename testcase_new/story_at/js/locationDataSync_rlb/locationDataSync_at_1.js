@@ -36,23 +36,62 @@ function test() {
   for (i = 0; i < 1000; i++) {
     data.push({ a: i });
   }
-  for (i = 0; i < 1000; i++) {
-    cl.insert({ a: i });
-  }
 
   // get slave node and set location
   var rg = db.getRG(groupName);
   var nodes = commGetGroupNodes(db, groupName);
-  var groupPrimary = rg.getMaster();
-  nodes = getSlaveList(nodes, groupPrimary);
-  setLocationForNodes(rg, nodes, location);
+  var primaryNodeName = getReplPrimaryName( rg ) ;
+  var primaryNode = rg.getMaster( primaryNodeName );
+  var primaryNodeID = primaryNode.getDetailObj().toObj()["NodeID"] ;
+  nodes = getSlaveList(nodes, primaryNodeName);
 
-  // check sync source node id
-  //primaryNode = checkAndGetLocationHasPrimary(db, groupName, location, 34);
-  nodeID = nodes[1].NodeID;
-  checkPeerNodeID(db, nodes[0], nodeID);
+  if ( nodes.length < 2 )
+  {
+      return ;
+  }
 
-  // clear data
-  commDropCS(db, csName);
-  clearLocationForNodes(rg, nodes);
+  try {
+      db.updateConf( {syncwithlocation:false}, {GroupName:groupName} ) ;
+      setLocationForNodes(rg, nodes, location);
+
+      // check sync source node id
+      var locPrimaryNodeName = checkAndGetLocationHasPrimary(db, groupName, location, 34);
+      println( "Location primary is: " + locPrimaryNodeName ) ;
+
+      nodeID = nodes[1].NodeID;
+      rg.reelectLocation( location, {NodeID:nodeID} ) ;
+
+      locPrimaryNodeName = checkAndGetLocationHasPrimary(db, groupName, location, 34);
+      println( "After reelect location primary is: " + locPrimaryNodeName ) ;
+
+      sleep( 2000 ) ;
+
+      db.updateConf( {syncwithlocation:true}, {GroupName:groupName} ) ;
+
+      for (i = 0; i < 10 ; i++) {
+        cl.insert({ a: i });
+      }
+
+      sleep( 2000 ) ;
+
+      checkPeerNodeID(db, nodes[1], primaryNodeID);
+      checkPeerNodeID(db, nodes[0], nodeID);
+
+      db.updateConf( {syncwithlocation:false}, {GroupName:groupName} ) ;
+
+      for (i = 0; i < 10 ; i++) {
+        cl.insert({ a: i });
+      }
+      
+      sleep( 2000 ) ;
+
+      checkPeerNodeID(db, nodes[1], primaryNodeID);
+      checkPeerNodeID(db, nodes[0], primaryNodeID);
+
+  } finally {
+      // clear data
+      commDropCS(db, csName);
+      db.deleteConf( {syncwithlocation:false}, {GroupName:groupName} ) ;
+      clearLocationForNodes(rg, nodes);
+  }
 }

@@ -92,6 +92,7 @@ namespace engine
          virtual BOOLEAN      writable () ;
          virtual const CHAR * collectionFullName () ;
          virtual const CHAR * spaceName() ;
+         virtual BOOLEAN      allowInMaintenanceMode() ;
 
          virtual INT32 init ( INT32 flags, INT64 numToSkip, INT64 numToReturn,
                               const CHAR *pMatcherBuff,
@@ -1626,6 +1627,8 @@ namespace engine
       {
          return _clname ;
       }
+
+      virtual BOOLEAN allowInMaintenanceMode() { return TRUE ; }
 
       const CHAR * getIndexName () const
       {

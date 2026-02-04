@@ -38,6 +38,8 @@
 
 #include "catLocation.hpp"
 
+using namespace bson ;
+
 namespace engine
 {
 
@@ -159,7 +161,8 @@ namespace engine
    INT32 catCheckAndGetActiveLocation( const BSONObj &groupObj,
                                        const UINT32 groupID,
                                        const ossPoolString &newActLoc,
-                                       ossPoolString &oldActLoc )
+                                       ossPoolString &oldActLoc,
+                                       BOOLEAN *pLocExist )
    {
       INT32 rc = SDB_OK ;
 
@@ -167,6 +170,11 @@ namespace engine
       {
          BSONElement optionEle ;
          UINT32 locationID = CAT_INVALID_LOCATIONID ;
+
+         if ( pLocExist )
+         {
+            *pLocExist = FALSE ;
+         }
 
          // Check the groupID, only the node in cata and data group can set active location
          if ( CATALOG_GROUPID != groupID &&
@@ -186,9 +194,17 @@ namespace engine
             if ( CAT_INVALID_LOCATIONID == locationID )
             {
                rc = SDB_INVALIDARG ;
-               PD_LOG_MSG( PDERROR, "Location:[%s] doesn't exist in group[%u]",
-                           newActLoc.c_str(), groupID ) ;
+
+               if ( !pLocExist )
+               {
+                  PD_LOG_MSG( PDERROR, "Location:[%s] doesn't exist in group[%u]",
+                              newActLoc.c_str(), groupID ) ;
+               }
                goto error ;
+            }
+            else if ( pLocExist )
+            {
+               *pLocExist = TRUE ;
             }
          }
 

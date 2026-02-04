@@ -97,9 +97,7 @@ namespace engine
    struct _clsGroupModePostInfo : public SDBObject
    {
       clsGroupMode      _grpMode ;
-      INT32             _shadowTime ;
       BOOLEAN           _isLocalMode ;
-      BOOLEAN           _enforced ;
    } ;
 
    /*
@@ -135,6 +133,7 @@ namespace engine
 
       _faultEvent.reset() ;
       _syncEmptyEvent.signal() ;
+      _grpModeEvent.reset() ;
 
       _syncwaitTimeout = 0 ;
       _shutdownWaitTimeout = 0 ;
@@ -451,6 +450,9 @@ namespace engine
          _clsCB->getShardRouteAgent()->disconnectAll() ;
       }
 
+      /// signal group mode event
+      _grpModeEvent.signalAll( SDB_APP_FORCED ) ;
+
       /// wait sync replay packet
       _syncEmptyEvent.wait() ;
       /// wait sync bucket
@@ -579,12 +581,14 @@ namespace engine
       {
          _replBucket.reset() ;
          setLastConsultTick( 0 ) ;
+         _locationVote.setShadowWeightForTarget( CLS_FT_SW_TIMEOUT ) ;
       }
       else if ( !primary && SDB_EVT_OCCUR_AFTER == type )
       {
          /// when we are not primary any more, we should clear
          /// waiting list.
          _sync.cut( 0 ) ;
+         _locationVote.resetShadowWeight() ;
       }
 
       if ( SDB_EVT_OCCUR_AFTER == type )
@@ -653,7 +657,7 @@ namespace engine
       }
       else
       {
-         rc = _handleGroupModeUpdate( clsGroupMode(), 0, TRUE, FALSE ) ;
+         rc = _handleGroupModeUpdate( clsGroupMode(), TRUE ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG( PDWARNING, "Failed to handle group mode, rc: %d", rc ) ;
@@ -1008,6 +1012,8 @@ namespace engine
          // Set local location in pmdSysInfo
          pmdSetLocation( location.c_str() ) ;
          pmdSetLocationID( locationID ) ;
+
+         /// _setLocationSet() already called with set changedLocation = TRUE
       }
       else
       {
@@ -1133,9 +1139,7 @@ namespace engine
    }
 
    INT32 _clsReplicateSet::postGroupModeInfo( const clsGroupMode &grpMode,
-                                              INT32 shadowTime,
-                                              BOOLEAN isLocalMode,
-                                              BOOLEAN enforced )
+                                              BOOLEAN isLocalMode )
    {
       INT32 rc = SDB_OK ;
       _clsGroupModePostInfo *pPostInfo = NULL ;
@@ -1152,9 +1156,7 @@ namespace engine
       try
       {
          pPostInfo->_grpMode = grpMode ;
-         pPostInfo->_shadowTime = shadowTime ;
          pPostInfo->_isLocalMode = isLocalMode ;
-         pPostInfo->_enforced = enforced ;
       }
       catch( std::exception &e )
       {
@@ -1183,9 +1185,28 @@ namespace engine
       goto done ;
    }
 
-   INT32 _clsReplicateSet::startGrpModeJob( UINT64 delayMS )
+   INT32 _clsReplicateSet::startGrpModeJob( INT64 syncWaitTimeMs )
    {
-      return clsStartGroupModeReqJob( &_info, this, delayMS ) ;
+      INT32 rc = SDB_OK ;
+
+      /// reset event
+      if ( syncWaitTimeMs > 0 )
+      {
+         _grpModeEvent.reset() ;
+      }
+
+      rc = clsStartGroupModeReqJob( &_info, this, 0 ) ;
+      if ( SDB_OK == rc && syncWaitTimeMs > 0 )
+      {
+         INT32 result = SDB_OK ;
+         rc = _grpModeEvent.wait( syncWaitTimeMs, &result ) ;
+         if ( SDB_OK == rc )
+         {
+            rc = result ;
+         }
+      }
+
+      return rc ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREPSET_GETPRMY, "_clsReplicateSet::getPrimary" )
@@ -1244,12 +1265,10 @@ namespace engine
 
       ossScopedRWLock lock( &_info.mtx, SHARED ) ;
 
-      if ( CLS_GROUP_MODE_CRITICAL == _info.grpMode.mode )
+      if ( isInCriticalMode() )
       {
-         const clsGrpModeItem &grpModeItem = _info.grpMode.grpModeInfo[0] ;
-
          // This is critical node mode, use alive node count
-         if ( INVALID_NODEID != grpModeItem.nodeID )
+         if ( _info.isNodeCritical() )
          {
             aliveCnt = _info.aliveSize() ;
             isCriticalNodeMode = TRUE ;
@@ -1273,7 +1292,7 @@ namespace engine
          pStatus = it->second ;
          ++it ;
 
-         if ( CLS_GROUP_MODE_MAINTENANCE == pStatus->grpMode )
+         if ( pStatus->isInMaintenanceMode() )
          {
             continue ;
          }
@@ -1362,17 +1381,23 @@ namespace engine
             }
             locationInfo->affinitiveNodes = affinitiveNodes + selfInc ;
          }
+         else if ( isCriticalLocationMode &&
+                   affinitiveNodes + selfInc >= CLS_REPLSIZE_CONSISTENCE_MIN )
+         {
+            locationInfo->affinitiveNodes = CLS_REPLSIZE_CONSISTENCE_MIN ;
+         }
       }
 
       if ( isActiveLocation() && !_remoteLocationConsistency )
       {
-         if ( CLS_GROUP_MODE_CRITICAL == _info.grpMode.mode )
+         // cirtical location mode, nodeCnt/aliveCnt already except remote
+         if ( isCriticalLocationMode )
          {
-            // cirtical mode, nodeCnt/aliveCnt already except remote
-            if ( isCriticalNodeMode )
-            {
-               aliveCnt -= remoteAliveNodeCnt ;
-            }
+            /// do nothing
+         }
+         else if ( isCriticalNodeMode )
+         {
+            aliveCnt -= remoteAliveNodeCnt ;
          }
          else
          {
@@ -1575,10 +1600,7 @@ namespace engine
                   PD_LOG( PDEVENT, "Replica Group Vote: force to secondary due to %s",
                           ftStatStr ) ;
                   _vote.force( CLS_ELECTION_STATUS_SEC, 5 * OSS_ONE_SEC ) ;
-                  _vote.setShadowWeight( CLS_ELECTION_WEIGHT_MIN,
-                                         CLS_FT_SW_TIMEOUT,
-                                         FALSE ) ;
-                  _vote.resetElectionWeight( CLS_ELECTION_WEIGHT_REELECT_TARGET_NODE ) ;
+                  _vote.setShadowWeightForNoneTarget( TRUE, CLS_FT_SW_TIMEOUT ) ;
                }
             }
          }
@@ -1616,8 +1638,7 @@ namespace engine
       else if ( PMD_EDU_EVENT_UPDATE_GRPMODE == event->_eventType )
       {
          _clsGroupModePostInfo *pInfo = (_clsGroupModePostInfo*)(event->_Data) ;
-         rc = _handleGroupModeUpdate( pInfo->_grpMode, pInfo->_shadowTime,
-                                      pInfo->_isLocalMode, pInfo->_enforced ) ;
+         rc = _handleGroupModeUpdate( pInfo->_grpMode, pInfo->_isLocalMode ) ;
          SDB_OSS_DEL pInfo ;
          pInfo = NULL ;
 
@@ -1730,8 +1751,7 @@ namespace engine
             if ( CLS_REELECT_NOTIFY_BEGIN == pNty->type )
             {
                _clsVoteMachine *vote = voteMachine( pNty->isLocation ? TRUE : FALSE ) ;
-               vote->setShadowWeight( CLS_ELECTION_WEIGHT_MAX, pNty->timeout ) ;
-               vote->setElectionWeight( CLS_ELECTION_WEIGHT_REELECT_TARGET_NODE ) ;
+               vote->setShadowWeightForTarget( pNty->timeout ) ;
 
                /// broadcast to other nodes
                _sharingBeat() ;
@@ -2124,6 +2144,7 @@ namespace engine
             pStatus->beat.serviceStatus = SERVICE_UNKNOWN ;
             pStatus->beat.ftConfirmStat = 0 ;
             pStatus->beat.indoubtErr = SDB_OK ;
+            pStatus->beat.electionWeight = CLS_ELECTION_WEIGHT_DFT ;
 
             // alive break, reset UDP support
             pStatus->resetUDP() ;
@@ -2171,6 +2192,7 @@ namespace engine
             pStatus->beat.serviceStatus = SERVICE_UNKNOWN ;
             pStatus->beat.ftConfirmStat = 0 ;
             pStatus->beat.indoubtErr = SDB_OK ;
+            pStatus->beat.electionWeight = CLS_ELECTION_WEIGHT_DFT ;
 
             _locationInfo.alives.erase( itr++ ) ;
          }
@@ -2241,9 +2263,10 @@ namespace engine
                   _info.primary = beat.identity ;
                   _info.mtx.release_w() ;
                   _vote.force( CLS_ELECTION_STATUS_SILENCE ) ;
-                  PD_LOG( PDEVENT, "Replica Group Vote: remote lsn[%d:%lld]"
+                  PD_LOG( PDEVENT, "Replica Group Vote: remote node[%u] lsn[%d:%lld]"
                           " higher(or equal) than local lsn[%d:%lld],"
                           " we change to silence.",
+                          beat.identity.columns.nodeID,
                           beat.endLsn.version, beat.endLsn.offset,
                           lsn.version, lsn.offset ) ;
                }
@@ -2322,7 +2345,8 @@ namespace engine
                      _info.mtx.release_w() ;
                      _vote.force( CLS_ELECTION_STATUS_SILENCE ) ;
                      PD_LOG( PDEVENT, "Replica Group Vote: Change to silence because remote "
-                             "is in step up. remote lsn[%d:%lld], local lsn[%d:%lld]",
+                             "node[%u] is in step up. remote lsn[%d:%lld], local lsn[%d:%lld]",
+                             beat.identity.columns.nodeID,
                              beat.endLsn.version, beat.endLsn.offset,
                              lsn.version, lsn.offset ) ;
                   }
@@ -2336,9 +2360,10 @@ namespace engine
                      _info.primary = beat.identity ;
                      _info.mtx.release_w() ;
                      _vote.force( CLS_ELECTION_STATUS_SILENCE ) ;
-                     PD_LOG( PDEVENT, "Replica Group Vote: remote lsn[%d:%lld]"
+                     PD_LOG( PDEVENT, "Replica Group Vote: remote node[%u] lsn[%d:%lld]"
                              " higher(or equal) than local lsn[%d:%lld],"
                              " we change to silence.",
+                             beat.identity.columns.nodeID,
                              beat.endLsn.version, beat.endLsn.offset,
                              lsn.version, lsn.offset ) ;
                   }
@@ -2361,9 +2386,8 @@ namespace engine
                }
 
                // if find new primary node, should to wake up reelection
-               if ( CLS_ELECTION_WEIGHT_MIN == _vote.getShadowWeight() ||
-                    ( CLS_ELECTION_WEIGHT_USR_MIN != _vote.getShadowWeight() &&
-                      _vote.isShadowTimeout() ) )
+               if ( _vote.isShadowWeightForNoneTarget() ||
+                    ( _vote.isShadowWeightForTarget() && _vote.isShadowTimeout() ) )
                {
                   reelectionDone() ;
                }
@@ -2384,7 +2408,7 @@ namespace engine
                   {
                      _vote.force( CLS_ELECTION_STATUS_SEC ) ;
                   }
-                  if ( CLS_ELECTION_WEIGHT_MIN != _vote.getShadowWeight() )
+                  if ( !_vote.isShadowWeightForNoneTarget() )
                   {
                      _vote.setImmediatelyTime() ;
                   }
@@ -2419,9 +2443,11 @@ namespace engine
                      _locationInfo.primary = beat.identity ;
                      _locationInfo.mtx.release_w() ;
                      _locationVote.force( CLS_ELECTION_STATUS_SILENCE ) ;
-                     PD_LOG( PDEVENT, "Location Set Vote: remote primary node's lsn[%d:%lld] is "
-                             "higher(or equal) than local's lsn[%d:%lld], so we change local "
-                             "status to silence.", beat.endLsn.version, beat.endLsn.offset,
+                     PD_LOG( PDEVENT, "Location Set Vote: remote primary node[%u]'s lsn[%d:%lld] "
+                             "is higher(or equal) than local's lsn[%d:%lld], so we change local "
+                             "status to silence.",
+                             beat.identity.columns.nodeID,
+                             beat.endLsn.version, beat.endLsn.offset,
                              lsn.version, lsn.offset ) ;
                   }
                }
@@ -2444,9 +2470,8 @@ namespace engine
                }
 
                // New primary node is found, other node should step down
-               if ( CLS_ELECTION_WEIGHT_MIN == _locationVote.getShadowWeight() ||
-                    ( CLS_ELECTION_WEIGHT_USR_MIN != _locationVote.getShadowWeight() &&
-                      _locationVote.isShadowTimeout() ) )
+               if ( _locationVote.isShadowWeightForNoneTarget() ||
+                    ( _locationVote.isShadowWeightForTarget() && _locationVote.isShadowTimeout() ) )
                {
                   locationReelectionDone() ;
                }
@@ -2457,15 +2482,27 @@ namespace engine
                if ( _locationVote.primaryIsMe() )
                {
                   DPS_LSN lsn = _logger->expectLsn() ;
-                  if ( 0 > lsn.compare( beat.endLsn ) )
+                  if ( CLS_GROUP_ROLE_PRIMARY == beat.role )
                   {
                      _locationInfo.mtx.lock_w() ;
                      _locationInfo.primary.value = MSG_INVALID_ROUTEID ;
                      _locationInfo.mtx.release_w() ;
                      _locationVote.force( CLS_ELECTION_STATUS_SILENCE ) ;
-                     PD_LOG( PDEVENT, "Location Set Vote: remote non-primary node's lsn[%d:%lld] is "
-                             "higher than local's lsn[%d:%lld], so we change local "
-                             "status to silence.", beat.endLsn.version, beat.endLsn.offset,
+                     PD_LOG( PDEVENT, "Location Set Vote: remote node[%u] is group primary, "
+                             "so we change local status to silence.",
+                             beat.identity.columns.nodeID ) ;
+                  }
+                  else if ( 0 > lsn.compare( beat.endLsn ) )
+                  {
+                     _locationInfo.mtx.lock_w() ;
+                     _locationInfo.primary.value = MSG_INVALID_ROUTEID ;
+                     _locationInfo.mtx.release_w() ;
+                     _locationVote.force( CLS_ELECTION_STATUS_SILENCE ) ;
+                     PD_LOG( PDEVENT, "Location Set Vote: remote non-primary node[%u]'s "
+                             "lsn[%d:%lld] is higher than local's lsn[%d:%lld], "
+                             "so we change local status to silence.",
+                             beat.identity.columns.nodeID,
+                             beat.endLsn.version, beat.endLsn.offset,
                              lsn.version, lsn.offset ) ;
                   }
                }
@@ -2484,7 +2521,7 @@ namespace engine
                   {
                      _locationVote.force( CLS_ELECTION_STATUS_SEC ) ;
                   }
-                  if ( CLS_ELECTION_WEIGHT_MIN != _locationVote.getShadowWeight() )
+                  if ( !_locationVote.isShadowWeightForNoneTarget() )
                   {
                      _locationVote.setImmediatelyTime() ;
                   }
@@ -2838,7 +2875,9 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CLSREPSET_REELECT ) ;
-      if ( 1 == groupSize() && ! isInMaintenanceMode() )
+      if ( 1 == groupSize() &&
+           ( 0 == maintenanceSize() ||
+             ( !isInMaintenanceMode() && setDestID.empty() ) ) )
       {
          goto done ;
       }
@@ -2858,8 +2897,7 @@ namespace engine
 
    void _clsReplicateSet::reelectionDone( BOOLEAN change2Primary )
    {
-      _vote.setShadowWeight( CLS_ELECTION_WEIGHT_USR_MIN ) ;
-      _vote.resetElectionWeight( CLS_ELECTION_WEIGHT_REELECT_TARGET_NODE ) ;
+      _vote.resetShadowWeight() ;
       _reelection.signal() ;
 
       if ( change2Primary )
@@ -2900,8 +2938,7 @@ namespace engine
 
    void _clsReplicateSet::locationReelectionDone( BOOLEAN change2Primary )
    {
-      _locationVote.setShadowWeight( CLS_ELECTION_WEIGHT_USR_MIN ) ;
-      _locationVote.resetElectionWeight( CLS_ELECTION_WEIGHT_REELECT_TARGET_NODE ) ;
+      _locationVote.resetShadowWeight() ;
       _locationReelection.signal() ;
 
       if ( change2Primary )
@@ -2927,7 +2964,7 @@ namespace engine
       {
          vote = &_vote ;
       }
-      vote->setShadowWeight( CLS_ELECTION_WEIGHT_MIN ) ;
+      vote->setShadowWeightForNoneTarget( FALSE ) ;
       vote->force( CLS_ELECTION_STATUS_SEC ) ;
 
       /// broadcast to other nodes at now
@@ -2952,25 +2989,23 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION (SDB__CLSREPSET__HANDLEGRPMODEUPDATE, "_clsReplicateSet::_handleGroupModeUpdate" )
    INT32 _clsReplicateSet::_handleGroupModeUpdate( const clsGroupMode &grpMode,
-                                                   INT32 shadowTime,
-                                                   BOOLEAN isLocalMode,
-                                                   BOOLEAN enforced )
+                                                   BOOLEAN isLocalMode )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CLSREPSET__HANDLEGRPMODEUPDATE ) ;
 
-      _vote.setGrpModeShadowTime( shadowTime ) ;
-
       {
          ossScopedRWLock lock( &_info.mtx, EXCLUSIVE ) ;
-
-         _info.enforcedGrpMode = enforced ;
 
          // Remove local and global group mode
          if ( CLS_GROUP_MODE_NONE == grpMode.mode )
          {
             if ( grpMode.mode != _info.grpMode.mode )
             {
+               PD_LOG( PDEVENT, "Disable group mode(%s)",
+                       CLS_GROUP_MODE_CRITICAL == _info.grpMode.mode ?
+                       "critical" : "maintenance" ) ;
+
                _vote.resetGrpModeElectionWeights() ;
                _info.grpMode.reset() ;
                _info.localGrpMode = CLS_GROUP_MODE_NONE ;
@@ -2983,23 +3018,14 @@ namespace engine
             {
                if ( CLS_GROUP_MODE_CRITICAL == grpMode.mode )
                {
+                  PD_LOG( PDEVENT, "Enable group mode(critical with local)" ) ;
                   // Set critical mode flag
                   _vote.setElectionWeight( CLS_ELECTION_WEIGHT_CRITICAL_NODE ) ;
                   _info.localGrpMode = CLS_GROUP_MODE_CRITICAL ;
-
-                  // shadowTime < 0 means keep this mode forever, we need to remove targetNode flag
-                  if ( shadowTime < 0 )
-                  {
-                     _vote.resetElectionWeight( CLS_ELECTION_WEIGHT_REELECT_TARGET_NODE ) ;
-                  }
-                  // shadowTime > 0 means keep this mode temporary, we need to add targetNode flag
-                  else
-                  {
-                     _vote.setElectionWeight( CLS_ELECTION_WEIGHT_REELECT_TARGET_NODE ) ;
-                  }
                }
                else if ( CLS_GROUP_MODE_MAINTENANCE == grpMode.mode )
                {
+                  PD_LOG( PDEVENT, "Enable group mode(maintenance with local)" ) ;
                   _vote.resetGrpModeElectionWeights() ;
                   _info.localGrpMode = CLS_GROUP_MODE_MAINTENANCE ;
                }
@@ -3007,6 +3033,8 @@ namespace engine
             // Reset local group mode to CLS_GROUP_MODE_NONE
             else
             {
+               PD_LOG( PDEVENT, "Enable group mode(%s without local)",
+                       CLS_GROUP_MODE_CRITICAL == grpMode.mode ? "critical" : "maintenance" ) ;
                _vote.resetGrpModeElectionWeights() ;
                _info.localGrpMode = CLS_GROUP_MODE_NONE ;
             }
@@ -3021,6 +3049,9 @@ namespace engine
                rc = ossException2RC( &e ) ;
                PD_LOG( PDERROR, "Failed to set group mode, occur exception %s", e.what() ) ;
             }
+
+            // parse group mode
+            _info.parseGroupMode() ;
          }
 
          // Save global group mode to _clsSharingStatus
@@ -3056,6 +3087,9 @@ namespace engine
                remoteLocationNodeSize ++ ;
             }
 
+            /// update sync
+            _sync.updateNodeGrpMode( status.beat.identity, status.grpMode ) ;
+
             ++nodeItr ;
          }
 
@@ -3074,21 +3108,15 @@ namespace engine
       {
          if ( CLS_GROUP_MODE_CRITICAL == _info.grpMode.mode )
          {
-            if ( _vote.isTmpGrpMode() )
-            {
-               /// need to update grpMode
-               rc = startGrpModeJob() ;
-            }
-            else // if ( _vote.isConstantGrpMode() )
-            {
-               rc = _vote.startCriticalModeMonitor() ;
-            }
+            rc = _vote.startCriticalModeMonitor() ;
          }
          else if ( CLS_GROUP_MODE_MAINTENANCE == _info.grpMode.mode )
          {
             rc = _vote.startMaintenanceModeMonitor() ;
          }
       }
+
+      _grpModeEvent.signalAll( rc ) ;
 
       PD_TRACE_EXITRC( SDB__CLSREPSET__HANDLEGRPMODEUPDATE, rc ) ;
       return rc ;

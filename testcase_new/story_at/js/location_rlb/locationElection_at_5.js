@@ -38,30 +38,38 @@ function test() {
   // Step 0: get rg, nodeList and replPrimary
   var rg = db.getRG(groupName);
   var nodeList = commGetGroupNodes(db, groupName);
-  var replPrimary = rg.getMaster();
-  var replPrimaryName = replPrimary.getHostName() + ":" + replPrimary.getServiceName();
+  var replPrimaryName = getReplPrimaryName(rg);
+  var replPrimary = rg.getNode( replPrimaryName );
 
-  // Step 1: set location for two slave nodes and check location primary in location
-  var locNodelList = getSlaveList(nodeList, replPrimaryName);
-  setLocationForNodes(rg, locNodelList.slice(0, 2), location);
-  var primary1 = checkAndGetLocationHasPrimary(db, groupName, location, 34);
+  println( "Repl primary is: " + replPrimaryName ) ;
+  
+  try {
+      // Step 1: set location for two slave nodes and check location primary in location
+      var locNodelList = getSlaveList(nodeList, replPrimaryName);
+      println( "Set location(" + location + ") for nodes(" + locNodelList.slice(0, 2) + ")" ) ;
 
-  // Step 2: set location for replica group's primary node and check if the location primary has changed
-  replPrimary.setLocation(location);
-  checkNodeIsLocationPrimary(db, groupName, primary1, location, 34);
+      setLocationForNodes(rg, locNodelList.slice(0, 2), location);
+      var primary1 = checkAndGetLocationHasPrimary(db, groupName, location, 34);
+      println( "Location(" + location + ") primary is: " + primary1 ) ;
 
-  // Step 3: insert 1000 records into group
-  commDropCS(db, csName);
-  var cs = commCreateCS(db, csName);
-  var cl = cs.createCL(clName, { Group: groupName });
-  var data = [];
-  for (var i = 0; i < 50000; i++) {
-    data.push({ a: i });
+      // Step 2: set location for replica group's primary node and check if the location primary has changed
+      replPrimary.setLocation(location);
+      sleep( 2000 ) ;
+      checkNodeIsLocationPrimary(db, groupName, replPrimaryName, location, 34);
+
+      // Step 3: insert 1000 records into group
+      commDropCS(db, csName);
+      var cs = commCreateCS(db, csName);
+      var cl = cs.createCL(clName, { Group: groupName });
+      var data = [];
+      for (var i = 0; i < 50000; i++) {
+        data.push({ a: i });
+      }
+      cl.insert(data);
+      checkNodeIsLocationPrimary(db, groupName, replPrimaryName, location, 34);
+  } finally {
+      // Reset group info
+      commDropCS(db, csName);
+      setLocationForNodes(rg, nodeList, "");
   }
-  cl.insert(data);
-  checkNodeIsLocationPrimary(db, groupName, replPrimaryName, location, 34);
-
-  // Reset group info
-  commDropCS(db, csName);
-  setLocationForNodes(rg, locNodelList, "");
 }

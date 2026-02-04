@@ -17,10 +17,11 @@ function test ()
    var port2 = parseInt( RSRVPORTBEGIN ) + 20;
    var dbpath1 = RSRVNODEDIR + "data/" + port1;
    var dbpath2 = RSRVNODEDIR + "data/" + port2;
+   
+   var rg = db.getRG( dataGroupName );
 
    try
    {
-      var rg = db.getRG( dataGroupName );
       var hostName = rg.getMaster().getHostName();
       var node1 = rg.createNode( hostName, port1, dbpath1, { diaglevel: 5 } );
       var node2 = rg.createNode( hostName, port2, dbpath2, { diaglevel: 5 } );

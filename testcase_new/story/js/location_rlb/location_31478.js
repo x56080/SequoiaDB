@@ -14,7 +14,7 @@ function test ()
 
    var group = commGetDataGroupNames( db )[0];
    var rg = db.getRG( group );
-   var nodelist = commGetGroupNodes( db, group );
+
    var masterNode = rg.getMaster();
    var hostName = masterNode.getHostName();
    var port1 = parseInt( RSRVPORTBEGIN ) + 10;
@@ -26,6 +26,12 @@ function test ()
 
    try
    {
+      removeNode( rg, hostName, port1 );
+      removeNode( rg, hostName, port2 );
+      removeNode( rg, hostName, port3 );
+      
+      var nodelist = commGetGroupNodes( db, group );
+
       rg.createNode( hostName, port1, dbpath1, { diaglevel: 5 } );
       rg.createNode( hostName, port2, dbpath2, { diaglevel: 5 } );
       rg.createNode( hostName, port3, dbpath3, { diaglevel: 5 } );
@@ -63,6 +69,7 @@ function test ()
 
       // 将主节点设置location
       masterNode.setLocation( location );
+      sleep( 2000 ) ;
       var locationPrimary3 = checkAndGetLocationHasPrimary( db, group, location, 30 );
       var values4 = getSnapshotDatabase( db, locationPrimary3 );
       assert.equal( values4[0]["Location"], location );

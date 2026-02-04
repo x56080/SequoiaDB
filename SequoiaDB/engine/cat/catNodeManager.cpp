@@ -331,8 +331,9 @@ namespace engine
       }
       else
       {
-         if ( MSG_INVALID_ROUTEID != pRequest->oldLocationPrimary.value ||
-              MSG_INVALID_ROUTEID != pRequest->newLocationPrimary.value )
+         if ( MSG_INVALID_LOCATIONID != pRequest->locationID &&
+              ( MSG_INVALID_ROUTEID != pRequest->oldLocationPrimary.value ||
+                MSG_INVALID_ROUTEID != pRequest->newLocationPrimary.value ) )
          {
             UINT32 locationID = pRequest->locationID ;
             oldPrimary = pRequest->oldLocationPrimary ;
@@ -2692,7 +2693,9 @@ namespace engine
    INT32 catNodeManager::setGroupLocation( const BSONObj &groupInfo,
                                            UINT32 groupID,
                                            const ossPoolString &newLoc,
-                                           const ossPoolString &hostName )
+                                           const ossPoolString &hostName,
+                                           BOOLEAN *pHasChanged,
+                                           BOOLEAN *pHasMatched )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_CATNODEMANAGER_SETGROUPLOCATION ) ;
@@ -2731,19 +2734,19 @@ namespace engine
                nodeID = nodeIDEle.numberInt() ;
             }
 
-            if ( ! locationEle.eoo() && String != locationEle.type() )
+            if ( String == locationEle.type() )
+            {
+               oldLoc = locationEle.valuestrsafe() ;
+            }
+            else if ( !locationEle.eoo() )
             {
                rc = SDB_INVALIDARG ;
                PD_LOG( PDERROR, "Failed to get the field(%s)",
                        CAT_LOCATION_NAME ) ;
                goto error ;
             }
-            else
-            {
-               oldLoc = locationEle.valuestrsafe() ;
-            }
 
-            if ( ! hostNameEle.eoo() && String != hostNameEle.type() )
+            if ( hostNameEle.eoo() || String != hostNameEle.type() )
             {
                rc = SDB_INVALIDARG ;
                PD_LOG( PDERROR, "Failed to get the field(%s)",
@@ -2762,8 +2765,14 @@ namespace engine
                        nodeHostName.c_str(), nodeID, hostName.c_str() ) ;
                continue ;
             }
+
+            if ( pHasMatched )
+            {
+               *pHasMatched = TRUE ;
+            }
+
             // Compare oldLocation and newLocation
-            else if ( oldLoc == newLoc )
+            if ( oldLoc == newLoc )
             {
                PD_LOG( PDDEBUG, "The old and new location are same, do nothing" ) ;
                continue ;
@@ -2782,6 +2791,11 @@ namespace engine
             {
                PD_LOG( PDERROR, "Failed to set location, rc: %d", rc ) ;
                goto error ;
+            }
+
+            if ( pHasChanged )
+            {
+               *pHasChanged = TRUE ;
             }
          }
       }
@@ -2822,7 +2836,7 @@ namespace engine
 
          // Update grpMode in SYSCAT.SYSNODES, always increase group version
          rc = catSetGrpMode( grpMode, TRUE, _pEduCB, _pDmsCB, _pDpsCB, w ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to set critical mode, rc: %d", rc ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to set group mode, rc: %d", rc ) ;
 
          // Update grpMode in SYSCAT.SYSGROUPMODES
          rc = catGetGrpModeObj( grpMode.groupID, groupModeObj, _pEduCB ) ;
@@ -2833,6 +2847,7 @@ namespace engine
                   GroupID: 1001,
                   GroupName: "group1",
                   GroupMode: "critical", || "maintenance",
+                  Enforced: true/false,
                   Properties: [
                      {
                         NodeID: 1002, NodeName: "xx:xx", || LocationID: 1, Location: "xxx",
@@ -2885,6 +2900,42 @@ namespace engine
                          CAT_GROUP_MODE_COLLECTION, matcher.toPoolString().c_str(),
                          updator.toPoolString().c_str(), rc ) ;
          }
+
+         /// need check wether all the nodes is in maintenance mode
+         if ( CLS_GROUP_MODE_MAINTENANCE == grpMode.mode )
+         {
+            BSONElement eProp ;
+            BSONElement eGroup ;
+            rc = catGetGrpModeObj( grpMode.groupID, groupModeObj, _pEduCB ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Failed to get group[%u] mode info object, rc: %d",
+                       grpMode.groupID, rc ) ;
+               goto error ;
+            }
+            eProp = groupModeObj.getField( CAT_PROPERTIES_NAME ) ;
+            if ( Array != eProp.type() )
+            {
+               PD_LOG( PDERROR, "Invalid group mode info(%s)", groupModeObj.toString().c_str() ) ;
+               rc = SDB_SYS ;
+               goto error ;
+            }
+            eGroup = groupObj.getField( CAT_GROUP_NAME ) ;
+            if ( Array != eGroup.type() )
+            {
+               PD_LOG( PDERROR, "Invalid group info(%s)", groupObj.toString().c_str() ) ;
+               rc = SDB_SYS ;
+               goto error ;
+            }
+            /// check the size
+            if ( eProp.embeddedObject().nFields() == eGroup.embeddedObject().nFields() )
+            {
+               PD_LOG_MSG( PDERROR, "Can not set all nodes to maintenance mode in group(%s)",
+                           groupName.c_str() ) ;
+               rc = SDB_OPERATION_CONFLICT ;
+               goto error ;
+            }
+         }
       }
       catch ( exception &e )
       {
@@ -2902,12 +2953,14 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATNODEMANAGER_STOPGRPMODE, "catNodeManager::stopGrpMode" )
-   INT32 catNodeManager::stopGrpMode( const clsGroupMode &grpMode )
+   INT32 catNodeManager::stopGrpMode( const clsGroupMode &grpMode, BOOLEAN *pHasChanged )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_CATNODEMANAGER_STOPGRPMODE ) ;
 
       INT32 w = 0 ;
+      BOOLEAN hasUpdated = FALSE ;
+
       if ( CLS_GROUP_MODE_CRITICAL == grpMode.mode && CATALOG_GROUPID == grpMode.groupID )
       {
          w = 1 ;
@@ -2929,10 +2982,45 @@ namespace engine
          {
             BSONObj updator, matcher ;
             BSONObjBuilder updatorBuilder, matcherBuilder ;
+            utilUpdateResult result ;
 
             if ( CLS_GROUP_MODE_CRITICAL == grpMode.mode )
             {
-               needStop = TRUE ;
+               if ( grpMode.grpModeInfo.empty() )
+               {
+                  needStop = TRUE ;
+               }
+               else
+               {
+                  rc = catParseGrpModeObj( groupModeObj, tmpGrpMode ) ;
+                  PD_RC_CHECK( rc, PDWARNING, "Failed to parse group mode object, rc: %d", rc ) ;
+
+                  if ( tmpGrpMode.grpModeInfo.empty() )
+                  {
+                     needStop = TRUE ;
+                  }
+                  else
+                  {
+                     SDB_ASSERT( 1 == tmpGrpMode.grpModeInfo.size(), "Invalid group mode info" ) ;
+                     const clsGrpModeItem &tmpGrpModeItem = tmpGrpMode.grpModeInfo[ 0 ] ;
+
+                     VEC_GRPMODE_ITEM::const_iterator itr = grpMode.grpModeInfo.begin() ;
+                     while ( grpMode.grpModeInfo.end() != itr )
+                     {
+                        if ( tmpGrpModeItem.nodeID == itr->nodeID &&
+                             tmpGrpModeItem.locationID == itr->locationID )
+                        {
+                           break ;
+                        }
+                        ++itr ;
+                     }
+                     if ( grpMode.grpModeInfo.end() == itr )
+                     {
+                        // no found any matched location or node
+                        needStop = FALSE ;
+                     }
+                  }
+               }
             }
             else if ( CLS_GROUP_MODE_MAINTENANCE == grpMode.mode )
             {
@@ -2980,10 +3068,20 @@ namespace engine
             matcher = matcherBuilder.obj() ;
 
             rc = rtnUpdate( CAT_GROUP_MODE_COLLECTION, matcher, updator, BSONObj(),
-                            0, _pEduCB, _pDmsCB, _pDpsCB, w ) ;
+                            0, _pEduCB, _pDmsCB, _pDpsCB, w, &result ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to update %s, matcher: %s, updator: %s, rc: %d",
                          CAT_GROUP_MODE_COLLECTION, matcher.toPoolString().c_str(),
                          updator.toPoolString().c_str(), rc ) ;
+
+            if ( result.modifiedNum() > 0 )
+            {
+               hasUpdated = TRUE ;
+
+               if ( pHasChanged )
+               {
+                  *pHasChanged = TRUE ;
+               }
+            }
          }
          else if ( SDB_CLS_GRP_NOT_EXIST == rc )
          {
@@ -3002,10 +3100,10 @@ namespace engine
             tmpGrpMode.mode = CLS_GROUP_MODE_NONE ;
 
             // Update grpMode in SYSCAT.SYSNODES
-            rc = catSetGrpMode( tmpGrpMode, needStop, _pEduCB, _pDmsCB, _pDpsCB, w ) ;
+            rc = catSetGrpMode( tmpGrpMode, hasUpdated, _pEduCB, _pDmsCB, _pDpsCB, w, pHasChanged ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to stop group mode, rc: %d", rc ) ;
          }
-         else
+         else if ( hasUpdated )
          {
             rc = catIncGrpVer( grpMode.groupID, _pEduCB, _pDmsCB, _pDpsCB, w ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to increase group version, rc: %d", rc ) ;

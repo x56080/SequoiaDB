@@ -208,6 +208,8 @@ namespace engine
 
          virtual const CHAR* collectionFullName() ;
 
+         virtual BOOLEAN allowInMaintenanceMode() { return TRUE ; }
+
       protected:
          virtual BOOLEAN _isCurrent() const ;
          virtual BSONObj _getOptObj() const ;
@@ -233,6 +235,8 @@ namespace engine
          virtual ~_rtnSnapshotIndexesInner() {}
 
          virtual const CHAR* collectionFullName() ;
+
+         virtual BOOLEAN allowInMaintenanceMode() { return TRUE ; }
 
       protected:
          virtual BOOLEAN _isCurrent() const ;
@@ -435,6 +439,8 @@ namespace engine
          {
             return _collection ;
          }
+
+         virtual BOOLEAN allowInMaintenanceMode() { return TRUE ; }
 
          virtual INT32 init ( INT32 flags, INT64 numToSkip, INT64 numToReturn,
                               const CHAR *pMatcherBuff,

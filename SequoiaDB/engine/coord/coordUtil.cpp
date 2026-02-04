@@ -869,6 +869,7 @@ namespace engine
          PD_LOG( PDERROR, "Unexpected exception happened: %s, rc: %d", e.what(), rc ) ;
          goto error ;
       }
+
    done:
       return rc ;
    error:
@@ -906,6 +907,92 @@ namespace engine
 
       retObj = builder.obj() ;
       return retObj ;
+   }
+
+   INT32 coordBuildBatchLocationResultObj( const CoordGroupList &groupLst,
+                                           const vector< BSONObj > &replyObjs,
+                                           BSONObj &result )
+   {
+      INT32 rc = SDB_OK ;
+
+      /*
+      Result:
+      {
+         MatchedNum: xxx,
+         SucceedNum: yyy,
+         IgnoredNum: zzz,
+         FailedNum: kkk,
+         FailedGroups: [ "group1", "group2" ... ],
+      }
+      */
+
+      try
+      {
+         BSONObjBuilder build ;
+         INT32 matchedNum = groupLst.size() ;
+
+         build.append( FIELD_NAME_MATCHEDNUM, matchedNum ) ;
+
+         if ( !replyObjs.empty() )
+         {
+            INT32 ignoredNum = 0 ;
+            INT32 failedNum = 0 ;
+            const BSONObj &replyObj = replyObjs[0] ;
+            BSONElement eleIgnored = replyObj.getField( FIELD_NAME_IGNOREDGROUP ) ;
+            BSONElement eleFailed = replyObj.getField( FIELD_NAME_FAILGROUP ) ;
+
+            if ( Array == eleIgnored.type() )
+            {
+               ignoredNum = eleIgnored.embeddedObject().nFields() ;
+            }
+            if ( Array == eleFailed.type() )
+            {
+               failedNum = eleFailed.embeddedObject().nFields() ;
+            }
+
+            build.append( FIELD_NAME_SUCCEEDNUM, matchedNum - ignoredNum - failedNum ) ;
+            build.append( FIELD_NAME_IGNOREDNUM, ignoredNum ) ;
+            build.append( FIELD_NAME_FAILEDNUM, failedNum ) ;
+
+            if ( failedNum > 0 )
+            {
+               BSONArrayBuilder arrayBuild( build.subarrayStart( FIELD_NAME_FAILGROUP ) ) ;
+               BSONObjIterator itr( eleFailed.embeddedObject() ) ;
+               while( itr.more() )
+               {
+                  BSONElement e = itr.next() ;
+                  if ( Object == e.type() )
+                  {
+                     BSONElement eleGroupName = e.embeddedObject().getField( FIELD_NAME_GROUPNAME ) ;
+                     if ( String == eleGroupName.type() )
+                     {
+                        arrayBuild.append( eleGroupName.valuestr() ) ;
+                     }
+                  }
+               }
+               arrayBuild.done() ;
+            }
+         }
+         else
+         {
+            build.append( FIELD_NAME_SUCCEEDNUM, matchedNum ) ;
+            build.append( FIELD_NAME_IGNOREDNUM, 0 ) ;
+            build.append( FIELD_NAME_FAILEDNUM, 0 ) ;
+         }
+
+         result = build.obj() ;
+      }
+      catch( std::exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 
 }

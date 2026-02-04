@@ -36,19 +36,22 @@ function test() {
   var rg = db.getRG(groupName);
   var node = rg.getSlave();
 
-  // Step 1: set location1 for node and check location primary in location1
-  node.setLocation(location1);
-  checkAndGetLocationHasPrimary(db, groupName, location1, 34);
+  try {
+      // Step 1: set location1 for node and check location primary in location1
+      node.setLocation(location1);
+      checkAndGetLocationHasPrimary(db, groupName, location1, 34);
 
-  // Step 2: restart node and check location primary in location1
-  node.stop();
-  node.start();
-  checkAndGetLocationHasPrimary(db, groupName, location1, 34);
+      // Step 2: restart node and check location primary in location1
+      node.stop();
+      node.start();
+      checkAndGetLocationHasPrimary(db, groupName, location1, 34);
 
-  // Step 3: set location2 for node and check location primary in location2
-  node.setLocation(location2);
-  checkAndGetLocationHasPrimary(db, groupName, location2, 34);
-
-  // Reset group info
-  node.setLocation("");
+      // Step 3: set location2 for node and check location primary in location2
+      node.setLocation(location2);
+      checkAndGetLocationHasPrimary(db, groupName, location2, 34);
+  } finally {
+      rg.start() ;
+      // Reset group info
+      node.setLocation("");
+  }
 }

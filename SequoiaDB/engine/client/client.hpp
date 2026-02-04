@@ -4512,10 +4512,13 @@ namespace sdbclient
       virtual INT32 activateDC() = 0 ;
       virtual INT32 deactivateDC() = 0 ;
       virtual INT32 enableReadOnly( BOOLEAN isReadOnly ) = 0 ;
-      virtual INT32 setActiveLocation ( const CHAR *pActiveLocation ) = 0 ;
-      virtual INT32 setLocation ( const CHAR * pHostName, const CHAR * pLocation ) = 0 ;
-      virtual INT32 startMaintenanceMode( const bson::BSONObj &options ) = 0 ;
-      virtual INT32 stopMaintenanceMode( const bson::BSONObj &options ) = 0 ;
+      /// batch location functions:
+      virtual INT32 setActiveLocation ( const CHAR *pActiveLocation, bson::BSONObj &result ) = 0 ;
+      virtual INT32 setLocation ( const CHAR * pHostName, const CHAR * pLocation, bson::BSONObj &result ) = 0 ;
+      virtual INT32 startMaintenanceMode( const bson::BSONObj &options, bson::BSONObj &result ) = 0 ;
+      virtual INT32 stopMaintenanceMode( const bson::BSONObj &options, bson::BSONObj &result ) = 0 ;
+      virtual INT32 startCriticalMode( const bson::BSONObj &options, bson::BSONObj &result ) = 0 ;
+      virtual INT32 stopCriticalMode( const bson::BSONObj &options, bson::BSONObj &result ) = 0 ;
    } ;
 
    /* \class  sdbDataCenter
@@ -4552,6 +4555,7 @@ namespace sdbclient
             delete pDC ;
          }
       }
+
 
    public :
 
@@ -4626,26 +4630,27 @@ namespace sdbclient
          return pDC->enableReadOnly( isReadOnly ) ;
       }
 
-      /** \fn INT32 setActiveLocation ( const CHAR *pActiveLocation )
+      /** \fn INT32 setActiveLocation ( const CHAR *pActiveLocation, bson::BSONObj &result )
           \brief Alter replica group to set active location in data center.
           \param [in] pActiveLocation The active location of replica group to be changed.
 
               ActiveLocation     : The active location of replica group, if the parameter is "",
                                    it means to remove the replica group's active location
 
+          \param [out] result The detail result information
           \retval SDB_OK Operation Success
           \retval Others Operation Fail
       */
-      INT32 setActiveLocation ( const CHAR *pActiveLocation )
+      INT32 setActiveLocation ( const CHAR *pActiveLocation, bson::BSONObj &result )
       {
          if ( NULL == pDC )
          {
             return SDB_NOT_CONNECTED ;
          }
-         return pDC->setActiveLocation( pActiveLocation ) ;
+         return pDC->setActiveLocation( pActiveLocation, result ) ;
       }
 
-      /** \fn INT32 setLocation ( const CHAR * pHostName, const CHAR * pLocation )
+      /** \fn INT32 setLocation ( const CHAR * pHostName, const CHAR * pLocation, bson::BSONObj &result )
           \brief Alter replica groups in data center to set location.
           \param [in] pHostName The host name in data center to be changed.
           \param [in] pLocation The location in data center to be changed.
@@ -4654,19 +4659,21 @@ namespace sdbclient
                              the specified host name, it will set location info.
               Location     : The location in data center, if the parameter is "",
                              it means to remove the data center location
+
+          \param [out] result The detail result information
           \retval SDB_OK Operation Success
           \retval Others Operation Fail
       */
-      INT32 setLocation ( const CHAR * pHostName, const CHAR * pLocation )
+      INT32 setLocation ( const CHAR * pHostName, const CHAR * pLocation, bson::BSONObj &result )
       {
          if ( NULL == pDC )
          {
             return SDB_NOT_CONNECTED ;
          }
-         return pDC->setLocation( pHostName, pLocation ) ;
+         return pDC->setLocation( pHostName, pLocation, result ) ;
       }
 
-      /** \fn INT32 startMaintenanceMode( const bson::BSONObj &options )
+      /** \fn INT32 startMaintenanceMode( const bson::BSONObj &options, bson::BSONObj &result )
           \brief start maintenance mode in the current data center.
           \param [in] options The options of maintenance mode:
 
@@ -4675,35 +4682,75 @@ namespace sdbclient
                MinKeepTime: The minimum keep time of maintenance mode
                MaxKeepTime: The maximum keep time of maintenance mode
 
+          \param [out] result The detail result information
           \retval SDB_OK Operation Success
           \retval Others Operation Fail
       */
-      INT32 startMaintenanceMode( const bson::BSONObj &options )
+      INT32 startMaintenanceMode( const bson::BSONObj &options, bson::BSONObj &result )
       {
           if ( !pDC )
           {
               return SDB_NOT_CONNECTED ;
           }
-          return pDC->startMaintenanceMode( options ) ;
+          return pDC->startMaintenanceMode( options, result ) ;
       }
 
-      /** \fn INT32 stopMaintenanceMode ()
+      /** \fn INT32 stopMaintenanceMode ( const bson::BSONObj &options, bson::BSONObj &result )
           \brief Stop maintenance mode in current data center.
           \param [in] options The options of maintenance mode:
 
                Location: The maintenance location to be stoped in data center
                HostName: The maintenance machine to be added in data center
 
+          \param [out] result The detail result information
           \retval SDB_OK Operation Success
           \retval Others Operation Fail
       */
-      INT32 stopMaintenanceMode( const bson::BSONObj &options )
+      INT32 stopMaintenanceMode( const bson::BSONObj &options, bson::BSONObj &result )
       {
          if ( !pDC )
          {
             return SDB_NOT_CONNECTED ;
          }
-         return pDC->stopMaintenanceMode ( options ) ;
+         return pDC->stopMaintenanceMode ( options, result ) ;
+      }
+
+      /** \fn INT32 startCriticalMode( const bson::BSONObj &options, bson::BSONObj &result )
+          \brief start critical mode in the current data center.
+          \param [in] options The options of critical mode:
+      
+               Location: The critical location to be added in data center
+               HostName: The critical machine to be added in data center
+               MinKeepTime: The minimum keep time of critical mode
+               MaxKeepTime: The maximum keep time of critical mode
+      
+          \param [out] result The detail result information
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 startCriticalMode( const bson::BSONObj &options, bson::BSONObj &result )
+      {
+          if ( !pDC )
+          {
+              return SDB_NOT_CONNECTED ;
+          }
+          return pDC->startCriticalMode( options, result ) ;
+      }
+      
+      /** \fn INT32 stopCriticalMode ( const bson::BSONObj &options, bson::BSONObj &result )
+          \brief Stop critical mode in current data center.
+          \param [in] options The options of critical mode. Reserved.
+          \param [out] result The detail result information
+          \retval SDB_OK Operation Success
+          \retval Others Operation Fail
+      */
+      INT32 stopCriticalMode( const bson::BSONObj &options, bson::BSONObj &result )
+      {
+         if ( !pDC )
+         {
+            return SDB_NOT_CONNECTED ;
+         }
+         return pDC->stopCriticalMode ( options, result ) ;
       }
 
    };

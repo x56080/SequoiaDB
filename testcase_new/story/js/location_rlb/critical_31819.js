@@ -27,18 +27,16 @@ function test ( args )
    var masterNode = rg.getMaster();
    var masterNodeName = masterNode.getHostName() + ":" + masterNode.getServiceName();
 
-   var slaveNode1 = rg.getNode( slaveNodes[0] );
-   var slaveNode2 = rg.getNode( slaveNodes[1] );
-
-   // 节点设置Location
-   masterNode.setLocation( location1 );
-   slaveNode1.setLocation( location1 );
-   slaveNode2.setLocation( location2 );
    try
    {
+
+      // 节点设置Location
+      masterNode.setLocation( location1 );
+      setNodesLocation( rg, slaveNodes, location2 ) ;
+
       // 主节点启动Critical模式并检查Critical模式
       var options = {
-         NodeName: masterNodeName, Location: location1,
+         NodeName: masterNodeName,
          MinKeepTime: 5, MaxKeepTime: 15
       };
       rg.startCriticalMode( options );
@@ -51,24 +49,22 @@ function test ( args )
 
       // 备节点启动Critical模式并检查Critical模式
       var options = {
-         NodeName: slaveNodes[1], Location: location1,
+         Location: location1,
          MinKeepTime: 5, MaxKeepTime: 15
       };
       rg.startCriticalMode( options );
 
-      var properties2 = { NodeName: slaveNodes[1] };
+      var properties2 = { Location: location1 };
       checkStartCriticalMode( db, srcGroup, properties2 );
-
+   }
+   finally
+   {
       // 恢复环境
       rg.stopCriticalMode();
 
       masterNode.setLocation( "" );
-      slaveNode1.setLocation( "" );
-      slaveNode2.setLocation( "" );
-   }
-   finally
-   {
-      rg.start();
+      setNodesLocation( rg, slaveNodes, "" ) ;
+
       commCheckBusinessStatus( db );
    }
 }

@@ -92,7 +92,8 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__CLSVSSL_ACTIVE ) ;
       _timeout() = 0 ;
 
-      if ( _info()->groupSize() == 1 )
+      if ( _info()->groupSize() == 1 &&
+           CLS_GROUP_MODE_MAINTENANCE != _info()->localGrpMode )
       {
          next = CLS_ELECTION_STATUS_SEC ;
       }

@@ -520,6 +520,7 @@ namespace engine
       INT64             contextID = -1 ;
       const CHAR        *pCommand = CMD_ADMIN_PREFIX CMD_NAME_ALTER_GROUP ;
       BSONObj           queryObj, hintObj ;
+      MsgHeader         *pMsgHeader = NULL ;
 
       try
       {
@@ -549,7 +550,11 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to build stop critical mode message, command: %s, rc: %d",
                    pCommand, rc ) ;
 
-      rc = _processMsg( (MsgHeader *)msg, contextBuff, contextID ) ;
+      /// set no delay
+      pMsgHeader = (MsgHeader *)msg ;
+      pMsgHeader->flags |= FLAG_NODELAY ;
+
+      rc = _processMsg( pMsgHeader, contextBuff, contextID ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to process stop critical mode message, rc: %d", rc ) ;
 
    done:
@@ -573,6 +578,7 @@ namespace engine
       INT64             contextID = -1 ;
       const CHAR        *pCommand = CMD_ADMIN_PREFIX CMD_NAME_ALTER_GROUP ;
       BSONObj           queryObj, hintObj ;
+      MsgHeader         *pMsgHeader = NULL ;
 
       try
       {
@@ -602,7 +608,11 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to build stop maintenance mode message, command: %s, rc: %d",
                    pCommand, rc ) ;
 
-      rc = _processMsg( (MsgHeader *)msg, contextBuff, contextID ) ;
+      /// set no delay
+      pMsgHeader = (MsgHeader *)msg ;
+      pMsgHeader->flags |= FLAG_NODELAY ;
+
+      rc = _processMsg( pMsgHeader, contextBuff, contextID ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to process stop maintenance mode message, rc: %d", rc ) ;
 
    done:

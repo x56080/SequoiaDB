@@ -179,7 +179,7 @@ namespace engine
                                 utilRecycleID recycleID,
                                 utilRecycleItem &recycleItem ) ;
 
-         INT32 updateDCBaseInfo() ;
+         INT32 updateDCBaseInfo( BOOLEAN noDelay = FALSE ) ;
 
       public:
          INT32  sendToCatlog ( MsgHeader * msg,

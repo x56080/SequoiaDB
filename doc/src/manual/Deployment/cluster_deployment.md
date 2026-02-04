@@ -181,7 +181,7 @@
 
 1. 规划各数据中心对应的位置集
 
-    ![划分位置集][location]
+    ![划分位置集][location_png]
 
 2. 选择主中心的任意一台主机，切换至 SequoiaDB 安装目录并启动 SDB Shell
 
@@ -296,4 +296,4 @@
 [domain_setLocation]:manual/Manual/Sequoiadb_Command/SdbDomain/setLocation.md
 [domain]:manual/Distributed_Engine/Architecture/domain.md
 [location_principle]:manual/Distributed_Engine/Architecture/Location/location_principle.md#位置亲和性
-[location]:images/Deployment/location.png
+[location_png]:images/Deployment/location.png

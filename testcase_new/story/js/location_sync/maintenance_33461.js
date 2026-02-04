@@ -28,7 +28,7 @@ function test ()
 
       // 指定备节点启动运维模式
       var maxKeepTime = 2;
-      var options = { NodeName: slaveNodeName, MinKeepTime: 1, MaxKeepTime: 2 };
+      var options = { NodeName: slaveNodeName, MinKeepTime: 1, MaxKeepTime: maxKeepTime };
       group.startMaintenanceMode( options );
       var beginTime = new Date();
 
@@ -41,7 +41,7 @@ function test ()
       dbcl.insert( docs );
 
       // 等待超过最大运行窗口时间
-      var waitTime = maxKeepTime + 1;
+      var waitTime = maxKeepTime + 0.2;
       validateWaitTime( beginTime, waitTime );
       assert.tryThrow( SDB_CLS_NODE_NOT_ENOUGH, function()
       {

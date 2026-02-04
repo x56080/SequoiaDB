@@ -42,7 +42,7 @@ function test ()
 
       slaveNode.start();
       // 等待超过最小运行窗口时间
-      var waitTime = minKeepTime + 1;
+      var waitTime = minKeepTime + 0.2;
       validateWaitTime( beginTime, waitTime );
 
       dbcl.insert( docs );

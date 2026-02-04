@@ -144,13 +144,15 @@ namespace engine
       INT32 setGroupLocation( const BSONObj &groupInfo ,
                               UINT32 groupID,
                               const ossPoolString &newLoc,
-                              const ossPoolString &hostName ) ;
+                              const ossPoolString &hostName,
+                              BOOLEAN *pHasChanged = NULL,
+                              BOOLEAN *pHasMatched = NULL ) ;
 
       INT32 startGrpMode( const clsGroupMode &grpMode,
                           const string &groupName,
                           const BSONObj &groupObj ) ;
 
-      INT32 stopGrpMode( const clsGroupMode &grpMode ) ;
+      INT32 stopGrpMode( const clsGroupMode &grpMode, BOOLEAN *pHasChanged = NULL ) ;
 
    private:
       _SDB_DMSCB                 *_pDmsCB ;

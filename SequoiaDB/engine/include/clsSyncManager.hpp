@@ -131,6 +131,7 @@ namespace engine
 
       void  updateNodeStatus( const MsgRouteID &id, BOOLEAN valid ) ;
       void  notifyFullSync( const MsgRouteID &id ) ;
+      BOOLEAN updateNodeGrpMode( const MsgRouteID &id, CLS_GROUP_MODE grpMode ) ;
 
       INT32 updateNotifyList( BOOLEAN newNodeValid ) ;
 

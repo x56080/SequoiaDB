@@ -42,22 +42,34 @@ function test ()
          rg.startCriticalMode( options );
       } );
 
-      // 指定Location启动Critical模式，Location中有异常节点
-      var options = { Location: location, MinKeepTime: 5, MaxKeepTime: 10 };
-      rg.startCriticalMode( options );
-      checkStartCriticalMode( db, srcGroup, options );
-      rg.stopCriticalMode();
-
-      // 再次停一个备节点
-      var slaveNode1 = rg.getNode( slaveNodes[1] );
-      slaveNode1.stop();
-
-      // 指定Location启动Critical模式，Location中异常节点超过半数
-      var options = { Location: location, MinKeepTime: 5, MaxKeepTime: 10 };
-      assert.tryThrow( SDB_NET_CANNOT_CONNECT, function()
+      if ( nodes.length >= 3 )
       {
-         rg.startCriticalMode( options );
-      } );
+          // 指定Location启动Critical模式，Location中有异常节点
+          var options = { Location: location, MinKeepTime: 5, MaxKeepTime: 10 };
+          rg.startCriticalMode( options );
+          checkStartCriticalMode( db, srcGroup, options );
+          rg.stopCriticalMode();
+
+          // 再次停一个备节点
+          var slaveNode1 = rg.getNode( slaveNodes[1] );
+          slaveNode1.stop();
+
+          // 指定Location启动Critical模式，Location中异常节点超过半数
+          var options = { Location: location, MinKeepTime: 5, MaxKeepTime: 10 };
+          if ( nodes.length <= 4 )
+          {
+              assert.tryThrow( SDB_NET_CANNOT_CONNECT, function()
+              {
+                 rg.startCriticalMode( options );
+              } );
+          }
+          else
+          {
+              rg.startCriticalMode( options );
+              checkStartCriticalMode( db, srcGroup, options );
+              rg.stopCriticalMode();
+          }
+      }
    } finally
    {
       rg.start();

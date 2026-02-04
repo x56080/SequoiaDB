@@ -41,78 +41,84 @@ function test() {
    commDropDomain( db,domainName ) ;
    var domain = db.createDomain( domainName, [groupName] ) ;
 
+   var rg = db.getRG(groupName);
+   // make sure has pimrary
+   var replPrimaryName = getReplPrimaryName(rg);
+   var orgNodeList = commGetGroupNodes(db, groupName);
+   setLocationForNodes(rg, orgNodeList, "");
+
    var hostName = "localhost" ;
 
-   // 指定hostName 与 SYSNODES中的hostname不一致
-   domain.setLocation( hostName, location ) ;
-   var rg = db.getRG(groupName);
-   var nodeList = rg.getDetailObj().toObj();
-   for ( var i = 0; i<nodeList.length; i++ )
-   {
-      assert.equal( nodeList[i].Location, undefined ) ;
-   }
+   try {
+       // 指定hostName 与 SYSNODES中的hostname不一致
+       domain.setLocation( hostName, location ) ;
+       var nodeList = rg.getDetailObj().toObj();
+       for ( var i = 0; i<nodeList.length; i++ )
+       {
+          assert.equal( nodeList[i].Location, undefined ) ;
+       }
 
-   // 设置节点location大于256个字符
-   var arr = new Array( 258 );
-   var locationName = arr.join( "a" );
-   var rg = db.getRG(groupName);
-   var hostName = rg.getMaster().getHostName();
-   assert.tryThrow( SDB_INVALIDARG, function()
-   {
-      domain.setLocation( hostName, locationName );
-   } );
+       // 设置节点location大于256个字符
+       var arr = new Array( 258 );
+       var locationName = arr.join( "a" );
+       var hostName = rg.getMaster().getHostName();
+       assert.tryThrow( SDB_INVALIDARG, function()
+       {
+          domain.setLocation( hostName, locationName );
+       } );
 
-   var rg = db.getRG(groupName);
-   var nodeList = rg.getDetailObj().toObj();
-   for ( var i = 0; i<nodeList.length; i++ )
-   {
-      assert.equal( nodeList[i].Location, undefined ) ;
-   }
+       var nodeList = rg.getDetailObj().toObj();
+       for ( var i = 0; i<nodeList.length; i++ )
+       {
+          assert.equal( nodeList[i].Location, undefined ) ;
+       }
 
-   // 指定hostName 与 SYSNODES中的hostname一致
-   var rg = db.getRG(groupName);
-   var hostName = rg.getMaster().getHostName();
+       // 指定hostName 与 SYSNODES中的hostname一致
+       var hostName = rg.getMaster().getHostName();
 
-   domain.setLocation( hostName, location ) ;
-   var primary1 = checkAndGetLocationHasPrimary(db, groupName, location, 34);
-   var nodeList = rg.getDetailObj().toObj();
-   for ( var i = 0; i<nodeList.length; i++ )
-   {
-      assert.equal( nodeList[i].Location, location ) ;
-   }
+       domain.setLocation( hostName, location ) ;
+       var primary1 = checkAndGetLocationHasPrimary(db, groupName, location, 34);
+       var nodeList = rg.getDetailObj().toObj();
+       for ( var i = 0; i<nodeList.length; i++ )
+       {
+          assert.equal( nodeList[i].Location, location ) ;
+       }
 
-   domain.setLocation( hostName, location ) ;
-   var primary1 = checkAndGetLocationHasPrimary(db, groupName, location, 34);
-   var groupsObj = domain.listGroups(domainName).current().toObj().Groups ;
-   for ( var i = 0; i<groupsObj.length; i++ )
-   {
-      var groupName = groupsObj[i].GroupName ;
-      var rg = db.getRG(groupName);
-      var nodeList = rg.getDetailObj().toObj();
-      for ( var j = 0; i<nodeList.length; i++ )
-      {
-         assert.equal( nodeList[j].Location, location ) ;
-      }
-   }
+       domain.setLocation( hostName, location ) ;
+       var primary1 = checkAndGetLocationHasPrimary(db, groupName, location, 34);
+       var groupsObj = domain.listGroups(domainName).current().toObj().Groups ;
+       for ( var i = 0; i<groupsObj.length; i++ )
+       {
+          var groupNameTmp = groupsObj[i].GroupName ;
+          var rgTmp = db.getRG(groupNameTmp);
+          var nodeList = rgTmp.getDetailObj().toObj();
+          for ( var j = 0; i<nodeList.length; i++ )
+          {
+             assert.equal( nodeList[j].Location, location ) ;
+          }
+       }
 
-   // 清空域的位置信息
-   domain.setLocation( hostName, "" ) ;
-   for ( var i = 0; i<groupsObj.length; i++ )
-   {
-      var groupName = groupsObj[i].GroupName ;
-      var rg = db.getRG(groupName);
-      var nodeList = rg.getDetailObj().toObj();
-      for ( var j = 0; i<nodeList.length; i++ )
-      {
-         assert.equal( nodeList[j].Location, undefined ) ;
-      }
+       // 清空域的位置信息
+       domain.setLocation( hostName, "" ) ;
+       for ( var i = 0; i<groupsObj.length; i++ )
+       {
+          var groupNameTmp = groupsObj[i].GroupName ;
+          var rgTmp = db.getRG(groupNameTmp);
+          var nodeList = rgTmp.getDetailObj().toObj();
+          for ( var j = 0; i<nodeList.length; i++ )
+          {
+             assert.equal( nodeList[j].Location, undefined ) ;
+          }
+       }
+
+       var nodeList = rg.getDetailObj().toObj();
+       for ( var i = 0; i<nodeList.length; i++ )
+       {
+          assert.equal( nodeList[i].Location, undefined ) ;
+       }
+   } finally {
+        commDropDomain( db,domainName ) ;
+        setLocationForNodes(rg, orgNodeList, "");
    }
-   var rg = db.getRG(groupName);
-   var nodeList = rg.getDetailObj().toObj();
-   for ( var i = 0; i<nodeList.length; i++ )
-   {
-      assert.equal( nodeList[i].Location, undefined ) ;
-   }
-   commDropDomain( db,domainName ) ;
 }
 

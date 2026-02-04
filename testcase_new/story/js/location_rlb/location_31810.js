@@ -75,7 +75,7 @@ function test ( args )
       commCheckBusinessStatus( db );
 
       // 等待超过MinKeepTime，自动解除Critical模式
-      var waitTime = minKeepTime + 1;
+      var waitTime = minKeepTime + 0.2;
       validateWaitTime( beginTime, waitTime );
       checkGroupStopMode( db, CATALOG_GROUPNAME );
 

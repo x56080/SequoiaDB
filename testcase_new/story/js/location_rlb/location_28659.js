@@ -22,6 +22,10 @@ function test ()
    try
    {
       var dataRG = db.getRG( groupName );
+
+      removeNode( dataRG, hostName, port1 );
+      removeNode( dataRG, hostName, port2 );
+
       var data1 = dataRG.createNode( hostName, port1, dbpath1, { diaglevel: 5 } );
       var data2 = dataRG.createNode( hostName, port2, dbpath2, { diaglevel: 5 } );
       dataRG.start();

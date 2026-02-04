@@ -25,13 +25,9 @@ function test ( args )
    var masterNode = rg.getMaster();
    var masterNodeName = masterNode.getHostName() + ":" + masterNode.getServiceName();
 
-   // 停止group中2个备节点，先异常停止再正常停止，让节点停止之后不启动
-   var slaveNode1 = rg.getNode( slaveNodes[0] );
-   var slaveNode2 = rg.getNode( slaveNodes[1] );
    try
    {
-      killNode( db, slaveNode1 );
-      killNode( db, slaveNode2 );
+      killNodes( db, rg, slaveNodes );
 
       // 剩余一个节点启动Critical模式
       var minKeepTime = 10;
@@ -48,8 +44,7 @@ function test ( args )
       dbcl.truncate();
 
       // 启动节点并等待环境恢复
-      slaveNode1.start();
-      slaveNode2.start();
+      startNodes( db, rg, slaveNodes );
 
       // 等待LSN一致
       commCheckBusinessStatus( db );
@@ -67,8 +62,8 @@ function test ( args )
    }
    finally
    {
-      slaveNode1.start();
-      slaveNode2.start();
+      rg.start() ;
+      rg.stopCriticalMode() ;
       commCheckBusinessStatus( db );
    }
 }

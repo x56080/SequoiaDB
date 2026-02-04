@@ -29,36 +29,32 @@ function test ()
       node.setLocation( location );
    }
 
-   var dc = db.getDC();
-   dc.setActiveLocation( location );
-   checkGroupActiveLocation( db, groups, location );
+   try {
+       var dc = db.getDC();
+       dc.setActiveLocation( location );
+       checkGroupActiveLocation( db, groups, location );
 
-   // 删除coord的location
-   coordNode.setLocation( "" );
-   dc.setActiveLocation( location );
-   checkGroupActiveLocation( db, groups, location );
+       // 删除coord的location
+       coordNode.setLocation( "" );
+       dc.setActiveLocation( location );
+       checkGroupActiveLocation( db, groups, location );
 
-   // 删除cata的location
-   catalog.setLocation( "" );
-   assert.tryThrow( SDB_COORD_NOT_ALL_DONE, function()
-   {
-      dc.setActiveLocation( location );
-   } );
+       // 删除cata的location
+       catalog.setLocation( "" );
+       dc.setActiveLocation( location );
 
-   // 删除部分data组的location
-   node.setLocation( "" );
-   assert.tryThrow( SDB_COORD_NOT_ALL_DONE, function()
-   {
-      dc.setActiveLocation( location );
-   } );
-
-   // 清除所有节点的location
-   coordNode.setLocation( "" );
-   catalog.setLocation( "" );
-   for( var i = 0; i < groups.length; i++ )
-   {
-      var rg = db.getRG( groups[i] );
-      var node = rg.getMaster();
-      node.setLocation( "" );
+       // 删除部分data组的location
+       node.setLocation( "" );
+       dc.setActiveLocation( location );
+   } finally {
+       // 清除所有节点的location
+       coordNode.setLocation( "" );
+       catalog.setLocation( "" );
+       for( var i = 0; i < groups.length; i++ )
+       {
+          var rg = db.getRG( groups[i] );
+          var node = rg.getMaster();
+          node.setLocation( "" );
+       }
    }
 }

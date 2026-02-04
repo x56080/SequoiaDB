@@ -993,7 +993,9 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_CATCTXALTERGRP_START_CRITICAL_MODE ) ;
 
-      if ( CATALOG_GROUPID == _groupID )
+      replCB *pReplCB = pmdGetKRCB()->getClsCB()->getReplCB() ;
+
+      if ( CATALOG_GROUPID == _groupID && pReplCB->isInStepUp() )
       {
          catSetSyncW( 1 ) ;
       }
@@ -1015,7 +1017,9 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_CATCTXALTERGRP_STOP_CRITICAL_MODE ) ;
 
-      if ( CATALOG_GROUPID == _groupID )
+      replCB *pReplCB = pmdGetKRCB()->getClsCB()->getReplCB() ;
+
+      if ( CATALOG_GROUPID == _groupID && pReplCB->isInStepUp() )
       {
          catSetSyncW( 1 ) ;
       }
@@ -1167,6 +1171,24 @@ namespace engine
          }
       }
 
+      // If we start maintenance mode in cata group, we must ensure that cata primary 
+      // is not in maintenance nodes
+      if ( CATALOG_GROUPID == _groupID && isStartMode && !_grpMode.enforced )
+      {
+         for ( UINT32 idx = 0 ; idx < _grpMode.grpModeInfo.size() ; ++idx )
+         {
+            const clsGrpModeItem& grpModeItem = _grpMode.grpModeInfo[ idx ] ;
+            if ( pmdGetNodeID().columns.nodeID == grpModeItem.nodeID )
+            {
+               rc = SDB_OPERATION_CONFLICT ;
+               PD_LOG_MSG( PDERROR, "Catalog group's primary can't set maintenance mode "
+                           "unless using '%s' parameter",
+                           FIELD_NAME_ENFORCED1 ) ;
+               goto error ;
+            }
+         }
+      }
+
    done:
       PD_TRACE_EXITRC( SDB_CATCTXALTERGRP_CHECK_MAINTENANCE_MODE, rc ) ;
       return rc ;
@@ -1180,6 +1202,13 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_CATCTXALTERGRP_START_MAINTENANCE_MODE ) ;
+
+      replCB *pReplCB = pmdGetKRCB()->getClsCB()->getReplCB() ;
+
+      if ( CATALOG_GROUPID == _groupID && pReplCB->isInStepUp() )
+      {
+         catSetSyncW( 1 ) ;
+      }
 
       rc = _pCatNodeMgr->startGrpMode( _grpMode, _targetName, _boTarget ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to start maintenance mode, rc: %d", rc ) ;
@@ -1197,6 +1226,13 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_CATCTXALTERGRP_STOP_MAINTENANCE_MODE ) ;
+
+      replCB *pReplCB = pmdGetKRCB()->getClsCB()->getReplCB() ;
+
+      if ( CATALOG_GROUPID == _groupID && pReplCB->isInStepUp() )
+      {
+         catSetSyncW( 1 ) ;
+      }
 
       rc = _pCatNodeMgr->stopGrpMode( _grpMode ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to stop maintenance mode, rc: %d", rc ) ;

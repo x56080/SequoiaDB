@@ -39,9 +39,9 @@ function test ()
       assert.equal( values2[0]["Location"], location );
       assert.equal( values2[0]["IsLocationPrimary"], true );
 
-      // 停另一个备节点后，没有位置集主节点
-      var slaveNode2 = rg.getNode( slaveNodes[1] );
-      slaveNode2.stop();
+      // 停其它所有备节点，没有位置集主节点
+      stopNodes( db, rg, slaveNodes ) ;
+
       var isLocationPrimary = waitGetSnapshot( db, masterNodeName, 60 );
       assert.equal( isLocationPrimary, false );
 
@@ -50,8 +50,7 @@ function test ()
          rg.reelectLocation( location );
       } );
 
-      slaveNode1.start();
-      slaveNode2.start();
+      startNodes( db, rg, slaveNodes ) ;
       commCheckBusinessStatus( db );
 
       var locationPrimary = checkAndGetLocationHasPrimary( db, group, location, 60 );
@@ -64,8 +63,7 @@ function test ()
    }
    finally
    {
-      slaveNode1.start();
-      slaveNode2.start();
+      rg.start() ;
       commCheckBusinessStatus( db );
       // 清空节点location
       setLocationForNodes( rg, nodelist, "" );

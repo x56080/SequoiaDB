@@ -364,9 +364,11 @@ function checkPeerNodeID(db, node, expectNodeID) {
         wordArr.push(wordArrTmp[i]);
       }
     }
-    if (wordArr[1] == "Sync-Source") {
-      if (wordArr[7] == wordArr[7]) {
+    if (wordArr[1] == "Sync-Dest") {
+      if (wordArr[7] == expectNodeID) {
         selectOk = true;
+      } else {
+        println( "Session name(" + sessionName + ") not the expectNodeID(" + expectNodeID + ")" ) ;
       }
     }
   }

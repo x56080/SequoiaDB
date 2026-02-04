@@ -17,19 +17,25 @@ function test ()
    var port1 = parseInt( RSRVPORTBEGIN ) + 10;
    var port2 = parseInt( RSRVPORTBEGIN ) + 20;
    var port3 = parseInt( RSRVPORTBEGIN ) + 30;
-   var port4 = parseInt( RSRVPORTBEGIN ) + 40;
    var dbpath1 = RSRVNODEDIR + "data/" + port1;
    var dbpath2 = RSRVNODEDIR + "data/" + port2;
    var dbpath3 = RSRVNODEDIR + "data/" + port3;
-   var dbpath4 = RSRVNODEDIR + "data/" + port4;
+
+  var dataGroupName = commGetDataGroupNames( db )[0];
+  var rg = db.getRG( dataGroupName );
+  var slaveNodes = getGroupSlaveNodeName( db, dataGroupName );
+
+  if ( slaveNodes.length < 2 )
+  {
+      return ;
+  }
+
+  var masterNode = rg.getMaster();
+  var slaveNode1 = rg.getNode( slaveNodes[0] );
+  var slaveNode2 = rg.getNode( slaveNodes[1] );
+
    try
    {
-      var dataGroupName = commGetDataGroupNames( db )[0];
-      var rg = db.getRG( dataGroupName );
-      var slaveNodes = getGroupSlaveNodeName( db, dataGroupName );
-      var masterNode = rg.getMaster();
-      var slaveNode1 = rg.getNode( slaveNodes[0] );
-      var slaveNode2 = rg.getNode( slaveNodes[1] );
       db.updateConf( { "weight": 100 }, { "NodeName": masterNode.getHostName() + ":" + masterNode.getServiceName() } );
       db.updateConf( { "weight": 90 }, { "NodeName": slaveNodes[0] } );
       db.updateConf( { "weight": 80 }, { "NodeName": slaveNodes[1] } );
@@ -38,21 +44,19 @@ function test ()
       slaveNode2.setLocation( location1 );
       var hostName = rg.getMaster().getHostName();
       var svcName = rg.getMaster().getServiceName();
+
       removeNode( rg, hostName, port1 );
       removeNode( rg, hostName, port2 );
       removeNode( rg, hostName, port3 );
-      removeNode( rg, hostName, port4 );
       var node1 = rg.createNode( hostName, port1, dbpath1, { diaglevel: 5, "weight": 90 } );
       var node2 = rg.createNode( hostName, port2, dbpath2, { diaglevel: 5, "weight": 80 } );
       var node3 = rg.createNode( hostName, port3, dbpath3, { diaglevel: 5, "weight": 90 } );
-      var node4 = rg.createNode( hostName, port4, dbpath4, { diaglevel: 5, "weight": 80 } );
       rg.start();
       commCheckBusinessStatus( db );
 
       node1.setLocation( location2 );
       node1.setLocation( location2 );
       node3.setLocation( location3 );
-      node4.setLocation( location3 );
 
       rg.setActiveLocation( location1 );
       masterNode.stop();
@@ -70,18 +74,19 @@ function test ()
       rg.start();
       commCheckBusinessStatus( db );
       rg.reelect( { ServiceName: svcName } );
+   }
+   finally
+   {
+      rg.start();
 
       masterNode.setLocation( "" );
       slaveNode1.setLocation( "" );
       slaveNode2.setLocation( "" );
-   }
-   finally
-   {
+
       db.deleteConf( { weight: 1 } );
       removeNode( rg, hostName, port1 );
       removeNode( rg, hostName, port2 );
       removeNode( rg, hostName, port3 );
-      removeNode( rg, hostName, port4 );
    }
 }
 

@@ -34,17 +34,14 @@ function test ( args )
    var masterNode = rg.getMaster();
    var masterNodeName = masterNode.getHostName() + ":" + masterNode.getServiceName();
 
-   // 停止group中2个备节点，先异常停止再正常停止，让节点停止之后不启动
-   var slaveNode1 = rg.getNode( slaveNodes[0] );
-   var slaveNode2 = rg.getNode( slaveNodes[1] );
    try
    {
-      killNode( db, slaveNode1 );
-      killNode( db, slaveNode2 );
+   // 停止group中备节点，让节点停止之后不启动
+      stopNodes( db, rg, slaveNodes );
 
       // 剩余一个节点启动Critical模式
-      var minKeepTime = 2;
-      var maxKeepTime = 10;
+      var minKeepTime = 1;
+      var maxKeepTime = 2;
       var options = { NodeName: masterNodeName, MinKeepTime: minKeepTime, MaxKeepTime: maxKeepTime };
       rg.startCriticalMode( options );
 
@@ -62,14 +59,13 @@ function test ( args )
       db.transCommit();
 
       // 启动节点，等待节点恢复
-      slaveNode1.start();
-      slaveNode2.start();
+      startNodes( db, rg, slaveNodes );
       commCheckBusinessStatus( db );
 
       checkStartCriticalMode( db, srcGroup, properties );
 
       // 等待超过MinKeepTime
-      var waitTime = minKeepTime + 1;
+      var waitTime = minKeepTime + 0.2;
       validateWaitTime( beginTime, waitTime );
 
       // 检查Critical模式已经停止

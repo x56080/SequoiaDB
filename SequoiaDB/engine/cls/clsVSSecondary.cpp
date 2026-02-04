@@ -110,7 +110,10 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__CLSVSSD_HDTMOUT ) ;
       _timeout() += millisec ;
 
-      if ( _info()->isAllNodeBeat() )
+      if ( _info()->isAllNodeBeat() ||
+          ( CLS_GROUP_MODE_CRITICAL == _info()->localGrpMode &&
+            _info()->grpMode.enforced &&
+            _info()->isAllCriticalNodeBeat() ) )
       {
          startShiftTime = -1 ;
 
@@ -163,7 +166,7 @@ namespace engine
       _timeout() = 0 ;
       _hasPrint = FALSE ;
 
-      if ( _info()->groupSize() == 1 )
+      if ( _info()->groupSize() == 1 && 0 == _info()->maintenanceSize() )
       {
          if ( !isLocation() && g_startShiftTime > 0 )
          {

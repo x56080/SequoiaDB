@@ -180,6 +180,7 @@ namespace engine
          _MsgRouteID                   _selfNodeID ;
 
          UINT64                        _regTimerID ;
+         UINT64                        _downGroupTimerID ;
          UINT64                        _clearEventTimerID ;
 
          ossEvent                      _attachEvent ;

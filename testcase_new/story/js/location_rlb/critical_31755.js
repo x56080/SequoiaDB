@@ -32,13 +32,10 @@ function test ( args )
    var masterNode = rg.getMaster();
    var masterNodeName = masterNode.getHostName() + ":" + masterNode.getServiceName();
 
-   // 停止group中2个备节点，先异常停止再正常停止，让节点停止之后不启动
-   var slaveNode1 = rg.getNode( slaveNodes[0] );
-   var slaveNode2 = rg.getNode( slaveNodes[1] );
    try
    {
-      killNode( db, slaveNode1 );
-      killNode( db, slaveNode2 );
+      // 停止group中备节点，让节点停止之后不启动
+      stopNodes( db, rg, slaveNodes );
 
       // 剩余一个节点启动Critical模式
       var options = { NodeName: masterNodeName, MinKeepTime: 5, MaxKeepTime: 15 };
@@ -58,15 +55,13 @@ function test ( args )
       var properties = { NodeName: masterNodeName };
       checkStartCriticalMode( db, srcGroup, properties );
 
-
       // 插入数据并校验
       var docs = insertBulkData( dbcl, 1000 );
       var cursor = dbcl.find().sort( { a: 1 } );
       commCompareResults( cursor, docs );
 
       // 启动节点
-      slaveNode1.start();
-      slaveNode2.start();
+      startNodes( db, rg, slaveNodes ) ;
 
       // 等待LSN一致
       commCheckBusinessStatus( db );

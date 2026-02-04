@@ -419,6 +419,16 @@ namespace engine
             rc = processCmdAlterMaintenanceMode( handle, &dcMgr,
                                                  objQuery, retObjBuilder, FALSE ) ;
          }
+         else if ( 0 == ossStrcasecmp( pAction, CMD_VALUE_NAME_START_CRITICAL_MODE ) )
+         {
+            rc = processCmdAlterCriticalMode( handle, &dcMgr,
+                                              objQuery, retObjBuilder, TRUE ) ;
+         }
+         else if ( 0 == ossStrcasecmp( pAction, CMD_VALUE_NAME_STOP_CRITICAL_MODE ) )
+         {
+            rc = processCmdAlterCriticalMode( handle, &dcMgr,
+                                              objQuery, retObjBuilder, FALSE ) ;
+         }
          else
          {
             PD_LOG( PDERROR, "The value[%s] of field[%s] is not valid "
@@ -622,6 +632,7 @@ namespace engine
       ossPoolString newActLoc ;
       CAT_GROUP_LIST allGroups ;
       CAT_GROUP_LIST failedGroups ;
+      CAT_GROUP_LIST ignoreGroups ;
       catNodeManager* pCatNodeMgr = _pCatCB->getCatNodeMgr() ;
 
       try
@@ -658,31 +669,30 @@ namespace engine
          _pCatCB->getGroupsID( allGroups, FALSE ) ;
          allGroups.push_back( CATALOG_GROUPID ) ;
 
-         CAT_GROUP_LIST::const_iterator itr = allGroups.begin() ;
+         CAT_GROUP_LIST::iterator itr = allGroups.begin() ;
          while ( allGroups.end() != itr )
          {
             BSONObj groupObj ;
             string groupName ;
             ossPoolString oldActLoc ;
             catCtxLockMgr lockMgr ;
-            UINT32 groupID = *itr++ ;
+            UINT32 groupID = *itr ;
+            BOOLEAN locExist = FALSE ;
 
             // Get group obj by group id
             rc = catGetGroupObj( groupID, groupObj, _pEduCB ) ;
             if ( SDB_OK != rc )
             {
-               failedGroups.push_back( groupID ) ;
-               PD_LOG( PDERROR, "Failed to get group[%u] obj, rc: %d", groupID, rc ) ;
-               continue ;
+               PD_LOG_MSG( PDERROR, "Failed to get group[%u] obj, rc: %d", groupID, rc ) ;
+               goto error ;
             }
 
             // Get group name
             rc = rtnGetSTDStringElement( groupObj, FIELD_NAME_GROUPNAME, groupName ) ;
             if ( SDB_OK != rc )
             {
-               failedGroups.push_back( groupID ) ;
-               PD_LOG( PDERROR, "Failed to get group[%u] name, rc: %d", groupID, rc ) ;
-               continue ;
+               PD_LOG_MSG( PDERROR, "Failed to get group[%u] name, rc: %d", groupID, rc ) ;
+               goto error ;
             }
 
             // Lock group
@@ -691,22 +701,31 @@ namespace engine
                rc = SDB_LOCK_FAILED ;
                failedGroups.push_back( groupID ) ;
                PD_LOG( PDERROR, "Failed to lock group [%s], rc: %d", groupName.c_str(), rc ) ;
+               ++itr ;
                continue ;
             }
 
             // Check and get active location
-            rc = catCheckAndGetActiveLocation( groupObj, groupID, newActLoc, oldActLoc ) ;
+            rc = catCheckAndGetActiveLocation( groupObj, groupID, newActLoc, oldActLoc, &locExist ) ;
             if ( SDB_OK != rc )
             {
-               failedGroups.push_back( groupID ) ;
-               PD_LOG( PDERROR, "Failed to get and check active location, rc: %d", rc ) ;
-               continue ;
+               if ( !locExist )
+               {
+                  itr = allGroups.erase( itr ) ;
+                  continue ;
+               }
+
+               PD_LOG_MSG( PDERROR, "Failed to get and check group[%s] active location, rc: %d",
+                           groupName.c_str(), rc ) ;
+               goto error ;
             }
 
             // Compare oldLocation and newLocation
             if ( oldActLoc == newActLoc )
             {
+               ignoreGroups.push_back( groupID ) ;
                PD_LOG( PDDEBUG, "The old and new ActiveLocation are same, do nothing" ) ;
+               ++itr ;
                continue ;
             }
 
@@ -722,17 +741,38 @@ namespace engine
             }
             if ( SDB_OK != rc )
             {
-               failedGroups.push_back( groupID ) ;
-               PD_LOG( PDERROR, "Failed to set active location, rc: %d", rc ) ;
-               continue ;
+               PD_LOG( PDERROR, "Failed to set group[%s] active location[%s], rc: %d",
+                       groupName.c_str(), newActLoc.c_str(), rc ) ;
+               goto error ;
             }
+
+            ++itr ;
+         }
+
+         /// no match any groups
+         if ( allGroups.empty() )
+         {
+            /// no match any group
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "No group matches the speicfied location(%s)",
+                        newActLoc.c_str() ) ;
+            goto error ;
          }
 
          rc = _pCatCB->makeGroupsObj( retObjBuilder, allGroups ) ;
          PD_RC_CHECK( rc, PDERROR, "Make return groups object failed, rc: %d", rc ) ;
 
-         rc = _pCatCB->makeFailedGroupsObj( retObjBuilder, failedGroups ) ;
-         PD_RC_CHECK( rc, PDERROR, "Make return failed groups object failed, rc: %d", rc ) ;
+         if ( !failedGroups.empty() )
+         {
+            rc = _pCatCB->makeFailedGroupsObj( retObjBuilder, failedGroups ) ;
+            PD_RC_CHECK( rc, PDERROR, "Make return failed groups object failed, rc: %d", rc ) ;
+         }
+
+         if ( !ignoreGroups.empty() )
+         {
+            rc = _pCatCB->makeIgnoredGroupsObj( retObjBuilder, ignoreGroups ) ;
+            PD_RC_CHECK( rc, PDERROR, "Make return ignored groups object failed, rc: %d", rc ) ;
+         }
       }
       catch ( exception &e )
       {
@@ -759,6 +799,7 @@ namespace engine
       ossPoolString hostName ;
       CAT_GROUP_LIST allGroups ;
       CAT_GROUP_LIST failedGroups ;
+      CAT_GROUP_LIST ignoredGroups ;
       catNodeManager* pCatNodeMgr = _pCatCB->getCatNodeMgr() ;
 
       try
@@ -805,30 +846,30 @@ namespace engine
          allGroups.push_back( CATALOG_GROUPID ) ;
          allGroups.push_back( COORD_GROUPID ) ;
 
-         CAT_GROUP_LIST::const_iterator itr = allGroups.begin() ;
+         CAT_GROUP_LIST::iterator itr = allGroups.begin() ;
          while ( allGroups.end() != itr )
          {
             BSONObj groupObj ;
             string groupName ;
+            BOOLEAN hasMatched = FALSE ;
+            BOOLEAN hasChanged = FALSE ;
             catCtxLockMgr lockMgr ;
-            UINT32 groupID = *itr++ ;
+            UINT32 groupID = *itr ;
 
             // Get group obj by group id
             rc = catGetGroupObj( groupID, groupObj, _pEduCB ) ;
             if ( SDB_OK != rc )
             {
-               failedGroups.push_back( groupID ) ;
                PD_LOG( PDERROR, "Failed to get group[%u] obj, rc: %d", groupID, rc ) ;
-               continue ;
+               goto error ;
             }
 
             // Get group name
             rc = rtnGetSTDStringElement( groupObj, FIELD_NAME_GROUPNAME, groupName ) ;
             if ( SDB_OK != rc )
             {
-               failedGroups.push_back( groupID ) ;
                PD_LOG( PDERROR, "Failed to get group[%u] name, rc: %d", groupID, rc ) ;
-               continue ;
+               goto error ;
             }
 
             // Lock group
@@ -837,23 +878,58 @@ namespace engine
                rc = SDB_LOCK_FAILED ;
                failedGroups.push_back( groupID ) ;
                PD_LOG( PDERROR, "Failed to lock group [%s], rc: %d", groupName.c_str(), rc ) ;
+               ++itr ;
                continue ;
             }
 
-            rc = pCatNodeMgr->setGroupLocation( groupObj, groupID, newLoc, hostName ) ;
+            rc = pCatNodeMgr->setGroupLocation( groupObj, groupID, newLoc, hostName,
+                                                &hasChanged, &hasMatched ) ;
             if ( SDB_OK != rc )
             {
-               failedGroups.push_back( groupID ) ;
-               PD_LOG( PDERROR, "Failed to set group location, rc: %d", rc  ) ;
-               continue ;
+               PD_LOG_MSG( PDERROR, "Failed to set group[%s] location[%s], rc: %d",
+                           groupName.c_str(), newLoc.c_str(), rc  ) ;
+               goto error ;
             }
+
+            if ( !hasChanged )
+            {
+               if ( !hasMatched )
+               {
+                  /// not matched
+                  itr = allGroups.erase( itr ) ;
+                  continue ;
+               }
+               else
+               {
+                  ignoredGroups.push_back( groupID ) ;
+               }
+            }
+
+            ++itr ;
+         }
+
+         if ( allGroups.empty() )
+         {
+            /// no match any group
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "No group matches the speicfied host(%s)", hostName.c_str() ) ;
+            goto error ;
          }
 
          rc = _pCatCB->makeGroupsObj( retObjBuilder, allGroups ) ;
          PD_RC_CHECK( rc, PDERROR, "Make return groups object failed, rc: %d", rc ) ;
 
-         rc = _pCatCB->makeFailedGroupsObj( retObjBuilder, failedGroups ) ;
-         PD_RC_CHECK( rc, PDERROR, "Make return failed groups object failed, rc: %d", rc ) ;
+         if ( !failedGroups.empty() )
+         {
+            rc = _pCatCB->makeFailedGroupsObj( retObjBuilder, failedGroups ) ;
+            PD_RC_CHECK( rc, PDERROR, "Make return failed groups object failed, rc: %d", rc ) ;
+         }
+
+         if ( !ignoredGroups.empty() )
+         {
+            rc = _pCatCB->makeIgnoredGroupsObj( retObjBuilder, ignoredGroups ) ;
+            PD_RC_CHECK( rc, PDERROR, "Make return ignored groups object failed, rc: %d", rc ) ;
+         }
       }
       catch ( exception &e )
       {
@@ -879,7 +955,11 @@ namespace engine
       BSONElement ele ;
       CAT_GROUP_LIST allGroups ;
       CAT_GROUP_LIST failedGroups ;
+      CAT_GROUP_LIST ignoredGroups ;
       catNodeManager* pCatNodeMgr = _pCatCB->getCatNodeMgr() ;
+      replCB *pReplCB = pmdGetKRCB()->getClsCB()->getReplCB() ;
+
+      UINT32 parseIgnoredNum = 0 ;
 
       try
       {
@@ -896,9 +976,15 @@ namespace engine
 
          // Get all groups
          _pCatCB->getGroupsID( allGroups, FALSE ) ;
-         allGroups.push_back( CATALOG_GROUPID ) ;
+         /// insert catalog to first
+         allGroups.insert( allGroups.begin(), CATALOG_GROUPID ) ;
 
-         CAT_GROUP_LIST::const_iterator itr = allGroups.begin() ;
+         if ( pReplCB->isInStepUp() )
+         {
+            catSetSyncW( 1 ) ;
+         }
+
+         CAT_GROUP_LIST::iterator itr = allGroups.begin() ;
          while ( allGroups.end() != itr )
          {
             BSONObj groupObj ;
@@ -907,34 +993,65 @@ namespace engine
             clsGrpModeItem item ;
             clsGroupMode groupMode ;
             catCtxLockMgr lockMgr ;
-            UINT32 groupID = *itr++ ;
+            UINT32 groupID = *itr ;
+            BOOLEAN matchAll = FALSE ;
+            BOOLEAN ignored  = FALSE ;
+            BOOLEAN hasChanged = FALSE ;
 
             // Get group obj by group id
             rc = catGetGroupObj( groupID, groupObj, _pEduCB ) ;
             if ( SDB_OK != rc )
             {
-               failedGroups.push_back( groupID ) ;
-               PD_LOG( PDERROR, "Failed to get group[%u] obj, rc: %d", groupID, rc ) ;
-               continue ;
+               PD_LOG_MSG( PDERROR, "Failed to get group[%u] obj, rc: %d", groupID, rc ) ;
+               goto error ;
             }
 
             // Check group mode info
             rc = _checkMaintenanceMode( options, groupObj, groupID,
-                                        isStartMode, groupMode, &hostName ) ;
+                                        isStartMode, groupMode, hostName, matchAll, ignored ) ;
             if ( SDB_OK != rc )
             {
-               failedGroups.push_back( groupID ) ;
-               PD_LOG( PDERROR, "Failed to check group[%u] mode info, rc: %d", groupID, rc ) ;
+               PD_LOG_MSG( PDERROR, "Failed to check group[%u] mode info, rc: %d", groupID, rc ) ;
+               goto error ;
+            }
+
+            if ( !matchAll && groupMode.grpModeInfo.empty() )
+            {
+               /// not match the group
+               itr = allGroups.erase( itr ) ;
                continue ;
+            }
+            else if ( ignored )
+            {
+               ++parseIgnoredNum ;
+               itr = allGroups.erase( itr ) ;
+               continue ;
+            }
+
+            // If we start maintenance mode in cata group, we must ensure that cata primary 
+            // is not in maintenance nodes
+            if ( CATALOG_GROUPID == groupID && isStartMode && !groupMode.enforced )
+            {
+               for ( UINT32 idx = 0 ; idx < groupMode.grpModeInfo.size() ; ++idx )
+               {
+                  const clsGrpModeItem& grpModeItem = groupMode.grpModeInfo[ idx ] ;
+                  if ( pmdGetNodeID().columns.nodeID == grpModeItem.nodeID )
+                  {
+                     rc = SDB_OPERATION_CONFLICT ;
+                     PD_LOG_MSG( PDERROR, "Catalog group's primary can't set maintenance mode "
+                                 "unless using '%s' parameter",
+                                 FIELD_NAME_ENFORCED1 ) ;
+                     goto error ;
+                  }
+               }
             }
 
             // Get group name
             rc = rtnGetSTDStringElement( groupObj, FIELD_NAME_GROUPNAME, groupName ) ;
             if ( SDB_OK != rc )
             {
-               failedGroups.push_back( groupID ) ;
-               PD_LOG( PDERROR, "Failed to get group[%u] name, rc: %d", groupID, rc ) ;
-               continue ;
+               PD_LOG_MSG( PDERROR, "Failed to get group[%u] name, rc: %d", groupID, rc ) ;
+               goto error ;
             }
 
             // Lock group
@@ -943,6 +1060,7 @@ namespace engine
                rc = SDB_LOCK_FAILED ;
                failedGroups.push_back( groupID ) ;
                PD_LOG( PDERROR, "Failed to lock group [%s], rc: %d", groupName.c_str(), rc ) ;
+               ++itr ;
                continue ;
             }
 
@@ -951,28 +1069,240 @@ namespace engine
                rc = pCatNodeMgr->startGrpMode( groupMode, groupName, groupObj ) ;
                if ( SDB_OK != rc )
                {
-                  failedGroups.push_back( groupID ) ;
-                  PD_LOG( PDERROR, "Failed to start maintenance mode on group[%u], rc: %d", groupID, rc ) ;
-                  continue ;
+                  PD_LOG_MSG( PDERROR, "Failed to start maintenance mode on group[%s], rc: %d",
+                              groupName.c_str(), rc ) ;
+                  goto error ;
                }
+               hasChanged = TRUE ;
             }
             else
             {
-               rc = pCatNodeMgr->stopGrpMode( groupMode ) ; 
+               rc = pCatNodeMgr->stopGrpMode( groupMode, &hasChanged ) ;
                if ( SDB_OK != rc )
                {
-                  failedGroups.push_back( groupID ) ;
-                  PD_LOG( PDERROR, "Failed to stop maintenance mode on group[%u], rc: %d", groupID, rc ) ;
-                  continue ;
+                  PD_LOG_MSG( PDERROR, "Failed to stop maintenance mode on group[%s], rc: %d",
+                              groupName.c_str(), rc ) ;
+                  goto error ;
                }
             }
+
+            if ( !hasChanged )
+            {
+               ignoredGroups.push_back( groupID ) ;
+            }
+            ++itr ;
+         }
+
+         if ( 0 == parseIgnoredNum && allGroups.empty() )
+         {
+            /// no match any group
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "No group matches the speicfied parameter" ) ;
+            goto error ;
          }
 
          rc = _pCatCB->makeGroupsObj( retObjBuilder, allGroups ) ;
          PD_RC_CHECK( rc, PDERROR, "Make return groups object failed, rc: %d", rc ) ;
 
-         rc = _pCatCB->makeFailedGroupsObj( retObjBuilder, failedGroups ) ;
-         PD_RC_CHECK( rc, PDERROR, "Make return failed groups object failed, rc: %d", rc ) ;
+         /// failed groups
+         if ( !failedGroups.empty() )
+         {
+            rc = _pCatCB->makeFailedGroupsObj( retObjBuilder, failedGroups ) ;
+            PD_RC_CHECK( rc, PDERROR, "Make return failed groups object failed, rc: %d", rc ) ;
+         }
+
+         /// ignored groups
+         if ( !ignoredGroups.empty() )
+         {
+            rc = _pCatCB->makeIgnoredGroupsObj( retObjBuilder, ignoredGroups ) ;
+            PD_RC_CHECK( rc, PDERROR, "Make return ignored groups object failed, rc: %d", rc ) ;
+         }
+      }
+      catch ( exception &e )
+      {
+         rc = ossException2RC( &e ) ;
+         PD_LOG( PDERROR, "Unexpected exception happened: %s, rc: %d", e.what(), rc ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _catDCManager::processCmdAlterCriticalMode( const NET_HANDLE &handle,
+                                                     _clsDCMgr *pDCMgr,
+                                                     const BSONObj &objQuery,
+                                                     BSONObjBuilder &retObjBuilder,
+                                                     const BOOLEAN &isStartMode )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj options ;
+      BSONElement ele ;
+      CAT_GROUP_LIST allGroups ;
+      CAT_GROUP_LIST failedGroups ;
+      CAT_GROUP_LIST ignoredGroups ;
+      catNodeManager* pCatNodeMgr = _pCatCB->getCatNodeMgr() ;
+      replCB *pReplCB = pmdGetKRCB()->getClsCB()->getReplCB() ;
+
+      UINT32 parseIgnoredNum = 0 ;
+
+      try
+      {
+         // Get options
+         ele = objQuery.getField( FIELD_NAME_OPTIONS ) ;
+         if ( ele.eoo() || Object != ele.type() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Failed to get field[%s] from query object: %s",
+                    FIELD_NAME_OPTIONS, objQuery.toPoolString().c_str() ) ;
+            goto error ;
+         }
+         options = ele.embeddedObject() ;
+
+         // Get all groups
+         _pCatCB->getGroupsID( allGroups, FALSE ) ;
+         // insert catalog to the first
+         allGroups.insert( allGroups.begin(), CATALOG_GROUPID ) ;
+
+         if ( pReplCB->isInStepUp() )
+         {
+            catSetSyncW( 1 ) ;
+         }
+
+         CAT_GROUP_LIST::iterator itr = allGroups.begin() ;
+         while ( allGroups.end() != itr )
+         {
+            BSONObj groupObj ;
+            string groupName ;
+            ossPoolString hostName ;
+            clsGrpModeItem item ;
+            clsGroupMode groupMode ;
+            catCtxLockMgr lockMgr ;
+            UINT32 groupID = *itr ;
+            BOOLEAN matchAll = FALSE ;
+            BOOLEAN ignored = FALSE ;
+            BOOLEAN hasChanged = FALSE ;
+
+            // Get group obj by group id
+            rc = catGetGroupObj( groupID, groupObj, _pEduCB ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG_MSG( PDERROR, "Failed to get group[%u] obj, rc: %d", groupID, rc ) ;
+               goto error ;
+            }
+
+            // Check group mode info
+            rc = _checkCriticalMode( options, groupObj, groupID,
+                                     isStartMode, groupMode, hostName, matchAll, ignored ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG_MSG( PDERROR, "Failed to check group[%u] mode info, rc: %d", groupID, rc ) ;
+               goto error ;
+            }
+
+            if ( !matchAll && groupMode.grpModeInfo.empty() )
+            {
+               /// not match the group
+               itr = allGroups.erase( itr ) ;
+               continue ;
+            }
+            else if ( ignored )
+            {
+               ++parseIgnoredNum ;
+               itr = allGroups.erase( itr ) ;
+               continue ;
+            }
+
+            // If we start critical mode in cata group, we must ensure that cata primary 
+            // is in effective nodes
+            if ( CATALOG_GROUPID == groupID && isStartMode )
+            {
+               const clsGrpModeItem& grpModeItem = groupMode.grpModeInfo[0] ;
+
+               if ( pmdGetNodeID().columns.nodeID != grpModeItem.nodeID &&
+                    ( grpModeItem.location.empty() ||
+                      0 != ossStrcmp( pmdGetLocation(), grpModeItem.location.c_str() ) ) )
+               {
+                  rc = SDB_OPERATION_CONFLICT ;
+                  PD_LOG_MSG( PDERROR, "Catalog group's primary is not in effective nodes "
+                              "of critical mode" ) ;
+                  goto error ;
+               }
+            }
+
+            // Get group name
+            rc = rtnGetSTDStringElement( groupObj, FIELD_NAME_GROUPNAME, groupName ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG_MSG( PDERROR, "Failed to get group[%u] name, rc: %d", groupID, rc ) ;
+               goto error ;
+            }
+
+            // Lock group
+            if ( ! lockMgr.tryLockGroup( groupName, EXCLUSIVE ) )
+            {
+               rc = SDB_LOCK_FAILED ;
+               failedGroups.push_back( groupID ) ;
+               PD_LOG( PDERROR, "Failed to lock group [%s], rc: %d", groupName.c_str(), rc ) ;
+               ++itr ;
+               continue ;
+            }
+
+            if ( isStartMode )
+            {
+               rc = pCatNodeMgr->startGrpMode( groupMode, groupName, groupObj ) ;
+               if ( SDB_OK != rc )
+               {
+                  PD_LOG_MSG( PDERROR, "Failed to start critical mode on group[%s], rc: %d",
+                              groupName.c_str(), rc ) ;
+                  goto error ;
+               }
+               hasChanged = TRUE ;
+            }
+            else
+            {
+               rc = pCatNodeMgr->stopGrpMode( groupMode, &hasChanged ) ;
+               if ( SDB_OK != rc )
+               {
+                  PD_LOG_MSG( PDERROR, "Failed to stop critical mode on group[%s], rc: %d",
+                              groupName.c_str(), rc ) ;
+                  goto error ;
+               }
+            }
+
+            if ( !hasChanged )
+            {
+               ignoredGroups.push_back( groupID ) ;
+            }
+            ++itr ;
+         }
+
+         if ( 0 == parseIgnoredNum && allGroups.empty() )
+         {
+            /// no match any group
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "No group matches the speicfied parameter" ) ;
+            goto error ;
+         }
+
+         rc = _pCatCB->makeGroupsObj( retObjBuilder, allGroups ) ;
+         PD_RC_CHECK( rc, PDERROR, "Make return groups object failed, rc: %d", rc ) ;
+
+         /// failed groups
+         if ( !failedGroups.empty() )
+         {
+            rc = _pCatCB->makeFailedGroupsObj( retObjBuilder, failedGroups ) ;
+            PD_RC_CHECK( rc, PDERROR, "Make return failed groups object failed, rc: %d", rc ) ;
+         }
+
+         /// ignored groups
+         if ( !ignoredGroups.empty() )
+         {
+            rc = _pCatCB->makeIgnoredGroupsObj( retObjBuilder, ignoredGroups ) ;
+            PD_RC_CHECK( rc, PDERROR, "Make return ignored groups object failed, rc: %d", rc ) ;
+         }
       }
       catch ( exception &e )
       {
@@ -1152,7 +1482,9 @@ namespace engine
                                                const UINT32 &groupID,
                                                const BOOLEAN &isStartMode,
                                                clsGroupMode &groupMode,
-                                               ossPoolString *pHostName )
+                                               ossPoolString &hostName,
+                                               BOOLEAN &matchAll,
+                                               BOOLEAN &ignored )
    {
       INT32 rc = SDB_OK ;
 
@@ -1161,6 +1493,9 @@ namespace engine
       // Init groupMode
       groupMode.groupID = groupID ;
       groupMode.mode = CLS_GROUP_MODE_MAINTENANCE ;
+
+      matchAll = FALSE ;
+      ignored  = FALSE ;
 
       // Check if this group is in critical mode
       grpModeEle = groupObj.getField( CAT_GROUP_MODE_NAME ) ;
@@ -1182,23 +1517,30 @@ namespace engine
          }
       }
       // If the command is stop maintenance mode, do nothing
-      else if ( ! isStartMode )
+      else if ( !isStartMode )
       {
-         goto done ;
+         ignored = TRUE ;
       }
 
       // If the command is stop maintenance mode and options is empty, it means stop all maintenance mode
-      if ( ! isStartMode && option.isEmpty() )
+      if ( ! isStartMode &&
+           ( option.isEmpty() ||
+             ( 1 == option.nFields() && option.hasField( FIELD_NAME_ENFORCED1 ) ) ) )
       {
+         matchAll = TRUE ;
          goto done ;
       }
 
-      rc = catParseGroupModeInfo( option, groupObj, groupID, isStartMode, groupMode, pHostName ) ;
+      rc = catParseGroupModeInfo( option, groupObj, groupID, isStartMode, groupMode, &hostName ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to parse group mode info[%s], rc: %d",
                    option.toPoolString().c_str(), rc ) ;
 
-      rc = _buildGroupModeInfo( groupObj, *pHostName, groupMode ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to build group[%u] mode info, rc: %d", groupID, rc ) ;
+      /// change to nodes
+      if ( !groupMode.grpModeInfo.empty() )
+      {
+         rc = _buildGroupModeInfo( groupObj, isStartMode, hostName, groupMode ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build group[%u] mode info, rc: %d", groupID, rc ) ;
+      }
 
    done:
       return rc ;
@@ -1206,19 +1548,132 @@ namespace engine
       goto done ;
    }
 
+   INT32 _catDCManager::_checkCriticalMode( const BSONObj &option,
+                                            const BSONObj &groupObj,
+                                            const UINT32 &groupID,
+                                            const BOOLEAN &isStartMode,
+                                            clsGroupMode &groupMode,
+                                            ossPoolString &hostName,
+                                            BOOLEAN &matchAll,
+                                            BOOLEAN &ignored )
+   {
+      INT32 rc = SDB_OK ;
+
+      BSONElement grpModeEle, primaryEle ;
+
+      // Init groupMode
+      groupMode.groupID = groupID ;
+      groupMode.mode = CLS_GROUP_MODE_CRITICAL ;
+
+      matchAll = FALSE ;
+      ignored = FALSE ;
+
+      // Check if this group is in critical mode
+      grpModeEle = groupObj.getField( CAT_GROUP_MODE_NAME ) ;
+      if ( ! grpModeEle.eoo() )
+      {
+         if ( String != grpModeEle.type() )
+         {
+            rc = SDB_CAT_CORRUPTION ;
+            PD_LOG( PDWARNING, "Failed to get the field[%s], type[%d] is not String",
+                    CAT_GROUP_MODE_NAME, grpModeEle.type() ) ;
+            goto error ;
+         }
+         else if ( 0 == ossStrcmp( CAT_MAINTENANCE_MODE_NAME, grpModeEle.valuestrsafe() ) )
+         {
+            rc = SDB_OPERATION_CONFLICT ;
+            PD_LOG_MSG( PDERROR, "Failed to %s critical mode in group[%u], "
+                        "maintenance mode is operating", isStartMode ? "start" : "stop", groupID ) ;
+            goto error ;
+         }
+      }
+      else if ( !isStartMode )
+      {
+         ignored = TRUE ;
+      }
+
+      // If the command is stop critical mode, and no option
+      if ( !isStartMode &&
+           ( option.isEmpty() ||
+             ( 1 == option.nFields() && option.hasField( FIELD_NAME_ENFORCED1 ) ) ) )
+      {
+         matchAll = TRUE ;
+         goto done ;
+      }
+
+      rc = catParseGroupModeInfo( option, groupObj, groupID, isStartMode, groupMode, &hostName ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to parse group mode info[%s], rc: %d",
+                   option.toPoolString().c_str(), rc ) ;
+
+      /// change to node
+      if ( !groupMode.grpModeInfo.empty() )
+      {
+         rc = _buildGroupModeInfo( groupObj, isStartMode, hostName, groupMode ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to build group[%u] mode info, rc: %d", groupID, rc ) ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+
    INT32 _catDCManager::_buildGroupModeInfo( const BSONObj &groupObj,
+                                             BOOLEAN isStartMode,
                                              const ossPoolString &hostName,
                                              clsGroupMode &groupMode )
    {
       INT32 rc = SDB_OK ;
 
-      clsGrpModeItem item = groupMode.grpModeInfo[0] ;
-      groupMode.grpModeInfo.clear() ;
+      clsGrpModeItem item ;
 
       BSONObjIterator nodeItr ;
       BSONObj nodeListObj ;
       ossPoolString tmpHostName ;
       ossPoolString tmpSvcName ;
+      BOOLEAN onlyOneNode = FALSE ;
+
+      /// check
+      if ( groupMode.grpModeInfo.empty() )
+      {
+         goto done ;
+      }
+
+      item = groupMode.grpModeInfo[0] ;
+
+      /// when nodeID
+      if ( INVALID_NODEID != item.nodeID )
+      {
+         goto done ;
+      }
+      else if ( CLS_GROUP_MODE_CRITICAL == groupMode.mode )
+      {
+         /// when location
+         if ( MSG_INVALID_LOCATIONID != item.locationID )
+         {
+            goto done ;
+         }
+         /// when hostName is empty
+         else if ( hostName.empty() )
+         {
+            goto done ;
+         }
+
+         if ( isStartMode )
+         {
+            onlyOneNode = TRUE ;
+         }
+      }
+      else if ( CLS_GROUP_MODE_MAINTENANCE == groupMode.mode &&
+                MSG_INVALID_LOCATIONID == item.locationID &&
+                hostName.empty() )
+      {
+         goto done ;
+      }
+
+      /// clear group info
+      groupMode.grpModeInfo.clear() ;
 
       rc = rtnGetArrayElement( groupObj, CAT_GROUP_NAME, nodeListObj ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get field[%s], rc: %d", CAT_GROUP_NAME, rc ) ;
@@ -1248,16 +1703,11 @@ namespace engine
             {
                continue ;
             }
-
          }
          else if ( ! hostName.empty() )
          {
             BSONElement beHostName = boNode.getField( FIELD_NAME_HOST ) ;
-            if ( beHostName.eoo() )
-            {
-               continue ;
-            }
-            else if ( String != beHostName.type() )
+            if ( String != beHostName.type() )
             {
                rc = SDB_CAT_CORRUPTION ;
                PD_LOG( PDERROR, "Failed to get field [%s], field type: %d",
@@ -1271,7 +1721,7 @@ namespace engine
          }
 
          BSONElement beHost = boNode.getField( FIELD_NAME_HOST ) ;
-         if ( beHost.eoo() || String != beHost.type() )
+         if ( String != beHost.type() )
          {
             rc = SDB_CAT_CORRUPTION ;
             PD_LOG( PDERROR, "Failed to get field [%s], field type: %d",
@@ -1305,7 +1755,38 @@ namespace engine
          tmpItem.maxKeepTime = item.maxKeepTime ;
          tmpItem.updateTime = item.updateTime ;
 
-         groupMode.grpModeInfo.push_back( tmpItem ) ;
+         if ( CATALOG_GROUPID == groupMode.groupID )
+         {
+            if ( onlyOneNode )
+            {
+               if ( !groupMode.grpModeInfo.empty() )
+               {
+                  /// select pimary node when the hostname matched
+                  if ( pmdGetNodeID().columns.nodeID == tmpItem.nodeID )
+                  {
+                     groupMode.grpModeInfo.clear() ;
+                     groupMode.grpModeInfo.push_back( tmpItem ) ;
+                  }
+               }
+               else
+               {
+                  groupMode.grpModeInfo.push_back( tmpItem ) ;
+               }
+            }
+            else
+            {
+               groupMode.grpModeInfo.push_back( tmpItem ) ;
+            }
+         }
+         else
+         {
+            groupMode.grpModeInfo.push_back( tmpItem ) ;
+
+            if ( onlyOneNode )
+            {
+               break ;
+            }
+         }
       }
 
    done:
@@ -1313,6 +1794,5 @@ namespace engine
    error:
       goto done ;
    }
-
 
 }

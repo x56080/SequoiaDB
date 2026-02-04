@@ -1258,20 +1258,22 @@ namespace engine
          UINT32 timeout = 0 ;
          _clsVoteMachine* vote = repl->voteMachine( FALSE ) ;
 
-         /// Wait repl down group info
-         while ( !vote->isInit() && timeout < CLS_REELECT_WAIT_TIME )
+         if ( ! ( repl->isInMaintenanceMode() && repl->groupSize() > 0 ) )
          {
-            ossSleep( CLS_REELECT_WAIT_INTERVAL ) ;
-            timeout += CLS_REELECT_WAIT_INTERVAL ;
-         }
+            /// Wait repl down group info
+            while ( !vote->isInit() && timeout < CLS_REELECT_WAIT_TIME )
+            {
+               ossSleep( CLS_REELECT_WAIT_INTERVAL ) ;
+               timeout += CLS_REELECT_WAIT_INTERVAL ;
+            }
 
-         vote->setShadowWeight( CLS_ELECTION_WEIGHT_MAX, CLS_REELECT_SW_TIMEOUT ) ;
-         vote->setElectionWeight( CLS_ELECTION_WEIGHT_REELECT_TARGET_NODE ) ;
+            vote->setShadowWeightForTarget( CLS_REELECT_SW_TIMEOUT ) ;
 
-         /// When in CLS_ELECTION_STATUS_SILENCE, need to force to secondary
-         if ( vote->isStatus( CLS_ELECTION_STATUS_SILENCE ) )
-         {
-            vote->force( CLS_ELECTION_STATUS_SEC ) ;
+            /// When in CLS_ELECTION_STATUS_SILENCE, need to force to secondary
+            if ( vote->isStatus( CLS_ELECTION_STATUS_SILENCE ) )
+            {
+               vote->force( CLS_ELECTION_STATUS_SEC ) ;
+            }
          }
       }
       else
@@ -1416,8 +1418,7 @@ namespace engine
             timeout += CLS_REELECT_WAIT_INTERVAL ;
          }
 
-         vote->setShadowWeight( CLS_ELECTION_WEIGHT_MAX, CLS_REELECT_SW_TIMEOUT ) ;
-         vote->setElectionWeight( CLS_ELECTION_WEIGHT_REELECT_TARGET_NODE ) ;
+         vote->setShadowWeightForTarget( CLS_REELECT_SW_TIMEOUT ) ;
 
          /// When in CLS_ELECTION_STATUS_SILENCE, need to force to secondary
          if ( vote->isStatus( CLS_ELECTION_STATUS_SILENCE ) )
@@ -2004,9 +2005,7 @@ namespace engine
 
    IMPLEMENT_CMD_AUTO_REGISTER( _rtnAlterGroup )
    _rtnAlterGroup::_rtnAlterGroup()
-   : _groupID( INVALID_GROUPID ),
-     _pActionName( NULL ),
-     _enforced( FALSE )
+   : _pActionName( NULL )
    {
    }
 
@@ -2034,87 +2033,6 @@ namespace engine
       return CMD_ALTER_GROUP ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSALTERGROUP__PARSEOPTIONS, "_rtnAlterGroup::_parseOptions" )
-   INT32 _rtnAlterGroup::_parseOptions()
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__CLSALTERGROUP__PARSEOPTIONS ) ;
-
-      try
-      {
-         // In start critical mode action, we don't need to validate the parameter,
-         // because they have been validated in cata node
-         if ( 0 == ossStrcmp( SDB_ALTER_GROUP_START_CRITICAL_MODE, _pActionName ) )
-         {
-            BSONElement optionEle ;
-            clsGrpModeItem tmpGrpModeItem ;
-            CLS_LOC_INFO_MAP locMap = sdbGetReplCB()->getLocInfoMap() ;
-
-            // Init _grpMode member
-            _grpMode.groupID = _groupID ;
-            _grpMode.mode = CLS_GROUP_MODE_CRITICAL ;
-
-            // If nodeName and location are both in options, we just use nodeName
-            if ( _option.hasField( FIELD_NAME_NODE_NAME ) )
-            {
-               optionEle = _option.getField( FIELD_NAME_NODE_NAME ) ;
-               tmpGrpModeItem.nodeName = optionEle.valuestrsafe() ;
-               tmpGrpModeItem.nodeID = sdbGetClsCB()->getNodeID().columns.nodeID ;
-            }
-            else if ( _option.hasField( CAT_LOCATION_NAME ) )
-            {
-               optionEle = _option.getField( CAT_LOCATION_NAME ) ;
-               tmpGrpModeItem.location = optionEle.valuestrsafe() ;
-
-               // Assign locationID
-               CLS_LOC_INFO_MAP::const_iterator locItr = locMap.begin() ;
-               while ( locMap.end() != locItr )
-               {
-                  const _clsLocationInfoItem &locItem = locItr->second ;
-                  if ( 0 == ossStrcmp( optionEle.valuestrsafe(),
-                                       locItem._location.c_str() ) )
-                  {
-                     tmpGrpModeItem.locationID = locItem._locationID ;
-                     break ;
-                  }
-                  ++locItr ;
-               }
-            }
-
-            // Get Enforced field
-            if ( _option.hasField( FIELD_NAME_ENFORCED1 ) )
-            {
-               optionEle = _option.getField( FIELD_NAME_ENFORCED1 ) ;
-               _enforced = optionEle.booleanSafe() ;
-            }
-
-            // We don't to need to save minKeepTime and maxKeepTime, because these two parameters
-            // is useless in data node this start critical mode command
-
-            _grpMode.grpModeInfo.push_back( tmpGrpModeItem ) ;
-         }
-         else
-         {
-            rc = SDB_INVALIDARG ;
-            PD_LOG( PDERROR, "Failed to alter group, received unknown action[%s]",
-                    _pActionName ) ;
-            goto error ;
-         }
-      }
-      catch ( std::exception &e )
-      {
-         rc = ossException2RC( &e ) ;
-         PD_LOG( PDERROR, "Unexpected exception happened: %s, rc: %d", e.what(), rc ) ;
-         goto error ;
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB__CLSALTERGROUP__PARSEOPTIONS, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSALTERGROUP_INIT, "_rtnAlterGroup::init" )
    INT32 _rtnAlterGroup::init ( INT32 flags, INT64 numToSkip,
                                 INT64 numToReturn,
@@ -2129,29 +2047,11 @@ namespace engine
       try
       {
          BSONObj queryObj = BSONObj( pMatcherBuff ) ;
-         BSONObj hintObj = BSONObj( pHintBuff ) ;
-
-         // Get GroupID from hint obj
-         rc = rtnGetIntElement( hintObj, CAT_GROUPID_NAME, (INT32 &)_groupID ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to get field [%s] from hint object: %s, rc: %d",
-                      CAT_GROUPID_NAME, hintObj.toPoolString().c_str(), rc ) ;
 
          // Get action name
          rc = rtnGetStringElement( queryObj, FIELD_NAME_ACTION, &_pActionName ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get field [%s] from query object: %s, rc: %d",
                       FIELD_NAME_ACTION, queryObj.toPoolString().c_str(), rc ) ;
-
-         // Get option
-         if ( 0 == ossStrcmp( SDB_ALTER_GROUP_START_CRITICAL_MODE, _pActionName ) )
-         {
-            rc = rtnGetObjElement( queryObj, FIELD_NAME_OPTIONS, _option ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to get field [%s] from query object: %s, rc: %d",
-                         FIELD_NAME_OPTIONS, queryObj.toPoolString().c_str(), rc ) ;
-         }
-
-         rc = _parseOptions() ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to parse options [%s], actionName: [%s] rc: %d",
-                      _option.toPoolString().c_str(), _pActionName, rc ) ;
       }
       catch ( std::exception &e )
       {
@@ -2178,8 +2078,7 @@ namespace engine
       if ( 0 == ossStrcmp( SDB_ALTER_GROUP_START_CRITICAL_MODE, _pActionName ) )
       {
          _clsReplicateSet *pRepl = sdbGetReplCB() ;
-         rc = pRepl->postGroupModeInfo( _grpMode, CLS_REELECT_COMMAND_TIMEOUT_DFT * 1000,
-                                        TRUE, _enforced ) ;
+         rc = pRepl->startGrpModeJob( OSS_ONE_SEC * 5 ) ;
       }
       PD_RC_CHECK( rc, PDERROR, "Failed to do actionName: [%s] rc: %d", _pActionName, rc ) ;
 

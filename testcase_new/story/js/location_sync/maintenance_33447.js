@@ -43,14 +43,13 @@ function test ()
       dbcl.insert( docs );
 
       // 等待超过最小运行窗口时间
-      var waitTime = minKeepTime + 1;
+      var waitTime = minKeepTime + 0.2;
       validateWaitTime( beginTime, waitTime );
       slaveNode.start();
       commCheckBusinessStatus( db );
 
       // 校验节点运维模式
       checkGroupStopMode( db, srcGroupName );
-
    }
    finally
    {

@@ -316,7 +316,7 @@ namespace engine
 
          OSS_INLINE BOOLEAN isInEnforcedGrpMode()
          {
-            return _info.enforcedGrpMode ;
+            return _info.grpMode.enforced ;
          }
 
          OSS_INLINE BOOLEAN isReadyForSrc( UINT64 curTick )
@@ -504,11 +504,9 @@ namespace engine
          }
 
          INT32          postGroupModeInfo( const clsGroupMode &grpMode,
-                                           INT32 shadowTime,
-                                           BOOLEAN isLocalMode,
-                                           BOOLEAN enforced = FALSE ) ;
+                                           BOOLEAN isLocalMode ) ;
 
-         INT32          startGrpModeJob( UINT64 delayMS = 0 ) ;
+         INT32          startGrpModeJob( INT64 syncWaitTimeMs = 0 ) ;
 
          MsgRouteID     getPrimary () ;
          MsgRouteID     getLocationPrimary () ;
@@ -601,9 +599,7 @@ namespace engine
          INT32 _handleStepUp( UINT32 seconds ) ;
 
          INT32 _handleGroupModeUpdate( const clsGroupMode &grpMode,
-                                       INT32 shadowTime,
-                                       BOOLEAN isLocalMode,
-                                       BOOLEAN enforced ) ;
+                                       BOOLEAN isLocalMode ) ;
 
          void _notifySrcSessions( UINT32 csLID, UINT32 clLID,
                                   INT32 extLID, DPS_LSN_OFFSET offset ) ;
@@ -657,6 +653,7 @@ namespace engine
 
          ossEvent                _faultEvent ;
          ossEvent                _syncEmptyEvent ;
+         ossEvent                _grpModeEvent ;
 
          UINT32                  _syncwaitTimeout ;
          UINT32                  _shutdownWaitTimeout ;

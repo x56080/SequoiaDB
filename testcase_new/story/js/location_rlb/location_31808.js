@@ -22,13 +22,15 @@ function test ()
    try
    {
       // catalog节点设置auth为false
-      db.updateConf( { auth: false }, { Role: "catalog" } );
+      db.updateConf( { startshifttime: 1 }, { Role: "catalog" } );
 
       // 停止catalog复制组
       cataRG.stop();
 
       // 启动原主节点
       master.start();
+      
+      sleep( 1000 ) ;
 
       // catalog未强制选主，启动Critical模式
       var options = { NodeName: masterNodeName, MinKeepTime: 5, MaxKeepTime: 15 };
@@ -87,6 +89,6 @@ function test ()
       commCheckBusinessStatus( db );
       cataRG.stopCriticalMode();
       cata.close();
-      db.deleteConf( { auth: 1 }, { Role: "catalog" } );
+      db.deleteConf( { startshifttime: 1 }, { Role: "catalog" } );
    }
 }

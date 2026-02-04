@@ -137,7 +137,8 @@ namespace engine
                                         CLS_CL_OP_TYPE opType,
                                         INT16 *w = NULL,
                                         utilCLUniqueID *clUniqueID = NULL,
-                                        BOOLEAN *repairCheck = NULL ) ;
+                                        BOOLEAN *repairCheck = NULL,
+                                        BOOLEAN allowInMaintenance = FALSE ) ;
 
          /// valid: replSize == NULL and clientW != NULL
          ///        replSize != NULL and clientW == NULL
@@ -409,7 +410,7 @@ namespace engine
 
          INT32 _checkRollbackStatus() ;
 
-         INT32 _checkReplStatus() ;
+         INT32 _checkReplStatus( BOOLEAN allowInMaintenance ) ;
 
          INT32 _checkClusterActive( MsgHeader *msg ) ;
 

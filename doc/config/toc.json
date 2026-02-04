@@ -2728,7 +2728,7 @@
                      "cn": "Sdb",
                      "en": "Sdb",
                      "contents": [
-                   {
+                        {
                            "id": 1564969947,
                            "file": "Sdb",
                            "cn": "Sdb()",
@@ -2919,6 +2919,12 @@
                            "file": "getDataSource",
                            "cn": "getDataSource()",
                            "en": "getDataSource()"
+                        },
+                        {
+                           "id": 1738569011,
+                           "file": "getDC",
+                           "cn": "getDC()",
+                           "en": "getDC()"
                         },
                         {
                            "id": 1432190790,
@@ -3269,6 +3275,68 @@
                      "file": "SecureSdb",
                      "cn": "SecureSdb",
                      "en": "SecureSdb"
+                  },
+                  {
+                     "id": 1738569000,
+                     "dir": "SdbDC",
+                     "cn": "SdbDC",
+                     "en": "SdbDC",
+                     "contents": [
+                        {
+                           "id": 1738569002,
+                           "file": "activate",
+                           "cn": "activate()",
+                           "en": "activate()"
+                        },
+                        {
+                           "id": 1738569003,
+                           "file": "deactivate",
+                           "cn": "deactivate()",
+                           "en": "deactivate()"
+                        },
+                        {
+                           "id": 1738569004,
+                           "file": "disableReadonly",
+                           "cn": "disableReadonly()",
+                           "en": "disableReadonly()"
+                        },
+                        {
+                           "id": 1738569005,
+                           "file": "enableReadonly",
+                           "cn": "enableReadonly()",
+                           "en": "enableReadonly()"
+                        },
+                        {
+                           "id": 1738569006,
+                           "file": "getDetail",
+                           "cn": "getDetail()",
+                           "en": "getDetail()"
+                        },
+                        {
+                           "id": 1738569007,
+                           "file": "setActiveLocation",
+                           "cn": "setActiveLocation()",
+                           "en": "setActiveLocation()"
+                        },
+                        {
+                           "id": 1738569008,
+                           "file": "setLocation",
+                           "cn": "setLocation()",
+                           "en": "setLocation()"
+                        },
+                        {
+                           "id": 1738569009,
+                           "file": "startCriticalMode",
+                           "cn": "startCriticalMode()",
+                           "en": "startCriticalMode()"
+                        },
+                        {
+                           "id": 1738569010,
+                           "file": "startMaintenanceMode",
+                           "cn": "startMaintenanceMode()",
+                           "en": "startMaintenanceMode()"
+                        }
+                     ]
                   },
                   {
                      "id": 1432190820,
@@ -4503,6 +4571,12 @@
                            "file": "truncate",
                            "cn": "truncate()",
                            "en": "truncate()"
+                        },
+                        {
+                           "id": 1738569012,
+                           "file": "tellPosition",
+                           "cn": "tellPosition()",
+                           "en": "tellPosition()"
                         }
                      ]
                   },

@@ -338,7 +338,7 @@ function killNode ( db, node )
    var cmd = remote.getCmd();
    try
    {
-      println( "remote -- " + remote );
+      println( new Date() + ": remote -- " + remote );
       cmd.run( "ps -ef | grep sequoiadb | grep -v grep | grep " + node.getServiceName() + " | awk '{print $2}' | xargs kill -9" );
    }
    catch( e )
@@ -346,10 +346,76 @@ function killNode ( db, node )
       //忽略异常
    }
    waitNodeStart( db, nodeName, timeout )
-   sleep( 2000 );
+   sleep( 1000 );
    node.stop();
-   println( "node stop -- " + node );
+   println( new Date() + ": node stop -- " + node );
    remote.close();
+}
+
+/************************************************************************
+*@Description: 强杀指定节点列表
+*@input: db 数据库连接
+*@input: rg 数据组对象
+*@input: nodeList 指定的节点列表数组 [ "HostName:svcname", ... ]
+**************************************************************************/
+function killNodes ( db, rg, nodeList )
+{
+    for ( var i in nodeList )
+    {
+        var node = rg.getNode( nodeList[i] ) ;
+        println( new Date() + ": Begin to stop node: " + nodeList[i] ) ;
+        killNode( db, node ) ;
+        println( new Date() + ": End stop node" ) ;
+    }
+}
+
+/************************************************************************
+*@Description: 启动指定节点列表
+*@input: db 数据库连接
+*@input: rg 数据组对象
+*@input: nodeList 指定的节点列表数组 [ "HostName:svcname", ... ]
+**************************************************************************/
+function startNodes ( db, rg, nodeList )
+{
+    for ( var i in nodeList )
+    {
+        var node = rg.getNode( nodeList[i] ) ;
+        println( new Date() + ": Begin to start node: " + nodeList[i] ) ;
+        node.start() ;
+        println( new Date() + ": End start node" ) ;
+    }
+}
+
+/************************************************************************
+*@Description: 停止指定节点列表
+*@input: db 数据库连接
+*@input: rg 数据组对象
+*@input: nodeList 指定的节点列表数组 [ "HostName:svcname", ... ]
+**************************************************************************/
+function stopNodes ( db, rg, nodeList )
+{
+    for ( var i in nodeList )
+    {
+        var node = rg.getNode( nodeList[i] ) ;
+        println( new Date() + ": Begin to stop node: " + nodeList[i] ) ;
+        node.stop() ;
+        println( new Date() + ": End stop node" ) ;
+    }
+}
+
+/************************************************************************
+*@Description: 设置节点Location
+*@input: rg 数据组对象
+*@input: nodeList 指定的节点列表数组 [ "HostName:svcname", ... ]
+*@input: locationName location名称
+**************************************************************************/
+function setNodesLocation ( rg, nodeList, locationName )
+{
+    for ( var i in nodeList )
+    {
+        var node = rg.getNode( nodeList[i] ) ;
+        node.setLocation( locationName ) ;
+    }
 }
 
 /************************************************************************
@@ -514,7 +580,7 @@ function validateWaitTime ( beginTime, waitTime )
    }
 
    // 计算等待时间的结束时间，将分钟转换为毫秒
-   var endTime = new Date( beginTime.getTime() + waitTime * 60000 );
+   var endTime = new Date( beginTime.getTime() + Math.ceil( waitTime * 60000 ) );
 
    // 等待时间循环检查
    while( true )

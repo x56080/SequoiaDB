@@ -17,6 +17,11 @@ function test ( args )
 
    // 获取group中的主备节点
    var slaveNodes = getGroupSlaveNodeName( db, srcGroup );
+   
+   if ( slaveNodes.length < 2 )
+   {
+       return ;
+   }
 
    // 获取主节点
    var rg = db.getRG( srcGroup );
@@ -26,44 +31,46 @@ function test ( args )
    var salveNodeID1 = slaveNode1.getNodeDetail().split( ":" )[0];
    var salveNodeID2 = slaveNode2.getNodeDetail().split( ":" )[0];
 
-   // 备节点启动Critical模式并检查Critical模式
-   var options = { NodeName: slaveNodes[0], MinKeepTime: 5, MaxKeepTime: 15 };
-   rg.startCriticalMode( options );
-   var properties1 = { NodeName: slaveNodes[0] };
-   checkStartCriticalMode( db, srcGroup, properties1 );
+   try {
+       // 备节点启动Critical模式并检查Critical模式
+       var options = { NodeName: slaveNodes[0], MinKeepTime: 5, MaxKeepTime: 15 };
+       rg.startCriticalMode( options );
+       var properties1 = { NodeName: slaveNodes[0] };
+       checkStartCriticalMode( db, srcGroup, properties1 );
 
-   // 重选举并校验主节点
-   for( var i = 0; i < 3; i++ )
-   {
-      rg.reelect();
-      /// wait catalog update
-      sleep( 1000 ) ;
-      var newMasterNode = rg.getMaster();
-      var nodeID = newMasterNode.getNodeDetail().split( ":" )[0];
-      assert.equal( nodeID, salveNodeID1 );
+       // 重选举并校验主节点
+       for( var i = 0; i < 3; i++ )
+       {
+          rg.reelect();
+          /// wait catalog update
+          sleep( 1000 ) ;
+          var newMasterNode = rg.getMaster();
+          var nodeID = newMasterNode.getNodeDetail().split( ":" )[0];
+          assert.equal( nodeID, salveNodeID1 );
 
-      sleep( 1000 );
+          sleep( 1000 );
+       }
+
+       // 另一个备节点启动Critical模式并检查Critical模式
+       var options = { NodeName: slaveNodes[1], MinKeepTime: 5, MaxKeepTime: 15 };
+       rg.startCriticalMode( options );
+       var properties2 = { NodeName: slaveNodes[1] };
+       checkStartCriticalMode( db, srcGroup, properties2 );
+
+       // 重选举并校验主节点
+       for( var i = 0; i < 3; i++ )
+       {
+          rg.reelect();
+          /// wait catalog update
+          sleep( 1000 ) ;
+          var newMasterNode = rg.getMaster();
+          var nodeID = newMasterNode.getNodeDetail().split( ":" )[0];
+          assert.equal( nodeID, salveNodeID2 );
+          sleep( 1000 );
+       }
+   } finally {
+       // 恢复环境
+       rg.stopCriticalMode();
+       commCheckBusinessStatus( db );
    }
-
-   // 另一个备节点启动Critical模式并检查Critical模式
-   var options = { NodeName: slaveNodes[1], MinKeepTime: 5, MaxKeepTime: 15 };
-   rg.startCriticalMode( options );
-   var properties2 = { NodeName: slaveNodes[1] };
-   checkStartCriticalMode( db, srcGroup, properties2 );
-
-   // 重选举并校验主节点
-   for( var i = 0; i < 3; i++ )
-   {
-      rg.reelect();
-      /// wait catalog update
-      sleep( 1000 ) ;
-      var newMasterNode = rg.getMaster();
-      var nodeID = newMasterNode.getNodeDetail().split( ":" )[0];
-      assert.equal( nodeID, salveNodeID2 );
-      sleep( 1000 );
-   }
-
-   // 恢复环境
-   rg.stopCriticalMode();
-   commCheckBusinessStatus( db );
 }

@@ -1918,7 +1918,7 @@ namespace engine
          shardCB *shardCB = sdbGetShardCB() ;
 
          // update DC from remote
-         rc = shardCB->updateDCBaseInfo() ;
+         rc = shardCB->updateDCBaseInfo( TRUE ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG( PDWARNING, "Failed to update DC info from CATALOG, "

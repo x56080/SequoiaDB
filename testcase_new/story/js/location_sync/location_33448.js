@@ -42,7 +42,7 @@ function test ()
       dbcl.insert( docs );
 
       // 等待超过最高运行窗口时间
-      var waitTime = maxKeepTime + 1;
+      var waitTime = maxKeepTime + 0.2;
       validateWaitTime( beginTime, waitTime );
 
       // 校验节点运维模式

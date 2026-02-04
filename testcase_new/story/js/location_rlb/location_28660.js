@@ -22,6 +22,10 @@ function test ()
    try
    {
       var catalogRG = db.getCatalogRG();
+
+      removeNode( catalogRG, hostName, port1 );
+      removeNode( catalogRG, hostName, port2 );
+
       var catalog1 = catalogRG.createNode( hostName, port1, dbpath1, { diaglevel: 5 } );
       var catalog2 = catalogRG.createNode( hostName, port2, dbpath2, { diaglevel: 5 } );
       // SEQUOIADBMAINSTREAM-10021 规避bug

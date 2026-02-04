@@ -550,14 +550,7 @@ namespace engine
                               INT16 w = 1, INT64 *pContextID = NULL ) ;
 
       private:
-         INT32 _parseOptions() ;
-
-      private:
-         UINT32                 _groupID ;
          const CHAR*            _pActionName ;
-         BSONObj                _option ;
-         BOOLEAN                _enforced ;
-         clsGroupMode           _grpMode ;
    } ;
 
 }

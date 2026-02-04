@@ -37,25 +37,27 @@ function test() {
   var rg = db.getRG(groupName);
   var nodeList = commGetGroupNodes(db, groupName);
 
-  // Step 1: set location for two nodes and check location primary
-  setLocationForNodes(rg, nodeList, location);
-  var primary = checkAndGetLocationHasPrimary(db, groupName, location, 34);
+  try {
+      // Step 1: set location for two nodes and check location primary
+      setLocationForNodes(rg, nodeList, location);
+      var primary = checkAndGetLocationHasPrimary(db, groupName, location, 34);
 
-  // Step 2: use kill -9 to stop location primary, and check new location primary
-  var nodeName = primary.split(":");
-  var primaryName = [{ HostName: nodeName[0], svcname: nodeName[1] }];
-  killNodes(primaryName);
-  var primary1 = checkAndGetLocationHasPrimary(db, groupName, location, 120);
+      // Step 2: use kill -9 to stop location primary, and check new location primary
+      var nodeName = primary.split(":");
+      var primaryName = [{ HostName: nodeName[0], svcname: nodeName[1] }];
+      killNodes(primaryName);
+      var primary1 = checkAndGetLocationHasPrimary(db, groupName, location, 120);
 
-  // Step 2: use kill -9 to stop location slave nodes, and check new location primary
-  var slaveList = getSlaveList(nodeList, primary1);
-  killNodes(slaveList);
-  checkAndGetLocationHasPrimary(db, groupName, location, 120);
+      // Step 2: use kill -9 to stop location slave nodes, and check new location primary
+      var slaveList = getSlaveList(nodeList, primary1);
+      killNodes(slaveList);
+      checkAndGetLocationHasPrimary(db, groupName, location, 120);
 
-  // Step 3: use kill -9 to stop all location nodes, and check new location primary
-  killNodes(nodeList);
-  checkAndGetLocationHasPrimary(db, groupName, location, 120);
-
-  // Reset group info
-  setLocationForNodes(rg, nodeList, "");
+      // Step 3: use kill -9 to stop all location nodes, and check new location primary
+      killNodes(nodeList);
+      checkAndGetLocationHasPrimary(db, groupName, location, 120);
+  } finally {
+      // Reset group info
+      setLocationForNodes(rg, nodeList, "");
+  }
 }

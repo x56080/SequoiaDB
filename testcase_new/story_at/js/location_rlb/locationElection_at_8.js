@@ -38,58 +38,76 @@ function test() {
    var location = "dc_location" ;
    var groups = commGetGroups( db, "", "",false, false );
 
-   dc.setLocation( hostName, location ) ;
-   for( var i=0; i<groups.length;i++ )
-   {
-      var rg = db.getRG( groups[i][0].GroupName );
-      for( var j = 1;j<groups[i].length;j++ )
-      {
-         if ( hostName === groups[i][j].HostName )
-         {
-            var node = rg.getNode(groups[i][j].HostName,groups[i][j].svcname) ;
-            checkNodeLocation(node,undefined);
-         }
-      }
-   }
+   try {
+       try {
+          dc.setLocation( hostName, location ) ;
+          for( var i=0; i<groups.length;i++ )
+          {
+             var rg = db.getRG( groups[i][0].GroupName );
+             for( var j = 1;j<groups[i].length;j++ )
+             {
+                if ( hostName === groups[i][j].HostName )
+                {
+                   var node = rg.getNode(groups[i][j].HostName,groups[i][j].svcname) ;
+                   checkNodeLocation(node,location);
+                }
+             }
+          }
+       }
+       catch ( e ) {
+          hostName = "" ;
+          // when no match any host, will throw SDB_INVALIDARG
+          if ( e != SDB_INVALIDARG )
+          {
+             throw e ;
+          }
+       }
 
-   var hostName = groups[0][1].HostName ;
+       var hostName = groups[0][1].HostName ;
 
-   // 设置节点location大于256个字符
-   var arr = new Array( 258 );
-   var locationName = arr.join( "a" );
-   assert.tryThrow( SDB_INVALIDARG, function()
-   {
-      dc.setLocation( hostName, locationName );
-   } );
+       // 设置节点location大于256个字符
+       var arr = new Array( 258 );
+       var locationName = arr.join( "a" );
+       assert.tryThrow( SDB_INVALIDARG, function()
+       {
+          dc.setLocation( hostName, locationName );
+       } );
 
-   dc.setLocation( hostName, location ) ;
+       dc.setLocation( hostName, location ) ;
 
-   for( var i=0; i<groups.length;i++ )
-   {
-      var rg = db.getRG( groups[i][0].GroupName );
-      for( var j = 1;j<groups[i].length;j++ )
-      {
-         if ( hostName === groups[i][j].HostName )
-         {
-            var node = rg.getNode(groups[i][j].HostName,groups[i][j].svcname) ;
-            checkNodeLocation(node,location);
-         }
-      }
-   }
+       for( var i=0; i<groups.length;i++ )
+       {
+          var rg = db.getRG( groups[i][0].GroupName );
+          for( var j = 1;j<groups[i].length;j++ )
+          {
+             if ( hostName === groups[i][j].HostName )
+             {
+                var node = rg.getNode(groups[i][j].HostName,groups[i][j].svcname) ;
+                checkNodeLocation(node,location);
+             }
+          }
+       }
 
-   dc.setLocation( hostName, "" ) ;
+       dc.setLocation( hostName, "" ) ;
 
-   for( var i=0; i<groups.length;i++ )
-   {
-      var rg = db.getRG( groups[i][0].GroupName );
-      for( var j = 1;j<groups[i].length;j++ )
-      {
-         if ( hostName === groups[i][j].HostName )
-         {
-            var node = rg.getNode(groups[i][j].HostName,groups[i][j].svcname) ;
-            checkNodeLocation(node,undefined);
-         }
-      }
+       for( var i=0; i<groups.length;i++ )
+       {
+          var rg = db.getRG( groups[i][0].GroupName );
+          for( var j = 1;j<groups[i].length;j++ )
+          {
+             if ( hostName === groups[i][j].HostName )
+             {
+                var node = rg.getNode(groups[i][j].HostName,groups[i][j].svcname) ;
+                checkNodeLocation(node,undefined);
+             }
+          }
+       }
+       hostName = "" ;
+   } finally {
+       if ( hostName != "" )
+       {
+           dc.setLocation( hostName, "" ) ;
+       }
    }
 
 }

@@ -158,6 +158,13 @@ namespace engine
       CLS_GROUP_MODE_MAINTENANCE
    } ;
 
+   enum CLS_CRITICAL_TYPE
+   {
+      CLS_CRITICAL_TYPE_NONE     = 0,
+      CLS_CRITICAL_TYPE_LOCATION,
+      CLS_CRITICAL_TYPE_NODE
+   } ;
+
    /*
       CLS_SELECT_RANGE define
    */
@@ -439,7 +446,7 @@ namespace engine
 
       OSS_INLINE BOOLEAN isInCriticalMode() const
       {
-         return OSS_BIT_TEST( beat.electionWeight, CLS_ELECTION_WEIGHT_CRITICAL_NODE ) ;
+         return CLS_GROUP_MODE_CRITICAL == grpMode ;
       }
 
       OSS_INLINE BOOLEAN isInMaintenanceMode() const
@@ -512,6 +519,7 @@ namespace engine
       {
          mode = CLS_GROUP_MODE_NONE ;
          groupID = INVALID_GROUPID ;
+         enforced = FALSE ;
       }
 
       ~_clsGroupMode()
@@ -523,6 +531,7 @@ namespace engine
       {
          mode = grpMode.mode ;
          groupID = grpMode.groupID ;
+         enforced = grpMode.enforced ;
          grpModeInfo = grpMode.grpModeInfo ;
 
          return *this ;
@@ -532,11 +541,13 @@ namespace engine
       {
          mode = CLS_GROUP_MODE_NONE ;
          groupID = INVALID_GROUPID ;
+         enforced = FALSE ;
          grpModeInfo.clear() ;
       }
 
       CLS_GROUP_MODE             mode ;
       UINT32                     groupID ;
+      BOOLEAN                    enforced ;
 
       VEC_GRPMODE_ITEM           grpModeInfo ;
    } ;
@@ -595,19 +606,22 @@ namespace engine
       CLS_LOC_INFO_MAP                   locationInfoMap ;
 
       clsGroupMode                       grpMode ;
-      BOOLEAN                            enforcedGrpMode ;
       CLS_GROUP_MODE                     localGrpMode ;
 
       UINT8                              remoteLocationNodeSize ;
 
    private:
       UINT32 _hashCode ;
+      CLS_CRITICAL_TYPE _criticalType ;
 
    public:
       _clsGroupInfo()
       : localBeatID( CLS_BEATID_BEGIN ), version( 0 ),
-        localLocationID( MSG_INVALID_LOCATIONID ), enforcedGrpMode( FALSE),
-        localGrpMode( CLS_GROUP_MODE_NONE ), remoteLocationNodeSize( 0 ), _hashCode( 0 )
+        localLocationID( MSG_INVALID_LOCATIONID ),
+        localGrpMode( CLS_GROUP_MODE_NONE ),
+        remoteLocationNodeSize( 0 ),
+        _hashCode( 0 ),
+        _criticalType( CLS_CRITICAL_TYPE_NONE )
       {
          local.value = 0 ;
          primary.value = 0 ;
@@ -632,7 +646,6 @@ namespace engine
          localLocationID = MSG_INVALID_LOCATIONID ;
          localLocation.clear() ;
          grpMode.reset() ;
-         enforcedGrpMode = FALSE ;
          localGrpMode = CLS_GROUP_MODE_NONE ;
          remoteLocationNodeSize = 0 ;
       }
@@ -650,7 +663,41 @@ namespace engine
       void     setHashCode( UINT32 hashCode ) { _hashCode = hashCode ; }
       UINT32   getHashCode() const { return _hashCode ; }
 
-      UINT32 groupSize ()
+      BOOLEAN  isLocationCritical() const
+      {
+         return CLS_CRITICAL_TYPE_LOCATION == _criticalType ? TRUE : FALSE ;
+      }
+      BOOLEAN  isNodeCritical() const
+      {
+         return CLS_CRITICAL_TYPE_NODE == _criticalType ? TRUE : FALSE ; ;
+      }
+      void     parseGroupMode()
+      {
+         if ( CLS_GROUP_MODE_CRITICAL == grpMode.mode && ! grpMode.grpModeInfo.empty() )
+         {
+            clsGrpModeItem &item = grpMode.grpModeInfo[0] ;
+            if ( INVALID_NODEID != item.nodeID )
+            {
+               _criticalType = CLS_CRITICAL_TYPE_NODE ;
+            }
+            else if ( MSG_INVALID_LOCATIONID != item.locationID )
+            {
+               _criticalType = CLS_CRITICAL_TYPE_LOCATION ;
+            }
+            else
+            {
+               SDB_ASSERT( FALSE, "imposible" ) ;
+               _criticalType = CLS_CRITICAL_TYPE_NONE ;
+            }
+         }
+         else
+         {
+            _criticalType = CLS_CRITICAL_TYPE_NONE ;
+            SDB_ASSERT( CLS_GROUP_MODE_CRITICAL != grpMode.mode, "Invalid group mode" ) ;
+         }
+      }
+
+      UINT32 groupSize () const
       {
          if ( CLS_GROUP_MODE_MAINTENANCE == grpMode.mode )
          {
@@ -662,11 +709,11 @@ namespace engine
          }
       }
 
-      UINT32 aliveSize ()
+      UINT32 aliveSize () const
       {
          if ( CLS_GROUP_MODE_MAINTENANCE == grpMode.mode )
          {
-            return alives.size() + 1 - maintenanceAliveSize();
+            return alives.size() + 1 - maintenanceAliveSize() ;
          }
          else
          {
@@ -712,13 +759,13 @@ namespace engine
          return count ;
       }
 
-      BOOLEAN isAllNodeBeat()
+      BOOLEAN isAllNodeBeat() const
       {
-         map<UINT64, _clsSharingStatus>::iterator it = info.begin() ;
+         map<UINT64, _clsSharingStatus>::const_iterator it = info.begin() ;
          while ( it != info.end() )
          {
             const _clsSharingStatus &status = it->second ;
-            if ( 0 == status.beat.beatID )
+            if ( 0 == status.beat.beatID && !status.isInMaintenanceMode() )
             {
                return FALSE ;
             }
@@ -727,12 +774,35 @@ namespace engine
          return TRUE ;
       }
 
-      BOOLEAN isAllNodeAbnormal( UINT32 timeout )
+      BOOLEAN isAllCriticalNodeBeat() const
       {
-         map<UINT64, _clsSharingStatus>::iterator it = info.begin() ;
+         map<UINT64, _clsSharingStatus>::const_iterator it = info.begin() ;
          while ( it != info.end() )
          {
             const _clsSharingStatus &status = it->second ;
+            if ( 0 == status.beat.beatID && !status.isInCriticalMode() )
+            {
+               return FALSE ;
+            }
+            ++it ;
+         }
+         return TRUE ;
+      }
+
+      BOOLEAN isAllNodeAbnormal( UINT32 timeout ) const
+      {
+         map<UINT64, _clsSharingStatus>::const_iterator it = info.begin() ;
+         while ( it != info.end() )
+         {
+            const _clsSharingStatus &status = it->second ;
+
+            /// skip maintenance node
+            if ( status.isInMaintenanceMode() )
+            {
+               ++it ;
+               continue ;
+            }
+
             if ( SERVICE_NORMAL == status.beat.serviceStatus )
             {
                return FALSE ;
@@ -747,16 +817,22 @@ namespace engine
          return TRUE ;
       }
 
-      UINT32 getCriticalAlivesByTimeout( UINT32 timeout = CLS_NODE_KEEPALIVE_TIMEOUT )
+      UINT32 getCriticalAlivesByTimeout( UINT32 timeout = CLS_NODE_KEEPALIVE_TIMEOUT ) const
       {
          UINT32 count = 1 ;
-         map<UINT64, _clsSharingStatus>::iterator it = info.begin() ;
+         map<UINT64, _clsSharingStatus>::const_iterator it = info.begin() ;
          while ( it != info.end() )
          {
             const _clsSharingStatus &status = it->second ;
-            if ( SERVICE_UNKNOWN == status.beat.serviceStatus &&
-                 ( 0 == timeout || status.breakTime > timeout ) &&
-                 status.isInCriticalMode() )
+
+            /// ignore un-critical nodes
+            if ( !status.isInCriticalMode() )
+            {
+               ++it ;
+               continue ;
+            }
+            else if ( SERVICE_UNKNOWN == status.beat.serviceStatus &&
+                      ( 0 == timeout || status.breakTime > timeout ) )
             {
                ++it ;
                continue ;
@@ -767,10 +843,10 @@ namespace engine
          return count ;
       }
 
-      UINT32 getAlivesByTimeout( UINT32 timeout = CLS_NODE_KEEPALIVE_TIMEOUT )
+      UINT32 getAlivesByTimeout( UINT32 timeout = CLS_NODE_KEEPALIVE_TIMEOUT ) const
       {
          UINT32 count = 1 ;
-         map<UINT64, _clsSharingStatus>::iterator it = info.begin() ;
+         map<UINT64, _clsSharingStatus>::const_iterator it = info.begin() ;
          while ( it != info.end() )
          {
             const _clsSharingStatus &status = it->second ;
@@ -786,7 +862,7 @@ namespace engine
          return count ;
       }
 
-      UINT32 getAlivesByLsn( UINT64 minLsnOffset )
+      UINT32 getAlivesByLsn( UINT64 minLsnOffset ) const
       {
          UINT32 count = 1 ;
 
@@ -812,31 +888,31 @@ namespace engine
          return count ;
       }
 
-      UINT32 getNodeSendFailedTimes( UINT64 nodeID )
+      UINT32 getNodeSendFailedTimes( UINT64 nodeID ) const
       {
-         map<UINT64, _clsSharingStatus>::iterator it = info.find( nodeID ) ;
-         SDB_ASSERT( it != info.end(), "Node is not exist" ) ;
+         map<UINT64, _clsSharingStatus>::const_iterator cit = info.find( nodeID ) ;
+         SDB_ASSERT( cit != info.end(), "Node is not exist" ) ;
 
-         if ( it != info.end() )
+         if ( cit != info.end() )
          {
-            return it->second.sendFailedTimes ;
+            return cit->second.sendFailedTimes ;
          }
          return (UINT32)-1 ;
       }
 
-      UINT32 criticalSize()
+      UINT32 criticalSize() const
       {
          UINT32 num = 0 ;
 
          if ( CLS_GROUP_MODE_CRITICAL == grpMode.mode )
          {
             // If group is in critical node mode, this size is 1
-            if ( INVALID_NODEID != grpMode.grpModeInfo[0].nodeID )
+            if ( isNodeCritical() )
             {
                num = 1 ;
             }
             // If group is in critical location mode, return location's node count
-            else if ( ! grpMode.grpModeInfo[0].location.empty() )
+            else if ( isLocationCritical() && ! grpMode.grpModeInfo[0].location.empty() )
             {
                UINT32 locationID = grpMode.grpModeInfo[0].locationID ;
 
@@ -852,7 +928,7 @@ namespace engine
          return num ;
       }
 
-      UINT32 maintenanceSize()
+      UINT32 maintenanceSize() const
       {
          UINT32 num = 0 ;
 
@@ -882,6 +958,11 @@ namespace engine
                  alives.find( it->first ) == alives.end() )
             {
                /// not in alive, ignore
+               ++it ;
+               continue ;
+            }
+            else if ( onlyInAlive && pStatus->isInMaintenanceMode() )
+            {
                ++it ;
                continue ;
             }
@@ -1003,6 +1084,7 @@ namespace engine
       UINT32            locationID ;
       BOOLEAN           affinitive ;
       UINT8             locationIndex ;
+      CLS_GROUP_MODE    grpMode ;
 
       _clsSyncStatus():offset(0),syncOffset(0)
       {
@@ -1011,6 +1093,7 @@ namespace engine
          locationID     = MSG_INVALID_LOCATIONID ;
          affinitive     = FALSE ;
          locationIndex  = 0xFF ;
+         grpMode        = CLS_GROUP_MODE_NONE ;
       }
 
       _clsSyncStatus& operator=( const _clsSyncStatus &right )
@@ -1022,16 +1105,38 @@ namespace engine
          locationID     = right.locationID ;
          affinitive     = right.affinitive ;
          locationIndex  = right.locationIndex ;
+         grpMode        = right.grpMode ;
 
          return *this ;
+      }
+
+      void setInFullSync()
+      {
+         offset = DPS_INVALID_LSN_OFFSET ;
+         syncOffset = DPS_INVALID_LSN_OFFSET ;
+      }
+
+      BOOLEAN isInFullSync() const
+      {
+         return DPS_INVALID_LSN_OFFSET == offset ? TRUE : FALSE ;
+      }
+
+      BOOLEAN isInMaintenance() const
+      {
+         return CLS_GROUP_MODE_MAINTENANCE == grpMode ? TRUE : FALSE ;
+      }
+
+      BOOLEAN isInCriticalMode() const
+      {
+         return CLS_GROUP_MODE_CRITICAL == grpMode ? TRUE : FALSE ;
       }
 
       BOOLEAN isValid() const
       {
          // 1. already full sync
-         // 2. sharing-break
-         if ( DPS_INVALID_LSN_OFFSET == offset ||
-              !valid )
+         // 2. maintenance
+         // 3. sharing-break
+         if ( isInFullSync() || isInMaintenance() || !valid )
          {
             return FALSE ;
          }

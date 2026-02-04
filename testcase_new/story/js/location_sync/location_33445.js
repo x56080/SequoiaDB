@@ -19,11 +19,14 @@ function test ()
    var masterNodeName = group.getMaster().getHostName() + ":" + group.getMaster().getServiceName();
 
    // 主节点启动运维模式
-   var options = { NodeName: masterNodeName, MinKeepTime: 10, MaxKeepTime: 20 };
+   var options = { NodeName: masterNodeName, MinKeepTime: 1, MaxKeepTime: 2 };
    group.startMaintenanceMode( options );
-
-   // 检查没有节点启动运维模式
-   checkGroupStopMode( db, groupName );
+   
+   // 检查主节点启动运维模式
+   checkGroupNodeNameMode( db, groupName, masterNodeName, "maintenance" );
+   
+   // 停止运维模式
+   group.stopMaintenanceMode();
 
    // 指定备节点启动运维模式
    options = { NodeName: slaveNodeName, MinKeepTime: 1, MaxKeepTime: 2 };

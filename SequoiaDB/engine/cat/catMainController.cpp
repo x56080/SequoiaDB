@@ -219,8 +219,13 @@ namespace engine
          {
             CHAR *pData = NULL ;
             MsgHeader *pMsg = ( MsgHeader* )last->_Data ;
-            if ( SDB_OK == _pEDUCB->allocBuff( (UINT32)pMsg->messageLength,
-                                               &pData, NULL ) )
+            if ( pMsg->flags & FLAG_NODELAY )
+            {
+               result = FALSE ;
+               goto done ;
+            }
+            else if ( SDB_OK == _pEDUCB->allocBuff( (UINT32)pMsg->messageLength,
+                                                    &pData, NULL ) )
             {
                ossMemcpy( pData, last->_Data, pMsg->messageLength ) ;
                event._Data = pData ;

@@ -5171,6 +5171,13 @@ namespace engine
          }
          grpMode.groupID = ele.numberInt() ;
 
+         // Get Enforced field
+         ele = grpModeObj.getField( FIELD_NAME_ENFORCED1 ) ;
+         if ( Bool == ele.type() )
+         {
+            grpMode.enforced = ele.boolean() ;
+         }
+
          // Get properties field
          ele = grpModeObj.getField( CAT_PROPERTIES_NAME ) ;
          if ( ele.eoo() || Array != ele.type() )
@@ -5372,6 +5379,8 @@ namespace engine
             insertBuilder.append( CAT_GROUP_MODE_NAME, CAT_MAINTENANCE_MODE_NAME ) ;
          }
 
+         insertBuilder.appendBool( FIELD_NAME_ENFORCED1, grpMode.enforced ) ;
+
          // Properties builder
          BSONArrayBuilder propBuilder( insertBuilder.subarrayStart( CAT_PROPERTIES_NAME ) ) ;
 
@@ -5446,6 +5455,9 @@ namespace engine
          {
             setBuilder.append( CAT_GROUP_MODE_NAME, CAT_MAINTENANCE_MODE_NAME ) ;
          }
+
+         setBuilder.appendBool( FIELD_NAME_ENFORCED1, grpMode.enforced ) ;
+
          setBuilder.doneFast() ;
 
          // Get Properties field
@@ -5598,6 +5610,7 @@ namespace engine
             // Unset group mode
             BSONObjBuilder unsetBuilder( updatorBuilder.subobjStart( "$unset" ) ) ;
             unsetBuilder.append( CAT_GROUP_MODE_NAME, "" ) ;
+            unsetBuilder.appendBool( FIELD_NAME_ENFORCED1, FALSE ) ;
             unsetBuilder.doneFast() ;
 
             // Set properties to empty
@@ -5627,6 +5640,13 @@ namespace engine
             }
             propBuilder.doneFast() ;
             pullBuilder.doneFast() ;
+         }
+         else
+         {
+            // null group mode
+            BSONObjBuilder nullBuilder( updatorBuilder.subobjStart( "$null" ) ) ;
+            nullBuilder.append( CAT_GROUP_MODE_NAME, "" ) ;
+            nullBuilder.doneFast() ;
          }
       }
       catch ( exception &e )
@@ -5878,6 +5898,7 @@ namespace engine
                   PD_LOG_MSG( PDERROR, "Patrmeter [%s]'s value is not bool", FIELD_NAME_ENFORCED1 ) ;
                   goto error ;
                }
+               groupMode.enforced = optionEle.boolean() ;
             }
             // Get MinKeepTime field
             else if ( 0 == ossStrcmp( CAT_MIN_KEEP_TIME_NAME, optionEle.fieldName() ) )
@@ -5917,21 +5938,35 @@ namespace engine
          // Check if any required parameters are missing
          if ( ( ! hasNodeName ) && ( ! hasLocation ) && ( NULL == pHostName ) )
          {
-            rc = SDB_OUT_OF_BOUND ;
+            rc = SDB_INVALIDARG ;
             PD_LOG_MSG( PDERROR, "Parameter [%s] or [%s] is missing",
                         FIELD_NAME_NODE_NAME, FIELD_NAME_LOCATION ) ;
             goto error ;
          }
          else if ( ( ! hasLocation ) && ( ! hasHostName ) && ( NULL != pHostName ) )
          {
-            rc = SDB_OUT_OF_BOUND ;
+            rc = SDB_INVALIDARG ;
             PD_LOG_MSG( PDERROR, "Parameter [%s] or [%s] is missing",
+                        FIELD_NAME_LOCATION, FIELD_NAME_HOST ) ;
+            goto error ;
+         }
+         else if ( hasNodeName && hasLocation && NULL == pHostName )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "Parameter [%s] and [%s] are conflict",
+                        FIELD_NAME_NODE_NAME, FIELD_NAME_LOCATION ) ;
+            goto error ;
+         }
+         else if ( hasLocation && hasHostName && NULL != pHostName )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "Parameter [%s] and [%s] are conflict",
                         FIELD_NAME_LOCATION, FIELD_NAME_HOST ) ;
             goto error ;
          }
          else if ( parseTime && ! ( hasMinKeepTime && hasMaxKeepTime ) )
          {
-            rc = SDB_OUT_OF_BOUND ;
+            rc = SDB_INVALIDARG ;
             PD_LOG_MSG( PDERROR, "Parameter [%s] or [%s] is missing",
                         CAT_MIN_KEEP_TIME_NAME, CAT_MAX_KEEP_TIME_NAME ) ;
             goto error ;
@@ -5989,10 +6024,18 @@ namespace engine
 
             if ( CAT_INVALID_LOCATIONID == tmpLocationID )
             {
-               rc = SDB_INVALIDARG ;
-               PD_LOG_MSG( PDERROR, "Location:[%s] doesn't exist in group[%u]",
-                           tmpLocation.c_str(), groupID ) ;
-               goto error ;
+               if ( pHostName )
+               {
+                  /// no matched
+                  goto done ;
+               }
+               else
+               {
+                  rc = SDB_INVALIDARG ;
+                  PD_LOG_MSG( PDERROR, "Location:[%s] doesn't exist in group[%u]",
+                              tmpLocation.c_str(), groupID ) ;
+                  goto error ;
+               }
             }
             tmpGrpModeItem.location = tmpLocation.c_str() ;
             tmpGrpModeItem.locationID = tmpLocationID ;
@@ -9748,18 +9791,78 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATSETGRPMODE, "catSetGrpMode" )
    INT32 catSetGrpMode ( const clsGroupMode &grpMode,
-                         const BOOLEAN incGrpVer,
+                         BOOLEAN incGrpVer,
                          _pmdEDUCB *cb, SDB_DMSCB *pDmsCB,
-                         SDB_DPSCB *pDpsCB, INT16 w )
+                         SDB_DPSCB *pDpsCB, INT16 w,
+                         BOOLEAN *pHasChanged )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_CATSETGRPMODE ) ;
 
+      const CHAR *pLocalGroupMode = NULL ;
+      BSONObj objGroup ;
+
       BSONObj updator, matcher ;
       BSONObjBuilder updatorBuilder, matcherBuilder ;
 
+      rc = catGetGroupObj( grpMode.groupID, objGroup, cb ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Get group[%u] info failed, rc: %d", grpMode.groupID, rc ) ;
+         goto error ;
+      }
+      else
+      {
+         BSONElement ele = objGroup.getField( CAT_GROUP_MODE_NAME ) ;
+         if ( String == ele.type() )
+         {
+            pLocalGroupMode = ele.valuestr() ;
+         }
+         else if ( ! ele.eoo() )
+         {
+            pLocalGroupMode = "" ;
+         }
+      }
+
       // Append groupID to matcher
       matcherBuilder.append( CAT_GROUPID_NAME, grpMode.groupID ) ;
+
+      // Build set/unset updator
+      if ( CLS_GROUP_MODE_CRITICAL == grpMode.mode )
+      {
+         if ( !pLocalGroupMode ||
+              0 != ossStrcasecmp( pLocalGroupMode,CAT_CRITICAL_MODE_NAME ) )
+         {
+            BSONObjBuilder setBuilder( updatorBuilder.subobjStart( "$set" ) ) ;
+            setBuilder.append( CAT_GROUP_MODE_NAME, CAT_CRITICAL_MODE_NAME ) ;
+            setBuilder.doneFast() ;
+
+            incGrpVer = TRUE ;
+         }
+      }
+      else if ( CLS_GROUP_MODE_MAINTENANCE == grpMode.mode )
+      {
+         if ( !pLocalGroupMode ||
+              0 != ossStrcasecmp( pLocalGroupMode,CAT_MAINTENANCE_MODE_NAME ) )
+         {
+            BSONObjBuilder setBuilder( updatorBuilder.subobjStart( "$set" ) ) ;
+            setBuilder.append( CAT_GROUP_MODE_NAME, CAT_MAINTENANCE_MODE_NAME ) ;
+            setBuilder.doneFast() ;
+
+            incGrpVer = TRUE ;
+         }
+      }
+      else
+      {
+         if ( pLocalGroupMode )
+         {
+            BSONObjBuilder unsetBuilder( updatorBuilder.subobjStart( "$unset" ) ) ;
+            unsetBuilder.append( CAT_GROUP_MODE_NAME, "" ) ;
+            unsetBuilder.doneFast() ;
+
+            incGrpVer = TRUE ;
+         }
+      }
 
       // Build version increase updator
       if ( incGrpVer )
@@ -9767,37 +9870,22 @@ namespace engine
          BSONObjBuilder incBuilder( updatorBuilder.subobjStart( "$inc" ) ) ;
          incBuilder.append( CAT_VERSION_NAME, 1 ) ;
          incBuilder.doneFast() ;
-      }
 
-      // Build set/unset updator
-      if ( CLS_GROUP_MODE_CRITICAL == grpMode.mode )
-      {
-         BSONObjBuilder setBuilder( updatorBuilder.subobjStart( "$set" ) ) ;
-         setBuilder.append( CAT_GROUP_MODE_NAME, CAT_CRITICAL_MODE_NAME ) ;
-         setBuilder.doneFast() ;
-      }
-      else if ( CLS_GROUP_MODE_MAINTENANCE == grpMode.mode )
-      {
-         BSONObjBuilder setBuilder( updatorBuilder.subobjStart( "$set" ) ) ;
-         setBuilder.append( CAT_GROUP_MODE_NAME, CAT_MAINTENANCE_MODE_NAME ) ;
-         setBuilder.doneFast() ;
-      }
-      else
-      {
-         BSONObjBuilder unsetBuilder( updatorBuilder.subobjStart( "$unset" ) ) ;
-         unsetBuilder.append( CAT_GROUP_MODE_NAME, "" ) ;
-         unsetBuilder.doneFast() ;
-      }
+         // Update group
+         updator = updatorBuilder.obj() ;
+         matcher = matcherBuilder.obj() ;
 
-      // Update group
-      updator = updatorBuilder.obj() ;
-      matcher = matcherBuilder.obj() ;
+         rc = rtnUpdate( CAT_NODE_INFO_COLLECTION, matcher, updator, BSONObj(),
+                         0, cb, pDmsCB, pDpsCB, w ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to update group[%u], matcher: %s, "
+                      "updator: %s, rc: %d", grpMode.groupID, matcher.toPoolString().c_str(),
+                      updator.toPoolString().c_str(), rc ) ;
 
-      rc = rtnUpdate( CAT_NODE_INFO_COLLECTION, matcher, updator, BSONObj(),
-                      0, cb, pDmsCB, pDpsCB, w ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to update group[%u], matcher: %s, "
-                   "updator: %s, rc: %d", grpMode.groupID, matcher.toPoolString().c_str(),
-                   updator.toPoolString().c_str(), rc ) ;
+         if ( pHasChanged )
+         {
+            *pHasChanged = TRUE ;
+         }
+      }
 
    done :
       PD_TRACE_EXITRC ( SDB_CATSETGRPMODE, rc ) ;

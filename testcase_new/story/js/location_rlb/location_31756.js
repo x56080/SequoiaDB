@@ -24,13 +24,9 @@ function test ( args )
    var masterNode = rg.getMaster();
    var masterNodeName = masterNode.getHostName() + ":" + masterNode.getServiceName();
 
-   // 停止group中2个备节点
-   var slaveNode1 = rg.getNode( slaveNodes[0] );
-   var slaveNode2 = rg.getNode( slaveNodes[1] );
    try
    {
-      killNode( db, slaveNode1 );
-      killNode( db, slaveNode2 );
+      stopNodes( db, rg, slaveNodes );
 
       // 剩余一个节点启动Critical模式
       var minKeepTime = 1;
@@ -47,7 +43,7 @@ function test ( args )
       commCheckBusinessStatus( db );
 
       // 检查Critical模式
-      var waitTime = minKeepTime + 2;
+      var waitTime = minKeepTime + 0.2;
       validateWaitTime( beginTime, waitTime );
 
       // 插入数据并校验

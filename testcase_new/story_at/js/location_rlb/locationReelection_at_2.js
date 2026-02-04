@@ -44,67 +44,74 @@ function test() {
   // Step 0: create a group contains one node
   var rg = db.getRG(groupName);
   var nodeList = commGetGroupNodes(db, groupName);
-  var replPrimary = rg.getMaster();
-  var replPrimaryName = replPrimary.getHostName() + ":" + replPrimary.getServiceName();
+  var replPrimaryName = getReplPrimaryName(rg);
+  var replPrimary = rg.getNode( replPrimaryName );
 
-  // Step 1: set location for all node except replica group's primary and check location primary in location
-  var locNodelList = getSlaveList(nodeList, replPrimaryName);
-  setLocationForNodes(rg, locNodelList, location);
-  var primary = checkAndGetLocationHasPrimary(db, groupName, location, 34);
+  println( "Repl group primary is: " + replPrimaryName ) ;
 
-  // Step 2: use different argument in rg.reelectLocation and check the result
-  // Reelect location in 60s
-  rg.reelectLocation(location, { Seconds: 60 });
-  var primary1 = checkAndGetLocationHasPrimary(db, groupName, location, 1);
-  assert.notEqual(primary, primary1, "Reelect location didn't change primary");
+  try {
+      // Step 1: set location for all node except replica group's primary and check location primary in location
+      var locNodelList = getSlaveList(nodeList, replPrimaryName);
+      println( "Set nodes(" + JSON.stringify( locNodelList ) + ") location(" + location + ")" );
+      setLocationForNodes(rg, locNodelList, location);
+      var primary = checkAndGetLocationHasPrimary(db, groupName, location, 34);
+      println( "Location primary is: " + primary ) ;
 
-  // Reelect location using given NodeID
-  var slaveList = getSlaveList(locNodelList, primary1);
-  rg.reelectLocation(location, { NodeID: slaveList[0].NodeID, Seconds: 60 });
-  var primary2 = checkAndGetLocationHasPrimary(db, groupName, location, 1);
-  assert.equal(
-    primary2,
-    slaveList[0].HostName + ":" + slaveList[0].svcname,
-    "Reelect location didn't change to given primary"
-  );
+      // Step 2: use different argument in rg.reelectLocation and check the result
+      // Reelect location in 60s
+      rg.reelectLocation(location, { Seconds: 60 });
+      var primary1 = checkAndGetLocationHasPrimary(db, groupName, location, 1);
+      println( "Location priamry is: " + primary1 ) ;
+      assert.notEqual(primary, primary1, "Reelect location didn't change primary");
 
-  // Set location for replica group's primary and reelect location to this node using given HostName and ServiceName
-  replPrimary.setLocation(location);
-  rg.reelectLocation(location, {
-    HostName: replPrimary.getHostName(),
-    ServiceName: replPrimary.getServiceName(),
-  });
-  var primary3 = checkAndGetLocationHasPrimary(db, groupName, location, 1);
-  assert.equal(
-    primary3,
-    replPrimary.getHostName() + ":" + replPrimary.getServiceName(),
-    "Reelect location didn't change to given primary"
-  );
+      // Reelect location using given NodeID
+      var slaveList = getSlaveList(locNodelList, primary1);
+      rg.reelectLocation(location, { NodeID: slaveList[0].NodeID, Seconds: 60 });
+      var primary2 = checkAndGetLocationHasPrimary(db, groupName, location, 1);
+      println( "Location priamry is: " + primary2 ) ;
+      assert.equal(
+        primary2,
+        slaveList[0].HostName + ":" + slaveList[0].svcname,
+        "Reelect location didn't change to given primary"
+      );
 
-  // Step 3: Reelect location if location primary and replica group's primary are the same
-  assert.tryThrow(SDB_OPERATION_CONFLICT, function () {
-    rg.reelectLocation(location);
-  });
-  var primary4 = checkAndGetLocationHasPrimary(db, groupName, location, 1);
-  assert.equal(primary3, primary4, "Reelect location didn't change to given primary");
+      // Set location for replica group's primary and reelect location to this node using given HostName and ServiceName
+      replPrimary.setLocation(location);
+      sleep( 3000 ) ;
+      var primary3 = checkAndGetLocationHasPrimary(db, groupName, location, 34);
+      println( "Location priamry is: " + primary3 ) ;
+      assert.equal(
+        primary3,
+        replPrimary.getHostName() + ":" + replPrimary.getServiceName(),
+        "Reelect location didn't change to given primary"
+      );
 
-  assert.tryThrow(SDB_OPERATION_CONFLICT, function () {
-    rg.reelectLocation(location, { NodeID: slaveList[0].NodeID });
-  });
-  var primary5 = checkAndGetLocationHasPrimary(db, groupName, location, 1);
-  assert.equal(primary4, primary5, "Reelect location didn't change to given primary");
+      // Step 3: Reelect location if location primary and replica group's primary are the same
+      assert.tryThrow(SDB_OPERATION_CONFLICT, function () {
+        rg.reelectLocation(location);
+      });
+      var primary4 = checkAndGetLocationHasPrimary(db, groupName, location, 1);
+      assert.equal(primary3, primary4, "Reelect location didn't change to given primary");
 
-  // Step 4: Stop 2 of group nodes and check if locationReelect can be execute
-  var node1 = rg.getNode(slaveList[0].HostName, slaveList[0].svcname);
-  node1.stop();
-  var node2 = rg.getNode(slaveList[1].HostName, slaveList[1].svcname);
-  node2.stop();
-  sleep(11000);
-  assert.tryThrow(SDB_CLS_NOT_LOCATION_PRIMARY, function () {
-    rg.reelectLocation(location);
-  });
+      assert.tryThrow(SDB_OPERATION_CONFLICT, function () {
+        rg.reelectLocation(location, { NodeID: slaveList[0].NodeID });
+      });
+      var primary5 = checkAndGetLocationHasPrimary(db, groupName, location, 1);
+      assert.equal(primary4, primary5, "Reelect location didn't change to given primary");
 
-  // Reset group info
-  rg.start();
-  // removeDataGroup(db, groupName);
+      // Step 4: Stop 2 of group nodes and check if locationReelect can be execute
+      var node1 = rg.getNode(slaveList[0].HostName, slaveList[0].svcname);
+      node1.stop();
+      var node2 = rg.getNode(slaveList[1].HostName, slaveList[1].svcname);
+      node2.stop();
+      sleep(3000);
+      assert.tryThrow(SDB_CLS_NOT_LOCATION_PRIMARY, function () {
+        rg.reelectLocation(location);
+      });
+  } finally {
+      // Reset group info
+      rg.start();
+      setLocationForNodes(rg, nodeList, "");
+      // removeDataGroup(db, groupName);
+  }
 }

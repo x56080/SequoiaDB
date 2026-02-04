@@ -109,11 +109,10 @@ namespace engine
     _current( NULL ),
     _groupInfo( info ),
     _shadowTimeout( 0 ),
-    _shadowForReelect( TRUE ),
+    _shadowAutoRestore( FALSE ),
     _forceMillis( 0 ),
     _electionWeight( CLS_ELECTION_WEIGHT_DFT ),
-    _shadowWeight( CLS_ELECTION_WEIGHT_USR_MIN ),
-    _grpModeShadowTime( 0 )
+    _shadowWeight( CLS_ELECTION_WEIGHT_USR_MIN )
    {
    }
 
@@ -178,15 +177,14 @@ namespace engine
          rc = SDB_INVALIDARG ;
          goto done ;
       }
-      if ( CLS_GROUP_MODE_MAINTENANCE != _groupInfo->localGrpMode )
+
+      rc = _current->handleInput( header, next ) ;
+      if ( SDB_OK != rc )
       {
-         rc = _current->handleInput( header, next ) ;
-         if ( SDB_OK != rc )
-         {
-            goto error ;
-         }
-         CLS_VOTE_ACTIVE_STATUS( next, FALSE ) ;
+         goto error ;
       }
+      CLS_VOTE_ACTIVE_STATUS( next, FALSE ) ;
+
    done:
       PD_TRACE_EXITRC ( SDB__CLSVTMH_HDINPUT, rc ) ;
       return rc ;
@@ -206,33 +204,10 @@ namespace engine
       else
       {
          _shadowTimeout = 0 ;
-         if ( !_shadowForReelect )
+         if ( _shadowAutoRestore )
          {
-            // if the shadow wight is not set for reelect,
-            // it should be timeout to restore
-            _shadowWeight = CLS_ELECTION_WEIGHT_USR_MIN ;
-            _shadowForReelect = TRUE ;
-         }
-      }
-
-      // Handle group mode shadow time
-      if ( _grpModeShadowTime > 0 )
-      {
-         _grpModeShadowTime -= millisec ;
-
-         // Remove group mode
-         if ( _grpModeShadowTime <= 0 )
-         {
-            ossScopedRWLock lock( &_groupInfo->mtx, SHARED ) ;
-            if ( CLS_GROUP_MODE_CRITICAL == _groupInfo->grpMode.mode )
-            {
-               // Remove reelect targetNode flag, if this flag is use for critical mode instead of reelectGroup
-               resetGrpModeElectionWeights() ;
-               _groupInfo->localGrpMode = CLS_GROUP_MODE_NONE ;
-               _groupInfo->grpMode.reset() ;
-               _groupInfo->enforcedGrpMode = FALSE ;
-            }
-            _grpModeShadowTime = 0 ;
+            // if the shadow wight is auto restore( ex: reelect )
+            resetShadowWeight() ;
          }
       }
 
@@ -251,7 +226,7 @@ namespace engine
             _forceMillis -= millisec ;
          }
       }
-      else if ( CLS_GROUP_MODE_MAINTENANCE != _groupInfo->localGrpMode )
+      else
       {
          INT32 next = CLS_INVALID_VOTE_ID ;
          _current->handleTimeout( millisec, next ) ;
@@ -288,11 +263,6 @@ namespace engine
    void _clsVoteMachine::resetGrpModeElectionWeights()
    {
       resetElectionWeight( CLS_ELECTION_WEIGHT_CRITICAL_NODE ) ;
-      /// when is not in reelect
-      if ( CLS_ELECTION_WEIGHT_USR_MIN == _shadowWeight )
-      {
-         resetElectionWeight( CLS_ELECTION_WEIGHT_REELECT_TARGET_NODE ) ;
-      }
    }
 
    INT32 _clsVoteMachine::startCriticalModeMonitor()

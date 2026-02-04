@@ -19,54 +19,59 @@ function test ()
    // 获取group中的备节点
    var slaveNodes = getGroupSlaveNodeName( db, dataGroupName );
 
+   if ( slaveNodes.length < 2 )
+   {
+       return ;
+   }
+
    // 给一个主节点和一个备节点设置相同的location,另一个备节点设置不同的location
    var rg = db.getRG( dataGroupName );
    var masterNode = rg.getMaster();
    var slaveNode1 = rg.getNode( slaveNodes[0] );
    var slaveNode2 = rg.getNode( slaveNodes[1] );
-   masterNode.setLocation( location1 );
-   slaveNode1.setLocation( location1 );
-   slaveNode2.setLocation( location2 );
-   rg.setActiveLocation( location1 );
 
-   // 主节点设置weight为ActiveLocation中最大值
-   db.updateConf( { "weight": 100 }, { "NodeName": masterNode.getHostName() + ":" + masterNode.getServiceName() } );
-   db.updateConf( { "weight": 90 }, { "NodeName": slaveNodes[0] } );
+   try {
+       masterNode.setLocation( location1 );
+       slaveNode1.setLocation( location1 );
+       slaveNode2.setLocation( location2 );
+       rg.setActiveLocation( location1 );
 
+       // 主节点设置weight为ActiveLocation中最大值
+       db.updateConf( { "weight": 100 }, { "NodeName": masterNode.getHostName() + ":" + masterNode.getServiceName() } );
+       db.updateConf( { "weight": 90 }, { "NodeName": slaveNodes[0] } );
 
-   // reelect指定节点进行重选举
-   nodeID = slaveNode2.getDetailObj().toObj()["NodeID"];
-   rg.reelect( { "NodeID": nodeID } );
-   var newMasterNode = rg.getMaster();
-   assert.equal( newMasterNode.getHostName() + ":" + newMasterNode.getServiceName(), slaveNodes[1] );
+       // reelect指定节点进行重选举
+       nodeID = slaveNode2.getDetailObj().toObj()["NodeID"];
+       rg.reelect( { "NodeID": nodeID } );
+       var newMasterNode = rg.getMaster();
+       assert.equal( newMasterNode.getHostName() + ":" + newMasterNode.getServiceName(), slaveNodes[1] );
 
-
-   // reelent不指定节点进行重选举
-   rg.reelect();
-   /// wait catalog update
-   sleep( 1000 ) ;
-   var newMasterNode = rg.getMaster();
-   assert.equal( newMasterNode.getHostName() + ":" + newMasterNode.getServiceName(),
-                 masterNode.getHostName() + ":" + masterNode.getServiceName() );
-
-
-   // 设置weight最大的节点为为ActiveLocation外
-   db.updateConf( { "weight": 80 }, { "NodeName": masterNode.getHostName() + ":" + masterNode.getServiceName() } );
-   db.updateConf( { "weight": 90 }, { "NodeName": slaveNodes[0] } );
-   db.updateConf( { "weight": 100 }, { "NodeName": slaveNodes[1] } );
-
-   rg.reelect();
-   /// wait catalog update
-   sleep( 1000 ) ;
-   var newMasterNode = rg.getMaster();
-   assert.equal( newMasterNode.getHostName() + ":" + newMasterNode.getServiceName(), slaveNodes[0] );
+       // reelent不指定节点进行重选举
+       rg.reelect();
+       /// wait catalog update
+       sleep( 1000 ) ;
+       var newMasterNode = rg.getMaster();
+       assert.equal( newMasterNode.getHostName() + ":" + newMasterNode.getServiceName(),
+                     masterNode.getHostName() + ":" + masterNode.getServiceName() );
 
 
-   // 删除节点设的weight
-   db.deleteConf( { weight: "" }, { GroupName: dataGroupName } );
+       // 设置weight最大的节点为为ActiveLocation外
+       db.updateConf( { "weight": 80 }, { "NodeName": masterNode.getHostName() + ":" + masterNode.getServiceName() } );
+       db.updateConf( { "weight": 90 }, { "NodeName": slaveNodes[0] } );
+       db.updateConf( { "weight": 100 }, { "NodeName": slaveNodes[1] } );
 
-   // 移除group设置的location
-   masterNode.setLocation( "" );
-   slaveNode1.setLocation( "" );
-   slaveNode2.setLocation( "" );
+       rg.reelect();
+       /// wait catalog update
+       sleep( 1000 ) ;
+       var newMasterNode = rg.getMaster();
+       assert.equal( newMasterNode.getHostName() + ":" + newMasterNode.getServiceName(), slaveNodes[0] );
+   } finally {
+       // 删除节点设的weight
+       db.deleteConf( { weight: "" }, { GroupName: dataGroupName } );
+
+       // 移除group设置的location
+       masterNode.setLocation( "" );
+       slaveNode1.setLocation( "" );
+       slaveNode2.setLocation( "" );
+   }
 }

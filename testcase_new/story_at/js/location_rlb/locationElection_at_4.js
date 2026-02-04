@@ -36,29 +36,31 @@ function test() {
   var rg = db.getRG(groupName);
   var nodeList = commGetGroupNodes(db, groupName).slice(0, 3);
 
-  // Step 1: set location1 for two nodes and check location primary in location1
-  setLocationForNodes(rg, nodeList.slice(0, 2), location1);
-  var primary1 = checkAndGetLocationHasPrimary(db, groupName, location1, 34);
+  try {
+      // Step 1: set location1 for two nodes and check location primary in location1
+      setLocationForNodes(rg, nodeList.slice(0, 2), location1);
+      var primary1 = checkAndGetLocationHasPrimary(db, groupName, location1, 34);
 
-  // Step 1: set location2 for another node and check location primary in location2
-  setLocationForNodes(rg, nodeList.slice(2, 3), location2);
-  checkAndGetLocationHasPrimary(db, groupName, location2, 34);
+      // Step 1: set location2 for another node and check location primary in location2
+      setLocationForNodes(rg, nodeList.slice(2, 3), location2);
+      checkAndGetLocationHasPrimary(db, groupName, location2, 34);
 
-  // Step 2: set location2 for location1's primary node
-  var nodeName = primary1.split(":");
-  var node = rg.getNode(nodeName[0], nodeName[1]);
-  node.setLocation(location2);
-  // check location primary in location1
-  checkAndGetLocationHasPrimary(db, groupName, location1, 34);
-  // check location primary in location2
-  var primary2 = checkAndGetLocationHasPrimary(db, groupName, location2, 1);
+      // Step 2: set location2 for location1's primary node
+      var nodeName = primary1.split(":");
+      var node = rg.getNode(nodeName[0], nodeName[1]);
+      node.setLocation(location2);
+      // check location primary in location1
+      checkAndGetLocationHasPrimary(db, groupName, location1, 34);
+      // check location primary in location2
+      var primary2 = checkAndGetLocationHasPrimary(db, groupName, location2, 1);
 
-  // Step 3: set "" for location2's primary, and check location primary in location2
-  var nodeName = primary2.split(":");
-  var node = rg.getNode(nodeName[0], nodeName[1]);
-  node.setLocation("");
-  checkAndGetLocationHasPrimary(db, groupName, location2, 34);
-
-  // Reset group info
-  setLocationForNodes(rg, nodeList, "");
+      // Step 3: set "" for location2's primary, and check location primary in location2
+      var nodeName = primary2.split(":");
+      var node = rg.getNode(nodeName[0], nodeName[1]);
+      node.setLocation("");
+      checkAndGetLocationHasPrimary(db, groupName, location2, 34);
+  } finally {
+      // Reset group info
+      setLocationForNodes(rg, nodeList, "");
+  }
 }

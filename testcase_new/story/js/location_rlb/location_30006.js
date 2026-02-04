@@ -25,23 +25,34 @@ function test ()
       data.setAttributes( { Location: location } );
    }
 
-   // 检查复制组主节点与location主节点是否一致
-   checkAndGetLocationHasPrimary( db, dataGroupName, location, 60 );
-   var cursor = db.snapshot( SDB_SNAP_SYSTEM, { RawData: true, GroupName: dataGroupName, IsPrimary: true } );
-   while( cursor.next() )
-   {
-      var IsLocationPrimary = cursor.current().toObj().IsLocationPrimary;
-      var NodeID = cursor.current().toObj().NodeID;
-      var nodeId = NodeID[1];
-      if( IsLocationPrimary != true )
-      {
-         rg.reelectLocation( location, { NodeID: nodeId } );
-      }
-   }
-   assert.tryThrow( SDB_OPERATION_CONFLICT, function()
-   {
-      rg.reelectLocation( location, { NodeID: nodeId } );
-   } );
+   try {
+       // 检查复制组主节点与location主节点是否一致
+       checkAndGetLocationHasPrimary( db, dataGroupName, location, 60 );
+       var cursor = db.snapshot( SDB_SNAP_SYSTEM, { RawData: true, GroupName: dataGroupName, IsPrimary: true } );
+       while( cursor.next() )
+       {
+          var IsLocationPrimary = cursor.current().toObj().IsLocationPrimary;
+          var NodeID = cursor.current().toObj().NodeID;
+          var nodeId = NodeID[1];
+          if( IsLocationPrimary != true )
+          {
+             rg.reelectLocation( location, { NodeID: nodeId } );
+          }
+       }
 
-   cursor.close();
+       /// reelect to self, not report error
+       rg.reelectLocation( location, { NodeID: nodeId } );
+
+       cursor.close();
+   } finally {
+       for( var i = 1; i < group.length; i++ )
+       {
+          var groupInfo = group[i];
+          var hostName = groupInfo.HostName;
+          var svcName = groupInfo.svcname;
+          var data = rg.getNode( hostName, svcName );
+          data.setAttributes( { Location: '' } );
+       }
+   }
+
 }

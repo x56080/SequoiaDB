@@ -151,25 +151,35 @@ namespace engine
       ossTimestamp curTime ;
       ossGetCurrentTime( curTime ) ;
 
+      UINT64 tmpSleepTime = 0 ;
+      MsgRouteID tmpRouteID = _info->local ;
+
       /// need copy grpItem, because in function '_stopCriticalMode()->pause()' will release
       /// lock, so, the _info->grpMode.grpModeInfo[0] will changed
       _clsGrpModeItem grpItem = _info->grpMode.grpModeInfo[0] ;
       const _clsGrpModeItem &localItem = _groupMode.grpModeInfo[0] ;
 
-      // Check if grpMode in clsReplicaSet is valid,
-      // if effective node in critical is not primary, stop critical mode
-      if ( ( INVALID_NODEID == grpItem.nodeID ||
-             _info->local.columns.nodeID != grpItem.nodeID ) &&
-           ( MSG_INVALID_LOCATIONID == grpItem.locationID ||
-             pmdGetLocationID() != grpItem.locationID ) )
+      tmpRouteID.columns.nodeID = grpItem.nodeID ;
+
+      // Check if this job is expired
+      if ( grpItem.locationID != localItem.locationID ||
+           grpItem.nodeID != localItem.nodeID ||
+           grpItem.updateTime.time != localItem.updateTime.time )
+      {
+         result = UTIL_LJOB_DO_FINISH ;
+      }
+      // check critical node or location exist or not
+      else if ( ( INVALID_NODEID != grpItem.nodeID &&
+                  0 == _info->info.count( tmpRouteID.value ) &&
+                  _info->local.columns.nodeID != grpItem.nodeID ) ||
+                ( MSG_INVALID_LOCATIONID != grpItem.locationID &&
+                  0 == _info->locationInfoMap.count( grpItem.locationID ) ) )
       {
          rc = _stopCriticalMode( cb ) ;
          if ( SDB_OK == rc )
          {
-            PD_LOG( PDEVENT, "Stop critical mode: primary[nodeID: %u, Location: %s] "
-                    "is not in effective nodes[nodeID: %u, Location: %s]",
-                    _info->local.columns.nodeID, pmdGetLocation(),
-                    grpItem.nodeID, grpItem.location.c_str() ) ;
+            PD_LOG( PDEVENT, "Stop critical mode: the original cirtical node(%u) or location(%s) "
+                    "has been removed", grpItem.nodeID, grpItem.location.c_str() ) ;
             result = UTIL_LJOB_DO_FINISH ;
          }
          else
@@ -177,17 +187,10 @@ namespace engine
             result = UTIL_LJOB_DO_CONT ;
          }
       }
-      // Check if this job is expired
-      else if ( grpItem.locationID != localItem.locationID ||
-                grpItem.nodeID != localItem.nodeID ||
-                grpItem.updateTime.time != localItem.updateTime.time )
-      {
-         result = UTIL_LJOB_DO_FINISH ;
-      }
       // UpdateTime < curTime < MinKeepTime
       else if ( curTime.time < localItem.minKeepTime.time )
       {
-         sleepTime = ( localItem.minKeepTime.time - curTime.time ) * OSS_ONE_MILLION ;
+         tmpSleepTime = ( localItem.minKeepTime.time - curTime.time ) * OSS_ONE_MILLION ;
          result = UTIL_LJOB_DO_CONT ;
       }
       // MinKeepTime <= curTime < MaxKeepTime
@@ -226,9 +229,11 @@ namespace engine
          {
             result = UTIL_LJOB_DO_CONT ;
          }
+
+         tmpSleepTime = ( localItem.maxKeepTime.time - curTime.time ) * OSS_ONE_MILLION ;
       }
-      // MaxKeepTime <= curTime
-      else if ( localItem.maxKeepTime.time <= curTime.time )
+      // curTime >= MaxKeepTime
+      else
       {
          rc = _stopCriticalMode( cb ) ;
          if ( SDB_OK == rc )
@@ -244,9 +249,10 @@ namespace engine
             result = UTIL_LJOB_DO_CONT ;
          }
       }
-      else
+
+      if ( tmpSleepTime > 0 && sleepTime > tmpSleepTime )
       {
-         result = UTIL_LJOB_DO_FINISH ;
+         sleepTime = tmpSleepTime ;
       }
 
       PD_TRACE_EXITRC( SDB__CLS_CRITICALMODE_MONITOR__CHECKCRITICALMODE, rc ) ;
@@ -363,22 +369,14 @@ namespace engine
          node.columns.nodeID = item.nodeID ;
          nodeItr = _info->info.find( node.value ) ;
 
-         if ( _info->info.end() == nodeItr )
+         if ( _info->info.end() == nodeItr && _info->local.columns.nodeID != item.nodeID )
          {
             rc = _stopMaintenanceMode( cb, item.nodeName.c_str() ) ;
 
             if ( SDB_OK == rc )
             {
-               if ( _info->local.columns.nodeID == item.nodeID )
-               {
-                  PD_LOG( PDEVENT, "Stop maintenance mode of node[%s]: the node is "
-                          "primary", item.nodeName.c_str() ) ;
-               }
-               else
-               {
-                  PD_LOG( PDEVENT, "Stop maintenance mode of node[%s]: the node has been "
-                          "removed in replica group", item.nodeName.c_str() ) ;
-               }
+               PD_LOG( PDEVENT, "Stop maintenance mode of node[%s]: the node has been "
+                       "removed in replica group", item.nodeName.c_str() ) ;
             }
          }
          else if ( curTime.time < item.minKeepTime.time )
@@ -544,13 +542,13 @@ namespace engine
       /// check version
       if ( _localVersion < version.fetch() )
       {
-         PD_LOG( PDDEBUG, "There is a new group mode job executed by other thread, quit this job" ) ;
+         PD_LOG( PDEVENT, "There is a new group mode job executed by other thread, quit this job" ) ;
          result = UTIL_LJOB_DO_FINISH ;
          goto done ;
       }
       else if ( PMD_IS_DB_DOWN() )
       {
-         PD_LOG( PDDEBUG, "DB is down, stop group mode job" ) ;
+         PD_LOG( PDEVENT, "DB is down, stop group mode job" ) ;
          result = UTIL_LJOB_DO_FINISH ;
          rc = SDB_APP_INTERRUPT ;
          goto error ;
@@ -623,12 +621,13 @@ namespace engine
 
       if ( objList.empty() )
       {
-         rc = SDB_DMS_NOTEXIST ;
-         PD_LOG( PDERROR, "Failed to list group modes, rc: %d", rc ) ;
-         goto error ;
+         /// group mode is not exist
+         rc = _handleGroupModeRes( BSONObj() ) ;
       }
-
-      rc = _handleGroupModeRes( objList.front() ) ;
+      else
+      {
+         rc = _handleGroupModeRes( objList.front() ) ;
+      }
       PD_RC_CHECK( rc, PDERROR, "Failed to check group mode info, rc: %s", rc ) ;
 
       // If set grpMode successfully, quit the job
@@ -660,12 +659,20 @@ namespace engine
 
       clsGroupMode grpMode ;
 
-      // Parse group mode info
-      rc = catParseGrpModeObj( grpModeObj, grpMode ) ;
-      if ( SDB_OK != rc )
+      if ( grpModeObj.isEmpty() )
       {
-         PD_LOG( PDWARNING, "Parse group mode object failed, rc = %d", rc ) ;
-         goto error ;
+         grpMode.grpModeInfo = CLS_GROUP_MODE_NONE ;
+         grpMode.groupID = _info->local.columns.groupID ;
+      }
+      // Parse group mode info
+      else
+      {
+         rc = catParseGrpModeObj( grpModeObj, grpMode ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDWARNING, "Parse group mode object failed, rc = %d", rc ) ;
+            goto error ;
+         }
       }
 
       // Update group mode to local
@@ -678,14 +685,12 @@ namespace engine
               ( MSG_INVALID_LOCATIONID != grpModeItem.locationID &&
                 pmdGetLocationID() == grpModeItem.locationID ) )
          {
-            // Set shadowTime = -1, which means this node is in critical mode
-            rc = _repl->postGroupModeInfo( grpMode, -1, TRUE ) ;
+            rc = _repl->postGroupModeInfo( grpMode, TRUE ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to set critical mode, rc: %d", rc ) ;
          }
          else
          {
-            // Set shadowTime = 0, which means this node is in normal mode
-            rc = _repl->postGroupModeInfo( grpMode, 0, FALSE ) ;
+            rc = _repl->postGroupModeInfo( grpMode, FALSE ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to set critical mode, rc: %d", rc ) ;
          }
       }
@@ -705,8 +710,13 @@ namespace engine
             ++itr ;
          }
 
-         rc = _repl->postGroupModeInfo( grpMode, isLocalMode ? -1 : 0, isLocalMode ) ;
+         rc = _repl->postGroupModeInfo( grpMode, isLocalMode ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to set maintenance mode, rc: %d", rc ) ;
+      }
+      else if ( CLS_GROUP_MODE_NONE == grpMode.mode )
+      {
+         rc = _repl->postGroupModeInfo( grpMode, TRUE ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to clear group mode, rc: %d", rc ) ;
       }
 
    done :

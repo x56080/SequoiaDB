@@ -116,13 +116,28 @@ namespace engine
          // find
          if ( _notifyList[i].id.value == id.value )
          {
-            _notifyList[i].offset = DPS_INVALID_LSN_OFFSET ;
-            _notifyList[i].syncOffset = DPS_INVALID_LSN_OFFSET ;
+            _notifyList[i].setInFullSync() ;
             break ;
          }
       }
 
       _info->mtx.release_r() ;
+   }
+
+   // The function is called already in _info->mtx.lock_w(),
+   // so can't lock any way
+   BOOLEAN _clsSyncManager::updateNodeGrpMode( const MsgRouteID &id, CLS_GROUP_MODE grpMode )
+   {
+      for ( UINT32 i = 0 ; i < _validSync ; ++i )
+      {
+         // find
+         if ( _notifyList[i].id.value == id.value )
+         {
+            _notifyList[i].grpMode = grpMode ;
+            return TRUE ;
+         }
+      }
+      return FALSE ;
    }
 
    // The function is called by shard session thread, so need to use lock
@@ -140,14 +155,12 @@ namespace engine
       }
       else
       {
-         map<UINT64, _clsSharingStatus>::const_iterator itr ;
-
          ossScopedRWLock lock( &_info->mtx, SHARED ) ;
 
          for ( UINT32 i = 0 ; i < _validSync ; ++i )
          {
-            /// fullsync node
-            if ( DPS_INVALID_LSN_OFFSET == _notifyList[i].offset )
+            /// fullsync or maintenance node
+            if ( _notifyList[i].isInFullSync() || _notifyList[i].isInMaintenance() )
             {
                continue ;
             }
@@ -157,43 +170,13 @@ namespace engine
             {
                continue ;
             }
-            /// maintenance mode
-            else if ( CLS_GROUP_MODE_MAINTENANCE == _info->grpMode.mode )
-            {
-               itr = _info->info.find( _notifyList[i].id.value ) ;
-               if ( itr != _info->info.end() )
-               {
-                  const _clsSharingStatus &status = itr->second ;
-                  if ( status.isInMaintenanceMode() )
-                  {
-                     /// maintenance node
-                     continue ;
-                  }
-               }
-            }
-            /// locaction cirtical mode
+            /// cirtical mode
             else if ( CLS_GROUP_MODE_CRITICAL == _info->localGrpMode )
             {
-               if ( INVALID_NODEID == _info->grpMode.grpModeInfo[0].nodeID )
+               if ( ( _info->isLocationCritical() && !_notifyList[i].isInCriticalMode() ) ||
+                    ( _info->isNodeCritical() && !_notifyList[i].isValid() ) )
                {
-                  itr = _info->info.find( _notifyList[i].id.value ) ;
-                  if ( itr == _info->info.end() )
-                  {
-                     continue ;
-                  }
-
-                  const _clsSharingStatus &status = itr->second ;
-                  if ( !status.isInCriticalMode() )
-                  {
-                     continue ;
-                  }
-               }
-               else
-               {
-                  if ( !_notifyList[i].isValid() )
-                  {
-                     continue ;
-                  }
+                  continue ;
                }
             }
 
@@ -882,7 +865,7 @@ namespace engine
 
       for ( UINT32 i = 0; i < _validSync ; i++ )
       {
-         if ( onlyInAlive && !_notifyList[i].valid )
+         if ( onlyInAlive && ( !_notifyList[i].valid || _notifyList[i].isInMaintenance() ) )
          {
             continue ;
          }
@@ -1046,8 +1029,6 @@ namespace engine
    {
       PD_TRACE_ENTRY ( SDB__CLSSYNCMAG__CTWAKEPLAN ) ;
 
-      UINT32 fullSyncNodes = 0 ;
-
       DPS_LSN_OFFSET offsetMin = DPS_INVALID_LSN_OFFSET - 1 ;
       utilReplSizePlan wakePlan ;
       UINT32 selfLocation = pmdGetLocationID() ;
@@ -1055,9 +1036,9 @@ namespace engine
 
       for ( UINT32 i = 0; i < _validSync ; i++ )
       {
-         if ( DPS_INVALID_LSN_OFFSET == _notifyList[ i ].offset )
+         if ( !_notifyList[ i ].isValid() )
          {
-            ++ fullSyncNodes ;
+            continue ;
          }
          else if ( offsetMin > _notifyList[ i ].offset )
          {
@@ -1065,19 +1046,19 @@ namespace engine
          }
       }
 
-      if ( fullSyncNodes == _validSync )
-      {
-         // All nodes are under full sync
-         offsetMin = DPS_INVALID_LSN_OFFSET - 1 ;
-      }
-
       for ( UINT32 i = 0; i < _validSync ; i++ )
       {
          wakePlan.reset() ;
-         if ( DPS_INVALID_LSN_OFFSET == _notifyList[i].offset )
+         if ( _notifyList[i].isInFullSync() )
          {
             /// DPS_INVALID_LSN_OFFSET is for full sync, so ignore the node.
             /// Save as min offset of other nodes
+            wakePlan.offset = offsetMin ;
+         }
+         else if ( _notifyList[i].isInMaintenance() &&
+                   _notifyList[i].offset > offsetMin )
+         {
+            /// ignored maintenance node
             wakePlan.offset = offsetMin ;
          }
          else

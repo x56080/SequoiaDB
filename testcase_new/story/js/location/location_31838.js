@@ -106,9 +106,11 @@ function test ()
          var masterNode = rg.getMaster();
          masterNode.setLocation( location3 );
       }
-      assert.tryThrow( SDB_COORD_NOT_ALL_DONE, function () {
-         dc.setActiveLocation( location3 );
-      } );
+      var result = dc.setActiveLocation( location3 );
+      if ( result.toObj()["SucceedNum"] != dataGroupNames.length )
+      {
+          throw new Error( "result(" + result.toJson() + ") 's SucceedNum not the equal to " + dataGroupNames.length ) ;
+      }
    }
    finally
    {

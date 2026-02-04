@@ -1,10 +1,31 @@
 import("../lib/basic_operation/commlib.js");
 import("../lib/location_commlib.js");
 
-function getReplPrimaryName(rg) {
-  var replPrimary = rg.getMaster();
-  var replPrimaryName = replPrimary.getHostName() + ":" + replPrimary.getServiceName();
-  return replPrimaryName;
+function getReplPrimaryName(rg, timeoutSecond ) {
+  var doTime = 0 ;
+  if ( typeof( timeoutSecond ) != "number" )
+  {
+      timeoutSecond = 15 ; 
+  }
+  while( true )
+  {
+     try {
+        var replPrimary = rg.getMaster();
+        var replPrimaryName = replPrimary.getHostName() + ":" + replPrimary.getServiceName();
+        println( "Group primary is: " + replPrimaryName ) ;
+        return replPrimaryName;
+     } catch ( e ) {
+         if ( SDB_RTN_NO_PRIMARY_FOUND == e && doTime < timeoutSecond )
+         {
+             sleep( 1000 ) ;
+             doTime += 1 ;
+         }
+         else
+         {
+             throw e ;
+         }
+     }
+  }
 }
 
 function getReplPrimaryNodeID(rg) {

@@ -85,21 +85,27 @@ namespace engine
       }
       else if ( MSG_CLS_BALLOT_RES == header->opCode )
       {
+         const _clsSharingStatus *pStatus = NULL ;
          const _MsgClsElectionRes *msg = ( const _MsgClsElectionRes * ) header ;
-         if ( CLS_ELECTION_ROUND_STAGE_ONE == msg->round )
+
+         map<UINT64, _clsSharingStatus>::iterator itr = _info()->info.find( msg->identity.value ) ;
+         if ( itr != _info()->info.end() )
+         {
+            pStatus = &( itr->second ) ;
+         }
+
+         if ( CLS_ELECTION_ROUND_STAGE_ONE == msg->round && pStatus )
          {
             if ( SDB_OK == msg->header.res )
             {
-               const _clsSharingStatus &status = _info()->info.find( msg->identity.value )->second ;
-
                // If this accepted msg is from critical node, record it
-               if ( status.isInCriticalMode() )
+               if ( pStatus->isInCriticalMode() )
                {
                   ++_criticalAccepted() ;
                }
 
                // If this accepted msg is from maintenance node, ignore it
-               if ( ! status.isInMaintenanceMode() )
+               if ( ! pStatus->isInMaintenanceMode() )
                {
                   ++_accepted() ;
                }
@@ -116,8 +122,11 @@ namespace engine
                }
             }
             // If is in enforced critical mode, ignore the reject result, wait until timeout
-            else if ( ! isLocation() && _info()->enforcedGrpMode &&
-                      CLS_GROUP_MODE_CRITICAL == _info()->localGrpMode )
+            else if ( SDB_CLS_PRIMARY_ALREADY_EXIST != msg->header.res &&
+                      !isLocation() &&
+                      _info()->grpMode.enforced &&
+                      CLS_GROUP_MODE_CRITICAL == _info()->localGrpMode &&
+                      !pStatus->isInCriticalMode() )
             {
                next = id() ;
             }
@@ -154,7 +163,7 @@ namespace engine
 
             if ( CLS_GROUP_MODE_CRITICAL == _info()->localGrpMode && ! isLocation() )
             {
-               if ( _info()->enforcedGrpMode )
+               if ( _info()->grpMode.enforced )
                {
                   PD_LOG( PDEVENT, "%s Vote: change to announce by timeout "
                           "in enforced critical mode", getScopeName() ) ;
@@ -191,14 +200,22 @@ namespace engine
       _accepted() = 0 ;
       _criticalAccepted() = 0 ;
 
-      if ( _info()->groupSize() == 1 )
+      if ( _info()->groupSize() == 1 && 0 == _info()->maintenanceSize() )
       {
          next = CLS_ELECTION_STATUS_ANNOUNCE ;
       }
       else
       {
          next = id() ;
-         _vote() ;
+         if ( SDB_OK != _vote() )
+         {
+            next = CLS_ELECTION_STATUS_SEC ;
+         }
+         else if ( _info()->groupSize() == 1 &&
+                   CLS_GROUP_MODE_MAINTENANCE != _info()->localGrpMode )
+         {
+            next = CLS_ELECTION_STATUS_ANNOUNCE ;
+         }
       }
       PD_TRACE_EXIT ( SDB__CLSVSVT_ACTIVE ) ;
       return ;

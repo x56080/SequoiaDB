@@ -15,6 +15,11 @@ function test ()
 
    // 获取group中的备节点
    var slaveNodes = getGroupSlaveNodeName( db, groupName );
+   
+   if ( slaveNodes.length < 2 )
+   {
+       return ;
+   }
 
    var group = db.getRG( groupName );
    var masterNode = group.getMaster();
@@ -28,9 +33,12 @@ function test ()
    {
       // option同时指定节点名与location启动运维模式
       var options = { Location: location, NodeName: slaveNodes[0], MinKeepTime: 5, MaxKeepTime: 10 };
-      group.startMaintenanceMode( options );
+      assert.tryThrow( SDB_INVALIDARG, function()
+      {
+         group.startMaintenanceMode( options );
+      } );
 
-      checkGroupNodeInMaintenanceMode( db, groupName, [slaveNodes[0]] );
+      checkGroupStopMode( db, groupName ) ;
 
    } finally
    {

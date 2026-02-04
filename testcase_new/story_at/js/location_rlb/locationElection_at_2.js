@@ -38,25 +38,28 @@ function test() {
   var rg = db.getRG(groupName);
   var nodeList = commGetGroupNodes(db, groupName).slice(0, 3);
 
-  // Step 1: set location for three nodes and check location primary
-  setLocationForNodes(rg, nodeList, location);
-  var primary1 = checkAndGetLocationHasPrimary(db, groupName, location, 34);
+  try {
+      // Step 1: set location for three nodes and check location primary
+      setLocationForNodes(rg, nodeList, location);
+      var primary1 = checkAndGetLocationHasPrimary(db, groupName, location, 34);
 
-  // Step 2: stop a slave node, and check location primary
-  var slaveList = getSlaveList(nodeList, primary1);
-  var slaveNode = rg.getNode(slaveList[0].HostName, slaveList[0].svcname);
-  slaveNode.stop();
-  checkAndGetLocationHasPrimary(db, groupName, location, 34);
+      // Step 2: stop a slave node, and check location primary
+      var slaveList = getSlaveList(nodeList, primary1);
+      var slaveNode = rg.getNode(slaveList[0].HostName, slaveList[0].svcname);
+      slaveNode.stop();
+      checkAndGetLocationHasPrimary(db, groupName, location, 34);
 
-  // Step 3: stop another slave node, and check location primary
-  var slaveNode = rg.getNode(slaveList[1].HostName, slaveList[1].svcname);
-  slaveNode.stop();
-  checkLocationHasNoPrimary(db, groupName, location, 34);
+      // Step 3: stop another slave node, and check location primary
+      var slaveNode = rg.getNode(slaveList[1].HostName, slaveList[1].svcname);
+      slaveNode.stop();
+      checkLocationHasNoPrimary(db, groupName, location, 34);
 
-  // Restart replica group
-  rg.start();
-  checkAndGetLocationHasPrimary(db, groupName, location, 34);
-
-  // Reset group info
-  setLocationForNodes(rg, nodeList, "");
+      // Restart replica group
+      rg.start();
+      checkAndGetLocationHasPrimary(db, groupName, location, 34);
+  } finally {
+      rg.start() ;
+      // Reset group info
+      setLocationForNodes(rg, nodeList, "");
+  }
 }

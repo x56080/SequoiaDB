@@ -135,6 +135,11 @@ namespace engine
 
    BSONObj coordBuildSubCLIntoObj( const BSONObj &obj,
                                    const CoordSubCLlist &subCLList ) ;
+
+   INT32 coordBuildBatchLocationResultObj( const CoordGroupList &groupLst,
+                                           const vector<BSONObj> &replyObjs,
+                                           BSONObj &result ) ;
+
 }
 
 #endif // COORD_UTIL_HPP__

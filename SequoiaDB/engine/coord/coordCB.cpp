@@ -48,7 +48,6 @@ using namespace bson ;
 namespace engine
 {
    #define COORD_WAIT_EDU_ATTACH_TIMEOUT ( 60 * OSS_ONE_SEC )
-   #define COORD_INVALID_TIMERID         (0)
 
    #define COORD_EVENT_TIMEOUT           ( 900 * OSS_ONE_SEC )
 
@@ -64,8 +63,9 @@ namespace engine
     _pTimerHandler( NULL ),
     _pAgent( NULL ),
     _shardServiceID ( MSG_ROUTE_SHARD_SERVCIE ),
-    _regTimerID ( COORD_INVALID_TIMERID ),
-    _clearEventTimerID( COORD_INVALID_TIMERID ),
+    _regTimerID ( NET_INVALID_TIMER_ID ),
+    _downGroupTimerID ( NET_INVALID_TIMER_ID ),
+    _clearEventTimerID( NET_INVALID_TIMER_ID ),
     _pCollectionName( NULL ),
     _pDmsCB( NULL ),
     _pDpsCB( NULL ),
@@ -315,6 +315,12 @@ namespace engine
          _regTimerID = NET_INVALID_TIMER_ID ;
       }
 
+      if ( NET_INVALID_TIMER_ID != _downGroupTimerID )
+      {
+         killTimer( _downGroupTimerID ) ;
+         _downGroupTimerID = NET_INVALID_TIMER_ID ;
+      }
+
       if ( _pAgent )
       {
          // 1. unreg net from controller
@@ -558,6 +564,15 @@ namespace engine
       if ( timerID == _regTimerID )
       {
          _sendRegisterMsg () ;
+      }
+      else if ( timerID == _downGroupTimerID )
+      {
+         if ( SDB_OK == _processUpdateGrpInfo() )
+         {
+            /// kill timer
+            killTimer( _downGroupTimerID ) ;
+            _downGroupTimerID = NET_INVALID_TIMER_ID ;
+         }
       }
       else if ( timerID == _clearEventTimerID )
       {
@@ -835,6 +850,12 @@ retry :
       // set global id
       pmdSetNodeID( _selfNodeID ) ;
       pmdGetKRCB()->callRegisterEventHandler( _selfNodeID ) ;
+
+      // set update group info timer
+      if ( NET_INVALID_TIMER_ID == _downGroupTimerID )
+      {
+         _downGroupTimerID = setTimer( OSS_ONE_SEC ) ;
+      }
 
    done:
       PD_TRACE_EXITRC ( SDB__COORDCB__ONCATREGRES, rc );
@@ -1448,14 +1469,30 @@ retry :
    {
       INT32 rc = SDB_OK ;
       CoordGroupInfoPtr groupPtr ;
+      clsNodeItem *pNodeItem = NULL ;
 
       rc = _resource.updateGroupInfo ( COORD_GROUPID, groupPtr, _pEDUCB ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG ( PDWARNING, "Fail to update coord group info, rc: %d", rc ) ;
+         PD_LOG ( PDWARNING, "Failed to update coord group info, rc: %d", rc ) ;
+         goto error ;
       }
 
+      if ( COORD_GROUPID == pmdGetNodeID().columns.groupID )
+      {
+         pNodeItem = groupPtr->nodeItem( pmdGetNodeID().columns.nodeID ) ;
+         if ( pNodeItem )
+         {
+            ossPoolString locationName = groupPtr->getLocationName( pNodeItem->_locationID ) ;
+            pmdSetLocationID( pNodeItem->_locationID ) ;
+            pmdSetLocation( locationName.c_str() ) ;
+         }
+      }
+
+   done:
       return rc ;
+   error:
+      goto done ;
    }
 
    INT32 _CoordCB::_processCatGrpChgNty ()

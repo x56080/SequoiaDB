@@ -46,10 +46,9 @@ function test ()
 
       // 节点修改Location为不同Location
       slaveNode.setLocation( location2 );
-
-      // 校验Critical模式自动停止
-      sleep( 2000 );
-      checkStopCriticalMode( db, dataGroupName );
+      
+      // 校验Critical模式不变
+      checkStartCriticalMode( db, dataGroupName, options );
 
       // Location2启动Critical模式
       var minKeepTime = 10;

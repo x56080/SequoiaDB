@@ -73,11 +73,58 @@ namespace engine
 
       OSS_INLINE void setShadowWeight( UINT8 weight,
                                        UINT32 timeout = CLS_SHADOWN_TIMEOUT_DFT,
-                                       BOOLEAN shadowForReelect = TRUE )
+                                       BOOLEAN shadowAutoRestore = FALSE )
       {
          _shadowWeight = weight ;
          _shadowTimeout = timeout ;
-         _shadowForReelect = shadowForReelect ;
+         _shadowAutoRestore = shadowAutoRestore ;
+      }
+
+      OSS_INLINE void setShadowWeightForTarget( UINT32 timeout = CLS_SHADOWN_TIMEOUT_DFT )
+      {
+         _shadowWeight = CLS_ELECTION_WEIGHT_MAX ;
+         _shadowTimeout = timeout ;
+         _shadowAutoRestore = FALSE ;
+
+         setElectionWeight( CLS_ELECTION_WEIGHT_REELECT_TARGET_NODE ) ;
+      }
+
+      OSS_INLINE void setShadowWeightForNoneTarget( BOOLEAN autoRestore,
+                                                    UINT32 timeout = CLS_SHADOWN_TIMEOUT_DFT )
+      {
+         _shadowWeight = CLS_ELECTION_WEIGHT_MIN ;
+         _shadowTimeout = timeout ;
+         _shadowAutoRestore = autoRestore ;
+
+         resetElectionWeight( CLS_ELECTION_WEIGHT_REELECT_TARGET_NODE ) ;
+      }
+
+      OSS_INLINE void resetShadowWeight()
+      {
+         _shadowWeight = CLS_ELECTION_WEIGHT_USR_MIN ;
+         _shadowTimeout = 0 ;
+         _shadowAutoRestore = FALSE ;
+
+         resetElectionWeight( CLS_ELECTION_WEIGHT_REELECT_TARGET_NODE ) ;
+      }
+
+      OSS_INLINE BOOLEAN isShadowWeightForTarget() const
+      {
+         if ( CLS_ELECTION_WEIGHT_MAX == _shadowWeight ||
+              hasElectionWeight( CLS_ELECTION_WEIGHT_REELECT_TARGET_NODE ) )
+         {
+            return TRUE ;
+         }
+         return FALSE ;
+      }
+
+      OSS_INLINE BOOLEAN isShadowWeightForNoneTarget() const
+      {
+         if ( CLS_ELECTION_WEIGHT_MIN == _shadowWeight )
+         {
+            return TRUE ;
+         }
+         return FALSE ;
       }
 
       OSS_INLINE UINT8 getElectionWeight() const
@@ -121,21 +168,6 @@ namespace engine
          return MSG_INVALID_LOCATIONID != _groupInfo->localLocationID ;
       }
 
-      OSS_INLINE BOOLEAN isTmpGrpMode() const
-      {
-         return 0 < _grpModeShadowTime ;
-      }
-
-      OSS_INLINE BOOLEAN isConstantGrpMode() const
-      {
-         return _grpModeShadowTime < 0 ;
-      }
-
-      OSS_INLINE void setGrpModeShadowTime( INT32 grpModeShadowTime )
-      {
-         _grpModeShadowTime = grpModeShadowTime ;
-      }
-
       void resetGrpModeElectionWeights() ;
 
       INT32 startCriticalModeMonitor() ;
@@ -164,7 +196,7 @@ namespace engine
       _clsVoteStatus             *_current ;
       _clsGroupInfo              *_groupInfo ;
       UINT32                     _shadowTimeout ;  /// ms
-      BOOLEAN                    _shadowForReelect ;
+      BOOLEAN                    _shadowAutoRestore ;
       UINT32                     _forceMillis ;
 
       // The total election weight should be calculate as follow:
@@ -173,11 +205,6 @@ namespace engine
       // compare _electionWeight first, then compare _shadowWeight.
       UINT8                      _electionWeight ;
       UINT8                      _shadowWeight ;
-
-      // _grpModeShadowTime = -1 means keep grpMode forever
-      // _grpModeShadowTime = 0 means grpMode in this group is NORMAL
-      // _grpModeShadowTime > 0 means keep grpMode for the next _grpModeShadowTime milliseconds
-      INT32                      _grpModeShadowTime ;
 
       ossSpinXLatch              _latch ;
    } ;

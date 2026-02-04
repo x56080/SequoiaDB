@@ -916,6 +916,54 @@ namespace engine
       goto done ;
    }
 
+   INT32 sdbCatalogueCB::makeIgnoredGroupsObj( BSONObjBuilder &builder,
+                                               const CAT_GROUP_LIST &groups,
+                                               BOOLEAN ignoreErr,
+                                               BOOLEAN ignoreNonExist )
+   {
+      INT32 rc = SDB_OK ;
+
+      try
+      {
+         BSONArrayBuilder sub( builder.subarrayStart( CAT_IGNOREDGROUP_NAME ) ) ;
+
+         CAT_GROUP_LIST::const_iterator itr = groups.begin() ;
+         while ( groups.end() != itr )
+         {
+            UINT32 groupID = *itr++ ;
+            const CHAR *groupName = groupID2Name( groupID ) ;
+
+            if ( NULL == groupName || 0 == groupName[ 0 ] )
+            {
+               if ( ignoreNonExist )
+               {
+                  continue ;
+               }
+               else if ( !ignoreErr )
+               {
+                  rc = SDB_CLS_GRP_NOT_EXIST ;
+                  goto error ;
+               }
+            }
+            SDB_ASSERT( NULL != groupName && 0 != groupName[ 0 ], "Group name can't be empty" ) ;
+            sub.append( BSON( CAT_GROUPID_NAME << groupID << CAT_GROUPNAME_NAME << groupName ) ) ;
+         }
+         sub.doneFast() ;
+      }
+      catch ( exception &e )
+      {
+         PD_LOG( PDERROR, "Failed to make group object, occur exception %s", e.what() ) ;
+         rc = ossException2RC( &e ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATALOGCB_REMOVEGROUPID, "sdbCatalogueCB::removeGroupID" )
    void sdbCatalogueCB::removeGroupID( UINT32 grpID )
    {

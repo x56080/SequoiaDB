@@ -32,41 +32,45 @@ function test() {
   // Step 0: get rg, nodeList and replPrimary
   var rg = db.getRG(groupName);
   var nodeList = commGetGroupNodes(db, groupName);
-  var replPrimaryName = getReplPrimaryName(rg);
+  
+  try {
+      var replPrimaryName = getReplPrimaryName(rg);
 
-  // Step 1: set location for one slave node and check location primary in location
-  var locNodelList = getSlaveList(nodeList, replPrimaryName);
-  var nodeName1 = locNodelList.slice(0, 1)[0];
-  var nodeName2 = locNodelList.slice(1, 2)[0];
-  var nodeName3 = locNodelList.slice(2, 3)[0];
-  var node1 = rg.getNode(nodeName1.HostName, nodeName1.svcname);
-  var node2 = rg.getNode(nodeName2.HostName, nodeName2.svcname);
-  node1.setLocation(location);
-  node2.setLocation(affinitiveLocation);
-  rg.setActiveLocation(location);
+      // Step 1: set location for one slave node and check location primary in location
+      var locNodelList = getSlaveList(nodeList, replPrimaryName);
 
-  // Step 2: reelect replica group, check if primary is activeLocation node
-  rg.reelect();
-  checkNodeIsReplPrimary(rg, nodeName1.NodeID, 30);
+      var nodeName1 = locNodelList.slice(0, 1)[0];
+      var nodeName2 = locNodelList.slice(1, 2)[0];
+      var nodeName3 = locNodelList.slice(2, 3)[0];
+      var node1 = rg.getNode(nodeName1.HostName, nodeName1.svcname);
+      var node2 = rg.getNode(nodeName2.HostName, nodeName2.svcname);
+      node1.setLocation(location);
+      node2.setLocation(affinitiveLocation);
+      rg.setActiveLocation(location);
 
-  // Relect again
-  rg.reelect();
-  checkNodeIsReplPrimary(rg, nodeName1.NodeID, 30);
+      // Step 2: reelect replica group, check if primary is activeLocation node
+      rg.reelect();
+      checkNodeIsReplPrimary(rg, nodeName1.NodeID, 30);
 
-  // Stop primary, check affinitiveLocation
-  node1.stop();
-  sleep(14000);
-  checkNodeIsReplPrimary(rg, nodeName2.NodeID, 30);
+      // Relect again
+      rg.reelect();
+      checkNodeIsReplPrimary(rg, nodeName1.NodeID, 30);
 
-  // Relect again
-  rg.reelect();
-  checkNodeIsReplPrimary(rg, nodeName2.NodeID, 30);
+      // Stop primary, check affinitiveLocation
+      node1.stop();
+      sleep(14000);
+      checkNodeIsReplPrimary(rg, nodeName2.NodeID, 30);
 
-  // Reelect to given node
-  rg.reelect({ NodeID: nodeName3.NodeID });
-  checkNodeIsReplPrimary(rg, nodeName3.NodeID, 30);
+      // Relect again
+      rg.reelect();
+      checkNodeIsReplPrimary(rg, nodeName2.NodeID, 30);
 
-  // Remove location info
-  setLocationForNodes(rg, locNodelList, "");
-  rg.start();
+      // Reelect to given node
+      rg.reelect({ NodeID: nodeName3.NodeID });
+      checkNodeIsReplPrimary(rg, nodeName3.NodeID, 30);
+  } finally {
+      rg.start();
+      // Remove location info
+      setLocationForNodes(rg, nodeList, "");
+  }
 }

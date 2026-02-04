@@ -35,33 +35,40 @@ function test() {
   commCheckBusinessStatus(db);
   var rg = db.getRG(groupName);
   var nodeList = commGetGroupNodes(db, groupName);
+  
+  if ( nodeList < 2 )
+  {
+      return ;
+  }
 
-  // Step 1: set location for two node and check location primary in location
-  setLocationForNodes(rg, nodeList.slice(0, 2), location);
-  checkAndGetLocationHasPrimary(db, groupName, location, 34);
+  try {
+      // Step 1: set location for two node and check location primary in location
+      setLocationForNodes(rg, nodeList.slice(0, 2), location);
+      checkAndGetLocationHasPrimary(db, groupName, location, 34);
 
-  // Step 2: use different argument in rg.reelectLocation and check the result
-  assert.tryThrow(SDB_INVALIDARG, function () {
-    rg.reelectLocation(1);
-  });
+      // Step 2: use different argument in rg.reelectLocation and check the result
+      assert.tryThrow(SDB_INVALIDARG, function () {
+        rg.reelectLocation(1);
+      });
 
-  assert.tryThrow(SDB_INVALIDARG, function () {
-    rg.reelectLocation(true);
-  });
+      assert.tryThrow(SDB_INVALIDARG, function () {
+        rg.reelectLocation(true);
+      });
 
-  assert.tryThrow(SDB_INVALIDARG, function () {
-    rg.reelectLocation(null);
-  });
+      assert.tryThrow(SDB_INVALIDARG, function () {
+        rg.reelectLocation(null);
+      });
 
-  assert.tryThrow(SDB_OUT_OF_BOUND, function () {
-    rg.reelectLocation();
-  });
+      assert.tryThrow(SDB_OUT_OF_BOUND, function () {
+        rg.reelectLocation();
+      });
 
-  // Node is in replica group but not in location
-  assert.tryThrow(SDB_INVALIDARG, function () {
-    rg.reelectLocation(location, nodeList[2].NodeID);
-  });
-
-  // Remove group info
-  setLocationForNodes(rg, nodeList.slice(0, 2), "");
+      // Node is in replica group but not in location
+      assert.tryThrow(SDB_INVALIDARG, function () {
+        rg.reelectLocation(location, nodeList[2].NodeID);
+      });
+  } finally {
+      // Remove group info
+      setLocationForNodes(rg, nodeList.slice(0, 2), "");
+  }
 }

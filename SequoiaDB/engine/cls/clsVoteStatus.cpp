@@ -136,14 +136,16 @@ namespace engine
       {
          PD_LOG ( PDDEBUG, "%s Vote: primary[%u] already exist, can't initial voting",
                   getScopeName(), _groupInfo->primary.columns.nodeID ) ;
-         rc = SDB_CLS_VOTE_FAILED ;
+         rc = SDB_CLS_PRIMARY_ALREADY_EXIST ;
          goto error ;
       }
+      /// node in maintenance mode, not to voting
       else if ( CLS_GROUP_MODE_MAINTENANCE == _groupInfo->localGrpMode )
       {
          PD_LOG( PDINFO, "%s Vote: node is in maintenance mode, "
                  "can't initial voting", getScopeName() ) ;
-         goto done ;
+         rc = SDB_CLS_VOTE_FAILED ;
+         goto error ;
       }
       /* 
          1. For group in normal mode, check if majority nodes are alive.
@@ -211,7 +213,11 @@ namespace engine
          {
             localAbnormal = TRUE ;
 
-            if ( _logger->getCurrentLsn().invalid() && !_groupInfo->isAllNodeBeat() )
+            if ( _logger->getCurrentLsn().invalid() &&
+                 ! ( _groupInfo->isAllNodeBeat() ||
+                     ( CLS_GROUP_MODE_CRITICAL == _groupInfo->localGrpMode &&
+                       _groupInfo->grpMode.enforced &&
+                       _groupInfo->isAllCriticalNodeBeat() ) ) )
             {
                PD_LOG( PDWARNING, "Start type isn't normal and LSN is invalid"
                        "(maybe not complete fullsync), can't inital voting "
@@ -226,7 +232,7 @@ namespace engine
          // Local node is in enforced critical mode, only replica group's election is effective
          if ( ! isLocation() &&
               CLS_GROUP_MODE_CRITICAL == _groupInfo->localGrpMode &&
-              _groupInfo->enforcedGrpMode )
+              _groupInfo->grpMode.enforced )
          {
             while ( _groupInfo->alives.end() != itr )
             {
@@ -309,6 +315,7 @@ namespace engine
       BOOLEAN peerAbnormal = FALSE ;
       BOOLEAN localAbnormal = FALSE ;
       INT64 abnormalThreshold = 0 ;
+      const _clsSharingStatus *pPeerStatus = NULL ;
       DPS_LSN local ;
 
       // Add locationID to ballot msg
@@ -325,7 +332,9 @@ namespace engine
                  id.columns.groupID, id.columns.nodeID ) ;
          goto error ;
       }
-      if ( SERVICE_NORMAL != itrInfo->second.beat.serviceStatus )
+      pPeerStatus = &( itrInfo->second ) ;
+
+      if ( SERVICE_NORMAL != pPeerStatus->beat.serviceStatus )
       {
          peerAbnormal = TRUE ;
       }
@@ -341,6 +350,7 @@ namespace engine
                  getScopeName(),
                  _groupInfo->primary.columns.groupID,
                  _groupInfo->primary.columns.nodeID ) ;
+         rc = SDB_CLS_PRIMARY_ALREADY_EXIST ;
          goto accepterr ;
       }
 
@@ -354,7 +364,7 @@ namespace engine
       // Check if majority nodes are alive or peer node is in critical mode,
       // if not, do not response.
       if ( ! CLS_IS_MAJORITY( _groupInfo->aliveSize(), _groupInfo->groupSize() ) &&
-           ! itrInfo->second.isInCriticalMode() )
+           ! pPeerStatus->isInCriticalMode() )
       {
          PD_LOG( PDDEBUG, "%s Vote: sharing break whih majority", getScopeName() ) ;
          goto error ;
@@ -371,15 +381,20 @@ namespace engine
       // Local node is in enforced critical mode
       if ( ! isLocation() &&
            CLS_GROUP_MODE_CRITICAL == _groupInfo->localGrpMode &&
-           _groupInfo->enforcedGrpMode )
+           _groupInfo->grpMode.enforced )
       {
          map<UINT64, _clsSharingStatus *>::const_iterator itr = _groupInfo->alives.begin() ;
          while ( _groupInfo->alives.end() != itr )
          {
             const _clsSharingStatus* status = ( itr++ )->second ;
+            // the same node
+            if ( id.value == status->beat.identity.value )
+            {
+               continue ;
+            }
             // If peer is normal but iterator node is abnormal, continue
-            if ( ! peerAbnormal && SERVICE_ABNORMAL == status->beat.serviceStatus &&
-                 abnormalThreshold < 0 )
+            else if ( ! peerAbnormal && SERVICE_ABNORMAL == status->beat.serviceStatus &&
+                      abnormalThreshold < 0 )
             {
                continue ;
             }
@@ -404,9 +419,14 @@ namespace engine
          for ( ; itr != _groupInfo->alives.end(); ++itr )
          {
             const _clsSharingStatus* status = itr->second ;
+            // the same node
+            if ( id.value == status->beat.identity.value )
+            {
+               continue ;
+            }
             // If peer is normal but iterator node is abnormal, continue
-            if ( ! peerAbnormal && SERVICE_ABNORMAL == status->beat.serviceStatus &&
-                 abnormalThreshold < 0 )
+            else if ( !peerAbnormal && SERVICE_ABNORMAL == status->beat.serviceStatus &&
+                      abnormalThreshold < 0 )
             {
                continue ;
             }
@@ -451,10 +471,10 @@ namespace engine
 
             // Get and compare electionWeight only if the peer beat version is greater than 1
             // Here we just comapre electionWeight, if the twos are equal, compare the _shadowWeight
-            if ( ! isLocation() && CLS_BEAT_VERSION_2 <= itrInfo->second.beat.beatVersion )
+            if ( ! isLocation() && CLS_BEAT_VERSION_2 <= pPeerStatus->beat.beatVersion )
             {
                UINT8 localElectionWeight = vote->getElectionWeight() ;
-               UINT8 peerElectionWeight = itrInfo->second.beat.getElectionWeight() ;
+               UINT8 peerElectionWeight = pPeerStatus->beat.getElectionWeight() ;
 
                if ( localElectionWeight > peerElectionWeight )
                {
@@ -470,11 +490,11 @@ namespace engine
             shadowWeight = CLS_GET_WEIGHT( pmdGetOptionCB()->weight(), vote->getShadowWeight() ) ;
             if ( isLocation() )
             {
-               peerShadowWeight = itrInfo->second.beat.getLocationWeight() ;
+               peerShadowWeight = pPeerStatus->beat.getLocationWeight() ;
             }
             else
             {
-               peerShadowWeight = itrInfo->second.beat.weight ;
+               peerShadowWeight = pPeerStatus->beat.weight ;
             }
 
             // Compare weight
@@ -525,7 +545,14 @@ namespace engine
               (peerAbnormal ? "TRUE":"FALSE"),
               local.version, local.offset,
               (localAbnormal ? "TRUE":"FALSE") ) ;
-      msg.header.res = SDB_CLS_VOTE_FAILED ;
+      if ( rc )
+      {
+         msg.header.res = rc ;
+      }
+      else
+      {
+         msg.header.res = SDB_CLS_VOTE_FAILED ;
+      }
       _agent->syncSend( id, (MsgHeader *)&msg ) ;
       goto error ;
    }
@@ -551,8 +578,13 @@ namespace engine
    {
       BOOLEAN isAccept = FALSE ;
 
+      // when self is in maintenance mode
+      if ( CLS_GROUP_MODE_MAINTENANCE == _groupInfo->localGrpMode )
+      {
+         isAccept = FALSE ;
+      }
       // Node is in normal mode
-      if ( CLS_IS_MAJORITY( _acceptedNum + 1, _groupInfo->groupSize() ) )
+      else if ( CLS_IS_MAJORITY( _acceptedNum + 1, _groupInfo->groupSize() ) )
       {
          isAccept = TRUE ;
       }
@@ -562,7 +594,7 @@ namespace engine
          if ( CLS_IS_MAJORITY( _criticalAcceptedNum + 1, _groupInfo->criticalSize() ) )
          {
             // Node is in enforced mode, need to check if majority critical nodes agree
-            if ( _groupInfo->enforcedGrpMode )
+            if ( _groupInfo->grpMode.enforced )
             {
                isAccept = TRUE ;
             }

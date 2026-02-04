@@ -115,7 +115,7 @@ function test() {
     dc.setActiveLocation();
   });
 
-  assert.tryThrow(SDB_COORD_NOT_ALL_DONE, function () {
+  assert.tryThrow(SDB_INVALIDARG, function () {
     dc.setActiveLocation("nonExistLocation");
   });
 

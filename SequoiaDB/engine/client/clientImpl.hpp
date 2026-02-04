@@ -1225,14 +1225,18 @@ namespace sdbclient
       INT32 activateDC() ;
       INT32 deactivateDC() ;
       INT32 enableReadOnly( BOOLEAN isReadOnly ) ;
-      INT32 setActiveLocation ( const CHAR *pLocation ) ;
-      INT32 setLocation ( const CHAR *pHostName, const CHAR *pLocation ) ;
-      INT32 startMaintenanceMode( const BSONObj & options ) ;
-      INT32 stopMaintenanceMode( const BSONObj & options ) ;
+      /// batch location functions:
+      virtual INT32 setActiveLocation ( const CHAR *pActiveLocation, bson::BSONObj &result ) ;
+      virtual INT32 setLocation ( const CHAR * pHostName, const CHAR * pLocation, bson::BSONObj &result ) ;
+      virtual INT32 startMaintenanceMode( const bson::BSONObj &options, bson::BSONObj &result ) ;
+      virtual INT32 stopMaintenanceMode( const bson::BSONObj &options, bson::BSONObj &result ) ;
+      virtual INT32 startCriticalMode( const bson::BSONObj &options, bson::BSONObj &result ) ;
+      virtual INT32 stopCriticalMode( const bson::BSONObj &options, bson::BSONObj &result ) ;
 
    private :
       INT32 _innerAlter( const CHAR *pValue,
-                         const bson::BSONObj *pInfo = NULL ) ;
+                         const bson::BSONObj *pInfo = NULL,
+                         bson::BSONObj *pResultObj = NULL ) ;
 
    } ;
    typedef class _sdbDataCenterImpl sdbDataCenterImpl ;

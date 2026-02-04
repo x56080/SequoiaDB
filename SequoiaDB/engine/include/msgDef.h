@@ -399,6 +399,7 @@
 #define FIELD_NAME_TOTALGROUP                "TotalGroups"
 #define FIELD_NAME_SUCCEEDGROUP              "SucceededGroups"
 #define FIELD_NAME_FAILGROUP                 "FailedGroups"
+#define FIELD_NAME_IGNOREDGROUP              "IgnoredGroups"
 #define FIELD_NAME_TOTALSUBTASK              "TotalSubTasks"
 #define FIELD_NAME_SUCCEEDSUBTASK            "SucceededSubTasks"
 #define FIELD_NAME_FAILSUBTASK               "FailedSubTasks"
@@ -763,6 +764,10 @@
 #define FIELD_NAME_SHOW_RUNSTATUS            "ShowRunStatus"
 #define FIELD_NAME_RUNSTATUS_WEIGHT          "RunStatusWeight"
 #define FIELD_NAME_RUNSTATUS_WEIGHT_DESP     "RunStatusWeightDesp"
+#define FIELD_NAME_MATCHEDNUM                "MatchedNum"
+#define FIELD_NAME_SUCCEEDNUM                "SucceedNum"
+#define FIELD_NAME_IGNOREDNUM                "IgnoredNum"
+#define FIELD_NAME_FAILEDNUM                 "FailedNum"
 
 #define FIELD_NAME_CREATE_TIME               "CreateTime"
 #define FIELD_NAME_UPDATE_TIME               "UpdateTime"

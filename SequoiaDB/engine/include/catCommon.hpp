@@ -632,9 +632,10 @@ namespace engine
 
    /* Set group mode, this function is used in SYSCAT.SYSNODES table */
    INT32 catSetGrpMode ( const clsGroupMode &grpMode,
-                         const BOOLEAN incGrpVer,
+                         BOOLEAN incGrpVer,
                          _pmdEDUCB *cb, SDB_DMSCB *pDmsCB,
-                         SDB_DPSCB *pDpsCB, INT16 w ) ;
+                         SDB_DPSCB *pDpsCB, INT16 w,
+                         BOOLEAN *pHasChanged = NULL ) ;
    /* Increase group version */
    INT32 catIncGrpVer( UINT32 groupID, _pmdEDUCB *cb, SDB_DMSCB *pDmsCB,
                        SDB_DPSCB *pDpsCB, INT16 w ) ;

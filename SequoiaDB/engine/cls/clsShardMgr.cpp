@@ -1874,6 +1874,14 @@ namespace engine
          {
             pEventInfo->event.signalAll( rc ) ;
          }
+
+         /// when it's catalog group, update _cataGrpItem
+         if ( CATALOG_GROUPID == groupID )
+         {
+            lock.release() ;
+
+            _onCatCatGroupRes( handle, msg ) ;
+         }
       }
 
       PD_TRACE_EXITRC (SDB__CLSSHDMGR__ONCATGRPRES, rc );
@@ -2636,7 +2644,7 @@ namespace engine
       goto done ;
    }
 
-   INT32 _clsShardMgr::updateDCBaseInfo()
+   INT32 _clsShardMgr::updateDCBaseInfo( BOOLEAN noDelay )
    {
       INT32 rc = SDB_OK ;
       rtnQueryOptions queryOpt ;
@@ -2644,6 +2652,7 @@ namespace engine
       INT32 bufSize = 0 ;
       MsgHeader *pRecvMsg = NULL ;
       MsgOpReply *pReply = NULL ;
+      MsgHeader *pSendMsgHeader = NULL ;
       const UINT32 maxRetryTimes = 3 ;
       UINT32 retryTimes = 0 ;
 
@@ -2658,15 +2667,20 @@ namespace engine
          goto error ;
       }
 
+      pSendMsgHeader = (MsgHeader*)pBuff ;
+
+      if ( noDelay )
+      {
+         pSendMsgHeader->flags |= FLAG_NODELAY ;
+      }
+
       while( retryTimes++ < maxRetryTimes )
       {
          /// send message
-         rc = syncSend( ( MsgHeader* )pBuff, CATALOG_GROUPID, TRUE,
-                        &pRecvMsg ) ;
+         rc = syncSend( pSendMsgHeader, CATALOG_GROUPID, TRUE, &pRecvMsg ) ;
          if ( rc )
          {
-            rc = syncSend( ( MsgHeader* )pBuff, CATALOG_GROUPID, FALSE,
-                           &pRecvMsg ) ;
+            rc = syncSend( pSendMsgHeader, CATALOG_GROUPID, FALSE, &pRecvMsg ) ;
             if ( rc )
             {
                goto error ;

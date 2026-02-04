@@ -1299,15 +1299,7 @@ namespace engine
             // Start critical mode monitor
             if ( CLS_GROUP_MODE_CRITICAL == getReplCB()->getGrpMode() )
             {
-               if ( vote->isTmpGrpMode() )
-               {
-                  /// need to update grpMode
-                  getReplCB()->startGrpModeJob() ;
-               }
-               else // if ( vote->isConstantGrpMode() )
-               {
-                  vote->startCriticalModeMonitor() ;
-               }
+               vote->startCriticalModeMonitor() ;
             }
             else if ( CLS_GROUP_MODE_MAINTENANCE == getReplCB()->getGrpMode() )
             {

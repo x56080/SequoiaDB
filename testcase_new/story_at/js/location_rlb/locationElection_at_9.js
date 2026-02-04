@@ -35,53 +35,56 @@ function test() {
    var groupName = "group_location_rlb";
    var location = "location_locationElection_at_9";
 
+   var rg = db.getRG(groupName);
+   var orgNodeList = commGetGroupNodes(db, groupName);
+   // make sure primary exist
+   var replPrimaryName = getReplPrimaryName(rg);
+
    var domainName = "domain_location_rlb" ;
    commDropDomain( db,domainName ) ;
    var domain = db.createDomain( domainName, [groupName] ) ;
 
-   var rg = db.getRG(groupName);
-   var hostName = rg.getMaster().getHostName();
+   try {
+       var hostName = rg.getMaster().getHostName();
+       domain.setLocation( hostName, location ) ;
+       var primary1 = checkAndGetLocationHasPrimary(db, groupName, location, 34);
+       var nodeList = rg.getDetailObj().toObj();
+       for ( var i = 0; i<nodeList.length; i++ )
+       {
+          assert.equal( nodeList[i].Location, location ) ;
+       }
 
-   domain.setLocation( hostName, location ) ;
-   var primary1 = checkAndGetLocationHasPrimary(db, groupName, location, 34);
-   var nodeList = rg.getDetailObj().toObj();
-   for ( var i = 0; i<nodeList.length; i++ )
-   {
-      assert.equal( nodeList[i].Location, location ) ;
-   }
+       var nodeList = rg.getDetailObj().toObj();
+       for ( var j = 0; i<nodeList.length; i++ )
+       {
+          rg.setLocation(nodeList[j].HostName,location+"_"+i+"_"+j) ;
+       }
 
-   var rg = db.getRG(groupName);
-   var nodeList = rg.getDetailObj().toObj();
-   for ( var j = 0; i<nodeList.length; i++ )
-   {
-      rg.setLocation(nodeList[j].HostName,location+"_"+i+"_"+j) ;
-   }
+       // 设置域的位置信息
+       domain.setLocation( hostName, location ) ;
+       var primary1 = checkAndGetLocationHasPrimary(db, groupName, location, 34);
+       var nodeList = rg.getDetailObj().toObj();
+       for ( var j = 0; i<nodeList.length; i++ )
+       {
+          assert.equal( nodeList[j].Location, location ) ;
+       }
 
-   // 设置域的位置信息
-   domain.setLocation( hostName, location ) ;
-   var primary1 = checkAndGetLocationHasPrimary(db, groupName, location, 34);
-   var rg = db.getRG(groupName);
-   var nodeList = rg.getDetailObj().toObj();
-   for ( var j = 0; i<nodeList.length; i++ )
-   {
-      assert.equal( nodeList[j].Location, location ) ;
-   }
+       var nodeList = rg.getDetailObj().toObj();
+       for ( var j = 0; i<nodeList.length; i++ )
+       {
+          rg.setLocation(nodeList[j].HostName,location+"_"+i+"_"+j) ;
+       }
 
-   var rg = db.getRG(groupName);
-   var nodeList = rg.getDetailObj().toObj();
-   for ( var j = 0; i<nodeList.length; i++ )
-   {
-      rg.setLocation(nodeList[j].HostName,location+"_"+i+"_"+j) ;
+       // 清空域的位置信息
+       domain.setLocation( hostName, "" ) ;
+       var nodeList = rg.getDetailObj().toObj();
+       for ( var i = 0; i<nodeList.length; i++ )
+       {
+          assert.equal( nodeList[i].Location, undefined ) ;
+       }
+   } finally {
+       setLocationForNodes(rg, orgNodeList, "");
+       commDropDomain( db,domainName ) ;
    }
-
-   // 清空域的位置信息
-   domain.setLocation( hostName, "" ) ;
-   var rg = db.getRG(groupName);
-   var nodeList = rg.getDetailObj().toObj();
-   for ( var i = 0; i<nodeList.length; i++ )
-   {
-      assert.equal( nodeList[i].Location, undefined ) ;
-   }
-   commDropDomain( db,domainName ) ;
 }
 

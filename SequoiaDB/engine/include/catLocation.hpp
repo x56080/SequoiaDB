@@ -52,7 +52,8 @@ namespace engine
    INT32 catCheckAndGetActiveLocation( const BSONObj &groupObj,
                                        const UINT32 groupID,
                                        const ossPoolString &newActLoc,
-                                       ossPoolString &oldActLoc ) ;
+                                       ossPoolString &oldActLoc,
+                                       BOOLEAN *pLocExist = NULL ) ;
 }
 
 #endif // CAT_LOCATION_HPP__

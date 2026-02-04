@@ -37,27 +37,52 @@ function test() {
   for (i = 0; i < 1000; i++) {
     data.push({ a: i });
   }
-  for (i = 0; i < 1000; i++) {
-    cl.insert({ a: i });
-  }
 
   // get slave node and set location
   var rg = db.getRG(groupName);
   var nodes = commGetGroupNodes(db, groupName);
-  var groupPrimary = rg.getMaster();
-  nodes = getSlaveList(nodes, groupPrimary);
+  var primaryNodeName = getReplPrimaryName( rg ) ;
+  var primaryNode = rg.getNode(primaryNodeName);
+  var primaryNodeID = primaryNode.getDetailObj().toObj()["NodeID"] ;
 
-  var node1 = rg.getNode(nodes[0].HostName, nodes[0].svcname);
-  var node2 = rg.getNode(nodes[1].HostName, nodes[1].svcname);
-  node1.setLocation(location1 + "a");
-  node2.setLocation(location1 + "b");
+  nodes = getSlaveList(nodes, primaryNodeName);
 
-  nodeID = nodes[1].NodeID;
+  if ( nodes.length < 2 )
+  {
+      return ;
+  }
 
-  // check sync source node id
-  checkPeerNodeID(db, nodes[0], nodeID);
+  try {
+      db.updateConf( {syncwithlocation:false}, {GroupName:groupName} ) ;
 
-  // clear data
-  commDropCS(db, csName);
-  clearLocationForNodes(rg, nodes);
+      var node1 = rg.getNode(nodes[0].HostName, nodes[0].svcname);
+      var node2 = rg.getNode(nodes[1].HostName, nodes[1].svcname);
+      node1.setLocation(location1 + "a");
+      node2.setLocation(location1 + "b");
+
+      var loc1PrimaryNodeName = checkAndGetLocationHasPrimary(db, groupName, location1 + "a", 34);
+      var loc2PrimaryNodeName = checkAndGetLocationHasPrimary(db, groupName, location1 + "b", 34);
+
+      println( "Location1 primary is: " + loc1PrimaryNodeName ) ;
+      println( "Location2 primary is: " + loc2PrimaryNodeName ) ;
+      
+      sleep( 2000 ) ;
+
+      db.updateConf( {syncwithlocation:true}, {GroupName:groupName} ) ;
+
+      for (i = 0; i < 10; i++) {
+        cl.insert({ a: i });
+      }
+
+      sleep( 2000 ) ;
+
+      // check sync source node id
+      checkPeerNodeID(db, nodes[0], primaryNodeID);
+      checkPeerNodeID(db, nodes[1], primaryNodeID);
+  } finally {
+      // clear data
+      commDropCS(db, csName);
+      db.deleteConf( {syncwithlocation:false}, {GroupName:groupName} ) ;
+      clearLocationForNodes(rg, nodes);
+  }
 }
