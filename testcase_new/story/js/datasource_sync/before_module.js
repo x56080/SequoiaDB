@@ -2,13 +2,16 @@
 // | --------- | ------------- | ------------------ |
 // | Node      | HostName      | ServiceName        |
 // | --------- | ------------- | ------------------ |
-// | coord     | COORDHOSTNAME | RSRVPORTBEGIN      |
-// | tmp coord | COORDHOSTNAME | RSRVPORTBEGIN + 10 |
-// | catalog   | first host    | RSRVPORTBEGIN + 20 |
-// | group1    | second host   | RSRVPORTBEGIN + 30 |
-// | group2    | third host    | RSRVPORTBEGIN + 40 |
-// | group3    | fourth host   | RSRVPORTBEGIN + 40 |
+// | coord     | DSHOSTNAME    | DSSVCNAME          |
+// | tmp coord | DSHOSTNAME    | DSSVCNAME + 10     |
+// | catalog   | first host    | DSSVCNAME + 20     |
+// | group1    | second host   | DSSVCNAME + 30     |
+// | group2    | third host    | DSSVCNAME + 40     |
+// | group3    | fourth host   | DSSVCNAME + 50     |
 // | --------- | ------------- | ------------------ |
+// Default:
+// DSHOSTNAME = COORDHOSTNAME
+// DSSVCNAME = RSRVPORTBEGIN
 function deployDSCluster()
 {
    if ( RSRVPORTBEGIN > DSSVCNAME ||
@@ -40,12 +43,12 @@ function deployDSCluster()
    db1.close();
 
    // deploy
-   var svc = parseInt( RSRVPORTBEGIN );
-   var coordHost = COORDHOSTNAME;
+   var svc = parseInt( DSSVCNAME );
+   var coordHost = DSHOSTNAME;
    var coordSvc = svc;
    svc += 10;
 
-   var tmpCoordHost = COORDHOSTNAME;
+   var tmpCoordHost = DSHOSTNAME;
    var tmpCoordSvc = svc;
    svc += 10;
    createTmpCoord( tmpCoordHost, tmpCoordSvc ) ;
@@ -75,9 +78,6 @@ function deployDSCluster()
    var db3 = new Sdb( coordHost, coordSvc ) ;
    db3.getRecycleBin().disable();
    db3.close();
-
-   DSHOSTNAME = coordHost;
-   DSSVCNAME = coordSvc;
 
    removeTmpCoord( tmpCoordHost, tmpCoordSvc ) ;
 }
