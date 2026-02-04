@@ -214,7 +214,8 @@ ssh2Files = [
 pmdFiles = [
       "cls/clsUtil.cpp",
       "pmd/pmdOptionsMgr.cpp",
-      "pmd/pmdOptionsParse.cpp"
+      "pmd/pmdOptionsParse.cpp",
+      "pmd/pmdEnv.cpp"
       ]
 
 monFiles = [
