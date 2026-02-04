@@ -45,6 +45,7 @@
 #include "sptContainer.hpp"
 #include "ossSignal.hpp"
 #include <sstream>
+#include "pmdEnv.hpp"
 #if defined (_WINDOWS)
 #include <windows.h>
 #include <io.h>
@@ -484,6 +485,7 @@ done :
       container.releaseScope( scope ) ;
    }
    container.fini() ;
+   pmdDisableSignalEvent() ;
    PD_TRACE_EXITRC ( SDB_SDBBP_MAIN, rc );
    return rc ;
 error :

@@ -54,6 +54,8 @@
 #include "sptContainer.hpp"
 #include "ossSignal.hpp"
 #include <boost/thread/thread.hpp>
+#include "pmdEnv.hpp"
+
 #if defined (_WINDOWS)
 #include <windows.h>
 #else
@@ -1212,6 +1214,7 @@ done :
       container.releaseScope( scope ) ;
    }
    container.fini() ;
+   pmdDisableSignalEvent() ;
    PD_TRACE_EXITRC ( SDB_SDB_MAIN, rc );
 
    return rc2ReturnCode( rc ) ;

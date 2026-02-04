@@ -38,6 +38,7 @@
 #include "pmdDef.hpp"
 #include "utilParam.hpp"
 #include "ossVer.h"
+#include "pmdEnv.hpp"
 
 using namespace std ;
 
@@ -93,6 +94,7 @@ INT32 main( INT32 argc, CHAR **argv )
    rc = controller.run() ;
 
 done:
+   engine::pmdDisableSignalEvent() ;
    return SDB_OK == rc ? 0 : 127 ;
 }
 
