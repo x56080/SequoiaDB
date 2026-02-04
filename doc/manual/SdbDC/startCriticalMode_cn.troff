@@ -28,7 +28,7 @@ HostName（ \f[I]string\f[] ）：Critical 模式生效的主机名（与 Locati
 指定的主机名需存在于当前集群中，该主机上每个复制组中的一个节点会开启 Critical
 模式。
 .PP
-格式：\f[C]HostName: "sdbserver:11820"\f[]
+格式：\f[C]HostName: "sdbserver"\f[]
 .RE
 .IP \[bu] 2
 Location（ \f[I]string\f[] ）：Critical 模式生效的位置集（与 HostName 互斥）

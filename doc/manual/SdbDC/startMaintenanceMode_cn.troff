@@ -33,7 +33,7 @@ HostName（ \f[I]string\f[] ）：Maintenance 模式生效的主机名（与 Loc
 .PP
 指定的主机名需存在于当前复制组中，该主机所有节点都会开启 Maintenance 模式。
 .PP
-格式：\f[C]HostName: "sdbserver:11820"\f[]
+格式：\f[C]HostName: "sdbserver"\f[]
 .RS
 .PP
 \f[B]Note:\f[]

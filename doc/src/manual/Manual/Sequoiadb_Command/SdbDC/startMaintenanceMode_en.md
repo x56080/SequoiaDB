@@ -28,7 +28,7 @@ Specify the Maintenance mode attributes through the parameter "options":
 
     The specified hostname needs to exist in the current replica group, and all nodes on this host will start Maintenance mode.
 
-    Format: `HostName: "sdbserver:11820"`
+    Format: `HostName: "sdbserver"`
 
     > **Note:**  
     >

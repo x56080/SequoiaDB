@@ -28,7 +28,7 @@ options（ *object，必填* ）
 
     指定的主机名需存在于当前复制组中，该主机所有节点都会开启 Maintenance 模式。
 
-    格式：`HostName: "sdbserver:11820"`
+    格式：`HostName: "sdbserver"`
 
     > **Note:**  
     >

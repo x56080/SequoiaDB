@@ -25,7 +25,7 @@ options（ *object，必填* ）
 
     指定的主机名需存在于当前集群中，该主机上每个复制组中的一个节点会开启 Critical 模式。
 
-    格式：`HostName: "sdbserver:11820"`
+    格式：`HostName: "sdbserver"`
 
 - Location（ *string* ）：Critical 模式生效的位置集（与 HostName 互斥）
 

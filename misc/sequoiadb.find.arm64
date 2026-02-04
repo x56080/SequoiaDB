@@ -518,6 +518,7 @@ sequoiadb/doc/manual/Sdb/transBegin_en.troff
 sequoiadb/doc/manual/Sdb/dropCS_en.troff
 sequoiadb/doc/manual/Sdb/list_cn.troff
 sequoiadb/doc/manual/Sdb/getDataSource_en.troff
+sequoiadb/doc/manual/Sdb/getDC_en.troff
 sequoiadb/doc/manual/Sdb/getCoordRG_en.troff
 sequoiadb/doc/manual/Sdb/removeSpareRG_en.troff
 sequoiadb/doc/manual/Sdb/reloadConf_en.troff
@@ -603,6 +604,7 @@ sequoiadb/doc/manual/Sdb/createDataSource_cn.troff
 sequoiadb/doc/manual/Sdb/getRecycleBin_en.troff
 sequoiadb/doc/manual/Sdb/traceResume_en.troff
 sequoiadb/doc/manual/Sdb/getDataSource_cn.troff
+sequoiadb/doc/manual/Sdb/getDC_cn.troff
 sequoiadb/doc/manual/Sdb/invalidateUserCache_cn.troff
 sequoiadb/doc/manual/Sdb/exec_cn.troff
 sequoiadb/doc/manual/Sdb/execUpdate_cn.troff
@@ -696,6 +698,10 @@ sequoiadb/doc/manual/SdbDC/startCriticalMode_cn.troff
 sequoiadb/doc/manual/SdbDC/startCriticalMode_en.troff
 sequoiadb/doc/manual/SdbDC/startMaintenanceMode_cn.troff
 sequoiadb/doc/manual/SdbDC/startMaintenanceMode_en.troff
+sequoiadb/doc/manual/SdbDC/stopCriticalMode_cn.troff
+sequoiadb/doc/manual/SdbDC/stopCriticalMode_en.troff
+sequoiadb/doc/manual/SdbDC/stopMaintenanceMode_cn.troff
+sequoiadb/doc/manual/SdbDC/stopMaintenanceMode_en.troff
 sequoiadb/doc/manual/BSONArray
 sequoiadb/doc/manual/BSONArray/size_en.troff
 sequoiadb/doc/manual/BSONArray/toArray_en.troff

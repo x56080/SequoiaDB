@@ -3335,6 +3335,18 @@
                            "file": "startMaintenanceMode",
                            "cn": "startMaintenanceMode()",
                            "en": "startMaintenanceMode()"
+                        },
+                        {
+                           "id": 1738569013,
+                           "file": "stopCriticalMode",
+                           "cn": "stopCriticalMode()",
+                           "en": "stopCriticalMode()"
+                        },
+                        {
+                           "id": 1738569014,
+                           "file": "stopMaintenanceMode",
+                           "cn": "stopMaintenanceMode()",
+                           "en": "stopMaintenanceMode()"
                         }
                      ]
                   },
