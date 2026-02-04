@@ -372,6 +372,10 @@ function analyPara()
    then
       dshostname=${coordhostname}
    fi
+   if [ ${dshostname} == "localhost" ] || [ ${dshostname} == "127.0.0.1" ]
+   then
+      dshostname=$(hostname)
+   fi
    if [ "${dssvcname}" == "" ]
    then
       dssvcname=${rsrvportbegin}
