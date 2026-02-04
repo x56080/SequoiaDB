@@ -152,6 +152,7 @@ namespace engine
                           pMsg->TID, pMsg->messageLength, timeDiff ) ;
                }
 
+               pSession->getClient()->registerInMsg( pMsg ) ;
                ((pmdOperator*)pSdbOp)->setMsg( pMsg ) ;
 
                pSession->startDispatch( msgRecvTime, curTime ) ; /// to generate the begin time
@@ -175,6 +176,7 @@ namespace engine
                }
 
                ((pmdOperator*)pSdbOp)->clearMsg() ;
+               pSession->getClient()->unregisterInMsg() ;
             }
             else
             {

@@ -1836,7 +1836,7 @@ INT32 clientBuildDeleteMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    pDelete->header.messageLength = packetLength ;
    pDelete->header.eye           = MSG_COMM_EYE_DEFAULT ;
    pDelete->header.version       = SDB_PROTOCOL_VER_CUR ;
-   pDelete->header.flags         = 0 ;
+   pDelete->header.flags         = FLAG_RESULT_DETAIL ;
    pDelete->header.routeID.value = 0 ;
    pDelete->header.TID           = ossGetCurrentThreadID() ;
    ossMemset( &(pDelete->header.globalID), 0, sizeof(pDelete->header.globalID) ) ;
@@ -2034,7 +2034,7 @@ INT32 clientBuildAggrRequest1( CHAR **ppBuffer, INT32 *bufferSize,
    pAggr->header.messageLength = packetLength;
    pAggr->header.eye = MSG_COMM_EYE_DEFAULT ;
    pAggr->header.version = SDB_PROTOCOL_VER_CUR ;
-   pAggr->header.flags = FLAG_RESULT_DETAIL ;
+   pAggr->header.flags = 0 ;
    pAggr->header.opCode = MSG_BS_AGGREGATE_REQ ;
    pAggr->header.routeID.value = 0;
    pAggr->header.requestID = 0;
@@ -3459,7 +3459,7 @@ INT32 clientBuildAuthVer0Msg( CHAR **ppBuffer, INT32 *bufferSize,
    msg->header.messageLength = sizeof( MsgAuthentication ) + bsonSize ;
    msg->header.eye           = MSG_COMM_EYE_DEFAULT ;
    msg->header.version       = SDB_PROTOCOL_VER_CUR ;
-   msg->header.flags         = FLAG_RESULT_DETAIL ;
+   msg->header.flags         = 0 ;
    msg->header.routeID.value = 0 ;
    msg->header.TID           = ossGetCurrentThreadID() ;
    ossMemset( &(msg->header.globalID), 0, sizeof( msg->header.globalID ) ) ;
@@ -3589,7 +3589,7 @@ INT32 clientBuildAuthVer1Step1Msg( CHAR **ppBuffer, INT32 *bufferSize,
    msg->header.requestID     = reqID ;
    msg->header.eye           = MSG_COMM_EYE_DEFAULT ;
    msg->header.version       = SDB_PROTOCOL_VER_CUR ;
-   msg->header.flags         = 0 ;
+   msg->header.flags         = FLAG_RESULT_DETAIL ;
    msg->header.opCode        = MSG_AUTH_VERIFY1_REQ ;
    msg->header.messageLength = sizeof( MsgAuthentication ) + bsonSize ;
    msg->header.routeID.value = 0 ;
@@ -3747,7 +3747,7 @@ INT32 clientBuildAuthVer1Step2Msg( CHAR **ppBuffer, INT32 *bufferSize,
    msg->header.messageLength = sizeof( MsgAuthentication ) + bsonSize ;
    msg->header.eye           = MSG_COMM_EYE_DEFAULT ;
    msg->header.version       = SDB_PROTOCOL_VER_CUR ;
-   msg->header.flags         = 0 ;
+   msg->header.flags         = FLAG_RESULT_DETAIL ;
    msg->header.routeID.value = 0 ;
    msg->header.TID           = ossGetCurrentThreadID() ;
    ossMemset( &(msg->header.globalID), 0, sizeof( msg->header.globalID ) ) ;

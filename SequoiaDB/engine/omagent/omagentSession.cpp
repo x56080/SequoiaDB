@@ -264,14 +264,8 @@ namespace engine
       INT32 bLen = ( NULL == bodyLen ) ? 0 : *bodyLen ;
 
       //Build reply message
-      _replyHeader.header.opCode = MAKE_REPLY_TYPE( pSrcReqMsg->opCode ) ;
+      msgFillReplyByReq( _replyHeader, pSrcReqMsg ) ;
       _replyHeader.header.messageLength = sizeof ( MsgOpReply ) + bLen ;
-      _replyHeader.header.requestID = pSrcReqMsg->requestID ;
-      _replyHeader.header.TID = pSrcReqMsg->TID ;
-      _replyHeader.header.routeID.value = 0 ;
-      _replyHeader.header.globalID = pSrcReqMsg->globalID ;
-      _replyHeader.flags = flags ;
-      _replyHeader.contextID = -1 ;
 
       /// when we have more than one record to return,
       /// rewrite here.
@@ -560,18 +554,7 @@ namespace engine
 
    INT32 _omaSession::_buildReplyHeader( MsgHeader *pMsg )
    {
-      _replyHeader.header.messageLength = sizeof( MsgOpReply ) ;
-      _replyHeader.header.opCode        = MAKE_REPLY_TYPE(pMsg->opCode) ;
-      _replyHeader.header.TID           = pMsg->TID ;
-      _replyHeader.header.routeID.value = 0 ;
-      _replyHeader.header.requestID     = pMsg->requestID ;
-      _replyHeader.header.globalID      = pMsg->globalID ;
-      _replyHeader.contextID            = -1 ;
-      _replyHeader.flags                = 0 ;
-      _replyHeader.numReturned          = 0 ;
-      _replyHeader.startFrom            = 0 ;
-      _replyHeader.numReturned          = 0 ;
-
+      msgFillReplyByReq( _replyHeader, pMsg ) ;
       return SDB_OK ;
    }
 

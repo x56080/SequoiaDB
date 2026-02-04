@@ -219,7 +219,7 @@ INT32 msgBuildUpdateMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    pUpdate->header.messageLength = packetLength ;
    pUpdate->header.eye           = MSG_COMM_EYE_DEFAULT ;
    pUpdate->header.version       = SDB_PROTOCOL_VER_CUR ;
-   pUpdate->header.flags         = 0 ;
+   pUpdate->header.flags         = FLAG_RESULT_DETAIL ;
    pUpdate->header.routeID.value = 0 ;
    pUpdate->header.TID           = ossGetCurrentThreadID() ;
    ossMemset( &(pUpdate->header.globalID), 0, sizeof(pUpdate->header.globalID) ) ;
@@ -419,7 +419,7 @@ INT32 msgBuildInsertMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    pInsert->header.messageLength = packetLength ;
    pInsert->header.eye           = MSG_COMM_EYE_DEFAULT ;
    pInsert->header.version       = SDB_PROTOCOL_VER_CUR ;
-   pInsert->header.flags         = 0 ;
+   pInsert->header.flags         = FLAG_RESULT_DETAIL ;
    pInsert->header.routeID.value = 0 ;
    pInsert->header.TID           = ossGetCurrentThreadID() ;
    ossMemset( &(pInsert->header.globalID), 0, sizeof(pInsert->header.globalID) ) ;
@@ -521,7 +521,7 @@ INT32 msgBuildInsertMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    pInsert->header.messageLength = packetLength ;
    pInsert->header.eye           = MSG_COMM_EYE_DEFAULT ;
    pInsert->header.version       = SDB_PROTOCOL_VER_CUR ;
-   pInsert->header.flags         = 0 ;
+   pInsert->header.flags         = FLAG_RESULT_DETAIL ;
    pInsert->header.routeID.value = 0 ;
    pInsert->header.TID           = ossGetCurrentThreadID() ;
    ossMemset( &(pInsert->header.globalID), 0, sizeof(pInsert->header.globalID) ) ;
@@ -777,7 +777,7 @@ INT32 msgBuildQueryMsg  ( CHAR **ppBuffer, INT32 *bufferSize,
    pQuery->header.messageLength  = packetLength ;
    pQuery->header.eye            = MSG_COMM_EYE_DEFAULT ;
    pQuery->header.version        = SDB_PROTOCOL_VER_CUR ;
-   pQuery->header.flags          = FLAG_RESULT_DETAIL | FLAG_PROCESS_DETAIL ;
+   pQuery->header.flags          = 0 ;
    pQuery->header.routeID.value  = 0 ;
    pQuery->header.TID            = ossGetCurrentThreadID() ;
    ossMemset( &(pQuery->header.globalID), 0, sizeof(pQuery->header.globalID) ) ;

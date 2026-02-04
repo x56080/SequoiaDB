@@ -51,7 +51,7 @@ namespace engine
 
          virtual BOOLEAN      needRollback() const ;
 
-      public:
+      private:
          BOOLEAN        _needRollback ;
 
    } ;

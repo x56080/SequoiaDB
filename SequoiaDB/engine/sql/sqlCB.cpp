@@ -212,10 +212,10 @@ namespace engine
       {
          SAFE_OSS_DELETE( opti ) ;
       }
-      if ( container && containerOwnned &&
-           QGM_PLAN_TYPE_RETURN != container->type() )
+      if ( container && containerOwnned )
       {
          SDB_OSS_DEL container ;
+         container = NULL ;
       }
       return rc ;
    error:
@@ -223,11 +223,6 @@ namespace engine
       {
          pmdGetKRCB()->getRTNCB()->contextDelete( contextID, cb ) ;
          contextID = -1 ;
-      }
-      if ( container && containerOwnned )
-      {
-         SDB_OSS_DEL container ;
-         container = NULL ;
       }
       goto done ;
    }

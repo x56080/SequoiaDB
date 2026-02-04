@@ -241,12 +241,7 @@ namespace engine
       const CHAR *pHint = NULL ;
 
       // init reply msg
-      replyHeader.header.messageLength = sizeof( MsgOpReply ) ;
-      replyHeader.contextID = -1 ;
-      replyHeader.flags = SDB_OK ;
-      replyHeader.numReturned = 0 ;
-      replyHeader.startFrom = 0 ;
-      _fillRspHeader( &(replyHeader.header), &(pQueryReq->header) ) ;
+      msgFillReplyByReq( replyHeader, pMsg ) ;
 
       // extract msg
       rc = msgExtractQuery( (const CHAR*)pMsg, &flag, &pCMDName, &numToSkip,
@@ -548,16 +543,6 @@ namespace engine
       return rc ;
    error:
       goto done ;
-   }
-
-   void _catDCManager::_fillRspHeader( MsgHeader * rspMsg,
-                                       const MsgHeader * reqMsg )
-   {
-      rspMsg->opCode = MAKE_REPLY_TYPE( reqMsg->opCode ) ;
-      rspMsg->requestID = reqMsg->requestID ;
-      rspMsg->routeID.value = 0 ;
-      rspMsg->TID = reqMsg->TID ;
-      rspMsg->globalID = reqMsg->globalID ;
    }
 
    INT32 _catDCManager::_mapData2DCMgr( _clsDCMgr *pDCMgr )

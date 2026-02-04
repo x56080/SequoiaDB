@@ -129,12 +129,7 @@ namespace seadapter
          }
       }
 
-      reply.header.opCode = MAKE_REPLY_TYPE( msg->opCode ) ;
-      reply.header.messageLength = sizeof( MsgOpReply ) ;
-      reply.header.requestID = msg->requestID ;
-      reply.header.TID = msg->TID ;
-      reply.header.routeID.value = 0 ;
-      reply.header.globalID = msg->globalID ;
+      msgFillReplyByReq( reply, msg ) ;
 
       if ( objBuff.valid() )
       {

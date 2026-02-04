@@ -55,6 +55,11 @@ namespace engine
 
          virtual BOOLEAN      isReadOnly() const ;
 
+         virtual BOOLEAN      needRollback() const ;
+
+      private:
+         BOOLEAN              _needRollback ;
+
    } ;
    typedef _coordAggrOperator coordAggrOperator ;
 

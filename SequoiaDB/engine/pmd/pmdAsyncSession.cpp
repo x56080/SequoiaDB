@@ -36,6 +36,7 @@
 #include "rtnCommand.hpp"
 #include "pdTrace.hpp"
 #include "pmdTrace.hpp"
+#include "msgMessage.hpp"
 
 using namespace bson ;
 
@@ -1652,12 +1653,7 @@ namespace engine
          goto done ;
       }
 
-      reply.header.opCode = MAKE_REPLY_TYPE( pReqMsg->opCode ) ;
-      reply.header.requestID = pReqMsg->requestID ;
-      reply.header.routeID.value = 0 ;
-      reply.header.TID  = pReqMsg->TID ;
-      reply.header.messageLength = sizeof ( MsgOpReply ) ;
-      reply.header.globalID = pReqMsg->globalID ;
+      msgFillReplyByReq( reply, pReqMsg ) ;
       reply.flags = rc ;
       reply.contextID = -1 ;
       reply.numReturned = 1 ;

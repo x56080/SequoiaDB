@@ -419,20 +419,8 @@ namespace engine
 
       // set reply header ( except flags, length )
       getClient()->registerInMsg( pMsg ) ;
-      _replyHeader.contextID          = -1 ;
-      _replyHeader.numReturned        = 0 ;
-      _replyHeader.startFrom          = 0 ;
-      _replyHeader.header.eye         = MSG_COMM_EYE_DEFAULT ;
-      _replyHeader.header.opCode      = MAKE_REPLY_TYPE(pMsg->opCode) ;
-      _replyHeader.header.requestID   = pMsg->requestID ;
-      _replyHeader.header.TID         = pMsg->TID ;
-      _replyHeader.header.routeID     = pmdGetNodeID() ;
-      _replyHeader.header.version     = SDB_PROTOCOL_VER_CUR ;
-      _replyHeader.header.flags       = 0 ;
-      _replyHeader.header.globalID    = pMsg->globalID ;
-      ossMemset( _replyHeader.header.reserve, 0,
-                 sizeof(_replyHeader.header.reserve) ) ;
-      _replyHeader.returnMask         = 0 ;
+
+      msgFillReplyByReq( _replyHeader, pMsg, pmdGetNodeID().value ) ;
 
       if ( isNoReplyMsg( pMsg->opCode ) )
       {

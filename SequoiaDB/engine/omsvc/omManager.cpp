@@ -1885,12 +1885,9 @@ namespace engine
       INT32 rc                   = SDB_OK ;
       const CHAR *pBody          = buffObj.data() ;
       INT32 bodyLen              = buffObj.size() ;
+
+      msgFillReplyByReq( reply, pSrcMsg ) ;
       reply.header.messageLength = sizeof( MsgOpReply ) + bodyLen ;
-      reply.header.opCode        = MAKE_REPLY_TYPE( pSrcMsg->opCode ) ;
-      reply.header.TID           = pSrcMsg->TID ;
-      reply.header.routeID.value = 0 ;
-      reply.header.requestID     = pSrcMsg->requestID ;
-      reply.header.globalID      = pSrcMsg->globalID ;
       reply.contextID            = contextID ;
       reply.flags                = flag ;
       reply.startFrom            = 0 ;
@@ -1920,14 +1917,11 @@ namespace engine
    {
       MsgOpReply reply ;
       INT32 rc                   = SDB_OK ;
-      reply.header.opCode        = MAKE_REPLY_TYPE( pSrcMsg->opCode ) ;
-      reply.header.TID           = pSrcMsg->TID ;
-      reply.header.routeID.value = 0 ;
-      reply.header.requestID     = pSrcMsg->requestID ;
+
+      msgFillReplyByReq( reply, pSrcMsg ) ;
       reply.contextID            = contextID ;
       reply.flags                = flag ;
       reply.startFrom            = 0 ;
-      reply.header.globalID      = pSrcMsg->globalID ;
 
       if ( !obj.isEmpty() )
       {
@@ -2393,12 +2387,7 @@ namespace engine
    void _omManager::_onMsgBegin( MsgHeader *pMsg )
    {
       // set reply header ( except flags, length )
-      _replyHeader.numReturned          = 0 ;
-      _replyHeader.startFrom            = 0 ;
-      _replyHeader.header.opCode        = MAKE_REPLY_TYPE( pMsg->opCode ) ;
-      _replyHeader.header.requestID     = pMsg->requestID ;
-      _replyHeader.header.TID           = pMsg->TID ;
-      _replyHeader.header.routeID.value = 0 ;
+      msgFillReplyByReq( _replyHeader, pMsg ) ;
 
       if ( MSG_BS_INTERRUPTE      == pMsg->opCode ||
            MSG_BS_INTERRUPTE_SELF == pMsg->opCode ||

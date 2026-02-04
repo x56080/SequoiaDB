@@ -100,9 +100,6 @@ namespace engine
 
       INT32 _loadGroupInfo() ;
 
-   protected:
-      void  _fillRspHeader( MsgHeader *rspMsg, const MsgHeader *reqMsg ) ;
-
    // tool fuctions
    private:
       INT32 _createGrp( const CHAR *groupName ) ;

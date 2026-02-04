@@ -719,9 +719,6 @@ typedef enum _MSG_ROUTE_SERVICE_TYPE
    MSG_ROUTE_SERVICE_TYPE_MAX
 }MSG_ROUTE_SERVICE_TYPE;
 
-#define FLAG_RESULT_DETAIL          0x0001
-#define FLAG_PROCESS_DETAIL         0x0002
-
 // 28 bytes
 struct _MsgHeaderV1
 {
@@ -753,6 +750,12 @@ typedef struct _MsgHeaderV1 MsgHeaderV1 ;
 
 #define MSG_COMM_EYE_DEFAULT           0
 #define MSG_COMM_EYE_DEFAULT_BACK      MAKE_REPLY_TYPE(0)
+
+#define FLAG_RESULT_DETAIL             0x0001
+#define FLAG_DETACH_CONTEXT            0x0002         /// reserved for detech context
+#define FLAG_NOCOMPRESSED_ADVICE       0x0004         /// reserved msg compression
+#define FLAG_COMPRESSED                0x0008         /// reserved msg compression
+
 struct _MsgHeader
 {
    SINT32 messageLength ; // total message size, including this
@@ -991,9 +994,7 @@ typedef struct _MsgOpMsg MsgOpMsg ;
 
 // The first bson object after the header is the result object.
 #define SDB_REPLY_MASK_NONE            0
-#define SDB_REPLY_MASK_DATA            0x00000001
-#define SDB_REPLY_MASK_RESULT          0x00000002
-#define SDB_REPLY_MASK_PROCESS         0X00000003
+#define SDB_REPLY_MASK_RESULT          0x00000001
 
 struct _MsgOpReplyV1
 {
@@ -1019,7 +1020,7 @@ struct _MsgOpReplyV1
    : contextID(-1),
      flags(0),
      startFrom(0),
-     numReturned(-1)
+     numReturned(0)
    {
    }
 #endif /* __cplusplus */
@@ -1061,7 +1062,7 @@ struct _MsgOpReply
    : contextID(-1),
      flags(0),
      startFrom(0),
-     numReturned(-1),
+     numReturned(0),
      returnMask( SDB_REPLY_MASK_NONE ),
      dataLen(0)
    {
