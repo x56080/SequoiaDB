@@ -3069,8 +3069,8 @@ namespace engine
                const clsGrpModeItem &grpItem = *grpModeItr ;
                if ( ( INVALID_NODEID != grpItem.nodeID &&
                       status.beat.identity.columns.nodeID == grpItem.nodeID ) ||
-                    ( MSG_INVALID_LOCATIONID != status.beat.locationID &&
-                      status.beat.locationID == grpItem.locationID ) )
+                    ( MSG_INVALID_LOCATIONID != status.locationID &&
+                      status.locationID == grpItem.locationID ) )
                {
                   status.grpMode = grpMode.mode ;
                   break ;
