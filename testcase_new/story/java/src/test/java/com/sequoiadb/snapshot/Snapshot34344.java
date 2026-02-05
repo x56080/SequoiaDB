@@ -103,6 +103,38 @@ public class Snapshot34344 extends SdbTestBase {
         runSuccess = true;
     }
 
+    private class LockGuard implements AutoCloseable {
+        @Override
+        public void close() throws InterruptedException {
+            moreBreakPoint = false;
+            moreSnapshot = false;
+
+            breakPointLock.lock();
+            try {
+                while (hasBreakPointEvent) {
+                    breakPointCondition.await();
+                }
+                hasBreakPointEvent = true;
+                breakPointKeepMs = 0;
+                breakPointCondition.signal();
+            } finally {
+                breakPointLock.unlock();
+            }
+
+            snapshotLock.lock();
+            try {
+                while (hasSnapshotEvent) {
+                    snapshotCondition.await();
+                }
+                hasSnapshotEvent = true;
+                snapshotDelayMs = 0;
+                snapshotCondition.signal();
+            } finally {
+                snapshotLock.unlock();
+            }
+        }
+    }
+
     private class SnapshotThread extends ResultStore {
         private Sequoiadb db = null;
         private Sequoiadb master = null;
@@ -325,7 +357,7 @@ public class Snapshot34344 extends SdbTestBase {
         private void test() {
             System.out.println(
                     new Date() + " " + this.getClass().getName().toString() );
-            try {
+            try (LockGuard guard = new LockGuard()) {
                 List< BSONObject > records = new ArrayList< BSONObject >();
                 for ( int i = 0; i < 1000; ++i ) {
                     BSONObject record = new BasicBSONObject();
