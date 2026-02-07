@@ -1609,6 +1609,760 @@ SdbDC.prototype.primaryRestore = function( planobjOrFile, option ) {
    return new BSONObj( summary ) ;
 }
 
+SdbDC.prototype.reelectAnalyse = function( option, run ) {
+   if ( null == option )
+   {
+      option = undefined ;
+   }
+
+   if ( undefined != option && ( typeof option ) != "object" )
+   {
+      setLastErrMsg( "SdbDC.reelectAnalyse(): option should be object" ) ;
+      throw SDB_INVALIDARG ;
+   }
+
+   if ( undefined == run )
+   {
+      run = false ;
+   }
+
+   if ( ( typeof run ) != "boolean" )
+   {
+      setLastErrMsg( "SdbDC.reelectAnalyse(): run should be boolean" ) ;
+      throw SDB_INVALIDARG ;
+   }
+
+   // validate option fields
+   if ( undefined != option )
+   {
+      if ( undefined != option.HostName && ( typeof option.HostName ) != "string" )
+      {
+         setLastErrMsg( "SdbDC.reelectAnalyse(): HostName should be string" ) ;
+         throw SDB_INVALIDARG ;
+      }
+
+      if ( undefined != option.Domain )
+      {
+         var domainType = typeof option.Domain ;
+         if ( domainType != "string" && !( option.Domain instanceof Array ) )
+         {
+            setLastErrMsg( "SdbDC.reelectAnalyse(): Domain should be string or array of strings" ) ;
+            throw SDB_INVALIDARG ;
+         }
+      }
+
+      if ( undefined != option.FilterLevel )
+      {
+         if ( ( typeof option.FilterLevel ) != "string" )
+         {
+            setLastErrMsg( "SdbDC.reelectAnalyse(): FilterLevel should be string" ) ;
+            throw SDB_INVALIDARG ;
+         }
+         if ( option.FilterLevel != "GroupMode" &&
+              option.FilterLevel != "Location" &&
+              option.FilterLevel != "Weight" )
+         {
+            setLastErrMsg( "SdbDC.reelectAnalyse(): FilterLevel should be one of: GroupMode, Location, Weight" ) ;
+            throw SDB_INVALIDARG ;
+         }
+      }
+
+      if ( undefined != option.Rebalance && ( typeof option.Rebalance ) != "boolean" )
+      {
+         setLastErrMsg( "SdbDC.reelectAnalyse(): Rebalance should be boolean" ) ;
+         throw SDB_INVALIDARG ;
+      }
+   }
+
+   var filterLevel = "Weight" ;
+   var rebalance = true ;
+   if ( undefined != option )
+   {
+      if ( undefined != option.FilterLevel )
+      {
+         filterLevel = option.FilterLevel ;
+      }
+      if ( undefined != option.Rebalance )
+      {
+         rebalance = option.Rebalance ;
+      }
+   }
+
+   // resolve domain groups
+   var domainGroupNames = undefined ;
+   if ( undefined != option && undefined != option.Domain )
+   {
+      var domains = option.Domain ;
+      if ( !( domains instanceof Array ) )
+      {
+         domains = [ domains ] ;
+      }
+
+      domainGroupNames = [] ;
+      var domainCursor = this._conn.list( SDB_LIST_DOMAINS, { Name: { $in: domains } } ) ;
+      if ( undefined != domainCursor )
+      {
+         var domainRecord = undefined ;
+         while ( ( domainRecord = domainCursor.next() ) != undefined )
+         {
+            var domainObj = domainRecord.toObj() ;
+            if ( undefined != domainObj.Groups )
+            {
+               for ( var i = 0; i < domainObj.Groups.length; i++ )
+               {
+                  domainGroupNames.push( domainObj.Groups[i].GroupName ) ;
+               }
+            }
+         }
+         domainCursor.close() ;
+      }
+
+      if ( domainGroupNames.length == 0 )
+      {
+         setLastErrMsg( "SdbDC.reelectAnalyse(): specified Domain does not exist or has no groups" ) ;
+         throw SDB_INVALIDARG ;
+      }
+   }
+
+   // resolve host groups
+   var filter = {} ;
+   if ( undefined != option && undefined != option.HostName )
+   {
+      filter["Group.HostName"] = option.HostName ;
+   }
+
+   var cursor = this._conn.list( SDB_LIST_GROUPS, filter ) ;
+   if ( undefined == cursor )
+   {
+      return ;
+   }
+
+   var matchedGroup = false ;
+   var groups = [] ;
+   var record = undefined ;
+   while ( ( record = cursor.next() ) != undefined )
+   {
+      matchedGroup = true ;
+      var groupObj = record.toObj() ;
+      var groupName = groupObj.GroupName ;
+
+      if ( groupName == SDB_COORD_GROUP_NAME || groupName == SDB_SPARE_GROUP_NAME )
+      {
+         continue ;
+      }
+
+      if ( undefined != domainGroupNames )
+      {
+         if ( domainGroupNames.indexOf( groupName ) == -1 )
+         {
+            continue ;
+         }
+      }
+
+      groups.push( groupName ) ;
+   }
+   cursor.close() ;
+
+   if ( undefined != option && undefined != option.HostName && !matchedGroup )
+   {
+      setLastErrMsg( "SdbDC.reelectAnalyse(): specified HostName does not exist" ) ;
+      throw SDB_INVALIDARG ;
+   }
+
+   if ( groups.length == 0 )
+   {
+      var summary = {
+         MatchedNum: 0,
+         SucceedNum: 0,
+         IgnoredNum: 0,
+         FailedNum: 0,
+         Detail: []
+      } ;
+      return new BSONObj( summary ) ;
+   }
+
+   // build FilterLevel allowed desps
+   var allowedDesps = [] ;
+   if ( filterLevel == "GroupMode" )
+   {
+      allowedDesps = [ "Critical", "Maintenance" ] ;
+   }
+   else if ( filterLevel == "Location" )
+   {
+      allowedDesps = [ "Critical", "Maintenance", "ActiveLocation", "AffinitiveLocation" ] ;
+   }
+   // Weight: all desps allowed, no filtering
+
+   // query snapshot configs
+   // For each group, only keep: bestCandidates (highest weight nodes), primaryNode
+   // Results are ordered by GroupName, RunStatusWeight desc, IsPrimary desc, NodeName
+   // groupInfo[groupName] = { bestWeight, bestCandidates: [{NodeName, RunStatusWeightDesp}], primaryNode: {NodeName, RunStatusWeightDesp} }
+   var groupInfo = {} ;
+   var allGroups = ( undefined == option || ( undefined == option.HostName && undefined == option.Domain ) ) ;
+
+   // helper: parse snapshot cursor into groupInfo
+   function _parseSnapCursor( snapCursor )
+   {
+      if ( undefined == snapCursor )
+      {
+         return ;
+      }
+      var snapRecord = undefined ;
+      while ( ( snapRecord = snapCursor.next() ) != undefined )
+      {
+         var snapObj = snapRecord.toObj() ;
+         var gn = snapObj.GroupName ;
+         if ( undefined == gn || gn == "" ||
+              gn == SDB_COORD_GROUP_NAME || gn == SDB_SPARE_GROUP_NAME )
+         {
+            continue ;
+         }
+         var desp = ( undefined != snapObj.RunStatusWeightDesp ) ? snapObj.RunStatusWeightDesp : "" ;
+         var node = {
+            NodeName: snapObj.NodeName,
+            RunStatusWeightDesp: desp
+         } ;
+
+         if ( undefined == groupInfo[gn] )
+         {
+            // first record of this group = highest weight
+            groupInfo[gn] = {
+               bestWeight: snapObj.RunStatusWeight,
+               bestCandidates: [ node ],
+               primaryNode: undefined
+            } ;
+            if ( snapObj.IsPrimary == true )
+            {
+               groupInfo[gn].primaryNode = node ;
+            }
+         }
+         else
+         {
+            var info = groupInfo[gn] ;
+
+            if ( snapObj.IsPrimary == true )
+            {
+               info.primaryNode = node ;
+            }
+
+            // keep nodes with same best weight as candidates
+            if ( snapObj.RunStatusWeight == info.bestWeight &&
+                 snapObj.IsPrimary != true )
+            {
+               info.bestCandidates.push( node ) ;
+            }
+         }
+      }
+      snapCursor.close() ;
+   }
+
+   if ( allGroups )
+   {
+      // no filter, query all groups in one SQL without WHERE clause
+      var sql = 'select NodeName, RunStatusWeight, RunStatusWeightDesp, IsPrimary, GroupName from $SNAPSHOT_CONFIGS ' +
+                'order by GroupName, RunStatusWeight desc, IsPrimary desc, NodeName ' +
+                '/*+use_option(IgnoreDefault,true) use_option(Expand,false) use_option(ShowRunStatus,true) use_option(ShowError,ignore) */' ;
+
+      try
+      {
+         _parseSnapCursor( this._conn.exec( sql ) ) ;
+      }
+      catch ( e )
+      {
+         // ignore errors, groups will be treated as failed
+      }
+   }
+   else
+   {
+      // query in batches of 50
+      var batchSize = 50 ;
+      for ( var batchStart = 0; batchStart < groups.length; batchStart += batchSize )
+      {
+         var batchEnd = batchStart + batchSize ;
+         if ( batchEnd > groups.length )
+         {
+            batchEnd = groups.length ;
+         }
+
+         var groupList = "" ;
+         for ( var i = batchStart; i < batchEnd; i++ )
+         {
+            if ( i > batchStart )
+            {
+               groupList += "," ;
+            }
+            groupList += '"' + groups[i] + '"' ;
+         }
+
+         var sql = 'select NodeName, RunStatusWeight, RunStatusWeightDesp, IsPrimary, GroupName from $SNAPSHOT_CONFIGS where GroupName in (' +
+                   groupList + ') order by GroupName, RunStatusWeight desc, IsPrimary desc, NodeName ' +
+                   '/*+use_option(IgnoreDefault,true) use_option(Expand,false) use_option(ShowRunStatus,true) use_option(ShowError,ignore) */' ;
+
+         try
+         {
+            _parseSnapCursor( this._conn.exec( sql ) ) ;
+         }
+         catch ( e )
+         {
+            // ignore batch errors, groups will be treated as failed
+         }
+      }
+   }
+
+   // helper: get host from NodeName
+   function _getHost( nodeName )
+   {
+      var parts = nodeName.split( ":" ) ;
+      return ( parts.length == 2 ) ? parts[0] : undefined ;
+   }
+
+   // helper: get unique candidate hosts for a candidates array
+   function _getCandidateHosts( candidates )
+   {
+      var hosts = [] ;
+      for ( var j = 0; j < candidates.length; j++ )
+      {
+         var h = _getHost( candidates[j].NodeName ) ;
+         if ( undefined != h && hosts.indexOf( h ) == -1 )
+         {
+            hosts.push( h ) ;
+         }
+      }
+      hosts.sort() ;
+      return hosts ;
+   }
+
+   // Pass 1: classify groups
+   // status: "stable", "needSwitch", "maySwitch", "failed"
+   // needSwitch: current primary not in bestCandidates, must switch
+   // maySwitch: current primary in bestCandidates, rebalance=true, multiple candidate hosts
+   // stable: no switch needed
+   var matchedNum = groups.length ;
+   var succeedNum = 0 ;
+   var ignoredNum = 0 ;
+   var failedNum = 0 ;
+   var failedGroups = [] ;
+   var detail = [] ;
+
+   var groupStatus = [] ;
+   var groupCandidates = [] ;
+   var groupCandidateHosts = [] ;
+
+   for ( var i = 0; i < groups.length; i++ )
+   {
+      var groupName = groups[i] ;
+      var info = groupInfo[groupName] ;
+
+      if ( undefined == info || undefined == info.primaryNode )
+      {
+         groupStatus.push( "failed" ) ;
+         groupCandidates.push( [] ) ;
+         groupCandidateHosts.push( [] ) ;
+         continue ;
+      }
+
+      var currentPrimary = info.primaryNode ;
+      var bestCandidates = info.bestCandidates ;
+
+      // filter bestCandidates by FilterLevel
+      // if current primary is in Maintenance, skip filtering
+      var candidates = [] ;
+      if ( filterLevel == "Weight" ||
+           currentPrimary.RunStatusWeightDesp == "Maintenance" )
+      {
+         candidates = bestCandidates ;
+      }
+      else
+      {
+         for ( var j = 0; j < bestCandidates.length; j++ )
+         {
+            if ( allowedDesps.indexOf( bestCandidates[j].RunStatusWeightDesp ) != -1 )
+            {
+               candidates.push( bestCandidates[j] ) ;
+            }
+         }
+      }
+
+      // check if current primary is among the best candidates
+      var currentIsBest = false ;
+      for ( var j = 0; j < bestCandidates.length; j++ )
+      {
+         if ( bestCandidates[j].NodeName == currentPrimary.NodeName )
+         {
+            currentIsBest = true ;
+            break ;
+         }
+      }
+
+      var candHosts = _getCandidateHosts( candidates ) ;
+      groupCandidates.push( candidates ) ;
+      groupCandidateHosts.push( candHosts ) ;
+
+      if ( !currentIsBest && candidates.length == 0 )
+      {
+         // no candidates pass filter, current primary is fine
+         groupStatus.push( "stable" ) ;
+      }
+      else if ( !currentIsBest )
+      {
+         groupStatus.push( "needSwitch" ) ;
+      }
+      else if ( rebalance && candHosts.length > 1 )
+      {
+         // current primary is optimal, but rebalance may improve distribution
+         groupStatus.push( "maySwitch" ) ;
+      }
+      else
+      {
+         groupStatus.push( "stable" ) ;
+      }
+   }
+
+   // Initialize hostPrimaryCount from stable groups only
+   var hostPrimaryCount = {} ;
+   for ( var i = 0; i < groups.length; i++ )
+   {
+      if ( groupStatus[i] != "stable" )
+      {
+         continue ;
+      }
+      var info = groupInfo[groups[i]] ;
+      if ( undefined != info && undefined != info.primaryNode )
+      {
+         var host = _getHost( info.primaryNode.NodeName ) ;
+         if ( undefined != host )
+         {
+            if ( undefined == hostPrimaryCount[host] )
+            {
+               hostPrimaryCount[host] = 0 ;
+            }
+            hostPrimaryCount[host]++ ;
+         }
+      }
+   }
+
+   // Compute quota per candidate-host-set
+   // hostSetQuota[key] = { hosts: [...], quota: N }
+   // key = sorted hosts joined by ","
+   var hostSetQuota = {} ;
+   if ( rebalance )
+   {
+      // count total groups (needSwitch + maySwitch + stable with same host set) per host set
+      var hostSetGroupCount = {} ; // key -> total group count
+      var hostSetHosts = {} ; // key -> hosts array
+
+      for ( var i = 0; i < groups.length; i++ )
+      {
+         if ( groupStatus[i] == "failed" )
+         {
+            continue ;
+         }
+
+         var candHosts = groupCandidateHosts[i] ;
+         // for stable groups, derive candidate hosts from the primary's host
+         // (they belong to the same host set as groups with matching candidate hosts)
+         if ( groupStatus[i] == "stable" )
+         {
+            // stable groups don't have meaningful candHosts, skip host set counting
+            // their primaries are already counted in hostPrimaryCount
+            continue ;
+         }
+
+         var key = candHosts.join( "," ) ;
+         if ( undefined == hostSetGroupCount[key] )
+         {
+            hostSetGroupCount[key] = 0 ;
+            hostSetHosts[key] = candHosts ;
+         }
+         hostSetGroupCount[key]++ ;
+      }
+
+      // compute quota: (needSwitch + maySwitch count + existing primaries on these hosts) / host count
+      for ( var key in hostSetGroupCount )
+      {
+         var hosts = hostSetHosts[key] ;
+         var totalGroups = hostSetGroupCount[key] ;
+
+         // add stable primaries on these hosts
+         for ( var j = 0; j < hosts.length; j++ )
+         {
+            if ( undefined != hostPrimaryCount[hosts[j]] )
+            {
+               totalGroups += hostPrimaryCount[hosts[j]] ;
+            }
+         }
+
+         var quota = Math.ceil( totalGroups / hosts.length ) ;
+         hostSetQuota[key] = { hosts: hosts, quota: quota } ;
+      }
+   }
+
+   // Pass 2: process maySwitch groups first (primary already in candidates)
+   // If primary's host is within quota, keep it (ignore). Otherwise mark as needSwitch.
+   for ( var i = 0; i < groups.length; i++ )
+   {
+      if ( groupStatus[i] != "maySwitch" )
+      {
+         continue ;
+      }
+
+      var info = groupInfo[groups[i]] ;
+      var currentPrimary = info.primaryNode ;
+      var primaryHost = _getHost( currentPrimary.NodeName ) ;
+
+      if ( undefined == primaryHost )
+      {
+         groupStatus[i] = "needSwitch" ;
+         continue ;
+      }
+
+      var key = groupCandidateHosts[i].join( "," ) ;
+      var quota = ( undefined != hostSetQuota[key] ) ? hostSetQuota[key].quota : 0 ;
+      var currentCount = ( undefined != hostPrimaryCount[primaryHost] ) ? hostPrimaryCount[primaryHost] : 0 ;
+
+      if ( currentCount < quota )
+      {
+         // within quota, keep current primary
+         groupStatus[i] = "stable" ;
+         if ( undefined == hostPrimaryCount[primaryHost] )
+         {
+            hostPrimaryCount[primaryHost] = 0 ;
+         }
+         hostPrimaryCount[primaryHost]++ ;
+      }
+      else
+      {
+         // over quota, need to switch
+         groupStatus[i] = "needSwitch" ;
+      }
+   }
+
+   // Pass 3: process all groups in order
+   for ( var i = 0; i < groups.length; i++ )
+   {
+      var groupName = groups[i] ;
+
+      if ( groupStatus[i] == "failed" )
+      {
+         failedNum++ ;
+         failedGroups.push( groupName ) ;
+         continue ;
+      }
+
+      if ( groupStatus[i] == "stable" )
+      {
+         ignoredNum++ ;
+         continue ;
+      }
+
+      // needSwitch
+      var info = groupInfo[groupName] ;
+      var currentPrimary = info.primaryNode ;
+      var candidates = groupCandidates[i] ;
+
+      // check if current primary was originally among best (maySwitch -> needSwitch)
+      var currentIsBest = false ;
+      for ( var j = 0; j < info.bestCandidates.length; j++ )
+      {
+         if ( info.bestCandidates[j].NodeName == currentPrimary.NodeName )
+         {
+            currentIsBest = true ;
+            break ;
+         }
+      }
+
+      // select target node
+      var targetNode = candidates[0] ;
+
+      if ( rebalance && candidates.length > 1 )
+      {
+         // pick the first candidate host (sorted order) that is under quota
+         // if all at quota, fall back to the host with fewest primaries
+         var candHosts = groupCandidateHosts[i] ;
+         var key = candHosts.join( "," ) ;
+         var quota = ( undefined != hostSetQuota[key] ) ? hostSetQuota[key].quota : 0 ;
+
+         var bestHost = undefined ;
+         var minCount = undefined ;
+
+         // first pass: find first host under quota (sorted order)
+         for ( var j = 0; j < candHosts.length; j++ )
+         {
+            var h = candHosts[j] ;
+            var count = ( undefined != hostPrimaryCount[h] ) ? hostPrimaryCount[h] : 0 ;
+            if ( count < quota )
+            {
+               bestHost = h ;
+               break ;
+            }
+         }
+
+         // fallback: all at quota, pick host with fewest primaries
+         if ( undefined == bestHost )
+         {
+            for ( var j = 0; j < candHosts.length; j++ )
+            {
+               var h = candHosts[j] ;
+               var count = ( undefined != hostPrimaryCount[h] ) ? hostPrimaryCount[h] : 0 ;
+               if ( undefined == minCount || count < minCount )
+               {
+                  minCount = count ;
+                  bestHost = h ;
+               }
+            }
+         }
+
+         // pick the first candidate on bestHost
+         if ( undefined != bestHost )
+         {
+            for ( var j = 0; j < candidates.length; j++ )
+            {
+               if ( _getHost( candidates[j].NodeName ) == bestHost )
+               {
+                  targetNode = candidates[j] ;
+                  break ;
+               }
+            }
+         }
+      }
+
+      // if target is same as current primary, no switch needed
+      if ( targetNode.NodeName == currentPrimary.NodeName )
+      {
+         ignoredNum++ ;
+         var host = _getHost( currentPrimary.NodeName ) ;
+         if ( undefined != host )
+         {
+            if ( undefined == hostPrimaryCount[host] )
+            {
+               hostPrimaryCount[host] = 0 ;
+            }
+            hostPrimaryCount[host]++ ;
+         }
+         continue ;
+      }
+
+      // determine CausedBy
+      var causedBy = "" ;
+      if ( currentIsBest )
+      {
+         causedBy = "Rebalance" ;
+      }
+      else
+      {
+         if ( currentPrimary.RunStatusWeightDesp == "Maintenance" )
+         {
+            causedBy = "Maintenance" ;
+         }
+         else
+         {
+            causedBy = targetNode.RunStatusWeightDesp ;
+            if ( causedBy == "" )
+            {
+               causedBy = "Weight" ;
+            }
+         }
+      }
+
+      if ( run )
+      {
+         // execute reelect
+         var parts = targetNode.NodeName.split( ":" ) ;
+         if ( parts.length != 2 )
+         {
+            failedNum++ ;
+            failedGroups.push( groupName ) ;
+            continue ;
+         }
+
+         var rgOption = {
+            HostName: parts[0],
+            ServiceName: parts[1]
+         } ;
+
+         if ( undefined != option )
+         {
+            if ( undefined != option.Seconds )
+            {
+               rgOption.Seconds = option.Seconds ;
+            }
+            if ( undefined != option.Level )
+            {
+               rgOption.Level = option.Level ;
+            }
+         }
+
+         try
+         {
+            var rg = this._conn.getRG( groupName ) ;
+            rg.reelect( rgOption ) ;
+
+            succeedNum++ ;
+            detail.push( {
+               GroupName: groupName,
+               OldPrimary: currentPrimary.NodeName,
+               NewPrimary: targetNode.NodeName,
+               CausedBy: causedBy
+            } ) ;
+
+            // update hostPrimaryCount
+            var newHost = _getHost( targetNode.NodeName ) ;
+            if ( undefined != newHost )
+            {
+               if ( undefined == hostPrimaryCount[newHost] )
+               {
+                  hostPrimaryCount[newHost] = 0 ;
+               }
+               hostPrimaryCount[newHost]++ ;
+            }
+         }
+         catch ( e )
+         {
+            failedNum++ ;
+            failedGroups.push( groupName ) ;
+         }
+      }
+      else
+      {
+         // analyse only
+         succeedNum++ ;
+         detail.push( {
+            GroupName: groupName,
+            OldPrimary: currentPrimary.NodeName,
+            NewPrimary: targetNode.NodeName,
+            CausedBy: causedBy
+         } ) ;
+
+         // update hostPrimaryCount for subsequent groups
+         var newHost = _getHost( targetNode.NodeName ) ;
+         if ( undefined != newHost )
+         {
+            if ( undefined == hostPrimaryCount[newHost] )
+            {
+               hostPrimaryCount[newHost] = 0 ;
+            }
+            hostPrimaryCount[newHost]++ ;
+         }
+      }
+   }
+
+   var summary = {
+      MatchedNum: matchedNum,
+      SucceedNum: succeedNum,
+      IgnoredNum: ignoredNum,
+      FailedNum: failedNum
+   } ;
+
+   if ( failedNum > 0 )
+   {
+      summary.FailedGroups = failedGroups ;
+   }
+
+   summary.Detail = detail ;
+
+   return new BSONObj( summary ) ;
+}
+
 // end SdbDc
 
 // SdbSequence

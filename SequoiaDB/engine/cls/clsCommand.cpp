@@ -1301,12 +1301,10 @@ namespace engine
       {
          CHAR oldPrimaryNode[ OSS_MAX_HOSTNAME + OSS_MAX_SERVICENAME + 1 + 1 ] = { 0 } ;
          CHAR newPrimaryNode[ OSS_MAX_HOSTNAME + OSS_MAX_SERVICENAME + 1 + 1 ] = { 0 } ;
-         CHAR tmpHostName[ OSS_MAX_HOSTNAME + 1 ] = { 0 } ;
          BOOLEAN hasChanged = TRUE ;
 
-         ossGetHostName( tmpHostName, OSS_MAX_HOSTNAME ) ;
          ossSnprintf( oldPrimaryNode, sizeof(oldPrimaryNode) - 1,
-                      "%s:%s", tmpHostName, pmdGetKRCB()->getSvcname() ) ;
+                      "%s:%s", pmdGetKRCB()->getHostName(), pmdGetKRCB()->getSvcname() ) ;
 
          if ( repl->primaryIsMe() )
          {
@@ -1489,12 +1487,10 @@ namespace engine
       {
          CHAR oldPrimaryNode[ OSS_MAX_HOSTNAME + OSS_MAX_SERVICENAME + 1 + 1 ] = { 0 } ;
          CHAR newPrimaryNode[ OSS_MAX_HOSTNAME + OSS_MAX_SERVICENAME + 1 + 1 ] = { 0 } ;
-         CHAR tmpHostName[ OSS_MAX_HOSTNAME + 1 ] = { 0 } ;
          BOOLEAN hasChanged = TRUE ;
 
-         ossGetHostName( tmpHostName, OSS_MAX_HOSTNAME ) ;
          ossSnprintf( oldPrimaryNode, sizeof(oldPrimaryNode) - 1,
-                      "%s:%s", tmpHostName, pmdGetKRCB()->getSvcname() ) ;
+                      "%s:%s", pmdGetKRCB()->getHostName(), pmdGetKRCB()->getSvcname() ) ;
 
          if ( repl->locationPrimaryIsMe() )
          {

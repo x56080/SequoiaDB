@@ -3365,6 +3365,12 @@
                            "file": "primaryRestore",
                            "cn": "primaryRestore()",
                            "en": "primaryRestore()"
+                        },
+                        {
+                           "id": 1738569018,
+                           "file": "reelectAnalyse",
+                           "cn": "reelectAnalyse()",
+                           "en": "reelectAnalyse()"
                         }
                      ]
                   },

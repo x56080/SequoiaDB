@@ -5800,6 +5800,7 @@ namespace engine
                   if ( replcb->isInMaintenanceMode() )
                   {
                      runStatusWeight = 0 ;
+                     runStatusWeightDesp = "Maintenance" ;
                   }
                   else
                   {
@@ -5812,6 +5813,7 @@ namespace engine
                   }
                   ob.append( FIELD_NAME_RUNSTATUS_WEIGHT, runStatusWeight ) ;
                   ob.append( FIELD_NAME_RUNSTATUS_WEIGHT_DESP, runStatusWeightDesp ) ;
+                  ob.append( FIELD_NAME_GROUPNAME, krcb->getGroupName() ) ;
                   ob.append( FIELD_NAME_NODEID, (INT32)pmdGetNodeID().columns.nodeID ) ;
                   ob.appendBool( FIELD_NAME_IS_PRIMARY, replcb->primaryIsMe() ) ;
                }
