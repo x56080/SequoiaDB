@@ -2088,6 +2088,8 @@ namespace engine
          string mappingName ;
          string dsMainCLName ;
          BOOLEAN doOnMainCL = FALSE ;
+         BOOLEAN explicitSkipRecycleBin = FALSE ;
+         BOOLEAN skipRecycleBin = FALSE ;
          BSONObj origQueryObj( query ) ;
          BSONObj queryObj( query ) ;
          BSONObj hintObj( hint ) ;
@@ -2115,6 +2117,12 @@ namespace engine
             {
                clName = ele.valuestr() ;
                targetInQuery = TRUE ;
+            }
+            else if ( 0 == ossStrcmp( ele.fieldName(),
+                                      FIELD_NAME_SKIPRECYCLEBIN ) )
+            {
+               skipRecycleBin = ele.booleanSafe() ;
+               explicitSkipRecycleBin = TRUE ;
             }
             else
             {
@@ -2168,6 +2176,11 @@ namespace engine
                   }
                   subBuilder.appendBool( FIELD_NAME_AGGR, TRUE ) ;
                   subBuilder.done() ;
+               }
+               else if ( 0 == ossStrcmp( ele.fieldName(), FIELD_NAME_RECYCLE_ITEM ) )
+               {
+                  // This field is system-generated and not a coord input argument. Ignore it.
+                  continue ;
                }
                else
                {
@@ -2264,6 +2277,36 @@ namespace engine
                        ( dsPtr->getDSFixVersion() < 4 ) ) ) ) )
             {
                hintToQuery = TRUE ;
+            }
+         }
+         else if ( 0 == ossStrcmp( cmdName,
+                                   CMD_ADMIN_PREFIX CMD_NAME_TRUNCATE ) )
+         {
+            if ( explicitSkipRecycleBin )
+            {
+               UTIL_DS_UID dsID = UTIL_INVALID_DS_UID ;
+               dsID = SDB_GROUPID_2_DSID( pSub->getNodeID().columns.groupID ) ;
+               rc = pResource->getDSManager()->getOrUpdateDataSource( dsID,
+                                                                      dsPtr,
+                                                                      cb ) ;
+               if ( rc )
+               {
+                  PD_LOG( PDERROR, "Get data source[%u] failed, rc: %d",
+                        dsID, rc ) ;
+                  goto error ;
+               }
+
+               // old version ( < 3.6 ) use query to send collection name
+               if ( ( dsPtr->getDSMajorVersion() <= 2 ) ||
+                  ( ( dsPtr->getDSMajorVersion() == 3 ) &&
+                     ( dsPtr->getDSMinorVersion() < 6 ) ) )
+               {
+                  // No recycle bin feature, ignore it
+               }
+               else
+               {
+                  queryBuilder.appendBool( FIELD_NAME_SKIPRECYCLEBIN, skipRecycleBin ) ;
+               }
             }
          }
 

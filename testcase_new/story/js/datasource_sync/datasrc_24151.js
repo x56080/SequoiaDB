@@ -16,11 +16,15 @@ function test ()
    var srcCSName = "datasrcCS_24151";
    var csNameA = "DS_24151A";
    var csNameB = "DS_24151B";
+   var groups = commGetGroups( datasrcDB )[0];;
+   var groupName = groups[0].GroupName;
+   if ( groups[0].Length < 3 )
+   {
+      return;
+   }
    commDropCS( datasrcDB, srcCSName );
    clearDataSource( [csNameA, csNameB], dataSrcName );
    commCreateCS( datasrcDB, srcCSName );
-   var groups = commGetGroups( datasrcDB )[0];;
-   var groupName = groups[0].GroupName;
    commCreateCL( datasrcDB, srcCSName, clName, { ShardingKey: { a: 1 }, ReplSize: -1, Group: groupName } );
 
    db.createDataSource( dataSrcName, datasrcUrl, userName, passwd );
