@@ -3218,6 +3218,8 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       CoordGroupList groupLst ;
+      rtnContextCoord::sharePtr pContext ;
+      SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
 
        if ( !_updatedGrpInfo )
       {
@@ -3231,9 +3233,25 @@ namespace engine
       }
 
       groupLst[_groupInfoPtr->groupID()] = _groupInfoPtr->groupID() ;
-      rc = executeOnDataGroup( pMsg, cb, groupLst, TRUE, NULL, NULL, NULL, buf ) ;
+      rc = executeOnDataGroup( pMsg, cb, groupLst, TRUE, NULL, NULL,
+                               ( buf ? &pContext : NULL ), buf ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      if ( buf && pContext.get() )
+      {
+         /// ignore result
+         pContext->getMore( -1, *buf, cb ) ;
+      }
 
    done:
+      if ( pContext.get() )
+      {
+         rtnCB->contextDelete( pContext->contextID(), cb ) ;
+         pContext.release() ;
+      }
       return rc ;
    error:
       goto done ;
@@ -3445,6 +3463,10 @@ namespace engine
       UINT32         pos = 0 ;
       BOOLEAN        needRetry = FALSE ;
 
+      INT64          contextID = -1 ;
+      rtnContextCoord::sharePtr pContext ;
+      SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
+
    retry:
       needRetry = FALSE ;
 
@@ -3502,8 +3524,23 @@ namespace engine
          sendNodes.clear() ;
          faileds.clear() ;
 
+         if ( buf )
+         {
+            rtnQueryOptions defaultOptions ;
+            // create context
+            rc = rtnCB->contextNew( RTN_CONTEXT_COORD,
+                                    pContext,
+                                    contextID, cb ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to allocate context(rc=%d)",
+                         rc ) ;
+
+            rc = pContext->open( defaultOptions ) ;
+            PD_RC_CHECK( rc, PDERROR, "Open context failed(rc=%d)", rc ) ;
+         }
+
          sendNodes.insert( nodeID.value ) ;
-         rc = executeOnNodes( pMsg, cb, sendNodes, faileds, NULL, NULL, NULL ) ;
+         rc = executeOnNodes( pMsg, cb, sendNodes, faileds, NULL, NULL,
+                              ( buf ? pContext.get() : NULL ) ) ;
 
          if ( faileds.size() > 0 )
          {
@@ -3561,10 +3598,26 @@ namespace engine
       {
          if ( COORD_OPR_MAX_RETRY_TIMES_DFT >= ++retryTimes )
          {
+            if ( -1 != contextID )
+            {
+               rtnCB->contextDelete( contextID, cb ) ;
+               contextID = -1 ;
+               pContext.release() ;
+            }
             goto retry ;
          }
       }
       rc = rc ? rc : rcTmp ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      if ( buf && pContext.get() )
+      {
+         /// ignore result
+         pContext->getMore( -1, *buf, cb ) ;
+      }
 
    done:
       if ( ( rc || faileds.size() > 0 ) && buf )
@@ -3572,6 +3625,12 @@ namespace engine
          *buf = _rtnContextBuf( coordBuildErrorObj( _pResource, rc,
                                                     cb, &faileds,
                                                     sendNodes.size() ) ) ;
+      }
+      if ( -1 != contextID )
+      {
+         rtnCB->contextDelete( contextID, cb ) ;
+         contextID = -1 ;
+         pContext.release() ;
       }
       return rc ;
    error:

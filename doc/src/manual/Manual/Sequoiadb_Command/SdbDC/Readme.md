@@ -13,6 +13,9 @@ SdbDC 类主要用于操作集群，包含的函数如下：
 | [startMaintenanceMode()][startMaintenanceMode] | 开启运维模式 |
 | [stopCriticalMode()][stopCriticalMode] | 停止 Critical 模式 |
 | [stopMaintenanceMode()][stopMaintenanceMode] | 停止维护模式 |
+| [reelect()][reelect] | 对符合条件的复制组重新选主 |
+| [primarySave()][primarySave] | 保存复制组主节点信息 |
+| [primaryRestore()][primaryRestore] | 根据保存的信息恢复复制组主节点 |
 
 [^_^]:
      本文使用的所有引用及链接
@@ -27,3 +30,6 @@ SdbDC 类主要用于操作集群，包含的函数如下：
 [startMaintenanceMode]:manual/Manual/Sequoiadb_Command/SdbDC/startMaintenanceMode.md
 [stopCriticalMode]:manual/Manual/Sequoiadb_Command/SdbDC/stopCriticalMode.md
 [stopMaintenanceMode]:manual/Manual/Sequoiadb_Command/SdbDC/stopMaintenanceMode.md
+[reelect]:manual/Manual/Sequoiadb_Command/SdbDC/reelect.md
+[primarySave]:manual/Manual/Sequoiadb_Command/SdbDC/primarySave.md
+[primaryRestore]:manual/Manual/Sequoiadb_Command/SdbDC/primaryRestore.md

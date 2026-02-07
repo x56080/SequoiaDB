@@ -3132,11 +3132,13 @@ namespace sdbclient
                                 const bson::BSONObj &options ) = 0 ;
 
       // reelect primary node
-      virtual INT32 reelect( const bson::BSONObj &options = _sdbStaticObject ) = 0 ;
+      virtual INT32 reelect( const bson::BSONObj &options = _sdbStaticObject,
+                             bson::BSONObj *pResult = NULL ) = 0 ;
 
       // reelect location primary node
       virtual INT32 reelectLocation( const CHAR* pLocation,
-                                     const bson::BSONObj &options = _sdbStaticObject ) = 0 ;
+                                     const bson::BSONObj &options = _sdbStaticObject,
+                                     bson::BSONObj *pResult = NULL ) = 0 ;
 
       // set active location in replica group
       virtual INT32 setActiveLocation ( const CHAR *pActiveLocation ) = 0 ;
@@ -3553,33 +3555,37 @@ namespace sdbclient
           \param [in] options The options of reelection. Please reference
                               <a href="http://doc.sequoiadb.com/cn/sequoiadb-cat_id-1432190873-edition_id-@SDB_SYMBOL_VERSION">here</a>
                               for more detail.
+          \param [out] pResult The result information
           \retval SDB_OK Operation Success
           \retval Others Operation Fail
        */
-      INT32 reelect( const bson::BSONObj &options = _sdbStaticObject )
+      INT32 reelect( const bson::BSONObj &options = _sdbStaticObject,
+                     bson::BSONObj *pResult = NULL )
       {
          if( !pReplicaGroup )
          {
             return SDB_NOT_CONNECTED ;
          }
-         return pReplicaGroup->reelect( options ) ;
+         return pReplicaGroup->reelect( options, pResult ) ;
       }
 
       /** \fn INT32 reelectLocation( const CHAR* pLocation, cosnt BSONObj &options )
           \brief Force the replica group to reelect location primary node.
           \param [in] pLocation The location of reelection operation.
           \param [in] options The options of reelection operation.
+          \param [out] pResult The result information
           \retval SDB_OK Operation Success
           \retval Others Operation Fail
        */
       INT32 reelectLocation( const CHAR* pLocation,
-                             const bson::BSONObj &options = _sdbStaticObject )
+                             const bson::BSONObj &options = _sdbStaticObject,
+                             bson::BSONObj *pResult = NULL )
       {
          if( !pReplicaGroup )
          {
             return SDB_NOT_CONNECTED ;
          }
-         return pReplicaGroup->reelectLocation( pLocation, options ) ;
+         return pReplicaGroup->reelectLocation( pLocation, options, pResult ) ;
       }
 
 

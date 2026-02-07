@@ -156,6 +156,11 @@ namespace engine
             return &_replBucket ;
          }
 
+         OSS_INLINE _netRouteAgent* getNetAgent()
+         {
+            return _agent ;
+         }
+
          OSS_INLINE void setLocalID( const MsgRouteID &id )
          {
             _info.local = id ;

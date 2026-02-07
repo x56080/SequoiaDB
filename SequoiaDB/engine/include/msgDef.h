@@ -768,6 +768,9 @@
 #define FIELD_NAME_SUCCEEDNUM                "SucceedNum"
 #define FIELD_NAME_IGNOREDNUM                "IgnoredNum"
 #define FIELD_NAME_FAILEDNUM                 "FailedNum"
+#define FIELD_NAME_OLD_PRIMARY               "OldPrimary"
+#define FIELD_NAME_NEW_PRIMARY               "NewPrimary"
+#define FIELD_NAME_CHANGED                   "Changed"
 
 #define FIELD_NAME_CREATE_TIME               "CreateTime"
 #define FIELD_NAME_UPDATE_TIME               "UpdateTime"

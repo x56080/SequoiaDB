@@ -59,7 +59,13 @@ This function is used to reelect the primary node of the specified position set 
 
 ##RETURN VALUE##
 
-When the function executes successfully, there is no return value.
+When the function executes successfully, it returns a BSON object containing the following fields:
+
+| Field Name | Type | Description |
+| ---------- | ---- | ----------- |
+| OldPrimary | string | The primary node address before reelection, in the format hostname:svcname |
+| NewPrimary | string | The primary node address after reelection, in the format hostname:svcname |
+| Changed | boolean | Whether the primary node has changed, true means switched, false means unchanged |
 
 When the function fails, an exception will be thrown and an error message will be printed.
 
@@ -80,6 +86,8 @@ When the exception happens, use [getLastErrMsg()][getLastErrMsg] to get the erro
 
 v3.6.1 and above
 
+v5.8.6 and above supports Mode and NodeID array parameters, and also supports returning BSON objects
+
 ##EXAMPLES##
 
 1. Perform a reelection operation on the location set "GuangZhou" under the replication group "group1", and set the node with NodeID "1000" as the primary node.
@@ -87,6 +95,11 @@ v3.6.1 and above
     ```lang-javascript
     > var rg = db.getRG("group1")
     > rg.reelectLocation("GuangZhou", {NodeID: 1000})
+    {
+      "OldPrimary": "sdbserver:11810",
+      "NewPrimary": "sdbserver:11820",
+      "Changed": true
+    }
     ```
 
 2. View the primary node ID corresponding to the current location set.

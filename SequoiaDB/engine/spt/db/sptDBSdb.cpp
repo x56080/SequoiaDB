@@ -570,6 +570,7 @@ namespace engine
       rval.getReturnVal().setName( pDC->getName() ) ;
       rval.getReturnVal().setAttr( SPT_PROP_READONLY ) ;
       rval.addReturnValProperty( SPT_DC_NAME_FIELD )->setValue( pDC->getName() ) ;
+      rval.addSelfToReturnValProperty( SPT_CS_CONN_FIELD ) ;
    done:
       return rc ;
    error:

@@ -702,6 +702,12 @@ sequoiadb/doc/manual/SdbDC/stopCriticalMode_cn.troff
 sequoiadb/doc/manual/SdbDC/stopCriticalMode_en.troff
 sequoiadb/doc/manual/SdbDC/stopMaintenanceMode_cn.troff
 sequoiadb/doc/manual/SdbDC/stopMaintenanceMode_en.troff
+sequoiadb/doc/manual/SdbDC/reelect_en.troff
+sequoiadb/doc/manual/SdbDC/reelect_cn.troff
+sequoiadb/doc/manual/SdbDC/primarySave_en.troff
+sequoiadb/doc/manual/SdbDC/primarySave_cn.troff
+sequoiadb/doc/manual/SdbDC/primaryRestore_en.troff
+sequoiadb/doc/manual/SdbDC/primaryRestore_cn.troff
 sequoiadb/doc/manual/BSONArray
 sequoiadb/doc/manual/BSONArray/size_en.troff
 sequoiadb/doc/manual/BSONArray/toArray_en.troff

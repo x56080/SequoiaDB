@@ -79,7 +79,15 @@ Reelect the master node in the replica group.
 
 ##RETURN VALUE##
 
-There is no return value. On error, exception will be thrown.
+When the function executes successfully, it returns a BSON object containing the following fields:
+
+| Field Name | Type | Description |
+| ---------- | ---- | ----------- |
+| OldPrimary | string | The primary node address before reelection, in the format hostname:svcname |
+| NewPrimary | string | The primary node address after reelection, in the format hostname:svcname |
+| Changed | boolean | Whether the primary node has changed, true means switched, false means unchanged |
+
+When the function fails, an exception will be thrown and an error message will be printed.
 
 ##ERRORS##
 
@@ -95,6 +103,12 @@ to get the error message or use [getLastError()](manual/Manual/Sequoiadb_Command
 to get the error code. See [troubleshooting](manual/FAQ/faq_sdb.md) for
 more details.
 
+##VERSION##
+
+v2.0 and above
+
+v5.8.6 and above supports Mode, Location and NodeID array parameters, and also supports returning BSON objects
+
 ##EXAMPLES##
 
 1. Conduct the reelection in 60s with the group of 'datagroup1'
@@ -102,4 +116,9 @@ more details.
 	```lang-javascript
 	> var rg = db.getRG("datagroup1") 
 	> rg.reelect({Seconds:60})
+	{
+	  "OldPrimary": "sdbserver:11810",
+	  "NewPrimary": "sdbserver:11820",
+	  "Changed": true
+	}
 	```

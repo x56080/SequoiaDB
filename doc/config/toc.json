@@ -3347,6 +3347,24 @@
                            "file": "stopMaintenanceMode",
                            "cn": "stopMaintenanceMode()",
                            "en": "stopMaintenanceMode()"
+                        },
+                        {
+                           "id": 1738569015,
+                           "file": "reelect",
+                           "cn": "reelect()",
+                           "en": "reelect()"
+                        },
+                        {
+                           "id": 1738569016,
+                           "file": "primarySave",
+                           "cn": "primarySave()",
+                           "en": "primarySave()"
+                        },
+                        {
+                           "id": 1738569017,
+                           "file": "primaryRestore",
+                           "cn": "primaryRestore()",
+                           "en": "primaryRestore()"
                         }
                      ]
                   },

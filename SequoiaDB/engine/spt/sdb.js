@@ -991,6 +991,624 @@ SdbDomain.prototype.toString = function() {
 SdbDC.prototype.toString = function() {
    return this._name ;
 }
+
+SdbDC.prototype.reelect = function( option ) {
+   if ( undefined == option || ( typeof option ) != "object" )
+   {
+      setLastErrMsg( "SdbDC.reelect(): param should be object" ) ;
+      throw SDB_INVALIDARG ;
+   }
+
+   var hasHostName = undefined != option.HostName ;
+   var hasLocation = undefined != option.Location ;
+
+   if ( !hasHostName && !hasLocation )
+   {
+      setLastErrMsg( "SdbDC.reelect(): must specify HostName or Location" ) ;
+      throw SDB_INVALIDARG ;
+   }
+
+   if ( hasHostName && hasLocation )
+   {
+      setLastErrMsg( "SdbDC.reelect(): cannot specify both HostName and Location" ) ;
+      throw SDB_INVALIDARG ;
+   }
+
+   if ( hasHostName && ( typeof option.HostName ) != "string" )
+   {
+      setLastErrMsg( "SdbDC.reelect(): HostName should be string" ) ;
+      throw SDB_INVALIDARG ;
+   }
+
+   if ( hasLocation && ( typeof option.Location ) != "string" )
+   {
+      setLastErrMsg( "SdbDC.reelect(): Location should be string" ) ;
+      throw SDB_INVALIDARG ;
+   }
+
+   if ( undefined != option.Domain )
+   {
+      var domainType = typeof option.Domain ;
+      if ( domainType != "string" && !( option.Domain instanceof Array ) )
+      {
+         setLastErrMsg( "SdbDC.reelect(): Domain should be string or array of strings" ) ;
+         throw SDB_INVALIDARG ;
+      }
+   }
+
+   var domainGroupNames = undefined ;
+   if ( undefined != option.Domain )
+   {
+      var domains = option.Domain ;
+      if ( !( domains instanceof Array ) )
+      {
+         domains = [ domains ] ;
+      }
+      
+      domainGroupNames = [] ;
+      var domainCursor = this._conn.list( SDB_LIST_DOMAINS, { Name: { $in: domains } } ) ;
+      if ( undefined != domainCursor )
+      {
+         var domainRecord = undefined ;
+         while ( ( domainRecord = domainCursor.next() ) != undefined )
+         {
+            var domainObj = domainRecord.toObj() ;
+            if ( undefined != domainObj.Groups )
+            {
+               for ( var i = 0; i < domainObj.Groups.length; i++ )
+               {
+                  domainGroupNames.push( domainObj.Groups[i].GroupName ) ;
+               }
+            }
+         }
+         domainCursor.close() ;
+      }
+      
+      if ( domainGroupNames.length == 0 )
+      {
+         setLastErrMsg( "SdbDC.reelect(): specified Domain does not exist or has no groups" ) ;
+         throw SDB_INVALIDARG ;
+      }
+   }
+
+   var filter = {} ;
+   if ( hasHostName )
+   {
+      filter["Group.HostName"] = option.HostName ;
+   }
+   
+   if ( hasLocation )
+   {
+      filter["Group.Location"] = option.Location ;
+   }
+
+   var cursor = this._conn.list( SDB_LIST_GROUPS, filter ) ;
+   if ( undefined == cursor )
+   {
+      return ;
+   }
+
+   var matchedGroup = false ;
+   var groups = [] ;
+   var record = undefined ;
+   while ( ( record = cursor.next() ) != undefined )
+   {
+      matchedGroup = true ;
+      var groupObj = record.toObj() ;
+      var groupName = groupObj.GroupName ;
+      
+      if ( groupName == SDB_COORD_GROUP_NAME || groupName == SDB_SPARE_GROUP_NAME )
+      {
+         continue ;
+      }
+      
+      if ( undefined != domainGroupNames )
+      {
+         if ( domainGroupNames.indexOf( groupName ) == -1 )
+         {
+            continue ;
+         }
+      }
+      
+      groups.push( groupName ) ;
+   }
+   cursor.close() ;
+
+   if ( !matchedGroup )
+   {
+      setLastErrMsg( "SdbDC.reelect(): HostName or location does not exist" ) ;
+      throw SDB_INVALIDARG ;
+   }
+
+   // remove unused options
+   if ( undefined != option.Domain )
+   {
+      delete option.Domain ;
+   }
+   if ( undefined != option.NodeID )
+   {
+      delete option.NodeID ;
+   }
+   if ( undefined != option.ServiceName )
+   {
+      delete option.ServiceName ;
+   }
+   if ( undefined != option.NodeIDs )
+   {
+      delete option.NodeIDs ;
+   }
+
+   var matchedNum = groups.length ;
+   var succeedNum = 0 ;
+   var ignoredNum = 0 ;
+   var failedNum = 0 ;
+   var failedGroups = [] ;
+
+   for ( var i = 0; i < groups.length; i++ )
+   {
+      try
+      {
+         var rg = this._conn.getRG( groups[i] ) ;
+         var result = rg.reelect( option ) ;
+         
+         if ( undefined != result )
+         {
+            var resultObj = result.toObj() ;
+            if ( undefined != resultObj.Changed && resultObj.Changed == false )
+            {
+               ignoredNum++ ;
+            }
+            else
+            {
+               succeedNum++ ;
+            }
+         }
+         else
+         {
+            succeedNum++ ;
+         }
+      }
+      catch ( e )
+      {
+         failedNum++ ;
+         failedGroups.push( groups[i] ) ;
+      }
+   }
+
+   var summary = {
+      MatchedNum: matchedNum,
+      SucceedNum: succeedNum,
+      IgnoredNum: ignoredNum,
+      FailedNum: failedNum
+   } ;
+
+   if ( failedNum > 0 )
+   {
+      summary.FailedGroups = failedGroups ;
+   }
+
+   return new BSONObj( summary ) ;
+}
+
+SdbDC.prototype.primarySave = function( option, filename ) {
+   if ( null == option )
+   {
+      option = undefined ;
+   }
+
+   if ( undefined != option && ( typeof option ) != "object" )
+   {
+      setLastErrMsg( "SdbDC.primarySave(): option should be object" ) ;
+      throw SDB_INVALIDARG ;
+   }
+
+   if ( undefined != filename && ( typeof filename ) != "string" )
+   {
+      setLastErrMsg( "SdbDC.primarySave(): filename should be string" ) ;
+      throw SDB_INVALIDARG ;
+   }
+
+   if ( undefined != option )
+   {
+      if ( undefined != option.HostName && ( typeof option.HostName ) != "string" )
+      {
+         setLastErrMsg( "SdbDC.primarySave(): HostName should be string" ) ;
+         throw SDB_INVALIDARG ;
+      }
+
+      if ( undefined != option.Domain )
+      {
+         var domainType = typeof option.Domain ;
+         if ( domainType != "string" && !( option.Domain instanceof Array ) )
+         {
+            setLastErrMsg( "SdbDC.primarySave(): Domain should be string or array of strings" ) ;
+            throw SDB_INVALIDARG ;
+         }
+      }
+   }
+
+   var domainGroupNames = undefined ;
+   if ( undefined != option && undefined != option.Domain )
+   {
+      var domains = option.Domain ;
+      if ( !( domains instanceof Array ) )
+      {
+         domains = [ domains ] ;
+      }
+
+      domainGroupNames = [] ;
+      var domainCursor = this._conn.list( SDB_LIST_DOMAINS, { Name: { $in: domains } } ) ;
+      if ( undefined != domainCursor )
+      {
+         var domainRecord = undefined ;
+         while ( ( domainRecord = domainCursor.next() ) != undefined )
+         {
+            var domainObj = domainRecord.toObj() ;
+            if ( undefined != domainObj.Groups )
+            {
+               for ( var i = 0; i < domainObj.Groups.length; i++ )
+               {
+                  domainGroupNames.push( domainObj.Groups[i].GroupName ) ;
+               }
+            }
+         }
+         domainCursor.close() ;
+      }
+
+      if ( domainGroupNames.length == 0 )
+      {
+         setLastErrMsg( "SdbDC.primarySave(): specified Domain does not exist or has no groups" ) ;
+         throw SDB_INVALIDARG ;
+      }
+   }
+
+   var filter = {} ;
+   if ( undefined != option && undefined != option.HostName )
+   {
+      filter["Group.HostName"] = option.HostName ;
+   }
+
+   var cursor = this._conn.list( SDB_LIST_GROUPS, filter ) ;
+   if ( undefined == cursor )
+   {
+      return ;
+   }
+
+   var matchedGroup = false ;
+   var matchedNum = 0 ;
+   var succeedNum = 0 ;
+   var ignoredNum = 0 ;
+   var failedNum = 0 ;
+   var failedGroups = [] ;
+   var detail = [] ;
+
+   var record = undefined ;
+   while ( ( record = cursor.next() ) != undefined )
+   {
+      matchedGroup = true ;
+      var groupObj = record.toObj() ;
+      var groupName = groupObj.GroupName ;
+
+      if ( groupName == SDB_COORD_GROUP_NAME || groupName == SDB_SPARE_GROUP_NAME )
+      {
+         continue ;
+      }
+
+      if ( undefined != domainGroupNames )
+      {
+         if ( domainGroupNames.indexOf( groupName ) == -1 )
+         {
+            continue ;
+         }
+      }
+
+      matchedNum++ ;
+
+      try
+      {
+         var snapCursor = this._conn.exec( 'select NodeName from $SNAPSHOT_DB where GroupName = "' +
+                                          groupName + '" and IsPrimary = true /*+use_option(ShowError,ignore) */' ) ;
+         var primaryRecord = snapCursor.next() ;
+         snapCursor.close() ;
+
+         if ( undefined == primaryRecord )
+         {
+            failedNum++ ;
+            failedGroups.push( groupName ) ;
+            continue ;
+         }
+
+         var primaryObj = primaryRecord.toObj() ;
+         if ( undefined == primaryObj.NodeName )
+         {
+            failedNum++ ;
+            failedGroups.push( groupName ) ;
+            continue ;
+         }
+
+         detail.push( {
+            GroupName: groupName,
+            PrimaryNode: primaryObj.NodeName
+         } ) ;
+         succeedNum++ ;
+      }
+      catch ( e )
+      {
+         failedNum++ ;
+         failedGroups.push( groupName ) ;
+      }
+   }
+   cursor.close() ;
+
+   if ( !matchedGroup )
+   {
+      setLastErrMsg( "SdbDC.primarySave(): specified HostName does not exist" ) ;
+      throw SDB_INVALIDARG ;
+   }
+
+   var summary = {
+      MatchedNum: matchedNum,
+      SucceedNum: succeedNum,
+      IgnoredNum: ignoredNum,
+      FailedNum: failedNum
+   } ;
+
+   if ( failedNum > 0 )
+   {
+      summary.FailedGroups = failedGroups ;
+   }
+
+   summary.Detail = detail ;
+
+   if ( undefined != filename )
+   {
+      var file = new File( filename ) ;
+      file.truncate() ;
+      file.write( JSON.stringify( summary, null, 2 ) ) ;
+      file.close() ;
+   }
+
+   return new BSONObj( summary ) ;
+}
+
+SdbDC.prototype.primaryRestore = function( planobjOrFile, option ) {
+   if ( undefined == planobjOrFile )
+   {
+      setLastErrMsg( "SdbDC.primaryRestore(): planobjOrFile is required" ) ;
+      throw SDB_INVALIDARG ;
+   }
+
+   if ( null == option )
+   {
+      option = undefined ;
+   }
+
+   if ( undefined != option && ( typeof option ) != "object" )
+   {
+      setLastErrMsg( "SdbDC.primaryRestore(): option should be object" ) ;
+      throw SDB_INVALIDARG ;
+   }
+
+   if ( undefined != option )
+   {
+      if ( undefined != option.HostName && ( typeof option.HostName ) != "string" )
+      {
+         setLastErrMsg( "SdbDC.primaryRestore(): HostName should be string" ) ;
+         throw SDB_INVALIDARG ;
+      }
+
+      if ( undefined != option.Domain )
+      {
+         var domainType = typeof option.Domain ;
+         if ( domainType != "string" && !( option.Domain instanceof Array ) )
+         {
+            setLastErrMsg( "SdbDC.primaryRestore(): Domain should be string or array of strings" ) ;
+            throw SDB_INVALIDARG ;
+         }
+      }
+   }
+
+   var saveObj = undefined ;
+
+   if ( ( typeof planobjOrFile ) == "string" )
+   {
+      var file = new File( planobjOrFile ) ;
+      var content = file.read() ;
+      file.close() ;
+      saveObj = JSON.parse( content ) ;
+   }
+   else if ( ( typeof planobjOrFile ) == "object" )
+   {
+      if ( typeof planobjOrFile.toObj == "function" )
+      {
+         saveObj = planobjOrFile.toObj() ;
+      }
+      else
+      {
+         saveObj = planobjOrFile ;
+      }
+   }
+   else
+   {
+      setLastErrMsg( "SdbDC.primaryRestore(): planobjOrFile should be object, BSONObj or filename" ) ;
+      throw SDB_INVALIDARG ;
+   }
+
+   if ( undefined == saveObj.Detail || !( saveObj.Detail instanceof Array ) )
+   {
+      setLastErrMsg( "SdbDC.primaryRestore(): param does not contain valid Detail" ) ;
+      throw SDB_INVALIDARG ;
+   }
+
+   var domainGroupNames = undefined ;
+   if ( undefined != option && undefined != option.Domain )
+   {
+      var domains = option.Domain ;
+      if ( !( domains instanceof Array ) )
+      {
+         domains = [ domains ] ;
+      }
+
+      domainGroupNames = [] ;
+      var domainCursor = this._conn.list( SDB_LIST_DOMAINS, { Name: { $in: domains } } ) ;
+      if ( undefined != domainCursor )
+      {
+         var domainRecord = undefined ;
+         while ( ( domainRecord = domainCursor.next() ) != undefined )
+         {
+            var domainObj = domainRecord.toObj() ;
+            if ( undefined != domainObj.Groups )
+            {
+               for ( var j = 0; j < domainObj.Groups.length; j++ )
+               {
+                  domainGroupNames.push( domainObj.Groups[j].GroupName ) ;
+               }
+            }
+         }
+         domainCursor.close() ;
+      }
+
+      if ( domainGroupNames.length == 0 )
+      {
+         setLastErrMsg( "SdbDC.primaryRestore(): specified Domain does not exist or has no groups" ) ;
+         throw SDB_INVALIDARG ;
+      }
+   }
+
+   var hostGroupNames = undefined ;
+   if ( undefined != option && undefined != option.HostName )
+   {
+      var filter = { "Group.HostName": option.HostName } ;
+      var hostCursor = this._conn.list( SDB_LIST_GROUPS, filter ) ;
+      var matchedGroup = false ;
+      hostGroupNames = [] ;
+      if ( undefined != hostCursor )
+      {
+         var hostRecord = undefined ;
+         while ( ( hostRecord = hostCursor.next() ) != undefined )
+         {
+            matchedGroup = true ;
+            var hostObj = hostRecord.toObj() ;
+            var gName = hostObj.GroupName ;
+            if ( gName != SDB_COORD_GROUP_NAME && gName != SDB_SPARE_GROUP_NAME )
+            {
+               hostGroupNames.push( gName ) ;
+            }
+         }
+         hostCursor.close() ;
+      }
+
+      if ( !matchedGroup )
+      {
+         setLastErrMsg( "SdbDC.primaryRestore(): specified HostName does not exist" ) ;
+         throw SDB_INVALIDARG ;
+      }
+   }
+
+   var details = saveObj.Detail ;
+   var matchedNum = 0 ;
+   var succeedNum = 0 ;
+   var ignoredNum = 0 ;
+   var failedNum = 0 ;
+   var failedGroups = [] ;
+
+   for ( var i = 0; i < details.length; i++ )
+   {
+      var groupName = details[i].GroupName ;
+      var primaryNode = details[i].PrimaryNode ;
+
+      if ( undefined == groupName || undefined == primaryNode )
+      {
+         continue ;
+      }
+
+      if ( undefined != domainGroupNames )
+      {
+         if ( domainGroupNames.indexOf( groupName ) == -1 )
+         {
+            continue ;
+         }
+      }
+
+      if ( undefined != hostGroupNames )
+      {
+         if ( hostGroupNames.indexOf( groupName ) == -1 )
+         {
+            continue ;
+         }
+      }
+
+      var parts = primaryNode.split( ":" ) ;
+      if ( parts.length != 2 )
+      {
+         failedNum++ ;
+         failedGroups.push( groupName ) ;
+         continue ;
+      }
+
+      matchedNum++ ;
+
+      var rgOption = {
+         HostName: parts[0],
+         ServiceName: parts[1]
+      } ;
+
+      if ( undefined != option )
+      {
+         if ( undefined != option.Seconds )
+         {
+            rgOption.Seconds = option.Seconds ;
+         }
+         if ( undefined != option.Level )
+         {
+            rgOption.Level = option.Level ;
+         }
+      }
+
+      try
+      {
+         var rg = this._conn.getRG( groupName ) ;
+         var result = rg.reelect( rgOption ) ;
+
+         if ( undefined != result )
+         {
+            var resultObj = result.toObj() ;
+            if ( undefined != resultObj.Changed && resultObj.Changed == false )
+            {
+               ignoredNum++ ;
+            }
+            else
+            {
+               succeedNum++ ;
+            }
+         }
+         else
+         {
+            succeedNum++ ;
+         }
+      }
+      catch ( e )
+      {
+         failedNum++ ;
+         failedGroups.push( groupName ) ;
+      }
+   }
+
+   var summary = {
+      MatchedNum: matchedNum,
+      SucceedNum: succeedNum,
+      IgnoredNum: ignoredNum,
+      FailedNum: failedNum
+   } ;
+
+   if ( failedNum > 0 )
+   {
+      summary.FailedGroups = failedGroups ;
+   }
+
+   return new BSONObj( summary ) ;
+}
+
 // end SdbDc
 
 // SdbSequence

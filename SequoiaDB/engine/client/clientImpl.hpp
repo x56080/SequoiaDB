@@ -943,10 +943,12 @@ namespace sdbclient
                         const CHAR *pSvcName,
                         const bson::BSONObj &options = _sdbStaticObject ) ;
 
-      INT32 reelect( const bson::BSONObj &options = _sdbStaticObject ) ;
+      INT32 reelect( const bson::BSONObj &options = _sdbStaticObject,
+                     bson::BSONObj *pResult = NULL ) ;
 
       INT32 reelectLocation( const CHAR *pLocation,
-                             const BSONObj &options = _sdbStaticObject ) ;
+                             const BSONObj &options = _sdbStaticObject,
+                             bson::BSONObj *pResult = NULL ) ;
 
       INT32 setActiveLocation ( const CHAR *pLocation ) ;
 

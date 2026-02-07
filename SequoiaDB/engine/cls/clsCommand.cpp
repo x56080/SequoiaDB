@@ -1297,6 +1297,54 @@ namespace engine
       }
 
    done:
+      if ( !_isDestNotify && SDB_OK == rc )
+      {
+         CHAR oldPrimaryNode[ OSS_MAX_HOSTNAME + OSS_MAX_SERVICENAME + 1 + 1 ] = { 0 } ;
+         CHAR newPrimaryNode[ OSS_MAX_HOSTNAME + OSS_MAX_SERVICENAME + 1 + 1 ] = { 0 } ;
+         CHAR tmpHostName[ OSS_MAX_HOSTNAME + 1 ] = { 0 } ;
+         BOOLEAN hasChanged = TRUE ;
+
+         ossGetHostName( tmpHostName, OSS_MAX_HOSTNAME ) ;
+         ossSnprintf( oldPrimaryNode, sizeof(oldPrimaryNode) - 1,
+                      "%s:%s", tmpHostName, pmdGetKRCB()->getSvcname() ) ;
+
+         if ( repl->primaryIsMe() )
+         {
+            hasChanged = FALSE ;
+            ossStrcpy( newPrimaryNode, oldPrimaryNode ) ;
+         }
+         else
+         {
+            MsgRouteID primaryID = repl->getPrimary() ;
+            _netRouteNode routeNode ;
+            netRouteAgent *pAgent = repl->getNetAgent() ;
+
+            if ( MSG_INVALID_ROUTEID != primaryID.value )
+            {
+               primaryID.columns.serviceID = MSG_ROUTE_LOCAL_SERVICE ;
+               if ( SDB_OK == pAgent->route( primaryID, routeNode ) )
+               {
+                  ossSnprintf( newPrimaryNode, sizeof(newPrimaryNode) - 1,
+                               "%s:%s", routeNode._host,
+                               routeNode._service[ MSG_ROUTE_LOCAL_SERVICE ].c_str() ) ;
+               }
+            }
+         }
+
+         try
+         {
+            BSONObjBuilder builder ;
+            builder.append( FIELD_NAME_OLD_PRIMARY, oldPrimaryNode ) ;
+            builder.append( FIELD_NAME_NEW_PRIMARY, newPrimaryNode ) ;
+            builder.appendBool( FIELD_NAME_CHANGED, hasChanged ) ;
+            _buff = rtnContextBuf( builder.obj() ) ;
+         }
+         catch( std::exception &e )
+         {
+            PD_LOG( PDWARNING, "Occur exception: %s", e.what() ) ;
+            /// ignore error
+         }
+      }
       PD_TRACE_EXITRC( SDB__CLSREELECTGROUP_DOIT, rc ) ;
       return rc ;
    error:
@@ -1437,6 +1485,55 @@ namespace engine
       }
 
    done:
+      if ( !_isDestNotify && SDB_OK == rc )
+      {
+         CHAR oldPrimaryNode[ OSS_MAX_HOSTNAME + OSS_MAX_SERVICENAME + 1 + 1 ] = { 0 } ;
+         CHAR newPrimaryNode[ OSS_MAX_HOSTNAME + OSS_MAX_SERVICENAME + 1 + 1 ] = { 0 } ;
+         CHAR tmpHostName[ OSS_MAX_HOSTNAME + 1 ] = { 0 } ;
+         BOOLEAN hasChanged = TRUE ;
+
+         ossGetHostName( tmpHostName, OSS_MAX_HOSTNAME ) ;
+         ossSnprintf( oldPrimaryNode, sizeof(oldPrimaryNode) - 1,
+                      "%s:%s", tmpHostName, pmdGetKRCB()->getSvcname() ) ;
+
+         if ( repl->locationPrimaryIsMe() )
+         {
+            hasChanged = FALSE ;
+            ossStrcpy( newPrimaryNode, oldPrimaryNode ) ;
+         }
+         else
+         {
+            MsgRouteID primaryID = repl->getLocationPrimary() ;
+            _netRouteNode routeNode ;
+            netRouteAgent *pAgent = repl->getNetAgent() ;
+
+            if ( MSG_INVALID_ROUTEID != primaryID.value )
+            {
+               primaryID.columns.serviceID = MSG_ROUTE_LOCAL_SERVICE ;
+               if ( SDB_OK == pAgent->route( primaryID, routeNode ) )
+               {
+                  ossSnprintf( newPrimaryNode, sizeof(newPrimaryNode) - 1,
+                               "%s:%s", routeNode._host,
+                               routeNode._service[ MSG_ROUTE_LOCAL_SERVICE ].c_str() ) ;
+               }
+            }
+         }
+
+         try
+         {
+            BSONObjBuilder builder ;
+            builder.append( FIELD_NAME_OLD_PRIMARY, oldPrimaryNode ) ;
+            builder.append( FIELD_NAME_NEW_PRIMARY, newPrimaryNode ) ;
+            builder.appendBool( FIELD_NAME_CHANGED, hasChanged ) ;
+            _buff = rtnContextBuf( builder.obj() ) ;
+         }
+         catch( std::exception &e )
+         {
+            PD_LOG( PDWARNING, "Occur exception: %s", e.what() ) ;
+            /// ignore error
+         }
+      }
+
       PD_TRACE_EXITRC( SDB__CLSREELECTLOCATION_DOIT, rc ) ;
       return rc ;
    error:

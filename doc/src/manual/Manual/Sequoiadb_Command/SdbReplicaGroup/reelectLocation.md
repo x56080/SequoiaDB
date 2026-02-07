@@ -59,7 +59,13 @@ SdbReplicaGroup
 
 ##返回值##
 
-函数执行成功时，无返回值。
+函数执行成功时，返回一个 BSON 对象，包含以下字段：
+
+| 字段名 | 类型 | 描述 |
+| ------ | ---- | ---- |
+| OldPrimary | string | 选举前的主节点地址，格式为 hostname:svcname |
+| NewPrimary | string | 选举后的主节点地址，格式为 hostname:svcname |
+| Changed | boolean | 主节点是否发生变化，true 表示已切换，false 表示未变化 |
 
 函数执行失败时，将抛异常并输出错误信息。
 
@@ -80,6 +86,8 @@ SdbReplicaGroup
 
 v3.6.1 及以上版本
 
+v5.8.6 及以上版本支持 Mode 和 NodeID 数组参数，同时支持返回 BSON 对象
+
 ##示例##
 
 1. 对复制组 group1 下的位置集 GuangZhou 执行重选举操作，将 NodeID 为 1000 的节点设置为主节点
@@ -87,6 +95,11 @@ v3.6.1 及以上版本
     ```lang-javascript
     > var rg = db.getRG("group1")
     > rg.reelectLocation("GuangZhou", {NodeID: 1000})
+    {
+      "OldPrimary": "sdbserver:11810",
+      "NewPrimary": "sdbserver:11820",
+      "Changed": true
+    }
     ```
 
 2. 查看当前位置集对应的主节点 ID

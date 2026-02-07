@@ -6134,10 +6134,12 @@ do                                                            \
       goto done ;
    }
 
-   INT32 _sdbReplicaGroupImpl::reelect( const bson::BSONObj &options )
+   INT32 _sdbReplicaGroupImpl::reelect( const bson::BSONObj &options,
+                                        bson::BSONObj *pResult )
    {
       INT32 rc = SDB_OK ;
       BSONObj query ;
+      _sdbCursor *cursor = NULL ;
 
       // check
       if ( _replicaGroupName[0] == '\0' )
@@ -6164,22 +6166,41 @@ do                                                            \
          goto error ;
       }
       rc = _connection->_runCommand( CMD_ADMIN_PREFIX CMD_NAME_REELECT,
-                                     &query, NULL, NULL, NULL, 0, 0, 0, -1 ) ;
+                                     &query, NULL, NULL, NULL, 0, 0, 0, -1,
+                                     ( pResult ? &cursor : NULL ) ) ;
       if( SDB_OK != rc )
       {
          goto error ;
       }
+
+      if ( pResult && cursor )
+      {
+         rc = cursor->next( *pResult ) ;
+         if ( SDB_DMS_EOC == rc )
+         {
+            /// ignore error
+            rc = SDB_OK ;
+         }
+         else if ( rc )
+         {
+            goto error ;
+         }
+      }
+
    done:
+      SAFE_OSS_DELETE( cursor ) ;
       return rc ;
    error:
       goto done ;
    }
 
    INT32 _sdbReplicaGroupImpl::reelectLocation( const CHAR* pLocation,
-                                                const BSONObj &options )
+                                                const BSONObj &options,
+                                                bson::BSONObj *pResult )
    {
       INT32 rc = SDB_OK ;
       BSONObj query ;
+      _sdbCursor *cursor = NULL ;
 
       // check
       if ( _replicaGroupName[0] == '\0' )
@@ -6212,12 +6233,29 @@ do                                                            \
          goto error ;
       }
       rc = _connection->_runCommand( CMD_ADMIN_PREFIX CMD_NAME_REELECT_LOCATION,
-                                     &query, NULL, NULL, NULL, 0, 0, 0, -1 ) ;
+                                     &query, NULL, NULL, NULL, 0, 0, 0, -1,
+                                     ( pResult ? &cursor : NULL ) ) ;
       if( SDB_OK != rc )
       {
          goto error ;
       }
+
+      if ( pResult && cursor )
+      {
+         rc = cursor->next( *pResult ) ;
+         if ( SDB_DMS_EOC == rc )
+         {
+            /// ignore error
+            rc = SDB_OK ;
+         }
+         else if ( rc )
+         {
+            goto error ;
+         }
+      }
+
    done:
+      SAFE_OSS_DELETE( cursor ) ;
       return rc ;
    error:
       goto done ;
