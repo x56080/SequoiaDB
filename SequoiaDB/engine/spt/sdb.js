@@ -1812,7 +1812,7 @@ SdbDC.prototype.reelectAnalyse = function( option, run ) {
       {
          var snapObj = snapRecord.toObj() ;
          var gn = snapObj.GroupName ;
-         if ( undefined == gn || gn == "" ||
+         if ( undefined == gn || gn == "" || gn == null ||
               gn == SDB_COORD_GROUP_NAME || gn == SDB_SPARE_GROUP_NAME )
          {
             continue ;
