@@ -5485,6 +5485,7 @@ namespace engine
                   replCB *replcb = krcb->getClsCB()->getReplCB() ;
                   ob.append( FIELD_NAME_RUNSTATUS_WEIGHT, runStatusWeight ) ;
                   ob.append( FIELD_NAME_RUNSTATUS_WEIGHT_DESP, "" ) ;
+                  ob.append( FIELD_NAME_GROUPNAME, krcb->getGroupName() ) ;
                   ob.append( FIELD_NAME_NODEID, (INT32)pmdGetNodeID().columns.nodeID ) ;
                   ob.appendBool( FIELD_NAME_IS_PRIMARY, replcb->primaryIsMe() ) ;
                }
