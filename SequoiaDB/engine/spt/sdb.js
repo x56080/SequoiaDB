@@ -2553,17 +2553,7 @@ SdbDC.prototype.locationAnalyse = function( option, fileName ) {
          MatchedGroupNum: 0,
          MatchedNodeNum: 0,
          ActiveLocation: "",
-         LocationInfo: [],
-         ExceptionHostInfo: {
-            NoLocationHost: [],
-            ParticalLocationHost: [],
-            MultyLocationHost: []
-         },
-         ExceptionGroupInfo: {
-            NoLocationGroup: [],
-            ParticalLocationGroup: [],
-            OneLocationGroup: []
-         }
+         LocationInfo: []
       } ;
       if ( undefined != fileName )
       {
@@ -2897,13 +2887,17 @@ SdbDC.prototype.locationAnalyse = function( option, fileName ) {
          particalHost[pi].Node.sort() ;
       }
 
-      locationInfo.push( {
+      var locItem = {
          LocationName: loc,
          ActiveStatus: activeStatus,
          GroupStatus: groupStatus,
-         WholeHost: wholeHost,
-         ParticalHost: particalHost
-      } ) ;
+         WholeHost: wholeHost
+      } ;
+      if ( particalHost.length > 0 )
+      {
+         locItem.ParticalHost = particalHost ;
+      }
+      locationInfo.push( locItem ) ;
    }
 
    locationInfo.sort( function( a, b ) {
@@ -2995,18 +2989,30 @@ SdbDC.prototype.locationAnalyse = function( option, fileName ) {
       MatchedGroupNum: groupNames.length,
       MatchedNodeNum: totalNodeNum,
       ActiveLocation: activeLocationResult,
-      LocationInfo: locationInfo,
-      ExceptionHostInfo: {
+      LocationInfo: locationInfo
+   } ;
+
+   if ( noLocationHost.length > 0 ||
+        particalLocationHost.length > 0 ||
+        multyLocationHost.length > 0 )
+   {
+      result.ExceptionHostInfo = {
          NoLocationHost: noLocationHost,
          ParticalLocationHost: particalLocationHost,
          MultyLocationHost: multyLocationHost
-      },
-      ExceptionGroupInfo: {
+      } ;
+   }
+
+   if ( noLocationGroup.length > 0 ||
+        particalLocationGroup.length > 0 ||
+        oneLocationGroup.length > 0 )
+   {
+      result.ExceptionGroupInfo = {
          NoLocationGroup: noLocationGroup,
          ParticalLocationGroup: particalLocationGroup,
          OneLocationGroup: oneLocationGroup
-      }
-   } ;
+      } ;
+   }
 
    if ( undefined != fileName )
    {

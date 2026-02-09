@@ -170,7 +170,19 @@ ExceptionHostInfo
 T}@T{
 object
 T}@T{
-主机异常信息
+主机异常信息（
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+存在异常时返回
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+）
 T}
 T{
 7
@@ -179,7 +191,13 @@ ExceptionGroupInfo
 T}@T{
 object
 T}@T{
-组异常信息
+组异常信息（存
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+在异常时返回）
 T}
 .TE
 .PP
@@ -355,7 +373,13 @@ T{
 T}@T{
 T}@T{
 T}@T{
-Node 字段
+Node 字段（存在时
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+返回）
 T}
 .TE
 .PP
@@ -870,15 +894,9 @@ v5.8.6 及以上版本
       "GroupStatus": "",
       "WholeHost": [
         "sdbserver1"
-      ],
-      "ParticalHost": []
+      ]
     }
   ],
-  "ExceptionHostInfo": {
-    "NoLocationHost": [],
-    "ParticalLocationHost": [],
-    "MultyLocationHost": []
-  },
   "ExceptionGroupInfo": {
     "NoLocationGroup": [],
     "ParticalLocationGroup": [],

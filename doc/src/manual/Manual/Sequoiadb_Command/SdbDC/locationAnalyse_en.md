@@ -43,8 +43,8 @@ When the function executes successfully, it returns a BSON object containing the
 | MatchedNodeNum | number | Number of matched nodes |
 | ActiveLocation | string / array | ActiveLocation of all data groups. Returns a string if all data groups have the same ActiveLocation; returns a sorted array if different; returns an empty string if not set |
 | LocationInfo | array | List of Location detail information |
-| ExceptionHostInfo | object | Host exception information |
-| ExceptionGroupInfo | object | Group exception information |
+| ExceptionHostInfo | object | Host exception information (returned when exceptions exist) |
+| ExceptionGroupInfo | object | Group exception information (returned when exceptions exist) |
 
 Each element in the LocationInfo array contains the following fields:
 
@@ -54,7 +54,7 @@ Each element in the LocationInfo array contains the following fields:
 | ActiveStatus | string | ActiveLocation status. Values: "All" (all data groups have this Location as ActiveLocation), "None" (no data group has this Location as ActiveLocation), "Partical" (some data groups have this Location as ActiveLocation) |
 | GroupStatus | string | GroupMode status, see the table below for values |
 | WholeHost | array | List of hostnames where this Location covers all matched nodes on the host |
-| ParticalHost | array | List of host information where this Location covers only some matched nodes on the host. Each element contains HostName and Node fields |
+| ParticalHost | array | List of host information where this Location covers only some matched nodes on the host. Each element contains HostName and Node fields (returned when non-empty) |
 
 GroupStatus values:
 
@@ -190,15 +190,9 @@ v5.8.6 and above
       "GroupStatus": "",
       "WholeHost": [
         "sdbserver1"
-      ],
-      "ParticalHost": []
+      ]
     }
   ],
-  "ExceptionHostInfo": {
-    "NoLocationHost": [],
-    "ParticalLocationHost": [],
-    "MultyLocationHost": []
-  },
   "ExceptionGroupInfo": {
     "NoLocationGroup": [],
     "ParticalLocationGroup": [],

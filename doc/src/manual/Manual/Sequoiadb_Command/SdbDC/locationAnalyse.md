@@ -44,8 +44,8 @@ fileName（ *string，选填* ）
 | MatchedNodeNum | number | 匹配的节点数量 |
 | ActiveLocation | string / array | 所有数据组的 ActiveLocation。如果所有数据组的 ActiveLocation 相同，返回字符串；如果不同，返回排序后的数组；如果没有设置，返回空字符串 |
 | LocationInfo | array | Location 详细信息列表 |
-| ExceptionHostInfo | object | 主机异常信息 |
-| ExceptionGroupInfo | object | 组异常信息 |
+| ExceptionHostInfo | object | 主机异常信息（存在异常时返回） |
+| ExceptionGroupInfo | object | 组异常信息（存在异常时返回） |
 
 LocationInfo 数组中每个元素包含以下字段：
 
@@ -55,7 +55,7 @@ LocationInfo 数组中每个元素包含以下字段：
 | ActiveStatus | string | ActiveLocation 状态，取值："All"（所有数据组的 ActiveLocation 都是该 Location）、"None"（没有数据组的 ActiveLocation 是该 Location）、"Partical"（部分数据组的 ActiveLocation 是该 Location） |
 | GroupStatus | string | GroupMode 状态，取值见下表 |
 | WholeHost | array | 该 Location 覆盖了主机上所有匹配节点的主机名列表 |
-| ParticalHost | array | 该 Location 仅覆盖了主机上部分匹配节点的主机信息列表，每个元素包含 HostName 和 Node 字段 |
+| ParticalHost | array | 该 Location 仅覆盖了主机上部分匹配节点的主机信息列表，每个元素包含 HostName 和 Node 字段（存在时返回） |
 
 GroupStatus 取值说明：
 
@@ -191,15 +191,9 @@ v5.8.6 及以上版本
       "GroupStatus": "",
       "WholeHost": [
         "sdbserver1"
-      ],
-      "ParticalHost": []
+      ]
     }
   ],
-  "ExceptionHostInfo": {
-    "NoLocationHost": [],
-    "ParticalLocationHost": [],
-    "MultyLocationHost": []
-  },
   "ExceptionGroupInfo": {
     "NoLocationGroup": [],
     "ParticalLocationGroup": [],

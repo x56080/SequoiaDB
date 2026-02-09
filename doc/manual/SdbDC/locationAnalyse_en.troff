@@ -186,7 +186,13 @@ T{
 T}@T{
 T}@T{
 T}@T{
-information
+information (returned
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+when exceptions exist)
 T}
 T{
 7
@@ -201,7 +207,13 @@ T{
 T}@T{
 T}@T{
 T}@T{
-information
+information (returned
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+when exceptions exist)
 T}
 .TE
 .PP
@@ -396,7 +408,13 @@ T{
 T}@T{
 T}@T{
 T}@T{
-Node fields
+Node fields (returned
+T}
+T{
+T}@T{
+T}@T{
+T}@T{
+when non\-empty)
 T}
 .TE
 .PP
@@ -921,15 +939,9 @@ v5.8.6 and above
       "GroupStatus": "",
       "WholeHost": [
         "sdbserver1"
-      ],
-      "ParticalHost": []
+      ]
     }
   ],
-  "ExceptionHostInfo": {
-    "NoLocationHost": [],
-    "ParticalLocationHost": [],
-    "MultyLocationHost": []
-  },
   "ExceptionGroupInfo": {
     "NoLocationGroup": [],
     "ParticalLocationGroup": [],
