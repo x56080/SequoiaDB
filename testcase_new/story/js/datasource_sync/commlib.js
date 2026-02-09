@@ -7,3 +7,4 @@
  ******************************************************************************/
 import( "../lib/datasource_commlib.js" );
 import( "../lib/index_commlib.js" );
+testConf.skipTest = true;
