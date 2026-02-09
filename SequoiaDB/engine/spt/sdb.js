@@ -2363,6 +2363,661 @@ SdbDC.prototype.reelectAnalyse = function( option, run ) {
    return new BSONObj( summary ) ;
 }
 
+SdbDC.prototype.locationAnalyse = function( option, fileName ) {
+   if ( null == option )
+   {
+      option = undefined ;
+   }
+
+   if ( undefined != option && ( typeof option ) != "object" )
+   {
+      setLastErrMsg( "SdbDC.locationAnalyse(): option should be object" ) ;
+      throw SDB_INVALIDARG ;
+   }
+
+   if ( null == fileName )
+   {
+      fileName = undefined ;
+   }
+
+   if ( undefined != fileName && ( typeof fileName ) != "string" )
+   {
+      setLastErrMsg( "SdbDC.locationAnalyse(): fileName should be string" ) ;
+      throw SDB_INVALIDARG ;
+   }
+
+   // validate option fields
+   if ( undefined != option )
+   {
+      if ( undefined != option.HostName && ( typeof option.HostName ) != "string" )
+      {
+         setLastErrMsg( "SdbDC.locationAnalyse(): HostName should be string" ) ;
+         throw SDB_INVALIDARG ;
+      }
+
+      if ( undefined != option.Domain )
+      {
+         var domainType = typeof option.Domain ;
+         if ( domainType != "string" && !( option.Domain instanceof Array ) )
+         {
+            setLastErrMsg( "SdbDC.locationAnalyse(): Domain should be string or array of strings" ) ;
+            throw SDB_INVALIDARG ;
+         }
+      }
+   }
+
+   // resolve domain groups
+   var domainGroupNames = undefined ;
+   if ( undefined != option && undefined != option.Domain )
+   {
+      var domains = option.Domain ;
+      if ( !( domains instanceof Array ) )
+      {
+         domains = [ domains ] ;
+      }
+
+      domainGroupNames = [] ;
+      var domainCursor = this._conn.list( SDB_LIST_DOMAINS, { Name: { $in: domains } } ) ;
+      if ( undefined != domainCursor )
+      {
+         var domainRecord = undefined ;
+         while ( ( domainRecord = domainCursor.next() ) != undefined )
+         {
+            var domainObj = domainRecord.toObj() ;
+            if ( undefined != domainObj.Groups )
+            {
+               for ( var i = 0; i < domainObj.Groups.length; i++ )
+               {
+                  var dgn = domainObj.Groups[i].GroupName ;
+                  if ( domainGroupNames.indexOf( dgn ) == -1 )
+                  {
+                     domainGroupNames.push( dgn ) ;
+                  }
+               }
+            }
+         }
+         domainCursor.close() ;
+      }
+
+      if ( domainGroupNames.length == 0 )
+      {
+         setLastErrMsg( "SdbDC.locationAnalyse(): specified Domain does not exist or has no groups" ) ;
+         throw SDB_INVALIDARG ;
+      }
+   }
+
+   // resolve host filter and list groups
+   var filter = {} ;
+   if ( undefined != option && undefined != option.HostName )
+   {
+      filter["Group.HostName"] = option.HostName ;
+   }
+
+   var cursor = this._conn.list( SDB_LIST_GROUPS, filter, {},
+                                 { GroupName: 1 } ) ;
+   if ( undefined == cursor )
+   {
+      return ;
+   }
+
+   // Phase 1: parse SDB_LIST_GROUPS
+   // Build: groupNames[], groupNodes{groupName -> [{HostName, Location, NodeName, NodeID}]},
+   //        groupActiveLocation{groupName -> string}
+   var matchedGroup = false ;
+   var groupNames = [] ;
+   var groupNodes = {} ;
+   var groupActiveLocation = {} ;
+   var isCoordGroup = {} ;   // groupName -> true for coord group
+   var allHosts = {} ;       // hostName -> true
+   var totalNodeNum = 0 ;
+
+   var record = undefined ;
+   while ( ( record = cursor.next() ) != undefined )
+   {
+      matchedGroup = true ;
+      var groupObj = record.toObj() ;
+      var groupName = groupObj.GroupName ;
+
+      if ( groupName == SDB_SPARE_GROUP_NAME )
+      {
+         continue ;
+      }
+
+      if ( undefined != domainGroupNames )
+      {
+         if ( domainGroupNames.indexOf( groupName ) == -1 )
+         {
+            continue ;
+         }
+      }
+
+      groupNames.push( groupName ) ;
+
+      if ( groupName == SDB_COORD_GROUP_NAME )
+      {
+         isCoordGroup[groupName] = true ;
+      }
+
+      // Coord group does not participate in ActiveLocation analysis
+      if ( undefined == isCoordGroup[groupName] &&
+           undefined != groupObj.ActiveLocation && groupObj.ActiveLocation != "" )
+      {
+         groupActiveLocation[groupName] = groupObj.ActiveLocation ;
+      }
+
+      var nodes = [] ;
+      if ( undefined != groupObj.Group )
+      {
+         for ( var j = 0; j < groupObj.Group.length; j++ )
+         {
+            var nodeObj = groupObj.Group[j] ;
+            var hostName = nodeObj.HostName ;
+            var location = ( undefined != nodeObj.Location && nodeObj.Location != "" ) ? nodeObj.Location : "" ;
+            var svcName = "" ;
+            if ( undefined != nodeObj.Service )
+            {
+               for ( var k = 0; k < nodeObj.Service.length; k++ )
+               {
+                  if ( nodeObj.Service[k].Type == 0 )
+                  {
+                     svcName = nodeObj.Service[k].Name ;
+                     break ;
+                  }
+               }
+            }
+            var nodeName = hostName + ":" + svcName ;
+            nodes.push( {
+               HostName: hostName,
+               Location: location,
+               NodeName: nodeName,
+               NodeID: nodeObj.NodeID
+            } ) ;
+            allHosts[hostName] = true ;
+            totalNodeNum++ ;
+         }
+      }
+      groupNodes[groupName] = nodes ;
+   }
+   cursor.close() ;
+
+   if ( undefined != option && undefined != option.HostName && !matchedGroup )
+   {
+      setLastErrMsg( "SdbDC.locationAnalyse(): specified HostName does not exist" ) ;
+      throw SDB_INVALIDARG ;
+   }
+
+   if ( groupNames.length == 0 )
+   {
+      var result = {
+         MatchedHostNum: 0,
+         MatchedGroupNum: 0,
+         MatchedNodeNum: 0,
+         ActiveLocation: "",
+         LocationInfo: [],
+         ExceptionHostInfo: {
+            NoLocationHost: [],
+            ParticalLocationHost: [],
+            MultyLocationHost: []
+         },
+         ExceptionGroupInfo: {
+            NoLocationGroup: [],
+            ParticalLocationGroup: [],
+            OneLocationGroup: []
+         }
+      } ;
+      if ( undefined != fileName )
+      {
+         var file = new File( fileName ) ;
+         file.write( JSON.stringify( result, null, 2 ) ) ;
+         file.close() ;
+      }
+      return new BSONObj( result ) ;
+   }
+
+   // Phase 2: parse SDB_LIST_GROUPMODES
+   // groupModeInfo{groupName -> {mode: "critical"/"maintenance"/"", properties: [...]}}
+   var groupModeInfo = {} ;
+   var modeCursor = this._conn.list( SDB_LIST_GROUPMODES ) ;
+   if ( undefined != modeCursor )
+   {
+      var modeRecord = undefined ;
+      while ( ( modeRecord = modeCursor.next() ) != undefined )
+      {
+         var modeObj = modeRecord.toObj() ;
+         var gn = modeObj.GroupName ;
+         if ( undefined == gn || undefined == groupNodes[gn] )
+         {
+            continue ;
+         }
+         var mode = ( undefined != modeObj.GroupMode && modeObj.GroupMode != "" ) ? modeObj.GroupMode : "" ;
+         var props = ( undefined != modeObj.Properties ) ? modeObj.Properties : [] ;
+         groupModeInfo[gn] = { mode: mode, properties: props } ;
+      }
+      modeCursor.close() ;
+   }
+
+   // Phase 3: build analysis structures
+   // For each location, track:
+   //   - which groups it appears in
+   //   - which hosts it appears on (and which nodes per host)
+   //   - active status per group
+   //   - groupMode status per group
+
+   // locationGroups{locName -> [groupName, ...]}
+   // locationHostNodes{locName -> {hostName -> [nodeName, ...]}}
+   var locationGroups = {} ;
+   var locationHostNodes = {} ;
+   var hasAnyLocation = false ;
+
+   // hostLocations{hostName -> {locName -> true}}
+   // hostNoLocNodes{hostName -> [nodeName, ...]}
+   var hostLocations = {} ;
+   var hostNoLocNodes = {} ;
+
+   // groupLocations{groupName -> {locName -> true}}
+   // groupNoLocCount{groupName -> number}
+   // groupTotalCount{groupName -> number}
+   var groupLocations = {} ;
+   var groupNoLocCount = {} ;
+   var groupTotalCount = {} ;
+
+   // nodeIDToLocation{nodeID -> locName}  (for groupMode analysis)
+   var nodeIDToLocation = {} ;
+
+   // hostTotalNodes{hostName -> number}  (total matched nodes per host)
+   var hostTotalNodes = {} ;
+
+   for ( var i = 0; i < groupNames.length; i++ )
+   {
+      var gn = groupNames[i] ;
+      var nodes = groupNodes[gn] ;
+      groupLocations[gn] = {} ;
+      groupNoLocCount[gn] = 0 ;
+      groupTotalCount[gn] = nodes.length ;
+
+      for ( var j = 0; j < nodes.length; j++ )
+      {
+         var nd = nodes[j] ;
+         var loc = nd.Location ;
+         var host = nd.HostName ;
+
+         nodeIDToLocation[nd.NodeID] = loc ;
+
+         if ( undefined == hostTotalNodes[host] )
+         {
+            hostTotalNodes[host] = 0 ;
+         }
+         hostTotalNodes[host]++ ;
+
+         if ( undefined == hostLocations[host] )
+         {
+            hostLocations[host] = {} ;
+            hostNoLocNodes[host] = [] ;
+         }
+
+         if ( loc != "" )
+         {
+            hasAnyLocation = true ;
+            hostLocations[host][loc] = true ;
+            groupLocations[gn][loc] = true ;
+
+            // locationGroups
+            if ( undefined == locationGroups[loc] )
+            {
+               locationGroups[loc] = [] ;
+               locationHostNodes[loc] = {} ;
+            }
+            if ( locationGroups[loc].indexOf( gn ) == -1 )
+            {
+               locationGroups[loc].push( gn ) ;
+            }
+
+            // locationHostNodes
+            if ( undefined == locationHostNodes[loc][host] )
+            {
+               locationHostNodes[loc][host] = [] ;
+            }
+            locationHostNodes[loc][host].push( nd.NodeName ) ;
+         }
+         else
+         {
+            hostNoLocNodes[host].push( nd.NodeName ) ;
+            groupNoLocCount[gn]++ ;
+         }
+      }
+   }
+
+   // Phase 4: compute ActiveLocation
+   var activeLocSet = {} ;
+   var activeLocCount = 0 ;
+   for ( var gn in groupActiveLocation )
+   {
+      var al = groupActiveLocation[gn] ;
+      if ( undefined == activeLocSet[al] )
+      {
+         activeLocSet[al] = true ;
+         activeLocCount++ ;
+      }
+   }
+   var activeLocationResult ;
+   if ( activeLocCount == 0 )
+   {
+      activeLocationResult = "" ;
+   }
+   else if ( activeLocCount == 1 )
+   {
+      for ( var al in activeLocSet )
+      {
+         activeLocationResult = al ;
+      }
+   }
+   else
+   {
+      activeLocationResult = [] ;
+      for ( var al in activeLocSet )
+      {
+         activeLocationResult.push( al ) ;
+      }
+      activeLocationResult.sort() ;
+   }
+
+   // Phase 5: build LocationInfo
+   var locationInfo = [] ;
+   for ( var loc in locationGroups )
+   {
+      var grps = locationGroups[loc] ;
+
+      // ActiveStatus (exclude coord groups)
+      var activeAll = 0 ;
+      var activeNone = 0 ;
+      for ( var g = 0; g < grps.length; g++ )
+      {
+         if ( undefined != isCoordGroup[grps[g]] )
+         {
+            continue ;
+         }
+         if ( groupActiveLocation[grps[g]] == loc )
+         {
+            activeAll++ ;
+         }
+         else
+         {
+            activeNone++ ;
+         }
+      }
+      var activeStatus ;
+      if ( activeAll == 0 && activeNone == 0 )
+      {
+         // only coord groups in this location, no data groups
+         activeStatus = "None" ;
+      }
+      else if ( activeNone == 0 )
+      {
+         activeStatus = "All" ;
+      }
+      else if ( activeAll == 0 )
+      {
+         activeStatus = "None" ;
+      }
+      else
+      {
+         activeStatus = "Partical" ;
+      }
+
+      // GroupStatus (exclude coord groups)
+      // For each data group this location appears in, determine if it's Critical or Maintenance
+      var criticalCount = 0 ;
+      var maintenanceCount = 0 ;
+      var dataGroupCount = 0 ;
+      for ( var g = 0; g < grps.length; g++ )
+      {
+         var gn = grps[g] ;
+         if ( undefined != isCoordGroup[gn] )
+         {
+            continue ;
+         }
+         dataGroupCount++ ;
+         var modeInfo = groupModeInfo[gn] ;
+         if ( undefined == modeInfo || modeInfo.mode == "" )
+         {
+            continue ;
+         }
+
+         if ( modeInfo.mode == "critical" )
+         {
+            // check if this location is the critical target
+            var isCriticalForLoc = false ;
+            for ( var p = 0; p < modeInfo.properties.length; p++ )
+            {
+               var prop = modeInfo.properties[p] ;
+               // by Location
+               if ( undefined != prop.Location && prop.Location == loc )
+               {
+                  isCriticalForLoc = true ;
+                  break ;
+               }
+               // by NodeID: check if node belongs to this location
+               if ( undefined != prop.NodeID && 0 != prop.NodeID )
+               {
+                  var nodeLoc = nodeIDToLocation[prop.NodeID] ;
+                  if ( nodeLoc == loc )
+                  {
+                     isCriticalForLoc = true ;
+                     break ;
+                  }
+               }
+            }
+            if ( isCriticalForLoc )
+            {
+               criticalCount++ ;
+            }
+         }
+         else if ( modeInfo.mode == "maintenance" )
+         {
+            // check if any maintenance node belongs to this location
+            var isMaintenanceForLoc = false ;
+            for ( var p = 0; p < modeInfo.properties.length; p++ )
+            {
+               var prop = modeInfo.properties[p] ;
+               if ( undefined != prop.NodeID && 0 != prop.NodeID )
+               {
+                  var nodeLoc = nodeIDToLocation[prop.NodeID] ;
+                  if ( nodeLoc == loc )
+                  {
+                     isMaintenanceForLoc = true ;
+                     break ;
+                  }
+               }
+            }
+            if ( isMaintenanceForLoc )
+            {
+               maintenanceCount++ ;
+            }
+         }
+      }
+
+      var groupStatus ;
+      var hasCritical = criticalCount > 0 ;
+      var hasMaintenance = maintenanceCount > 0 ;
+      var allCritical = ( dataGroupCount > 0 && criticalCount == dataGroupCount ) ;
+      var allMaintenance = ( dataGroupCount > 0 && maintenanceCount == dataGroupCount ) ;
+
+      if ( !hasCritical && !hasMaintenance )
+      {
+         groupStatus = "" ;
+      }
+      else if ( hasCritical && !hasMaintenance )
+      {
+         groupStatus = allCritical ? "Critical" : "ParticalCritical" ;
+      }
+      else if ( !hasCritical && hasMaintenance )
+      {
+         groupStatus = allMaintenance ? "Maintenance" : "ParticalMaintenance" ;
+      }
+      else
+      {
+         // both exist, since same group is mutually exclusive,
+         // criticalCount + maintenanceCount <= grps.length
+         if ( criticalCount + maintenanceCount == dataGroupCount )
+         {
+            groupStatus = "Critical-Maintenance" ;
+         }
+         else
+         {
+            groupStatus = "Partical-Critical-Maintenance" ;
+         }
+      }
+
+      // WholeHost and ParticalHost
+      var wholeHost = [] ;
+      var particalHost = [] ;
+      var hostNodes = locationHostNodes[loc] ;
+      for ( var h in hostNodes )
+      {
+         var totalOnHost = ( undefined != hostTotalNodes[h] ) ? hostTotalNodes[h] : 0 ;
+
+         if ( hostNodes[h].length == totalOnHost )
+         {
+            wholeHost.push( h ) ;
+         }
+         else
+         {
+            particalHost.push( {
+               HostName: h,
+               Node: hostNodes[h]
+            } ) ;
+         }
+      }
+      wholeHost.sort() ;
+      particalHost.sort( function( a, b ) {
+         return a.HostName < b.HostName ? -1 : ( a.HostName > b.HostName ? 1 : 0 ) ;
+      } ) ;
+      for ( var pi = 0; pi < particalHost.length; pi++ )
+      {
+         particalHost[pi].Node.sort() ;
+      }
+
+      locationInfo.push( {
+         LocationName: loc,
+         ActiveStatus: activeStatus,
+         GroupStatus: groupStatus,
+         WholeHost: wholeHost,
+         ParticalHost: particalHost
+      } ) ;
+   }
+
+   locationInfo.sort( function( a, b ) {
+      return a.LocationName < b.LocationName ? -1 : ( a.LocationName > b.LocationName ? 1 : 0 ) ;
+   } ) ;
+
+   // Phase 6: ExceptionHostInfo and ExceptionGroupInfo
+   var noLocationHost = [] ;
+   var particalLocationHost = [] ;
+   var multyLocationHost = [] ;
+   var noLocationGroup = [] ;
+   var particalLocationGroup = [] ;
+   var oneLocationGroup = [] ;
+
+   if ( hasAnyLocation )
+   {
+      // host analysis
+      for ( var h in allHosts )
+      {
+         var locs = hostLocations[h] ;
+         var noLocs = hostNoLocNodes[h] ;
+         var locCount = 0 ;
+         for ( var l in locs )
+         {
+            locCount++ ;
+         }
+         var hasNoLoc = ( undefined != noLocs && noLocs.length > 0 ) ;
+
+         if ( locCount == 0 )
+         {
+            noLocationHost.push( h ) ;
+         }
+         else
+         {
+            if ( hasNoLoc )
+            {
+               particalLocationHost.push( h ) ;
+            }
+            if ( locCount > 1 )
+            {
+               multyLocationHost.push( h ) ;
+            }
+         }
+      }
+      noLocationHost.sort() ;
+      particalLocationHost.sort() ;
+      multyLocationHost.sort() ;
+
+      // group analysis
+      for ( var i = 0; i < groupNames.length; i++ )
+      {
+         var gn = groupNames[i] ;
+         var total = groupTotalCount[gn] ;
+         var noLoc = groupNoLocCount[gn] ;
+         var locs = groupLocations[gn] ;
+         var locCount = 0 ;
+         for ( var l in locs )
+         {
+            locCount++ ;
+         }
+
+         if ( noLoc == total )
+         {
+            noLocationGroup.push( gn ) ;
+         }
+         else
+         {
+            if ( noLoc > 0 )
+            {
+               particalLocationGroup.push( gn ) ;
+            }
+            if ( locCount == 1 )
+            {
+               oneLocationGroup.push( gn ) ;
+            }
+         }
+      }
+   }
+
+   // Phase 7: build result
+   var hostCount = 0 ;
+   for ( var h in allHosts )
+   {
+      hostCount++ ;
+   }
+
+   var result = {
+      MatchedHostNum: hostCount,
+      MatchedGroupNum: groupNames.length,
+      MatchedNodeNum: totalNodeNum,
+      ActiveLocation: activeLocationResult,
+      LocationInfo: locationInfo,
+      ExceptionHostInfo: {
+         NoLocationHost: noLocationHost,
+         ParticalLocationHost: particalLocationHost,
+         MultyLocationHost: multyLocationHost
+      },
+      ExceptionGroupInfo: {
+         NoLocationGroup: noLocationGroup,
+         ParticalLocationGroup: particalLocationGroup,
+         OneLocationGroup: oneLocationGroup
+      }
+   } ;
+
+   if ( undefined != fileName )
+   {
+      var file = new File( fileName ) ;
+      file.write( JSON.stringify( result, null, 2 ) ) ;
+      file.close() ;
+   }
+
+   return new BSONObj( result ) ;
+}
+
 // end SdbDc
 
 // SdbSequence

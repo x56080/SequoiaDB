@@ -17,6 +17,7 @@ SdbDC 类主要用于操作集群，包含的函数如下：
 | [primarySave()][primarySave] | 保存复制组主节点信息 |
 | [primaryRestore()][primaryRestore] | 根据保存的信息恢复复制组主节点 |
 | [reelectAnalyse()][reelectAnalyse] | 分析主节点分布合理性或执行切主 |
+| [locationAnalyse()][locationAnalyse] | 分析 Location 分布合理性 |
 
 [^_^]:
      本文使用的所有引用及链接
@@ -35,3 +36,4 @@ SdbDC 类主要用于操作集群，包含的函数如下：
 [primarySave]:manual/Manual/Sequoiadb_Command/SdbDC/primarySave.md
 [primaryRestore]:manual/Manual/Sequoiadb_Command/SdbDC/primaryRestore.md
 [reelectAnalyse]:manual/Manual/Sequoiadb_Command/SdbDC/reelectAnalyse.md
+[locationAnalyse]:manual/Manual/Sequoiadb_Command/SdbDC/locationAnalyse.md

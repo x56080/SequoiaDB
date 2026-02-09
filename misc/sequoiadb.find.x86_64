@@ -690,6 +690,8 @@ sequoiadb/doc/manual/SdbDC/enableReadonly_cn.troff
 sequoiadb/doc/manual/SdbDC/enableReadonly_en.troff
 sequoiadb/doc/manual/SdbDC/getDetail_cn.troff
 sequoiadb/doc/manual/SdbDC/getDetail_en.troff
+sequoiadb/doc/manual/SdbDC/locationAnalyse_cn.troff
+sequoiadb/doc/manual/SdbDC/locationAnalyse_en.troff
 sequoiadb/doc/manual/SdbDC/setActiveLocation_cn.troff
 sequoiadb/doc/manual/SdbDC/setActiveLocation_en.troff
 sequoiadb/doc/manual/SdbDC/setLocation_cn.troff
