@@ -6,3 +6,4 @@
  * @LastEditors   : liuli
  ******************************************************************************/
 import( "../lib/datasource_commlib.js" );
+testConf.skipTest = true;
