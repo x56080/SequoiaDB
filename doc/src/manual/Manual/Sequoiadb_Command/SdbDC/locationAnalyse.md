@@ -52,10 +52,10 @@ LocationInfo 数组中每个元素包含以下字段：
 | 字段名 | 类型 | 描述 |
 | ------ | ---- | ---- |
 | LocationName | string | Location 名称 |
-| ActiveStatus | string | ActiveLocation 状态，取值："All"（所有数据组的 ActiveLocation 都是该 Location）、"None"（没有数据组的 ActiveLocation 是该 Location）、"Partical"（部分数据组的 ActiveLocation 是该 Location） |
+| ActiveStatus | string | ActiveLocation 状态，取值："All"（所有数据组的 ActiveLocation 都是该 Location）、"None"（没有数据组的 ActiveLocation 是该 Location）、"Partial"（部分数据组的 ActiveLocation 是该 Location） |
 | GroupStatus | string | GroupMode 状态，取值见下表 |
 | WholeHost | array | 该 Location 覆盖了主机上所有匹配节点的主机名列表 |
-| ParticalHost | array | 该 Location 仅覆盖了主机上部分匹配节点的主机信息列表，每个元素包含 HostName 和 Node 字段（存在时返回） |
+| PartialHost | array | 该 Location 仅覆盖了主机上部分匹配节点的主机信息列表，每个元素包含 HostName 和 Node 字段（存在时返回） |
 
 GroupStatus 取值说明：
 
@@ -63,18 +63,18 @@ GroupStatus 取值说明：
 | ---- | ---- |
 | "" | 该 Location 所在的数据组均未设置 GroupMode |
 | "Critical" | 该 Location 所在的所有数据组都对该 Location 设置了 Critical 模式 |
-| "ParticalCritical" | 该 Location 所在的部分数据组对该 Location 设置了 Critical 模式 |
+| "PartialCritical" | 该 Location 所在的部分数据组对该 Location 设置了 Critical 模式 |
 | "Maintenance" | 该 Location 所在的所有数据组都对该 Location 的节点设置了 Maintenance 模式 |
-| "ParticalMaintenance" | 该 Location 所在的部分数据组对该 Location 的节点设置了 Maintenance 模式 |
+| "PartialMaintenance" | 该 Location 所在的部分数据组对该 Location 的节点设置了 Maintenance 模式 |
 | "Critical-Maintenance" | 该 Location 所在的所有数据组中，部分设置了 Critical 模式，部分设置了 Maintenance 模式 |
-| "Partical-Critical-Maintenance" | 该 Location 所在的数据组中，存在 Critical 和 Maintenance 模式，但还有数据组未设置任何模式 |
+| "Partial-Critical-Maintenance" | 该 Location 所在的数据组中，存在 Critical 和 Maintenance 模式，但还有数据组未设置任何模式 |
 
 ExceptionHostInfo 包含以下字段：
 
 | 字段名 | 类型 | 描述 |
 | ------ | ---- | ---- |
 | NoLocationHost | array | 所有节点均未设置 Location 的主机名列表 |
-| ParticalLocationHost | array | 部分节点设置了 Location、部分节点未设置 Location 的主机名列表 |
+| PartialLocationHost | array | 部分节点设置了 Location、部分节点未设置 Location 的主机名列表 |
 | MultyLocationHost | array | 节点分布在多个不同 Location 的主机名列表 |
 
 ExceptionGroupInfo 包含以下字段：
@@ -82,7 +82,7 @@ ExceptionGroupInfo 包含以下字段：
 | 字段名 | 类型 | 描述 |
 | ------ | ---- | ---- |
 | NoLocationGroup | array | 所有节点均未设置 Location 的组名列表 |
-| ParticalLocationGroup | array | 部分节点设置了 Location、部分节点未设置 Location 的组名列表 |
+| PartialLocationGroup | array | 部分节点设置了 Location、部分节点未设置 Location 的组名列表 |
 | OneLocationGroup | array | 所有设置了 Location 的节点都在同一个 Location 的组名列表 |
 
 函数执行失败时，将抛异常并输出错误信息。
@@ -121,7 +121,7 @@ v5.8.6 及以上版本
       "WholeHost": [
         "sdbserver1"
       ],
-      "ParticalHost": [
+      "PartialHost": [
         {
           "HostName": "sdbserver2",
           "Node": [
@@ -136,7 +136,7 @@ v5.8.6 及以上版本
       "ActiveStatus": "None",
       "GroupStatus": "Critical",
       "WholeHost": [],
-      "ParticalHost": [
+      "PartialHost": [
         {
           "HostName": "sdbserver2",
           "Node": [
@@ -155,7 +155,7 @@ v5.8.6 及以上版本
   ],
   "ExceptionHostInfo": {
     "NoLocationHost": [],
-    "ParticalLocationHost": [
+    "PartialLocationHost": [
       "sdbserver3"
     ],
     "MultyLocationHost": [
@@ -164,7 +164,7 @@ v5.8.6 及以上版本
   },
   "ExceptionGroupInfo": {
     "NoLocationGroup": [],
-    "ParticalLocationGroup": [
+    "PartialLocationGroup": [
       "db3"
     ],
     "OneLocationGroup": [
@@ -196,7 +196,7 @@ v5.8.6 及以上版本
   ],
   "ExceptionGroupInfo": {
     "NoLocationGroup": [],
-    "ParticalLocationGroup": [],
+    "PartialLocationGroup": [],
     "OneLocationGroup": [
       "db1"
     ]

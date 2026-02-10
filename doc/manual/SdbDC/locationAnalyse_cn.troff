@@ -274,13 +274,13 @@ T{
 T}@T{
 T}@T{
 T}@T{
-Location）、"Partical
+Location）、"Partial"
 T}
 T{
 T}@T{
 T}@T{
 T}@T{
-"（部分数据组的
+（部分数据组的
 T}
 T{
 T}@T{
@@ -339,7 +339,7 @@ T}
 T{
 5
 T}@T{
-ParticalHost
+PartialHost
 T}@T{
 array
 T}@T{
@@ -438,7 +438,7 @@ T}
 T{
 3
 T}@T{
-"ParticalCritical"
+"PartialCritical"
 T}@T{
 该 Location 所在的
 T}
@@ -487,7 +487,7 @@ T}
 T{
 5
 T}@T{
-"ParticalMaintenance"
+"PartialMaintenance"
 T}@T{
 该 Location 所在的
 T}
@@ -546,7 +546,7 @@ T}
 T{
 7
 T}@T{
-"Partical\-Critical\-
+"Partial\-Critical\-
 T}@T{
 该 Location 所在的
 T}
@@ -617,7 +617,7 @@ T}
 T{
 2
 T}@T{
-ParticalLocationHost
+PartialLocationHost
 T}@T{
 array
 T}@T{
@@ -703,7 +703,7 @@ T}
 T{
 2
 T}@T{
-ParticalLocationGroup
+PartialLocationGroup
 T}@T{
 array
 T}@T{
@@ -822,7 +822,7 @@ v5.8.6 及以上版本
       "WholeHost": [
         "sdbserver1"
       ],
-      "ParticalHost": [
+      "PartialHost": [
         {
           "HostName": "sdbserver2",
           "Node": [
@@ -837,7 +837,7 @@ v5.8.6 及以上版本
       "ActiveStatus": "None",
       "GroupStatus": "Critical",
       "WholeHost": [],
-      "ParticalHost": [
+      "PartialHost": [
         {
           "HostName": "sdbserver2",
           "Node": [
@@ -856,7 +856,7 @@ v5.8.6 及以上版本
   ],
   "ExceptionHostInfo": {
     "NoLocationHost": [],
-    "ParticalLocationHost": [
+    "PartialLocationHost": [
       "sdbserver3"
     ],
     "MultyLocationHost": [
@@ -865,7 +865,7 @@ v5.8.6 及以上版本
   },
   "ExceptionGroupInfo": {
     "NoLocationGroup": [],
-    "ParticalLocationGroup": [
+    "PartialLocationGroup": [
       "db3"
     ],
     "OneLocationGroup": [
@@ -899,7 +899,7 @@ v5.8.6 及以上版本
   ],
   "ExceptionGroupInfo": {
     "NoLocationGroup": [],
-    "ParticalLocationGroup": [],
+    "PartialLocationGroup": [],
     "OneLocationGroup": [
       "db1"
     ]

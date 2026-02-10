@@ -51,10 +51,10 @@ Each element in the LocationInfo array contains the following fields:
 | Field Name | Type | Description |
 | ---------- | ---- | ----------- |
 | LocationName | string | Location name |
-| ActiveStatus | string | ActiveLocation status. Values: "All" (all data groups have this Location as ActiveLocation), "None" (no data group has this Location as ActiveLocation), "Partical" (some data groups have this Location as ActiveLocation) |
+| ActiveStatus | string | ActiveLocation status. Values: "All" (all data groups have this Location as ActiveLocation), "None" (no data group has this Location as ActiveLocation), "Partial" (some data groups have this Location as ActiveLocation) |
 | GroupStatus | string | GroupMode status, see the table below for values |
 | WholeHost | array | List of hostnames where this Location covers all matched nodes on the host |
-| ParticalHost | array | List of host information where this Location covers only some matched nodes on the host. Each element contains HostName and Node fields (returned when non-empty) |
+| PartialHost | array | List of host information where this Location covers only some matched nodes on the host. Each element contains HostName and Node fields (returned when non-empty) |
 
 GroupStatus values:
 
@@ -62,18 +62,18 @@ GroupStatus values:
 | ----- | ----------- |
 | "" | No GroupMode is set for any data group that this Location belongs to |
 | "Critical" | All data groups that this Location belongs to have Critical mode set for this Location |
-| "ParticalCritical" | Some data groups that this Location belongs to have Critical mode set for this Location |
+| "PartialCritical" | Some data groups that this Location belongs to have Critical mode set for this Location |
 | "Maintenance" | All data groups that this Location belongs to have Maintenance mode set for nodes in this Location |
-| "ParticalMaintenance" | Some data groups that this Location belongs to have Maintenance mode set for nodes in this Location |
+| "PartialMaintenance" | Some data groups that this Location belongs to have Maintenance mode set for nodes in this Location |
 | "Critical-Maintenance" | All data groups that this Location belongs to have either Critical or Maintenance mode set |
-| "Partical-Critical-Maintenance" | Both Critical and Maintenance modes exist among data groups, but some data groups have no mode set |
+| "Partial-Critical-Maintenance" | Both Critical and Maintenance modes exist among data groups, but some data groups have no mode set |
 
 ExceptionHostInfo contains the following fields:
 
 | Field Name | Type | Description |
 | ---------- | ---- | ----------- |
 | NoLocationHost | array | List of hostnames where all nodes have no Location set |
-| ParticalLocationHost | array | List of hostnames where some nodes have Location set and some do not |
+| PartialLocationHost | array | List of hostnames where some nodes have Location set and some do not |
 | MultyLocationHost | array | List of hostnames where nodes are distributed across multiple different Locations |
 
 ExceptionGroupInfo contains the following fields:
@@ -81,7 +81,7 @@ ExceptionGroupInfo contains the following fields:
 | Field Name | Type | Description |
 | ---------- | ---- | ----------- |
 | NoLocationGroup | array | List of group names where all nodes have no Location set |
-| ParticalLocationGroup | array | List of group names where some nodes have Location set and some do not |
+| PartialLocationGroup | array | List of group names where some nodes have Location set and some do not |
 | OneLocationGroup | array | List of group names where all nodes with Location set are in the same Location |
 
 When the function fails, an exception will be thrown and an error message will be printed.
@@ -120,7 +120,7 @@ v5.8.6 and above
       "WholeHost": [
         "sdbserver1"
       ],
-      "ParticalHost": [
+      "PartialHost": [
         {
           "HostName": "sdbserver2",
           "Node": [
@@ -135,7 +135,7 @@ v5.8.6 and above
       "ActiveStatus": "None",
       "GroupStatus": "Critical",
       "WholeHost": [],
-      "ParticalHost": [
+      "PartialHost": [
         {
           "HostName": "sdbserver2",
           "Node": [
@@ -154,7 +154,7 @@ v5.8.6 and above
   ],
   "ExceptionHostInfo": {
     "NoLocationHost": [],
-    "ParticalLocationHost": [
+    "PartialLocationHost": [
       "sdbserver3"
     ],
     "MultyLocationHost": [
@@ -163,7 +163,7 @@ v5.8.6 and above
   },
   "ExceptionGroupInfo": {
     "NoLocationGroup": [],
-    "ParticalLocationGroup": [
+    "PartialLocationGroup": [
       "db3"
     ],
     "OneLocationGroup": [
@@ -195,7 +195,7 @@ v5.8.6 and above
   ],
   "ExceptionGroupInfo": {
     "NoLocationGroup": [],
-    "ParticalLocationGroup": [],
+    "PartialLocationGroup": [],
     "OneLocationGroup": [
       "db1"
     ]

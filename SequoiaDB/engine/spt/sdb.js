@@ -2751,7 +2751,7 @@ SdbDC.prototype.locationAnalyse = function( option, fileName ) {
       }
       else
       {
-         activeStatus = "Partical" ;
+         activeStatus = "Partial" ;
       }
 
       // GroupStatus (exclude coord groups)
@@ -2838,11 +2838,11 @@ SdbDC.prototype.locationAnalyse = function( option, fileName ) {
       }
       else if ( hasCritical && !hasMaintenance )
       {
-         groupStatus = allCritical ? "Critical" : "ParticalCritical" ;
+         groupStatus = allCritical ? "Critical" : "PartialCritical" ;
       }
       else if ( !hasCritical && hasMaintenance )
       {
-         groupStatus = allMaintenance ? "Maintenance" : "ParticalMaintenance" ;
+         groupStatus = allMaintenance ? "Maintenance" : "PartialMaintenance" ;
       }
       else
       {
@@ -2854,13 +2854,13 @@ SdbDC.prototype.locationAnalyse = function( option, fileName ) {
          }
          else
          {
-            groupStatus = "Partical-Critical-Maintenance" ;
+            groupStatus = "Partial-Critical-Maintenance" ;
          }
       }
 
-      // WholeHost and ParticalHost
+      // WholeHost and PartialHost
       var wholeHost = [] ;
-      var particalHost = [] ;
+      var partialHost = [] ;
       var hostNodes = locationHostNodes[loc] ;
       for ( var h in hostNodes )
       {
@@ -2872,19 +2872,19 @@ SdbDC.prototype.locationAnalyse = function( option, fileName ) {
          }
          else
          {
-            particalHost.push( {
+            partialHost.push( {
                HostName: h,
                Node: hostNodes[h]
             } ) ;
          }
       }
       wholeHost.sort() ;
-      particalHost.sort( function( a, b ) {
+      partialHost.sort( function( a, b ) {
          return a.HostName < b.HostName ? -1 : ( a.HostName > b.HostName ? 1 : 0 ) ;
       } ) ;
-      for ( var pi = 0; pi < particalHost.length; pi++ )
+      for ( var pi = 0; pi < partialHost.length; pi++ )
       {
-         particalHost[pi].Node.sort() ;
+         partialHost[pi].Node.sort() ;
       }
 
       var locItem = {
@@ -2893,9 +2893,9 @@ SdbDC.prototype.locationAnalyse = function( option, fileName ) {
          GroupStatus: groupStatus,
          WholeHost: wholeHost
       } ;
-      if ( particalHost.length > 0 )
+      if ( partialHost.length > 0 )
       {
-         locItem.ParticalHost = particalHost ;
+         locItem.PartialHost = partialHost ;
       }
       locationInfo.push( locItem ) ;
    }
@@ -2906,10 +2906,10 @@ SdbDC.prototype.locationAnalyse = function( option, fileName ) {
 
    // Phase 6: ExceptionHostInfo and ExceptionGroupInfo
    var noLocationHost = [] ;
-   var particalLocationHost = [] ;
+   var partialLocationHost = [] ;
    var multyLocationHost = [] ;
    var noLocationGroup = [] ;
-   var particalLocationGroup = [] ;
+   var partialLocationGroup = [] ;
    var oneLocationGroup = [] ;
 
    if ( hasAnyLocation )
@@ -2934,7 +2934,7 @@ SdbDC.prototype.locationAnalyse = function( option, fileName ) {
          {
             if ( hasNoLoc )
             {
-               particalLocationHost.push( h ) ;
+               partialLocationHost.push( h ) ;
             }
             if ( locCount > 1 )
             {
@@ -2943,7 +2943,7 @@ SdbDC.prototype.locationAnalyse = function( option, fileName ) {
          }
       }
       noLocationHost.sort() ;
-      particalLocationHost.sort() ;
+      partialLocationHost.sort() ;
       multyLocationHost.sort() ;
 
       // group analysis
@@ -2967,7 +2967,7 @@ SdbDC.prototype.locationAnalyse = function( option, fileName ) {
          {
             if ( noLoc > 0 )
             {
-               particalLocationGroup.push( gn ) ;
+               partialLocationGroup.push( gn ) ;
             }
             if ( locCount == 1 )
             {
@@ -2993,23 +2993,23 @@ SdbDC.prototype.locationAnalyse = function( option, fileName ) {
    } ;
 
    if ( noLocationHost.length > 0 ||
-        particalLocationHost.length > 0 ||
+        partialLocationHost.length > 0 ||
         multyLocationHost.length > 0 )
    {
       result.ExceptionHostInfo = {
          NoLocationHost: noLocationHost,
-         ParticalLocationHost: particalLocationHost,
+         PartialLocationHost: partialLocationHost,
          MultyLocationHost: multyLocationHost
       } ;
    }
 
    if ( noLocationGroup.length > 0 ||
-        particalLocationGroup.length > 0 ||
+        partialLocationGroup.length > 0 ||
         oneLocationGroup.length > 0 )
    {
       result.ExceptionGroupInfo = {
          NoLocationGroup: noLocationGroup,
-         ParticalLocationGroup: particalLocationGroup,
+         PartialLocationGroup: partialLocationGroup,
          OneLocationGroup: oneLocationGroup
       } ;
    }
