@@ -433,7 +433,22 @@ T}
 T{
 T}@T{
 T}@T{
-Critical 模式
+Critical 模式，且
+T}
+T{
+T}@T{
+T}@T{
+每个组中该
+T}
+T{
+T}@T{
+T}@T{
+Location 的所有节
+T}
+T{
+T}@T{
+T}@T{
+点都被覆盖
 T}
 T{
 3
@@ -445,17 +460,37 @@ T}
 T{
 T}@T{
 T}@T{
-部分数据组对该
+数据组中存在
 T}
 T{
 T}@T{
 T}@T{
-Location 设置了
+Critical 模式，但
 T}
 T{
 T}@T{
 T}@T{
-Critical 模式
+未满足 "Critical"
+T}
+T{
+T}@T{
+T}@T{
+的条件（部分组
+T}
+T{
+T}@T{
+T}@T{
+未设置，或某些
+T}
+T{
+T}@T{
+T}@T{
+组中仅覆盖了部
+T}
+T{
+T}@T{
+T}@T{
+分节点）
 T}
 T{
 4
@@ -472,17 +507,17 @@ T}
 T{
 T}@T{
 T}@T{
-该 Location 的节点
+该 Location 的所有
 T}
 T{
 T}@T{
 T}@T{
-设置了 Maintenance
+节点设置了
 T}
 T{
 T}@T{
 T}@T{
-模式
+Maintenance 模式
 T}
 T{
 5
@@ -494,22 +529,37 @@ T}
 T{
 T}@T{
 T}@T{
-部分数据组对该
+数据组中存在
 T}
 T{
 T}@T{
 T}@T{
-Location 的节点设
+Maintenance 模式，
 T}
 T{
 T}@T{
 T}@T{
-置了 Maintenance 模
+但未满足 "
 T}
 T{
 T}@T{
 T}@T{
-式
+Maintenance" 的条件
+T}
+T{
+T}@T{
+T}@T{
+（部分组未设置，
+T}
+T{
+T}@T{
+T}@T{
+或某些组中仅覆
+T}
+T{
+T}@T{
+T}@T{
+盖了部分节点）
 T}
 T{
 6
@@ -541,7 +591,22 @@ T}
 T{
 T}@T{
 T}@T{
-Maintenance 模式
+Maintenance 模式，
+T}
+T{
+T}@T{
+T}@T{
+且每个组中该
+T}
+T{
+T}@T{
+T}@T{
+Location 的所有节
+T}
+T{
+T}@T{
+T}@T{
+点都被覆盖
 T}
 T{
 7
@@ -569,12 +634,12 @@ T}
 T{
 T}@T{
 T}@T{
-但还有数据组未
+但未满足 "Critical\-
 T}
 T{
 T}@T{
 T}@T{
-设置任何模式
+Maintenance" 的条件
 T}
 .TE
 .PP
@@ -644,7 +709,7 @@ T}
 T{
 3
 T}@T{
-MultyLocationHost
+MultiLocationHost
 T}@T{
 array
 T}@T{
@@ -859,7 +924,7 @@ v5.8.6 及以上版本
     "PartialLocationHost": [
       "sdbserver3"
     ],
-    "MultyLocationHost": [
+    "MultiLocationHost": [
       "sdbserver2"
     ]
   },

@@ -1268,19 +1268,14 @@ SdbDC.prototype.primarySave = function( option, filename ) {
       filter["Group.HostName"] = option.HostName ;
    }
 
-   var cursor = this._conn.list( SDB_LIST_GROUPS, filter ) ;
+   var cursor = this._conn.list( SDB_LIST_GROUPS, filter, {}, { GroupName: 1 } ) ;
    if ( undefined == cursor )
    {
       return ;
    }
 
    var matchedGroup = false ;
-   var matchedNum = 0 ;
-   var succeedNum = 0 ;
-   var ignoredNum = 0 ;
-   var failedNum = 0 ;
-   var failedGroups = [] ;
-   var detail = [] ;
+   var groups = [] ;
 
    var record = undefined ;
    while ( ( record = cursor.next() ) != undefined )
@@ -1302,41 +1297,7 @@ SdbDC.prototype.primarySave = function( option, filename ) {
          }
       }
 
-      matchedNum++ ;
-
-      try
-      {
-         var snapCursor = this._conn.exec( 'select NodeName from $SNAPSHOT_DB where GroupName = "' +
-                                          groupName + '" and IsPrimary = true /*+use_option(ShowError,ignore) */' ) ;
-         var primaryRecord = snapCursor.next() ;
-         snapCursor.close() ;
-
-         if ( undefined == primaryRecord )
-         {
-            failedNum++ ;
-            failedGroups.push( groupName ) ;
-            continue ;
-         }
-
-         var primaryObj = primaryRecord.toObj() ;
-         if ( undefined == primaryObj.NodeName )
-         {
-            failedNum++ ;
-            failedGroups.push( groupName ) ;
-            continue ;
-         }
-
-         detail.push( {
-            GroupName: groupName,
-            PrimaryNode: primaryObj.NodeName
-         } ) ;
-         succeedNum++ ;
-      }
-      catch ( e )
-      {
-         failedNum++ ;
-         failedGroups.push( groupName ) ;
-      }
+      groups.push( groupName ) ;
    }
    cursor.close() ;
 
@@ -1344,6 +1305,112 @@ SdbDC.prototype.primarySave = function( option, filename ) {
    {
       setLastErrMsg( "SdbDC.primarySave(): specified HostName does not exist" ) ;
       throw SDB_INVALIDARG ;
+   }
+
+   // batch query snapshot to get primary nodes
+   var primaryMap = {} ;
+   var allGroups = ( undefined == option || ( undefined == option.HostName && undefined == option.Domain ) ) ;
+
+   if ( allGroups )
+   {
+      try
+      {
+         var sql = 'select NodeName, GroupName from $SNAPSHOT_DB where IsPrimary = true ' +
+                   'order by GroupName /*+use_option(ShowError,ignore) */' ;
+         var snapCursor = this._conn.exec( sql ) ;
+         if ( undefined != snapCursor )
+         {
+            var snapRecord = undefined ;
+            while ( ( snapRecord = snapCursor.next() ) != undefined )
+            {
+               var snapObj = snapRecord.toObj() ;
+               var gn = snapObj.GroupName ;
+               if ( undefined != gn && undefined != snapObj.NodeName )
+               {
+                  primaryMap[gn] = snapObj.NodeName ;
+               }
+            }
+            snapCursor.close() ;
+         }
+      }
+      catch ( e )
+      {
+         // ignore errors, groups without primary will be treated as failed
+      }
+   }
+   else
+   {
+      var batchSize = 50 ;
+      for ( var batchStart = 0; batchStart < groups.length; batchStart += batchSize )
+      {
+         var batchEnd = batchStart + batchSize ;
+         if ( batchEnd > groups.length )
+         {
+            batchEnd = groups.length ;
+         }
+
+         var groupList = "" ;
+         for ( var i = batchStart; i < batchEnd; i++ )
+         {
+            if ( i > batchStart )
+            {
+               groupList += "," ;
+            }
+            groupList += '"' + groups[i] + '"' ;
+         }
+
+         try
+         {
+            var sql = 'select NodeName, GroupName from $SNAPSHOT_DB where IsPrimary = true ' +
+                      'and GroupName in (' + groupList + ') order by GroupName ' +
+                      '/*+use_option(ShowError,ignore) */' ;
+            var snapCursor = this._conn.exec( sql ) ;
+            if ( undefined != snapCursor )
+            {
+               var snapRecord = undefined ;
+               while ( ( snapRecord = snapCursor.next() ) != undefined )
+               {
+                  var snapObj = snapRecord.toObj() ;
+                  var gn = snapObj.GroupName ;
+                  if ( undefined != gn && undefined != snapObj.NodeName )
+                  {
+                     primaryMap[gn] = snapObj.NodeName ;
+                  }
+               }
+               snapCursor.close() ;
+            }
+         }
+         catch ( e )
+         {
+            // ignore errors, groups without primary will be treated as failed
+         }
+      }
+   }
+
+   // build result from primaryMap
+   var matchedNum = groups.length ;
+   var succeedNum = 0 ;
+   var ignoredNum = 0 ;
+   var failedNum = 0 ;
+   var failedGroups = [] ;
+   var detail = [] ;
+
+   for ( var i = 0; i < groups.length; i++ )
+   {
+      var groupName = groups[i] ;
+      if ( undefined != primaryMap[groupName] )
+      {
+         detail.push( {
+            GroupName: groupName,
+            PrimaryNode: primaryMap[groupName]
+         } ) ;
+         succeedNum++ ;
+      }
+      else
+      {
+         failedNum++ ;
+         failedGroups.push( groupName ) ;
+      }
    }
 
    var summary = {
@@ -2595,8 +2662,10 @@ SdbDC.prototype.locationAnalyse = function( option, fileName ) {
 
    // locationGroups{locName -> [groupName, ...]}
    // locationHostNodes{locName -> {hostName -> [nodeName, ...]}}
+   // locationGroupNodeCount{locName -> {groupName -> number}}
    var locationGroups = {} ;
    var locationHostNodes = {} ;
+   var locationGroupNodeCount = {} ;
    var hasAnyLocation = false ;
 
    // hostLocations{hostName -> {locName -> true}}
@@ -2656,11 +2725,14 @@ SdbDC.prototype.locationAnalyse = function( option, fileName ) {
             {
                locationGroups[loc] = [] ;
                locationHostNodes[loc] = {} ;
+               locationGroupNodeCount[loc] = {} ;
             }
             if ( locationGroups[loc].indexOf( gn ) == -1 )
             {
                locationGroups[loc].push( gn ) ;
+               locationGroupNodeCount[loc][gn] = 0 ;
             }
+            locationGroupNodeCount[loc][gn]++ ;
 
             // locationHostNodes
             if ( undefined == locationHostNodes[loc][host] )
@@ -2756,8 +2828,13 @@ SdbDC.prototype.locationAnalyse = function( option, fileName ) {
 
       // GroupStatus (exclude coord groups)
       // For each data group this location appears in, determine if it's Critical or Maintenance
+      // criticalCount: groups where ALL nodes of this location are covered by Critical
+      // partialCriticalCount: groups where SOME (not all) nodes are covered by Critical
+      // maintenanceCount/partialMaintenanceCount: same for Maintenance
       var criticalCount = 0 ;
+      var partialCriticalCount = 0 ;
       var maintenanceCount = 0 ;
+      var partialMaintenanceCount = 0 ;
       var dataGroupCount = 0 ;
       for ( var g = 0; g < grps.length; g++ )
       {
@@ -2773,39 +2850,45 @@ SdbDC.prototype.locationAnalyse = function( option, fileName ) {
             continue ;
          }
 
+         var totalNodesInGroup = locationGroupNodeCount[loc][gn] ;
+
          if ( modeInfo.mode == "critical" )
          {
             // check if this location is the critical target
-            var isCriticalForLoc = false ;
+            var coveredByLocation = false ;
+            var coveredNodeCount = 0 ;
             for ( var p = 0; p < modeInfo.properties.length; p++ )
             {
                var prop = modeInfo.properties[p] ;
-               // by Location
+               // by Location: covers all nodes of this location
                if ( undefined != prop.Location && prop.Location == loc )
                {
-                  isCriticalForLoc = true ;
+                  coveredByLocation = true ;
                   break ;
                }
-               // by NodeID: check if node belongs to this location
+               // by NodeID: count covered nodes
                if ( undefined != prop.NodeID && 0 != prop.NodeID )
                {
                   var nodeLoc = nodeIDToLocation[prop.NodeID] ;
                   if ( nodeLoc == loc )
                   {
-                     isCriticalForLoc = true ;
-                     break ;
+                     coveredNodeCount++ ;
                   }
                }
             }
-            if ( isCriticalForLoc )
+            if ( coveredByLocation || coveredNodeCount == totalNodesInGroup )
             {
                criticalCount++ ;
+            }
+            else if ( coveredNodeCount > 0 )
+            {
+               partialCriticalCount++ ;
             }
          }
          else if ( modeInfo.mode == "maintenance" )
          {
-            // check if any maintenance node belongs to this location
-            var isMaintenanceForLoc = false ;
+            // check how many maintenance nodes belong to this location
+            var coveredNodeCount = 0 ;
             for ( var p = 0; p < modeInfo.properties.length; p++ )
             {
                var prop = modeInfo.properties[p] ;
@@ -2814,21 +2897,24 @@ SdbDC.prototype.locationAnalyse = function( option, fileName ) {
                   var nodeLoc = nodeIDToLocation[prop.NodeID] ;
                   if ( nodeLoc == loc )
                   {
-                     isMaintenanceForLoc = true ;
-                     break ;
+                     coveredNodeCount++ ;
                   }
                }
             }
-            if ( isMaintenanceForLoc )
+            if ( coveredNodeCount == totalNodesInGroup )
             {
                maintenanceCount++ ;
+            }
+            else if ( coveredNodeCount > 0 )
+            {
+               partialMaintenanceCount++ ;
             }
          }
       }
 
       var groupStatus ;
-      var hasCritical = criticalCount > 0 ;
-      var hasMaintenance = maintenanceCount > 0 ;
+      var hasCritical = ( criticalCount + partialCriticalCount ) > 0 ;
+      var hasMaintenance = ( maintenanceCount + partialMaintenanceCount ) > 0 ;
       var allCritical = ( dataGroupCount > 0 && criticalCount == dataGroupCount ) ;
       var allMaintenance = ( dataGroupCount > 0 && maintenanceCount == dataGroupCount ) ;
 
@@ -2847,7 +2933,7 @@ SdbDC.prototype.locationAnalyse = function( option, fileName ) {
       else
       {
          // both exist, since same group is mutually exclusive,
-         // criticalCount + maintenanceCount <= grps.length
+         // criticalCount + maintenanceCount <= dataGroupCount
          if ( criticalCount + maintenanceCount == dataGroupCount )
          {
             groupStatus = "Critical-Maintenance" ;
@@ -2907,7 +2993,7 @@ SdbDC.prototype.locationAnalyse = function( option, fileName ) {
    // Phase 6: ExceptionHostInfo and ExceptionGroupInfo
    var noLocationHost = [] ;
    var partialLocationHost = [] ;
-   var multyLocationHost = [] ;
+   var multiLocationHost = [] ;
    var noLocationGroup = [] ;
    var partialLocationGroup = [] ;
    var oneLocationGroup = [] ;
@@ -2938,13 +3024,13 @@ SdbDC.prototype.locationAnalyse = function( option, fileName ) {
             }
             if ( locCount > 1 )
             {
-               multyLocationHost.push( h ) ;
+               multiLocationHost.push( h ) ;
             }
          }
       }
       noLocationHost.sort() ;
       partialLocationHost.sort() ;
-      multyLocationHost.sort() ;
+      multiLocationHost.sort() ;
 
       // group analysis
       for ( var i = 0; i < groupNames.length; i++ )
@@ -2994,12 +3080,12 @@ SdbDC.prototype.locationAnalyse = function( option, fileName ) {
 
    if ( noLocationHost.length > 0 ||
         partialLocationHost.length > 0 ||
-        multyLocationHost.length > 0 )
+        multiLocationHost.length > 0 )
    {
       result.ExceptionHostInfo = {
          NoLocationHost: noLocationHost,
          PartialLocationHost: partialLocationHost,
-         MultyLocationHost: multyLocationHost
+         MultiLocationHost: multiLocationHost
       } ;
    }
 

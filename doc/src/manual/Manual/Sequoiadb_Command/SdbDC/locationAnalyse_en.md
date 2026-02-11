@@ -61,12 +61,12 @@ GroupStatus values:
 | Value | Description |
 | ----- | ----------- |
 | "" | No GroupMode is set for any data group that this Location belongs to |
-| "Critical" | All data groups that this Location belongs to have Critical mode set for this Location |
-| "PartialCritical" | Some data groups that this Location belongs to have Critical mode set for this Location |
-| "Maintenance" | All data groups that this Location belongs to have Maintenance mode set for nodes in this Location |
-| "PartialMaintenance" | Some data groups that this Location belongs to have Maintenance mode set for nodes in this Location |
-| "Critical-Maintenance" | All data groups that this Location belongs to have either Critical or Maintenance mode set |
-| "Partial-Critical-Maintenance" | Both Critical and Maintenance modes exist among data groups, but some data groups have no mode set |
+| "Critical" | All data groups that this Location belongs to have Critical mode set for this Location, and all nodes of this Location in each group are covered |
+| "PartialCritical" | Critical mode exists among data groups for this Location, but the "Critical" condition is not fully met (some groups are not set, or some groups only cover partial nodes) |
+| "Maintenance" | All data groups that this Location belongs to have Maintenance mode set for all nodes of this Location |
+| "PartialMaintenance" | Maintenance mode exists among data groups for this Location, but the "Maintenance" condition is not fully met (some groups are not set, or some groups only cover partial nodes) |
+| "Critical-Maintenance" | All data groups that this Location belongs to have either Critical or Maintenance mode set, and all nodes of this Location in each group are covered |
+| "Partial-Critical-Maintenance" | Both Critical and Maintenance modes exist among data groups, but the "Critical-Maintenance" condition is not fully met |
 
 ExceptionHostInfo contains the following fields:
 
@@ -74,7 +74,7 @@ ExceptionHostInfo contains the following fields:
 | ---------- | ---- | ----------- |
 | NoLocationHost | array | List of hostnames where all nodes have no Location set |
 | PartialLocationHost | array | List of hostnames where some nodes have Location set and some do not |
-| MultyLocationHost | array | List of hostnames where nodes are distributed across multiple different Locations |
+| MultiLocationHost | array | List of hostnames where nodes are distributed across multiple different Locations |
 
 ExceptionGroupInfo contains the following fields:
 
@@ -157,7 +157,7 @@ v5.8.6 and above
     "PartialLocationHost": [
       "sdbserver3"
     ],
-    "MultyLocationHost": [
+    "MultiLocationHost": [
       "sdbserver2"
     ]
   },

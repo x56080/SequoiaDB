@@ -473,29 +473,64 @@ T}
 T{
 T}@T{
 T}@T{
-set for this Location
+set for this Location,
+T}
+T{
+T}@T{
+T}@T{
+and all nodes of this
+T}
+T{
+T}@T{
+T}@T{
+Location in each group
+T}
+T{
+T}@T{
+T}@T{
+are covered
 T}
 T{
 3
 T}@T{
 "PartialCritical"
 T}@T{
-Some data groups that
+Critical mode exists
 T}
 T{
 T}@T{
 T}@T{
-this Location belongs
+among data groups for
 T}
 T{
 T}@T{
 T}@T{
-to have Critical mode
+this Location, but the
 T}
 T{
 T}@T{
 T}@T{
-set for this Location
+"Critical" condition is
+T}
+T{
+T}@T{
+T}@T{
+not fully met (some
+T}
+T{
+T}@T{
+T}@T{
+groups are not set, or
+T}
+T{
+T}@T{
+T}@T{
+some groups only cover
+T}
+T{
+T}@T{
+T}@T{
+partial nodes)
 T}
 T{
 4
@@ -517,39 +552,54 @@ T}
 T{
 T}@T{
 T}@T{
-mode set for nodes in
+mode set for all nodes
 T}
 T{
 T}@T{
 T}@T{
-this Location
+of this Location
 T}
 T{
 5
 T}@T{
 "PartialMaintenance"
 T}@T{
-Some data groups that
+Maintenance mode exists
 T}
 T{
 T}@T{
 T}@T{
-this Location belongs
+among data groups for
 T}
 T{
 T}@T{
 T}@T{
-to have Maintenance
+this Location, but the
 T}
 T{
 T}@T{
 T}@T{
-mode set for nodes in
+"Maintenance" condition
 T}
 T{
 T}@T{
 T}@T{
-this Location
+is not fully met (some
+T}
+T{
+T}@T{
+T}@T{
+groups are not set, or
+T}
+T{
+T}@T{
+T}@T{
+some groups only cover
+T}
+T{
+T}@T{
+T}@T{
+partial nodes)
 T}
 T{
 6
@@ -576,7 +626,17 @@ T}
 T{
 T}@T{
 T}@T{
-set
+set, and all nodes of
+T}
+T{
+T}@T{
+T}@T{
+this Location in each
+T}
+T{
+T}@T{
+T}@T{
+group are covered
 T}
 T{
 7
@@ -599,12 +659,17 @@ T}
 T{
 T}@T{
 T}@T{
-some data groups have
+the "Critical\-
 T}
 T{
 T}@T{
 T}@T{
-no mode set
+Maintenance" condition
+T}
+T{
+T}@T{
+T}@T{
+is not fully met
 T}
 .TE
 .PP
@@ -674,7 +739,7 @@ T}
 T{
 3
 T}@T{
-MultyLocationHost
+MultiLocationHost
 T}@T{
 array
 T}@T{
@@ -904,7 +969,7 @@ v5.8.6 and above
     "PartialLocationHost": [
       "sdbserver3"
     ],
-    "MultyLocationHost": [
+    "MultiLocationHost": [
       "sdbserver2"
     ]
   },

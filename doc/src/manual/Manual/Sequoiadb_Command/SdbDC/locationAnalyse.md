@@ -62,12 +62,12 @@ GroupStatus 取值说明：
 | 取值 | 描述 |
 | ---- | ---- |
 | "" | 该 Location 所在的数据组均未设置 GroupMode |
-| "Critical" | 该 Location 所在的所有数据组都对该 Location 设置了 Critical 模式 |
-| "PartialCritical" | 该 Location 所在的部分数据组对该 Location 设置了 Critical 模式 |
-| "Maintenance" | 该 Location 所在的所有数据组都对该 Location 的节点设置了 Maintenance 模式 |
-| "PartialMaintenance" | 该 Location 所在的部分数据组对该 Location 的节点设置了 Maintenance 模式 |
-| "Critical-Maintenance" | 该 Location 所在的所有数据组中，部分设置了 Critical 模式，部分设置了 Maintenance 模式 |
-| "Partial-Critical-Maintenance" | 该 Location 所在的数据组中，存在 Critical 和 Maintenance 模式，但还有数据组未设置任何模式 |
+| "Critical" | 该 Location 所在的所有数据组都对该 Location 设置了 Critical 模式，且每个组中该 Location 的所有节点都被覆盖 |
+| "PartialCritical" | 该 Location 所在的数据组中存在 Critical 模式，但未满足 "Critical" 的条件（部分组未设置，或某些组中仅覆盖了部分节点） |
+| "Maintenance" | 该 Location 所在的所有数据组都对该 Location 的所有节点设置了 Maintenance 模式 |
+| "PartialMaintenance" | 该 Location 所在的数据组中存在 Maintenance 模式，但未满足 "Maintenance" 的条件（部分组未设置，或某些组中仅覆盖了部分节点） |
+| "Critical-Maintenance" | 该 Location 所在的所有数据组中，部分设置了 Critical 模式，部分设置了 Maintenance 模式，且每个组中该 Location 的所有节点都被覆盖 |
+| "Partial-Critical-Maintenance" | 该 Location 所在的数据组中，存在 Critical 和 Maintenance 模式，但未满足 "Critical-Maintenance" 的条件 |
 
 ExceptionHostInfo 包含以下字段：
 
@@ -75,7 +75,7 @@ ExceptionHostInfo 包含以下字段：
 | ------ | ---- | ---- |
 | NoLocationHost | array | 所有节点均未设置 Location 的主机名列表 |
 | PartialLocationHost | array | 部分节点设置了 Location、部分节点未设置 Location 的主机名列表 |
-| MultyLocationHost | array | 节点分布在多个不同 Location 的主机名列表 |
+| MultiLocationHost | array | 节点分布在多个不同 Location 的主机名列表 |
 
 ExceptionGroupInfo 包含以下字段：
 
@@ -158,7 +158,7 @@ v5.8.6 及以上版本
     "PartialLocationHost": [
       "sdbserver3"
     ],
-    "MultyLocationHost": [
+    "MultiLocationHost": [
       "sdbserver2"
     ]
   },
