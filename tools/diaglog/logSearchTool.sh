@@ -289,9 +289,9 @@ if [ "$SORT_ONLY" == true ]; then
 
     # 仅排序
     if [ "$ORIGINAL_OUTPUT" == true ]; then
-        awk -v RS='' -v ORS='\n\n' '{gsub(/\n/,"\\n"); print}' "$OUTPUT_FILE" | grep -v '^$' > "$temp_results"
+        awk -v RS='' -v ORS='\n\n' '{gsub(/\n/,"\\n"); print}' "$OUTPUT_FILE" | grep -av '^$' > "$temp_results"
         # 确认是否带有 =====nodename===== 行，需要使用不同的排序方法
-        first_line=`head -n 1 "$temp_results" | grep '^======'`
+        first_line=`head -n 1 "$temp_results" | grep -a '^======'`
         if [ "" != "$first_line" ]; then
             if [ -z "$LIMIT" ]; then
                 sort -rt'\' -k2,2 "$temp_results" | sed 's/\\n/\n/g' | awk '{if(NR==1){print;next}else if($0 ~ /^======/){print "\n" $0}else{print}}' > "$OUTPUT_FILE"
@@ -538,9 +538,9 @@ for file in "${log_files[@]}"; do
     if [[ "$canOptimized" == true && "$TID" != "" ]]; then
         ((condCount--))
         if [ "$grepCmd" == "" ]; then
-            grepCmd="grep -B 1 -A 5 \"TID:$TID\\\$\" $file"
+            grepCmd="grep -a -B 1 -A 5 \"TID:$TID\\\$\" $file"
         else
-            grepCmd="${grepCmd} | grep -B 1 -A 5 \"TID:$TID\\\$\" $file"
+            grepCmd="${grepCmd} | grep -a -B 1 -A 5 \"TID:$TID\\\$\" $file"
         fi
         onlyLevel=false
     fi
@@ -549,9 +549,9 @@ for file in "${log_files[@]}"; do
     if [[ "$canOptimized" == true && "$PID" != "" ]]; then
         ((condCount--))
         if [ "$grepCmd" == "" ]; then
-            grepCmd="grep -B 1 -A 5 \"^PID:$PID\" $file"
+            grepCmd="grep -a -B 1 -A 5 \"^PID:$PID\" $file"
         else
-            grepCmd="${grepCmd} | grep -B 1 -A 5 \"^PID:$PID\" $file"
+            grepCmd="${grepCmd} | grep -a -B 1 -A 5 \"^PID:$PID\" $file"
         fi
         onlyLevel=false
     fi
@@ -573,9 +573,9 @@ for file in "${log_files[@]}"; do
             done
 
             if [ "$grepCmd" == "" ]; then
-                grepCmd="grep -A $((grepAfter + 6)) -E \"$level_pattern\" $file"
+                grepCmd="grep -a -A $((grepAfter + 6)) -E \"$level_pattern\" $file"
             else
-                grepCmd="${grepCmd} | grep -A $((grepAfter + 6)) -E \"$level_pattern\""
+                grepCmd="${grepCmd} | grep -a -A $((grepAfter + 6)) -E \"$level_pattern\""
             fi
         fi
     fi
@@ -592,17 +592,17 @@ for file in "${log_files[@]}"; do
         # 如果只需要文件名，满足所有条件，而且没有 limit，则不需要对 Message 行进行额外处理
         if [[ "$FILES_ONLY" == true && -z "$LIMIT" && "0" == "$condCount" ]]; then
             if [ "$grepCmd" == "" ]; then
-                grepCmd="grep -A 1 '^Message:$' $file | grep -v '^Message:$' | grep -v '^--$'"
+                grepCmd="grep -a -A 1 '^Message:$' $file | grep -av '^Message:$' | grep -av '^--$'"
             else
-                grepCmd="${grepCmd} | grep -A 1 '^Message:$' | grep -v '^Message:$' | grep -v '^--$'"
+                grepCmd="${grepCmd} | grep -a -A 1 '^Message:$' | grep -av '^Message:$' | grep -av '^--$'"
             fi
 
             if [[ "$MSG_KEYWORD" != "" && "$ERROR" != "" ]]; then
-                grepCmd="${grepCmd} | grep -E -- '$ERROR]?$' | grep -q '$MSG_KEYWORD'"
+                grepCmd="${grepCmd} | grep -aE -- '$ERROR]?$' | grep -aq '$MSG_KEYWORD'"
             elif [ "$MSG_KEYWORD" != "" ]; then
-                grepCmd="${grepCmd} | grep -q '$MSG_KEYWORD'"
+                grepCmd="${grepCmd} | grep -aq '$MSG_KEYWORD'"
             elif [ "$ERROR" != "" ]; then
-                grepCmd="${grepCmd} | grep -qE -- '$ERROR]?$'"
+                grepCmd="${grepCmd} | grep -aqE -- '$ERROR]?$'"
             fi
         else
             if [ "$ORIGINAL_OUTPUT" == true ]; then
@@ -614,11 +614,11 @@ for file in "${log_files[@]}"; do
             fi
 
             if [[ "$MSG_KEYWORD" != "" && "$ERROR" != "" ]]; then
-                grepCmd="${grepCmd} | grep -B 4 -A 1 -- '^Message:.*$ERROR]?$' | grep -B 4 -A 1 '^Message:.*$MSG_KEYWORD.*'"
+                grepCmd="${grepCmd} | grep -a -B 4 -A 1 -- '^Message:.*$ERROR]?$' | grep -a -B 4 -A 1 '^Message:.*$MSG_KEYWORD.*'"
             elif [ "$MSG_KEYWORD" != "" ]; then
-                grepCmd="${grepCmd} | grep -B 4 -A 1 '^Message:.*$MSG_KEYWORD.*'"
+                grepCmd="${grepCmd} | grep -a -B 4 -A 1 '^Message:.*$MSG_KEYWORD.*'"
             elif [ "$ERROR" != "" ]; then
-                grepCmd="${grepCmd} | grep -B 4 -A 1 -E -- '^Message:.*$ERROR]?$'"
+                grepCmd="${grepCmd} | grep -a -B 4 -A 1 -E -- '^Message:.*$ERROR]?$'"
             fi
         fi
     fi
@@ -626,7 +626,7 @@ for file in "${log_files[@]}"; do
     # 限制条数，只有条件完整时才能做 limit
     isLimit=""
     if [[ -n "$LIMIT" && "0" == "$condCount" ]]; then
-        grepCmd="${grepCmd} | grep -v '^--\$' | tail -n $((LIMIT * 6))"
+        grepCmd="${grepCmd} | grep -av '^--\$' | tail -n $((LIMIT * 6))"
         # 如果能做 limit，代表所有条件都满足，已经找出了结果，后续只需要简单处理格式，可以把所有条件都忽略，跳过后续二次判断
         isLimit=true
     fi
@@ -649,7 +649,7 @@ for file in "${log_files[@]}"; do
 
     if [ "$optimizeMsg" == true ]; then
         if [ "$isLimit" != true ]; then
-            grepCmd="${grepCmd} | grep -v '^--\$'"
+            grepCmd="${grepCmd} | grep -av '^--\$'"
         fi
 
         if [ "$ORIGINAL_OUTPUT" == true ]; then
@@ -1060,7 +1060,7 @@ else
         fi
 
         if [ "$ORIGINAL_OUTPUT" == true ] ;then
-            match_count=$(grep -c '^[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}-[0-9]\{2\}' "$temp_results.sorted")
+            match_count=$(grep -ac '^[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}-[0-9]\{2\}' "$temp_results.sorted")
         else
             if [[ -z "${HOST_NAME}" && -z "${SERVICE_NAME}" && -z "${NODE_ROLE}" ]]; then
                 sed -i 's#^<localhost:port>,<node>,##g' "$temp_results.sorted"

@@ -9,6 +9,11 @@ main( test );
 function test()
 {
     try {
+        // 删除可能残留用例目录（上次测试用例运行失败）
+        File.remove( WORKDIR + '/diaglog_34330' );
+    } catch (e) {}
+
+    try {
         var diaglog = new DiagLog( COORDHOSTNAME, COORDSVCNAME );
         var log;
         var fileName;

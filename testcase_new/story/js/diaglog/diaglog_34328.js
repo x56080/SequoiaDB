@@ -470,6 +470,11 @@ function removeCoreAndTrap(coreFileNameArray, trapFileNameArray)
 function test()
 {
     try {
+        // 删除可能残留用例目录（上次测试用例运行失败）
+        File.remove( WORKDIR + '/diaglog_34328' );
+    } catch (e) {}
+
+    try {
         var db = new Sdb( COORDHOSTNAME, COORDSVCNAME );
         var diaglog = new DiagLog( COORDHOSTNAME, COORDSVCNAME );
         var coreFileNameArray = [];
