@@ -1,10 +1,10 @@
 ##名称##
 
-locationAnalyse - 分析集群中 Location 的分布合理性
+locationAnalyze - 分析集群中 Location 的分布合理性
 
 ##语法##
 
-**SdbDC.locationAnalyse([option], [fileName])**
+**SdbDC.locationAnalyze([option], [fileName])**
 
 ##类别##
 
@@ -89,7 +89,7 @@ ExceptionGroupInfo 包含以下字段：
 
 ##错误##
 
-`locationAnalyse()` 函数常见异常如下：
+`locationAnalyze()` 函数常见异常如下：
 
 | 错误码 | 错误类型 | 可能发生的原因 | 解决办法 |
 | ------ | -------- | -------------- | -------- |
@@ -107,7 +107,7 @@ v5.8.6 及以上版本
 
 ```lang-javascript
 > var dc = db.getDC()
-> dc.locationAnalyse()
+> dc.locationAnalyze()
 {
   "MatchedHostNum": 3,
   "MatchedGroupNum": 4,
@@ -178,7 +178,7 @@ v5.8.6 及以上版本
 
 ```lang-javascript
 > var dc = db.getDC()
-> dc.locationAnalyse({Domain: "mydomain"}, "/tmp/location_report.json")
+> dc.locationAnalyze({Domain: "mydomain"}, "/tmp/location_report.json")
 {
   "MatchedHostNum": 2,
   "MatchedGroupNum": 2,

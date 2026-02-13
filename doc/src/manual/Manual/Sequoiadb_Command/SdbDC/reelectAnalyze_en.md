@@ -1,10 +1,10 @@
 ##NAME##
 
-reelectAnalyse - analyze the primary node distribution of replica groups in the cluster, or switch primary nodes to optimal nodes
+reelectAnalyze - analyze the primary node distribution of replica groups in the cluster, or switch primary nodes to optimal nodes
 
 ##SYNOPSIS##
 
-**SdbDC.reelectAnalyse([option], [run])**
+**SdbDC.reelectAnalyze([option], [run])**
 
 ##CATEGORY##
 
@@ -93,7 +93,7 @@ When the function fails, an exception will be thrown and an error message will b
 
 ##ERRORS##
 
-The common exceptions of `reelectAnalyse()` function are as follows:
+The common exceptions of `reelectAnalyze()` function are as follows:
 
 | Error Code | Error Type | Description | Solution |
 | ---------- | ---------- | ----------- | -------- |
@@ -111,7 +111,7 @@ v5.8.6 and above
 
 ```lang-javascript
 > var dc = db.getDC()
-> dc.reelectAnalyse()
+> dc.reelectAnalyze()
 {
   "MatchedNum": 4,
   "SucceedNum": 2,
@@ -138,7 +138,7 @@ v5.8.6 and above
 
 ```lang-javascript
 > var dc = db.getDC()
-> dc.reelectAnalyse({FilterLevel: "GroupMode"})
+> dc.reelectAnalyze({FilterLevel: "GroupMode"})
 {
   "MatchedNum": 4,
   "SucceedNum": 1,
@@ -159,7 +159,7 @@ v5.8.6 and above
 
 ```lang-javascript
 > var dc = db.getDC()
-> dc.reelectAnalyse({HostName: "sdbserver1", Domain: "mydomain"}, true)
+> dc.reelectAnalyze({HostName: "sdbserver1", Domain: "mydomain"}, true)
 {
   "MatchedNum": 2,
   "SucceedNum": 1,

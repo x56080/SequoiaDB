@@ -1315,7 +1315,7 @@ SdbDC.prototype.primarySave = function( option, filename ) {
    {
       try
       {
-         var sql = 'select NodeName, GroupName from $SNAPSHOT_DB where IsPrimary = true ' +
+         var sql = 'select NodeName, GroupName from $SNAPSHOT_DB where Role in ("data", "catalog") and IsPrimary = true ' +
                    'order by GroupName /*+use_option(ShowError,ignore) */' ;
          var snapCursor = this._conn.exec( sql ) ;
          if ( undefined != snapCursor )
@@ -1361,7 +1361,7 @@ SdbDC.prototype.primarySave = function( option, filename ) {
 
          try
          {
-            var sql = 'select NodeName, GroupName from $SNAPSHOT_DB where IsPrimary = true ' +
+            var sql = 'select NodeName, GroupName from $SNAPSHOT_DB where Role in ("data", "catalog") and IsPrimary = true ' +
                       'and GroupName in (' + groupList + ') order by GroupName ' +
                       '/*+use_option(ShowError,ignore) */' ;
             var snapCursor = this._conn.exec( sql ) ;
@@ -1676,7 +1676,7 @@ SdbDC.prototype.primaryRestore = function( planobjOrFile, option ) {
    return new BSONObj( summary ) ;
 }
 
-SdbDC.prototype.reelectAnalyse = function( option, run ) {
+SdbDC.prototype.reelectAnalyze = function( option, run ) {
    if ( null == option )
    {
       option = undefined ;
@@ -1684,7 +1684,7 @@ SdbDC.prototype.reelectAnalyse = function( option, run ) {
 
    if ( undefined != option && ( typeof option ) != "object" )
    {
-      setLastErrMsg( "SdbDC.reelectAnalyse(): option should be object" ) ;
+      setLastErrMsg( "SdbDC.reelectAnalyze(): option should be object" ) ;
       throw SDB_INVALIDARG ;
    }
 
@@ -1695,7 +1695,7 @@ SdbDC.prototype.reelectAnalyse = function( option, run ) {
 
    if ( ( typeof run ) != "boolean" )
    {
-      setLastErrMsg( "SdbDC.reelectAnalyse(): run should be boolean" ) ;
+      setLastErrMsg( "SdbDC.reelectAnalyze(): run should be boolean" ) ;
       throw SDB_INVALIDARG ;
    }
 
@@ -1704,7 +1704,7 @@ SdbDC.prototype.reelectAnalyse = function( option, run ) {
    {
       if ( undefined != option.HostName && ( typeof option.HostName ) != "string" )
       {
-         setLastErrMsg( "SdbDC.reelectAnalyse(): HostName should be string" ) ;
+         setLastErrMsg( "SdbDC.reelectAnalyze(): HostName should be string" ) ;
          throw SDB_INVALIDARG ;
       }
 
@@ -1713,7 +1713,7 @@ SdbDC.prototype.reelectAnalyse = function( option, run ) {
          var domainType = typeof option.Domain ;
          if ( domainType != "string" && !( option.Domain instanceof Array ) )
          {
-            setLastErrMsg( "SdbDC.reelectAnalyse(): Domain should be string or array of strings" ) ;
+            setLastErrMsg( "SdbDC.reelectAnalyze(): Domain should be string or array of strings" ) ;
             throw SDB_INVALIDARG ;
          }
       }
@@ -1722,21 +1722,21 @@ SdbDC.prototype.reelectAnalyse = function( option, run ) {
       {
          if ( ( typeof option.FilterLevel ) != "string" )
          {
-            setLastErrMsg( "SdbDC.reelectAnalyse(): FilterLevel should be string" ) ;
+            setLastErrMsg( "SdbDC.reelectAnalyze(): FilterLevel should be string" ) ;
             throw SDB_INVALIDARG ;
          }
          if ( option.FilterLevel != "GroupMode" &&
               option.FilterLevel != "Location" &&
               option.FilterLevel != "Weight" )
          {
-            setLastErrMsg( "SdbDC.reelectAnalyse(): FilterLevel should be one of: GroupMode, Location, Weight" ) ;
+            setLastErrMsg( "SdbDC.reelectAnalyze(): FilterLevel should be one of: GroupMode, Location, Weight" ) ;
             throw SDB_INVALIDARG ;
          }
       }
 
       if ( undefined != option.Rebalance && ( typeof option.Rebalance ) != "boolean" )
       {
-         setLastErrMsg( "SdbDC.reelectAnalyse(): Rebalance should be boolean" ) ;
+         setLastErrMsg( "SdbDC.reelectAnalyze(): Rebalance should be boolean" ) ;
          throw SDB_INVALIDARG ;
       }
    }
@@ -1786,7 +1786,7 @@ SdbDC.prototype.reelectAnalyse = function( option, run ) {
 
       if ( domainGroupNames.length == 0 )
       {
-         setLastErrMsg( "SdbDC.reelectAnalyse(): specified Domain does not exist or has no groups" ) ;
+         setLastErrMsg( "SdbDC.reelectAnalyze(): specified Domain does not exist or has no groups" ) ;
          throw SDB_INVALIDARG ;
       }
    }
@@ -1832,7 +1832,7 @@ SdbDC.prototype.reelectAnalyse = function( option, run ) {
 
    if ( undefined != option && undefined != option.HostName && !matchedGroup )
    {
-      setLastErrMsg( "SdbDC.reelectAnalyse(): specified HostName does not exist" ) ;
+      setLastErrMsg( "SdbDC.reelectAnalyze(): specified HostName does not exist" ) ;
       throw SDB_INVALIDARG ;
    }
 
@@ -2430,7 +2430,7 @@ SdbDC.prototype.reelectAnalyse = function( option, run ) {
    return new BSONObj( summary ) ;
 }
 
-SdbDC.prototype.locationAnalyse = function( option, fileName ) {
+SdbDC.prototype.locationAnalyze = function( option, fileName ) {
    if ( null == option )
    {
       option = undefined ;
@@ -2438,7 +2438,7 @@ SdbDC.prototype.locationAnalyse = function( option, fileName ) {
 
    if ( undefined != option && ( typeof option ) != "object" )
    {
-      setLastErrMsg( "SdbDC.locationAnalyse(): option should be object" ) ;
+      setLastErrMsg( "SdbDC.locationAnalyze(): option should be object" ) ;
       throw SDB_INVALIDARG ;
    }
 
@@ -2449,7 +2449,7 @@ SdbDC.prototype.locationAnalyse = function( option, fileName ) {
 
    if ( undefined != fileName && ( typeof fileName ) != "string" )
    {
-      setLastErrMsg( "SdbDC.locationAnalyse(): fileName should be string" ) ;
+      setLastErrMsg( "SdbDC.locationAnalyze(): fileName should be string" ) ;
       throw SDB_INVALIDARG ;
    }
 
@@ -2458,7 +2458,7 @@ SdbDC.prototype.locationAnalyse = function( option, fileName ) {
    {
       if ( undefined != option.HostName && ( typeof option.HostName ) != "string" )
       {
-         setLastErrMsg( "SdbDC.locationAnalyse(): HostName should be string" ) ;
+         setLastErrMsg( "SdbDC.locationAnalyze(): HostName should be string" ) ;
          throw SDB_INVALIDARG ;
       }
 
@@ -2467,7 +2467,7 @@ SdbDC.prototype.locationAnalyse = function( option, fileName ) {
          var domainType = typeof option.Domain ;
          if ( domainType != "string" && !( option.Domain instanceof Array ) )
          {
-            setLastErrMsg( "SdbDC.locationAnalyse(): Domain should be string or array of strings" ) ;
+            setLastErrMsg( "SdbDC.locationAnalyze(): Domain should be string or array of strings" ) ;
             throw SDB_INVALIDARG ;
          }
       }
@@ -2508,7 +2508,7 @@ SdbDC.prototype.locationAnalyse = function( option, fileName ) {
 
       if ( domainGroupNames.length == 0 )
       {
-         setLastErrMsg( "SdbDC.locationAnalyse(): specified Domain does not exist or has no groups" ) ;
+         setLastErrMsg( "SdbDC.locationAnalyze(): specified Domain does not exist or has no groups" ) ;
          throw SDB_INVALIDARG ;
       }
    }
@@ -2609,7 +2609,7 @@ SdbDC.prototype.locationAnalyse = function( option, fileName ) {
 
    if ( undefined != option && undefined != option.HostName && !matchedGroup )
    {
-      setLastErrMsg( "SdbDC.locationAnalyse(): specified HostName does not exist" ) ;
+      setLastErrMsg( "SdbDC.locationAnalyze(): specified HostName does not exist" ) ;
       throw SDB_INVALIDARG ;
    }
 

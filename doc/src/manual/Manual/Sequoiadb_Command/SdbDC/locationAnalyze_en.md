@@ -1,10 +1,10 @@
 ##NAME##
 
-locationAnalyse - analyze the Location distribution rationality in the cluster
+locationAnalyze - analyze the Location distribution rationality in the cluster
 
 ##SYNOPSIS##
 
-**SdbDC.locationAnalyse([option], [fileName])**
+**SdbDC.locationAnalyze([option], [fileName])**
 
 ##CATEGORY##
 
@@ -88,7 +88,7 @@ When the function fails, an exception will be thrown and an error message will b
 
 ##ERRORS##
 
-The common exceptions of `locationAnalyse()` function are as follows:
+The common exceptions of `locationAnalyze()` function are as follows:
 
 | Error Code | Error Type | Description | Solution |
 | ---------- | ---------- | ----------- | -------- |
@@ -106,7 +106,7 @@ v5.8.6 and above
 
 ```lang-javascript
 > var dc = db.getDC()
-> dc.locationAnalyse()
+> dc.locationAnalyze()
 {
   "MatchedHostNum": 3,
   "MatchedGroupNum": 4,
@@ -177,7 +177,7 @@ v5.8.6 and above
 
 ```lang-javascript
 > var dc = db.getDC()
-> dc.locationAnalyse({Domain: "mydomain"}, "/tmp/location_report.json")
+> dc.locationAnalyze({Domain: "mydomain"}, "/tmp/location_report.json")
 {
   "MatchedHostNum": 2,
   "MatchedGroupNum": 2,

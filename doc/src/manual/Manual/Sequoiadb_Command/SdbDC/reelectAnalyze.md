@@ -1,10 +1,10 @@
 ##名称##
 
-reelectAnalyse - 分析集群中复制组的主节点分布合理性，或将主节点切换至合理的节点上
+reelectAnalyze - 分析集群中复制组的主节点分布合理性，或将主节点切换至合理的节点上
 
 ##语法##
 
-**SdbDC.reelectAnalyse([option], [run])**
+**SdbDC.reelectAnalyze([option], [run])**
 
 ##类别##
 
@@ -93,7 +93,7 @@ Detail 数组中每个元素包含以下字段：
 
 ##错误##
 
-`reelectAnalyse()` 函数常见异常如下：
+`reelectAnalyze()` 函数常见异常如下：
 
 | 错误码 | 错误类型 | 可能发生的原因 | 解决办法 |
 | ------ | -------- | -------------- | -------- |
@@ -111,7 +111,7 @@ v5.8.6 及以上版本
 
 ```lang-javascript
 > var dc = db.getDC()
-> dc.reelectAnalyse()
+> dc.reelectAnalyze()
 {
   "MatchedNum": 4,
   "SucceedNum": 2,
@@ -138,7 +138,7 @@ v5.8.6 及以上版本
 
 ```lang-javascript
 > var dc = db.getDC()
-> dc.reelectAnalyse({FilterLevel: "GroupMode"})
+> dc.reelectAnalyze({FilterLevel: "GroupMode"})
 {
   "MatchedNum": 4,
   "SucceedNum": 1,
@@ -159,7 +159,7 @@ v5.8.6 及以上版本
 
 ```lang-javascript
 > var dc = db.getDC()
-> dc.reelectAnalyse({HostName: "sdbserver1", Domain: "mydomain"}, true)
+> dc.reelectAnalyze({HostName: "sdbserver1", Domain: "mydomain"}, true)
 {
   "MatchedNum": 2,
   "SucceedNum": 1,

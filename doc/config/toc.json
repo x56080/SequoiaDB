@@ -3368,15 +3368,15 @@
                         },
                         {
                            "id": 1738569018,
-                           "file": "reelectAnalyse",
-                           "cn": "reelectAnalyse()",
-                           "en": "reelectAnalyse()"
+                           "file": "reelectAnalyze",
+                           "cn": "reelectAnalyze()",
+                           "en": "reelectAnalyze()"
                         },
                         {
                            "id": 1738569019,
-                           "file": "locationAnalyse",
-                           "cn": "locationAnalyse()",
-                           "en": "locationAnalyse()"
+                           "file": "locationAnalyze",
+                           "cn": "locationAnalyze()",
+                           "en": "locationAnalyze()"
                         }
                      ]
                   },

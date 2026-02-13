@@ -690,8 +690,8 @@ sequoiadb/doc/manual/SdbDC/enableReadonly_cn.troff
 sequoiadb/doc/manual/SdbDC/enableReadonly_en.troff
 sequoiadb/doc/manual/SdbDC/getDetail_cn.troff
 sequoiadb/doc/manual/SdbDC/getDetail_en.troff
-sequoiadb/doc/manual/SdbDC/locationAnalyse_cn.troff
-sequoiadb/doc/manual/SdbDC/locationAnalyse_en.troff
+sequoiadb/doc/manual/SdbDC/locationAnalyze_cn.troff
+sequoiadb/doc/manual/SdbDC/locationAnalyze_en.troff
 sequoiadb/doc/manual/SdbDC/setActiveLocation_cn.troff
 sequoiadb/doc/manual/SdbDC/setActiveLocation_en.troff
 sequoiadb/doc/manual/SdbDC/setLocation_cn.troff
@@ -706,8 +706,8 @@ sequoiadb/doc/manual/SdbDC/stopMaintenanceMode_cn.troff
 sequoiadb/doc/manual/SdbDC/stopMaintenanceMode_en.troff
 sequoiadb/doc/manual/SdbDC/reelect_en.troff
 sequoiadb/doc/manual/SdbDC/reelect_cn.troff
-sequoiadb/doc/manual/SdbDC/reelectAnalyse_en.troff
-sequoiadb/doc/manual/SdbDC/reelectAnalyse_cn.troff
+sequoiadb/doc/manual/SdbDC/reelectAnalyze_en.troff
+sequoiadb/doc/manual/SdbDC/reelectAnalyze_cn.troff
 sequoiadb/doc/manual/SdbDC/primarySave_en.troff
 sequoiadb/doc/manual/SdbDC/primarySave_cn.troff
 sequoiadb/doc/manual/SdbDC/primaryRestore_en.troff
