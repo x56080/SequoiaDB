@@ -24,7 +24,7 @@ function test ()
    var cs = db.createCS( csName );
    db.createDataSource( dataSrcName, datasrcUrl, userName, passwd );
    var dbcl = cs.createCL( clName, { DataSource: dataSrcName, Mapping: srcCSName + "." + clName } );
-   var recordNum = 50000;
+   var recordNum = 100000;
    var timeoutValue = 1000;
    insertBulkData( dbcl, recordNum );
 
