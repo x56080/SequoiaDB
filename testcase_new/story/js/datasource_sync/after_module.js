@@ -59,4 +59,4 @@ function removeDSCluster()
    oma.close();
 }
 
-// removeDSCluster();
+removeDSCluster();

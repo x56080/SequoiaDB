@@ -261,4 +261,4 @@ function removeTmpCoord( tmpCoordHost, tmpCoordSvc )
    }
 }
 
-// deployDSCluster();
+deployDSCluster();
