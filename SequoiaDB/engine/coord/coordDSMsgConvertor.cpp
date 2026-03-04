@@ -1036,17 +1036,18 @@ namespace engine
 
             leftSize += ( 4 - ( clInfoObj.objsize() % 4 ) ) ;
             leftSize += ossRoundUpToMultipleX( objectsSize, 4 ) ;
-            while ( itr++ != dataVec->end() )
+            ++itr ;
+            while ( itr != dataVec->end() )
             {
                netIOV iov = *itr ;
                leftSize -= iov.iovLen ;
+               ++itr ;
                if ( leftSize <= 0 )
                {
                   SDB_ASSERT( 0 == leftSize, "Wrong size" ) ;
                   break ;
                }
             }
-            ++itr ;
          }
       }
       catch ( std::exception &e )
