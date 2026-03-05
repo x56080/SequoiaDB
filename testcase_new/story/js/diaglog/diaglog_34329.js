@@ -10,13 +10,24 @@ function collect( diaglog, compress )
 {
     var log;
     var fileName;
+    var rc = '0';
     // 执行 collect 用于后续的 analyze
     try {
-        diaglog.reset();
-        log = diaglog.collect().keypattern( 'rc: ' ).lastFile( 1 ).compress( compress );
-        fileName = log.run();
+        // 先判断本机器需要有 zip 命令才能执行压缩 zip 包测试
+        if ( 'zip' == compress ) {
+            var cmd = new Cmd();
+            rc = cmd.run( compress + ' --version > /dev/null 2>&1;echo $?' ).trimRight('\n');
+        }
+
+        if ( '0' == rc ) {
+            diaglog.reset();
+            log = diaglog.collect().keypattern( 'rc: ' ).lastFile( 1 ).compress( compress );
+            fileName = log.run();
+        } else {
+            fileName = "";
+        }
     } catch (error) {
-        println("[ERROR] Failed on diaglog.collect().keypattern( 'rc: ' ).lastFile( 1 ).compress( compress )");
+        println("[ERROR] Failed on diaglog.collect().keypattern( 'rc: ' ).lastFile( 1 ).compress( " + compress + " )");
         throw e;
     }
     diaglog.reset();
@@ -29,6 +40,7 @@ function testPath( diaglog, logPath1, logPath2 )
     var fileName1;
     var fileName2;
     var rc;
+    var error_test_number = 1;
     try {
         var cmd = new Cmd() ;
         // 分析前面收集的日志
@@ -36,10 +48,12 @@ function testPath( diaglog, logPath1, logPath2 )
         log = diaglog.analyze().path( logPath1 );
         fileName1 = log.run();
         testCsv(fileName1);
+        error_test_number++;
 
         log = diaglog.analyze().path( logPath1 + '.tar.gz' );
         fileName2 = log.run();
         testCsv(fileName2);
+        error_test_number++;
 
         // 要求结果一致
         rc = cmd.run( 'diff -q ' + fileName1 + '/error_time.csv ' + fileName2 + '/error_time.csv > /dev/null 2>&1; echo $?' ).trimRight( '\n' );
@@ -47,21 +61,30 @@ function testPath( diaglog, logPath1, logPath2 )
         rc = cmd.run( 'diff -q ' + fileName1 + '/error_count.csv ' + fileName2 + '/error_count.csv > /dev/null 2>&1; echo $?' ).trimRight( '\n' );
         assert.equal( rc, '0' );
 
-        log = diaglog.analyze().path( logPath2 + '/' );
-        fileName1 = log.run();
-        testCsv(fileName1);
+        // logPath2 是 zip 压缩包，如果 logPath2 不存在，表示没有 zip 命令，跳过后续测试
+        if ( "" != logPath2 ) {
+            log = diaglog.analyze().path( logPath2 + '/' );
+            fileName1 = log.run();
+            testCsv(fileName1);
+            error_test_number++;
 
-        log = diaglog.analyze().path( logPath2 + '.zip' );
-        fileName2 = log.run();
-        testCsv(fileName2);
+            log = diaglog.analyze().path( logPath2 + '.zip' );
+            fileName2 = log.run();
+            testCsv(fileName2);
 
-        // 要求结果一致
-        rc = cmd.run( 'diff -q ' + fileName1 + '/error_time.csv ' + fileName2 + '/error_time.csv > /dev/null 2>&1; echo $?' ).trimRight( '\n' );
-        assert.equal( rc, '0' );
-        rc = cmd.run( 'diff -q ' + fileName1 + '/error_count.csv ' + fileName2 + '/error_count.csv > /dev/null 2>&1; echo $?' ).trimRight( '\n' );
-        assert.equal( rc, '0' );
+            // 要求结果一致
+            rc = cmd.run( 'diff -q ' + fileName1 + '/error_time.csv ' + fileName2 + '/error_time.csv > /dev/null 2>&1; echo $?' ).trimRight( '\n' );
+            assert.equal( rc, '0' );
+            rc = cmd.run( 'diff -q ' + fileName1 + '/error_count.csv ' + fileName2 + '/error_count.csv > /dev/null 2>&1; echo $?' ).trimRight( '\n' );
+            assert.equal( rc, '0' );
+        }
     } catch ( e ) {
         println("[ERROR] Failed on diaglog.analyze().path()");
+        println("logPath1: " + logPath1);
+        println("logPath2: " + logPath2);
+        println("fileName1: " + fileName1);
+        println("fileName2: " + fileName2);
+        println("error_test_number: " + error_test_number);
         throw e;
     }
     diaglog.reset();
@@ -137,6 +160,7 @@ function testCsv( path )
         var preTime = "9999-12-31-01.01.01.000000";
         var curTime = "";
         var count = 0;
+        var array = [];
         try {
             while ( line = file.readLine().trimRight( '\n' ) ) {
                 if ( isFirstLine ) {
@@ -144,12 +168,18 @@ function testCsv( path )
                     isFirstLine = false;
                 } else {
                     count++;
-                    assert.equal( line.split(',').length, 5 );
+                    array = line.split(',');
+                    assert.equal( array.length, 5 );
                     // 按时间降序
-                    curTime = line.split(',')[4];
+                    curTime = array[4];
                     rc = curTime <= preTime;
                     assert.equal( rc, true );
                     preTime = curTime;
+
+                    // 每个字段都需要有值
+                    for ( let i = 0; i < array.length; i++ ) {
+                        assert.notEqual( array[i], "" );
+                    }
                 }
             }
         } catch ( e  ) {
@@ -177,12 +207,17 @@ function testCsv( path )
                     isFirstLine = false;
                 } else {
                     count++;
-                    var array = line.split(',');
+                    array = line.split(',');
                     assert.equal( array.length, 5 );
                     // 不会出现重复的 ERROR
                     var key = array[0] + '_' + array[1] + '_' + array[2] + '_' + array[3];
                     assert.notEqual( errorObj[key], 1 );
                     errorObj[key] = 1;
+
+                    // 每个字段都需要有值
+                    for ( let i = 0; i < array.length; i++ ) {
+                        assert.notEqual( array[i], "" );
+                    }
                 }
             }
         } catch ( e  ) {

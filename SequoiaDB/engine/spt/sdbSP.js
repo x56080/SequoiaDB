@@ -4603,12 +4603,28 @@ DiagLog.prototype._searchFromCollect = function() {
    try {
       if ( /.*\.zip$/.test( path ) )
       {
-         cmd.run( 'unzip -o ' + path + ' -d ' + output ) ;
-         path = output + '/' + pathArray[pathArray.length - 1].replace( /\.zip$/, '' ) ;
+         var rc = cmd.run( 'unzip -v > /dev/null 2>&1;echo $?' ).trimRight('\n');
+         if ( '0' != rc )
+         {
+            setLastErrMsg( 'Cannot extract the archive package, the unzip command is not found' ) ;
+            throw SDB_INVALIDARG ;
+         } else
+         {
+            cmd.run( 'unzip -o ' + path + ' -d ' + output ) ;
+            path = output + '/' + pathArray[pathArray.length - 1].replace( /\.zip$/, '' ) ;
+         }
       } else if  ( /.*\.tar\.gz$/.test( path ) )
       {
-         cmd.run( 'tar -xzf ' + path + ' -C ' + output ) ;
-         path = output + '/' + pathArray[pathArray.length - 1].replace( /\.tar.gz$/, '' ) ;
+         var rc = cmd.run( 'tar --version > /dev/null 2>&1;echo $?' ).trimRight('\n');
+         if ( '0' != rc )
+         {
+            setLastErrMsg( 'Cannot extract the archive package, the tar command is not found' ) ;
+            throw SDB_INVALIDARG ;
+         } else
+         {
+            cmd.run( 'tar -xzf ' + path + ' -C ' + output ) ;
+            path = output + '/' + pathArray[pathArray.length - 1].replace( /\.tar.gz$/, '' ) ;
+         }
       }
    } catch ( e ) {
       setLastErrMsg( 'Failed to unzip "' + path + '", error: ' + getLastErrMsg() ) ;
@@ -5699,6 +5715,29 @@ DiagLog.prototype._collect = function() {
       throw e ;
    }
 
+   // check zip or tar command
+   try {
+      if ( 'zip' == this._compress )
+      {
+         var rc = cmd.run( 'zip --version > /dev/null 2>&1;echo $?' ).trimRight('\n');
+         if ( '0' != rc )
+         {
+            setLastErrMsg( 'Cannot create the archive package, the zip command is not found' ) ;
+            throw SDB_INVALIDARG ;
+         }
+      } else
+      {
+         var rc = cmd.run( 'tar --version > /dev/null 2>&1;echo $?' ).trimRight('\n');
+         if ( '0' != rc )
+         {
+            setLastErrMsg( 'Cannot create the archive package, the tar command is not found' ) ;
+            throw SDB_INVALIDARG ;
+         }
+      }
+   } catch ( e ) {
+      throw e ;
+   }
+
    // auto generate output dir with current time
    var collectOutput = '' ;
    var collectOutputDir = 'diaglog_' ;
@@ -6008,12 +6047,28 @@ DiagLog.prototype._analyze = function() {
       {
          if ( /.*\.zip$/.test( this._path ) )
          {
-            cmd.run( 'unzip -o ' + this._path + ' -d ' + output ) ;
-            this._path = output + '/' + pathArray[pathArray.length - 1].replace( /\.zip$/, '' ) ;
+            var rc = cmd.run( 'unzip -v > /dev/null 2>&1;echo $?' ).trimRight('\n');
+            if ( '0' != rc )
+            {
+               setLastErrMsg( 'Cannot extract the archive package, the unzip command is not found' ) ;
+               throw SDB_INVALIDARG ;
+            } else
+            {
+               cmd.run( 'unzip -o ' + this._path + ' -d ' + output ) ;
+               this._path = output + '/' + pathArray[pathArray.length - 1].replace( /\.zip$/, '' ) ;
+            }
          } else if  ( /.*\.tar\.gz$/.test( this._path ) )
          {
-            cmd.run( 'tar -xzf ' + this._path + ' -C ' + output ) ;
-            this._path = output + '/' + pathArray[pathArray.length - 1].replace( /\.tar.gz$/, '' ) ;
+            var rc = cmd.run( 'tar --version > /dev/null 2>&1;echo $?' ).trimRight('\n');
+            if ( '0' != rc )
+            {
+               setLastErrMsg( 'Cannot extract the archive package, the tar command is not found' ) ;
+               throw SDB_INVALIDARG ;
+            } else
+            {
+               cmd.run( 'tar -xzf ' + this._path + ' -C ' + output ) ;
+               this._path = output + '/' + pathArray[pathArray.length - 1].replace( /\.tar.gz$/, '' ) ;
+            }
          }
          var hostArray = cmd.run( 'ls ' + this._path + '/' ).trimRight( '\n' ).split( '\n' ) ;
       } catch ( e )
@@ -6068,7 +6123,7 @@ DiagLog.prototype._analyze = function() {
             var fullFileName = this._path + "/" + hostName + "/" + nodeFile ;
             try
             {
-               var timeErrorArray = cmd.run( "awk '/(rc=|rc: )-[0-9]+\\]?$/{if(NR>5) print lines[NR-5]$0} {lines[NR]=$0}' " + fullFileName + "/* | sed 's#\\([^ ]*\\) .*\\(-[0-9][0-9]*\\)$#\\1 \\2#g'").trimRight( '\n' ).split( '\n' ) ;
+               var timeErrorArray = cmd.run( "awk '/(rc=|rc: )-[0-9]+\\]?$/{if(NR>5) print lines[NR-5]$0} {lines[NR]=$0}' " + fullFileName + "/* | sed 's#\\([^ ]*\\) .*\\(-[0-9][0-9]*\\)\\]\\?$#\\1 \\2#g'").trimRight( '\n' ).split( '\n' ) ;
                for ( var k = 0; k < timeErrorArray.length; k++ )
                {
                   if ( '' != timeErrorArray[k] )
