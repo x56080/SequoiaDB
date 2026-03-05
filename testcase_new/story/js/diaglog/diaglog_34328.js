@@ -121,6 +121,7 @@ function testSnapShot( diaglog, localCmd )
     var rc;
     var log;
     var fileName;
+    var error_test_number = 1;
     try {
         diaglog.reset();
         log = diaglog.collect().snapshot( 'SNAP_CSCL' );
@@ -131,6 +132,7 @@ function testSnapShot( diaglog, localCmd )
         assert.equal( rc, true );
         rc = File.exist( fileName + '/trap_core_snapshot/snapshot_cata' );
         assert.equal( rc, true );
+        error_test_number++;
 
         log = diaglog.collect().snapshot( 'SNAP_SYS' );
         fileName = log.run();
@@ -148,6 +150,7 @@ function testSnapShot( diaglog, localCmd )
         assert.equal( rc, true );
         rc = File.exist( fileName + '/trap_core_snapshot/snapshot_tasks' );
         assert.equal( rc, true );
+        error_test_number++;
 
         log = diaglog.collect().snapshot( 'SNAP_SESSION' );
         fileName = log.run();
@@ -155,6 +158,7 @@ function testSnapShot( diaglog, localCmd )
         assert.equal( rc, true );
         rc = File.exist( fileName + '/trap_core_snapshot/snapshot_context' );
         assert.equal( rc, true );
+        error_test_number++;
 
         log = diaglog.collect().snapshot( 'SNAP_QUERY' );
         fileName = log.run();
@@ -174,6 +178,7 @@ function testSnapShot( diaglog, localCmd )
         assert.equal( rc, true );
         rc = File.exist( fileName + '/trap_core_snapshot/snapshot_transdeadlock' );
         assert.equal( rc, true );
+        error_test_number++;
 
         log = diaglog.collect().snapshot( 'SNAP_ALL' );
         fileName = log.run();
@@ -219,6 +224,7 @@ function testSnapShot( diaglog, localCmd )
         assert.equal( rc, true );
     } catch ( e ) {
         println("[ERROR] Failed on diaglog.collect().snasphot()");
+        println("error_test_number: " + error_test_number);
         throw e;
     }
     diaglog.reset();
@@ -298,6 +304,7 @@ function testCompress( diaglog ) {
     var log;
     var fileName;
     var rc;
+    var error_test_number = 1;
     try {
         diaglog.reset();
         log = diaglog.collect().trap().path( WORKDIR + '/diaglog_34328' );
@@ -307,6 +314,7 @@ function testCompress( diaglog ) {
         assert.equal( rc, true );
         File.remove( fileName );
         File.remove( fileName + '.tar.gz' );
+        error_test_number++;
 
         log = diaglog.collect().trap().path( WORKDIR + '/diaglog_34328' ).compress( 'tar.gz' );
         fileName = log.run();
@@ -315,16 +323,23 @@ function testCompress( diaglog ) {
         assert.equal( rc, true );
         File.remove( fileName );
         File.remove( fileName + '.tar.gz' );
+        error_test_number++;
 
-        log = diaglog.collect().trap().path( WORKDIR + '/diaglog_34328' ).compress( 'zip' );
-        fileName = log.run();
-        // 检查压缩格式是否为 zip
-        rc = File.exist(  fileName + '.zip' );
-        assert.equal( rc, true );
-        File.remove( fileName );
-        File.remove( fileName + '.zip' );
+        // 先判断本机器需要有 zip 命令才能执行压缩 zip 包测试
+        var cmd = new Cmd();
+        rc = cmd.run( 'zip --version > /dev/null 2>&1;echo $?' ).trimRight('\n');
+        if ( '0' == rc ) {
+            log = diaglog.collect().trap().path( WORKDIR + '/diaglog_34328' ).compress( 'zip' );
+            fileName = log.run();
+            // 检查压缩格式是否为 zip
+            rc = File.exist(  fileName + '.zip' );
+            assert.equal( rc, true );
+            File.remove( fileName );
+            File.remove( fileName + '.zip' );
+        }
     } catch ( e ) {
         println("[ERROR] Failed on diaglog.collect().compress()");
+        println("error_test_number: " + error_test_number);
         throw e;
     }
 

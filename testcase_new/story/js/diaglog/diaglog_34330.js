@@ -55,28 +55,33 @@ function test()
             assert.equal( rc, true );
             testWithoutOriginal(diaglog);
 
-            // 收集 zip 压缩包
-            diaglog.reset();
-            log = diaglog.search().keypattern( 'rc: ' ).lastFile( 1 ).collect().compress( 'zip' );
-            fileName = log.run();
-            rc = File.exist( fileName );
-            assert.equal( rc, true );
-            rc = File.exist( fileName + '.zip' );
-            assert.equal( rc, true );
-            packageName = fileName + '.zip';
+            // 先判断本机器需要有 zip 命令才能执行压缩 zip 包测试
+            var cmd = new Cmd();
+            rc = cmd.run( 'zip --version > /dev/null 2>&1;echo $?' ).trimRight('\n');
+            if ( '0' == rc ) {
+                // 收集 zip 压缩包
+                diaglog.reset();
+                log = diaglog.search().keypattern( 'rc: ' ).lastFile( 1 ).collect().compress( 'zip' );
+                fileName = log.run();
+                rc = File.exist( fileName );
+                assert.equal( rc, true );
+                rc = File.exist( fileName + '.zip' );
+                assert.equal( rc, true );
+                packageName = fileName + '.zip';
 
-            // 分析 zip 压缩包
-            log = diaglog.search().keypattern( 'rc: ' ).lastFile( 1 ).collect().analyze().path( packageName ).output( WORKDIR + '/diaglog_34330/' );
-            fileName = log.run();
-            testCsv(fileName);
+                // 分析 zip 压缩包
+                log = diaglog.search().keypattern( 'rc: ' ).lastFile( 1 ).collect().analyze().path( packageName ).output( WORKDIR + '/diaglog_34330/' );
+                fileName = log.run();
+                testCsv(fileName);
 
-            // 搜索 zip 压缩包
-            diaglog.reset();
-            log = diaglog.search().keypattern( 'rc: ' ).lastFile( 1 ).path( packageName ).output( WORKDIR + '/diaglog_34330' );
-            fileName = log.run();
-            rc = File.exist( fileName );
-            assert.equal( rc, true );
-            testWithoutOriginal(diaglog);
+                // 搜索 zip 压缩包
+                diaglog.reset();
+                log = diaglog.search().keypattern( 'rc: ' ).lastFile( 1 ).path( packageName ).output( WORKDIR + '/diaglog_34330' );
+                fileName = log.run();
+                rc = File.exist( fileName );
+                assert.equal( rc, true );
+                testWithoutOriginal(diaglog);
+            }
 
             // 测试不 reset 是否能沿用续用变量
             // 限制时间为当前时间之前 5 分钟，以保证搜索的日志结果相同
