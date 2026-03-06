@@ -58,6 +58,28 @@ class CompileBaseModuleMgr:
          self.jdk_env = jdk_env
          self.run_in_dir('java -version', self.root_dir, self.jdk_env)
 
+   def download_nodejs(self):
+      nodejs_url = 'https://github.com/SequoiaDB/sdb-dependencies/releases/download/nodejs%2Fv10.0.0/installNode.sh'
+      nodejs_script_name = 'installNode.sh'
+      install_path = os.path.join(self.root_dir, 'nodejs')
+      print_log('Begine download nodejs')
+      if not os.path.exists(os.path.join(self.root_dir, nodejs_script_name)):
+         # put in root dir
+         self.run_in_dir('wget {}'.format(nodejs_url), self.root_dir)
+         self.run_in_dir('chmod u+x {}'.format(nodejs_script_name), self.root_dir)
+      download_cmd = 'bash {} --installDir {}'.format(nodejs_script_name, install_path)
+      nodejs_home = os.path.join(install_path, 'node-v10.0.0')
+      remove_file(nodejs_home)
+      self.run_in_dir(download_cmd, self.root_dir)
+
+      # export node home
+      nodejs_env = self.jdk_env.copy()
+      nodejs_env['NODE_HOME'] = nodejs_home
+      nodejs_env['PATH'] = '{}/bin:{}'.format(nodejs_home, nodejs_env['PATH'])
+      self.nodejs_env = nodejs_env
+      self.run_in_dir('node -v', self.root_dir, self.nodejs_env)
+      self.run_in_dir('npm -v', self.root_dir, self.nodejs_env)
+
    def compile_base_module(self):
       print_log('Begine compile base module ')
       compile_args = self.opt_mgr.get_compile_args()
@@ -80,7 +102,7 @@ class CompileBaseModuleMgr:
       self.set_pom_version(db_version, java_dir)
       # need to install java driver for next compile
       compile_java_cmd = 'mvn clean install -Dmaven.test.skip=true -Dmaven.javadoc.skip=true'
-      self.run_in_dir(compile_java_cmd, java_dir, self.jdk_env)
+      self.run_in_dir(compile_java_cmd, java_dir, self.jdk_env, print_stdout_on_fail=True)
       print_log('Finish compile java driver')
 
    def deploy_java_driver(self, db_version):
@@ -91,7 +113,7 @@ class CompileBaseModuleMgr:
       self.set_pom_version(snapshot_version, java_dir)
       # donot use -P release, because it need gpg sign
       deploy_java_cmd = 'mvn clean deploy -Dmaven.test.skip=true'
-      self.run_in_dir(deploy_java_cmd, java_dir, self.jdk_env)
+      self.run_in_dir(deploy_java_cmd, java_dir, self.jdk_env, print_stdout_on_fail=True)
       print_log('Finish deploy java driver')
 
    def compile_php_driver(self):
@@ -159,7 +181,7 @@ class CompileBaseModuleMgr:
       # reset version
       self.set_pom_version(db_version, om_plugin_dir)
       compile_om_plugin_cmd = 'mvn clean package -Dmaven.test.skip=true'
-      self.run_in_dir(compile_om_plugin_cmd, om_plugin_dir, self.jdk_env)
+      self.run_in_dir(compile_om_plugin_cmd, om_plugin_dir, self.jdk_env, print_stdout_on_fail=True)
       print_log('Finish compile postgresql plugin')
 
    def compile_s3(self, db_version):
@@ -167,17 +189,17 @@ class CompileBaseModuleMgr:
       s3_dir = os.path.join(self.root_dir, 'SequoiaDB/engine/tools/sequoias3')
       compile_s3_cmd = 'mvn clean package -Dmaven.test.skip=true'
       self.set_pom_version(db_version, s3_dir)
-      self.run_in_dir(compile_s3_cmd, s3_dir, self.jdk_env)
+      self.run_in_dir(compile_s3_cmd, s3_dir, self.jdk_env, print_stdout_on_fail=True)
       s3_dir = os.path.join(s3_dir, 'driver/java')
       self.set_pom_version(db_version, s3_dir)
-      self.run_in_dir(compile_s3_cmd, s3_dir, self.jdk_env)
+      self.run_in_dir(compile_s3_cmd, s3_dir, self.jdk_env, print_stdout_on_fail=True)
       print_log('Finish compile sequoias3')
 
    def compile_sdb_schedule(self, db_version):
       print_log('Begine compile sdb-schedule')
       sdb_schedule_dir = os.path.join(self.root_dir, 'SequoiaDB/engine/tools/sdb-schedule')
       compile_sdb_schedule_cmd = 'python build.py {}'.format(db_version)
-      self.run_in_dir(compile_sdb_schedule_cmd, sdb_schedule_dir, self.jdk_env)
+      self.run_in_dir(compile_sdb_schedule_cmd, sdb_schedule_dir, self.nodejs_env, print_stdout_on_fail=True)
       print_log('Finish compile sdb-schedule') 
 
    def compile_spark(self, db_version):
@@ -185,7 +207,7 @@ class CompileBaseModuleMgr:
       spark_dir = os.path.join(self.root_dir, 'driver/spark')
       spark_cmd = 'mvn clean package -Dsequoiadb.driver.version={}'.format(db_version)
       self.set_pom_version(db_version, spark_dir)
-      self.run_in_dir(spark_cmd, spark_dir, self.jdk_env)
+      self.run_in_dir(spark_cmd, spark_dir, self.jdk_env, print_stdout_on_fail=True)
       print_log('Finish compile spark')
 
    def compile_spark3(self, db_version):
@@ -193,7 +215,7 @@ class CompileBaseModuleMgr:
       spark3_dir = os.path.join(self.root_dir, 'driver/spark-3.0')
       spark3_cmd = 'mvn clean package -Dmaven.test.skip=true -Dsequoiadb.driver.version={}'.format(db_version)
       self.set_pom_version(db_version, spark3_dir)
-      self.run_in_dir(spark3_cmd, spark3_dir, self.jdk_env)
+      self.run_in_dir(spark3_cmd, spark3_dir, self.jdk_env, print_stdout_on_fail=True)
       print_log('Finish compile spark3')
       
    def compile_flink(self, db_version):
@@ -201,20 +223,23 @@ class CompileBaseModuleMgr:
       flink_dir = os.path.join(self.root_dir, 'driver/flink')
       flink_cmd = 'mvn clean package -Dmaven.test.skip=true -Dsequoiadb.driver.version={}'.format(db_version)
       self.set_pom_version(db_version, flink_dir)
-      self.run_in_dir(flink_cmd, flink_dir, self.jdk_env)
+      self.run_in_dir(flink_cmd, flink_dir, self.jdk_env, print_stdout_on_fail=True)
       print_log('Finish compile flink')
 
    def set_pom_version(self, db_version, src_path):
       set_version_cmd = 'mvn versions:set -DnewVersion={}'.format(db_version)
       self.run_in_dir(set_version_cmd, src_path)
 
-   def run_in_dir(self, cmd, dir, env=None):
+   def run_in_dir(self, cmd, dir, env=None, print_stdout_on_fail=False):
       print_log('Run command: {} in dir {}'.format(cmd, dir))
       process = Popen(cmd, shell=True, cwd=dir, stdout=PIPE, stderr=PIPE, env=env)
       out, err = process.communicate()
       if 0 == process.returncode:
          print_log(out)
       else:
+         # maven failure message is stdout, so print it when fail
+         if print_stdout_on_fail and out:
+            print_log(out)
          print_log(err)
          err_msg = 'Run command {} fail in dir {}'.format(cmd, dir)
          self.err_exit(process.returncode, err_msg)

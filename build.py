@@ -550,6 +550,7 @@ def main():
    compile_base_mgr = CompileBaseModuleMgr(opt_mgr)
    # base module need jdk, download it
    compile_base_mgr.download_jdk('jdk')
+   compile_base_mgr.download_nodejs()
    compile_base_mgr.compile_base_module()
    # in the first build, version.py didnot include version info, so wo need to build base module
    # after import version
