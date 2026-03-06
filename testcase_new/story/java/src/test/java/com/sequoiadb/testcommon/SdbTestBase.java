@@ -539,6 +539,21 @@ public class SdbTestBase {
         return workDir;
     }
 
+    public static String getDatasourceSiteName() {
+        return getScheduleDataSourceName() + "-site";
+    }
+
+    public static String getScheduleDataSourceName() {
+        return "sdbscheduledatasource";
+    }
+
+    public static List<String> getSdbScheduleNodes() {
+        List<String> nodes = new ArrayList<>();
+        nodes.add(hostName + ":9001");
+        nodes.add(hostName + ":9002");
+        return nodes;
+    }
+
     private static boolean execCmd( String[] cmd )
             throws IOException, InterruptedException {
         System.out.println( "cmd:" + Arrays.toString( cmd ) );

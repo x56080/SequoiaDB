@@ -217,5 +217,11 @@
         </packages>
     </test>
 
+    <test name="sdbschedule" parallel="classes" thread-count="5">
+        <packages>
+            <package name="com.sequoiadb.sdbschedule" />
+        </packages>
+    </test>
+
 </suite>
     

@@ -18,6 +18,11 @@
          <artifactId>jsch</artifactId>
          <version>0.1.54</version>
       </dependency>
+      <dependency>
+         <groupId>io.rest-assured</groupId>
+         <artifactId>rest-assured</artifactId>
+         <version>5.3.0</version>
+      </dependency>
    </dependencies>
 
    <build>

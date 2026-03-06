@@ -221,7 +221,31 @@
                   <execmongojavatest xmlfile="${xmlfile}" mongodriver="${mongoversion}"/>
                </then>
                <else>
+                  <!-- ================= CONFIGURETEST before ================= -->
+                  <if>
+                     <equals arg1="${TEST_TYPE}" arg2="CONFIGURETEST"/>
+                     <then>
+                        <configuretest-before
+                                hostname="${hostname}"
+                                svcname="${svcname}"
+                                remoteuser="${remoteuser}"
+                                remotepwd="${remotepwd}"
+                                installpath="${sdbdriverDir}/../"/>
+                     </then>
+                  </if>
                   <execnormalandlargedatatest xmlfile="${xmlfile}" hostname="${hostname}" svcname="${svcname}" sdbdriver="${sdbdriver}" sdbdriverdir="${sdbdriverDir}" s3client="${s3client}" s3clientdir="${s3clientDir}" eshostname="${eshostname}" essvcname="${essvcname}" dshostname="${dshostname}" dssvcname="${dssvcname}" remoteuser="${remoteuser}" remotepwd="${remotepwd}" rootpwd="${rootpwd}" rsrvnodedir="${rsrvnodedir}" branch="${branch}"/>
+                  <!-- ================= CONFIGURETEST after ================= -->
+                  <if>
+                     <equals arg1="${TEST_TYPE}" arg2="CONFIGURETEST"/>
+                     <then>
+                        <configuretest-after
+                                hostname="${hostname}"
+                                svcname="${svcname}"
+                                remoteuser="${remoteuser}"
+                                remotepwd="${remotepwd}"
+                                installpath="${sdbdriverDir}/../"/>
+                     </then>
+                  </if>
                </else>
             </if>
          </default>
@@ -491,6 +515,112 @@
             </concat>
          </tokens>
          </resourcecount>
+      </sequential>
+   </macrodef>
+
+   <!--CONFIGURETEST before_configuretest.sh will be uploaded and executed on remote host, to do some configure before running testng-->
+   <macrodef name="configuretest-before">
+      <attribute name="hostname"/>
+      <attribute name="svcname"/>
+      <attribute name="remoteuser"/>
+      <attribute name="remotepwd"/>
+      <attribute name="installpath"/>
+
+      <sequential>
+         <if>
+            <available file="${CI_WORK_DIR}/testcase/tools/before_configuretest.sh"/>
+            <then>
+               <echo message="CONFIGURETEST before: upload and execute before_configuretest.sh"/>
+
+               <!-- upload -->
+               <scp localFile="${CI_WORK_DIR}/testcase/tools/before_configuretest.sh"
+                    remoteTodir="@{remoteuser}@@@{hostname}:@{installpath}/tools/sdb-schedule/"
+                    password="@{remotepwd}"
+                    trust="true"
+                    failonerror="true"/>
+
+               <!-- chmod -->
+               <sshexec host="@{hostname}"
+                        username="@{remoteuser}"
+                        password="@{remotepwd}"
+                        trust="true"
+                        command="chmod 777 @{installpath}/tools/sdb-schedule/before_configuretest.sh"
+                        failonerror="false"/>
+
+               <!-- exec -->
+               <sshexec host="@{hostname}"
+                        username="@{remoteuser}"
+                        password="@{remotepwd}"
+                        trust="true"
+                        command="bash @{installpath}/tools/sdb-schedule/before_configuretest.sh @{hostname} @{svcname}"
+                        failonerror="true"/>
+                <!-- remove -->
+               <sshexec host="@{hostname}"
+                        username="@{remoteuser}"
+                        password="@{remotepwd}"
+                        trust="true"
+                        command="rm -f @{installpath}/tools/sdb-schedule/before_configuretest.sh"
+                        failonerror="false"/>
+            </then>
+         </if>
+      </sequential>
+   </macrodef>
+
+   <macrodef name="configuretest-after">
+      <attribute name="hostname"/>
+      <attribute name="svcname"/>
+      <attribute name="remoteuser"/>
+      <attribute name="remotepwd"/>
+      <attribute name="installpath"/>
+
+      <sequential>
+         <if>
+            <and>
+               <available file="${CI_WORK_DIR}/testcase/tools/after_configuretest.sh"/>
+               <available file="${CI_WORK_DIR}/testcase/tools/removeDSCluster.js"/>
+            </and>
+            <then>
+               <echo message="CONFIGURETEST after: upload and execute after_configuretest.sh"/>
+
+               <!-- upload after_configuretest.sh -->
+               <scp localFile="${CI_WORK_DIR}/testcase/tools/after_configuretest.sh"
+                    remoteTodir="@{remoteuser}@@@{hostname}:@{installpath}/tools/sdb-schedule/"
+                    password="@{remotepwd}"
+                    trust="true"
+                    failonerror="true"/>
+
+               <!-- upload removeDSCluster.js -->
+               <scp localFile="${CI_WORK_DIR}/testcase/tools/removeDSCluster.js"
+                    remoteTodir="@{remoteuser}@@@{hostname}:@{installpath}/tools/sdb-schedule/"
+                    password="@{remotepwd}"
+                    trust="true"
+                    failonerror="true"/>
+
+               <!-- chmod -->
+               <sshexec host="@{hostname}"
+                        username="@{remoteuser}"
+                        password="@{remotepwd}"
+                        trust="true"
+                        command="chmod 777 @{installpath}/tools/sdb-schedule/after_configuretest.sh @{installpath}/tools/sdb-schedule/removeDSCluster.js"
+                        failonerror="false"/>
+
+               <!-- exec -->
+               <sshexec host="@{hostname}"
+                        username="@{remoteuser}"
+                        password="@{remotepwd}"
+                        trust="true"
+                        command="bash @{installpath}/tools/sdb-schedule/after_configuretest.sh @{hostname} @{svcname}"
+                        failonerror="true"/>
+
+                <!-- remove -->
+               <sshexec host="@{hostname}"
+                        username="@{remoteuser}"
+                        password="@{remotepwd}"
+                        trust="true"
+                        command="rm -f @{installpath}/tools/sdb-schedule/after_configuretest.sh @{installpath}/tools/sdb-schedule/removeDSCluster.js"
+                        failonerror="false"/>
+            </then>
+         </if>
       </sequential>
    </macrodef>
 </project>
