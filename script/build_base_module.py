@@ -65,7 +65,7 @@ class CompileBaseModuleMgr:
       print_log('Begine download nodejs')
       if not os.path.exists(os.path.join(self.root_dir, nodejs_script_name)):
          # put in root dir
-         self.run_in_dir('wget {}'.format(nodejs_url), self.root_dir)
+         self.run_in_dir('wget {} --no-check-certificate'.format(nodejs_url), self.root_dir)
          self.run_in_dir('chmod u+x {}'.format(nodejs_script_name), self.root_dir)
       download_cmd = 'bash {} --installDir {}'.format(nodejs_script_name, install_path)
       nodejs_home = os.path.join(install_path, 'node-v10.0.0')
