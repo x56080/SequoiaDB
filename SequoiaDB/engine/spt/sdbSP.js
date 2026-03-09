@@ -6124,12 +6124,27 @@ DiagLog.prototype._analyze = function() {
             try
             {
                var timeErrorArray = cmd.run( "awk '/(rc=|rc: )-[0-9]+\\]?$/{if(NR>5) print lines[NR-5]$0} {lines[NR]=$0}' " + fullFileName + "/* | sed 's#\\([^ ]*\\) .*\\(-[0-9][0-9]*\\)\\]\\?$#\\1 \\2#g'").trimRight( '\n' ).split( '\n' ) ;
+               var errorCodeRegex = new RegExp( '^-[0-9]{1,3}$' ) ;
                for ( var k = 0; k < timeErrorArray.length; k++ )
                {
                   if ( '' != timeErrorArray[k] )
                   {
                      var timeError = timeErrorArray[k].split( ' ' ) ;
-                     timeFile.write( hostName + ',' + serviceName + ',' + groupName + ',' + timeError[1] + ',' + timeError[0] + '\n' ) ;
+                     var timeContent = timeError[0] ;
+                     var errorContent = timeError[1] ;
+                     if ( '' == errorContent )
+                     {
+                        errorContent = timeError[timeError.length - 1] ;
+                        if ( ! errorCodeRegex.test( errorContent ) )
+                        {
+                           errorContent = '' ;
+                        }
+                     }
+
+                     if ( '' != errorContent )
+                     {
+                        timeFile.write( hostName + ',' + serviceName + ',' + groupName + ',' + errorContent + ',' + timeContent + '\n' ) ;
+                     }
                   }
                }
             } catch ( e )
