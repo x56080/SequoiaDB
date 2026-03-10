@@ -630,6 +630,8 @@ namespace engine
       BSONObj options ;
       BSONElement ele ;
       ossPoolString newActLoc ;
+      CAT_GROUP_SET setDomainGroups ;
+      BOOLEAN useDomainFilter = FALSE ;
       CAT_GROUP_LIST allGroups ;
       CAT_GROUP_LIST failedGroups ;
       CAT_GROUP_LIST ignoreGroups ;
@@ -665,6 +667,24 @@ namespace engine
          }
          newActLoc = ele.valuestrsafe() ;
 
+         /// process domain
+         ele = options.getField( FIELD_NAME_DOMAIN ) ;
+         if ( String == ele.type() || Array == ele.type() )
+         {
+            rc = _parseDomainGroups( ele, setDomainGroups ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
+            useDomainFilter = TRUE ;
+         }
+         else if ( !ele.eoo() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "Param[%s] must be string or string array", FIELD_NAME_DOMAIN ) ;
+            goto error ;
+         }
+
          // Get all groups
          _pCatCB->getGroupsID( allGroups, FALSE ) ;
          allGroups.push_back( CATALOG_GROUPID ) ;
@@ -678,6 +698,14 @@ namespace engine
             catCtxLockMgr lockMgr ;
             UINT32 groupID = *itr ;
             BOOLEAN locExist = FALSE ;
+
+            // check group exist in domain
+            if ( useDomainFilter && 0 == setDomainGroups.count( groupID ) )
+            {
+               // not match
+               itr = allGroups.erase( itr ) ;
+               continue ;
+            }
 
             // Get group obj by group id
             rc = catGetGroupObj( groupID, groupObj, _pEduCB ) ;
@@ -797,6 +825,8 @@ namespace engine
       BSONElement ele ;
       ossPoolString newLoc ;
       ossPoolString hostName ;
+      CAT_GROUP_SET setDomainGroups ;
+      BOOLEAN useDomainFilter = FALSE ;
       CAT_GROUP_LIST allGroups ;
       CAT_GROUP_LIST failedGroups ;
       CAT_GROUP_LIST ignoredGroups ;
@@ -841,6 +871,24 @@ namespace engine
          }
          hostName = ele.valuestrsafe() ;
 
+         /// process domain
+         ele = options.getField( FIELD_NAME_DOMAIN ) ;
+         if ( String == ele.type() || Array == ele.type() )
+         {
+            rc = _parseDomainGroups( ele, setDomainGroups ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
+            useDomainFilter = TRUE ;
+         }
+         else if ( !ele.eoo() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "Param[%s] must be string or string array", FIELD_NAME_DOMAIN ) ;
+            goto error ;
+         }
+
          // Get all groups
          _pCatCB->getGroupsID( allGroups, FALSE ) ;
          allGroups.push_back( CATALOG_GROUPID ) ;
@@ -855,6 +903,14 @@ namespace engine
             BOOLEAN hasChanged = FALSE ;
             catCtxLockMgr lockMgr ;
             UINT32 groupID = *itr ;
+
+            // check group exist in domain
+            if ( useDomainFilter && 0 == setDomainGroups.count( groupID ) )
+            {
+               // not match
+               itr = allGroups.erase( itr ) ;
+               continue ;
+            }
 
             // Get group obj by group id
             rc = catGetGroupObj( groupID, groupObj, _pEduCB ) ;
@@ -952,7 +1008,9 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       BSONObj options ;
-      BSONElement ele ;
+      BSONElement ele, optionEle ;
+      CAT_GROUP_SET setDomainGroups ;
+      BOOLEAN useDomainFilter = FALSE ;
       CAT_GROUP_LIST allGroups ;
       CAT_GROUP_LIST failedGroups ;
       CAT_GROUP_LIST ignoredGroups ;
@@ -973,6 +1031,26 @@ namespace engine
             goto error ;
          }
          options = ele.embeddedObject() ;
+
+         /// process domain
+         optionEle = options.getField( FIELD_NAME_DOMAIN ) ;
+         if ( String == optionEle.type() || Array == optionEle.type() )
+         {
+            rc = _parseDomainGroups( optionEle, setDomainGroups ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
+            useDomainFilter = TRUE ;
+            /// build new options
+            options = options.filterFieldsUndotted( BSON( FIELD_NAME_DOMAIN << 1 ), false ) ;
+         }
+         else if ( !optionEle.eoo() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "Param[%s] must be string or string array", FIELD_NAME_DOMAIN ) ;
+            goto error ;
+         }
 
          // Get all groups
          _pCatCB->getGroupsID( allGroups, FALSE ) ;
@@ -997,6 +1075,14 @@ namespace engine
             BOOLEAN matchAll = FALSE ;
             BOOLEAN ignored  = FALSE ;
             BOOLEAN hasChanged = FALSE ;
+
+            // check group exist in domain
+            if ( useDomainFilter && 0 == setDomainGroups.count( groupID ) )
+            {
+               // not match
+               itr = allGroups.erase( itr ) ;
+               continue ;
+            }
 
             // Get group obj by group id
             rc = catGetGroupObj( groupID, groupObj, _pEduCB ) ;
@@ -1139,7 +1225,9 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       BSONObj options ;
-      BSONElement ele ;
+      BSONElement ele, optionEle ;
+      CAT_GROUP_SET setDomainGroups ;
+      BOOLEAN useDomainFilter = FALSE ;
       CAT_GROUP_LIST allGroups ;
       CAT_GROUP_LIST failedGroups ;
       CAT_GROUP_LIST ignoredGroups ;
@@ -1160,6 +1248,26 @@ namespace engine
             goto error ;
          }
          options = ele.embeddedObject() ;
+
+         /// process domain
+         optionEle = options.getField( FIELD_NAME_DOMAIN ) ;
+         if ( String == optionEle.type() || Array == optionEle.type() )
+         {
+            rc = _parseDomainGroups( optionEle, setDomainGroups ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
+            useDomainFilter = TRUE ;
+            /// build new options
+            options = options.filterFieldsUndotted( BSON( FIELD_NAME_DOMAIN << 1 ), false ) ;
+         }
+         else if ( !optionEle.eoo() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "Param[%s] must be string or string array", FIELD_NAME_DOMAIN ) ;
+            goto error ;
+         }
 
          // Get all groups
          _pCatCB->getGroupsID( allGroups, FALSE ) ;
@@ -1184,6 +1292,14 @@ namespace engine
             BOOLEAN matchAll = FALSE ;
             BOOLEAN ignored = FALSE ;
             BOOLEAN hasChanged = FALSE ;
+
+            // check group exist in domain
+            if ( useDomainFilter && 0 == setDomainGroups.count( groupID ) )
+            {
+               // not match
+               itr = allGroups.erase( itr ) ;
+               continue ;
+            }
 
             // Get group obj by group id
             rc = catGetGroupObj( groupID, groupObj, _pEduCB ) ;
@@ -1787,6 +1903,103 @@ namespace engine
                break ;
             }
          }
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _catDCManager::_parseDomainGroups( const BSONElement &ele, CAT_GROUP_SET &setGroups )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( String == ele.type() )
+      {
+         rc = _parseDomainGroups( ele.valuestr(), setGroups ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+      }
+      else if ( Array == ele.type() )
+      {
+         BSONObjIterator itr( ele.embeddedObject() ) ;
+         while( itr.more() )
+         {
+            BSONElement e = itr.next() ;
+            if ( String == e.type() )
+            {
+               rc = _parseDomainGroups( e.valuestr(), setGroups ) ;
+               if ( rc )
+               {
+                  goto error ;
+               }
+            }
+            else
+            {
+               PD_LOG_MSG( PDERROR, "Invalid domain param(%s)", ele.toString().c_str() ) ;
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
+         }
+      }
+      else
+      {
+         PD_LOG_MSG( PDERROR, "Invalid domain param(%s)", ele.toString().c_str() ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      if ( setGroups.empty() )
+      {
+         PD_LOG_MSG( PDERROR, "Specified domains(%s) has no groups", ele.toString().c_str() ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _catDCManager::_parseDomainGroups( const CHAR *pDomainName, CAT_GROUP_SET &setGroups )
+   {
+      INT32 rc = SDB_OK ;
+      pmdEDUCB *cb = pmdGetThreadEDUCB() ;
+      BSONObj objDomain ;
+      vector<UINT32> vecGroups ;
+
+      rc = catGetDomainObj( pDomainName, objDomain, cb ) ;
+      if ( SDB_CAT_DOMAIN_NOT_EXIST == rc )
+      {
+         PD_LOG_MSG( PDERROR, "Specified domain(%s) does not exist", pDomainName ) ;
+         goto error ;
+      }
+      else if ( rc )
+      {
+         PD_LOG_MSG( PDERROR, "Get domain(%s) object failed, rc: %d", pDomainName, rc ) ;
+         goto error ;
+      }
+
+      rc = catGetDomainGroups( objDomain, vecGroups ) ;
+      if ( SDB_CAT_NO_GROUP_IN_DOMAIN == rc )
+      {
+         rc = SDB_OK ;
+         goto done ;
+      }
+      else if ( rc )
+      {
+         PD_LOG_MSG( PDERROR, "Parse domain(%s) groups failed, rc: %d", pDomainName, rc ) ;
+         goto error ;
+      }
+
+      /// push group to set
+      for ( UINT32 i = 0 ; i < vecGroups.size() ; ++i )
+      {
+         setGroups.insert( vecGroups[i] ) ;
       }
 
    done:

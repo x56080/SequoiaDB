@@ -4,7 +4,7 @@ setLocation - 修改集群中节点的位置信息
 
 ##语法##
 
-**SdbDC.setLocation(\<hostName\>, \<location\>)**
+**SdbDC.setLocation(\<hostName\>, \<location\>, [options])**
 
 ##类别##
 
@@ -26,6 +26,14 @@ location（ *string，必填* ）
 
 - 位置信息的最大长度限制为 256 字节
 - 取值为空字符串时，表示删除指定主机上节点的位置信息
+
+options（ *object，选填* ）
+
+通过参数 options 可以指定过滤条件：
+
+- Domain（ *string | string array* ）：按域过滤，仅对属于指定域的数据组执行操作。可以指定单个域名或域名数组
+
+    格式：`Domain: "mydomain"` 或 `Domain: ["domain1", "domain2"]`
 
 ##返回值##
 
@@ -84,7 +92,20 @@ v3.6.1 及以上版本
 }
 ```
 
-**示例3：** 修改位置信息时部分复制组失败的情况
+**示例3：** 仅对指定域的数据组修改位置信息
+
+```lang-javascript
+> var dc = db.getDC()
+> dc.setLocation("sdbserver", "GuangZhou", {Domain: "mydomain"})
+{
+  "MatchedNum": 2,
+  "SucceedNum": 2,
+  "IgnoredNum": 0,
+  "FailedNum": 0
+}
+```
+
+**示例4：** 修改位置信息时部分复制组失败的情况
 
 ```lang-javascript
 > var dc = db.getDC()

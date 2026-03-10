@@ -4,7 +4,7 @@ setActiveLocation - set the ActiveLocation of the cluster
 
 ##SYNOPSIS##
 
-**SdbDC.setActiveLocation(\<location\>)**
+**SdbDC.setActiveLocation(\<location\>, [options])**
 
 ##CATEGORY##
 
@@ -22,6 +22,14 @@ Location name.
 
 - The specified location needs to exist in the current cluster.
 - When the value is an empty string, it means to delete the ActiveLocation of the current cluster.
+
+options ( *object, optional* )
+
+Specify filter conditions through the parameter "options":
+
+- Domain ( *string | string array* ): Filter by domain, only operate on data groups belonging to the specified domain(s). A single domain name or an array of domain names can be specified
+
+    Format: `Domain: "mydomain"` or `Domain: ["domain1", "domain2"]`
 
 ##RETURN VALUE##
 
@@ -80,7 +88,20 @@ v3.6.1 and above
 }
 ```
 
-**Example 3:** Set ActiveLocation with some replica groups failing
+**Example 3:** Set ActiveLocation only for data groups in the specified domain
+
+```lang-javascript
+> var dc = db.getDC()
+> dc.setActiveLocation("GuangZhou", {Domain: "mydomain"})
+{
+  "MatchedNum": 2,
+  "SucceedNum": 2,
+  "IgnoredNum": 0,
+  "FailedNum": 0
+}
+```
+
+**Example 4:** Set ActiveLocation with some replica groups failing
 
 ```lang-javascript
 > var dc = db.getDC()

@@ -4519,8 +4519,12 @@ namespace sdbclient
       virtual INT32 deactivateDC() = 0 ;
       virtual INT32 enableReadOnly( BOOLEAN isReadOnly ) = 0 ;
       /// batch location functions:
-      virtual INT32 setActiveLocation ( const CHAR *pActiveLocation, bson::BSONObj &result ) = 0 ;
-      virtual INT32 setLocation ( const CHAR * pHostName, const CHAR * pLocation, bson::BSONObj &result ) = 0 ;
+      virtual INT32 setActiveLocation ( const CHAR *pActiveLocation,
+                                        bson::BSONObj &result,
+                                        const bson::BSONObj &options = _sdbStaticObject ) = 0 ;
+      virtual INT32 setLocation ( const CHAR * pHostName, const CHAR * pLocation,
+                                  bson::BSONObj &result,
+                                  const bson::BSONObj &options = _sdbStaticObject ) = 0 ;
       virtual INT32 startMaintenanceMode( const bson::BSONObj &options, bson::BSONObj &result ) = 0 ;
       virtual INT32 stopMaintenanceMode( const bson::BSONObj &options, bson::BSONObj &result ) = 0 ;
       virtual INT32 startCriticalMode( const bson::BSONObj &options, bson::BSONObj &result ) = 0 ;
@@ -4644,16 +4648,21 @@ namespace sdbclient
                                    it means to remove the replica group's active location
 
           \param [out] result The detail result information
+          \param [in] options The location options:
+
+               Domain: string or string array. Take effect only in the specified domain.
+
           \retval SDB_OK Operation Success
           \retval Others Operation Fail
       */
-      INT32 setActiveLocation ( const CHAR *pActiveLocation, bson::BSONObj &result )
+      INT32 setActiveLocation ( const CHAR *pActiveLocation, bson::BSONObj &result,
+                                const bson::BSONObj &options = _sdbStaticObject )
       {
          if ( NULL == pDC )
          {
             return SDB_NOT_CONNECTED ;
          }
-         return pDC->setActiveLocation( pActiveLocation, result ) ;
+         return pDC->setActiveLocation( pActiveLocation, result, options ) ;
       }
 
       /** \fn INT32 setLocation ( const CHAR * pHostName, const CHAR * pLocation, bson::BSONObj &result )
@@ -4667,16 +4676,22 @@ namespace sdbclient
                              it means to remove the data center location
 
           \param [out] result The detail result information
+          \param [in] options The location options:
+
+               Domain: string or string array. Take effect only in the specified domain.
+
           \retval SDB_OK Operation Success
           \retval Others Operation Fail
       */
-      INT32 setLocation ( const CHAR * pHostName, const CHAR * pLocation, bson::BSONObj &result )
+      INT32 setLocation ( const CHAR * pHostName, const CHAR * pLocation,
+                          bson::BSONObj &result,
+                          const bson::BSONObj &options = _sdbStaticObject )
       {
          if ( NULL == pDC )
          {
             return SDB_NOT_CONNECTED ;
          }
-         return pDC->setLocation( pHostName, pLocation, result ) ;
+         return pDC->setLocation( pHostName, pLocation, result, options ) ;
       }
 
       /** \fn INT32 startMaintenanceMode( const bson::BSONObj &options, bson::BSONObj &result )

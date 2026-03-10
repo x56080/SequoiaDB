@@ -8,7 +8,7 @@
 setActiveLocation \- 设置集群的 ActiveLocation
 .SH 语法
 .PP
-\f[B]SdbDC.setActiveLocation(<location>)\f[]
+\f[B]SdbDC.setActiveLocation(<location>, [options])\f[]
 .SH 类别
 .PP
 SdbDC
@@ -24,6 +24,17 @@ location（ \f[I]string，必填\f[] ）
 指定的位置集需存在于当前集群中。
 .IP \[bu] 2
 取值为空字符串时，表示删除当前集群的 ActiveLocation。
+.PP
+options（ \f[I]object，选填\f[] ）
+.PP
+通过参数 options 可以指定过滤条件：
+.IP \[bu] 2
+Domain（ \f[I]string | string array\f[]
+）：按域过滤，仅对属于指定域的数据组执行操作。可以指定单个域名或域名数组
+.RS 2
+.PP
+格式：\f[C]Domain: "mydomain"\f[] 或 \f[C]Domain: ["domain1", "domain2"]\f[]
+.RE
 .SH 返回值
 .PP
 函数执行成功时，返回一个 BSON 对象，包含以下字段：
@@ -231,7 +242,22 @@ v3.6.1 及以上版本
 \f[]
 .fi
 .PP
-\f[B]示例3：\f[] 设置 ActiveLocation 时部分复制组失败的情况
+\f[B]示例3：\f[] 仅对指定域的数据组设置 ActiveLocation
+.IP
+.nf
+\f[C]
+> var dc = db.getDC()
+> dc.setActiveLocation("GuangZhou", {Domain: "mydomain"})
+{
+  "MatchedNum": 2,
+  "SucceedNum": 2,
+  "IgnoredNum": 0,
+  "FailedNum": 0
+}
+\f[]
+.fi
+.PP
+\f[B]示例4：\f[] 设置 ActiveLocation 时部分复制组失败的情况
 .IP
 .nf
 \f[C]

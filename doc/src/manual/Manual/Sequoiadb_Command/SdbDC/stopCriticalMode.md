@@ -32,6 +32,10 @@ options（ *object，可选* ）
 
     格式：`Location: "GuangZhou"`
 
+- Domain（ *string | string array* ）：按域过滤，仅对属于指定域的数据组执行操作。可以指定单个域名或域名数组
+
+    格式：`Domain: "mydomain"` 或 `Domain: ["domain1", "domain2"]`
+
 ##返回值##
 
 函数执行成功时，返回一个 BSON 对象，包含以下字段：
@@ -71,6 +75,19 @@ v5.8.6 及以上版本
 {
   "MatchedNum": 3,
   "SucceedNum": 3,
+  "IgnoredNum": 0,
+  "FailedNum": 0
+}
+```
+
+**示例2：** 仅对指定域的数据组停止 Critical 模式
+
+```lang-javascript
+> var dc = db.getDC()
+> dc.stopCriticalMode({Domain: "mydomain"})
+{
+  "MatchedNum": 2,
+  "SucceedNum": 2,
   "IgnoredNum": 0,
   "FailedNum": 0
 }

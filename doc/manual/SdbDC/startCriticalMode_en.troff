@@ -85,6 +85,15 @@ elected as the primary node.
 .PP
 Format: \f[C]Enforced: true\f[]
 .RE
+.IP \[bu] 2
+Domain ( \f[I]string | string array\f[] ): Filter by domain, only operate on
+data groups belonging to the specified domain(s).
+A single domain name or an array of domain names can be specified
+.RS 2
+.PP
+Format: \f[C]Domain: "mydomain"\f[] or
+\f[C]Domain: ["domain1", "domain2"]\f[]
+.RE
 .RS
 .PP
 \f[B]Note:\f[]
@@ -408,7 +417,23 @@ v5.8.6 and above
 \f[]
 .fi
 .PP
-\f[B]Example 4:\f[] Start Critical mode with some replica groups failing
+\f[B]Example 4:\f[] Start Critical mode only for data groups in the specified
+domain
+.IP
+.nf
+\f[C]
+> var dc = db.getDC()
+> dc.startCriticalMode({Location: "GuangZhou", MinKeepTime: 100, MaxKeepTime: 1000, Domain: "mydomain"})
+{
+  "MatchedNum": 2,
+  "SucceedNum": 2,
+  "IgnoredNum": 0,
+  "FailedNum": 0
+}
+\f[]
+.fi
+.PP
+\f[B]Example 5:\f[] Start Critical mode with some replica groups failing
 .IP
 .nf
 \f[C]
@@ -424,7 +449,7 @@ v5.8.6 and above
 \f[]
 .fi
 .PP
-\f[B]Example 5:\f[] View started Critical mode
+\f[B]Example 6:\f[] View started Critical mode
 .IP
 .nf
 \f[C]

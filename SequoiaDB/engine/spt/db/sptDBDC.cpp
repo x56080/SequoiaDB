@@ -188,6 +188,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       string locationName ;
+      BSONObj options ;
       BSONObj result ;
 
       rc = arg.getString( 0, locationName ) ;
@@ -202,7 +203,23 @@ namespace engine
          goto error ;
       }
 
-      rc = _dc.setActiveLocation( locationName.c_str(), result ) ;
+      /// get options
+      if ( arg.argc() > 1 )
+      {
+         rc = arg.getBsonobj( 1, options ) ;
+         if ( rc )
+         {
+            string errMsg = arg.getErrMsg() ;
+            if ( errMsg.empty() )
+            {
+               errMsg = "Option must be object" ;
+            }
+            detail = BSON( SPT_ERR << errMsg ) ;
+            goto error ;
+         }
+      }
+
+      rc = _dc.setActiveLocation( locationName.c_str(), result, options ) ;
       if ( SDB_OK != rc )
       {
          detail = BSON( SPT_ERR << "Failed to set active location" ) ;
@@ -227,6 +244,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       string hostName ;
       string locationName ;
+      BSONObj options ;
       BSONObj result ;
 
       rc = arg.getString( 0, hostName ) ;
@@ -253,7 +271,23 @@ namespace engine
          goto error ;
       }
 
-      rc = _dc.setLocation( hostName.c_str() ,locationName.c_str(), result ) ;
+      /// get options
+      if ( arg.argc() > 2 )
+      {
+         rc = arg.getBsonobj( 2, options ) ;
+         if ( rc )
+         {
+            string errMsg = arg.getErrMsg() ;
+            if ( errMsg.empty() )
+            {
+               errMsg = "Option must be object" ;
+            }
+            detail = BSON( SPT_ERR << errMsg ) ;
+            goto error ;
+         }
+      }
+
+      rc = _dc.setLocation( hostName.c_str() ,locationName.c_str(), result, options ) ;
       if ( SDB_OK != rc )
       {
          detail = BSON( SPT_ERR << "Failed to set location" ) ;

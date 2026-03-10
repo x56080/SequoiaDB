@@ -36,6 +36,13 @@ Location（ \f[I]string\f[] ）：Critical 模式停止生效的位置集（与 
 .PP
 格式：\f[C]Location: "GuangZhou"\f[]
 .RE
+.IP \[bu] 2
+Domain（ \f[I]string | string array\f[]
+）：按域过滤，仅对属于指定域的数据组执行操作。可以指定单个域名或域名数组
+.RS 2
+.PP
+格式：\f[C]Domain: "mydomain"\f[] 或 \f[C]Domain: ["domain1", "domain2"]\f[]
+.RE
 .SH 返回值
 .PP
 函数执行成功时，返回一个 BSON 对象，包含以下字段：
@@ -230,6 +237,21 @@ v5.8.6 及以上版本
 {
   "MatchedNum": 3,
   "SucceedNum": 3,
+  "IgnoredNum": 0,
+  "FailedNum": 0
+}
+\f[]
+.fi
+.PP
+\f[B]示例2：\f[] 仅对指定域的数据组停止 Critical 模式
+.IP
+.nf
+\f[C]
+> var dc = db.getDC()
+> dc.stopCriticalMode({Domain: "mydomain"})
+{
+  "MatchedNum": 2,
+  "SucceedNum": 2,
   "IgnoredNum": 0,
   "FailedNum": 0
 }

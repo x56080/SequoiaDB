@@ -58,6 +58,10 @@ Specify the Maintenance mode attributes through the parameter "options":
 
     Format: `Enforced: true`
 
+- Domain ( *string | string array* ): Filter by domain, only operate on data groups belonging to the specified domain(s). A single domain name or an array of domain names can be specified
+
+    Format: `Domain: "mydomain"` or `Domain: ["domain1", "domain2"]`
+
 > **Note:**
 >
 > When the replica group has a primary node, the primary node will not be changed.
@@ -139,7 +143,20 @@ v5.8.6 and above
 }
 ```
 
-**Example 4:** Start Maintenance mode with some replica groups failing
+**Example 4:** Start Maintenance mode only for data groups in the specified domain
+
+```lang-javascript
+> var dc = db.getDC()
+> dc.startMaintenanceMode({Location: "GuangZhou", MinKeepTime: 100, MaxKeepTime: 1000, Domain: "mydomain"})
+{
+  "MatchedNum": 2,
+  "SucceedNum": 2,
+  "IgnoredNum": 0,
+  "FailedNum": 0
+}
+```
+
+**Example 5:** Start Maintenance mode with some replica groups failing
 
 ```lang-javascript
 > var dc = db.getDC()
@@ -153,7 +170,7 @@ v5.8.6 and above
 }
 ```
 
-**Example 5:** View started Maintenance mode
+**Example 6:** View started Maintenance mode
 
 ```lang-javascript
 > db.list(SDB_LIST_GROUPMODES )

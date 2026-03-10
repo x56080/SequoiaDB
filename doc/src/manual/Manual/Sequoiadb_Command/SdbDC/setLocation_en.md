@@ -4,7 +4,7 @@ setLocation - modify the location information of nodes in the cluster
 
 ##SYNOPSIS##
 
-**SdbDC.setLocation(\<hostName\>, \<location\>)**
+**SdbDC.setLocation(\<hostName\>, \<location\>, [options])**
 
 ##CATEGORY##
 
@@ -26,6 +26,14 @@ New location information.
 
 - The maximum length of location information is limited to 256 bytes
 - When the value is an empty string, it means to delete the location information of nodes on the specified host
+
+options ( *object, optional* )
+
+Specify filter conditions through the parameter "options":
+
+- Domain ( *string | string array* ): Filter by domain, only operate on data groups belonging to the specified domain(s). A single domain name or an array of domain names can be specified
+
+    Format: `Domain: "mydomain"` or `Domain: ["domain1", "domain2"]`
 
 ##RETURN VALUE##
 
@@ -84,7 +92,20 @@ v3.6.1 and above
 }
 ```
 
-**Example 3:** Modify location information with some replica groups failing
+**Example 3:** Modify location information only for data groups in the specified domain
+
+```lang-javascript
+> var dc = db.getDC()
+> dc.setLocation("sdbserver", "GuangZhou", {Domain: "mydomain"})
+{
+  "MatchedNum": 2,
+  "SucceedNum": 2,
+  "IgnoredNum": 0,
+  "FailedNum": 0
+}
+```
+
+**Example 4:** Modify location information with some replica groups failing
 
 ```lang-javascript
 > var dc = db.getDC()

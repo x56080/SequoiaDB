@@ -8,7 +8,7 @@
 setLocation \- modify the location information of nodes in the cluster
 .SH SYNOPSIS
 .PP
-\f[B]SdbDC.setLocation(<hostName>, <location>)\f[]
+\f[B]SdbDC.setLocation(<hostName>, <location>, [options])\f[]
 .SH CATEGORY
 .PP
 SdbDC
@@ -32,6 +32,19 @@ The maximum length of location information is limited to 256 bytes
 .IP \[bu] 2
 When the value is an empty string, it means to delete the location information
 of nodes on the specified host
+.PP
+options ( \f[I]object, optional\f[] )
+.PP
+Specify filter conditions through the parameter "options":
+.IP \[bu] 2
+Domain ( \f[I]string | string array\f[] ): Filter by domain, only operate on
+data groups belonging to the specified domain(s).
+A single domain name or an array of domain names can be specified
+.RS 2
+.PP
+Format: \f[C]Domain: "mydomain"\f[] or
+\f[C]Domain: ["domain1", "domain2"]\f[]
+.RE
 .SH RETURN VALUE
 .PP
 When the function executes successfully, it returns a BSON object containing the
@@ -274,7 +287,23 @@ host
 \f[]
 .fi
 .PP
-\f[B]Example 3:\f[] Modify location information with some replica groups failing
+\f[B]Example 3:\f[] Modify location information only for data groups in the
+specified domain
+.IP
+.nf
+\f[C]
+> var dc = db.getDC()
+> dc.setLocation("sdbserver", "GuangZhou", {Domain: "mydomain"})
+{
+  "MatchedNum": 2,
+  "SucceedNum": 2,
+  "IgnoredNum": 0,
+  "FailedNum": 0
+}
+\f[]
+.fi
+.PP
+\f[B]Example 4:\f[] Modify location information with some replica groups failing
 .IP
 .nf
 \f[C]

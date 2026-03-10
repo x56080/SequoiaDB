@@ -1228,8 +1228,12 @@ namespace sdbclient
       INT32 deactivateDC() ;
       INT32 enableReadOnly( BOOLEAN isReadOnly ) ;
       /// batch location functions:
-      virtual INT32 setActiveLocation ( const CHAR *pActiveLocation, bson::BSONObj &result ) ;
-      virtual INT32 setLocation ( const CHAR * pHostName, const CHAR * pLocation, bson::BSONObj &result ) ;
+      virtual INT32 setActiveLocation ( const CHAR *pActiveLocation,
+                                        bson::BSONObj &result,
+                                        const bson::BSONObj &options = _sdbStaticObject ) ;
+      virtual INT32 setLocation ( const CHAR * pHostName, const CHAR * pLocation,
+                                  bson::BSONObj &result,
+                                  const bson::BSONObj &options = _sdbStaticObject ) ;
       virtual INT32 startMaintenanceMode( const bson::BSONObj &options, bson::BSONObj &result ) ;
       virtual INT32 stopMaintenanceMode( const bson::BSONObj &options, bson::BSONObj &result ) ;
       virtual INT32 startCriticalMode( const bson::BSONObj &options, bson::BSONObj &result ) ;

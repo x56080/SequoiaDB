@@ -173,6 +173,12 @@ namespace engine
                                  const ossPoolString &hostName,
                                  clsGroupMode &groupMode ) ;
 
+      INT32 _parseDomainGroups( const BSONElement &ele,
+                                CAT_GROUP_SET &setGroups ) ;
+
+      INT32 _parseDomainGroups( const CHAR *pDomainName,
+                                CAT_GROUP_SET &setGroups ) ;
+
    private:
       _SDB_DMSCB                 *_pDmsCB;
       _dpsLogWrapper             *_pDpsCB;

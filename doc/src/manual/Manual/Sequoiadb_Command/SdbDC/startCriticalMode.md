@@ -57,6 +57,10 @@ options（ *object，必填* ）
 
     格式：`Enforced: true`
 
+- Domain（ *string | string array* ）：按域过滤，仅对属于指定域的数据组执行操作。可以指定单个域名或域名数组
+
+    格式：`Domain: "mydomain"` 或 `Domain: ["domain1", "domain2"]`
+
 > **Note:**
 >
 > 相应复制组当前存在主节点时，不会发生切换。
@@ -138,7 +142,20 @@ v5.8.6 及以上版本
 }
 ```
 
-**示例4：** 开启 Critical 模式时部分复制组失败的情况
+**示例4：** 仅对指定域的数据组开启 Critical 模式
+
+```lang-javascript
+> var dc = db.getDC()
+> dc.startCriticalMode({Location: "GuangZhou", MinKeepTime: 100, MaxKeepTime: 1000, Domain: "mydomain"})
+{
+  "MatchedNum": 2,
+  "SucceedNum": 2,
+  "IgnoredNum": 0,
+  "FailedNum": 0
+}
+```
+
+**示例5：** 开启 Critical 模式时部分复制组失败的情况
 
 ```lang-javascript
 > var dc = db.getDC()
@@ -152,7 +169,7 @@ v5.8.6 及以上版本
 }
 ```
 
-**示例5：** 查看开启的 Critical 模式
+**示例6：** 查看开启的 Critical 模式
 
 ```lang-javascript
 > db.list(SDB_LIST_GROUPMODES )
