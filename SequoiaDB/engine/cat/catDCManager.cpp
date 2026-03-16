@@ -1603,6 +1603,7 @@ namespace engine
                                                BOOLEAN &ignored )
    {
       INT32 rc = SDB_OK ;
+      INT32 pendingRC = SDB_OK ;
 
       BSONElement grpModeEle, primaryEle ;
 
@@ -1626,10 +1627,7 @@ namespace engine
          }
          else if ( 0 == ossStrcmp( CAT_CRITICAL_MODE_NAME, grpModeEle.valuestrsafe() ) )
          {
-            rc = SDB_OPERATION_CONFLICT ;
-            PD_LOG_MSG( PDERROR, "Failed to %s maintenance mode in group[%u], "
-                        "critical mode is operating", isStartMode ? "start" : "stop", groupID ) ;
-            goto error ;
+            pendingRC = SDB_OPERATION_CONFLICT ;
          }
       }
       // If the command is stop maintenance mode, do nothing
@@ -1658,7 +1656,28 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to build group[%u] mode info, rc: %d", groupID, rc ) ;
       }
 
+      /// when not match the group
+      if ( pendingRC && groupMode.grpModeInfo.empty() )
+      {
+         pendingRC = SDB_OK ;
+      }
+
    done:
+      if ( SDB_OK == rc && pendingRC )
+      {
+         if ( SDB_OPERATION_CONFLICT == pendingRC && !isStartMode &&
+              option.getField( FIELD_NAME_ENFORCED1 ).booleanSafe() )
+         {
+            ignored = TRUE ;
+         }
+         else
+         {         
+            rc = pendingRC ;
+            PD_LOG_MSG( PDERROR, "Failed to %s maintenance mode in group[%u], "
+                        "critical mode is operating. Use 'Enforced' param to ignore the error",
+                        isStartMode ? "start" : "stop", groupID ) ;
+         }
+      }
       return rc ;
    error:
       goto done ;
@@ -1674,6 +1693,7 @@ namespace engine
                                             BOOLEAN &ignored )
    {
       INT32 rc = SDB_OK ;
+      INT32 pendingRC = SDB_OK ;
 
       BSONElement grpModeEle, primaryEle ;
 
@@ -1697,10 +1717,7 @@ namespace engine
          }
          else if ( 0 == ossStrcmp( CAT_MAINTENANCE_MODE_NAME, grpModeEle.valuestrsafe() ) )
          {
-            rc = SDB_OPERATION_CONFLICT ;
-            PD_LOG_MSG( PDERROR, "Failed to %s critical mode in group[%u], "
-                        "maintenance mode is operating", isStartMode ? "start" : "stop", groupID ) ;
-            goto error ;
+            pendingRC = SDB_OPERATION_CONFLICT ;
          }
       }
       else if ( !isStartMode )
@@ -1728,7 +1745,28 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to build group[%u] mode info, rc: %d", groupID, rc ) ;
       }
 
+      /// when not match the group
+      if ( pendingRC && groupMode.grpModeInfo.empty() )
+      {
+         pendingRC = SDB_OK ;
+      }
+
    done:
+      if ( SDB_OK == rc && pendingRC )
+      {
+         if ( SDB_OPERATION_CONFLICT == pendingRC && !isStartMode &&
+              option.getField( FIELD_NAME_ENFORCED1 ).booleanSafe() )
+         {
+            ignored = TRUE ;
+         }
+         else
+         {
+            rc = pendingRC ;
+            PD_LOG_MSG( PDERROR, "Failed to %s critical mode in group[%u], "
+                        "maintenance mode is operating. Use 'Enforced' param to ignore the error",
+                        isStartMode ? "start" : "stop", groupID ) ;
+         }
+      }
       return rc ;
    error:
       goto done ;
