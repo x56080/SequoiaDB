@@ -107,7 +107,9 @@ public class IndexStandalone24385 extends SdbTestBase {
                 cl.createIndex( indexName, indexKeys, indexAttr, option );
             } catch ( BaseException e ) {
                 if ( e.getErrorType() != SDBError.SDB_DMS_NOTEXIST
-                        .getErrorType() ) {
+                        .getErrorType()
+                        && e.getErrorCode() != SDBError.SDB_TASK_HAS_CANCELED
+                        .getErrorCode() ) {
                     throw e;
                 }
             }

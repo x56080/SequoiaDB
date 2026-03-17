@@ -120,6 +120,8 @@ public class IndexStandalone24386 extends SdbTestBase {
                                 .getErrorCode()
                         && e.getErrorCode() != SDBError.SDB_COORD_NOT_ALL_DONE
                                 .getErrorCode()
+                        && e.getErrorCode() != SDBError.SDB_TASK_HAS_CANCELED
+                                .getErrorCode()
                         && e.getErrorCode() != SDBError.SDB_DMS_SCANNER_INTERRUPT
                                 .getErrorCode() ) {
                     throw e;
