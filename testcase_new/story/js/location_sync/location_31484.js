@@ -36,7 +36,7 @@ function test ()
    assert.equal( values1[0]["Location"], location );
    assert.equal( values1[0]["IsLocationPrimary"], true );
    assert.equal( values1[0]["NodeID"], nodeId1 );
-   var primaryNode = getPrimaryNode( db, group );
+   var primaryNode = getPrimaryNode( db, group, location );
    assert.equal( values1[0]["NodeID"], primaryNode );
 
    // 指定存在的NodeID、不存在的hostNmae
@@ -47,7 +47,7 @@ function test ()
    assert.equal( values2[0]["Location"], location );
    assert.equal( values2[0]["IsLocationPrimary"], true );
    assert.equal( values2[0]["NodeID"], nodeId2 );
-   var primaryNode = getPrimaryNode( db, group );
+   var primaryNode = getPrimaryNode( db, group, location );
    assert.equal( values2[0]["NodeID"], primaryNode );
 
    // 指定存在的NodeID、hostNmae，不存在的svcName
@@ -58,7 +58,7 @@ function test ()
    assert.equal( values3[0]["Location"], location );
    assert.equal( values3[0]["IsLocationPrimary"], true );
    assert.equal( values3[0]["NodeID"], nodeId3 );
-   var primaryNode = getPrimaryNode( db, group );
+   var primaryNode = getPrimaryNode( db, group, location );
    assert.equal( values3[0]["NodeID"], primaryNode );
 
    // 指定不存在的NodeID，存在的hostNmae、svcName

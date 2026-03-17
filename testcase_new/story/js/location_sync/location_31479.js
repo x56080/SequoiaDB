@@ -35,7 +35,7 @@ function test ()
    checkAndGetLocationHasPrimary( db, group, location, 10 );
 
    // 位置集主节点改变
-   var primaryNode = getPrimaryNode( db, group );
+   var primaryNode = getPrimaryNode( db, group, location );
    assert.notEqual( values1[2], primaryNode );
 
    setLocationForNodes( rg, nodelist, "" );

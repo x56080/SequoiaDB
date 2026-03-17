@@ -32,7 +32,7 @@ function test ()
    assert.equal( values1[0]["IsLocationPrimary"], true );
 
    // 检查分区列表中位置集主节点的NodeID与数据库快照中的是否一致
-   var noedID = getPrimaryNode( db, dataGroupName );
+   var noedID = getPrimaryNode( db, dataGroupName, location1 );
    assert.equal( values1[0]["NodeID"], noedID );
 
    // 修改location的值后,位置集主节点不变，IsLocationPrimary的值不变

@@ -788,13 +788,21 @@ function getSnapshotDatabase ( db, NodeName )
  * @param {string} groupName
  * @return {int} PrimaryNode
  ******************************************************************************/
-function getPrimaryNode ( db, groupName )
+function getPrimaryNode ( db, groupName, locationName )
 {
    var cursor = db.list( SDB_LIST_GROUPS, { GroupName: groupName } );
    var obj = cursor.current().toObj();
-   var primaryNode = obj["Locations"][0]["PrimaryNode"];
+   for ( var i in obj.Locations )
+   {
+      if ( undefined == locationName || locationName == obj.Locations[i].Location )
+      {
+         cursor.close();
+         return obj.Locations[i].PrimaryNode ;
+      }
+   }
+
    cursor.close();
-   return primaryNode;
+   throw "No found location primary" ;
 }
 
 /******************************************************************************

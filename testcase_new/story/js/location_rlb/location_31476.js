@@ -58,7 +58,7 @@ function test ()
       assert.equal( values3[0]["Location"], location );
       assert.equal( values3[0]["IsLocationPrimary"], true );
 
-      var primaryNode = getPrimaryNode( db, group );
+      var primaryNode = getPrimaryNode( db, group, location );
       assert.equal( values3[0]["NodeID"], primaryNode );
    }
    finally

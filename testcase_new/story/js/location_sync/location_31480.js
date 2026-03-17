@@ -41,7 +41,7 @@ function test ()
    assert.equal( values2[0]["Location"], location );
    assert.equal( values2[0]["NodeID"], values1[0]["NodeID"] );
 
-   var primaryNode = getPrimaryNode( db, group );
+   var primaryNode = getPrimaryNode( db, group, location );
    assert.equal( values2[0]["NodeID"], primaryNode );
 
    setLocationForNodes( rg, nodelist, "" );
