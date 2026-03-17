@@ -1784,10 +1784,19 @@ namespace engine
                goto error ;
             }
          }
-         PD_LOG( PDWARNING,
-                 "Can not find primary node of group [%s]",
-                 _boTarget.toString( FALSE, TRUE ).c_str() ) ;
-         rc = SDB_OK ;
+         else if ( SDB_FIELD_NOT_EXIST == rc )
+         {
+            PD_LOG( PDWARNING,
+                    "Can not find primary node of group [%s]",
+                    _boTarget.toString( FALSE, TRUE ).c_str() ) ;
+            rc = SDB_OK ;
+         }
+         else
+         {
+            PD_LOG( PDERROR, "Get primary node from group [%s] failed, rc: %d",
+                    _boTarget.toString( FALSE, TRUE ).c_str(), rc ) ;
+            goto error ;
+         }
       }
 
       _nodeCount = boNodeList.nFields() ;

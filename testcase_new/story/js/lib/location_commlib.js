@@ -198,7 +198,7 @@ function removeNode ( rg, hostName, port )
 {
    try
    {
-      rg.removeNode( hostName, port );
+      rg.removeNode( hostName, port, {Enforced: true} );
    }
    catch( e )
    {
