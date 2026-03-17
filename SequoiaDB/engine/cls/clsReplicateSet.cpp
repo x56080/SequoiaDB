@@ -961,6 +961,12 @@ namespace engine
             _locationActive = TRUE ;
             changedLocation = TRUE ;
             _setElectionWeight( activeLocation ) ;
+
+            /// when already primary
+            if ( _vote.primaryIsMe() )
+            {
+               _locationVote.setShadowWeightForTarget( CLS_FT_SW_TIMEOUT ) ;
+            }
          }
       }
       else
@@ -984,6 +990,12 @@ namespace engine
                PD_RC_CHECK( rc, PDWARNING, "Failed to set _locationInfo.info, rc: %d", rc ) ;
 
                changedLocation = TRUE ;
+
+               /// when already primary
+               if ( _vote.primaryIsMe() )
+               {
+                  _locationVote.setShadowWeightForTarget( CLS_FT_SW_TIMEOUT ) ;
+               }
             }
          }
          // Change local location from old(_locationInfo.localLocation) to new("")
