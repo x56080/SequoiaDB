@@ -13,10 +13,12 @@ function test ()
    // 获取一个备节点名
    var groupName = commGetDataGroupNames( db )[0];
    var group = db.getRG( groupName );
-   var slaveNodeName = group.getSlave().getHostName() + ":" + group.getSlave().getServiceName();
+   var slaveNode = group.getSlave() ;
+   var slaveNodeName = slaveNode.getHostName() + ":" + slaveNode.getServiceName();
 
+   var masterNode = group.getMaster() ;
    // 获取主节点名
-   var masterNodeName = group.getMaster().getHostName() + ":" + group.getMaster().getServiceName();
+   var masterNodeName = masterNode.getHostName() + ":" + masterNode.getServiceName();
 
    // 主节点启动运维模式
    var options = { NodeName: masterNodeName, MinKeepTime: 1, MaxKeepTime: 2 };
