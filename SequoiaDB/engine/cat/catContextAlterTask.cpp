@@ -4330,7 +4330,6 @@ namespace engine
 
       try
       {
-         INT32 tmpRC = SDB_OK ;
          // Get ActiveLocation
          ossPoolString newActLoc = task->getActiveLocation() ;
 
@@ -4339,49 +4338,58 @@ namespace engine
          {
             BSONObj groupObj ;
             ossPoolString oldActLoc ;
-            UINT32 groupID = ( itr++ )->second ;
+            UINT32 groupID = itr->second ;
+            BOOLEAN locExist = FALSE ;
 
             // Get group obj by group id
-            tmpRC = catGetGroupObj( groupID, groupObj, cb ) ;
-            if ( SDB_OK != tmpRC )
+            rc = catGetGroupObj( groupID, groupObj, cb ) ;
+            if ( rc )
             {
-               _failedGroupLst.push_back( groupID ) ;
-               PD_LOG( PDERROR, "Failed to get group[%u] obj, rc: %d", groupID, tmpRC ) ;
-               continue ;
+               PD_LOG_MSG( PDERROR, "Failed to get group[%u] obj, rc: %d", groupID, rc ) ;
+               goto error ;
             }
 
             // Check and get active location
-            tmpRC = catCheckAndGetActiveLocation( groupObj, groupID, newActLoc, oldActLoc ) ;
-            if ( SDB_OK != tmpRC )
+            rc = catCheckAndGetActiveLocation( groupObj, groupID, newActLoc, oldActLoc, &locExist ) ;
+            if ( SDB_OK != rc )
             {
-               _failedGroupLst.push_back( groupID ) ;
-               PD_LOG( PDERROR, "Failed to get and check active location, rc: %d", tmpRC ) ;
-               continue ;
+               if ( !locExist )
+               {
+                  _groupMap.erase( itr++ ) ;
+                  continue ;
+               }
+
+               PD_LOG_MSG( PDERROR, "Failed to get and check group[%d] active location, rc: %d",
+                           groupID, rc ) ;
+               goto error ;
             }
 
             // Compare oldLocation and newLocation
             if ( oldActLoc == newActLoc )
             {
                PD_LOG( PDDEBUG, "The old and new ActiveLocation are same, do nothing" ) ;
+               ++itr ;
                continue ;
             }
 
             // Set new ActiveLocation
             if ( ! newActLoc.empty() )
             {
-               tmpRC = pCatNodeMgr->setActiveLocation( groupID, newActLoc ) ;
+               rc = pCatNodeMgr->setActiveLocation( groupID, newActLoc ) ;
             }
             // Remove old ActiveLocation
             else
             {
-               tmpRC = pCatNodeMgr->removeActiveLocation( groupID ) ;
+               rc = pCatNodeMgr->removeActiveLocation( groupID ) ;
             }
-            if ( SDB_OK != tmpRC )
+            if ( SDB_OK != rc )
             {
-               _failedGroupLst.push_back( groupID ) ;
-               PD_LOG( PDERROR, "Failed to set active location, rc: %d", tmpRC ) ;
-               continue ;
+               PD_LOG( PDERROR, "Failed to set group[%d] active location[%s], rc: %d",
+                       groupID, newActLoc.c_str(), rc ) ;
+               goto error ;
             }
+
+            ++itr ;
          }
       }
       catch ( exception &e )
@@ -4394,7 +4402,6 @@ namespace engine
    done :
       PD_TRACE_EXITRC( SDB_CATCTXALTERDOMAINTASK_EXECUTE_SETACTIVELOCATION, rc ) ;
       return rc ;
-
    error :
       goto done ;
    }
@@ -4412,7 +4419,6 @@ namespace engine
 
       try
       {
-         INT32 tmpRC = SDB_OK ;
          // Get HostName
          ossPoolString hostName = task->getHostName() ;
          // Get Location
@@ -4421,23 +4427,35 @@ namespace engine
          CAT_DOMAIN_GROUP_MAP::const_iterator itr = _groupMap.begin() ;
          while ( _groupMap.end() != itr )
          {
-            UINT32 groupID = ( itr++ )->second ;
+            UINT32 groupID = itr->second ;
             BSONObj groupObj ;
+            BOOLEAN hasMatched = FALSE ;
+            BOOLEAN hasChanged = FALSE ;
+
             // Get group obj by group id
-            tmpRC = catGetGroupObj( groupID, groupObj, cb ) ;
-            if ( SDB_OK != tmpRC )
+            rc = catGetGroupObj( groupID, groupObj, cb ) ;
+            if ( SDB_OK != rc )
             {
-               _failedGroupLst.push_back( groupID ) ;
-               PD_LOG( PDERROR, "Failed to get group[%u] obj, rc: %d", groupID, tmpRC ) ;
-               continue ;
+               PD_LOG_MSG( PDERROR, "Failed to get group[%u] obj, rc: %d", groupID, rc ) ;
+               goto error ;
             }
 
-            tmpRC = pCatNodeMgr->setGroupLocation( groupObj, groupID, newLoc, hostName ) ;
-            if ( SDB_OK != tmpRC )
+            rc = pCatNodeMgr->setGroupLocation( groupObj, groupID, newLoc, hostName,
+                                                &hasChanged, &hasMatched ) ;
+            if ( SDB_OK != rc )
             {
-               _failedGroupLst.push_back( groupID ) ;
-               PD_LOG( PDERROR, "Failed to set group location, rc: %d", tmpRC ) ;
-               continue ;
+               PD_LOG_MSG( PDERROR, "Failed to set group[%d] location[%s], rc: %d",
+                           groupID, newLoc.c_str(), rc  ) ;
+               goto error ;
+            }
+
+            if ( !hasChanged && !hasMatched )
+            {
+               _groupMap.erase( itr++ ) ;
+            }
+            else
+            {
+               ++itr ;
             }
          }
       }

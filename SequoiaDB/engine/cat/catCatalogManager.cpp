@@ -1888,8 +1888,13 @@ namespace engine
                   rc = catTask.buildDomainGroups( retBuilder, CAT_GROUP_NAME ) ;
                   PD_RC_CHECK( rc, PDERROR, "Make return groups object failed, rc: %d", rc ) ;
 
-                  rc = _pCatCB->makeFailedGroupsObj( retBuilder, catTask.getFailedGroupList() ) ;
-                  PD_RC_CHECK( rc, PDERROR, "Make return failed groups object failed, rc: %d", rc ) ;
+                  if ( !catTask.getFailedGroupList().empty() )
+                  {
+                     rc = _pCatCB->makeFailedGroupsObj( retBuilder,
+                                                        catTask.getFailedGroupList() ) ;
+                     PD_RC_CHECK( rc, PDERROR, "Make return failed groups object failed, rc: %d",
+                                  rc ) ;
+                  }
 
                   ctxBuf = rtnContextBuf( retBuilder.obj() ) ;
                }

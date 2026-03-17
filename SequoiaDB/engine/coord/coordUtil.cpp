@@ -228,38 +228,45 @@ namespace engine
       try
       {
          BSONElement beGroupArr = obj.getField( fieldName ) ;
-         if ( beGroupArr.eoo() || beGroupArr.type() != Array )
+         if ( beGroupArr.eoo() )
+         {
+            /// do nothing
+         }
+         else if ( beGroupArr.type() != Array )
          {
             rc = SDB_INVALIDARG ;
             PD_LOG ( PDERROR, "Failed to get the field(%s) from obj[%s]",
                      fieldName, obj.toString().c_str() ) ;
             goto error ;
          }
-         BSONObjIterator i( beGroupArr.embeddedObject() ) ;
-         while ( i.more() )
+         else
          {
-            BSONObj boGroupInfo ;
-            BSONElement beTmp = i.next() ;
-            if ( Object != beTmp.type() )
+            BSONObjIterator i( beGroupArr.embeddedObject() ) ;
+            while ( i.more() )
             {
-               rc = SDB_INVALIDARG ;
-               PD_LOG( PDERROR, "Group info in obj[%s] must be object",
-                       obj.toString().c_str() ) ;
-               goto error ;
-            }
-            boGroupInfo = beTmp.embeddedObject() ;
-            beTmp = boGroupInfo.getField( CAT_GROUPID_NAME ) ;
-            if ( beTmp.eoo() || !beTmp.isNumber() )
-            {
-               rc = SDB_INVALIDARG;
-               PD_LOG ( PDERROR, "Failed to get the field(%s) from obj[%s]",
-                        CAT_GROUPID_NAME, obj.toString().c_str() );
-               goto error ;
-            }
+               BSONObj boGroupInfo ;
+               BSONElement beTmp = i.next() ;
+               if ( Object != beTmp.type() )
+               {
+                  rc = SDB_INVALIDARG ;
+                  PD_LOG( PDERROR, "Group info in obj[%s] must be object",
+                          obj.toString().c_str() ) ;
+                  goto error ;
+               }
+               boGroupInfo = beTmp.embeddedObject() ;
+               beTmp = boGroupInfo.getField( CAT_GROUPID_NAME ) ;
+               if ( beTmp.eoo() || !beTmp.isNumber() )
+               {
+                  rc = SDB_INVALIDARG;
+                  PD_LOG ( PDERROR, "Failed to get the field(%s) from obj[%s]",
+                           CAT_GROUPID_NAME, obj.toString().c_str() );
+                  goto error ;
+               }
 
-            // add to group list
-            groupLst[ beTmp.numberInt() ] = beTmp.numberInt() ;
-            PD_LOG( PDDEBUG, "Get group[%d] into list", beTmp.numberInt() ) ;
+               // add to group list
+               groupLst[ beTmp.numberInt() ] = beTmp.numberInt() ;
+               PD_LOG( PDDEBUG, "Get group[%d] into list", beTmp.numberInt() ) ;
+            }
          }
       }
       catch ( std::exception &e )
