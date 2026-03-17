@@ -4,6 +4,7 @@ COORDHOSTNAME="${1:-localhost}"
 COORDSVCNAME="${2:-11810}"
 currentHostname=$(hostname)
 
+source /etc/profile
 source /etc/default/sequoiadb
 
 # stop sdb-schedule tools
