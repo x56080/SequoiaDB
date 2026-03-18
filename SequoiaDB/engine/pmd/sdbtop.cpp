@@ -6503,7 +6503,7 @@ INT32 main( INT32 argc, CHAR **argv)
    {
       if ( SDB_PMD_HELP_ONLY != rc )
       {
-         std::cerr<< "Error: Failed to resolve arguments"OSS_NEWLINE ;
+         std::cerr<< "Error: Failed to resolve arguments" OSS_NEWLINE ;
          displayArg ( desc ) ;
       }
       goto done ;
