@@ -244,17 +244,10 @@ namespace engine
                PD_CHECK( String == e.type(), SDB_INVALIDARG, error, PDERROR,
                          "Type of field[%s] is not string, rc: %d",
                          fieldName, rc ) ;
-               if ( ossStrlen( e.valuestr() ) > 0 )
-               {
-                  rc = utilCipherEncrypt( e.valuestr(), NULL, _cipherTextBuffer,
-                                          sizeof( _cipherTextBuffer ) ) ;
-                  PD_RC_CHECK( rc, PDERROR, "Failed to encrypt password, rc: %d", rc ) ;
-                  _dsInfo._cipherText = _cipherTextBuffer ;
-               }
-               else
-               {
-                  _dsInfo._cipherText = "" ;
-               }
+               rc = utilCipherEncrypt( e.valuestr(), NULL, _cipherTextBuffer,
+                                       sizeof( _cipherTextBuffer ) ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to encrypt password, rc: %d", rc ) ;
+               _dsInfo._cipherText = _cipherTextBuffer ;
             }
             else if ( 0 == ossStrcmp( fieldName, FIELD_NAME_TYPE ) )
             {
