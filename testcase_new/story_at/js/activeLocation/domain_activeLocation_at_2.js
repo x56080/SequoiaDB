@@ -51,7 +51,7 @@ function test() {
 
   // rg1: old activeLocation -> new activeLocation: "domain_activeLocation_at_2_1" -> "nonExistLocation"
   // rg2: old activeLocation -> new activeLocation: "" -> "nonExistLocation"
-  assert.tryThrow(SDB_COORD_NOT_ALL_DONE, function () {
+  assert.tryThrow(SDB_INVALIDARG, function () {
     domain.setActiveLocation("nonExistLocation");
   });
   checkActiveLocation(db, groupName2, location1);

@@ -82,7 +82,7 @@ function test() {
     domain.setActiveLocation();
   });
 
-  assert.tryThrow(SDB_COORD_NOT_ALL_DONE, function () {
+  assert.tryThrow(SDB_INVALIDARG, function () {
     domain.setActiveLocation("nonExistLocation");
   });
 

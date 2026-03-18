@@ -4332,6 +4332,7 @@ namespace engine
       {
          // Get ActiveLocation
          ossPoolString newActLoc = task->getActiveLocation() ;
+         BOOLEAN locationExist = FALSE ;
 
          CAT_DOMAIN_GROUP_MAP::const_iterator itr = _groupMap.begin() ;
          while ( _groupMap.end() != itr )
@@ -4355,7 +4356,9 @@ namespace engine
             {
                if ( !locExist )
                {
-                  _groupMap.erase( itr++ ) ;
+                  _failedGroupLst.push_back( groupID ) ;
+                  ++itr ;
+                  rc = SDB_OK ;
                   continue ;
                }
 
@@ -4363,6 +4366,8 @@ namespace engine
                            groupID, rc ) ;
                goto error ;
             }
+
+            locationExist = TRUE ;
 
             // Compare oldLocation and newLocation
             if ( oldActLoc == newActLoc )
@@ -4390,6 +4395,14 @@ namespace engine
             }
 
             ++itr ;
+         }
+
+         if ( !locationExist )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "Loaction(%s) is not exists in the domain(%s) groups",
+                        newActLoc.c_str(), _dataName.c_str() ) ;
+            goto error ;
          }
       }
       catch ( exception &e )
