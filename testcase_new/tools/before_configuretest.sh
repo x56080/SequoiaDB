@@ -1,12 +1,12 @@
 #!/bin/bash
-set -euo pipefail
+set -eo pipefail
 
 COORDHOSTNAME="${1:-localhost}"
 COORDSVCNAME="${2:-11810}"
 
 currentHostname=$(hostname)
 
-source /etc/profile
+source /etc/profile >/dev/null 2>&1 || true
 source /etc/default/sequoiadb
 
 if ! ${INSTALL_DIR}/bin/sdblist -p 36100 >/dev/null 2>&1; then
