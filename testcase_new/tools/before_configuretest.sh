@@ -10,6 +10,14 @@ source /etc/profile >/dev/null 2>&1 || true
 source /etc/default/sequoiadb
 
 if ! ${INSTALL_DIR}/bin/sdblist -p 36100 >/dev/null 2>&1; then
+
+    # remove tmp coord if exists
+    if ${INSTALL_DIR}/bin/sdblist -p 18800 -m local >/dev/null 2>&1; then
+        ${INSTALL_DIR}/bin/sdb "var tmpOma = new Oma(\"$COORDHOSTNAME\", 11790)"
+        ${INSTALL_DIR}/bin/sdb "tmpOma.removeCoord(18800)"
+        ${INSTALL_DIR}/bin/sdb "tmpOma.close()"
+    fi
+
     # install datasource cluster
     cd "${INSTALL_DIR}/tools/deploy/"
 

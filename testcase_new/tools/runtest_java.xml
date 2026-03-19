@@ -221,9 +221,12 @@
                   <execmongojavatest xmlfile="${xmlfile}" mongodriver="${mongoversion}"/>
                </then>
                <else>
-                  <!-- ================= CONFIGURETEST before ================= -->
+                  <!-- ================= story java CONFIGURETEST before ================= -->
                   <if>
-                     <equals arg1="${TEST_TYPE}" arg2="CONFIGURETEST"/>
+                     <and>
+                        <equals arg1="${TEST_TYPE}" arg2="CONFIGURETEST"/>
+                        <equals arg1="${TESTCASE_TYPE}" arg2="story_java"/>
+                     </and>
                      <then>
                         <configuretest-before
                                 hostname="${hostname}"
@@ -234,16 +237,20 @@
                      </then>
                   </if>
                   <execnormalandlargedatatest xmlfile="${xmlfile}" hostname="${hostname}" svcname="${svcname}" sdbdriver="${sdbdriver}" sdbdriverdir="${sdbdriverDir}" s3client="${s3client}" s3clientdir="${s3clientDir}" eshostname="${eshostname}" essvcname="${essvcname}" dshostname="${dshostname}" dssvcname="${dssvcname}" remoteuser="${remoteuser}" remotepwd="${remotepwd}" rootpwd="${rootpwd}" rsrvnodedir="${rsrvnodedir}" branch="${branch}"/>
-                  <!-- ================= CONFIGURETEST after ================= -->
+                  <!-- ================= story java CONFIGURETEST after ================= -->
                   <if>
-                     <equals arg1="${TEST_TYPE}" arg2="CONFIGURETEST"/>
+                     <and>
+                        <equals arg1="${TEST_TYPE}" arg2="CONFIGURETEST"/>
+                        <equals arg1="${TESTCASE_TYPE}" arg2="story_java"/>
+                     </and>
                      <then>
                         <configuretest-after
                                 hostname="${hostname}"
                                 svcname="${svcname}"
                                 remoteuser="${remoteuser}"
                                 remotepwd="${remotepwd}"
-                                installpath="${sdbdriverDir}/../"/>
+                                installpath="${sdbdriverDir}/../"
+                                backuplogdir="${tmp_report_dir}/toolslog"/>
                      </then>
                   </if>
                </else>
@@ -572,6 +579,7 @@
       <attribute name="remoteuser"/>
       <attribute name="remotepwd"/>
       <attribute name="installpath"/>
+      <attribute name="backuplogdir"/>
 
       <sequential>
          <if>
@@ -581,6 +589,14 @@
             </and>
             <then>
                <echo message="CONFIGURETEST after: upload and execute after_configuretest.sh"/>
+
+                <!-- backup log -->
+               <sshexec host="@{hostname}"
+                        username="@{remoteuser}"
+                        password="@{remotepwd}"
+                        trust="true"
+                        command="mkdir -p @{backuplogdir}; cp -r @{installpath}/tools/sdb-schedule/sdb-schedule/log @{backuplogdir}/sdbschedule"
+                        failonerror="false"/>
 
                <!-- upload after_configuretest.sh -->
                <scp localFile="${CI_WORK_DIR}/testcase/tools/after_configuretest.sh"
