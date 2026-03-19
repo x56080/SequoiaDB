@@ -4334,7 +4334,7 @@ namespace engine
          ossPoolString newActLoc = task->getActiveLocation() ;
          BOOLEAN locationExist = FALSE ;
 
-         CAT_DOMAIN_GROUP_MAP::const_iterator itr = _groupMap.begin() ;
+         CAT_DOMAIN_GROUP_MAP::iterator itr = _groupMap.begin() ;
          while ( _groupMap.end() != itr )
          {
             BSONObj groupObj ;
@@ -4437,7 +4437,7 @@ namespace engine
          // Get Location
          ossPoolString newLoc = task->getLocation() ;
 
-         CAT_DOMAIN_GROUP_MAP::const_iterator itr = _groupMap.begin() ;
+         CAT_DOMAIN_GROUP_MAP::iterator itr = _groupMap.begin() ;
          while ( _groupMap.end() != itr )
          {
             UINT32 groupID = itr->second ;
