@@ -379,7 +379,7 @@ JS_MAPPING_END()
                                          CHAR** buf, SINT64 &len )
    {
       INT32 rc = SDB_OK ;
-      SINT64 readLen = SPT_READ_LEN ;
+      SINT64 readLen = -1 ; /// SPT_READ_LEN ;
       BSONObjBuilder optionBuilder ;
       string err ;
 
