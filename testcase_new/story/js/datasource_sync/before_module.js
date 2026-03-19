@@ -74,11 +74,6 @@ function deployDSCluster()
    var group3Svc = svc;
    createData( "group3", group3Host, group3Svc, tmpCoordHost, tmpCoordSvc ) ;
 
-   // setup database
-   var db3 = new Sdb( coordHost, coordSvc ) ;
-   db3.getRecycleBin().disable();
-   db3.close();
-
    removeTmpCoord( tmpCoordHost, tmpCoordSvc ) ;
 }
 
