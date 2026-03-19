@@ -47,7 +47,7 @@ function test ()
    checkGroupActiveLocation( db, groups, location2 );
 
    // 设置所有复制组中不存在的location
-   assert.tryThrow( SDB_COORD_NOT_ALL_DONE, function()
+   assert.tryThrow( SDB_INVALIDARG, function()
    {
       domain.setActiveLocation( location3 );
    } );
