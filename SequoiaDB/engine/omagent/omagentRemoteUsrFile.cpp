@@ -178,7 +178,7 @@ namespace engine
    IMPLEMENT_OACMD_AUTO_REGISTER( _remoteFileRead )
 
    _remoteFileRead::_remoteFileRead():
-      _FID( 0 ), _size( 1024 ), _isBinary( FALSE )
+      _FID( 0 ), _size( -1 ), _isBinary( FALSE )
    {
    }
 
@@ -224,7 +224,8 @@ namespace engine
 
       if ( FALSE == _valueObj.hasField( OMA_REMOTE_FIELD_NAME_SIZE ) )
       {
-         _size = SPT_READ_LEN ;
+         /// fix: don't set the _size
+         // _size = SPT_READ_LEN ;
       }
       else
       {
@@ -260,6 +261,7 @@ namespace engine
       omaSession *pAgentSession = NULL ;
       BSONObjBuilder builder ;
       _sptUsrFileCommon *fileCommon = NULL ;
+      BSONObj option ;
       string err ;
 
       pAgentSession = _getThreadOmaSession() ;
@@ -278,9 +280,13 @@ namespace engine
          goto error ;
       }
 
+      if ( -1 != _size )
+      {
+         option = BSON( SPT_FILE_COMMON_FIELD_SIZE << _size ) ;
+      }
+
       // read content
-      rc = fileCommon->read( BSON( SPT_FILE_COMMON_FIELD_SIZE << _size ),
-                             err, &buf, readLen ) ;
+      rc = fileCommon->read( option, err, &buf, readLen ) ;
       if( SDB_OK != rc )
       {
          PD_LOG_MSG( PDERROR, "%s", err.c_str() ) ;

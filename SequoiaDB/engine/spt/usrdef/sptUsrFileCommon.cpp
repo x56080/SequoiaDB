@@ -47,6 +47,7 @@
 
 #define SPT_MD5_READ_LEN 1024
 #define SPT_READ_LEN     1024
+#define SPT_READ_MAX_LEN ( 1024 * 1024 * 10 )
 #define SPT_BUFFER_INIT_SIZE 1024
 using namespace std ;
 using namespace bson ;
@@ -170,7 +171,7 @@ namespace engine
                                   CHAR** buf, SINT64 &readLen )
    {
       INT32 rc = SDB_OK ;
-      SINT64 size = SPT_READ_LEN ;
+      SINT64 size = -1 ; /// SPT_READ_LEN ;
 
       SDB_ASSERT( NULL == (*buf), "*buf must be null" ) ;
 
@@ -199,6 +200,24 @@ namespace engine
          err = "File is not opened" ;
          rc = SDB_IO ;
          goto error ;
+      }
+
+      if ( size <= 0 )
+      {
+         rc = ossGetFileSize( &_file, &size ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Get file size failed, rc: %d", rc ) ;
+            err = "Get file size failed" ;
+            goto error ;
+         }
+         else if ( size > SPT_READ_MAX_LEN )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "The file size excceed 10MB, should specify the 'size' param" ) ;
+            err = "The file size excceed 10MB, should specify the 'size' param" ;
+            goto error ;
+         }
       }
 
       *buf = ( CHAR* )SDB_OSS_MALLOC( size + 1 ) ;
