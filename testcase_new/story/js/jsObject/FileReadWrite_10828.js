@@ -21,11 +21,8 @@ FileTest.prototype.testReadWrite = function()
    assert.equal( readPart, "aaaa" );
 
    this.file.seek( 0, 'b' );
-   var readMax = this.file.read();       // 偏移读1024个字符
-   assert.equal( readMax, generateContent( 'a', 1024 ) );
-
-   var readRest = this.file.read();      // 读取剩余字符
-   assert.equal( readRest, 'a' );
+   var readMax = this.file.read();       // 偏移读全部字符
+   assert.equal( readMax, generateContent( 'a', 1025 ) );
 
    this.file.close();      // 关闭文件
    checkClose( this.file );
