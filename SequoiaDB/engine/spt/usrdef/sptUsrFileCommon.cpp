@@ -214,7 +214,7 @@ namespace engine
          else if ( size > SPT_READ_MAX_LEN )
          {
             rc = SDB_INVALIDARG ;
-            PD_LOG( PDERROR, "The file size excceed 10MB, should specify the 'size' param" ) ;
+            PD_LOG( PDERROR, "The file size excceed 200MB, should specify the 'size' param" ) ;
             err = "The file size excceed 200MB, should specify the 'size' param" ;
             goto error ;
          }
