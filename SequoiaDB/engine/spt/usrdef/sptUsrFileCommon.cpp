@@ -47,7 +47,7 @@
 
 #define SPT_MD5_READ_LEN 1024
 #define SPT_READ_LEN     1024
-#define SPT_READ_MAX_LEN ( 1024 * 1024 * 10 )
+#define SPT_READ_MAX_LEN ( 1024 * 1024 * 200 )
 #define SPT_BUFFER_INIT_SIZE 1024
 using namespace std ;
 using namespace bson ;
@@ -215,7 +215,7 @@ namespace engine
          {
             rc = SDB_INVALIDARG ;
             PD_LOG( PDERROR, "The file size excceed 10MB, should specify the 'size' param" ) ;
-            err = "The file size excceed 10MB, should specify the 'size' param" ;
+            err = "The file size excceed 200MB, should specify the 'size' param" ;
             goto error ;
          }
          else if ( size <= 0 )
