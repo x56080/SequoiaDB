@@ -218,6 +218,10 @@ namespace engine
             err = "The file size excceed 10MB, should specify the 'size' param" ;
             goto error ;
          }
+         else if ( size <= 0 )
+         {
+            size = 1 ;
+         }
       }
 
       *buf = ( CHAR* )SDB_OSS_MALLOC( size + 1 ) ;
