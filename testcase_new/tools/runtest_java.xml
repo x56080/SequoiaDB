@@ -225,7 +225,7 @@
                   <if>
                      <and>
                         <equals arg1="${TEST_TYPE}" arg2="CONFIGURETEST"/>
-                        <equals arg1="${TESTCASE_TYPE}" arg2="story_java"/>
+                        <equals arg1="${testcasetype}" arg2="story_java"/>
                      </and>
                      <then>
                         <configuretest-before
@@ -241,7 +241,7 @@
                   <if>
                      <and>
                         <equals arg1="${TEST_TYPE}" arg2="CONFIGURETEST"/>
-                        <equals arg1="${TESTCASE_TYPE}" arg2="story_java"/>
+                        <equals arg1="${testcasetype}" arg2="story_java"/>
                      </and>
                      <then>
                         <configuretest-after
