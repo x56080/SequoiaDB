@@ -202,7 +202,7 @@ namespace engine
          goto error ;
       }
 
-      if ( size <= 0 )
+      if ( size < 0 )
       {
          rc = ossGetFileSize( &_file, &size ) ;
          if ( rc )
