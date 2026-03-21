@@ -17,15 +17,19 @@ function test ()
    var port1 = parseInt( RSRVPORTBEGIN ) + 10;
    var port2 = parseInt( RSRVPORTBEGIN ) + 20;
    var port3 = parseInt( RSRVPORTBEGIN ) + 30;
+   var port4 = parseInt( RSRVPORTBEGIN ) + 40;
    var dbpath1 = RSRVNODEDIR + "data/" + port1;
    var dbpath2 = RSRVNODEDIR + "data/" + port2;
    var dbpath3 = RSRVNODEDIR + "data/" + port3;
+   var dbpath4 = RSRVNODEDIR + "data/" + port4;
+   
+   var getOrCreateNode4 = 0 ; // 1 for get, 2 for create
 
   var dataGroupName = commGetDataGroupNames( db )[0];
   var rg = db.getRG( dataGroupName );
   var slaveNodes = getGroupSlaveNodeName( db, dataGroupName );
 
-  if ( slaveNodes.length < 2 )
+  if ( slaveNodes.length < 2 || slaveNodes.length > 3 )
   {
       return ;
   }
@@ -51,12 +55,25 @@ function test ()
       var node1 = rg.createNode( hostName, port1, dbpath1, { diaglevel: 5, "weight": 90 } );
       var node2 = rg.createNode( hostName, port2, dbpath2, { diaglevel: 5, "weight": 80 } );
       var node3 = rg.createNode( hostName, port3, dbpath3, { diaglevel: 5, "weight": 90 } );
+      if ( slaveNodes.length > 2 )
+      {
+          var node4 = rg.getNode( slaveNodes[2] );
+          db.updateConf( { "weight": 80 }, { "NodeName": slaveNodes[2] } );
+          getOrCreateNode4 = 1 ;
+      }
+      else
+      {
+          removeNode( rg, hostName, port4 );
+          var node4 = rg.createNode( hostName, port4, dbpath4, { diaglevel: 5, "weight": 80 } );
+          getOrCreateNode4 = 2 ;
+      }
       rg.start();
       commCheckBusinessStatus( db );
 
       node1.setLocation( location2 );
-      node1.setLocation( location2 );
+      node2.setLocation( location2 );
       node3.setLocation( location3 );
+      node4.setLocation( location3 );
 
       rg.setActiveLocation( location1 );
       masterNode.stop();
@@ -87,6 +104,10 @@ function test ()
       removeNode( rg, hostName, port1 );
       removeNode( rg, hostName, port2 );
       removeNode( rg, hostName, port3 );
+      if ( 2 == getOrCreateNode4 )
+      {
+          removeNode( rg, hostName, port4 );
+      }
    }
 }
 
