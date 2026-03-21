@@ -96,7 +96,7 @@ function test ()
    var writeFile = new File( writeFileName, 0777, SDB_FILE_CREATE | SDB_FILE_WRITEONLY );
    writeFile.writeContent( content );
    var writeLength = parseInt( writeFile.stat( writeFileName ).toObj().size );
-   if( writeLength !== 1024 )
+   if( writeLength !== content.getLength() )
    {
       throw new Error("WRITE_LENGTH_ERROR");
    }
@@ -108,7 +108,7 @@ function test ()
    var writeFile = new File( writeFileName, 0777, SDB_FILE_CREATE | SDB_FILE_READWRITE );
    writeFile.writeContent( content );
    var writeLength = parseInt( writeFile.stat( writeFileName ).toObj().size );
-   assert.equal( writeLength, 1024 );
+   assert.equal( writeLength, content.getLength() );
 
    //SEQUOIADBMAINSTREAM-2661, clear()
    content.clear();
