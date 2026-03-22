@@ -20,7 +20,7 @@ function test ()
    var masterNode = group.getMaster();
    var slaveNode1 = group.getNode( slaveNodes[0] );
    var slaveNode2 = group.getNode( slaveNodes[1] );
-   masterNode.setLocation( location );
+
    slaveNode1.setLocation( location );
    slaveNode2.setLocation( location );
 
@@ -42,14 +42,19 @@ function test ()
 
       checkGroupNodeInMaintenanceMode( db, groupName, [slaveNodeName1, slaveNodeName2] );
 
+      masterNode.setLocation( location );
+      setNodesLocation( group, slaveNodes, location ) ;
+      assert.tryThrow( SDB_OPERATION_CONFLICT, function()
+      {
+         group.startMaintenanceMode( options );
+      } );
    } finally
    {
       group.stopMaintenanceMode();
 
       // 移除group设置的location
       masterNode.setLocation( "" );
-      slaveNode1.setLocation( "" );
-      slaveNode2.setLocation( "" );
+      setNodesLocation( group, slaveNodes, "" ) ;
    }
 
    commCheckBusinessStatus( db );
