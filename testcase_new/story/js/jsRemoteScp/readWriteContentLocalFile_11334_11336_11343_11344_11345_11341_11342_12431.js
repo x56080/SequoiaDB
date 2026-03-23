@@ -108,7 +108,7 @@ function test ()
    var writeFile = new File( writeFileName, 0777, SDB_FILE_CREATE | SDB_FILE_READWRITE );
    writeFile.writeContent( content );
    var writeLength = parseInt( writeFile.stat( writeFileName ).toObj().size );
-   assert.equal( writeLength, context.getLength() );
+   assert.equal( writeLength, content.getLength() );
 
    //SEQUOIADBMAINSTREAM-2661, clear()
    content.clear();
