@@ -21,7 +21,7 @@ function test ()
    var masterNode = group.getMaster();
    var slaveNode1 = group.getNode( slaveNodes[0] );
    var slaveNode2 = group.getNode( slaveNodes[1] );
-   masterNode.setLocation( location );
+   // masterNode.setLocation( location );
    slaveNode1.setLocation( location );
    slaveNode2.setLocation( location );
 
