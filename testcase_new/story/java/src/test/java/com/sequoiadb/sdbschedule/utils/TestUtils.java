@@ -1,5 +1,6 @@
 package com.sequoiadb.sdbschedule.utils;
 
+import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.DBLob;
@@ -12,7 +13,9 @@ import org.bson.types.BasicBSONList;
 import org.bson.types.ObjectId;
 
 import java.security.MessageDigest;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 public class TestUtils {
@@ -359,6 +362,44 @@ public class TestUtils {
         } while ( --maxWait > 0 );
 
         throw new RuntimeException( "Wait schedule tasks finish timeout" );
+    }
+
+    public static void waitAllFinish( String id ) {
+        waitAllFinish( id, 120 );
+    }
+
+    public static void waitAllFinish( String id, int maxWait ) {
+        List< Integer > notFinishFlags = new ArrayList<>();
+        notFinishFlags.add( 1 );
+        notFinishFlags.add( 2 );
+        BSONObject matcher = new BasicBSONObject( "running_flag",
+                new BasicBSONObject( "$in", notFinishFlags ) );
+        while ( maxWait-- > 0 ) {
+            Response resp = BusinessApiFactory.Schedule.listTasks( id, 0, -1,
+                    matcher, null );
+            BasicBSONList taskList = ( BasicBSONList ) BsonUtils
+                    .fromResponse( resp );
+            if ( taskList.size() == 0 ) {
+                return;
+            }
+            try {
+                Thread.sleep( 1000 );
+            } catch ( InterruptedException e ) {
+                // ignore
+            }
+        }
+        throw new RuntimeException( "Wait schedule all tasks finish timeout" );
+    }
+
+    public static CollectionSpace initCS(Sequoiadb sdb, String csName) {
+        cleanCS(sdb, csName);
+        return sdb.createCollectionSpace( csName );
+    }
+
+    public static void cleanCS(Sequoiadb sdb, String csName) {
+        if ( sdb.isCollectionSpaceExist( csName ) ) {
+            sdb.dropCollectionSpace( csName );
+        }
     }
 
     public static boolean compareRecord( DBCollection sCL, DBCollection tCL ) {

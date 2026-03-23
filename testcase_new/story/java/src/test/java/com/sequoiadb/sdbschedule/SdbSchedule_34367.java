@@ -35,7 +35,7 @@ public class SdbSchedule_34367 extends SdbTestBase {
         targetSite = getDatasourceSiteName();
         sDB = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         tDB = DataSourceUtils.getDsConnect(sDB, getScheduleDataSourceName());
-        DBCollection cl = sDB.createCollectionSpace( csName )
+        DBCollection cl = TestUtils.initCS( sDB, csName )
                 .createCollection( clName );
         cl.createAutoIncrement( new BasicBSONObject( "Field", "incField1" ) );
     }
@@ -64,15 +64,11 @@ public class SdbSchedule_34367 extends SdbTestBase {
     @AfterClass()
     public void tearDown() {
         if ( sDB != null ) {
-            if ( sDB.isCollectionSpaceExist( csName ) ) {
-                sDB.dropCollectionSpace( csName );
-            }
+            TestUtils.cleanCS( sDB, csName );
             sDB.close();
         }
         if ( tDB != null ) {
-            if ( tDB.isCollectionSpaceExist( csName ) ) {
-                tDB.dropCollectionSpace( csName );
-            }
+            TestUtils.cleanCS( tDB, csName );
             tDB.close();
         }
     }
@@ -135,6 +131,7 @@ public class SdbSchedule_34367 extends SdbTestBase {
         String id = ( String ) BsonUtils.fromResponse( resp ).get( "id" );
         TestUtils.waitFinish( id, 2 );
         BusinessApiFactory.Schedule.switchEnable( id, false );
+        TestUtils.waitAllFinish( id );
         BusinessApiFactory.Schedule.delete( id );
     }
 }

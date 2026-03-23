@@ -37,7 +37,7 @@ public class SdbSchedule_34379 extends SdbTestBase {
         targetSite = getDatasourceSiteName();
         sDB = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         tDB = DataSourceUtils.getDsConnect(sDB, getScheduleDataSourceName());
-        sCL = sDB.createCollectionSpace( csName ).createCollection( clName );
+        sCL = TestUtils.initCS( sDB, csName ).createCollection( clName );
         sCL.createIndex( "index1", index1, false, false );
     }
 
@@ -99,15 +99,11 @@ public class SdbSchedule_34379 extends SdbTestBase {
     @AfterClass()
     public void tearDown() {
         if ( sDB != null ) {
-            if ( sDB.isCollectionSpaceExist( csName ) ) {
-                sDB.dropCollectionSpace( csName );
-            }
+            TestUtils.cleanCS( sDB, csName );
             sDB.close();
         }
         if ( tDB != null ) {
-            if ( tDB.isCollectionSpaceExist( csName ) ) {
-                tDB.dropCollectionSpace( csName );
-            }
+            TestUtils.cleanCS( tDB, csName );
             tDB.close();
         }
     }

@@ -38,7 +38,7 @@ public class SdbSchedule_34378 extends SdbTestBase {
         targetSite = getDatasourceSiteName();
         sDB = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         tDB = DataSourceUtils.getDsConnect(sDB, getScheduleDataSourceName());
-        sCL = sDB.createCollectionSpace( csName ).createCollection( clName );
+        sCL = TestUtils.initCS( sDB, csName ).createCollection( clName );
         sCL.createAutoIncrement( field1 );
         for ( int i = 0; i < recordCount; i++ ) {
             BSONObject record = new BasicBSONObject();
@@ -112,15 +112,11 @@ public class SdbSchedule_34378 extends SdbTestBase {
     @AfterClass()
     public void tearDown() {
         if ( sDB != null ) {
-            if ( sDB.isCollectionSpaceExist( csName ) ) {
-                sDB.dropCollectionSpace( csName );
-            }
+            TestUtils.cleanCS( sDB, csName );
             sDB.close();
         }
         if ( tDB != null ) {
-            if ( tDB.isCollectionSpaceExist( csName ) ) {
-                tDB.dropCollectionSpace( csName );
-            }
+            TestUtils.cleanCS( tDB, csName );
             tDB.close();
         }
     }

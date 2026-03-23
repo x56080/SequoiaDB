@@ -48,7 +48,7 @@ public class SdbSchedule_34391 extends SdbTestBase {
         mainCLOption.put( "IsMainCL", true );
         mainCLOption.put( "ShardingType", "range" );
 
-        CollectionSpace cs = sDB.createCollectionSpace( csName );
+        CollectionSpace cs = TestUtils.initCS( sDB, csName );
         DBCollection mainCL = cs.createCollection( mainCLName, mainCLOption );
         cs.createCollection( subCLName );
         TestUtils.attachCL( mainCL, new BasicBSONObject( "date", "20220101" ),
@@ -146,15 +146,11 @@ public class SdbSchedule_34391 extends SdbTestBase {
     @AfterClass()
     public void tearDown() {
         if ( sDB != null ) {
-            if ( sDB.isCollectionSpaceExist( csName ) ) {
-                sDB.dropCollectionSpace( csName );
-            }
+            TestUtils.cleanCS( sDB, csName );
             sDB.close();
         }
         if ( tDB != null ) {
-            if ( tDB.isCollectionSpaceExist( csName ) ) {
-                tDB.dropCollectionSpace( csName );
-            }
+            TestUtils.cleanCS( tDB, csName );
             tDB.close();
         }
     }
