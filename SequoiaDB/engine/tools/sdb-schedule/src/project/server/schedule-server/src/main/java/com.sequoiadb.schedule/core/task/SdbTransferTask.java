@@ -81,8 +81,8 @@ public class SdbTransferTask extends TransferDataSwitchTaskBase {
             }
 
             @Override
-            public boolean compareSnapshot(BSONObject oldSnapshot, BSONObject newSnapshot) {
-                return compareRecordSnapshot(oldSnapshot, newSnapshot);
+            public boolean compareSnapshot(BasicBSONList oldSnapshots, BasicBSONList newSnapshots) {
+                return compareRecordSnapshot(oldSnapshots, newSnapshots);
             }
         };
         lobSkipStrategy = new SnapshotSkipStrategy() {
@@ -92,8 +92,8 @@ public class SdbTransferTask extends TransferDataSwitchTaskBase {
             }
 
             @Override
-            public boolean compareSnapshot(BSONObject oldSnapshot, BSONObject newSnapshot) {
-                return compareLobSnapshot(oldSnapshot, newSnapshot);
+            public boolean compareSnapshot(BasicBSONList oldSnapshots, BasicBSONList newSnapshots) {
+                return compareLobSnapshot(oldSnapshots, newSnapshots);
             }
         };
     }
@@ -610,23 +610,23 @@ public class SdbTransferTask extends TransferDataSwitchTaskBase {
         CollectionSnapshotRecord lastCollectionSnapshotRecord = ScheduleServer.getInstance()
                 .getLastCollectionSnapshotRecord(getSourceSite(), clFullName);
         if (lastCollectionSnapshotRecord == null) {
-            BSONObject clSnapshot = SdbHelper.getCLSnapshot(sourceSdb, clFullName);
-            saveCLSnapshot(getSourceSite(), clFullName, null, clSnapshot);
+            BasicBSONList clSnapshots = SdbHelper.getCLSnapshot(sourceSdb, clFullName);
+            saveCLSnapshot(getSourceSite(), clFullName, null, clSnapshots);
             return false;
         }
         if (skipStrategy.isSnapshotEffective(lastCollectionSnapshotRecord)) {
             // 快照有效的情况下，检查最新一次快照是否变化，没变化就可以跳过
-            BSONObject clSnapshot = SdbHelper.getCLSnapshot(sourceSdb, clFullName);
-            if (clSnapshot == null) {
+            BasicBSONList clSnapshots = SdbHelper.getCLSnapshot(sourceSdb, clFullName);
+            if (clSnapshots == null) {
                 throw new ScheduleSystemException(
                         "failed to get collection snapshot, snapshot is null, cl=" + clFullName);
             }
             // 最新快照没有变化，可以跳过迁移
-            if (skipStrategy.compareSnapshot(lastCollectionSnapshotRecord.getSnapshot(), clSnapshot)) {
+            if (skipStrategy.compareSnapshot(lastCollectionSnapshotRecord.getSnapshots(), clSnapshots)) {
                 return true;
             }
-            // 最新快照由变化，不能跳过迁移，保存本次采集的快照
-            saveCLSnapshot(getSourceSite(), clFullName, lastCollectionSnapshotRecord, clSnapshot);
+            // 最新快照有变化，不能跳过迁移，保存本次采集的快照
+            saveCLSnapshot(getSourceSite(), clFullName, lastCollectionSnapshotRecord, clSnapshots);
             return false;
         }
         else {
@@ -713,5 +713,5 @@ interface SnapshotSkipStrategy {
     /**
      * 快照是否相同
      */
-    boolean compareSnapshot(BSONObject oldSnapshot, BSONObject newSnapshot);
+    boolean compareSnapshot(BasicBSONList oldSnapshots, BasicBSONList newSnapshots);
 }

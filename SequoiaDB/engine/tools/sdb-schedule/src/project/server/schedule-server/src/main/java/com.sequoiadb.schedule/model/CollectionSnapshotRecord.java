@@ -36,6 +36,7 @@ import com.sequoiadb.schedule.common.BsonUtils;
 import com.sequoiadb.schedule.common.FieldName;
 import lombok.Data;
 import org.bson.BSONObject;
+import org.bson.types.BasicBSONList;
 
 @Data
 public class CollectionSnapshotRecord {
@@ -43,7 +44,7 @@ public class CollectionSnapshotRecord {
     private String collection;
     private String site;
     private long lastRecordTime;
-    private BSONObject snapshot;
+    private BasicBSONList snapshots;
     private boolean recordSnapshotEffective;
     private boolean lobSnapshotEffective;
 
@@ -55,7 +56,7 @@ public class CollectionSnapshotRecord {
                 FieldName.CollectionSnapshotRecord.FIELD_SITE_NAME));
         record.setLastRecordTime(BsonUtils.getLongChecked(obj,
                 FieldName.CollectionSnapshotRecord.FIELD_LAST_RECORD_TIME));
-        record.setSnapshot((BSONObject) obj.get(FieldName.CollectionSnapshotRecord.FIELD_SNAPSHOT));
+        record.setSnapshots(BsonUtils.getArray(obj, FieldName.CollectionSnapshotRecord.FIELD_SNAPSHOTS));
         record.setRecordSnapshotEffective(BsonUtils.getBooleanOrElse(obj, FieldName.CollectionSnapshotRecord.FIELD_RECORD_SNAPSHOT_EFFECTIVE, false));
         record.setLobSnapshotEffective(BsonUtils.getBooleanOrElse(obj, FieldName.CollectionSnapshotRecord.FIELD_LOB_SNAPSHOT_EFFECTIVE, false));
         return record;

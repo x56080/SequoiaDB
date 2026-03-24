@@ -147,7 +147,7 @@ public class FieldName {
 
     public static class CollectionSnapshotRecord {
         public static final String FIELD_COLLECTION_NAME = "collection";
-        public static final String FIELD_SNAPSHOT = "snapshot";
+        public static final String FIELD_SNAPSHOTS = "snapshots";
         public static final String FIELD_SITE_NAME = "site";
         public static final String FIELD_LAST_RECORD_TIME = "last_record_time";
         public static final String FIELD_RECORD_SNAPSHOT_EFFECTIVE = "record_snapshot_effective";

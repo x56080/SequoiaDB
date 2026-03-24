@@ -57,6 +57,7 @@ import com.sequoiadb.schedule.remote.FeignClientFactory;
 import com.sequoiadb.schedule.remote.ScheduleServerFeignClient;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
+import org.bson.types.BasicBSONList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -201,9 +202,9 @@ public class ScheduleServer {
     }
 
     public void recordCollectionSnapshot(String siteName, String collectionName,
-            BSONObject snapshot, boolean recordSnapshotEffective, boolean lobSnapshotEffective)
+            BasicBSONList snapshots, boolean recordSnapshotEffective, boolean lobSnapshotEffective)
             throws Exception {
-        collectionSnapshotRecordDao.upsert(siteName, collectionName, snapshot,
+        collectionSnapshotRecordDao.upsert(siteName, collectionName, snapshots,
                 recordSnapshotEffective, lobSnapshotEffective);
     }
 

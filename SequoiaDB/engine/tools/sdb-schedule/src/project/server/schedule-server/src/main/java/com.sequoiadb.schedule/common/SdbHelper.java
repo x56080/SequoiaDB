@@ -122,10 +122,10 @@ public class SdbHelper {
         }
     }
 
-    public static BSONObject getCLSnapshot(Sequoiadb sdb, String clName) {
+    public static BasicBSONList getCLSnapshot(Sequoiadb sdb, String clFullName) {
         BSONObject matcher = new BasicBSONObject();
         matcher.put("RawData", true);
-        matcher.put("Name", clName);
+        matcher.put("Name", clFullName);
 
         BSONObject selector = new BasicBSONObject();
         selector.put("Name", 1);
@@ -144,12 +144,16 @@ public class SdbHelper {
         selector.put("Details.LobCommitLSN", 1);
         selector.put("Details.TotalValidLobSize", 1);
 
-        try (DBCursor cursor = sdb.getSnapshot(Sequoiadb.SDB_SNAP_COLLECTIONS,
-                matcher, selector, null)) {
-            if (cursor.hasNext()) {
-                return cursor.getNext();
+        try (DBCursor cursor = sdb.getSnapshot(Sequoiadb.SDB_SNAP_COLLECTIONS, matcher, selector,
+                null)) {
+            if (!cursor.hasNext()) {
+                return null;
             }
-            return null;
+            BasicBSONList snapshots = new BasicBSONList();
+            while (cursor.hasNext()) {
+                snapshots.add(cursor.getNext());
+            }
+            return snapshots;
         }
     }
 

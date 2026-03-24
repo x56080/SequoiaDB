@@ -34,16 +34,20 @@ package com.sequoiadb.schedule.dao;
 
 import com.sequoiadb.schedule.metasource.template.ITransaction;
 import com.sequoiadb.schedule.model.CollectionSnapshotRecord;
-import org.bson.BSONObject;
+import org.bson.types.BasicBSONList;
 
 public interface CollectionSnapshotRecordDao {
 
     CollectionSnapshotRecord findOne(String siteName, String clFullName) throws Exception;
 
-    void upsert(String siteName, String clFullName, BSONObject snapshot, boolean recordSnapshotEffective, boolean lobSnapshotEffective) throws Exception;
+    void upsert(String siteName, String clFullName, BasicBSONList snapshots,
+            boolean recordSnapshotEffective, boolean lobSnapshotEffective) throws Exception;
 
     void delete(String siteName, String clFullName, ITransaction t) throws Exception;
 
-    void updateRecordSnapshotEffective(String siteName, String clFullName, boolean recordSnapshotEffective);
-    void updateLobSnapshotEffective(String siteName, String clFullName, boolean lobSnapshotEffective);
+    void updateRecordSnapshotEffective(String siteName, String clFullName,
+            boolean recordSnapshotEffective);
+
+    void updateLobSnapshotEffective(String siteName, String clFullName,
+            boolean lobSnapshotEffective);
 }

@@ -47,6 +47,7 @@ import com.sequoiadb.schedule.metasource.template.SequoiadbTransaction;
 import com.sequoiadb.schedule.model.CollectionSnapshotRecord;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
+import org.bson.types.BasicBSONList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -152,7 +153,7 @@ public class SdbCollectionSnapshotRecordDao implements CollectionSnapshotRecordD
     }
 
     @Override
-    public void upsert(String siteName, String clFullName, BSONObject snapshot,
+    public void upsert(String siteName, String clFullName, BasicBSONList snapshots,
             boolean recordSnapshotEffective, boolean lobSnapshotEffective) throws Exception {
         BSONObject matcher = new BasicBSONObject();
         matcher.put(FieldName.CollectionSnapshotRecord.FIELD_SITE_NAME, siteName);
@@ -160,7 +161,7 @@ public class SdbCollectionSnapshotRecordDao implements CollectionSnapshotRecordD
         BSONObject newValue = new BasicBSONObject();
         newValue.put(FieldName.CollectionSnapshotRecord.FIELD_SITE_NAME, siteName);
         newValue.put(FieldName.CollectionSnapshotRecord.FIELD_COLLECTION_NAME, clFullName);
-        newValue.put(FieldName.CollectionSnapshotRecord.FIELD_SNAPSHOT, snapshot);
+        newValue.put(FieldName.CollectionSnapshotRecord.FIELD_SNAPSHOTS, snapshots);
         newValue.put(FieldName.CollectionSnapshotRecord.FIELD_LAST_RECORD_TIME,
                 System.currentTimeMillis());
         newValue.put(FieldName.CollectionSnapshotRecord.FIELD_RECORD_SNAPSHOT_EFFECTIVE,

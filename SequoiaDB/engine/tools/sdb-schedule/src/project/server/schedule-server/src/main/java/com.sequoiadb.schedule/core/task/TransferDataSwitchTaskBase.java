@@ -393,8 +393,8 @@ public abstract class TransferDataSwitchTaskBase extends ScheduleTaskBase {
     }
 
     public boolean notDataWrite(Sequoiadb sourceSdb, String clFullName) throws Exception {
-        BSONObject currentSnapshot = SdbHelper.getCLSnapshot(sourceSdb, clFullName);
-        if (currentSnapshot == null) {
+        BasicBSONList currentSnapshots = SdbHelper.getCLSnapshot(sourceSdb, clFullName);
+        if (currentSnapshots == null) {
             throw new ScheduleSystemException(
                     "failed to get collection snapshot, snapshot is null, cl=" + clFullName);
         }
@@ -402,14 +402,15 @@ public abstract class TransferDataSwitchTaskBase extends ScheduleTaskBase {
         CollectionSnapshotRecord lastCollectionSnapshotRecord = ScheduleServer.getInstance()
                 .getLastCollectionSnapshotRecord(getSourceSite(), clFullName);
         if (lastCollectionSnapshotRecord == null) {
-            saveCLSnapshot(getSourceSite(), clFullName, null, currentSnapshot);
+            saveCLSnapshot(getSourceSite(), clFullName, null, currentSnapshots);
             return false;
         }
 
-        boolean res = hasNewDataWrite(lastCollectionSnapshotRecord.getSnapshot(), currentSnapshot);
+        boolean res = hasNewDataWrite(lastCollectionSnapshotRecord.getSnapshots(),
+                currentSnapshots);
         if (res) {
             saveCLSnapshot(getSourceSite(), clFullName, lastCollectionSnapshotRecord,
-                    currentSnapshot);
+                    currentSnapshots);
             return false;
         }
 
@@ -427,15 +428,15 @@ public abstract class TransferDataSwitchTaskBase extends ScheduleTaskBase {
         BSONObject cataInfo = SdbHelper.getCataSnapshotByClName(sourceSdb, clFullName);
         Boolean repairCheck = BsonUtils.getBooleanOrElse(cataInfo, "RepairCheck", false);
         if (repairCheck) {
-            BSONObject newSnapshot = SdbHelper.getCLSnapshot(sourceSdb, clFullName);
-            if (newSnapshot == null) {
+            BasicBSONList newSnapshots = SdbHelper.getCLSnapshot(sourceSdb, clFullName);
+            if (newSnapshots == null) {
                 throw new ScheduleSystemException(
                         "failed to get collection snapshot, snapshot is null, cl=" + clFullName);
             }
-            res = hasNewDataWrite(lastCollectionSnapshotRecord.getSnapshot(), newSnapshot);
+            res = hasNewDataWrite(lastCollectionSnapshotRecord.getSnapshots(), newSnapshots);
             if (res) {
                 saveCLSnapshot(getSourceSite(), clFullName, lastCollectionSnapshotRecord,
-                        newSnapshot);
+                        newSnapshots);
                 return false;
             }
             return true;
@@ -456,16 +457,16 @@ public abstract class TransferDataSwitchTaskBase extends ScheduleTaskBase {
                 throw e;
             }
 
-            BSONObject newSnapshot = SdbHelper.getCLSnapshot(sourceSdb, clFullName);
-            if (newSnapshot == null) {
+            BasicBSONList newSnapshots = SdbHelper.getCLSnapshot(sourceSdb, clFullName);
+            if (newSnapshots == null) {
                 throw new ScheduleSystemException(
                         "the collection snapshot is null, cl=" + clFullName);
             }
-            res = hasNewDataWrite(lastCollectionSnapshotRecord.getSnapshot(), newSnapshot);
+            res = hasNewDataWrite(lastCollectionSnapshotRecord.getSnapshots(), newSnapshots);
             if (res) {
                 try {
                     saveCLSnapshot(getSourceSite(), clFullName, lastCollectionSnapshotRecord,
-                            newSnapshot);
+                            newSnapshots);
                 }
                 finally {
                     SdbHelper.unSetClRepairCheck(collection);
@@ -477,17 +478,17 @@ public abstract class TransferDataSwitchTaskBase extends ScheduleTaskBase {
     }
 
     protected void saveCLSnapshot(String siteName, String collectionName,
-            CollectionSnapshotRecord lastCollectionSnapshotRecord, BSONObject newSnapshot)
+            CollectionSnapshotRecord lastCollectionSnapshotRecord, BasicBSONList newSnapshots)
             throws Exception {
         if (lastCollectionSnapshotRecord == null) {
             ScheduleServer.getInstance().recordCollectionSnapshot(siteName, collectionName,
-                    newSnapshot, false, false);
+                    newSnapshots, false, false);
             return;
         }
 
-        BSONObject lastSnapshot = lastCollectionSnapshotRecord.getSnapshot();
-        boolean recordSnapshotSame = compareRecordSnapshot(lastSnapshot, newSnapshot);
-        boolean lobSnapshotSame = compareLobSnapshot(lastSnapshot, newSnapshot);
+        BasicBSONList lastSnapshots = lastCollectionSnapshotRecord.getSnapshots();
+        boolean recordSnapshotSame = compareRecordSnapshot(lastSnapshots, newSnapshots);
+        boolean lobSnapshotSame = compareLobSnapshot(lastSnapshots, newSnapshots);
         boolean recordSnapshotEffective = false;
         if (recordSnapshotSame) {
             recordSnapshotEffective = lastCollectionSnapshotRecord.isRecordSnapshotEffective();
@@ -496,28 +497,59 @@ public abstract class TransferDataSwitchTaskBase extends ScheduleTaskBase {
         if (lobSnapshotSame) {
             lobSnapshotEffective = lastCollectionSnapshotRecord.isLobSnapshotEffective();
         }
-        ScheduleServer.getInstance().recordCollectionSnapshot(siteName, collectionName, newSnapshot,
-                recordSnapshotEffective, lobSnapshotEffective);
+        ScheduleServer.getInstance().recordCollectionSnapshot(siteName, collectionName,
+                newSnapshots, recordSnapshotEffective, lobSnapshotEffective);
 
     }
 
-    protected boolean compareLobSnapshot(BSONObject leftSnapshot, BSONObject rightSnapshot) {
-        BasicBSONList leftRecordDetails = extractFields((BasicBSONList) leftSnapshot.get("Details"),
-                lobSnapshotFields);
-        BasicBSONList rightRecordDetails = extractFields(
-                (BasicBSONList) rightSnapshot.get("Details"), lobSnapshotFields);
-        return detailsEquals(leftRecordDetails, rightRecordDetails);
+    protected boolean compareLobSnapshot(BasicBSONList leftSnapshots,
+            BasicBSONList rightSnapshots) {
+        return compareSnapshot(leftSnapshots, rightSnapshots, lobSnapshotFields);
     }
 
-    protected boolean compareRecordSnapshot(BSONObject leftSnapshot, BSONObject rightSnapshot) {
-        BasicBSONList leftRecordDetails = extractFields((BasicBSONList) leftSnapshot.get("Details"),
-                recordSnapshotFields);
-        BasicBSONList rightRecordDetails = extractFields(
-                (BasicBSONList) rightSnapshot.get("Details"), recordSnapshotFields);
-        return detailsEquals(leftRecordDetails, rightRecordDetails);
+    protected boolean compareRecordSnapshot(BasicBSONList leftSnapshots,
+            BasicBSONList rightSnapshots) {
+        return compareSnapshot(leftSnapshots, rightSnapshots, recordSnapshotFields);
     }
 
-    private BasicBSONList extractFields(BasicBSONList details, String[] fields) {
+    private boolean compareSnapshot(BasicBSONList leftSnapshots, BasicBSONList rightSnapshots,
+            String[] fields) {
+        if (leftSnapshots == null || rightSnapshots == null) {
+            return false;
+        }
+
+        if (leftSnapshots.size() != rightSnapshots.size()) {
+            return false;
+        }
+
+        BasicBSONList l = extractFields(leftSnapshots, fields);
+        BasicBSONList r = extractFields(rightSnapshots, fields);
+        return itemsEquals(l, r);
+    }
+
+    private BasicBSONList extractFields(BasicBSONList snapshots, String[] fields) {
+        BasicBSONList list = new BasicBSONList();
+
+        for (Object obj : snapshots) {
+            BSONObject snapshot = (BSONObject) obj;
+            String name = BsonUtils.getStringChecked(snapshot, "Name");
+            Number uniqueID = BsonUtils.getNumberChecked(snapshot, "UniqueID");
+            String collectionSpace = BsonUtils.getStringChecked(snapshot, "CollectionSpace");
+            BasicBSONList details = extractDetailsFields((BasicBSONList) snapshot.get("Details"),
+                    fields);
+
+            BSONObject extractedSnapshot = new BasicBSONObject();
+            extractedSnapshot.put("Name", name);
+            extractedSnapshot.put("UniqueID", uniqueID);
+            extractedSnapshot.put("CollectionSpace", collectionSpace);
+            extractedSnapshot.put("Details", details);
+
+            list.add(extractedSnapshot);
+        }
+        return list;
+    }
+
+    private BasicBSONList extractDetailsFields(BasicBSONList details, String[] fields) {
         if (details == null) {
             return null;
         }
@@ -535,33 +567,40 @@ public abstract class TransferDataSwitchTaskBase extends ScheduleTaskBase {
     }
 
     // 比对集合快照检查是否有新数据写入
-    private boolean hasNewDataWrite(BSONObject leftSnapshot, BSONObject rightSnapshot) {
-        if (clSnapshotEquals(leftSnapshot, rightSnapshot)) {
+    private boolean hasNewDataWrite(BasicBSONList leftSnapshots, BasicBSONList rightSnapshots) {
+        if (clSnapshotEquals(leftSnapshots, rightSnapshots)) {
             return false;
         }
         return true;
     }
 
-    private boolean clSnapshotEquals(BSONObject leftSnapshot, BSONObject rightSnapshot) {
-        return detailsEquals((BasicBSONList) leftSnapshot.get("Details"),
-                (BasicBSONList) rightSnapshot.get("Details"));
+    private boolean clSnapshotEquals(BasicBSONList leftSnapshots, BasicBSONList rightSnapshots) {
+        if (leftSnapshots == null || rightSnapshots == null) {
+            return false;
+        }
+
+        if (leftSnapshots.size() != rightSnapshots.size()) {
+            return false;
+        }
+
+        return itemsEquals(leftSnapshots, rightSnapshots);
     }
 
-    private boolean detailsEquals(BasicBSONList leftDetails, BasicBSONList rightDetails) {
-        if (leftDetails == null || rightDetails == null) {
+    private boolean itemsEquals(BasicBSONList lefts, BasicBSONList rights) {
+        if (lefts == null || rights == null) {
             return false;
         }
 
-        if (leftDetails.size() != rightDetails.size()) {
+        if (lefts.size() != rights.size()) {
             return false;
         }
 
-        for (Object l : leftDetails) {
-            BSONObject lDetail = (BSONObject) l;
+        for (Object l : lefts) {
+            BSONObject lItem = (BSONObject) l;
             boolean matchFound = false;
-            for (Object r : rightDetails) {
-                BSONObject rDetail = (BSONObject) r;
-                if (lDetail.equals(rDetail)) {
+            for (Object r : rights) {
+                BSONObject rItem = (BSONObject) r;
+                if (lItem.equals(rItem)) {
                     matchFound = true;
                     break;
                 }
