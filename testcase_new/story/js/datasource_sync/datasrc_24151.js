@@ -18,7 +18,7 @@ function test ()
    var csNameB = "DS_24151B";
    var groups = commGetGroups( datasrcDB )[0];;
    var groupName = groups[0].GroupName;
-   var nodeCount = groups[0][0].Length;
+   var nodeCount = groups[0].Length;
    if ( nodeCount < 3 )
    {
       return;
