@@ -266,6 +266,7 @@ namespace engine
       //Build reply message
       msgFillReplyByReq( _replyHeader, pSrcReqMsg ) ;
       _replyHeader.header.messageLength = sizeof ( MsgOpReply ) + bLen ;
+      _replyHeader.flags = flags ;
 
       /// when we have more than one record to return,
       /// rewrite here.
