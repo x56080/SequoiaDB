@@ -8,6 +8,7 @@
 testConf.skipStandAlone = true;
 testConf.useSrcGroup = true;
 testConf.clName = COMMCLNAME + "_32583";
+testConf.clOpt = {ReplSize:-1}
 
 main( test );
 function test ( testPara )
