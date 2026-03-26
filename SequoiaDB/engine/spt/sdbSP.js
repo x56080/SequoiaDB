@@ -4723,14 +4723,14 @@ DiagLog.prototype._searchFromCollect = function() {
       {
          File.mkdir( resultDir, 0777 ) ;
       }
-      var resultFile = new File( this._output, 0644, SDB_FILE_READWRITE | SDB_FILE_CREATE ) ;
+      var resultFile = new File( this._output, 0666, SDB_FILE_READWRITE | SDB_FILE_CREATE ) ;
       resultFile.truncate() ;
       var content = "";
       for ( var i = 0; i < outputFileArray.length; i++ )
       {
          try
          {
-            var localFile = new File( outputFileArray[i], 0644, SDB_FILE_READONLY ) ;
+            var localFile = new File( outputFileArray[i], 0666, SDB_FILE_READONLY ) ;
             while( true )
             {
                content = localFile.readContent( 4 * 1024 * 1024 ) ;
@@ -5014,13 +5014,13 @@ DiagLog.prototype._searchCluster = function() {
       {
          File.mkdir( resultDir, 0777 ) ;
       }
-      var resultFile = new File( this._output, 0644, SDB_FILE_READWRITE | SDB_FILE_CREATE ) ;
+      var resultFile = new File( this._output, 0666, SDB_FILE_READWRITE | SDB_FILE_CREATE ) ;
       resultFile.truncate() ;
       var content = "";
       for ( var i = 0; i < outputFileArray.length; i++ )
       {
          var remoteFile = outputFileArray[i].remote.getFile( outputFileArray[i].output ) ;
-         var localFile = new File( outputFileArray[i].output, 0644, SDB_FILE_WRITEONLY | SDB_FILE_CREATE ) ;
+         var localFile = new File( outputFileArray[i].output, 0666, SDB_FILE_WRITEONLY | SDB_FILE_CREATE ) ;
          try
          {
             while( true )
@@ -5379,7 +5379,7 @@ DiagLog.prototype._scp = function( src, dst ) {
          throw SDB_FNE ;
       }
       mode = File._getPermission( srcArr[0] ) ;
-      srcFile = new File( srcArr[0], 0644, SDB_FILE_READONLY ) ;
+      srcFile = new File( srcArr[0], 0666, SDB_FILE_READONLY ) ;
    }
 
    var dstArr = dst.split( "@" ) ;

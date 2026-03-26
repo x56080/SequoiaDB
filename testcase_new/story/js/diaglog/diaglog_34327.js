@@ -20,6 +20,7 @@ function testLastFile( diaglog )
     } catch ( e ) {
         println("[ERROR] Failed on diaglog.search().lastFile( 1 ).keypattern( 'rc: ' ).limit( 10 )");
         println('fileName: ' + fileName);
+        println('error: ' + getLastErrObj());
         throw e;
     }
     // 等于 0, 预期失败
@@ -53,6 +54,7 @@ function testLastest( diaglog )
     } catch ( e ) {
         println("[ERROR] Failed on diaglog.search().lastest( 60 ).keypattern( 'rc: ' ).limit( 10 )");
         println('fileName: ' + fileName);
+        println('error: ' + getLastErrObj());
         throw e;
     }
     // 等于 0, 预期失败
@@ -115,6 +117,7 @@ function testTimeBegin( diaglog )
         println("[ERROR] Failed on diaglog.search().timeBegin(...)");
         println('fileName: ' + fileName);
         println('error_test_number: ' + error_test_number);
+        println('error: ' + getLastErrObj());println('error: ' + getLastErrObj());
         throw e;
     }
     // 非字符串, 预期失败
@@ -174,6 +177,7 @@ function testTimeEnd( diaglog )
         println("[ERROR] Failed on diaglog.search().timeEnd(...)");
         println('fileName: ' + fileName);
         println('error_test_number: ' + error_test_number);
+        println('error: ' + getLastErrObj());
         throw e;
     }
     // 非字符串, 预期失败
@@ -215,6 +219,7 @@ function testError( diaglog )
         println("[ERROR] Failed on diaglog.search().error(...)");
         println('fileName: ' + fileName);
         println('error_test_number: ' + error_test_number);
+        println('error: ' + getLastErrObj());
         throw e;
     }
     // 等于 0, 预期失败
@@ -262,6 +267,7 @@ function testDiagLevel( diaglog )
         println("[ERROR] Failed on diaglog.search().diaglevel(...)");
         println('fileName: ' + fileName);
         println('error_test_number: ' + error_test_number);
+        println('error: ' + getLastErrObj());
         throw e;
     }
     // 非 0-4, 预期失败
@@ -290,6 +296,7 @@ function testKeypattern( diaglog )
     } catch ( e ) {
         println("[ERROR] Failed on diaglog.search().keypattern( 'Session' ).limit( 10 )");
         println('fileName: ' + fileName);
+        println('error: ' + getLastErrObj());
         throw e;
     }
     // 非字符串, 预期失败
@@ -312,6 +319,7 @@ function testTid( diaglog )
     } catch ( e ) {
         println("[ERROR] Failed on diaglog.tid( 12345 ).limit( 1 )");
         println('fileName: ' + fileName);
+        println('error: ' + getLastErrObj());
         throw e;
     }
     // 等于 0, 预期失败
@@ -344,6 +352,7 @@ function testPid( diaglog )
     } catch ( e ) {
         println("[ERROR] Failed on diaglog.search().pid( 12345 ).limit( 1 )");
         println('fileName: ' + fileName);
+        println('error: ' + getLastErrObj());
         throw e;
     }
     // 等于 0, 预期失败
@@ -400,6 +409,7 @@ function testLimit( diaglog )
         println('fileName: ' + fileName);
         println('time: ' + Date());
         println('diaglog: ' + JSON.stringify(diaglog));
+        println('error: ' + getLastErrObj());
         throw e;
     }
 
@@ -416,6 +426,7 @@ function testLimit( diaglog )
     } catch ( e ) {
         println("[ERROR] Failed on diaglog.search().keypattern( 'a' ).limit( 1 )");
         println('fileName: ' + fileName);
+        println('error: ' + getLastErrObj());
         throw e;
     }
     // 等于 -1, 预期成功
@@ -424,6 +435,7 @@ function testLimit( diaglog )
         log = diaglog.search().lastFile( 1 ).keypattern( 'a' ).limit( -1 );
         fileName = log.run();
     } catch ( e ) {println("[ERROR] Failed on diaglog.search().lastFile( 1 ).keypattern( 'a' ).limit( -1 )");
+        println('error: ' + getLastErrObj());
         throw e;
     }
     // 等于 0, 预期失败
@@ -469,6 +481,7 @@ function testOriginal( diaglog )
         println("[ERROR] Failed on diaglog.search().original(...)");
         println('fileName: ' + fileName);
         println('error_test_number: ' + error_test_number);
+        println('error: ' + getLastErrObj());
         throw e;
     }
     // 结果为 1 行
@@ -481,6 +494,7 @@ function testOriginal( diaglog )
     } catch ( e ) {
         println("[ERROR] Failed on diaglog.search().original(...)");
         println('fileName: ' + fileName);
+        println('error: ' + getLastErrObj());
         throw e;
     }
 }
@@ -504,6 +518,7 @@ function testAfter( diaglog )
         println("[ERROR] Failed on diaglog.search().after(...)");
         println('fileName: ' + fileName);
         println('error_test_number: ' + error_test_number);
+        println('error: ' + getLastErrObj());
         throw e;
     }
     // 小于 0, 预期失败
@@ -538,6 +553,7 @@ function testBefore( diaglog )
         println("[ERROR] Failed on diaglog.search().before(...)");
         println('fileName: ' + fileName);
         println('error_test_number: ' + error_test_number);
+        println('error: ' + getLastErrObj());
         throw e;
     }
     // 小于 0, 预期失败
@@ -564,6 +580,7 @@ function testNext ( diaglog )
         fileName = log.run();
     } catch ( e ) {
         println("[ERROR] Failed on diaglog.search().keypattern( 'a' ).limit( 100 )");
+        println('error: ' + getLastErrObj());
         throw e;
     }
     // 空, 预期成功
@@ -572,6 +589,7 @@ function testNext ( diaglog )
     } catch ( e ) {
         println("[ERROR] Failed on diaglog.next()");
         println('fileName: ' + fileName);
+        println('error: ' + getLastErrObj());
         throw e;
     }
     // 大于 1, 预期成功
@@ -581,6 +599,7 @@ function testNext ( diaglog )
     } catch ( e ) {
         println("[ERROR] Failed on diaglog.next(...)");
         println('fileName: ' + fileName);
+        println('error: ' + getLastErrObj());
         throw e;
     }
 
@@ -615,6 +634,7 @@ function testMultiple ( diaglog )
     } catch ( e ) {
         println("[ERROR] Failed on diaglog.search().timeBegin( '2025-09-15T12:01:01.123456Z' ).timeEnd( '9999-09-15T12:01:01.123456Z' ).keypattern( 'rc: ' ).limit( 10 )");
         println('fileName: ' + fileName);
+        println('error: ' + getLastErrObj());
         throw e;
     }
 
@@ -627,6 +647,7 @@ function testMultiple ( diaglog )
     } catch ( e ) {
         println("[ERROR] Failed on diaglog.search().error( -16 ).keypattern( 'rc: ' ).limit( 10 )");
         println('fileName: ' + fileName);
+        println('error: ' + getLastErrObj());
         throw e;
     }
 
@@ -650,6 +671,7 @@ function testOutput( diaglog )
         assert.equal( rc, '10' );
     } catch ( e ) {
         println("[ERROR] Failed on check /tmp/sequoiadb/search/cluster*.auto");
+        println('error: ' + getLastErrObj());
         throw e;
     }
 
@@ -729,6 +751,7 @@ function testOutput( diaglog )
     } catch ( e ) {
         println("[ERROR] Failed on check " + WORKDIR + "/diaglog_34327/*");
         println('error_test_number: ' + error_test_number);
+        println('error: ' + getLastErrObj());
         throw e;
     }
 
@@ -746,6 +769,7 @@ function testOutput( diaglog )
     } catch ( e ) {
         println("[ERROR] Failed on double search " + WORKDIR + "/diaglog_34327/*");
         println('error_test_number: ' + error_test_number);
+        println('error: ' + getLastErrObj());
         throw e;
     }
 
@@ -784,6 +808,7 @@ function testPath( diaglog )
     } catch ( e ) {
         println("[ERROR] Failed on diaglog.search().keypattern( 'a' ).limit( 1 ).path( '" + dataPath + "/diaglog' )");
         println('fileName: ' + fileName);
+        println('error: ' + getLastErrObj());
         throw e;
     } finally {
         if ( null != oma ){
@@ -797,6 +822,7 @@ function testPath( diaglog )
         fileName = log.run();
     } catch ( e ) {
         println("[ERROR] Failed on diaglog.search().error( -79 ).limit( 1 ).path( '/tmp' )");
+        println('error: ' + getLastErrObj());
         throw e;
     }    
 
@@ -953,6 +979,7 @@ function test()
             File.remove( WORKDIR + '/diaglog_34327' );
         } catch (e) {
             println("[ERROR] Failed on remove '" + WORKDIR + "/diaglog_34327'");
+            println('error: ' + getLastErrObj());
             throw e;
         }
     } catch (e) {
