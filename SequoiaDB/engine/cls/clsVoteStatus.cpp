@@ -163,25 +163,26 @@ namespace engine
          rc = SDB_CLS_VOTE_FAILED ;
          goto error ;
       }
-      else if ( SDB_OK != sdbGetReplCB()->getSyncEmptyEvent()->wait( 0 ) )
+      else if ( !isLocation() && SDB_OK != sdbGetReplCB()->getSyncEmptyEvent()->wait( 0 ) )
       {
-         PD_LOG( PDWARNING, "Repl sync log is running, "
+         PD_LOG( PDWARNING, "%s Vote: Repl sync log is running, "
                  "can't initial voting" ) ;
          rc = SDB_CLS_VOTE_FAILED ;
          goto error ;
       }
-      else if ( !sdbGetReplCB()->getBucket()->isEmpty() )
+      else if ( !isLocation() && !sdbGetReplCB()->getBucket()->isEmpty() )
       {
-         PD_LOG( PDWARNING, "Repl log is not empty, can't initial voting, "
+         PD_LOG( PDWARNING, "%s Vote: Repl log is not empty, can't initial voting, "
                  "repl bucket size: %d",
                  sdbGetReplCB()->getBucket()->size() ) ;
          rc = SDB_CLS_VOTE_FAILED ;
          goto error ;
       }
-      else if ( sdbGetTransCB()->isNeedSyncTrans() &&
+      else if ( !isLocation() &&
+                sdbGetTransCB()->isNeedSyncTrans() &&
                 pmdGetStartup().isOK() )
       {
-         PD_LOG( PDWARNING, "Trans info is not sync, can't initial voting" ) ;
+         PD_LOG( PDWARNING, "%s Vote: Trans info is not sync, can't initial voting" ) ;
          rc = SDB_CLS_VOTE_FAILED ;
          goto error ;
       }
