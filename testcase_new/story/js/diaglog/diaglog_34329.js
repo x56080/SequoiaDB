@@ -26,8 +26,9 @@ function collect( diaglog, compress )
         } else {
             fileName = "";
         }
-    } catch (error) {
+    } catch (e) {
         println("[ERROR] Failed on diaglog.collect().keypattern( 'rc: ' ).lastFile( 1 ).compress( " + compress + " )");
+        println('error: ' + getLastErrObj());
         throw e;
     }
     diaglog.reset();
@@ -85,6 +86,7 @@ function testPath( diaglog, logPath1, logPath2 )
         println("fileName1: " + fileName1);
         println("fileName2: " + fileName2);
         println("error_test_number: " + error_test_number);
+        println('error: ' + getLastErrObj());
         throw e;
     }
     diaglog.reset();
@@ -103,6 +105,7 @@ function testOutput( diaglog, logPath )
         testCsv(fileName);
     } catch ( e ) {
         println("[ERROR] Failed on diaglog.analyze().path( " + logPath + " ).output( '" + WORKDIR + "/diaglog_34329' )");
+        println('error: ' + getLastErrObj());
         throw e;
     }
 
@@ -114,6 +117,7 @@ function testOutput( diaglog, logPath )
         testCsv(fileName);
     } catch ( e ) {
         println("[ERROR] Failed on diaglog.analyze().path( " + logPath + ".tar.gz ).output( '" + WORKDIR + "/diaglog_34329' )");
+        println('error: ' + getLastErrObj());
         throw e;
     }
 
@@ -139,6 +143,7 @@ function testOutput( diaglog, logPath )
         assert.equal( rc, '10' );
     } catch ( e ) {
         println("[ERROR] Failed on diaglog.analyze().path( " + logPath + " ).run()");
+        println('error: ' + getLastErrObj());
         throw e;
     }
     diaglog.reset();

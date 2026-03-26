@@ -21,6 +21,7 @@ function test()
         var fileName2;
         var packageName;
         var rc;
+        var error_test_number = 1;
         try {
             // 搜索日志
             log = diaglog.search().keypattern( 'rc: ' ).lastFile( 1 );
@@ -28,6 +29,7 @@ function test()
             rc = File.exist( fileName );
             assert.equal( rc, true );
             testWithoutOriginal(diaglog);
+            error_test_number++;
 
             // 收集日志
             log = diaglog.search().keypattern( 'rc: ' ).lastFile( 1 ).collect();
@@ -37,16 +39,19 @@ function test()
             rc = File.exist( fileName + '.tar.gz' );
             assert.equal( rc, true );
             packageName = fileName + '.tar.gz';
+            error_test_number++;
 
             // 分析前面收集的日志
             log = diaglog.search().keypattern( 'rc: ' ).lastFile( 1 ).collect().analyze().path( fileName );
             fileName = log.run();
             testCsv(fileName);
+            error_test_number++;
 
             // 分析 tar.gz 压缩包
             diaglog.reset();
             log = diaglog.search().keypattern( 'rc: ' ).lastFile( 1 ).collect().analyze().path( packageName ).output( WORKDIR + '/diaglog_34330' );
             testCsv(fileName);
+            error_test_number++;
 
             // 搜索 tar.gz 压缩包
             log = diaglog.search().keypattern( 'rc: ' ).lastFile( 1 ).path( packageName ).output( WORKDIR + '/diaglog_34330/' );
@@ -54,11 +59,12 @@ function test()
             rc = File.exist( fileName );
             assert.equal( rc, true );
             testWithoutOriginal(diaglog);
+            error_test_number++;
 
             // 先判断本机器需要有 zip 命令才能执行压缩 zip 包测试
             var cmd = new Cmd();
-            rc = cmd.run( 'zip --version > /dev/null 2>&1;echo $?' ).trimRight('\n');
-            if ( '0' == rc ) {
+            var existZip = cmd.run( 'zip --version > /dev/null 2>&1;echo $?' ).trimRight('\n');
+            if ( '0' == existZip ) {
                 // 收集 zip 压缩包
                 diaglog.reset();
                 log = diaglog.search().keypattern( 'rc: ' ).lastFile( 1 ).collect().compress( 'zip' );
@@ -68,11 +74,13 @@ function test()
                 rc = File.exist( fileName + '.zip' );
                 assert.equal( rc, true );
                 packageName = fileName + '.zip';
+                error_test_number++;
 
                 // 分析 zip 压缩包
                 log = diaglog.search().keypattern( 'rc: ' ).lastFile( 1 ).collect().analyze().path( packageName ).output( WORKDIR + '/diaglog_34330/' );
                 fileName = log.run();
                 testCsv(fileName);
+                error_test_number++;
 
                 // 搜索 zip 压缩包
                 diaglog.reset();
@@ -81,6 +89,7 @@ function test()
                 rc = File.exist( fileName );
                 assert.equal( rc, true );
                 testWithoutOriginal(diaglog);
+                error_test_number++;
             }
 
             // 测试不 reset 是否能沿用续用变量
@@ -94,6 +103,7 @@ function test()
             fileName1 = log.run();
             rc = File.exist( fileName1 );
             assert.equal( rc, true );
+            error_test_number++;
 
             log = diaglog.collect();
             fileName = log.run();
@@ -101,12 +111,14 @@ function test()
             assert.equal( rc, true );
             rc = File.exist( fileName + '.tar.gz' );
             assert.equal( rc, true );
+            error_test_number++;
 
             log = diaglog.search().path( fileName );
             fileName2 = log.run();
             rc = File.exist( fileName2 );
             assert.equal( rc, true );
             testWithoutOriginal(diaglog);
+            error_test_number++;
 
             // 排除文件名影响，对比从集群日志搜索的结果是否和从 collect() 收集回来的文件的结果一致
             cmd.run( 'sed -i "s#,/[^,]*,#,#g" ' + fileName1 );
@@ -117,6 +129,7 @@ function test()
             log = diaglog.analyze();
             fileName = log.run();
             testCsv(fileName);
+            error_test_number++;
 
             File.remove( WORKDIR + '/diaglog_34330' );
         } catch ( e ) {
@@ -125,6 +138,9 @@ function test()
             println('filename2: ' + fileName2);
             println('packageName:' + packageName);
             println('diaglog: ' + JSON.stringify(diaglog));
+            println("existZip: " + existZip);
+            println("error_test_number: " + error_test_number);
+            println('error: ' + getLastErrObj());
             throw e;
         }
     } catch (e) {

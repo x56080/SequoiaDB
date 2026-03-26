@@ -31,6 +31,7 @@ function testCore( diaglog, db, coreFileNameArray )
         cursor.close();
     } catch ( e ) {
         println("[ERROR] Failed on generate core file");
+        println('error: ' + getLastErrObj());
         throw e;
     } finally {
         if ( null != remote ){
@@ -47,6 +48,7 @@ function testCore( diaglog, db, coreFileNameArray )
         fileName = log.run();
     } catch ( e ) {
         println("[ERROR] Failed on diaglog.collect().core()");
+        println('error: ' + getLastErrObj());
         throw e;
     }
 
@@ -83,6 +85,7 @@ function testTrap( diaglog, db, trapFileNameArray )
         cursor.close();
     } catch ( e ) {
         println("[ERROR] Failed on generate trap file");
+        println('error: ' + getLastErrObj());
         throw e;
     } finally {
         if ( null != remote ){
@@ -99,6 +102,7 @@ function testTrap( diaglog, db, trapFileNameArray )
         fileName = log.run();
     } catch ( e ) {
         println("[ERROR] Failed on diaglog.collect().trap()");
+        println('error: ' + getLastErrObj());
         throw e;
     }
 
@@ -225,6 +229,7 @@ function testSnapShot( diaglog, localCmd )
     } catch ( e ) {
         println("[ERROR] Failed on diaglog.collect().snasphot()");
         println("error_test_number: " + error_test_number);
+        println('error: ' + getLastErrObj());
         throw e;
     }
     diaglog.reset();
@@ -295,6 +300,7 @@ function testAll( diaglog, coreFileNameArray, trapFileNameArray )
         assert.equal( rc, true );
     } catch ( e ) {
         println("[ERROR] Failed on diaglog.collect().all()");
+        println('error: ' + getLastErrObj());
         throw e;
     }
     diaglog.reset();
@@ -340,6 +346,7 @@ function testCompress( diaglog ) {
     } catch ( e ) {
         println("[ERROR] Failed on diaglog.collect().compress()");
         println("error_test_number: " + error_test_number);
+        println('error: ' + getLastErrObj());
         throw e;
     }
 
@@ -371,6 +378,7 @@ function testPath( diaglog )
         log = diaglog.collect().trap();
         fileName = log.run();
     } catch ( e ) {
+        println('error: ' + getLastErrObj());
         throw e;
     }
 
@@ -382,6 +390,7 @@ function testPath( diaglog )
         rc = cmd.run( 'ls /tmp/sequoiadb/collect/diaglog_*.auto.tar.gz | wc -l' ).trimRight( '\n' );
         assert.equal( rc, '10' );
     } catch ( e ) {
+        println('error: ' + getLastErrObj());
         throw e;
     }
 
@@ -393,6 +402,7 @@ function testPath( diaglog )
         assert.equal( rc, true );
     } catch ( e ) {
         println("[ERROR] Failed on diaglog.collect().error( -16 ).limit( 1 ).path( '" + WORKDIR + "/diaglog_34328/abcde' )");
+        println('error: ' + getLastErrObj());
         throw e;
     }
 
@@ -443,6 +453,7 @@ function removeCoreAndTrap(coreFileNameArray, trapFileNameArray)
             cursor.close();
         }
     } catch ( e ) {
+        println('error: ' + getLastErrObj());
         throw e;
     } finally {
         if ( null != remote ){
@@ -471,6 +482,7 @@ function removeCoreAndTrap(coreFileNameArray, trapFileNameArray)
             cursor.close();
         }
     } catch ( e ) {
+        println('error: ' + getLastErrObj());
         throw e;
     } finally {
         if ( null != remote ){
