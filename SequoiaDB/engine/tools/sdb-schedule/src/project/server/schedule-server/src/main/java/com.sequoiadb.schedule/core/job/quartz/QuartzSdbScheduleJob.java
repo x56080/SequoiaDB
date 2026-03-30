@@ -114,8 +114,8 @@ public abstract class QuartzSdbScheduleJob extends QuartzScheduleJob {
 
             try {
                 notifyTask(runTaskServer, task.getId());
-                logger.info("task has successfully started on server, taskId={}, server={}",
-                        task.getId(), runTaskServer);
+                logger.info("task has successfully started on server, taskId={}, scheduleId={}, server={}",
+                        task.getId(), info.getId(), runTaskServer);
             }
             catch (Exception e) {
                 if (isLocalServer(runTaskServer)) {
@@ -127,7 +127,7 @@ public abstract class QuartzSdbScheduleJob extends QuartzScheduleJob {
                 else {
                     logger.warn("notify task failed to server={}, retry run in local: task={} ",
                             runTaskServer, task, e);
-                    runInLocal(task.getId());
+                    runInLocal(task.getId(), info.getId());
                 }
             }
         }
@@ -147,13 +147,13 @@ public abstract class QuartzSdbScheduleJob extends QuartzScheduleJob {
         return ScheduleServer.getInstance().isLocalServer(server);
     }
 
-    private void runInLocal(String taskId) {
+    private void runInLocal(String taskId, String scheduleId) {
         try {
             ServerNodeEntity localServer = ScheduleServer.getInstance().getLocalServer();
             updateTaskRunServer(localServer, taskId);
             notifyTask(localServer, taskId);
-            logger.info("task has successfully started on local server, taskId={}, server={}",
-                    taskId, localServer);
+            logger.info("task has successfully started on local server, taskId={}, scheduleId={}, server={}",
+                    taskId, scheduleId, localServer);
         }
         catch (Exception e) {
             logger.error(

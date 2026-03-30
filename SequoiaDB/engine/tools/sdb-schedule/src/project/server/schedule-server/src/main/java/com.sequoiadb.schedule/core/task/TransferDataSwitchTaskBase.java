@@ -117,6 +117,7 @@ public abstract class TransferDataSwitchTaskBase extends ScheduleTaskBase {
     public final void _runTask() {
         taskStartTime = System.currentTimeMillis();
         try {
+            logger.info("running task, task={}", getTaskInfo().toString());
             updateTaskRunning(taskId, taskStartTime);
             checkSite();
             checkSdbVersion();
@@ -125,7 +126,7 @@ public abstract class TransferDataSwitchTaskBase extends ScheduleTaskBase {
             doTask();
         }
         catch (Exception e) {
-            logger.warn("run task failed:taskId=" + getTaskId(), e);
+            logger.warn("run task failed:taskId={}", getTaskId(), e);
             abortTaskAndAsyncRedo(getTaskId(), ScheduleDefine.TaskRunningFlag.SCHEDULE_TASK_ABORT,
                     e.toString(), processClCount);
         }

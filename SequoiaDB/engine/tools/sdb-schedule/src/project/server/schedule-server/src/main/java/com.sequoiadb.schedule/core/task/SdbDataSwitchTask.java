@@ -107,13 +107,13 @@ public class SdbDataSwitchTask extends TransferDataSwitchTaskBase {
             // canceled
             int flag = getTaskRunningFlag(getTaskId());
             if (ScheduleDefine.TaskRunningFlag.SCHEDULE_TASK_CANCEL == flag) {
-                logger.info("task have been canceled:taskId=" + getTaskId());
+                logger.info("task have been canceled:taskId={}", getTaskId());
                 stopTaskAndAsyncRedo(getTaskId(), processClCount);
                 return;
             }
 
             // finished
-            logger.info("task have been finished:taskId=" + getTaskId());
+            logger.info("task have been finished:taskId={}", getTaskId());
             finishTaskAndAsyncRedo(getTaskId(), processClCount);
         }
         finally {
@@ -148,14 +148,12 @@ public class SdbDataSwitchTask extends TransferDataSwitchTaskBase {
                     }
                     if (interruptionFlag.isInterrupted()) {
                         // 分区中断，当上一个分区的子表没有数据切换或者数据切换失败，则后续分区的子表不进行数据切换，跳过
-                        if (interruptionFlag.isInterrupted()) {
-                            logger.info(
-                                    "partition interruption occurred, skipped data switch other sub collections of the " +
-                                            "main collection {}, currentSubCl: {}, sourceSite: {}, targetSite: {}, taskId: {}",
-                                    entry.getKey(), clFullName, getSourceSite(), getTargetSite(),
-                                    getTaskId());
-                            break;
-                        }
+                        logger.info(
+                                "partition interruption occurred, skipped data switch other sub collections of the " +
+                                        "main collection {}, currentSubCl: {}, sourceSite: {}, targetSite: {}, taskId: {}",
+                                entry.getKey(), clFullName, getSourceSite(), getTargetSite(),
+                                getTaskId());
+                        break;
                     }
                 }
             }

@@ -326,8 +326,8 @@ public class SdbCLTransferHelper {
      * @return true: all lob already transfer, false: transfer timeout or have lob transfer failed
      */
     public boolean transferLob() throws ScheduleServerException {
-        logger.info("start transferring lobs, sourceSite={}, targetSite={}, cl={}", sourceSite,
-                targetSite, sourceCL.getFullName());
+        logger.info("start transferring lobs, sourceSite={}, targetSite={}, cl={}, taskId={}", sourceSite,
+                targetSite, sourceCL.getFullName(), taskId);
         try {
             return doTransferLob();
         }

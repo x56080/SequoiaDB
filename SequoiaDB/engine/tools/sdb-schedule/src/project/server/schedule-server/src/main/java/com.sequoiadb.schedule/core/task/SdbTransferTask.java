@@ -130,13 +130,13 @@ public class SdbTransferTask extends TransferDataSwitchTaskBase {
             // canceled
             int flag = getTaskRunningFlag(getTaskId());
             if (ScheduleDefine.TaskRunningFlag.SCHEDULE_TASK_CANCEL == flag) {
-                logger.info("task have been canceled:taskId=" + getTaskId());
+                logger.info("task have been canceled:taskId={}", getTaskId());
                 stopTaskAndAsyncRedo(getTaskId(), processClCount);
                 return;
             }
 
             // finished
-            logger.info("task have been finished:taskId=" + getTaskId());
+            logger.info("task have been finished:taskId={}", getTaskId());
             finishTaskAndAsyncRedo(getTaskId(), processClCount);
         }
         finally {
@@ -233,15 +233,15 @@ public class SdbTransferTask extends TransferDataSwitchTaskBase {
         BSONObject clCataInfo = SdbHelper.getCataSnapshotByClName(sourceSdb, clFullName);
         if (clCataInfo == null) {
             logger.warn(
-                    "cl not exist in source site, skip transfer. sourceSite={}, targetSite={}, clName={}",
-                    getSourceSite(), getTargetSite(), clFullName);
+                    "cl not exist in source site, skip transfer. sourceSite={}, targetSite={}, clName={}, taskId={}",
+                    getSourceSite(), getTargetSite(), clFullName, getTaskId());
             return;
         }
         boolean isMapDs = clCataInfo.containsField("DataSourceID");
         if (isMapDs) {
             logger.debug(
-                    "cl is already map to data source, skip transfer. sourceSite={}, targetSite={}, clName={}",
-                    getSourceSite(), getTargetSite(), clFullName);
+                    "cl is already map to data source, skip transfer. sourceSite={}, targetSite={}, clName={}, taskId={}",
+                    getSourceSite(), getTargetSite(), clFullName, getTaskId());
             return;
         }
 

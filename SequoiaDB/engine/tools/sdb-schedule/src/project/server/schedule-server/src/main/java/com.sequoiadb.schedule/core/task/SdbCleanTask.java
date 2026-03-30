@@ -98,10 +98,10 @@ public class SdbCleanTask extends ScheduleTaskBase {
     public void _runTask() {
         taskStartTime = System.currentTimeMillis();
         try {
+            logger.info("running task, task={}", getTaskInfo().toString());
             updateTaskRunning(taskId, taskStartTime);
             if (CollectionUtils.isEmpty(cleanRange)) {
-                logger.warn("the clean task cleanRange is empty, no clean required, taskId="
-                        + getTaskId());
+                logger.warn("the clean task cleanRange is empty, no clean required, taskId={}", getTaskId());
                 return;
             }
 
@@ -122,17 +122,17 @@ public class SdbCleanTask extends ScheduleTaskBase {
             // canceled
             int flag = getTaskRunningFlag(getTaskId());
             if (ScheduleDefine.TaskRunningFlag.SCHEDULE_TASK_CANCEL == flag) {
-                logger.info("task have been canceled:taskId=" + getTaskId());
+                logger.info("task have been canceled:taskId={}", getTaskId());
                 stopTaskAndAsyncRedo(getTaskId(), processClCount);
                 return;
             }
 
             // finished
-            logger.info("task have been finished:taskId=" + getTaskId());
+            logger.info("task have been finished:taskId={}", getTaskId());
             finishTaskAndAsyncRedo(getTaskId(), processClCount);
         }
         catch (Exception e) {
-            logger.warn("run task failed:taskId=" + getTaskId(), e);
+            logger.warn("run task failed:taskId={}", getTaskId(), e);
             abortTaskAndAsyncRedo(getTaskId(), ScheduleDefine.TaskRunningFlag.SCHEDULE_TASK_ABORT,
                     e.toString(), processClCount);
         }
@@ -239,7 +239,7 @@ public class SdbCleanTask extends ScheduleTaskBase {
             updator.doUpdate();
         }
         catch (Exception e) {
-            logger.error("update task plan failed:taskId=" + getTaskId(), e);
+            logger.error("update task plan failed:taskId={}", getTaskId(), e);
             throw e;
         }
     }
