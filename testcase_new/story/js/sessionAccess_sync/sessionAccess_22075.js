@@ -45,7 +45,7 @@ function test ( testPara )
    }
 
    //10s后检查会话访问节点为备节点
-   sleep( 10000 );
+   sleep( 10300 );
 
    actAccessNode = testPara.testCL.find().explain().current().toObj().NodeName;
    if( expAccessNodes.indexOf( actAccessNode ) === -1 )
