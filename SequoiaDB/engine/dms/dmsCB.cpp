@@ -1463,8 +1463,11 @@ namespace engine
          {
             if ( cb )
             {
+               if ( !hasBlock )
+               {
+                  cb->setBlock( EDU_BLOCK_DMS, "" ) ;
+               }
                hasBlock = TRUE ;
-               cb->setBlock( EDU_BLOCK_DMS, "" ) ;
                cb->printInfo( EDU_INFO_DOING,
                               "Waiting to block dms write(WriteCounter:%u)",
                               _writeCounter ) ;
