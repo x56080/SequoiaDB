@@ -166,7 +166,7 @@ namespace engine
       else if ( !isLocation() && SDB_OK != sdbGetReplCB()->getSyncEmptyEvent()->wait( 0 ) )
       {
          PD_LOG( PDWARNING, "%s Vote: Repl sync log is running, "
-                 "can't initial voting" ) ;
+                 "can't initial voting", getScopeName() ) ;
          rc = SDB_CLS_VOTE_FAILED ;
          goto error ;
       }
@@ -174,7 +174,7 @@ namespace engine
       {
          PD_LOG( PDWARNING, "%s Vote: Repl log is not empty, can't initial voting, "
                  "repl bucket size: %d",
-                 sdbGetReplCB()->getBucket()->size() ) ;
+                 getScopeName(), sdbGetReplCB()->getBucket()->size() ) ;
          rc = SDB_CLS_VOTE_FAILED ;
          goto error ;
       }
@@ -182,7 +182,7 @@ namespace engine
                 sdbGetTransCB()->isNeedSyncTrans() &&
                 pmdGetStartup().isOK() )
       {
-         PD_LOG( PDWARNING, "%s Vote: Trans info is not sync, can't initial voting" ) ;
+         PD_LOG( PDWARNING, "%s Vote: Trans info is not sync, can't initial voting", getScopeName() ) ;
          rc = SDB_CLS_VOTE_FAILED ;
          goto error ;
       }
