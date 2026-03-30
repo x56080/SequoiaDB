@@ -25,6 +25,7 @@
  *
  **************************************************************************************************/
 testConf.clName = COMMCLNAME + "_compositeIndex_at_5";
+testConf.clOpt = {ReplSize:-1}
 
 main(test);
 function test(testPara)
