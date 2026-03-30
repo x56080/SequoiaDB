@@ -9,6 +9,28 @@ currentHostname=$(hostname)
 source /etc/profile >/dev/null 2>&1 || true
 source /etc/default/sequoiadb
 
+# clean when residue
+(
+# stop sdb-schedule tools
+${INSTALL_DIR}/tools/sdb-schedule/sdb-schedule/bin/schctl.sh stop -t all -f
+
+rm -rf ${INSTALL_DIR}/tools/sdb-schedule/sdb-schedule
+
+${INSTALL_DIR}/bin/sdb "var tmpDB = new Sdb(\"$COORDHOSTNAME\", $COORDSVCNAME)"
+
+${INSTALL_DIR}/bin/sdb "tmpDB.dropCS(\"SDB_SCHEDULE_SYSTEM\")"
+
+${INSTALL_DIR}/bin/sdb "tmpDB.dropDataSource(\"sdbscheduledatasource\")"
+
+${INSTALL_DIR}/bin/sdb 'tmpDB.close()'
+
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+REMOVE_JS="$SCRIPT_DIR/removeDSCluster.js"
+
+${INSTALL_DIR}/bin/sdb -f $REMOVE_JS -e "var DSHOSTNAME=\"$currentHostname\"; var DSSVCNAME=36100; var COORDHOSTNAME=\"$COORDHOSTNAME\"; var RSRVNODEDIR=\"${INSTALL_DIR}/database\";"
+
+) >/dev/null 2>&1 || true
+
 if ! ${INSTALL_DIR}/bin/sdblist -p 36100 >/dev/null 2>&1; then
 
     # remove tmp coord if exists

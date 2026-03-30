@@ -31,9 +31,20 @@ function removeDSCluster()
    var catalogAddr = catalogHost + ":" + catalogSvc;
    db1.close();
 
+   // get an available temp port
+   var tmpCoordSvc = 36511;
+   var remote = new Remote( COORDHOSTNAME, 11790 );
+   var maxStep = 200;
+   while( maxStep-- > 0 ) {
+      if ( remote.getSystem().sniffPort( tmpCoordSvc ).toObj().Usable ) {
+         break;
+      }
+      tmpCoordSvc++;
+   }
+   remote.close();
+
    // remove coord and catalog
    var oma = new Oma( COORDHOSTNAME, 11790 );
-   var tmpCoordSvc = 36110;
    try
    {
       oma.createCoord( tmpCoordSvc, RSRVNODEDIR + "/coord/" + tmpCoordSvc,

@@ -535,23 +535,33 @@
 
       <sequential>
          <if>
-            <available file="${CI_WORK_DIR}/testcase/tools/before_configuretest.sh"/>
+             <and>
+                 <available file="${CI_WORK_DIR}/testcase/tools/before_configuretest.sh"/>
+                 <available file="${CI_WORK_DIR}/testcase/tools/removeDSCluster.js"/>
+             </and>
             <then>
                <echo message="CONFIGURETEST before: upload and execute before_configuretest.sh"/>
 
-               <!-- upload -->
+               <!-- upload before_configuretest.sh-->
                <scp localFile="${CI_WORK_DIR}/testcase/tools/before_configuretest.sh"
                     remoteTodir="@{remoteuser}@@@{hostname}:@{installpath}/tools/sdb-schedule/"
                     password="@{remotepwd}"
                     trust="true"
                     failonerror="true"/>
 
+                <!-- upload removeDSCluster.js -->
+                <scp localFile="${CI_WORK_DIR}/testcase/tools/removeDSCluster.js"
+                     remoteTodir="@{remoteuser}@@@{hostname}:@{installpath}/tools/sdb-schedule/"
+                     password="@{remotepwd}"
+                     trust="true"
+                     failonerror="true"/>
+
                <!-- chmod -->
                <sshexec host="@{hostname}"
                         username="@{remoteuser}"
                         password="@{remotepwd}"
                         trust="true"
-                        command="chmod 777 @{installpath}/tools/sdb-schedule/before_configuretest.sh"
+                        command="chmod 777 @{installpath}/tools/sdb-schedule/before_configuretest.sh @{installpath}/tools/sdb-schedule/removeDSCluster.js"
                         failonerror="false"/>
 
                <!-- exec -->
@@ -561,12 +571,13 @@
                         trust="true"
                         command="bash @{installpath}/tools/sdb-schedule/before_configuretest.sh @{hostname} @{svcname}"
                         failonerror="true"/>
+
                 <!-- remove -->
                <sshexec host="@{hostname}"
                         username="@{remoteuser}"
                         password="@{remotepwd}"
                         trust="true"
-                        command="rm -f @{installpath}/tools/sdb-schedule/before_configuretest.sh"
+                        command="rm -f @{installpath}/tools/sdb-schedule/before_configuretest.sh @{installpath}/tools/sdb-schedule/removeDSCluster.js"
                         failonerror="false"/>
             </then>
          </if>
@@ -603,14 +614,14 @@
                     remoteTodir="@{remoteuser}@@@{hostname}:@{installpath}/tools/sdb-schedule/"
                     password="@{remotepwd}"
                     trust="true"
-                    failonerror="true"/>
+                    failonerror="false"/>
 
                <!-- upload removeDSCluster.js -->
                <scp localFile="${CI_WORK_DIR}/testcase/tools/removeDSCluster.js"
                     remoteTodir="@{remoteuser}@@@{hostname}:@{installpath}/tools/sdb-schedule/"
                     password="@{remotepwd}"
                     trust="true"
-                    failonerror="true"/>
+                    failonerror="false"/>
 
                <!-- chmod -->
                <sshexec host="@{hostname}"
@@ -626,7 +637,7 @@
                         password="@{remotepwd}"
                         trust="true"
                         command="bash @{installpath}/tools/sdb-schedule/after_configuretest.sh @{hostname} @{svcname}"
-                        failonerror="true"/>
+                        failonerror="false"/>
 
                 <!-- remove -->
                <sshexec host="@{hostname}"
