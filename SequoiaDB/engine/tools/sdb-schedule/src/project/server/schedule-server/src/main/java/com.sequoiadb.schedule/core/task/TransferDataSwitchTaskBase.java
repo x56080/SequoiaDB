@@ -436,6 +436,8 @@ public abstract class TransferDataSwitchTaskBase extends ScheduleTaskBase {
             }
             res = hasNewDataWrite(lastCollectionSnapshotRecord.getSnapshots(), newSnapshots);
             if (res) {
+                logger.info("has new data write in repairCheck, cl={}, lastRecordSnapshot={}, newSnapshots={}", clFullName,
+                        lastCollectionSnapshotRecord, newSnapshots);
                 saveCLSnapshot(getSourceSite(), clFullName, lastCollectionSnapshotRecord,
                         newSnapshots);
                 return false;
@@ -465,6 +467,8 @@ public abstract class TransferDataSwitchTaskBase extends ScheduleTaskBase {
             }
             res = hasNewDataWrite(lastCollectionSnapshotRecord.getSnapshots(), newSnapshots);
             if (res) {
+                logger.info("has new data write in repairCheck, cl={}, lastRecordSnapshot={}, newSnapshots={}", clFullName,
+                        lastCollectionSnapshotRecord, newSnapshots);
                 try {
                     saveCLSnapshot(getSourceSite(), clFullName, lastCollectionSnapshotRecord,
                             newSnapshots);
