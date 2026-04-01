@@ -139,6 +139,7 @@ public class SdbSchedule_34361 extends SdbTestBase {
         String id = ( String ) BsonUtils.fromResponse( resp ).get( "id" );
         TestUtils.waitFinish( id, 2 );
         BusinessApiFactory.Schedule.switchEnable( id, false );
+        TestUtils.waitAllFinish( id );
         BusinessApiFactory.Schedule.delete( id );
     }
 }
