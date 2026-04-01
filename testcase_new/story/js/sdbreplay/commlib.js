@@ -321,7 +321,11 @@ function backupFile ( rtCmd, clName )
 
    // list all files in the current path
    var lsCommand = "ls " + tmpFileDir + " | grep " + clName + " | grep csv";
-   var fileNames = rtCmd.run( lsCommand ).split( "\n" );
+   try {
+      var fileNames = rtCmd.run( lsCommand ).split( "\n" );
+   } catch ( e ) {
+      println( "Run command( " + lsCommand + ") failed: " + e ) ;
+   }
 
    // copy all files to the target path
    for( i = 0; i < fileNames.length - 1; i++ )
