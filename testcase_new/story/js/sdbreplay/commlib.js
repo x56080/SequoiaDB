@@ -325,6 +325,7 @@ function backupFile ( rtCmd, clName )
       var fileNames = rtCmd.run( lsCommand ).split( "\n" );
    } catch ( e ) {
       println( "Run command( " + lsCommand + ") failed: " + e ) ;
+      return ;
    }
 
    // copy all files to the target path
