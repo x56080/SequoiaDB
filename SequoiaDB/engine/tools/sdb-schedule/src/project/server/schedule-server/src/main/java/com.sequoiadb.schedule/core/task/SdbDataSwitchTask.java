@@ -433,6 +433,7 @@ public class SdbDataSwitchTask extends TransferDataSwitchTaskBase {
         BSONObject newOption = compareAndReturnNewOption(sourceCataInfo, targetCataInfo,
                 clFullName);
         if (newOption != null) {
+            logger.info("cl meta inconsistent, cl={}, newOption={}", clFullName, newOption);
             return false;
         }
         return true;

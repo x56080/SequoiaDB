@@ -32,6 +32,7 @@
 *******************************************************************************/
 package com.sequoiadb.schedule.dao.sdb;
 
+import com.sequoiadb.base.result.UpdateResult;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.schedule.common.FieldName;
@@ -182,7 +183,7 @@ public class SdbCollectionSnapshotRecordDao implements CollectionSnapshotRecordD
     }
 
     @Override
-    public void updateRecordSnapshotEffective(String siteName, String clFullName, boolean recordSnapshotEffective) {
+    public UpdateResult updateRecordSnapshotEffective(String siteName, String clFullName, boolean recordSnapshotEffective) {
         BSONObject matcher = new BasicBSONObject();
         matcher.put(FieldName.CollectionSnapshotRecord.FIELD_SITE_NAME, siteName);
         matcher.put(FieldName.CollectionSnapshotRecord.FIELD_COLLECTION_NAME, clFullName);
@@ -190,7 +191,7 @@ public class SdbCollectionSnapshotRecordDao implements CollectionSnapshotRecordD
         newValue.put(FieldName.CollectionSnapshotRecord.FIELD_RECORD_SNAPSHOT_EFFECTIVE,
                 recordSnapshotEffective);
         BSONObject modifier = new BasicBSONObject("$set", newValue);
-        template.collection(CL_COLLECTION_SNAPSHOT_RECORD).update(matcher, modifier);
+        return template.collection(CL_COLLECTION_SNAPSHOT_RECORD).update(matcher, modifier);
     }
 
     @Override

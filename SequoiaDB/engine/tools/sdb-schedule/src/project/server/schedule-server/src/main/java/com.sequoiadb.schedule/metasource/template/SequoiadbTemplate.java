@@ -142,10 +142,10 @@ public class SequoiadbTemplate {
             insert(obj, null);
         }
 
-        public void update(BSONObject matcher, BSONObject modifier, SequoiadbTransaction context) {
+        public UpdateResult update(BSONObject matcher, BSONObject modifier, SequoiadbTransaction context) {
             Sequoiadb sdb = getSequoiadb(context);
             try {
-                sdb.getCollectionSpace(collectionSpace).getCollection(collection)
+                return sdb.getCollectionSpace(collectionSpace).getCollection(collection)
                         .updateRecords(matcher, modifier, null);
             }
             finally {
@@ -153,8 +153,8 @@ public class SequoiadbTemplate {
             }
         }
 
-        public void update(BSONObject matcher, BSONObject modifier) {
-            update(matcher, modifier, null);
+        public UpdateResult update(BSONObject matcher, BSONObject modifier) {
+            return update(matcher, modifier, null);
         }
 
         public void upsert(BSONObject matcher, BSONObject modifier) {

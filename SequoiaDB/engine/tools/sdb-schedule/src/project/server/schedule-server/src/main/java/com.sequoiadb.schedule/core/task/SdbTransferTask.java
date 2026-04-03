@@ -540,7 +540,6 @@ public class SdbTransferTask extends TransferDataSwitchTaskBase {
         SdbCLFullInfo clFullInfo = new SdbCLFullInfo(clFullName);
         DBCollection sourceCL = sourceSdb.getCollectionSpace(clFullInfo.getCsName())
                 .getCollection(clFullInfo.getClName());
-        boolean hasRecord = sourceCL.queryOne() != null;
         DataServiceWrapper targetSiteDataService = ScheduleServer.getInstance()
                 .getDataServiceWrapper(getTargetSite());
         Sequoiadb targetSiteSdb = null;
@@ -554,6 +553,8 @@ public class SdbTransferTask extends TransferDataSwitchTaskBase {
                     maxExecTime, taskStartTime, getSourceSite(), getTargetSite(), sourceCL,
                     targetCL, deleteMoreLobInTarget, () -> running);
 
+            BasicBSONList clSnapshots = SdbHelper.getCLSnapshot(sourceSdb, clFullName);
+            boolean hasRecord = sourceCL.queryOne() != null;
             if (hasRecord) {
                 // 迁移记录需要设置不可写，这里检查是否超过指定时间没有数据写入
                 if (notDataWrite(sourceSdb, clFullName)) {
@@ -584,8 +585,8 @@ public class SdbTransferTask extends TransferDataSwitchTaskBase {
                 }
             }
             else {
-                // 如果表是没有记录的表，那么记录快照始终会有效状态
-                ScheduleServer.getInstance().updateRecordSnapshotEffective(getSourceSite(), clFullName, true);
+                // 如果是没有记录的表，那么该表的记录快照始终标记为有效状态
+                updateOrSaveRecordEffective(clSnapshots, clFullName);
             }
 
             if (!skipTransfer(sourceSdb, clFullName, lobSkipStrategy)) {
@@ -603,6 +604,15 @@ public class SdbTransferTask extends TransferDataSwitchTaskBase {
             if (targetSiteSdb != null) {
                 targetSiteDataService.releaseConnection(targetSiteSdb);
             }
+        }
+    }
+
+    private void updateOrSaveRecordEffective(BasicBSONList clSnapshots, String clFullName) throws Exception {
+        boolean updated = ScheduleServer.getInstance().updateRecordSnapshotEffective(getSourceSite(), clFullName, true);
+        // 没有更新，说明快照表没有该集合的快照记录，写入一条快照记录
+        if (!updated) {
+            ScheduleServer.getInstance()
+                    .recordCollectionSnapshot(getSourceSite(), clFullName, clSnapshots, true, false);
         }
     }
 

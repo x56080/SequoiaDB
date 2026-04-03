@@ -32,6 +32,7 @@
 *******************************************************************************/
 package com.sequoiadb.schedule.core;
 
+import com.sequoiadb.base.result.UpdateResult;
 import com.sequoiadb.schedule.common.FieldName;
 import com.sequoiadb.schedule.common.HashSlotLock;
 import com.sequoiadb.schedule.common.LockWrapper;
@@ -193,8 +194,10 @@ public class ScheduleServer {
         return collectionSnapshotRecordDao.findOne(siteName, collectionName);
     }
 
-    public void updateRecordSnapshotEffective(String siteName, String clFullName, boolean recordSnapshotEffective) {
-        collectionSnapshotRecordDao.updateRecordSnapshotEffective(siteName, clFullName, recordSnapshotEffective);
+    public boolean updateRecordSnapshotEffective(String siteName, String clFullName, boolean recordSnapshotEffective) {
+        UpdateResult updateResult = collectionSnapshotRecordDao.updateRecordSnapshotEffective(siteName, clFullName,
+                recordSnapshotEffective);
+        return updateResult.getUpdatedNum() != 0;
     }
 
     public void updateLobSnapshotEffective(String siteName, String clFullName, boolean lobSnapshotEffective) {
