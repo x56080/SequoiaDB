@@ -28,14 +28,20 @@ when exception happen, use [getLastError()](manual/Manual/Sequoiadb_Command/Glob
 
 ##EXAMPLES##
 
-* Create a new DiagLog object
+* Create a Sdb object
 
     ```lang-javascript
-    > var diaglog = new DiagLog( "sdbserver1", 11810, "sdbadmin", "sdbadmin" )
+    > var db = new Sdb()
+    ```
+
+* Create a DiagLog object
+
+    ```lang-javascript
+    > var diaglog = new DiagLog()
     ```
 
 * After setting the parameters, run the program.
 
     ```lang-javascript
-    > var filename = diaglog.search().error( -79 ).limit( 10 ).run();
+    > var filename = diaglog.search().error( -79 ).limit( 10 ).conn(db).run()
     ```

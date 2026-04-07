@@ -4,11 +4,7 @@ diaglog - 新建一个 DiagLog 对象
 
 ##语法##
 
-**var diaglog = new DiagLog( [hostname], [svcname] )**
-
-**var diaglog = new DiagLog( [hostname], [svcname], [username], [password] )**
-
-**var diaglog = new DiagLog( [hostname], [svcname], [CipherUser] )**
+**var diaglog = new DiagLog()**
 
 ##类别##
 
@@ -20,13 +16,7 @@ DiagLog
 
 ##参数##
 
-| 参数名     | 参数类型 | 默认值             | 描述            | 是否必填 |
-| ---------- | -------- | ------------------ | --------------- | -------- |
-| hostname   | string   | localhost          | 主机名          | 否       |
-| svcname    | int      | 11810              | 节点端口号      | 否       |
-| username   | string   | 默认为空（''）     | 用户名          | 否       |
-| password   | string   | 默认为空（''）     | 密码            | 否       |
-| CipherUser | object   | ---                | [CipherUser][cipher] 对象 | 否       |
+无
 
 ##返回值##
 
@@ -45,30 +35,11 @@ v5.8 及以上版本
 
 ##示例##
 
-1. 连接默认主机上的 SequoiaDB 集群，hostname 默认为 "localhost"，svcname 默认为 11810。
+1. 新建一个 DiagLog 对象。
 
 	```lang-javascript
  	> var diaglog = new DiagLog()
  	```
-
-2. 连接指定机器上的 SequoiaDB 集群，目标机器 "sdbserver1"。
-
-	```lang-javascript
- 	> var diaglog = new DiagLog( "sdbserver1", 11810 )
-	```
-
-3. 使用用户名和密码连接指定机器上的 SequoiaDB 集群。
-
-	```lang-javascript
- 	> var diaglog = new DiagLog( "sdbserver1", 11810, "sdbadmin", "sdbadmin" )
-	```
-
-4. 使用 CipherUser 对象连接指定机器上的 SequoiaDB（密文文件中必须存在用户名为 sdbadmin，密码为 sdbadmin 的用户信息，关于如何在密文文件中添加删除密文信息，详细可见[sdbpasswd][passwd]）。
-
-   	```lang-javascript
-    > var a = CipherUser( "sdbadmin" ).cipherFile( "/home/sdbadmin/passwd" )
- 	>var diaglog = new DiagLog( "sdbserver1", 11810, a )
-    ```
 
 >**Note:**
 >
@@ -89,3 +60,11 @@ v5.8 及以上版本
 >
 > - after() 设置 search() 结果上下文的下文条数  
 > - before() 设置 search() 结果上下文的上文条数  
+
+
+[^_^]:
+     本文使用的所有引用及链接
+[getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
+[getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
+[faq]:manual/FAQ/faq_sdb.md
+[Sequoiadb_error_code]:manual/Manual/Sequoiadb_error_code.md

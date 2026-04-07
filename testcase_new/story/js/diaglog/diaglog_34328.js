@@ -406,6 +406,19 @@ function testPath( diaglog )
         throw e;
     }
 
+    // 使用 search 不连接 sdb 的情况下搜索 collect 的目录，预期成功
+    try {
+        var tmpLog = new DiagLog();
+        log = tmpLog.search().keypattern( 'a' ).limit( 1 ).path( fileName );
+        var file = log.run();
+        rc = File.exist( file );
+        assert.equal( rc, true );
+    } catch ( e ) {
+        println("[ERROR] Failed on diaglog.search().keypattern( 'a' ).limit( 1 ).path( '" + fileName + "' )");
+        println('error: ' + getLastErrObj());
+        throw e;
+    }
+
     // 指定为存在的文件，预期失败
     assert.tryThrow( SDB_INVALIDARG, function()
     {
@@ -503,7 +516,9 @@ function test()
 
     try {
         var db = new Sdb( COORDHOSTNAME, COORDSVCNAME );
-        var diaglog = new DiagLog( COORDHOSTNAME, COORDSVCNAME );
+        var diaglog = new DiagLog();
+        diaglog.conn(db);
+
         var coreFileNameArray = [];
         var trapFileNameArray = [];
 

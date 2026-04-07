@@ -373,7 +373,7 @@ function testPid( diaglog )
     diaglog.reset();
 }
 
-function testLimit( diaglog )
+function testLimit( db, diaglog )
 {
     var log ;
     var fileName ;
@@ -389,7 +389,6 @@ function testLimit( diaglog )
         assert.equal(i, 100);
     } catch ( e ) {
         try {
-            var db = new Sdb( COORDHOSTNAME, COORDSVCNAME );
             var cursor = db.exec( 'select diagpath from $SNAPSHOT_CONFIGS where role = ""' );
             while (cursor.next()) {
                 var diagpath = cursor.current().toObj().diagpath;
@@ -402,7 +401,6 @@ function testLimit( diaglog )
             if (null != cursor) {
                 cursor.close();
             }
-            db.close();
         }
 
         println("[ERROR] Failed on diaglog.search().keypattern( ' ' ), test default limit(100)");
@@ -853,6 +851,15 @@ function testPath( diaglog )
     diaglog.reset();
 }
 
+function testConn() {
+    // 不设置 conn / path，预期失败
+    assert.tryThrow( SDB_INVALIDARG, function()
+    {
+        var log = new DiagLog();
+        log.search().error( -79 ).limit( 1 ).run();
+    } );
+}
+
 function testWithoutOriginal( diaglog )
 {
     // 检查简要模式下查询的结果是否按时间降序，以及各字段内容是否正常有值
@@ -922,7 +929,9 @@ function test()
     } catch (e) {}
 
     try {
-        var diaglog = new DiagLog( COORDHOSTNAME, COORDSVCNAME );
+        var db = new Sdb( COORDHOSTNAME, COORDSVCNAME );
+        var diaglog = new DiagLog();
+        diaglog.conn(db);
 
         // lastFile
         testLastFile( diaglog );
@@ -952,7 +961,7 @@ function test()
         testPid( diaglog );
 
         // limit
-        testLimit( diaglog );
+        testLimit( db, diaglog );
 
         // original
         testOriginal( diaglog );
@@ -975,6 +984,9 @@ function test()
         // 多个参数复合测试
         testMultiple( diaglog );
 
+        // conn
+        testConn();
+
         try {
             File.remove( WORKDIR + '/diaglog_34327' );
         } catch (e) {
@@ -987,6 +999,9 @@ function test()
     } finally {
         if ( null != diaglog ) {
             diaglog.close();
+        }
+        if ( null != db ) {
+            db.close();
         }
     }
 }

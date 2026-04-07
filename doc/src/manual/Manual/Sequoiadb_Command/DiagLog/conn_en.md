@@ -1,10 +1,12 @@
 ##NAME##
 
-lastest - Set search() to search only logs from a recent time period.
+conn - Set Sdb connection for the DiagLog object
 
 ##SYNOPSIS##
 
-**diaglog.search().lastest(\<minutes\>)**
+**diaglog.search().conn(\<Sdb\>)**
+
+**diaglog.collect().conn(\<Sdb\>)**
 
 ##CATEGORY##
 
@@ -12,13 +14,13 @@ DiagLog
 
 ##DESCRIPTION##
 
-Set search() to search only logs from a recent time period.
+Set Sdb connection for the DiagLog object, which is used by the DiagLog object to get cluster information. If only search local files. this function does not need to be used.
 
 ##PARAMETERS##
 
 | Name      | Type     | Default | Description     | Required or not |
 | -------- | -------- | ------ | --------------- | -------- |
-| minutes  | int   | ---    | Set search() to only search logs from the most recent minutes. | yes       |
+| Sdb      | Object      | ---    | Sdb connection object  | yes       |
 
 
 ##RETURN VALUE##
@@ -43,9 +45,9 @@ when exception happen, use [getLastError()](manual/Manual/Sequoiadb_Command/Glob
     > var diaglog = new DiagLog()
     ```
 
-* Search the logs that reported error -79 within the last 10 minutes, limiting the number of results returned to 10.
+* Search for the most recent log with error -79, including the log following the error, and limit the returned results to 10
 
     ```lang-javascript
-    > diaglog.search().error( -79 ).limit( 10 ).lestest( 10 ).conn(db)
+    > diaglog.search().error( -79 ).limit( 10 ).after( 1 ).conn(db)
     /tmp/sequoiadb/search/cluster_2025-01-01-12:01:01.000.auto 
     ```

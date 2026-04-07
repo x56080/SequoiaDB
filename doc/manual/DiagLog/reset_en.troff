@@ -27,12 +27,12 @@ getLastErrMsg() to get error message.
 For more detial, please reference to Troubleshooting.
 .SH EXAMPLES
 .IP \[bu] 2
-Create a new DiagLog object
+Create a DiagLog object
 .RS 2
 .IP
 .nf
 \f[C]
-> var diaglog = new DiagLog( "sdbserver1", 11810, "sdbadmin", "sdbadmin" )
+> var diaglog = new DiagLog()
 \f[]
 .fi
 .RE

@@ -4,7 +4,11 @@ search - Specify the running mode as search
 
 ##SYNOPSIS##
 
-**diaglog.search([location])**
+**diaglog.search([location]).error(\<errorcode\>).limit(\<num\>).conn(\<Sdb\>)**
+
+**diaglog.search([location]).keypattern(\<keyword\>).lastFile(\<num\>).diaglevel(\<0-4\>).conn(\<Sdb\>)**
+
+**diaglog.search([location]).pid(\<pid\>).tid(\<tid\>).lastest(\<minutes\>).path(\<path\>)**
 
 ##CATEGORY##
 
@@ -28,15 +32,43 @@ when exception happen, use [getLastError()](manual/Manual/Sequoiadb_Command/Glob
 
 ##EXAMPLES##
 
-* Create a new DiagLog object
+* Create a Sdb object
 
     ```lang-javascript
- 	> var diaglog = new DiagLog( "sdbserver1", 11810, "sdbadmin", "sdbadmin" )
+    > var db = new Sdb()
+    ```
+
+* Create a DiagLog object
+
+    ```lang-javascript
+    > var diaglog = new DiagLog()
     ```
 
 * Search for the most recent logs reporting the error -79, limiting the results to 10.
 
     ```lang-javascript
-    > diaglog.search().error( -79 ).limit( 10 )
+    > diaglog.search().error( -79 ).limit( 10 ).conn(db)
     /tmp/sequoiadb/search/cluster_2025-01-01-12:01:01.000.auto 
+    ```
+
+* View the contents of the search results file。
+
+    ```lang-javascript
+    > diaglog.next()
+    ...
+    ```
+
+* Close the search results file.
+
+    ```lang-javascript
+    > diaglog.close()
+    ```
+
+* Search for local files collected by the collect() or the sdb nodes directory "diaglog". The DiagLog object indicates no Sdb connection.
+
+    ```lang-javascript
+    > diaglog.search().error( -79 ).limit( 10 ).path( '/home/sdbadmin/collect/diaglog_20250101_120101' )
+    /tmp/sequoiadb/search/cluster_2025-01-01-12:02:01.000.auto 
+    > diaglog.search().error( -79 ).limit( 10 ).path( '/opt/sequoiadb/database/coord/diaglog' )
+    /tmp/sequoiadb/search/cluster_2025-01-01-12:02:01.000.auto 
     ```

@@ -32,16 +32,22 @@ when exception happen, use [getLastError()](manual/Manual/Sequoiadb_Command/Glob
 
 ##EXAMPLES##
 
-* Create a new DiagLog object
+* Create a Sdb object
 
     ```lang-javascript
-    > var diaglog = new DiagLog( "sdbserver1", 11810, "sdbadmin", "sdbadmin" )
+    > var db = new Sdb()
+    ```
+
+* Create a DiagLog object
+
+    ```lang-javascript
+    > var diaglog = new DiagLog()
     ```
 
 * Place the result file of collect() into the specified directory.
 
     ```lang-javascript
-    > diaglog.collect().all().path( '/home/sdbadmin/collect' )
+    > diaglog.collect().all().path( '/home/sdbadmin/collect' ).conn(db)
     /home/sdbadmin/collect/diaglog_20250101_120101
     ```
 

@@ -1,10 +1,12 @@
 ##名称##
 
-error - 设置 search() 中搜索的错误码
+conn - 为 DiagLog 对象设置 Sdb 连接
 
 ##语法##
 
-**diaglog.search().error(\<errorcode\>)**
+**diaglog.search().conn(\<Sdb\>)**
+
+**diaglog.collect().conn(\<Sdb\>)**
 
 ##类别##
 
@@ -12,13 +14,13 @@ DiagLog
 
 ##描述##
 
-设置 search() 中搜索的错误码。
+为 DiagLog 对象设置 Sdb 连接，用于 DiagLog 对象获取集群信息。若只搜索本地文件，可以不使用本函数。
 
 ##参数##
 
 | 参数名   | 参数类型 | 默认值 | 描述            | 是否必填 |
 | -------- | -------- | ------ | --------------- | -------- |
-| errorcode      | int      | ---    | 在日志中搜索的错误码 errorcode | 是       |
+| Sdb      | Object   | ---    | Sdb 连接对象  | 是       |
 
 
 ##返回值##
@@ -50,10 +52,10 @@ v5.8 及以上版本
     > var diaglog = new DiagLog()
     ```
 
-* 搜索最近报错 -79 错误的日志，限制返回 10 条结果。
+* 连接 Sdb 集群，搜索最近报错 -79 错误的日志，并包含错误日志的后一条日志，限制返回 10 条结果。
 
     ```lang-javascript
-    > diaglog.search().error( -79 ).limit( 10 ).conn(db)
+    > diaglog.search().error( -79 ).limit( 10 ).after( 1 ).conn(db)
     /tmp/sequoiadb/search/cluster_2025-01-01-12:01:01.000.auto 
     ```
 

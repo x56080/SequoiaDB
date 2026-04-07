@@ -35,14 +35,27 @@ v5.8 及以上版本
 
 ##示例##
 
+* 新建一个 Sdb 对象
+
+    ```lang-javascript
+    > var db = new Sdb()
+    ```
+
 * 新建一个 DiagLog 对象
 
     ```lang-javascript
-    > var diaglog = new DiagLog( "sdbserver1", 11810, "sdbadmin", "sdbadmin" )
+    > var diaglog = new DiagLog()
     ```
 
 * 设置参数后用 run 运行。
 
     ```lang-javascript
-    > var filename = diaglog.search().error( -79 ).limit( 10 ).run();
+    > var filename = diaglog.search().error( -79 ).limit( 10 ).conn(db).run()
     ```
+
+[^_^]:
+     本文使用的所有引用及链接
+[getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
+[getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
+[faq]:manual/FAQ/faq_sdb.md
+[Sequoiadb_error_code]:manual/Manual/Sequoiadb_error_code.md

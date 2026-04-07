@@ -3,7 +3,6 @@
 .\"
 .TH "lastest" "1" "" "SequoiaDB User Manuals" ""
 .hy
-.PP
 .SH NAME
 .PP
 lastest \- Set search() to search only logs from a recent time period.
@@ -75,12 +74,22 @@ getLastErrMsg() to get error message.
 For more detial, please reference to Troubleshooting.
 .SH EXAMPLES
 .IP \[bu] 2
-Create a new DiagLog object
+Create a Sdb object
 .RS 2
 .IP
 .nf
 \f[C]
-> var diaglog = new DiagLog( "sdbserver1", 11810, "sdbadmin", "sdbadmin" )
+> var db = new Sdb()
+\f[]
+.fi
+.RE
+.IP \[bu] 2
+Create a DiagLog object
+.RS 2
+.IP
+.nf
+\f[C]
+> var diaglog = new DiagLog()
 \f[]
 .fi
 .RE
@@ -91,7 +100,7 @@ the number of results returned to 10.
 .IP
 .nf
 \f[C]
-> diaglog.search().error( \-79 ).limit( 10 ).lestest( 10 )
+> diaglog.search().error( \-79 ).limit( 10 ).lestest( 10 ).conn(db)
 /tmp/sequoiadb/search/cluster_2025\-01\-01\-12:01:01.000.auto 
 \f[]
 .fi

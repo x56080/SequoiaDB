@@ -4,7 +4,9 @@ analyze - The specified running mode is analyze.
 
 ##SYNOPSIS##
 
-**diaglog.analyze([location])**
+**diaglog.analyze([location]).path(\<collect filename\>)**
+
+**diaglog.analyze([location]).path(\<collect filename\>).output(\<dir\>)**
 
 ##CATEGORY##
 
@@ -28,19 +30,25 @@ when exception happen, use [getLastError()](manual/Manual/Sequoiadb_Command/Glob
 
 ##EXAMPLES##
 
-* Create a new DiagLog object
+* Create a Sdb object
 
     ```lang-javascript
- 	> var diaglog = new DiagLog( "sdbserver1", 11810, "sdbadmin", "sdbadmin" )
+    > var db = new Sdb()
     ```
 
-* Search the 10 most recent log entries for error -79 and retrieve the relevant log files to local machine.
+* Create a DiagLog object
 
     ```lang-javascript
-    > var fileName = diaglog.collect().error( -79 ).limit( 10 ).run()
+    > var diaglog = new DiagLog()
     ```
 
-* Analyze the retrieved files.
+* Search for the last 10 error logs with error code -79, and collect the corresponding log files locally.
+
+    ```lang-javascript
+    > var fileName = diaglog.collect().error( -79 ).limit( 10 ).conn(db).run()
+    ```
+
+* Analyze the local files.
 
     ```lang-javascript
     > diaglog.analyze().path( fileName )

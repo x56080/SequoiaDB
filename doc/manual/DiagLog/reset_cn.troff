@@ -36,7 +36,7 @@ v5.8 及以上版本
 .IP
 .nf
 \f[C]
-> var diaglog = new DiagLog( "sdbserver1", 11810, "sdbadmin", "sdbadmin" )
+> var diaglog = new DiagLog()
 \f[]
 .fi
 .RE

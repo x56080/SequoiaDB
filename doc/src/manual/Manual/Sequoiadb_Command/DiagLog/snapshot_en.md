@@ -30,15 +30,21 @@ when exception happen, use [getLastError()](manual/Manual/Sequoiadb_Command/Glob
 
 ##EXAMPLES##
 
-* Create a new DiagLog object
+* Create a Sdb object
 
     ```lang-javascript
-    > var diaglog = new DiagLog( "sdbserver1", 11810, "sdbadmin", "sdbadmin" )
+    > var db = new Sdb()
+    ```
+
+* Create a DiagLog object
+
+    ```lang-javascript
+    > var diaglog = new DiagLog()
     ```
 
 * Collect all types of snapshots.
 
     ```lang-javascript
-    > diaglog.collect().snapshot( 'SNAP_ALL' )
+    > diaglog.collect().snapshot( 'SNAP_ALL' ).conn(db)
     /tmp/sequoiadb/collect/diaglog_20250101_120101.auto
     ```
