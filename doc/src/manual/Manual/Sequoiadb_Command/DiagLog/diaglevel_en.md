@@ -31,15 +31,21 @@ when exception happen, use [getLastError()](manual/Manual/Sequoiadb_Command/Glob
 
 ##EXAMPLES##
 
-* Create a new DiagLog object
+* Create a Sdb object
 
     ```lang-javascript
-    > var diaglog = new DiagLog( "sdbserver1", 11810, "sdbadmin", "sdbadmin" )
+    > var db = new Sdb()
+    ```
+
+* Create a DiagLog object
+
+    ```lang-javascript
+    > var diaglog = new DiagLog()
     ```
 
 * Search for logs containing the most recent error -79, limit the returned results to 10, set the log level to 1, and only include SEVERE and ERROR level logs in the results.
 
     ```lang-javascript
-    > diaglog.search().error( -79 ).limit( 10 ).diaglevel( 1 )
+    > diaglog.search().error( -79 ).limit( 10 ).diaglevel( 1 ).conn(db)
     /tmp/sequoiadb/search/cluster_2025-01-01-12:01:01.000.auto 
     ```

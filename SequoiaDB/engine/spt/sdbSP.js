@@ -3848,51 +3848,19 @@ IniFile.prototype.save = function() {
 
 // end IniFile
 
-// IniFile member function
+// DiagLog member function
+DiagLog.prototype.init = function() {
+   if ( true != this._init )
+   {
+      this._init = true ;
+      this._logTool = System.getEWD() + '/../tools/diaglog/logSearchTool.sh' ;
+      this._tmpDir = "/tmp/sequoiadb" ;
+      this._conn = '' ;
+      this.reset() ;
+   }
+}
 
-function DiagLog(argv1, argv2, argv3, argv4) {
-   var argc = arguments.length ;
-   this.hostname   = 'localhost' ;
-   this.svcname    = 11810 ;
-   this.user       = '' ;
-   this.password   = '' ;
-   this.cipherUser = '' ;
-   if ( 1 > argc )
-   {
-      // may be not need login
-   }
-   else if ( 1 == argc )
-   {
-      setLastErrMsg( "Missing argument" ) ;
-      throw SDB_INVALIDARG ;
-   }
-   else if ( 2 == argc )
-   {
-      this.hostname   = argv1 ;
-      this.svcname    = argv2 ;
-   }
-   else if ( 3 == argc )
-   {
-      this.hostname   = argv1 ;
-      this.svcname    = argv2 ;
-      this.cipherUser = argv3 ;
-      if ( "object" != typeof( this.cipherUser ) )
-      {
-         setLastErrMsg( "cipherUser must be object" ) ;
-         throw SDB_INVALIDARG ;
-      }
-   } else
-   {
-      this.hostname   = argv1 ;
-      this.svcname    = argv2 ;
-      this.user       = argv3 ;
-      this.password   = argv4 ;
-   }
-
-   this._logTool = System.getEWD() + '/../tools/diaglog/logSearchTool.sh' ;
-   this._tmpDir = "/tmp/sequoiadb" ;
-
-   this.reset = function() {
+DiagLog.prototype.reset = function() {
       this._lastFile = '' ;
       this._lastest = '' ;
       this._path = '' ;
@@ -3928,10 +3896,13 @@ function DiagLog(argv1, argv2, argv3, argv4) {
       this._locationRole = '' ;
       this._locationNodeID = '' ;
       this._locationGroupID = '' ;
-   }
-   this.reset() ;
 }
-DiagLog() ;
+
+DiagLog.prototype.conn = function( db_conn ) {
+   this.init() ;
+   this._conn = db_conn ;
+   return this ;
+}
 
 DiagLog.prototype.run = function() {
    return this._exec() ;
@@ -3946,6 +3917,7 @@ DiagLog.prototype.toString = function() {
 }
 
 DiagLog.prototype._exec = function() {
+   this.init() ;
    if ( this._showHelp )
    {
       this._showHelp = false ;
@@ -3987,19 +3959,22 @@ DiagLog.prototype._exec = function() {
          default:
             break ;
       }
+   } catch ( e )
+   {
+      throw e;
+   } finally
+   {
       // restore parameters
       this._path = savePath ;
       this._output = saveOutput ;
       this._original = saveOriginal ;
       this._logTool = saveLogTool ;
-   } catch ( e )
-   {
-      throw e;
    }
    return rc ;
 }
 
 DiagLog.prototype._location = function( locationObj ) {
+   this.init() ;
    if ( "object" != typeof( locationObj ) )
    {
       return ;
@@ -4050,23 +4025,27 @@ DiagLog.prototype._location = function( locationObj ) {
 }
 
 DiagLog.prototype.search = function( locationObj ) {
+   this.init() ;
    this.mode = "search" ;
    this._location( locationObj ) ;
    return this ;
 }
 
 DiagLog.prototype.collect = function( locationObj ) {
+   this.init() ;
    this.mode = "collect" ;
    this._location( locationObj ) ;
    return this ;
 }
 
 DiagLog.prototype.analyze = function() {
+   this.init() ;
    this.mode = "analyze" ;
    return this ;
 }
 
 DiagLog.prototype.lastFile = function( lastFile ) {
+   this.init() ;
    if ( "number" != typeof( lastFile ) )
    {
       setLastErrMsg( "lastFile value must be a number" ) ;
@@ -4081,6 +4060,7 @@ DiagLog.prototype.lastFile = function( lastFile ) {
 }
 
 DiagLog.prototype.lastest = function( lastest ) {
+   this.init() ;
    if ( "number" != typeof( lastest ) )
    {
       setLastErrMsg( "lastest value must be number" ) ;
@@ -4095,6 +4075,7 @@ DiagLog.prototype.lastest = function( lastest ) {
 }
 
 DiagLog.prototype.path = function( path ) {
+   this.init() ;
    if ( "string" != typeof( path ) )
    {
       setLastErrMsg( "path must be string" ) ;
@@ -4112,6 +4093,7 @@ DiagLog.prototype.path = function( path ) {
 }
 
 DiagLog.prototype.timeBegin = function( timeBegin ) {
+   this.init() ;
    if ( "string" != typeof( timeBegin ) )
    {
       setLastErrMsg( "timeBegin value must be string" ) ;
@@ -4132,6 +4114,7 @@ DiagLog.prototype.timeBegin = function( timeBegin ) {
 }
 
 DiagLog.prototype.timeEnd = function( timeEnd ) {
+   this.init() ;
    if ( "string" != typeof( timeEnd ) )
    {
       setLastErrMsg( "timeEnd value must be string" ) ;
@@ -4152,6 +4135,7 @@ DiagLog.prototype.timeEnd = function( timeEnd ) {
 }
 
 DiagLog.prototype.output = function( output ) {
+   this.init() ;
    if ( "string" != typeof( output ) )
    {
       setLastErrMsg( "output path must be string" ) ;
@@ -4169,6 +4153,7 @@ DiagLog.prototype.output = function( output ) {
 }
 
 DiagLog.prototype.error = function( error ) {
+   this.init() ;
    if ( "number" != typeof( error ) )
    {
       setLastErrMsg( "error code must be number" ) ;
@@ -4184,6 +4169,7 @@ DiagLog.prototype.error = function( error ) {
 }
 
 DiagLog.prototype.diaglevel = function( diaglevel ) {
+   this.init() ;
    if ( "number" != typeof( diaglevel ) )
    {
       setLastErrMsg( "diaglevel value must be 0-4" ) ;
@@ -4198,6 +4184,7 @@ DiagLog.prototype.diaglevel = function( diaglevel ) {
 }
 
 DiagLog.prototype.keypattern = function( keypattern ) {
+   this.init() ;
    if ( "string" != typeof( keypattern ) )
    {
       setLastErrMsg( "keypattern value must be string" ) ;
@@ -4213,6 +4200,7 @@ DiagLog.prototype.keypattern = function( keypattern ) {
 }
 
 DiagLog.prototype.pid = function( pid ) {
+   this.init() ;
    if ( "number" != typeof( pid ) )
    {
       setLastErrMsg( "pid value must be number" ) ;
@@ -4228,6 +4216,7 @@ DiagLog.prototype.pid = function( pid ) {
 }
 
 DiagLog.prototype.tid = function( tid ) {
+   this.init() ;
    if ( "number" != typeof( tid ) )
    {
       setLastErrMsg( "tid value must be number" ) ;
@@ -4243,6 +4232,7 @@ DiagLog.prototype.tid = function( tid ) {
 }
 
 DiagLog.prototype.limit = function( limit ) {
+   this.init() ;
    if ( "number" != typeof( limit ) )
    {
       setLastErrMsg( "limit value must be number" ) ;
@@ -4261,6 +4251,7 @@ DiagLog.prototype.limit = function( limit ) {
 }
 
 DiagLog.prototype.after = function( after ) {
+   this.init() ;
    if ( "number" != typeof( after ) )
    {
       setLastErrMsg( "after value must be number" ) ;
@@ -4275,6 +4266,7 @@ DiagLog.prototype.after = function( after ) {
 }
 
 DiagLog.prototype.before = function( before ) {
+   this.init() ;
    if ( "number" != typeof( before ) )
    {
       setLastErrMsg( "before value must be number" ) ;
@@ -4289,11 +4281,13 @@ DiagLog.prototype.before = function( before ) {
 }
 
 DiagLog.prototype.original = function() {
+   this.init() ;
    this._original = true ;
    return this ;
 }
 
 DiagLog.prototype.snapshot = function( snapshot ) {
+   this.init() ;
    switch( snapshot )
    {
       case "SNAP_CSCL":
@@ -4311,16 +4305,19 @@ DiagLog.prototype.snapshot = function( snapshot ) {
 }
 
 DiagLog.prototype.core = function() {
+   this.init() ;
    this._core = true ;
    return this ;
 }
 
 DiagLog.prototype.trap = function() {
+   this.init() ;
    this._trap = true ;
    return this ;
 }
 
 DiagLog.prototype.all = function() {
+   this.init() ;
    this._core = true ;
    this._trap = true ;
    this._snapshot = 'SNAP_ALL' ;
@@ -4328,6 +4325,7 @@ DiagLog.prototype.all = function() {
 }
 
 DiagLog.prototype.compress = function( compress ) {
+   this.init() ;
    switch( compress )
    {
       case "zip":
@@ -4378,9 +4376,13 @@ DiagLog.prototype._search = function() {
             }
             return this._searchFile() ;
          }
-      } else
+      } else if ( '' != this._conn )
       {
          return this._searchCluster() ;
+      } else
+      {
+         setLastErrMsg( "connect() or path() cannot be empty" ) ;
+         throw SDB_INVALIDARG ;
       }
    } catch ( e )
    {
@@ -4787,20 +4789,6 @@ DiagLog.prototype._searchFromCollect = function() {
 
 DiagLog.prototype._searchCluster = function() {
    var rc = "" ;
-   try
-   {
-      if ( '' != this.cipherUser)
-      {
-         var db = new Sdb( this.hostname, this.svcname, this.cipherUser ) ;
-      } else
-      {
-         var db = new Sdb( this.hostname, this.svcname, this.user, this.password ) ;
-      }
-   } catch ( e )
-   {
-      throw e ;
-   }
-
    this._nohup = true ;
    var outputFileArray = [] ;
 
@@ -4843,7 +4831,7 @@ DiagLog.prototype._searchCluster = function() {
 
    // skip standalone nodes
    try {
-      var isStandalone = db.exec('select role from $SNAPSHOT_CONFIGS limit 1').current().toObj().role ;
+      var isStandalone = this._conn.exec('select role from $SNAPSHOT_CONFIGS limit 1').current().toObj().role ;
    } catch ( e ) {
       setLastErrMsg( 'Failed to get info from "select role from $SNAPSHOT_CONFIGS", error: ' + getLastErrMsg() ) ;
       throw e ;
@@ -4853,7 +4841,7 @@ DiagLog.prototype._searchCluster = function() {
    {
       try
       {
-         cursor = db.exec('select Group,GroupID,GroupName from $LIST_GROUP split by Group') ;
+         cursor = this._conn.exec('select Group,GroupID,GroupName from $LIST_GROUP split by Group') ;
          while ( cursor.next() )
          {
             var current = cursor.current().toObj() ;
@@ -4875,7 +4863,7 @@ DiagLog.prototype._searchCluster = function() {
 
    var diagpathObj = {} ;
    try {
-      cursor = db.exec('select NodeName,diagpath from $SNAPSHOT_CONFIGS');
+      cursor = this._conn.exec('select NodeName,diagpath from $SNAPSHOT_CONFIGS');
       while ( cursor.next() )
       {
          var current = cursor.current().toObj() ;
@@ -4889,7 +4877,7 @@ DiagLog.prototype._searchCluster = function() {
    }
 
    try {
-      cursor = db.exec('select HostName, push(ServiceName) as ServiceName, push(GroupName) as GroupName from $SNAPSHOT_SYSTEM group by HostName') ;
+      cursor = this._conn.exec('select HostName, push(ServiceName) as ServiceName, push(GroupName) as GroupName from $SNAPSHOT_SYSTEM group by HostName') ;
    } catch ( e )
    {
       setLastErrMsg( 'Failed get node info from "select HostName, push(ServiceName) as ServiceName, push(GroupName) as GroupName from $SNAPSHOT_SYSTEM group by HostName"' ) ;
@@ -4990,10 +4978,6 @@ DiagLog.prototype._searchCluster = function() {
       if ( null != cursor )
       {
          cursor.close() ;
-      }
-      if ( null != db )
-      {
-         db.close() ;
       }
    }
 
@@ -5436,7 +5420,7 @@ DiagLog.prototype._scp = function( src, dst ) {
    }
 }
 
-DiagLog.prototype._collectTrapAndCore = function ( db, collectOutput ) {
+DiagLog.prototype._collectTrapAndCore = function ( collectOutput ) {
    try
    {
       var dstDir = collectOutput + '/trap_core_snapshot' ;
@@ -5449,7 +5433,7 @@ DiagLog.prototype._collectTrapAndCore = function ( db, collectOutput ) {
 
    var diagpathObj = {} ;
    try {
-      var cursor = db.exec('select NodeName,diagpath from $SNAPSHOT_CONFIGS');
+      var cursor = this._conn.exec('select NodeName,diagpath from $SNAPSHOT_CONFIGS');
       while ( cursor.next() )
       {
          var current = cursor.current().toObj() ;
@@ -5465,7 +5449,7 @@ DiagLog.prototype._collectTrapAndCore = function ( db, collectOutput ) {
    try
    {
       var oma = new Oma() ;
-      var cursor = db.exec('select HostName, push(ServiceName) as ServiceName, push(GroupName) as GroupName from $SNAPSHOT_SYSTEM group by HostName') ;
+      var cursor = this._conn.exec('select HostName, push(ServiceName) as ServiceName, push(GroupName) as GroupName from $SNAPSHOT_SYSTEM group by HostName') ;
       while ( cursor.next() )
       {
          var current = cursor.current().toObj() ;
@@ -5535,11 +5519,11 @@ DiagLog.prototype._collectTrapAndCore = function ( db, collectOutput ) {
    }
 }
 
-DiagLog.prototype._getSnapshot = function ( db, snapshot, filename, ignore, history ) {
+DiagLog.prototype._getSnapshot = function ( snapshot, filename, ignore, history ) {
    var cursor ;
    try
    {
-      cursor = db.exec( 'select * from ' + snapshot ) ;
+      cursor = this._conn.exec( 'select * from ' + snapshot ) ;
    } catch ( e )
    {
       // ignore standalone nodes
@@ -5596,7 +5580,7 @@ DiagLog.prototype._getSnapshot = function ( db, snapshot, filename, ignore, hist
    {
       try
       {
-         cursor = db.exec( 'select * from ' + snapshot + ' /*+use_option(viewHistory,true)*/' ) ;
+         cursor = this._conn.exec( 'select * from ' + snapshot + ' /*+use_option(viewHistory,true)*/' ) ;
       } catch ( e )
       {
          // ignore standalone nodes
@@ -5652,43 +5636,43 @@ DiagLog.prototype._getSnapshot = function ( db, snapshot, filename, ignore, hist
    }
 }
 
-DiagLog.prototype._collectSnapshot = function ( db, collectOutput ) {
+DiagLog.prototype._collectSnapshot = function ( collectOutput ) {
    try
    {
       var dirName = collectOutput + '/trap_core_snapshot' ;
       File.mkdir( dirName, 0777 ) ;
       if ( 'SNAP_CSCL' == this._snapshot || 'SNAP_ALL' == this._snapshot )
       {
-         this._getSnapshot( db, '$SNAPSHOT_CS', dirName + '/snapshot_cs', false, false );
-         this._getSnapshot( db, '$SNAPSHOT_CL', dirName + '/snapshot_cl', false, false );
-         this._getSnapshot( db, '$SNAPSHOT_CATA', dirName + '/snapshot_cata', false, false );
+         this._getSnapshot( '$SNAPSHOT_CS', dirName + '/snapshot_cs', false, false );
+         this._getSnapshot( '$SNAPSHOT_CL', dirName + '/snapshot_cl', false, false );
+         this._getSnapshot( '$SNAPSHOT_CATA', dirName + '/snapshot_cata', false, false );
       }
       if ( 'SNAP_SYS' == this._snapshot || 'SNAP_ALL' == this._snapshot )
       {
-         this._getSnapshot( db, '$SNAPSHOT_SYSTEM', dirName + '/snapshot_system', false, false );
-         this._getSnapshot( db, '$SNAPSHOT_CONFIGS', dirName + '/snapshot_configs', false, false );
-         this._getSnapshot( db, '$SNAPSHOT_DB', dirName + '/snapshot_db', false, false );
-         this._getSnapshot( db, '$SNAPSHOT_HEALTH', dirName + '/snapshot_health', false, false );
-         this._getSnapshot( db, '$SNAPSHOT_SEQUENCES', dirName + '/snapshot_sequences', false, false );
-         this._getSnapshot( db, '$SNAPSHOT_SVCTASKS', dirName + '/snapshot_svctasks', true, false );
-         this._getSnapshot( db, '$SNAPSHOT_TASKS', dirName + '/snapshot_tasks', true, false );
+         this._getSnapshot( '$SNAPSHOT_SYSTEM', dirName + '/snapshot_system', false, false );
+         this._getSnapshot( '$SNAPSHOT_CONFIGS', dirName + '/snapshot_configs', false, false );
+         this._getSnapshot( '$SNAPSHOT_DB', dirName + '/snapshot_db', false, false );
+         this._getSnapshot( '$SNAPSHOT_HEALTH', dirName + '/snapshot_health', false, false );
+         this._getSnapshot( '$SNAPSHOT_SEQUENCES', dirName + '/snapshot_sequences', false, false );
+         this._getSnapshot( '$SNAPSHOT_SVCTASKS', dirName + '/snapshot_svctasks', true, false );
+         this._getSnapshot( '$SNAPSHOT_TASKS', dirName + '/snapshot_tasks', true, false );
       }
       if ( 'SNAP_SESSION' == this._snapshot || 'SNAP_ALL' == this._snapshot )
       {
-         this._getSnapshot( db, '$SNAPSHOT_SESSION', dirName + '/snapshot_session', false, false );
-         this._getSnapshot( db, '$SNAPSHOT_CONTEXT', dirName + '/snapshot_context', false, false );
+         this._getSnapshot( '$SNAPSHOT_SESSION', dirName + '/snapshot_session', false, false );
+         this._getSnapshot( '$SNAPSHOT_CONTEXT', dirName + '/snapshot_context', false, false );
       }
       if ( 'SNAP_QUERY' == this._snapshot || 'SNAP_ALL' == this._snapshot )
       {
          // always collect history, even if it may be empty
-         this._getSnapshot( db, '$SNAPSHOT_QUERIES', dirName + '/snapshot_queries', true, true );
-         this._getSnapshot( db, '$SNAPSHOT_LOCKWAITS', dirName + '/snapshot_lockwaits', true, true );
-         this._getSnapshot( db, '$SNAPSHOT_LATCHWAITS', dirName + '/snapshot_latchwaits', true, false );
-         this._getSnapshot( db, '$SNAPSHOT_TRANS', dirName + '/snapshot_trans', false, false );
-         this._getSnapshot( db, '$SNAPSHOT_ACCESSPLANS', dirName + '/snapshot_accessplans', false, false );
-         this._getSnapshot( db, '$SNAPSHOT_INDEXSTATS', dirName + '/snapshot_indexstats', true, false );
-         this._getSnapshot( db, '$SNAPSHOT_TRANSDEADLOCK', dirName + '/snapshot_transdeadlock', true, false );
-         this._getSnapshot( db, '$SNAPSHOT_TRANSWAIT', dirName + '/snapshot_transwait', true, false );
+         this._getSnapshot( '$SNAPSHOT_QUERIES', dirName + '/snapshot_queries', true, true );
+         this._getSnapshot( '$SNAPSHOT_LOCKWAITS', dirName + '/snapshot_lockwaits', true, true );
+         this._getSnapshot( '$SNAPSHOT_LATCHWAITS', dirName + '/snapshot_latchwaits', true, false );
+         this._getSnapshot( '$SNAPSHOT_TRANS', dirName + '/snapshot_trans', false, false );
+         this._getSnapshot( '$SNAPSHOT_ACCESSPLANS', dirName + '/snapshot_accessplans', false, false );
+         this._getSnapshot( '$SNAPSHOT_INDEXSTATS', dirName + '/snapshot_indexstats', true, false );
+         this._getSnapshot( '$SNAPSHOT_TRANSDEADLOCK', dirName + '/snapshot_transdeadlock', true, false );
+         this._getSnapshot( '$SNAPSHOT_TRANSWAIT', dirName + '/snapshot_transwait', true, false );
       }
    } catch ( e )
    {
@@ -5697,16 +5681,14 @@ DiagLog.prototype._collectSnapshot = function ( db, collectOutput ) {
 }
 
 DiagLog.prototype._collect = function() {
-   var db ;
+   if ( '' == this._conn )
+   {
+      setLastErrMsg( "connect() cannot be empty" ) ;
+      throw SDB_INVALIDARG ;
+   }
+
    try
    {
-      if ( '' != this.cipherUser)
-      {
-         db = new Sdb( this.hostname, this.svcname, this.cipherUser ) ;
-      } else
-      {
-         db = new Sdb( this.hostname, this.svcname, this.user, this.password ) ;
-      }
       var cmd = new Cmd() ;
       var oma = new Oma() ;
       var now = new Date() ;
@@ -5854,7 +5836,7 @@ DiagLog.prototype._collect = function() {
       {
          // skip standalone nodes
          try {
-            var isStandalone = db.exec('select role from $SNAPSHOT_CONFIGS limit 1').current().toObj().role ;
+            var isStandalone = this._conn.exec('select role from $SNAPSHOT_CONFIGS limit 1').current().toObj().role ;
          } catch ( e ) {
             setLastErrMsg( 'Failed to get info from "select role from $SNAPSHOT_CONFIGS", error: ' + getLastErrMsg() ) ;
             throw e ;
@@ -5862,7 +5844,7 @@ DiagLog.prototype._collect = function() {
          if ( 'standalone' != isStandalone ) {
             try
             {
-               cursor = db.exec('select Group,GroupID,GroupName from $LIST_GROUP split by Group') ;
+               cursor = this._conn.exec('select Group,GroupID,GroupName from $LIST_GROUP split by Group') ;
                while ( cursor.next() )
                {
                   var current = cursor.current().toObj() ;
@@ -5890,7 +5872,7 @@ DiagLog.prototype._collect = function() {
          } else {
             try
             {
-               cursor = db.exec('select HostName,ServiceName,GroupName from $SNAPSHOT_DB') ;
+               cursor = this._conn.exec('select HostName,ServiceName,GroupName from $SNAPSHOT_DB') ;
                while ( cursor.next() )
                {
                   var current = cursor.current().toObj() ;
@@ -5953,22 +5935,16 @@ DiagLog.prototype._collect = function() {
       if ( this._trap || this._core )
       {
          needCompress = true ;
-         this._collectTrapAndCore( db, collectOutput ) ;
+         this._collectTrapAndCore( collectOutput ) ;
       }
       if ( '' != this._snapshot )
       {
          needCompress = true ;
-         this._collectSnapshot( db, collectOutput ) ;
+         this._collectSnapshot( collectOutput ) ;
       }
    } catch ( e )
    {
       throw e ;
-   } finally
-   {
-      if ( null != db )
-      {
-         db.close() ;
-      }
    }
 
    try
@@ -6199,6 +6175,8 @@ DiagLog.prototype.close = function() {
       if ( '' != this._logFile )
       {
          this._logFile.close() ;
+         this._logFile = '' ;
+         this._loopFile = false ;
       }
    } catch ( e )
    {
@@ -6254,46 +6232,36 @@ DiagLog.prototype._helpAnalyze = function()
    println( "   path('<path>')                 - Required parameter, analyze the directory or archive collected by DiagLog.collect()." ) ;
 }
 
-DiagLog.prototype.help = function( mode )
+DiagLog.prototype.help = function( func )
 {
    this._showHelp = true ;
-   switch( mode )
+   if ( undefined == func )
    {
-      case "search":
-         println( "DiagLog help on search() methods." ) ;
-         this._helpSearch() ;
-         break ;
-      case "collect":
-         println( "DiagLog help on collect() methods." ) ;
-         this._helpCollect() ;
-         break ;
-      case "analyze":
-         println( "DiagLog help on analyze() methods." ) ;
-         this._helpAnalyze() ;
-         break ;
-      default:
-         println() ;
-         println( '   --Instance methods for class "DiagLog":' ) ;
-         println( "   --methods for search(): " ) ;
-         this._helpSearch() ;
-         println();
-         println( "   --methods for collect(): " ) ;
-         this._helpCollect() ;
-         println();
-         println( "   --methods for analyze(): " ) ;
-         this._helpAnalyze() ;
-         println();
-         println( "   --methods for cursor: " ) ;
-         println( "   next(<num>)                    - Return the next <num> records of the result from search()." ) ;
-         println( "   close()                        - Close the current file from search()." ) ;
-         println( "   run()                          - Run with the currently set parameters" ) ;
-         println( "   reset()                        - Reset all parameters." ) ;
-         break ;
+      println() ;
+      println( '   --Instance methods for class "DiagLog()":' ) ;
+      println( "   --methods for search(): " ) ;
+      this._helpSearch() ;
+      println();
+      println( "   --methods for collect(): " ) ;
+      this._helpCollect() ;
+      println();
+      println( "   --methods for analyze(): " ) ;
+      this._helpAnalyze() ;
+      println();
+      println( "   --methods for DiagLog: " ) ;
+      println( "   next(<num>)                    - Return the next <num> records of the result from search()." ) ;
+      println( "   close()                        - Close the current file from search()." ) ;
+      println( "   run()                          - Run with the currently set parameters" ) ;
+      println( "   reset()                        - Reset all parameters." ) ;
+   } else
+   {
+      DiagLog.help( func ) ;
    }
+
    return this ;
 }
 
-// end IniFile
+// end DiagLog
 
 
 

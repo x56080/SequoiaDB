@@ -4,7 +4,9 @@ collect - The specified running mode is collect.
 
 ##SYNOPSIS##
 
-**diaglog.collect([location])**
+**diaglog.collect([location]).snapshot(\<snapType\>).trap().core().conn(\<Sdb\>)**
+
+**diaglog.collect([location]).all().compress(\<mode\>).conn(\<Sdb\>)**
 
 ##CATEGORY##
 
@@ -28,15 +30,28 @@ when exception happen, use [getLastError()](manual/Manual/Sequoiadb_Command/Glob
 
 ##EXAMPLES##
 
-* Create a new DiagLog object
+* Create a Sdb object
 
     ```lang-javascript
- 	> var diaglog = new DiagLog( "sdbserver1", 11810, "sdbadmin", "sdbadmin" )
+    > var db = new Sdb()
+    ```
+
+* Create a DiagLog object
+
+    ```lang-javascript
+    > var diaglog = new DiagLog()
     ```
 
 * Search for the last 10 logs reporting -79 errors and retrieve the relevant log files locally.
 
     ```lang-javascript
-    > diaglog.collect().error( -79 ).limit( 10 )
+    > diaglog.collect().error( -79 ).limit( 10 ).conn(db)
+    /tmp/sequoiadb/collect/diaglog_20250101_120101.auto
+    ```
+
+* Retrieve the CSCL snapshots of the cluster, as well as the trap and core files from all nodes to the local.
+
+    ```lang-javascript
+    > diaglog.collect().core().tarp().snapshot('SNAP_CSCL').conn(db)
     /tmp/sequoiadb/collect/diaglog_20250101_120101.auto
     ```

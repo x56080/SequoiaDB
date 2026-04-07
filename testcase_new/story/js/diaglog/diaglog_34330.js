@@ -14,7 +14,8 @@ function test()
     } catch (e) {}
 
     try {
-        var diaglog = new DiagLog( COORDHOSTNAME, COORDSVCNAME );
+        var db = new Sdb( COORDHOSTNAME, COORDSVCNAME );
+        var diaglog = new DiagLog();
         var log;
         var fileName;
         var fileName1;
@@ -23,6 +24,8 @@ function test()
         var rc;
         var error_test_number = 1;
         try {
+            diaglog.conn(db);
+
             // 搜索日志
             log = diaglog.search().keypattern( 'rc: ' ).lastFile( 1 );
             fileName = log.run();
@@ -93,23 +96,23 @@ function test()
             }
 
             // 测试不 reset 是否能沿用续用变量
-            // 限制时间为当前时间之前 5 分钟，以保证搜索的日志结果相同
+            // 限制时间为当前时间之前 10 分钟，以保证搜索的日志结果相同
             var date = new Date();
-            date.setMinutes(date.getMinutes() - 5);
+            date.setMinutes(date.getMinutes() - 10);
             var timeStr = date.toString();
 
             diaglog.reset();
-            log = diaglog.search().keypattern( 'rc: ' ).timeEnd( timeStr );
-            fileName1 = log.run();
-            rc = File.exist( fileName1 );
-            assert.equal( rc, true );
-            error_test_number++;
-
-            log = diaglog.collect();
+            log = diaglog.collect().keypattern( 'rc: ' ).timeEnd( timeStr );
             fileName = log.run();
             rc = File.exist( fileName );
             assert.equal( rc, true );
             rc = File.exist( fileName + '.tar.gz' );
+            assert.equal( rc, true );
+            error_test_number++;
+
+            log = diaglog.search();
+            fileName1 = log.run();
+            rc = File.exist( fileName1 );
             assert.equal( rc, true );
             error_test_number++;
 
@@ -148,6 +151,9 @@ function test()
     } finally {
         if ( null != diaglog ) {
             diaglog.close();
+        }
+        if ( null != db ) {
+            db.close();
         }
     }
 }

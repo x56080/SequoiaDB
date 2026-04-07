@@ -251,7 +251,9 @@ function test()
 
     try {
         var db = new Sdb( COORDHOSTNAME, COORDSVCNAME );
-        var diaglog = new DiagLog( COORDHOSTNAME, COORDSVCNAME );
+        var diaglog = new DiagLog();
+        diaglog.conn(db);
+
         var logPath1 = collect( diaglog, 'tar.gz' );
         var logPath2 = collect( diaglog, 'zip' );
 

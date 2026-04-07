@@ -37,15 +37,28 @@ v5.8 及以上版本
 
 ##示例##
 
+* 新建一个 Sdb 对象
+
+    ```lang-javascript
+    > var db = new Sdb()
+    ```
+
 * 新建一个 DiagLog 对象
 
     ```lang-javascript
-    > var diaglog = new DiagLog( "sdbserver1", 11810, "sdbadmin", "sdbadmin" )
+    > var diaglog = new DiagLog()
     ```
 
 * 收集所有类型的快照。
 
     ```lang-javascript
-    > diaglog.collect().snapshot( 'SNAP_ALL' )
+    > diaglog.collect().snapshot( 'SNAP_ALL' ).conn(db)
     /tmp/sequoiadb/collect/diaglog_20250101_120101.auto
     ```
+
+[^_^]:
+     本文使用的所有引用及链接
+[getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
+[getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
+[faq]:manual/FAQ/faq_sdb.md
+[Sequoiadb_error_code]:manual/Manual/Sequoiadb_error_code.md

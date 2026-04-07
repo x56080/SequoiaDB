@@ -38,7 +38,7 @@ v5.8 及以上版本
 * 新建一个 DiagLog 对象
 
     ```lang-javascript
-    > var diaglog = new DiagLog( "sdbserver1", 11810, "sdbadmin", "sdbadmin" )
+    > var diaglog = new DiagLog()
     ```
 
 * 重置 DiagLog 对象中的参数。
@@ -46,3 +46,10 @@ v5.8 及以上版本
     ```lang-javascript
     > diaglog.reset()
     ```
+
+[^_^]:
+     本文使用的所有引用及链接
+[getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
+[getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
+[faq]:manual/FAQ/faq_sdb.md
+[Sequoiadb_error_code]:manual/Manual/Sequoiadb_error_code.md

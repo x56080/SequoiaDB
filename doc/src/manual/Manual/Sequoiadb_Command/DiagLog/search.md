@@ -4,7 +4,11 @@ search - 指定运行模式为 search
 
 ##语法##
 
-**diaglog.search([location])**
+**diaglog.search([location]).error(\<errorcode\>).limit(\<num\>).conn(\<Sdb\>)**
+
+**diaglog.search([location]).keypattern(\<keyword\>).lastFile(\<num\>).diaglevel(\<0-4\>).conn(\<Sdb\>)**
+
+**diaglog.search([location]).pid(\<pid\>).tid(\<tid\>).lastest(\<minutes\>).path(\<path\>)**
 
 ##类别##
 
@@ -45,15 +49,50 @@ v5.8 及以上版本
 
 ##示例##
 
+* 新建一个 Sdb 对象
+
+    ```lang-javascript
+    > var db = new Sdb()
+    ```
+
 * 新建一个 DiagLog 对象
 
     ```lang-javascript
- 	> var diaglog = new DiagLog( "sdbserver1", 11810, "sdbadmin", "sdbadmin" )
+    > var diaglog = new DiagLog()
     ```
 
 * 搜索最近报错 -79 错误的日志，限制返回 10 条结果。
 
     ```lang-javascript
-    > diaglog.search().error( -79 ).limit( 10 )
-    /tmp/sequoiadb/search/cluster_2025-01-01-12:01:01.000.auto 
+    > diaglog.search().error( -79 ).limit( 10 ).conn(db)
+    /tmp/sequoiadb/search/cluster_2025-01-01-12:01:01.000.auto
     ```
+
+* 查看搜索结果文件内容。
+
+    ```lang-javascript
+    > diaglog.next()
+    ...
+    ```
+
+* 关闭文件。
+
+    ```lang-javascript
+    > diaglog.close()
+    ```
+
+* 搜索本地 collect 收集的文件或节点 diaglog 目录，无需 Sdb 连接。
+
+    ```lang-javascript
+    > diaglog.search().error( -79 ).limit( 10 ).path( '/home/sdbadmin/collect/diaglog_20250101_120101' )
+    /tmp/sequoiadb/search/cluster_2025-01-01-12:02:01.000.auto 
+    > diaglog.search().error( -79 ).limit( 10 ).path( '/opt/sequoiadb/database/coord/diaglog' )
+    /tmp/sequoiadb/search/cluster_2025-01-01-12:02:01.000.auto 
+    ```
+
+[^_^]:
+     本文使用的所有引用及链接
+[getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
+[getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
+[faq]:manual/FAQ/faq_sdb.md
+[Sequoiadb_error_code]:manual/Manual/Sequoiadb_error_code.md

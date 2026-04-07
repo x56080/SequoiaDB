@@ -96,12 +96,22 @@ getLastErrMsg() to get error message.
 For more detial, please reference to Troubleshooting.
 .SH EXAMPLES
 .IP \[bu] 2
-Create a new DiagLog object
+Create a Sdb object
 .RS 2
 .IP
 .nf
 \f[C]
-> var diaglog = new DiagLog( "sdbserver1", 11810, "sdbadmin", "sdbadmin" )
+> var db = new Sdb()
+\f[]
+.fi
+.RE
+.IP \[bu] 2
+Create a DiagLog object
+.RS 2
+.IP
+.nf
+\f[C]
+> var diaglog = new DiagLog()
 \f[]
 .fi
 .RE
@@ -111,7 +121,7 @@ Place the result file of collect() into the specified directory.
 .IP
 .nf
 \f[C]
-> diaglog.collect().all().path( \[aq]/home/sdbadmin/collect\[aq] )
+> diaglog.collect().all().path( \[aq]/home/sdbadmin/collect\[aq] ).conn(db)
 /home/sdbadmin/collect/diaglog_20250101_120101
 \f[]
 .fi

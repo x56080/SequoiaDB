@@ -37,15 +37,28 @@ v5.8 及以上版本
 
 ##示例##
 
+* 新建一个 Sdb 对象
+
+    ```lang-javascript
+    > var db = new Sdb()
+    ```
+
 * 新建一个 DiagLog 对象
 
     ```lang-javascript
-    > var diaglog = new DiagLog( "sdbserver1", 11810, "sdbadmin", "sdbadmin" )
+    > var diaglog = new DiagLog()
     ```
 
 * 搜索错误 -79，且发生在 "2025-01-01T12:01:01" 之前的日志，限制返回 10 条结果。
 
     ```lang-javascript
-    > diaglog.search().error( -79 ).limit( 10 ).timeEnd( '2026-01-01T12:01:01' )
-    /tmp/sequoiadb/search/cluster_2025-01-01-12:01:01.000.auto 
+    > diaglog.search().error( -79 ).limit( 10 ).timeEnd( '2026-01-01T12:01:01' ).conn(db)
+    /tmp/sequoiadb/search/cluster_2025-01-01-12:01:01.000.auto
     ```
+
+[^_^]:
+     本文使用的所有引用及链接
+[getLastErrMsg]:manual/Manual/Sequoiadb_Command/Global/getLastErrMsg.md
+[getLastError]:manual/Manual/Sequoiadb_Command/Global/getLastError.md
+[faq]:manual/FAQ/faq_sdb.md
+[Sequoiadb_error_code]:manual/Manual/Sequoiadb_error_code.md

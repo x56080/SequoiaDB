@@ -88,12 +88,22 @@ DiagLog 对象。
 v5.8 及以上版本
 .SH 示例
 .IP \[bu] 2
+新建一个 Sdb 对象
+.RS 2
+.IP
+.nf
+\f[C]
+> var db = new Sdb()
+\f[]
+.fi
+.RE
+.IP \[bu] 2
 新建一个 DiagLog 对象
 .RS 2
 .IP
 .nf
 \f[C]
-> var diaglog = new DiagLog( "sdbserver1", 11810, "sdbadmin", "sdbadmin" )
+> var diaglog = new DiagLog()
 \f[]
 .fi
 .RE
@@ -103,7 +113,7 @@ v5.8 及以上版本
 .IP
 .nf
 \f[C]
-> diaglog.collect().all().path( \[aq]/home/sdbadmin/collect\[aq] )
+> diaglog.collect().all().path( \[aq]/home/sdbadmin/collect\[aq] ).conn(db)
 /home/sdbadmin/collect/diaglog_20250101_120101
 \f[]
 .fi

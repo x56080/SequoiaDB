@@ -115,143 +115,354 @@ T{
 T}@T{
 lastFile()
 T}@T{
+设置 search() 仅搜
+T}
+T{
+T}@T{
+T}@T{
+索最近的日志文
+T}
+T{
+T}@T{
+T}@T{
+件
 T}
 T{
 6
 T}@T{
 lastest()
 T}@T{
+设置 search() 仅搜
+T}
+T{
+T}@T{
+T}@T{
+索最近一定时间
+T}
+T{
+T}@T{
+T}@T{
+的日志
 T}
 T{
 7
 T}@T{
 timeBegin()
 T}@T{
+设置 search() 中搜
+T}
+T{
+T}@T{
+T}@T{
+索日志的起始时
+T}
+T{
+T}@T{
+T}@T{
+间
 T}
 T{
 8
 T}@T{
 timeEnd()
 T}@T{
+设置 search() 中搜
+T}
+T{
+T}@T{
+T}@T{
+索日志的结束时
+T}
+T{
+T}@T{
+T}@T{
+间
 T}
 T{
 9
 T}@T{
 error()
 T}@T{
+设置 search() 中搜
+T}
+T{
+T}@T{
+T}@T{
+索的错误码
 T}
 T{
 10
 T}@T{
 diaglevel()
 T}@T{
+设置 search() 中过
+T}
+T{
+T}@T{
+T}@T{
+滤的日志级别
 T}
 T{
 11
 T}@T{
 keypattern()
 T}@T{
+设置 search() 中搜
+T}
+T{
+T}@T{
+T}@T{
+索的关键字
 T}
 T{
 12
 T}@T{
 pid()
 T}@T{
+设置 search() 中搜
+T}
+T{
+T}@T{
+T}@T{
+索的 pid
 T}
 T{
 13
 T}@T{
 tid()
 T}@T{
+设置 search() 中搜
+T}
+T{
+T}@T{
+T}@T{
+索的 tid
 T}
 T{
 14
 T}@T{
 after()
 T}@T{
+设置 search() 结果
+T}
+T{
+T}@T{
+T}@T{
+上下文的下文条
+T}
+T{
+T}@T{
+T}@T{
+数
 T}
 T{
 15
 T}@T{
 before()
 T}@T{
+设置 search() 结果
+T}
+T{
+T}@T{
+T}@T{
+上下文的上文条
+T}
+T{
+T}@T{
+T}@T{
+数
 T}
 T{
 16
 T}@T{
 limit()
 T}@T{
+限制 search() 返回
+T}
+T{
+T}@T{
+T}@T{
+的结果条数
 T}
 T{
 17
 T}@T{
 original()
 T}@T{
+设置 search() 返回
+T}
+T{
+T}@T{
+T}@T{
+的结果为原始日
+T}
+T{
+T}@T{
+T}@T{
+志格式
 T}
 T{
 18
 T}@T{
 output()
 T}@T{
+设置 search() 和
+T}
+T{
+T}@T{
+T}@T{
+analyze() 的输出路
+T}
+T{
+T}@T{
+T}@T{
+径
 T}
 T{
 19
 T}@T{
 path()
 T}@T{
+设置 collect() 的输
+T}
+T{
+T}@T{
+T}@T{
+出路径、search()
+T}
+T{
+T}@T{
+T}@T{
+和 analyze() 的读取
+T}
+T{
+T}@T{
+T}@T{
+路径
 T}
 T{
 20
 T}@T{
-snasphot()
+snapshot()
 T}@T{
+设置 collect() 收集
+T}
+T{
+T}@T{
+T}@T{
+snapshot 快照
 T}
 T{
 21
 T}@T{
 core()
 T}@T{
+设置 collect() 收集
+T}
+T{
+T}@T{
+T}@T{
+core 文件
 T}
 T{
 22
 T}@T{
 trap()
 T}@T{
+设置 collect() 收集
+T}
+T{
+T}@T{
+T}@T{
+trap 文件
 T}
 T{
 23
 T}@T{
 all()
 T}@T{
+设置 collect() 收集
+T}
+T{
+T}@T{
+T}@T{
+trap、core 文件和
+T}
+T{
+T}@T{
+T}@T{
+所有的 snapshot
 T}
 T{
 24
 T}@T{
 compress()
 T}@T{
+设置 collect() 的压
+T}
+T{
+T}@T{
+T}@T{
+缩方式
 T}
 T{
 25
 T}@T{
 next()
 T}@T{
+展示 search() 搜索
+T}
+T{
+T}@T{
+T}@T{
+的日志结果
 T}
 T{
 26
 T}@T{
 close()
 T}@T{
+关闭 DiagLog 对象
+T}
+T{
+T}@T{
+T}@T{
+打开的文件
 T}
 T{
 27
 T}@T{
 run()
 T}@T{
+以当前设置的参
+T}
+T{
+T}@T{
+T}@T{
+数运行
 T}
 T{
 28
 T}@T{
 reset()
 T}@T{
+重置 DiagLog 对象
+T}
+T{
+T}@T{
+T}@T{
+中的参数
+T}
+T{
+29
+T}@T{
+[conn()][conn]
+T}@T{
+设置 DiagLog 对象
+T}
+T{
+T}@T{
+T}@T{
+中 Sdb 连接
 T}
 .TE

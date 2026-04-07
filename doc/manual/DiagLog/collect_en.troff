@@ -7,7 +7,9 @@
 collect \- The specified running mode is collect.
 .SH SYNOPSIS
 .PP
-\f[B]diaglog.collect([location])\f[]
+\f[B]diaglog.collect([location]).snapshot(<snapType>).trap().core().conn(<Sdb>)\f[]
+.PP
+\f[B]diaglog.collect([location]).all().compress(<mode>).conn(<Sdb>)\f[]
 .SH CATEGORY
 .PP
 DiagLog
@@ -29,12 +31,22 @@ getLastErrMsg() to get error message.
 For more detial, please reference to Troubleshooting.
 .SH EXAMPLES
 .IP \[bu] 2
-Create a new DiagLog object
+Create a Sdb object
 .RS 2
 .IP
 .nf
 \f[C]
-> var diaglog = new DiagLog( "sdbserver1", 11810, "sdbadmin", "sdbadmin" )
+> var db = new Sdb()
+\f[]
+.fi
+.RE
+.IP \[bu] 2
+Create a DiagLog object
+.RS 2
+.IP
+.nf
+\f[C]
+> var diaglog = new DiagLog()
 \f[]
 .fi
 .RE
@@ -45,7 +57,19 @@ files locally.
 .IP
 .nf
 \f[C]
-> diaglog.collect().error( \-79 ).limit( 10 )
+> diaglog.collect().error( \-79 ).limit( 10 ).conn(db)
+/tmp/sequoiadb/collect/diaglog_20250101_120101.auto
+\f[]
+.fi
+.RE
+.IP \[bu] 2
+Retrieve the CSCL snapshots of the cluster, as well as the trap and core files
+from all nodes to the local.
+.RS 2
+.IP
+.nf
+\f[C]
+> diaglog.collect().core().tarp().snapshot(\[aq]SNAP_CSCL\[aq]).conn(db)
 /tmp/sequoiadb/collect/diaglog_20250101_120101.auto
 \f[]
 .fi
