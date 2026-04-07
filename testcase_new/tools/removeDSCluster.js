@@ -32,7 +32,7 @@ function removeDSCluster()
    db1.close();
 
    // get an available temp port
-   var tmpCoordSvc = 36511;
+   var tmpCoordSvc = 32051;
    var remote = new Remote( COORDHOSTNAME, 11790 );
    var maxStep = 200;
    while( maxStep-- > 0 ) {

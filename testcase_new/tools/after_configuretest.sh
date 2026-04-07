@@ -23,5 +23,6 @@ ${INSTALL_DIR}/bin/sdb 'tmpDB.close()'
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 REMOVE_JS="$SCRIPT_DIR/removeDSCluster.js"
 
-${INSTALL_DIR}/bin/sdb -f $REMOVE_JS -e "var DSHOSTNAME=\"$currentHostname\"; var DSSVCNAME=36100; var COORDHOSTNAME=\"$COORDHOSTNAME\"; var RSRVNODEDIR=\"${INSTALL_DIR}/database\";"
+echo "cleaning datasource cluster..."
+${INSTALL_DIR}/bin/sdb -f $REMOVE_JS -e "var DSHOSTNAME=\"$currentHostname\"; var DSSVCNAME=32010; var COORDHOSTNAME=\"$COORDHOSTNAME\"; var RSRVNODEDIR=\"${INSTALL_DIR}/database\";"
 

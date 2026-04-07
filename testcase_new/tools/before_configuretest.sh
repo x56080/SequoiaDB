@@ -1,85 +1,119 @@
 #!/bin/bash
-set -eo pipefail
 
 COORDHOSTNAME="${1:-localhost}"
 COORDSVCNAME="${2:-11810}"
 
-currentHostname=$(hostname)
+CURRENT_HOSTNAME="$(hostname)"
 
 source /etc/profile >/dev/null 2>&1 || true
 source /etc/default/sequoiadb
 
-# clean when residue
-(
-# stop sdb-schedule tools
-${INSTALL_DIR}/tools/sdb-schedule/sdb-schedule/bin/schctl.sh stop -t all -f
+log() {
+    echo "[INFO] $*"
+}
 
-rm -rf ${INSTALL_DIR}/tools/sdb-schedule/sdb-schedule
+err() {
+    echo "[ERROR] $*" >&2
+}
 
-${INSTALL_DIR}/bin/sdb "var tmpDB = new Sdb(\"$COORDHOSTNAME\", $COORDSVCNAME)"
+fail_exit() {
+    err "$1"
+    cleanup
+    exit 1
+}
 
-${INSTALL_DIR}/bin/sdb "tmpDB.dropCS(\"SDB_SCHEDULE_SYSTEM\")"
+cleanup() {
+    log "cleaning env"
+    ${INSTALL_DIR}/tools/sdb-schedule/sdb-schedule/bin/schctl.sh stop -t all -f >/dev/null 2>&1
+    rm -rf "${INSTALL_DIR}/tools/sdb-schedule/sdb-schedule"
 
-${INSTALL_DIR}/bin/sdb "tmpDB.dropDataSource(\"sdbscheduledatasource\")"
+    ${INSTALL_DIR}/bin/sdb "var tmpDB = new Sdb(\"$COORDHOSTNAME\", $COORDSVCNAME)" >/dev/null 2>&1
+    ${INSTALL_DIR}/bin/sdb "tmpDB.dropCS(\"SDB_SCHEDULE_SYSTEM\")" >/dev/null 2>&1
+    ${INSTALL_DIR}/bin/sdb "tmpDB.dropDataSource(\"sdbscheduledatasource\")" >/dev/null 2>&1
+    ${INSTALL_DIR}/bin/sdb 'tmpDB.close()' >/dev/null 2>&1
 
-${INSTALL_DIR}/bin/sdb 'tmpDB.close()'
+    SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+    REMOVE_JS="$SCRIPT_DIR/removeDSCluster.js"
 
-SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
-REMOVE_JS="$SCRIPT_DIR/removeDSCluster.js"
+    ${INSTALL_DIR}/bin/sdb -f "$REMOVE_JS" \
+        -e "var DSHOSTNAME=\"$CURRENT_HOSTNAME\"; \
+            var DSSVCNAME=32010; \
+            var COORDHOSTNAME=\"$COORDHOSTNAME\"; \
+            var RSRVNODEDIR=\"${INSTALL_DIR}/database\";" \
+        >/dev/null 2>&1
 
-${INSTALL_DIR}/bin/sdb -f $REMOVE_JS -e "var DSHOSTNAME=\"$currentHostname\"; var DSSVCNAME=36100; var COORDHOSTNAME=\"$COORDHOSTNAME\"; var RSRVNODEDIR=\"${INSTALL_DIR}/database\";"
+    # wait for the port to be fully released
+    sleep 60
+    log "done"
+}
 
-) >/dev/null 2>&1 || true
+run_or_fail() {
+    "$@" || return 1
+}
 
-if ! ${INSTALL_DIR}/bin/sdblist -p 36100 >/dev/null 2>&1; then
+deploy_datasource_cluster() {
 
-    # remove tmp coord if exists
-    if ${INSTALL_DIR}/bin/sdblist -p 18800 -m local >/dev/null 2>&1; then
-        ${INSTALL_DIR}/bin/sdb "var tmpOma = new Oma(\"$COORDHOSTNAME\", 11790)"
-        ${INSTALL_DIR}/bin/sdb "tmpOma.removeCoord(18800)"
-        ${INSTALL_DIR}/bin/sdb "tmpOma.close()"
+    ${INSTALL_DIR}/bin/sdblist -p 32010 >/dev/null 2>&1
+    if [ $? -eq 0 ]; then
+        return 0
     fi
 
-    # install datasource cluster
-    cd "${INSTALL_DIR}/tools/deploy/"
+    log "Deploying datasource cluster..."
+
+    ${INSTALL_DIR}/bin/sdblist -p 18800 -m local >/dev/null 2>&1
+    if [ $? -eq 0 ]; then
+        run_or_fail ${INSTALL_DIR}/bin/sdb "var tmpOma = new Oma(\"$COORDHOSTNAME\", 11790)" || return 1
+        run_or_fail ${INSTALL_DIR}/bin/sdb "tmpOma.removeCoord(18800)" || return 1
+        run_or_fail ${INSTALL_DIR}/bin/sdb "tmpOma.close()" || return 1
+        sleep 60
+    fi
+
+    cd "${INSTALL_DIR}/tools/deploy/" || return 1
 
     cat > sequoiadb.conf <<EOF
 role,groupName,hostName,serviceName,dbPath
-catalog,SYSCatalogGroup,$currentHostname,36000,[installPath]/database/catalog/36000
-coord,SYSCoord,$currentHostname,36100,[installPath]/database/coord/36100
-data,group1,$currentHostname,36200,[installPath]/database/data/36200
-data,group2,$currentHostname,36300,[installPath]/database/data/36300
-data,group3,$currentHostname,36400,[installPath]/database/data/36400
+catalog,SYSCatalogGroup,$CURRENT_HOSTNAME,32000,[installPath]/database/catalog/32000
+coord,SYSCoord,$CURRENT_HOSTNAME,32010,[installPath]/database/coord/32010
+data,group1,$CURRENT_HOSTNAME,32020,[installPath]/database/data/32020
+data,group2,$CURRENT_HOSTNAME,32030,[installPath]/database/data/32030
+data,group3,$CURRENT_HOSTNAME,32040,[installPath]/database/data/32040
 EOF
 
-    bash quickDeploy.sh --sdb
-fi
+    bash quickDeploy.sh --sdb || return 1
 
-# create datasource in rootsite sdb
+    return 0
+}
 
-${INSTALL_DIR}/bin/sdb "var tmpDB = new Sdb(\"$COORDHOSTNAME\", $COORDSVCNAME)"
+create_datasource() {
 
-# check datasource exists
-if ! ${INSTALL_DIR}/bin/sdb 'tmpDB.getDataSource("sdbscheduledatasource")' >/dev/null 2>&1; then
-    ${INSTALL_DIR}/bin/sdb "tmpDB.createDataSource(\"sdbscheduledatasource\", \"$currentHostname:36100\", \"sdbadmin\", \"sdbadmin\")"
-fi
+    log "Creating datasource..."
 
-${INSTALL_DIR}/bin/sdb 'tmpDB.close()'
+    run_or_fail ${INSTALL_DIR}/bin/sdb "var tmpDB = new Sdb(\"$COORDHOSTNAME\", $COORDSVCNAME)" || return 1
 
-# deploy sdb-schedule tools
+    ${INSTALL_DIR}/bin/sdb 'tmpDB.getDataSource("sdbscheduledatasource")' >/dev/null 2>&1
+    if [ $? -ne 0 ]; then
+        run_or_fail ${INSTALL_DIR}/bin/sdb \
+            "tmpDB.createDataSource(\"sdbscheduledatasource\", \"$CURRENT_HOSTNAME:32010\", \"sdbadmin\", \"sdbadmin\")" || return 1
+    fi
 
-toolsPath="${INSTALL_DIR}/tools/sdb-schedule/"
+    run_or_fail ${INSTALL_DIR}/bin/sdb 'tmpDB.close()' || return 1
 
-cd $toolsPath
+    return 0
+}
 
-# unzip sdb-schedule tools
-tar -zxvf sdb-schedule-*-release.tar.gz
+deploy_schedule_tools() {
 
-chmod +x sdb-schedule/bin -R
+    log "Deploying schedule tools..."
 
-cd sdb-schedule/script/
+    toolsPath="${INSTALL_DIR}/tools/sdb-schedule/"
+    cd "$toolsPath" || return 1
 
-cat > quickDeploy.conf <<EOF
+    run_or_fail tar -zxf sdb-schedule-*-release.tar.gz || return 1
+    run_or_fail chmod +x sdb-schedule/bin -R || return 1
+
+    cd sdb-schedule/script/ || return 1
+
+    cat > quickDeploy.conf <<EOF
 rootsite_url="$COORDHOSTNAME:$COORDSVCNAME"
 rootsite_user="sdbadmin"
 rootsite_password="sdbadmin1"
@@ -89,5 +123,21 @@ system_cs_name="SDB_SCHEDULE_SYSTEM"
 system_cs_domain=""
 EOF
 
-echo 'y' | bash quickDeploy.sh deploy
+    echo 'y' | bash quickDeploy.sh deploy || return 1
 
+    return 0
+}
+
+main() {
+    log "Start deploy configure test env"
+
+    cleanup
+
+    deploy_datasource_cluster || fail_exit "deploy datasource cluster failed"
+    create_datasource || fail_exit "create datasource failed"
+    deploy_schedule_tools || fail_exit "deploy schedule tools failed"
+
+    log "Done"
+}
+
+main
