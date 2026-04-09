@@ -281,6 +281,7 @@ public class SdbDataSwitchTask extends TransferDataSwitchTaskBase {
         // 快照无效的情况下，说明还没有迁移完成，不能进行数据切换
         if (!lastCollectionSnapshotRecord.isRecordSnapshotEffective()
                 || !lastCollectionSnapshotRecord.isLobSnapshotEffective()) {
+            logger.info("snapshot all uneffective, cl={}", clFullName);
             return new DataSwitchRes(false, false);
         }
 
