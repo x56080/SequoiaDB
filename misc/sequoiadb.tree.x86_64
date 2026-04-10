@@ -207,6 +207,8 @@ sequoiadb
 │       │   ├── collect_en.troff
 │       │   ├── compress_cn.troff
 │       │   ├── compress_en.troff
+│       │   ├── conn_cn.troff
+│       │   ├── conn_en.troff
 │       │   ├── core_cn.troff
 │       │   ├── core_en.troff
 │       │   ├── diaglevel_cn.troff
@@ -240,8 +242,8 @@ sequoiadb
 │       │   ├── run_en.troff
 │       │   ├── search_cn.troff
 │       │   ├── search_en.troff
-│       │   ├── snasphot_cn.troff
-│       │   ├── snasphot_en.troff
+│       │   ├── snapshot_cn.troff
+│       │   ├── snapshot_en.troff
 │       │   ├── tid_cn.troff
 │       │   ├── tid_en.troff
 │       │   ├── timeBegin_cn.troff
