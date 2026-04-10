@@ -4168,8 +4168,8 @@ sequoiadb/doc/manual/DiagLog/run_cn.troff
 sequoiadb/doc/manual/DiagLog/run_en.troff
 sequoiadb/doc/manual/DiagLog/search_cn.troff
 sequoiadb/doc/manual/DiagLog/search_en.troff
-sequoiadb/doc/manual/DiagLog/snasphot_cn.troff
-sequoiadb/doc/manual/DiagLog/snasphot_en.troff
+sequoiadb/doc/manual/DiagLog/snapshot_cn.troff
+sequoiadb/doc/manual/DiagLog/snapshot_en.troff
 sequoiadb/doc/manual/DiagLog/tid_cn.troff
 sequoiadb/doc/manual/DiagLog/tid_en.troff
 sequoiadb/doc/manual/DiagLog/timeBegin_cn.troff
@@ -4180,3 +4180,5 @@ sequoiadb/doc/manual/DiagLog/trap_cn.troff
 sequoiadb/doc/manual/DiagLog/trap_en.troff
 sequoiadb/tools/diaglog
 sequoiadb/tools/diaglog/logSearchTool.sh
+sequoiadb/doc/manual/DiagLog/conn_cn.troff
+sequoiadb/doc/manual/DiagLog/conn_en.troff
