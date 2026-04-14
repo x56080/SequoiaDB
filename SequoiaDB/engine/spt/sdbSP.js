@@ -4564,6 +4564,7 @@ DiagLog.prototype._searchFromCollect = function() {
    var path = this._path ;
    var pathArray = path.split( '/' ) ;
    var output = '' ;
+   var isSearch = false ;
 
    try
    {
