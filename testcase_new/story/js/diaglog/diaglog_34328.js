@@ -396,12 +396,12 @@ function testPath( diaglog )
 
     // 指定不存在的目录，预期成功
     try {
-        log = diaglog.collect().error( -16 ).limit( 1 ).path( WORKDIR + '/diaglog_34328/abcde' );
+        log = diaglog.collect().keypattern( 'a' ).limit( 1 ).path( WORKDIR + '/diaglog_34328/abcde' );
         fileName = log.run();
         rc = File.exist( WORKDIR + '/diaglog_34328/abcde' );
         assert.equal( rc, true );
     } catch ( e ) {
-        println("[ERROR] Failed on diaglog.collect().error( -16 ).limit( 1 ).path( '" + WORKDIR + "/diaglog_34328/abcde' )");
+        println("[ERROR] Failed on diaglog.collect().keypattern( 'a' ).limit( 1 ).path( '" + WORKDIR + "/diaglog_34328/abcde' )");
         println('error: ' + getLastErrObj());
         throw e;
     }
