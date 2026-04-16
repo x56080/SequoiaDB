@@ -188,6 +188,12 @@
 <!--        </packages>-->
 <!--    </test>-->
 
+    <test name="sdbschedule" parallel="classes" thread-count="5">
+        <packages>
+            <package name="com.sequoiadb.sdbschedule" />
+        </packages>
+    </test>
+
     <!--未开启privilegecheck执行用例会重启节点，开启privilegecheck可直接执行用例-->
     <test name="rbac" parallel="classes" thread-count="5">
         <groups>
@@ -214,12 +220,6 @@
     <test name="recyclerecordsync" parallel="classes" thread-count="1">
         <packages>
             <package name="com.sequoiadb.recyclerecord" />
-        </packages>
-    </test>
-
-    <test name="sdbschedule" parallel="classes" thread-count="5">
-        <packages>
-            <package name="com.sequoiadb.sdbschedule" />
         </packages>
     </test>
 
