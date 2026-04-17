@@ -35,7 +35,7 @@ public class SdbSchedule_34385 extends SdbTestBase {
         targetSite = getDatasourceSiteName();
         sDB = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         tDB = DataSourceUtils.getDsConnect(sDB, getScheduleDataSourceName());
-        TestUtils.initCS( sDB, csName ).createCollection( clName );
+        TestUtils.initCS( sDB, csName ).createCollection( clName, new BasicBSONObject( "ReplSize", 0 ) );
     }
 
     @Test

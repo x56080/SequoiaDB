@@ -36,7 +36,9 @@ public class SdbSchedule_34367 extends SdbTestBase {
         sDB = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         tDB = DataSourceUtils.getDsConnect(sDB, getScheduleDataSourceName());
         DBCollection cl = TestUtils.initCS( sDB, csName )
-                .createCollection( clName );
+                .createCollection( clName, new BasicBSONObject( "ReplSize", 0 ) );
+        cl.insertRecord( new BasicBSONObject( "a", 1 ) );
+        cl.deleteRecords( new BasicBSONObject() );
         cl.createAutoIncrement( new BasicBSONObject( "Field", "incField1" ) );
     }
 

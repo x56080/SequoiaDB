@@ -45,11 +45,14 @@ public class SdbSchedule_34403 extends SdbTestBase {
 
         CollectionSpace cs = TestUtils.initCS( sDB, csName );
         DBCollection mainCL = cs.createCollection( mainCLName, mainCLOption );
-        cs.createCollection( subCLName );
+        cs.createCollection( subCLName, new BasicBSONObject( "ReplSize", 0 ) );
 
         TestUtils.attachCL( mainCL, new BasicBSONObject( "date", "20220101" ),
                 new BasicBSONObject( "date", "20220201" ),
                 csName + "." + subCLName );
+        mainCL.insertRecord( new BasicBSONObject( "a", 1 ).append( "date",
+                "20220101" ) );
+        mainCL.deleteRecords( new BasicBSONObject() );
     }
 
     @Test

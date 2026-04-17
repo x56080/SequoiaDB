@@ -46,7 +46,7 @@ public class SdbSchedule_34381 extends SdbTestBase {
         targetSite = getDatasourceSiteName();
         sDB = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
         tDB = DataSourceUtils.getDsConnect(sDB, getScheduleDataSourceName());
-        sCL = TestUtils.initCS( sDB, csName ).createCollection( clName );
+        sCL = TestUtils.initCS( sDB, csName ).createCollection( clName, new BasicBSONObject( "ReplSize", 0 ) );
         for ( int i = 0; i < lobCount; i++ ) {
             DBLob lob = sCL.createLob();
             String content = "This is a test lob content for SdbSchedule_34381 "

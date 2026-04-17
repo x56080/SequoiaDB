@@ -1,5 +1,6 @@
 package com.sequoiadb.sdbschedule;
 
+import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.sdbschedule.utils.BsonUtils;
 import com.sequoiadb.sdbschedule.utils.BusinessApiFactory;
@@ -33,8 +34,10 @@ public class SdbSchedule_34352 extends SdbTestBase {
     public void setUp() {
         targetSite = getDatasourceSiteName();
         sDB = new Sequoiadb( SdbTestBase.coordUrl, "", "" );
-        tDB = DataSourceUtils.getDsConnect(sDB, getScheduleDataSourceName());
-        TestUtils.initCS( sDB, csName ).createCollection( clName );
+        tDB = DataSourceUtils.getDsConnect( sDB, getScheduleDataSourceName() );
+        DBCollection cl = TestUtils.initCS( sDB, csName ).createCollection( clName, new BasicBSONObject( "ReplSize", 0) );
+        cl.insertRecord( new BasicBSONObject( "a", 1 ) );
+        cl.deleteRecords( new BasicBSONObject() );
     }
 
     @Test

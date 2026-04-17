@@ -48,7 +48,7 @@ public class SdbSchedule_34390 extends SdbTestBase {
         mainCL.createIndex( "index1", new BasicBSONObject( "index1", 1 ), false,
                 false );
 
-        DBCollection subCL = cs.createCollection( subCLName );
+        DBCollection subCL = cs.createCollection( subCLName, new BasicBSONObject( "ReplSize", 0 ) );
         subCL.createIndex( "index2", new BasicBSONObject( "index2", 1 ), false,
                 false );
 
