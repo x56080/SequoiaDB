@@ -264,6 +264,8 @@ if [ -n "$OUTPUT_FILE" ]; then
     dir=$(dirname "$OUTPUT_FILE")
     mkdir -p "$dir"
     test $? -ne 0 && echo "[ERROR] Failed to mkdir \"$dir\"" >&2
+    chmod 777 "$dir"
+    test $? -ne 0 && echo "[ERROR] Failed to chmod 777 \"$dir\"" >&2
     if [ ! -r "$dir" ]; then
         echo "[ERROR] Cannot read \"$dir\"" >&2
         exit 1

@@ -3936,6 +3936,37 @@ DiagLog.prototype._exec = function() {
    {
       throw e ;
    }
+
+   // generate output dir
+   try
+   {
+      if ( ! File.exist( this._tmpDir ) )
+      {
+         File.mkdir( this._tmpDir, 0777 ) ;
+         File.mkdir( this._tmpDir + '/search/', 0777 ) ;
+         File.mkdir( this._tmpDir + '/collect/', 0777 ) ;
+         File.mkdir( this._tmpDir + '/analyze/', 0777 ) ;
+      } else
+      {
+         if ( ! File.exist( this._tmpDir + '/search/' ) )
+         {
+            File.mkdir( this._tmpDir + '/search/', 0777 ) ;
+         }
+         if ( ! File.exist( this._tmpDir + '/collect/' ) )
+         {
+            File.mkdir( this._tmpDir + '/collect/', 0777 ) ;
+         }
+         if ( ! File.exist( this._tmpDir + '/analyze/' ) )
+         {
+            File.mkdir( this._tmpDir + '/analyze/', 0777 ) ;
+         }
+      }
+   } catch ( e )
+   {
+      setLastErrMsg( 'Failed to mkdir "' + this._tmpDir + '", error: ' + getLastErrMsg() );
+      throw e;
+   }
+
    try
    {
       // save some parameters
@@ -5955,10 +5986,13 @@ DiagLog.prototype._collect = function() {
          if ( 'zip' != this._compress )
          {
             cmd.run( 'cd ' + collectOutput + '/../ && tar -zcf ' + collectOutputDir + '.tar.gz ' + collectOutputDir );
+            File.chmod(collectOutput + '/../' + collectOutputDir + '.tar.gz', 0777, false) ;
          } else
          {
             cmd.run( 'cd ' + collectOutput + '/../ && zip -r ' + collectOutputDir + '.zip ' + collectOutputDir );
+            File.chmod(collectOutput + '/../' + collectOutputDir + '.zip', 0777, false) ;
          }
+         File.chmod(collectOutput, 0777, true) ;
       } else
       {
          File.mkdir( collectOutput, 0777 ) ;
@@ -6151,6 +6185,16 @@ DiagLog.prototype._analyze = function() {
       {
          setLastErrMsg( 'Failed to add head line on csv ' + timeCsv + ' and ' + countCsv + ', error: ' + getLastErrMsg() );
          throw e ;  
+      }
+
+      try
+      {
+         File.chmod(timeCsv, 0777, false) ;
+         File.chmod(countCsv, 0777, false) ;
+      } catch ( e )
+      {
+         setLastErrMsg( 'Failed to chmod 777 ' + timeCsv + ' and ' + countCsv + ', error: ' + getLastErrMsg() );
+         throw e ;
       }
    } catch ( e )
    {
