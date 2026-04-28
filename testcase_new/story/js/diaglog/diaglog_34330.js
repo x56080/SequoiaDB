@@ -101,6 +101,7 @@ function test()
             date.setMinutes(date.getMinutes() - 10);
             var timeStr = date.toString();
 
+            var timeObj_1 = getLogTime(db);
             diaglog.reset();
             log = diaglog.collect().keypattern( 'rc: ' ).timeEnd( timeStr );
             fileName = log.run();
@@ -123,11 +124,17 @@ function test()
             testWithoutOriginal(diaglog);
             error_test_number++;
 
+            var timeObj_2 = getLogTime(db);
+            var diffRc = diffLogTime(timeObj_1, timeObj_2);
+
+            // 如果节点日志这段时间内没有发生轮转，则对比 search 结果
             // 排除文件名影响，对比从集群日志搜索的结果是否和从 collect() 收集回来的文件的结果一致
-            cmd.run( 'sed -i "s#,/[^,]*,#,#g" ' + fileName1 );
-            cmd.run( 'sed -i "s#,/[^,]*,#,#g" ' + fileName2 );
-            rc = cmd.run( 'diff -q ' + fileName1 + ' ' + fileName2 + ' > /dev/null 2>&1; echo $?' ).trimRight( '\n' );
-            assert.equal( rc, '0' );
+            if (diffRc) {
+                cmd.run( 'sed -i "s#,/[^,]*,#,#g" ' + fileName1 );
+                cmd.run( 'sed -i "s#,/[^,]*,#,#g" ' + fileName2 );
+                rc = cmd.run( 'diff -q ' + fileName1 + ' ' + fileName2 + ' > /dev/null 2>&1; echo $?' ).trimRight( '\n' );
+                assert.equal( rc, '0' );
+            }
 
             log = diaglog.analyze();
             fileName = log.run();
@@ -143,6 +150,9 @@ function test()
             println('diaglog: ' + JSON.stringify(diaglog));
             println("existZip: " + existZip);
             println("error_test_number: " + error_test_number);
+            println('timeObj_1: ' + JSON.stringify(timeObj_1));
+            println('timeObj_2: ' + JSON.stringify(timeObj_2));
+            println('diffRc: ' + diffRc);
             println('error: ' + getLastErrObj());
             throw e;
         }
@@ -270,4 +280,62 @@ function testWithoutOriginal( diaglog )
         println('preTime: ' + preTime);
         throw e ;
     }
+}
+
+// 获取集群中各节点最新日志文件时间后缀
+function getLogTime(db) {
+    var result = {};
+    try {
+        var cursor = db.exec('select NodeName,diagpath from $SNAPSHOT_CONFIGS order by NodeName');
+        while (cursor.next())
+        {
+            var current = cursor.current().toObj();
+            var nodename = current.NodeName;
+            var diagpath = current.diagpath;
+            var file = "";
+
+            // 获取每个节点除了 sdbdiag.log 以为最新的日志文件名（带时间后缀）
+            var remote = new Remote(nodename.split(':')[0], 11790);
+            var cmd = remote.getCmd();
+            try {
+                var rc = cmd.run('ls -r ' + diagpath + '/sdbdiag.log.\* > /dev/null 2>&1; echo $?').trimRight('\n');
+                if ('0' == rc) {
+                    file = cmd.run('ls -r ' + diagpath + '/sdbdiag.log.\* | head -n 1').trimRight('\n');
+                } else {
+                    file = "sdbdiag.log";
+                }
+            } catch ( e ) {
+                // 如果遇到错误，则认为只有 sdbdiag.log 文件
+                file = "sdbdiag.log";
+            } finally {
+                if (null != remote) {
+                    remote.close();
+                    remote = null;
+                }
+            }
+            result[nodename] = file;
+        }
+        if (null != cursor) {
+            cursor.close();
+            cursor = null;
+        }
+    } catch ( e ) {
+        throw e;
+    }
+    return result;
+}
+
+// 检查集群中各节点最新日志文件时间后缀是否发生过变化
+function diffLogTime(timeObj1, timeObj2) {
+    var keys = Object.keys(timeObj1);
+    if (Object.keys(timeObj2).length != keys.length) {
+        return false;
+    }
+
+    for (let i = 0; i < keys.length; i++) {
+        if (timeObj1[keys[i]] != timeObj2[keys[i]]) {
+            return false;
+        }
+    }
+    return true;
 }
