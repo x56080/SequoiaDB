@@ -288,6 +288,8 @@ if [ "$SORT_ONLY" == true ]; then
 
     temp_results=$(mktemp)
     test $? -ne 0 && echo '[ERROR] Failed to exec "mktemp"' >&2 && exit 1
+    chmod 777 "$temp_results"
+    test $? -ne 0 && echo "[ERROR] Failed to chmod 777 $temp_results" >&2 && exit 1
 
     # 仅排序
     if [ "$ORIGINAL_OUTPUT" == true ]; then
@@ -470,6 +472,13 @@ get_log_files() {
 
 temp_results=$(mktemp)
 test $? -ne 0 && echo '[ERROR] Failed to exec "mktemp"' >&2 && exit 1
+chmod 777 "$temp_results"
+test $? -ne 0 && echo "[ERROR] Failed to chmod 777 $temp_results" >&2 && exit 1
+
+touch "${temp_results}.log" "${temp_results}.limited" "${temp_results}.sorted"
+test $? -ne 0 && echo '[ERROR] Failed to exec "mktemp"' >&2 && exit 1
+chmod 777 "${temp_results}.log" "${temp_results}.limited" "${temp_results}.sorted"
+test $? -ne 0 && echo "[ERROR] Failed to chmod 777 ${temp_results}.log ${temp_results}.limited ${temp_results}.sorted" >&2 && exit 1
 
 readarray -t log_files < <(get_log_files)
 
