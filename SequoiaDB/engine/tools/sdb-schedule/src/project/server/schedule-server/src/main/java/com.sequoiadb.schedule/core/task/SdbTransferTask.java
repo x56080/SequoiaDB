@@ -635,13 +635,11 @@ public class SdbTransferTask extends TransferDataSwitchTaskBase {
             if (skipStrategy.compareSnapshot(lastCollectionSnapshotRecord.getSnapshots(), clSnapshots)) {
                 return true;
             }
-            logger.info("snapshot is diff, last={}, current={}, cl={}", lastCollectionSnapshotRecord, clSnapshots, clFullName);
             // 最新快照有变化，不能跳过迁移，保存本次采集的快照
             saveCLSnapshot(getSourceSite(), clFullName, lastCollectionSnapshotRecord, clSnapshots);
             return false;
         }
         else {
-            logger.info("snapshot is uneffective, cl={}", clFullName);
             // 快照无效的情况下，不能跳过迁移
             return false;
         }

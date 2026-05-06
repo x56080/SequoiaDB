@@ -410,8 +410,6 @@ public abstract class TransferDataSwitchTaskBase extends ScheduleTaskBase {
         boolean res = hasNewDataWrite(lastCollectionSnapshotRecord.getSnapshots(),
                 currentSnapshots);
         if (res) {
-            logger.info("cl has new data write, cl={}, lastRecordSnapshot={}, currentSnapshots={}", clFullName,
-                    lastCollectionSnapshotRecord, currentSnapshots);
             saveCLSnapshot(getSourceSite(), clFullName, lastCollectionSnapshotRecord,
                     currentSnapshots);
             return false;
