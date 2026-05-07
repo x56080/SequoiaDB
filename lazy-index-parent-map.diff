@@ -1,0 +1,372 @@
+diff --git a/SequoiaDB/engine/dms/dmsCB.cpp b/SequoiaDB/engine/dms/dmsCB.cpp
+index 6d05c462c2..86583b997c 100644
+--- a/SequoiaDB/engine/dms/dmsCB.cpp
++++ b/SequoiaDB/engine/dms/dmsCB.cpp
+@@ -3668,34 +3668,10 @@ namespace engine
+    INT32 _SDB_DMSCB::dumpPageMapCSInfo( MON_CSNAME_VEC &vecCS )
+    {
+       INT32 rc = SDB_OK ;
+-      ossScopedLock _lock( &_mutex, SHARED ) ;
+-
+-      SDB_DMS_CSCB *cscb      = NULL ;
+-      for ( CSCB_MAP_CONST_ITER it = _cscbNameMap.begin() ;
+-            it != _cscbNameMap.end() ;
+-            ++it )
+-      {
+-         cscb = _cscbVec[ (*it).second ] ;
+-         if ( NULL == cscb || NULL == cscb->_su )
+-         {
+-            continue ;
+-         }
+-         else if ( cscb->_su->index()->getPageMapUnit()->isEmpty() )
+-         {
+-            continue ;
+-         }
+-
+-         /// push back
+-         try
+-         {
+-            vecCS.push_back( monCSName( cscb->_name, cscb->_su->CSUniqueID() ) ) ;
+-         }
+-         catch( std::exception &e )
+-         {
+-            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+-            rc = SDB_OOM ;
+-         }
+-      }
++      SDB_UNUSED( vecCS ) ;
++      // Index page maps now cache child->parent relationships in memory only.
++      // They are rebuilt lazily while walking index pages and must not be
++      // dispatched to background jobs for persistence.
+       return rc ;
+    }
+ 
+diff --git a/SequoiaDB/engine/dms/dmsDump.cpp b/SequoiaDB/engine/dms/dmsDump.cpp
+index 12a0dfd867..9aae74cf64 100644
+--- a/SequoiaDB/engine/dms/dmsDump.cpp
++++ b/SequoiaDB/engine/dms/dmsDump.cpp
+@@ -1866,10 +1866,8 @@ namespace engine
+                            "    Version      : %d" OSS_NEWLINE,
+                            header->_version ) ;
+       len += ossSnprintf ( outBuf + len, outSize - len,
+-                           "    Parent Ext   : 0x%08x (%d)%s" OSS_NEWLINE,
+-                           header->_parentExtentID , header->_parentExtentID,
+-                           DMS_INVALID_EXTENT == header->_parentExtentID ?
+-                           " (root)":"" ) ;
++                           "    Reserved     : 0x%08x (%d)" OSS_NEWLINE,
++                           header->_parentExtentID , header->_parentExtentID ) ;
+       len += ossSnprintf ( outBuf + len, outSize - len,
+                            "    Free Offset  : 0x%08x (%d)" OSS_NEWLINE,
+                            header->_beginFreeOffset,
+diff --git a/SequoiaDB/engine/dms/dmsInspect.cpp b/SequoiaDB/engine/dms/dmsInspect.cpp
+index c2acbadc6a..668a8c6971 100644
+--- a/SequoiaDB/engine/dms/dmsInspect.cpp
++++ b/SequoiaDB/engine/dms/dmsInspect.cpp
+@@ -1427,6 +1427,8 @@ namespace engine
+          goto exit ;
+       }
+ 
++      // Keep returning the raw reserved value for compatibility with callers
++      // of this helper, but do not interpret it as a parent pointer.
+       parentExtent = header->_parentExtentID ;
+ 
+       if ( IXM_EXTENT_EYECATCHER0 != header->_eyeCatcher[0] ||
+@@ -1767,7 +1769,7 @@ namespace engine
+                                  "        MBID            : %u" OSS_NEWLINE
+                                  "        Flag            : 0x%02x (%d)" OSS_NEWLINE
+                                  "        Version         : %d" OSS_NEWLINE
+-                                 "        ParentExtent    : %d" OSS_NEWLINE
++                                 "        Reserved        : %d" OSS_NEWLINE
+                                  "        BeginFreePos    : %d" OSS_NEWLINE
+                                  "        TotalFreeSize   : %u" OSS_NEWLINE
+                                  "        Right           : %d" OSS_NEWLINE,
+diff --git a/SequoiaDB/engine/dms/dmsPageMap.cpp b/SequoiaDB/engine/dms/dmsPageMap.cpp
+index c30b217cc0..5deea404e7 100644
+--- a/SequoiaDB/engine/dms/dmsPageMap.cpp
++++ b/SequoiaDB/engine/dms/dmsPageMap.cpp
+@@ -57,6 +57,7 @@ namespace engine
+ 
+    void  _dmsPageMap::addItem( dmsExtentID src, dmsExtentID dst )
+    {
++      ossScopedLock lock( &_latch, EXCLUSIVE ) ;
+       MAP_PAGES_IT it = _mapPages.find( src ) ;
+       if ( it == _mapPages.end() )
+       {
+@@ -78,6 +79,7 @@ namespace engine
+ 
+    void  _dmsPageMap::rmItem( dmsExtentID src )
+    {
++      ossScopedLock lock( &_latch, EXCLUSIVE ) ;
+       MAP_PAGES_IT it = _mapPages.find( src ) ;
+       if ( it != _mapPages.end() )
+       {
+@@ -94,6 +96,7 @@ namespace engine
+ 
+    void _dmsPageMap::clear()
+    {
++      ossScopedLock lock( &_latch, EXCLUSIVE ) ;
+       _mapPages.clear() ;
+ 
+       _pTotalSize->sub( _size.fetch() ) ;
+@@ -106,6 +109,7 @@ namespace engine
+ 
+    BOOLEAN _dmsPageMap::findItem( dmsExtentID src, dmsExtentID *pDst ) const
+    {
++      ossScopedLock lock( &_latch, SHARED ) ;
+       MAP_PAGES_CIT cit = _mapPages.find( src ) ;
+       if ( cit != _mapPages.end() )
+       {
+diff --git a/SequoiaDB/engine/dms/dmsStorageIndex.cpp b/SequoiaDB/engine/dms/dmsStorageIndex.cpp
+index b6318daefe..027c661581 100644
+--- a/SequoiaDB/engine/dms/dmsStorageIndex.cpp
++++ b/SequoiaDB/engine/dms/dmsStorageIndex.cpp
+@@ -387,23 +387,15 @@ namespace engine
+ 
+    void _dmsStorageIndex::_onClosed()
+    {
+-      /// Flush all pageMap to disk
++      /// Parent mappings are an in-memory index cache. They are rebuilt lazily
++      /// while traversing from root pages, so there is nothing to flush.
+       UINT16 pos = 0 ;
+       dmsPageMap *pPageMap = NULL ;
+-      dmsPageMap::MAP_PAGES_IT it ;
+ 
+       pPageMap = _mbPageInfo.beginNonEmpty( pos ) ;
+       while( pPageMap )
+       {
+-         it = pPageMap->begin() ;
+-         while( it != pPageMap->end() )
+-         {
+-            ixmExtent extent( it->first, this ) ;
+-            extent.setParent( it->second, FALSE ) ;
+-            ++it ;
+-         }
+          pPageMap->clear() ;
+-
+          pPageMap = _mbPageInfo.nextNonEmpty( pos ) ;
+       }
+ 
+@@ -415,11 +407,9 @@ namespace engine
+ 
+    INT32 _dmsStorageIndex::_onFlushDirty( BOOLEAN force, BOOLEAN sync )
+    {
+-      UINT16 pos = 0 ;
+-      BOOLEAN locked = FALSE ;
+       dmsMBStatInfo *pMBStat = NULL ;
+-      dmsPageMap *pPageMap = NULL ;
+-      dmsPageMap::MAP_PAGES_IT it ;
++      SDB_UNUSED( force ) ;
++      SDB_UNUSED( sync ) ;
+ 
+       for ( UINT16 i = 0 ; i < DMS_MME_SLOTS ; ++i )
+       {
+@@ -427,49 +417,6 @@ namespace engine
+          pMBStat->_idxCommitFlag.compareAndSwap( 0, 1 ) ;
+       }
+ 
+-      pPageMap = _mbPageInfo.beginNonEmpty( pos ) ;
+-      while( pPageMap )
+-      {
+-         pMBStat = &( _pDataSu->_mbStatInfo[ pos ] ) ;
+-
+-         while( !pPageMap->isEmpty() )
+-         {
+-            /// lock
+-            _pDataSu->_mblock[ pos ].get() ;
+-            locked = TRUE ;
+-
+-            it = pPageMap->begin() ;
+-            if( it != pPageMap->end() )
+-            {
+-               ixmExtent extent( it->first, this ) ;
+-               extent.setParent( it->second, FALSE ) ;
+-               pPageMap->erase( it ) ;
+-            }
+-            else
+-            {
+-               break ;
+-            }
+-
+-            if ( !force && pMBStat->_idxCommitFlag.compare( 0 ) )
+-            {
+-               /// only interrupt the collection, don't report error
+-               break ;
+-            }
+-            /// unlock
+-            _pDataSu->_mblock[ pos ].release() ;
+-            locked = FALSE ;
+-         }
+-
+-         if ( locked )
+-         {
+-            /// unlock
+-            _pDataSu->_mblock[ pos ].release() ;
+-            locked = FALSE ;
+-         }
+-
+-         pPageMap = _mbPageInfo.nextNonEmpty( pos ) ;
+-      }
+-
+       return SDB_OK ;
+    }
+ 
+diff --git a/SequoiaDB/engine/dms/dmsStorageJob.cpp b/SequoiaDB/engine/dms/dmsStorageJob.cpp
+index 43e04671d0..afadfaf3d8 100644
+--- a/SequoiaDB/engine/dms/dmsStorageJob.cpp
++++ b/SequoiaDB/engine/dms/dmsStorageJob.cpp
+@@ -400,40 +400,11 @@ namespace engine
+                                             _dmsMBContext *mbContext,
+                                             dmsPageMap *pPageMap )
+    {
+-      INT32 rc = SDB_OK ;
+-      UINT64 curPageNum = 0 ;
+-      dmsPageMap::MAP_PAGES_IT it ;
+-
+-      curPageNum = pPageMap->size() ;
+-
+-      while( curPageNum > 0 && !pPageMap->isEmpty() )
+-      {
+-         /// lock
+-         rc = mbContext->mbLock( EXCLUSIVE ) ;
+-         if ( rc )
+-         {
+-            goto done ;
+-         }
+-         it = pPageMap->begin() ;
+-         if ( it == pPageMap->end() )
+-         {
+-            goto done ;
+-         }
+-         else
+-         {
+-            ixmExtent extent( it->first, su->index() ) ;
+-            extent.setParent( it->second, FALSE ) ;
+-            pPageMap->erase( it ) ;
+-
+-            eduCB()->incEventCount( 1 ) ;
+-            --curPageNum ;
+-         }
+-         /// unlock
+-         mbContext->mbUnlock() ;
+-      }
+-
+-   done:
+-      mbContext->mbUnlock() ;
++      SDB_UNUSED( su ) ;
++      SDB_UNUSED( mbContext ) ;
++      SDB_UNUSED( pPageMap ) ;
++      // Index page maps are in-memory parent caches now. The dispatcher no
++      // longer persists them into child index pages.
+    }
+ 
+    /*
+diff --git a/SequoiaDB/engine/include/dmsPageMap.hpp b/SequoiaDB/engine/include/dmsPageMap.hpp
+index 4a021eaa5b..b1b83d5b47 100644
+--- a/SequoiaDB/engine/include/dmsPageMap.hpp
++++ b/SequoiaDB/engine/include/dmsPageMap.hpp
+@@ -39,6 +39,7 @@
+ 
+ #include "dms.hpp"
+ #include "ossAtomic.hpp"
++#include "ossLatch.hpp"
+ #include "ossMemPool.hpp"
+ #include "utilArray.hpp"
+ 
+@@ -80,6 +81,7 @@ namespace engine
+ 
+       private:
+          MAP_PAGES         _mapPages ;
++         mutable ossSpinSLatch _latch ;
+          ossAtomic64       _size ;
+          ossAtomic64       *_pTotalSize ;
+          ossAtomic32       *_pNonEmptyNum ;
+diff --git a/SequoiaDB/engine/include/ixmExtent.hpp b/SequoiaDB/engine/include/ixmExtent.hpp
+index d74ba39bed..f7a3350d3f 100644
+--- a/SequoiaDB/engine/include/ixmExtent.hpp
++++ b/SequoiaDB/engine/include/ixmExtent.hpp
+@@ -122,7 +122,8 @@ namespace engine
+       CHAR        _flag ;
+       // current extent version
+       CHAR        _version ;
+-      // the parent extent id
++      // Reserved. Parent relationships are cached in memory and rebuilt lazily
++      // while traversing from index roots.
+       dmsExtentID _parentExtentID ;
+       // beginning of free space, it's starting from end of extent
+       ixmOffset   _beginFreeOffset ;
+@@ -336,12 +337,19 @@ namespace engine
+       // get the extent id for child
+       dmsExtentID getChildExtentID ( UINT16 i ) const
+       {
++         dmsExtentID childExtentID = DMS_INVALID_EXTENT ;
+          if ( i>_extentHead->_totalKeyNodeNum )
+          {
+             return DMS_INVALID_EXTENT ;
+          }
+-         return (i==_extentHead->_totalKeyNodeNum)?(_extentHead->_right):
+-                    (getKeyNode(i)->_left) ;
++         childExtentID = ( i == _extentHead->_totalKeyNodeNum ) ?
++                         ( _extentHead->_right ) :
++                         ( getKeyNode(i)->_left ) ;
++         if ( DMS_INVALID_EXTENT != childExtentID )
++         {
++            _pPageMap->addItem( childExtentID, _me ) ;
++         }
++         return childExtentID ;
+       }
+       dmsExtentID getRightExtentID() const
+       {
+@@ -363,22 +371,21 @@ namespace engine
+       OSS_INLINE dmsExtentID getParent () const
+       {
+          dmsExtentID parentID = DMS_INVALID_EXTENT ;
+-         if ( !_pPageMap->findItem( _me, &parentID ) )
+-         {
+-            parentID = _extentHead->_parentExtentID ;
+-         }
++         _pPageMap->findItem( _me, &parentID ) ;
+          return parentID ;
+       }
+       OSS_INLINE void setParent ( dmsExtentID extentID,
+                                   BOOLEAN rmItem = TRUE )
+       {
+-         ixmExtentHead *pHead = _extRW.writePtr<ixmExtentHead>() ;
+-         pHead->_parentExtentID = extentID ;
+-
+-         if ( rmItem )
++         SDB_UNUSED( rmItem ) ;
++         if ( DMS_INVALID_EXTENT == extentID )
+          {
+             _pPageMap->rmItem( _me ) ;
+          }
++         else
++         {
++            _pPageMap->addItem( _me, extentID ) ;
++         }
+       }
+       void setChildExtentID ( UINT16 i, dmsExtentID extentID ) ;
+ 
+diff --git a/SequoiaDB/engine/ixm/ixmExtent.cpp b/SequoiaDB/engine/ixm/ixmExtent.cpp
+index 10e094e9e8..cf37e32bf0 100644
+--- a/SequoiaDB/engine/ixm/ixmExtent.cpp
++++ b/SequoiaDB/engine/ixm/ixmExtent.cpp
+@@ -953,8 +953,7 @@ namespace engine
+       pHeader->_right = right ;
+       if ( DMS_INVALID_EXTENT != right )
+       {
+-         _ixmExtent childExtent ( right, _pIndexSu ) ;
+-         childExtent.setParent ( _me ) ;
++         _pPageMap->addItem( right, _me ) ;
+       }
+    }
+ 
+@@ -973,8 +972,7 @@ namespace engine
+          writeKeyNode(i)->_left = extentID ;
+          if ( DMS_INVALID_EXTENT != extentID )
+          {
+-            _ixmExtent childExtent ( extentID, _pIndexSu ) ;
+-            childExtent.setParent ( _me ) ;
++            _pPageMap->addItem( extentID, _me ) ;
+          }
+       }
+    }
