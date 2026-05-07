@@ -917,7 +917,9 @@ if linux64:
 
 if linux64:
     Import("fuse_lib")
-    sequoiafs = toolEnv.Program("sequoiafs",
+    sequoiaFSEnv = toolEnv.Clone()
+    sequoiaFSEnv.Append( LINKFLAGS=" -no-pie " )
+    sequoiafs = sequoiaFSEnv.Program("sequoiafs",
         sequoiaFSFiles,
         LIBDEPS=["bson", "oss", "pd", "util", "pmd", "pmdMT", "rtnJob", "rtn", "client", "clientcpp", "mon", "fs", fuse_lib, "net", "msg", "charset"],
         _LIBDEPS='$_LIBDEPS_OBJS' )

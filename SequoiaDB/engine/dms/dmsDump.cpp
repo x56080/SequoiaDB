@@ -1866,10 +1866,8 @@ namespace engine
                            "    Version      : %d" OSS_NEWLINE,
                            header->_version ) ;
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "    Parent Ext   : 0x%08x (%d)%s" OSS_NEWLINE,
-                           header->_parentExtentID , header->_parentExtentID,
-                           DMS_INVALID_EXTENT == header->_parentExtentID ?
-                           " (root)":"" ) ;
+                           "    Reserved     : 0x%08x (%d)" OSS_NEWLINE,
+                           header->_parentExtentID , header->_parentExtentID ) ;
       len += ossSnprintf ( outBuf + len, outSize - len,
                            "    Free Offset  : 0x%08x (%d)" OSS_NEWLINE,
                            header->_beginFreeOffset,

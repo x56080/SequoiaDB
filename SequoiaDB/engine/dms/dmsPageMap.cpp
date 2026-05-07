@@ -35,10 +35,12 @@
 
 *******************************************************************************/
 #include "dmsPageMap.hpp"
+#include "ossLatch.hpp"
 #include "pd.hpp"
 
 namespace engine
 {
+   static ossSpinSLatch s_dmsPageMapLatch ;
 
    /*
       _dmsPageMap implement
@@ -57,6 +59,7 @@ namespace engine
 
    void  _dmsPageMap::addItem( dmsExtentID src, dmsExtentID dst )
    {
+      ossScopedLock lock( &s_dmsPageMapLatch, EXCLUSIVE ) ;
       MAP_PAGES_IT it = _mapPages.find( src ) ;
       if ( it == _mapPages.end() )
       {
@@ -78,6 +81,7 @@ namespace engine
 
    void  _dmsPageMap::rmItem( dmsExtentID src )
    {
+      ossScopedLock lock( &s_dmsPageMapLatch, EXCLUSIVE ) ;
       MAP_PAGES_IT it = _mapPages.find( src ) ;
       if ( it != _mapPages.end() )
       {
@@ -94,6 +98,7 @@ namespace engine
 
    void _dmsPageMap::clear()
    {
+      ossScopedLock lock( &s_dmsPageMapLatch, EXCLUSIVE ) ;
       _mapPages.clear() ;
 
       _pTotalSize->sub( _size.fetch() ) ;
@@ -106,6 +111,7 @@ namespace engine
 
    BOOLEAN _dmsPageMap::findItem( dmsExtentID src, dmsExtentID *pDst ) const
    {
+      ossScopedLock lock( &s_dmsPageMapLatch, SHARED ) ;
       MAP_PAGES_CIT cit = _mapPages.find( src ) ;
       if ( cit != _mapPages.end() )
       {

@@ -387,23 +387,15 @@ namespace engine
 
    void _dmsStorageIndex::_onClosed()
    {
-      /// Flush all pageMap to disk
+      /// Parent mappings are an in-memory index cache. They are rebuilt lazily
+      /// while traversing from root pages, so there is nothing to flush.
       UINT16 pos = 0 ;
       dmsPageMap *pPageMap = NULL ;
-      dmsPageMap::MAP_PAGES_IT it ;
 
       pPageMap = _mbPageInfo.beginNonEmpty( pos ) ;
       while( pPageMap )
       {
-         it = pPageMap->begin() ;
-         while( it != pPageMap->end() )
-         {
-            ixmExtent extent( it->first, this ) ;
-            extent.setParent( it->second, FALSE ) ;
-            ++it ;
-         }
          pPageMap->clear() ;
-
          pPageMap = _mbPageInfo.nextNonEmpty( pos ) ;
       }
 
@@ -415,59 +407,14 @@ namespace engine
 
    INT32 _dmsStorageIndex::_onFlushDirty( BOOLEAN force, BOOLEAN sync )
    {
-      UINT16 pos = 0 ;
-      BOOLEAN locked = FALSE ;
       dmsMBStatInfo *pMBStat = NULL ;
-      dmsPageMap *pPageMap = NULL ;
-      dmsPageMap::MAP_PAGES_IT it ;
+      SDB_UNUSED( force ) ;
+      SDB_UNUSED( sync ) ;
 
       for ( UINT16 i = 0 ; i < DMS_MME_SLOTS ; ++i )
       {
          pMBStat = &( _pDataSu->_mbStatInfo[i] ) ;
          pMBStat->_idxCommitFlag.compareAndSwap( 0, 1 ) ;
-      }
-
-      pPageMap = _mbPageInfo.beginNonEmpty( pos ) ;
-      while( pPageMap )
-      {
-         pMBStat = &( _pDataSu->_mbStatInfo[ pos ] ) ;
-
-         while( !pPageMap->isEmpty() )
-         {
-            /// lock
-            _pDataSu->_mblock[ pos ].get() ;
-            locked = TRUE ;
-
-            it = pPageMap->begin() ;
-            if( it != pPageMap->end() )
-            {
-               ixmExtent extent( it->first, this ) ;
-               extent.setParent( it->second, FALSE ) ;
-               pPageMap->erase( it ) ;
-            }
-            else
-            {
-               break ;
-            }
-
-            if ( !force && pMBStat->_idxCommitFlag.compare( 0 ) )
-            {
-               /// only interrupt the collection, don't report error
-               break ;
-            }
-            /// unlock
-            _pDataSu->_mblock[ pos ].release() ;
-            locked = FALSE ;
-         }
-
-         if ( locked )
-         {
-            /// unlock
-            _pDataSu->_mblock[ pos ].release() ;
-            locked = FALSE ;
-         }
-
-         pPageMap = _mbPageInfo.nextNonEmpty( pos ) ;
       }
 
       return SDB_OK ;

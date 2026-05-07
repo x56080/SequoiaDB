@@ -1427,6 +1427,8 @@ namespace engine
          goto exit ;
       }
 
+      // Keep returning the raw reserved value for compatibility with callers
+      // of this helper, but do not interpret it as a parent pointer.
       parentExtent = header->_parentExtentID ;
 
       if ( IXM_EXTENT_EYECATCHER0 != header->_eyeCatcher[0] ||
@@ -1767,7 +1769,7 @@ namespace engine
                                  "        MBID            : %u" OSS_NEWLINE
                                  "        Flag            : 0x%02x (%d)" OSS_NEWLINE
                                  "        Version         : %d" OSS_NEWLINE
-                                 "        ParentExtent    : %d" OSS_NEWLINE
+                                 "        Reserved        : %d" OSS_NEWLINE
                                  "        BeginFreePos    : %d" OSS_NEWLINE
                                  "        TotalFreeSize   : %u" OSS_NEWLINE
                                  "        Right           : %d" OSS_NEWLINE,

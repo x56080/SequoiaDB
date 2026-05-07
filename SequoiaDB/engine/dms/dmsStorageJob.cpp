@@ -400,40 +400,11 @@ namespace engine
                                             _dmsMBContext *mbContext,
                                             dmsPageMap *pPageMap )
    {
-      INT32 rc = SDB_OK ;
-      UINT64 curPageNum = 0 ;
-      dmsPageMap::MAP_PAGES_IT it ;
-
-      curPageNum = pPageMap->size() ;
-
-      while( curPageNum > 0 && !pPageMap->isEmpty() )
-      {
-         /// lock
-         rc = mbContext->mbLock( EXCLUSIVE ) ;
-         if ( rc )
-         {
-            goto done ;
-         }
-         it = pPageMap->begin() ;
-         if ( it == pPageMap->end() )
-         {
-            goto done ;
-         }
-         else
-         {
-            ixmExtent extent( it->first, su->index() ) ;
-            extent.setParent( it->second, FALSE ) ;
-            pPageMap->erase( it ) ;
-
-            eduCB()->incEventCount( 1 ) ;
-            --curPageNum ;
-         }
-         /// unlock
-         mbContext->mbUnlock() ;
-      }
-
-   done:
-      mbContext->mbUnlock() ;
+      SDB_UNUSED( su ) ;
+      SDB_UNUSED( mbContext ) ;
+      SDB_UNUSED( pPageMap ) ;
+      // Index page maps are in-memory parent caches now. The dispatcher no
+      // longer persists them into child index pages.
    }
 
    /*

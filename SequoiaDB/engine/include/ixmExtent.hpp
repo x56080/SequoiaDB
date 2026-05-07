@@ -122,7 +122,8 @@ namespace engine
       CHAR        _flag ;
       // current extent version
       CHAR        _version ;
-      // the parent extent id
+      // Reserved. Parent relationships are cached in memory and rebuilt lazily
+      // while traversing from index roots.
       dmsExtentID _parentExtentID ;
       // beginning of free space, it's starting from end of extent
       ixmOffset   _beginFreeOffset ;
@@ -336,12 +337,19 @@ namespace engine
       // get the extent id for child
       dmsExtentID getChildExtentID ( UINT16 i ) const
       {
+         dmsExtentID childExtentID = DMS_INVALID_EXTENT ;
          if ( i>_extentHead->_totalKeyNodeNum )
          {
             return DMS_INVALID_EXTENT ;
          }
-         return (i==_extentHead->_totalKeyNodeNum)?(_extentHead->_right):
-                    (getKeyNode(i)->_left) ;
+         childExtentID = ( i == _extentHead->_totalKeyNodeNum ) ?
+                         ( _extentHead->_right ) :
+                         ( getKeyNode(i)->_left ) ;
+         if ( DMS_INVALID_EXTENT != childExtentID )
+         {
+            _pPageMap->addItem( childExtentID, _me ) ;
+         }
+         return childExtentID ;
       }
       dmsExtentID getRightExtentID() const
       {
@@ -363,21 +371,20 @@ namespace engine
       OSS_INLINE dmsExtentID getParent () const
       {
          dmsExtentID parentID = DMS_INVALID_EXTENT ;
-         if ( !_pPageMap->findItem( _me, &parentID ) )
-         {
-            parentID = _extentHead->_parentExtentID ;
-         }
+         _pPageMap->findItem( _me, &parentID ) ;
          return parentID ;
       }
       OSS_INLINE void setParent ( dmsExtentID extentID,
                                   BOOLEAN rmItem = TRUE )
       {
-         ixmExtentHead *pHead = _extRW.writePtr<ixmExtentHead>() ;
-         pHead->_parentExtentID = extentID ;
-
-         if ( rmItem )
+         SDB_UNUSED( rmItem ) ;
+         if ( DMS_INVALID_EXTENT == extentID )
          {
             _pPageMap->rmItem( _me ) ;
+         }
+         else
+         {
+            _pPageMap->addItem( _me, extentID ) ;
          }
       }
       void setChildExtentID ( UINT16 i, dmsExtentID extentID ) ;
