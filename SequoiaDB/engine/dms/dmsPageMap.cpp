@@ -57,6 +57,7 @@ namespace engine
 
    void  _dmsPageMap::addItem( dmsExtentID src, dmsExtentID dst )
    {
+      ossScopedLock lock( &_latch, EXCLUSIVE ) ;
       MAP_PAGES_IT it = _mapPages.find( src ) ;
       if ( it == _mapPages.end() )
       {
@@ -78,6 +79,7 @@ namespace engine
 
    void  _dmsPageMap::rmItem( dmsExtentID src )
    {
+      ossScopedLock lock( &_latch, EXCLUSIVE ) ;
       MAP_PAGES_IT it = _mapPages.find( src ) ;
       if ( it != _mapPages.end() )
       {
@@ -94,6 +96,7 @@ namespace engine
 
    void _dmsPageMap::clear()
    {
+      ossScopedLock lock( &_latch, EXCLUSIVE ) ;
       _mapPages.clear() ;
 
       _pTotalSize->sub( _size.fetch() ) ;
@@ -106,6 +109,7 @@ namespace engine
 
    BOOLEAN _dmsPageMap::findItem( dmsExtentID src, dmsExtentID *pDst ) const
    {
+      ossScopedLock lock( &_latch, SHARED ) ;
       MAP_PAGES_CIT cit = _mapPages.find( src ) ;
       if ( cit != _mapPages.end() )
       {

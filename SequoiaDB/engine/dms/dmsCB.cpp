@@ -3668,34 +3668,10 @@ namespace engine
    INT32 _SDB_DMSCB::dumpPageMapCSInfo( MON_CSNAME_VEC &vecCS )
    {
       INT32 rc = SDB_OK ;
-      ossScopedLock _lock( &_mutex, SHARED ) ;
-
-      SDB_DMS_CSCB *cscb      = NULL ;
-      for ( CSCB_MAP_CONST_ITER it = _cscbNameMap.begin() ;
-            it != _cscbNameMap.end() ;
-            ++it )
-      {
-         cscb = _cscbVec[ (*it).second ] ;
-         if ( NULL == cscb || NULL == cscb->_su )
-         {
-            continue ;
-         }
-         else if ( cscb->_su->index()->getPageMapUnit()->isEmpty() )
-         {
-            continue ;
-         }
-
-         /// push back
-         try
-         {
-            vecCS.push_back( monCSName( cscb->_name, cscb->_su->CSUniqueID() ) ) ;
-         }
-         catch( std::exception &e )
-         {
-            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
-            rc = SDB_OOM ;
-         }
-      }
+      SDB_UNUSED( vecCS ) ;
+      // Index page maps now cache child->parent relationships in memory only.
+      // They are rebuilt lazily while walking index pages and must not be
+      // dispatched to background jobs for persistence.
       return rc ;
    }
 

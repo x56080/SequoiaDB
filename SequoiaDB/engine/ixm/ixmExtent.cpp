@@ -953,8 +953,7 @@ namespace engine
       pHeader->_right = right ;
       if ( DMS_INVALID_EXTENT != right )
       {
-         _ixmExtent childExtent ( right, _pIndexSu ) ;
-         childExtent.setParent ( _me ) ;
+         _pPageMap->addItem( right, _me ) ;
       }
    }
 
@@ -973,8 +972,7 @@ namespace engine
          writeKeyNode(i)->_left = extentID ;
          if ( DMS_INVALID_EXTENT != extentID )
          {
-            _ixmExtent childExtent ( extentID, _pIndexSu ) ;
-            childExtent.setParent ( _me ) ;
+            _pPageMap->addItem( extentID, _me ) ;
          }
       }
    }

@@ -1427,7 +1427,7 @@ namespace engine
          goto exit ;
       }
 
-      parentExtent = header->_parentExtentID ;
+      parentExtent = DMS_INVALID_EXTENT ;
 
       if ( IXM_EXTENT_EYECATCHER0 != header->_eyeCatcher[0] ||
            IXM_EXTENT_EYECATCHER1 != header->_eyeCatcher[1] )
@@ -1767,7 +1767,7 @@ namespace engine
                                  "        MBID            : %u" OSS_NEWLINE
                                  "        Flag            : 0x%02x (%d)" OSS_NEWLINE
                                  "        Version         : %d" OSS_NEWLINE
-                                 "        ParentExtent    : %d" OSS_NEWLINE
+                                 "        Reserved        : %d" OSS_NEWLINE
                                  "        BeginFreePos    : %d" OSS_NEWLINE
                                  "        TotalFreeSize   : %u" OSS_NEWLINE
                                  "        Right           : %d" OSS_NEWLINE,
