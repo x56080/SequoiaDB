@@ -1427,7 +1427,9 @@ namespace engine
          goto exit ;
       }
 
-      parentExtent = DMS_INVALID_EXTENT ;
+      // Keep returning the raw reserved value for compatibility with callers
+      // of this helper, but do not interpret it as a parent pointer.
+      parentExtent = header->_parentExtentID ;
 
       if ( IXM_EXTENT_EYECATCHER0 != header->_eyeCatcher[0] ||
            IXM_EXTENT_EYECATCHER1 != header->_eyeCatcher[1] )
