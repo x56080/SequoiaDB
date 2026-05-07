@@ -39,7 +39,6 @@
 
 #include "dms.hpp"
 #include "ossAtomic.hpp"
-#include "ossLatch.hpp"
 #include "ossMemPool.hpp"
 #include "utilArray.hpp"
 
@@ -81,7 +80,6 @@ namespace engine
 
       private:
          MAP_PAGES         _mapPages ;
-         mutable ossSpinSLatch _latch ;
          ossAtomic64       _size ;
          ossAtomic64       *_pTotalSize ;
          ossAtomic32       *_pNonEmptyNum ;
