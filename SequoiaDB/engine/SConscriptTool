@@ -1,8 +1,10 @@
 import os
+import subprocess
 
 Import("toolEnv")
 Import("linux")
 Import("linux64")
+Import("guess_os")
 
 bsonFiles = [
       "bson/bsonobj.cpp",
@@ -133,7 +135,9 @@ netFiles = [
       "net/netInnerTimer.cpp",
       "net/netFrame.cpp",
       "net/netRoute.cpp",
-      "net/netRouteAgent.cpp"
+      "net/netRouteAgent.cpp",
+      "net/netCompressor.cpp",
+      "net/netCommon.cpp"
       ]
 
 pdFiles = [
@@ -250,7 +254,13 @@ utilFiles = [
       "util/base64.cpp",
       "util/utilSecure.cpp",
       "util/utilTool.cpp",
-      "util/utilLocation.cpp"
+      "util/utilLocation.cpp",
+      "util/utilCompressorLZ4.cpp",
+      "util/utilCompressor.cpp",
+      "util/utilCompressorSnappy.cpp",
+      "util/utilCompressorLZW.cpp",
+      "util/utilCompressorZlib.cpp",
+      "util/utilLZWDictionary.cpp"
       ]
 
 dpsFiles = [
@@ -736,6 +746,12 @@ sdbRevertFiles = [
       "tools/revert/sdbrevert.cpp",
       ]
 
+charsetFiles = [
+      "charset/charsetConvertorFactory.cpp",
+      "charset/charsetICUConvertor.cpp",
+      "charset/charsetUtils.cpp",
+]
+
 #PCRE
 toolEnv.StaticLibrary('pcre', pcreFiles)
 #cls
@@ -783,112 +799,138 @@ toolEnv.StaticLibrary('mon', monFiles)
 if linux64:
    toolEnv.StaticLibrary('fs', sequoiaFSComFiles)
 
+# Same with ICU4C library
+toolEnv.Append(
+    CPPDEFINES=[
+        ('UCONFIG_NO_BREAK_ITERATION', 1),
+        ('UCONFIG_NO_FORMATTING', 1),
+        ('UCONFIG_NO_TRANSLITERATION', 1),
+        ('UCONFIG_NO_REGULAR_EXPRESSIONS', 1),
+        ('U_CHARSET_IS_UTF8', 1),
+        ('U_DISABLE_RENAMING', 1),
+        ('U_STATIC_IMPLEMENTATION', 1),
+        ('U_USING_ICU_NAMESPACE', 0),
+    ],
+)
+#charset
+charsetEnv = toolEnv.Clone()
+charsetEnv.StaticLibrary('charset', charsetFiles)
+
+
 #Export Executable
 sdbimprt = toolEnv.Program("sdbimprt", importFiles,
-         LIBDEPS=["bson", "oss", "pd", "util", "client", "cls", "ixm", "rtn", "msg","mon"],
+         LIBDEPS=["bson", "oss", "pd", "util", "client", "cls", "ixm", "rtn", "msg","mon", "charset"],
          _LIBDEPS='$_LIBDEPS_OBJS' )
 
 sdbexprt = toolEnv.Program("sdbexprt", exportFiles,
-          LIBDEPS=["bson","oss","pd","util","client","clientcpp","mon"],
+          LIBDEPS=["bson","oss","pd","util","client","clientcpp","mon", "charset"],
           _LIBDEPS='$_LIBDEPS_OBJS' )
 
 sdbreplay = toolEnv.Program("sdbreplay", sdbReplayFiles,
-          LIBDEPS=["bson","oss","pd","util","clientcpp","dps","pmd","pcre","mon"],
+          LIBDEPS=["bson","oss","pd","util","clientcpp","dps","pmd","pcre","mon", "charset"],
           _LIBDEPS='$_LIBDEPS_OBJS' )
 
 sdbload2 = toolEnv.Program("sdbload2", sdbLoadMain,
-         LIBDEPS=["bson","oss","pd","util","client","mon"],
+         LIBDEPS=["bson","oss","pd","util","client","mon", "charset"],
          _LIBDEPS='$_LIBDEPS_OBJS' )
 
 sdbstart = toolEnv.Program("sdbstart", sdbStartMain,
-         LIBDEPS=["pd","oss","pmd","bson","util","mon"],
+         LIBDEPS=["pd","oss","pmd","bson","util","mon", "charset"],
          _LIBDEPS='$_LIBDEPS_OBJS' )
 
 sdbstop = toolEnv.Program("sdbstop", sdbStopMain,
-         LIBDEPS=["pd","oss","bson","util","mon"],
+         LIBDEPS=["pd","oss","bson","util","mon", "charset"],
          _LIBDEPS='$_LIBDEPS_OBJS' )
 
 sdblist = toolEnv.Program("sdblist", sdbListMain,
-         LIBDEPS=["pd","oss","bson", "util","pmd","mon"],
+         LIBDEPS=["pd","oss","bson", "util","pmd","mon", "charset"],
          _LIBDEPS='$_LIBDEPS_OBJS' )
 
 sdbcm = toolEnv.Program("sdbcm", sdbcmMain,
-         LIBDEPS=["pd","oss","msg","bson","util","net","pmd", "clientcpp","pmdMT","omagent","client", "spt","ssh2","rtnJob","mon"],
+         LIBDEPS=["pd","oss","msg","bson","util","net","pmd", "clientcpp","pmdMT","omagent","client", "spt","ssh2","rtnJob","mon", "charset"],
          _LIBDEPS='$_LIBDEPS_OBJS' )
 
 sdbcmd = toolEnv.Program("sdbcmd", sdbcmDMNMain,
-         LIBDEPS=["pd","oss","msg","bson","pmd","util","mon"],
+         LIBDEPS=["pd","oss","msg","bson","pmd","util","mon", "charset"],
          _LIBDEPS='$_LIBDEPS_OBJS' )
 
 sdbcmart = toolEnv.Program("sdbcmart", sdbcmartMain,
-         LIBDEPS=["pd","oss","bson","util","mon"],
+         LIBDEPS=["pd","oss","bson","util","mon", "charset"],
          _LIBDEPS='$_LIBDEPS_OBJS' )
 
 sdbcmtop = toolEnv.Program("sdbcmtop", sdbcmtopMain,
-         LIBDEPS=["pd","oss", "bson", "util", "mon"],
+         LIBDEPS=["pd","oss", "bson", "util", "mon", "charset"],
          _LIBDEPS='$_LIBDEPS_OBJS' )
 
 sdblobtool = toolEnv.Program("sdblobtool", sdbLobToolMain,
-         LIBDEPS=["pd","oss", "bson", "util", "miglob","clientcpp","mon"],
+         LIBDEPS=["pd","oss", "bson", "util", "miglob","clientcpp","mon", "charset"],
          _LIBDEPS='$_LIBDEPS_OBJS' )
 
 sdbpasswd = toolEnv.Program("sdbpasswd", sdbPasswdFiles,
-         LIBDEPS=["pd","oss", "bson", "util", "miglob","clientcpp","mon"],
+         LIBDEPS=["pd","oss", "bson", "util", "miglob","clientcpp","mon", "charset"],
          _LIBDEPS='$_LIBDEPS_OBJS' )
-         
+
 sdbsecuretool = toolEnv.Program("sdbsecuretool", sdbSecureFiles,
          LIBDEPS=["pd", "oss", "bson", "util"],
          _LIBDEPS='$_LIBDEPS_OBJS' )
 
 sdbrevert = toolEnv.Program("sdbrevert", sdbRevertFiles,
-          LIBDEPS=["bson","oss","pd","util","clientcpp","dps","pmd","pcre"],
+          LIBDEPS=["bson","oss","pd","util","clientcpp","dps","pmd","pcre", "charset"],
           _LIBDEPS='$_LIBDEPS_OBJS' )
-         
+
 if linux:
    sdbtop = toolEnv.Program("sdbtop", sdbtopMain,
-            LIBDEPS=["mig","oss","pd","bson","util","client","clientcpp","ncurses","mon"],
+            LIBDEPS=["mig","oss","pd","bson","util","client","clientcpp","ncurses","mon", "charset"],
             _LIBDEPS='$_LIBDEPS_OBJS' )
 sdbmemcheck = toolEnv.Program("sdbmemcheck", sdbmemcheckFiles,
-          LIBDEPS=["oss","pd","bson","util","mon"],
+          LIBDEPS=["oss","pd","bson","util","mon", "charset"],
           _LIBDEPS='$_LIBDEPS_OBJS' )
 
 sdbrepair = toolEnv.Program("sdbrepair", sdbRepairMain,
-          LIBDEPS=["oss", "pd","bson","util","mon"],
+          LIBDEPS=["oss", "pd","bson","util","mon", "charset"],
           _LIBDEPS='$_LIBDEPS_OBJS' )
 
 sdbdpsdump = toolEnv.Program("sdbdpsdump", sdbdpsdumpFiles,
-          LIBDEPS=["oss","pd","pmd","bson","dps", "util", "mon"],
+          LIBDEPS=["oss","pd","pmd","bson","dps", "util", "mon", "charset"],
           _LIBDEPS='$_LIBDEPS_OBJS' )
 
 sdbinspect = toolEnv.Program("sdbinspect",
          inspectFiles,
-         LIBDEPS=["oss", "bson", "pmd", "util", "pd", "client", "clientcpp", "mon"],
+         LIBDEPS=["oss", "bson", "pmd", "util", "pd", "client", "clientcpp", "mon", "charset"],
          _LIBDEPS='$_LIBDEPS_OBJS' )
 
 if linux:
    sdbomtool = toolEnv.Program("sdbomtool",
                sdbOmToolFiles,
-               LIBDEPS=["pd", "oss","bson", "util","mon"],
+               LIBDEPS=["pd", "oss","bson", "util","mon", "charset"],
                _LIBDEPS='$_LIBDEPS_OBJS' )
 
 sdbseadapter = toolEnv.Program("sdbseadapter",
          sdbSEAdptFiles,
-         LIBDEPS=["pd","oss","msg","util","bson","pmd","pmdMT","net","rtnJob","rtn","ixm","cls","mon"],
+         LIBDEPS=["pd","oss","msg","util","bson","pmd","pmdMT","net","rtnJob","rtn","ixm","cls","mon", "charset"],
          _LIBDEPS='$_LIBDEPS_OBJS' )
 
 if linux64:
     sequoiamcs = toolEnv.Program("sequoiamcs",
         sequoiaMCSFiles,
-        LIBDEPS=["bson", "oss", "pd", "util", "pmd", "pmdMT", "rtnJob", "rtn", "client", "clientcpp", "mon", "fs", "net", "msg"],
+        LIBDEPS=["bson", "oss", "pd", "util", "pmd", "pmdMT", "rtnJob", "rtn", "client", "clientcpp", "mon", "fs", "net", "msg", "charset"],
         _LIBDEPS='$_LIBDEPS_OBJS' )
 
 if linux64:
     Import("fuse_lib")
     sequoiaFSEnv = toolEnv.Clone()
-    sequoiaFSEnv.Append( LINKFLAGS=" -no-pie " )
+    try:
+        devnull = open(os.devnull, 'w')
+        ret = subprocess.call(['g++', '-no-pie', '-x', 'c++', '-E', '-'],
+                              stdin=devnull, stdout=devnull, stderr=devnull)
+        devnull.close()
+        if ret == 0:
+            sequoiaFSEnv.Append( LINKFLAGS=" -no-pie " )
+    except:
+        pass
     sequoiafs = sequoiaFSEnv.Program("sequoiafs",
         sequoiaFSFiles,
-        LIBDEPS=["bson", "oss", "pd", "util", "pmd", "pmdMT", "rtnJob", "rtn", "client", "clientcpp", "mon", "fs", fuse_lib, "net", "msg"],
+        LIBDEPS=["bson", "oss", "pd", "util", "pmd", "pmdMT", "rtnJob", "rtn", "client", "clientcpp", "mon", "fs", fuse_lib, "net", "msg", "charset"],
         _LIBDEPS='$_LIBDEPS_OBJS' )
 
 toolEnv.Install( '#/bin', sdbimprt )
