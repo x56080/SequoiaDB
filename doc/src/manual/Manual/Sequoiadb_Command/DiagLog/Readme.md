@@ -62,4 +62,4 @@ DiagLog 类主要用于集群日志搜索、下载和分析，包含的函数如
 [close]:manual/Manual/Sequoiadb_Command/DiagLog/close.md
 [run]:manual/Manual/Sequoiadb_Command/DiagLog/run.md
 [reset]:manual/Manual/Sequoiadb_Command/DiagLog/reset.md
-[reset]:manual/Manual/Sequoiadb_Command/DiagLog/conn.md
+[conn]:manual/Manual/Sequoiadb_Command/DiagLog/conn.md

@@ -5399,6 +5399,12 @@
                            "file": "reset",
                            "cn": "reset",
                            "en": "reset"
+                        },
+                        {
+                           "id": 1760087297,
+                           "file": "conn",
+                           "cn": "conn",
+                           "en": "conn"
                         }
                      ]
                   },
