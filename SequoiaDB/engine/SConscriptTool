@@ -736,7 +736,6 @@ sdbRevertFiles = [
       "tools/revert/revertOptions.cpp",
       "tools/revert/sdbrevert.cpp",
       ]
-]
 
 #PCRE
 toolEnv.StaticLibrary('pcre', pcreFiles)
@@ -784,7 +783,6 @@ toolEnv.StaticLibrary('mon', monFiles)
 #fs
 if linux64:
    toolEnv.StaticLibrary('fs', sequoiaFSComFiles)
-
 
 #Export Executable
 sdbimprt = toolEnv.Program("sdbimprt", importFiles,
@@ -838,7 +836,7 @@ sdblobtool = toolEnv.Program("sdblobtool", sdbLobToolMain,
 sdbpasswd = toolEnv.Program("sdbpasswd", sdbPasswdFiles,
          LIBDEPS=["pd","oss", "bson", "util", "miglob","clientcpp","mon"],
          _LIBDEPS='$_LIBDEPS_OBJS' )
-
+         
 sdbsecuretool = toolEnv.Program("sdbsecuretool", sdbSecureFiles,
          LIBDEPS=["pd", "oss", "bson", "util"],
          _LIBDEPS='$_LIBDEPS_OBJS' )
@@ -846,7 +844,7 @@ sdbsecuretool = toolEnv.Program("sdbsecuretool", sdbSecureFiles,
 sdbrevert = toolEnv.Program("sdbrevert", sdbRevertFiles,
           LIBDEPS=["bson","oss","pd","util","clientcpp","dps","pmd","pcre"],
           _LIBDEPS='$_LIBDEPS_OBJS' )
-
+         
 if linux:
    sdbtop = toolEnv.Program("sdbtop", sdbtopMain,
             LIBDEPS=["mig","oss","pd","bson","util","client","clientcpp","ncurses","mon"],
