@@ -100,7 +100,8 @@ public class SdbSchedule_34358 extends SdbTestBase {
             }
 
             if ( sDB.getCollectionSpace( csName )
-                    .isCollectionExist( subCLName ) ) {
+                    .isCollectionExist( subCLName )
+                    && TestUtils.isSubCL( sDB, csName + "." + subCLName ) ) {
                 found = true;
                 break;
             }

@@ -43,7 +43,7 @@ public class TestUtils {
         for ( Object obj : cataInfo ) {
             BSONObject info = ( BSONObject ) obj;
             String subCL = ( String ) info.get( "SubCLName" );
-            if ( subCL.contains( subCLName ) ) {
+            if ( subCL.equals( subCLName ) ) {
                 BSONObject low = ( BSONObject ) info.get( "LowBound" );
                 BSONObject up = ( BSONObject ) info.get( "UpBound" );
                 return expectLow.equals( low ) && expectUp.equals( up );
@@ -51,6 +51,14 @@ public class TestUtils {
         }
 
         return false;
+    }
+
+    public static boolean isSubCL( Sequoiadb db, String clName ) {
+        BSONObject info = getCataSnapshotByClName( db, clName );
+        if ( info == null ) {
+            return false;
+        }
+        return info.get( "MainCLName" ) != null;
     }
 
     public static boolean isMapped( Sequoiadb db, String clFullName ) {
