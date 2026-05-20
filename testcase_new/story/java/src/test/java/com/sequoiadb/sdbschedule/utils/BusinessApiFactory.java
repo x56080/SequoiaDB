@@ -5,13 +5,15 @@ import io.restassured.response.Response;
 import org.bson.BSONObject;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class BusinessApiFactory {
 
-    private static List< String > nodeAddrList = null;
+    private static volatile List<String> nodeAddrList = null;
 
     private static String api( String path ) {
         return "/api" + path;
@@ -25,23 +27,30 @@ public class BusinessApiFactory {
         if ( nodeAddrList == null ) {
             fetchBaseUrl();
         }
-        int size = nodeAddrList.size();
-        int index = ( int ) ( Math.random() * size );
-        return nodeAddrList.get( index );
+
+        List<String> localList = nodeAddrList;
+        int size = localList.size();
+        if ( size == 0 ) {
+            throw new RuntimeException( "nodeAddrList is empty" );
+        }
+        int index = ThreadLocalRandom.current().nextInt( size );
+        return localList.get( index );
     }
 
     private static synchronized void fetchBaseUrl() {
         if ( nodeAddrList != null ) {
             return;
         }
-        List< String > nodes = SdbTestBase.getSdbScheduleNodes();
-        if ( nodes == null ) {
+        List<String> nodes = SdbTestBase.getSdbScheduleNodes();
+        if ( nodes.isEmpty() ) {
             throw new RuntimeException( "Get SdbSchedule nodes failed" );
         }
-        nodeAddrList = new ArrayList<>();
+        List<String> tmp = new ArrayList<>();
+
         for ( String node : nodes ) {
-            nodeAddrList.add( "http://" + node );
+            tmp.add( "http://" + node );
         }
+        nodeAddrList = Collections.unmodifiableList( tmp );
     }
 
     // ================= GlobalConf =================
