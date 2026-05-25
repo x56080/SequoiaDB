@@ -833,15 +833,6 @@ namespace engine
       restAdaptor *pAdaptor = sdbGetPMDController()->getRestAdptor() ;
       string clusterName ;
       string businessName ;
-      BOOLEAN hasDoInMsg = FALSE ;
-
-      rc = _onMsgBegin( NULL ) ;
-      if ( rc )
-      {
-         _sendOpError2Web( rc, pAdaptor, response, this, _pEDUCB ) ;
-         goto error ;
-      }
-      hasDoInMsg = TRUE ;
 
       clusterName  = request.getHeader( OM_REST_HEAD_CLUSTERNAME ) ;
       businessName = request.getHeader( OM_REST_HEAD_BUSINESSNAME ) ;
@@ -879,10 +870,6 @@ namespace engine
       }
 
    done:
-      if ( hasDoInMsg )
-      {
-         _onMsgEnd( rc, NULL ) ;
-      }
       return rc ;
    error:
       goto done ;
