@@ -1,0 +1,51 @@
+// dr_location 容灾工具配置文件
+// ========================================
+
+// 登录参数
+sdbCoord = "localhost:11810"
+sdbUser = "sdbadmin"
+sdbPassword = "sdbadmin"
+sdbToken = ""
+sdbCipherFile = ""
+sdbCm = 11790
+
+// ========================================
+// 配置集群 Location 信息
+// key 为 Location，value 为目标（只支持 hostname）
+// 将所有 value 的 Location 设置为 key
+// 可以读取 show 模式输出的文本文件格式作为输入
+// ========================================
+initLocationObject = {
+    "GuangZhou": [
+        "host1", "host2", "host3", "host4", "host5", "host6", "host7", "host8", "host9", "host10"
+    ],
+    "ShenZhen": [
+        "host11", "host12", "host13", "host14", "host15"
+    ]
+};
+
+// 不为空时，使用 sdb_init_location.sh init 后将设置 activeLocation 为配置值
+activeLocation = ""
+
+// ========================================
+// 切主配置，执行 init、start/stop mode、restore cluster 操作时按照模式进行切主
+// ========================================
+// 按照快照 SDB_SNAP_CONFIGS RunStatusWeightDesp 和 RunStatusWeight 中新增字段识别
+// db.snapshot(SDB_SNAP_CONFIGS, new SdbSnapshotOption().options({IgnoreDefault:true,ShowRunStatus:true}))
+// 0 -> RunStatusWeightDesp: "Maintenance"/"Critical"，对包含此字段的节点按 RunStatusWeight 进行重新选主
+// 1 -> RunStatusWeightDesp: "ActiveLocation"，对包含此字段的节点按 RunStatusWeight 进行重新选主
+// 2 -> RunStatusWeight: <weight>，对所有节点按 RunStatusWeight 进行重新选主
+// 其他 -> 不进行切主
+// 包含更低级别，如 1 包含 0|1，2 包含 0|1|2
+reelectLevel = ""
+
+// ========================================
+// MaintenanceMode 和 CriticalMode 运行最低、最高窗口时间，取值范围[1, 10080]，单位分钟
+// ========================================
+minKeepTime = 100
+maxKeepTime = 1000
+
+// ========================================
+// 是否强制开启 GroupMode（可能会造成数据回滚丢失）
+// ========================================
+enforce = false

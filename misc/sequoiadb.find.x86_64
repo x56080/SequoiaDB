@@ -4182,3 +4182,17 @@ sequoiadb/tools/diaglog
 sequoiadb/tools/diaglog/logSearchTool.sh
 sequoiadb/doc/manual/DiagLog/conn_cn.troff
 sequoiadb/doc/manual/DiagLog/conn_en.troff
+sequoiadb/tools/dr_location
+sequoiadb/tools/dr_location/README.md
+sequoiadb/tools/dr_location/config
+sequoiadb/tools/dr_location/config/config.js.sample
+sequoiadb/tools/dr_location/lib
+sequoiadb/tools/dr_location/lib/lib.js
+sequoiadb/tools/dr_location/bin
+sequoiadb/tools/dr_location/bin/main.js
+sequoiadb/tools/dr_location/bin/sdb_init_location.sh
+sequoiadb/tools/dr_location/bin/sdb_restore_cluster.sh
+sequoiadb/tools/dr_location/bin/sdb_start_critical.sh
+sequoiadb/tools/dr_location/bin/sdb_start_maintenance.sh
+sequoiadb/tools/dr_location/bin/sdb_stop_critical.sh
+sequoiadb/tools/dr_location/bin/sdb_stop_maintenance.sh

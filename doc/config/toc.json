@@ -1681,6 +1681,12 @@
                            "file": "sdbrevert",
                            "cn": "数据恢复工具",
                            "en": "Revert Tool"
+                        },
+                        {
+                           "id": 1780042565,
+                           "file": "dr_location",
+                           "cn": "Location 容灾工具",
+                           "en": "Location Disaster Recovery Tool"
                         }
                      ]
                   },
