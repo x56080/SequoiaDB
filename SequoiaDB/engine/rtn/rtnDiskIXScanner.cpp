@@ -51,10 +51,12 @@ namespace engine
                                           IRtnIXScannerHandler *pHandler,
                                           _dmsStorageUnit *su,
                                           _pmdEDUCB *cb,
-                                          BOOLEAN indexCBOwnned )
+                                          BOOLEAN indexCBOwnned,
+                                          BOOLEAN enableAdvanceSecOut )
    :_rtnIXScanner( indexCB, predList, pHandler, su, cb, indexCBOwnned ),
      _listIterator( *predList ),
-     _pMonCtxCB(NULL)
+     _pMonCtxCB(NULL),
+     _enableAdvanceSecOut( enableAdvanceSecOut )
    {
       reset() ;
    }
@@ -353,7 +355,7 @@ namespace engine
          {
             // if doing goto here, compile will get error for the following
             // indexExtent object declare
-            rc = SDB_IXM_EOC ;
+            rc = pdError( SDB_IXM_EOC ) ;
             goto done ;
          }
          // now let's get the binary key and create BSONObj from it
@@ -389,19 +391,57 @@ namespace engine
             // index are not within our select range
             if ( -2 == rc )
             {
-               rc = SDB_IXM_EOC ;
+               rc = pdError( SDB_IXM_EOC ) ;
                goto done ;
             }
+
+            /// process the $range section to improve perfermance
             if ( _pHandler )
             {
-               INT32 tmpRC = _pHandler->onScannerAdvanced( _curKeyObj, FALSE ) ;
-               if ( SDB_OK != tmpRC )
+               rtnLocatePos locatePos ;
+               INT32 tmpRC = _pHandler->onScannerAdvanced( _curKeyObj, FALSE,
+                                                           ( _enableAdvanceSecOut ? &locatePos : NULL ),
+                                                           ( _enableAdvanceSecOut ? &_advanceSecPos : NULL ) ) ;
+               if ( SDB_IXM_ADVANCE_EOC == tmpRC && _enableAdvanceSecOut )
+               {
+                  pdClearLastError() ;
+
+                  /// locate with section
+                  rc = relocateRID( locatePos._obj, locatePos._rid ) ;
+                  if ( rc )
+                  {
+                     PD_LOG( PDERROR, "Relocate object(%s) with rid(%d,%d) by range section "
+                             "failed, rc: %d",
+                             locatePos._obj.toString().c_str(), locatePos._rid._extent,
+                             locatePos._rid._offset, rc ) ;
+                     goto error ;
+                  }
+
+                  PD_LOG( PDINFO, "Relocate object(%s) with rid(%d,%d) by range section "
+                          "succeed, current obj(%s)",
+                          locatePos._obj.toString().c_str(),
+                          locatePos._rid._extent,
+                          locatePos._rid._offset,
+                          _curKeyObj.toString().c_str() ) ;
+
+                  /// retry
+                  goto begin ;
+               }
+               else if ( SDB_IXM_EOC == tmpRC )
+               {
+                  PD_LOG( PDINFO, "Current obj(%s) out of range section",
+                          _curKeyObj.toString().c_str() ) ;
+                  rc = tmpRC ;
+                  goto done ;
+               }
+               else if ( SDB_OK != tmpRC )
                {
                   PD_LOG( PDERROR, "Failed to call advance callback, rc: %d", tmpRC ) ;
                   rc = tmpRC ;
                   goto error ;
                }
             }
+
             // if >=0, that means the key is not selected and we want to
             // further advance the key in index
             if ( rc >= 0 )

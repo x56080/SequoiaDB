@@ -185,13 +185,9 @@ namespace engine
    } ;
    typedef _rtnPrefWatcher rtnPrefWatcher ;
 
-   class _rtnContextValidator: public _utilPooledObject
-   {
-   public:
-      virtual  INT32 validate( const BSONObj &record, BOOLEAN isRecord ) = 0 ;
-      virtual ~_rtnContextValidator() { }
-   } ;
-
+   /*
+      _rtnContextStoreBuf define
+   */
    class _rtnContextStoreBuf: public _utilPooledObject
    {
    public:
@@ -272,7 +268,7 @@ namespace engine
    /*
       _rtnContextBase define
    */
-   class _rtnContextBase : public _rtnContextValidator
+   class _rtnContextBase : public _utilPooledObject
    {
       friend class _rtnContextParaData ;
       friend class _rtnExplainBase ;
@@ -525,12 +521,6 @@ namespace engine
          virtual void setResultSetFilter( rtnResultSetFilter *rsFilter,
                                           BOOLEAN appendMode = TRUE )
          {
-         }
-
-         virtual INT32 validate ( const BSONObj &record, BOOLEAN isRecord )
-         {
-            // Do nothing
-            return 0;
          }
 
       protected:

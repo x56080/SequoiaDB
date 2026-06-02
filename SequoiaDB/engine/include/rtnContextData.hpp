@@ -49,15 +49,9 @@ namespace engine
    class _rtnIXScanner ;
    class _dpsITransLockCallback ;
 
-   typedef struct _rtnAdvanceSection
-   {
-      INT32   prefixNum ;
-      BOOLEAN startIncluded ;
-      BOOLEAN endIncluded ;
-      BSONObj startKey ;
-      BSONObj endKey ;
-   } rtnAdvanceSection ;
-
+   /*
+      define _rtnCmpSection
+   */
    class _rtnCmpSection
    {
    public:
@@ -156,7 +150,7 @@ namespace engine
    private:
       const BSONObj _orderBy ;
    } ;
-   typedef class _rtnCmpSection rtnCmpSection ;
+   typedef _rtnCmpSection rtnCmpSection ;
 
    /*
       _rtnContextData define
@@ -235,11 +229,12 @@ namespace engine
 
          INT32   setAdvanceSection ( const BSONObj &arg ) ;
 
-         virtual INT32 validate ( const BSONObj &record, BOOLEAN isRecord ) ;
-         virtual INT32 onScannerAdvanced( const bson::BSONObj &record, BOOLEAN isRecord  )
-         {
-            return validate( record, isRecord ) ;
-         }
+         virtual INT32 onScannerAdvanced( const BSONObj &record,
+                                          BOOLEAN isRecord,
+                                          rtnLocatePos *pLocatePos = NULL,
+                                          RTN_ADVANCE_SECTION_POS *pSecPos = NULL ) ;
+
+         virtual BOOLEAN setAdvancedSecPos( const RTN_ADVANCE_SECTION_POS &pos ) ;
 
       protected:
          INT32 _queryModify( _pmdEDUCB* eduCB,
@@ -326,6 +321,10 @@ namespace engine
             return !( _advanceSectionList.empty() ) ;
          }
 
+         INT32 _validateSection ( const BSONObj &record,
+                                  BOOLEAN isRecord,
+                                  RTN_ADVANCE_SECTION_POS *pSecPos = NULL ) ;
+
       protected:
          _SDB_DMSCB                 *_dmsCB ;
          _dmsStorageUnit            *_su ;
@@ -362,13 +361,11 @@ namespace engine
 
          BOOLEAN                    _indexCover ;
 
-         BOOLEAN                    _isPrevSec ;
-
          BSONObj                    _orderBy ;
          ixmIndexKeyGen             _keyGen ;
 
-         ossPoolList< rtnAdvanceSection > _advanceSectionList ;
-         ossPoolList< rtnAdvanceSection >::iterator _nextAdvanceSecIt ;
+         RTN_ADVANCE_SECTION        _advanceSectionList ;
+         RTN_ADVANCE_SECTION_POS    _nextAdvanceSecIt ;
    } ;
 
    typedef _rtnContextData rtnContextData ;

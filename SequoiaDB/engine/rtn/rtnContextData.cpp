@@ -139,7 +139,6 @@ namespace engine
       _enableQueryActivity = TRUE ;
       _rsFilter         = NULL ;
       _appendRIDFilter  = FALSE ;
-      _isPrevSec        = FALSE ;
    }
 
    _rtnContextData::~_rtnContextData ()
@@ -168,7 +167,6 @@ namespace engine
          _queryModifier = NULL ;
          _dmsCB->writeDown( pmdGetThreadEDUCB() ) ;
       }
-      _isPrevSec = FALSE ;
    }
 
    const CHAR* _rtnContextData::name() const
@@ -268,14 +266,14 @@ namespace engine
       rtnAdvanceSection sec ;
       INT32 type = MSG_ADVANCE_TO_FIRST_IN_VALUE ;
 
-      if ( _nextAdvanceSecIt == _advanceSectionList.end() )
+      if ( _nextAdvanceSecIt.isEnd() )
       {
          _hitEnd = TRUE ;
          rc = SDB_DMS_EOC ;
          goto done ;
       }
 
-      sec = *_nextAdvanceSecIt ;
+      sec = _nextAdvanceSecIt.get() ;
       if ( !sec.startIncluded )
       {
          type = MSG_ADVANCE_TO_NEXT_OUT_VALUE ;
@@ -715,7 +713,7 @@ namespace engine
          }
 
          _advanceSectionList.sort( rtnCmpSection(_orderBy) ) ;
-         _nextAdvanceSecIt = _advanceSectionList.begin() ;
+         _nextAdvanceSecIt.init( &_advanceSectionList ) ;
       }
       catch( std::exception &e )
       {
@@ -732,30 +730,58 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCTXDATA_VALIDATE, "_rtnContextData::validate" )
-   INT32 _rtnContextData::validate ( const BSONObj &record, BOOLEAN isRecord )
+   BOOLEAN _rtnContextData::setAdvancedSecPos( const RTN_ADVANCE_SECTION_POS &pos )
+   {
+      if ( pos._pSection == _nextAdvanceSecIt._pSection )
+      {
+         _nextAdvanceSecIt = pos ;
+         _nextAdvanceSecIt.resetPrevSec() ;
+         return TRUE ;
+      }
+      SDB_ASSERT( FALSE, "Invalid advance section pos" ) ;
+      return FALSE ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCTXDATA__VALIDATE_SECTON, "_rtnContextData::_validateSection" )
+   INT32 _rtnContextData::_validateSection ( const BSONObj &record,
+                                             BOOLEAN isRecord,
+                                             RTN_ADVANCE_SECTION_POS *pSecPos )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB_RTNCTXDATA_VALIDATE ) ;
+      PD_TRACE_ENTRY ( SDB_RTNCTXDATA__VALIDATE_SECTON ) ;
 
       INT32 cmp = 0 ;
       BOOLEAN matched = FALSE ;
       BSONObj curKeyObj ;
       rtnAdvanceSection sec ;
       INT32 prefixNum = -1 ;
+      RTN_ADVANCE_SECTION_POS *pTmpPos = NULL ;
 
-      if ( _needValidate() &&
-           _nextAdvanceSecIt == _advanceSectionList.end() )
-      {
-         rc = pdError( SDB_IXM_ADVANCE_EOC ) ;
-         goto error ;
-      }
-      else if ( !_needValidate() )
+      if ( !_needValidate() )
       {
          goto done ;
       }
 
-      sec = *_nextAdvanceSecIt ;
+      if ( pSecPos )
+      {
+         if ( !pSecPos->isInit() )
+         {
+            *pSecPos = _nextAdvanceSecIt ;
+         }
+         pTmpPos = pSecPos ;
+      }
+      else
+      {
+         pTmpPos = &_nextAdvanceSecIt ;
+      }
+
+      if ( pTmpPos->isEnd() )
+      {
+         rc = pdError( SDB_IXM_ADVANCE_EOC ) ;
+         goto error ;
+      }
+
+      sec = pTmpPos->get() ;
 
       if ( isRecord )
       {
@@ -785,12 +811,12 @@ namespace engine
 
       try
       {
-         while ( _nextAdvanceSecIt != _advanceSectionList.end() )
+         while ( !pTmpPos->isEnd() )
          {
-            sec = *_nextAdvanceSecIt ;
+            sec = pTmpPos->get() ;
             prefixNum = sec.prefixNum ;
 
-            if ( _isPrevSec )
+            if ( pTmpPos->isPrevSec() )
             {
                cmp = _woNCompare( curKeyObj, sec.endKey, FALSE,
                                   prefixNum, _orderBy ) ;
@@ -803,8 +829,7 @@ namespace engine
                   }
                   else
                   {
-                     _nextAdvanceSecIt++ ;
-                     _isPrevSec = FALSE ;
+                     pTmpPos->advance() ;
                   }
                }
                else if ( cmp < 0 )
@@ -814,10 +839,8 @@ namespace engine
                }
                else
                {
-                  _nextAdvanceSecIt++ ;
-                  _isPrevSec = FALSE ;
+                  pTmpPos->advance() ;
                }
-
             }
             else
             {
@@ -835,7 +858,7 @@ namespace engine
                   else
                   {
                      matched = TRUE ;
-                     _isPrevSec = TRUE ;
+                     pTmpPos->setPrevSec() ;
                      break ;
                   }
                }
@@ -848,23 +871,23 @@ namespace engine
                      if ( sec.endIncluded )
                      {
                         matched = TRUE ;
-                        _isPrevSec = TRUE ;
+                        pTmpPos->setPrevSec() ;
                         break ;
                      }
                      else
                      {
-                        _nextAdvanceSecIt++ ;
+                        pTmpPos->advance() ;
                      }
                   }
                   else if ( cmp < 0 )
                   {
                      matched = TRUE ;
-                     _isPrevSec = TRUE ;
+                     pTmpPos->setPrevSec() ;
                      break ;
                   }
                   else
                   {
-                     _nextAdvanceSecIt++ ;
+                     pTmpPos->advance() ;
                   }
                }
                else
@@ -892,7 +915,55 @@ namespace engine
       }
 
    done:
-      PD_TRACE_EXITRC ( SDB_RTNCTXDATA_VALIDATE, rc ) ;
+      PD_TRACE_EXITRC ( SDB_RTNCTXDATA__VALIDATE_SECTON, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _rtnContextData::onScannerAdvanced( const BSONObj &record,
+                                             BOOLEAN isRecord,
+                                             rtnLocatePos *pLocatePos,
+                                             RTN_ADVANCE_SECTION_POS *pSecPos )
+   {
+      INT32 rc = SDB_OK ;
+      rc = _validateSection( record, isRecord, pSecPos ) ;
+      if ( SDB_IXM_ADVANCE_EOC == rc && pLocatePos )
+      {
+         RTN_ADVANCE_SECTION_POS *pTmpPos = pSecPos ? pSecPos : &_nextAdvanceSecIt ;
+         rtnAdvanceSection sec ;
+         INT32 type = MSG_ADVANCE_TO_FIRST_IN_VALUE ;
+
+         if ( pTmpPos->isEnd() )
+         {
+            /// trans the error report
+            rc = pdError( SDB_IXM_EOC ) ;
+            goto error ;
+         }
+
+         sec = pTmpPos->get() ;
+         if ( !sec.startIncluded )
+         {
+            type = MSG_ADVANCE_TO_NEXT_OUT_VALUE ;
+         }
+
+         try
+         {
+            pLocatePos->_obj = _buildNextValueObj( _scanner->getIndexCB()->keyPattern(),
+                                                   sec.startKey,
+                                                   sec.prefixNum,
+                                                   type ) ;
+         }
+         catch( std::exception &e )
+         {
+            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+            rc = pdError( ossException2RC( &e ) ) ;
+            goto error ;
+         }
+         _buildNextRID( type, pLocatePos->_rid ) ;
+      }
+
+   done:
       return rc ;
    error:
       goto done ;

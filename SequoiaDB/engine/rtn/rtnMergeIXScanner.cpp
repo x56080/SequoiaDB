@@ -142,7 +142,8 @@ namespace engine
                                                       getScannerHandler(),
                                                       getSu(),
                                                       getEDUCB(),
-                                                      getIndexCBOwned() ) ;
+                                                      getIndexCBOwned(),
+                                                      TRUE ) ;
             break ;
          case SCANNER_TYPE_MEM_TREE :
             pScanner = SDB_OSS_NEW _rtnMemIXTreeScanner( getIndexCB(),
@@ -150,7 +151,8 @@ namespace engine
                                                          getScannerHandler(),
                                                          getSu(),
                                                          getEDUCB(),
-                                                         getIndexCBOwned() ) ;
+                                                         getIndexCBOwned(),
+                                                         TRUE ) ;
             break ;
          default :
             rc = SDB_SYS ;
@@ -219,7 +221,7 @@ namespace engine
 
       if ( !isAvailable() )
       {
-         rc = SDB_SYS ;
+         rc = pdError( SDB_SYS ) ;
          goto error ;
       }
 
@@ -239,7 +241,7 @@ namespace engine
 
       if ( leftDone && rightDone )
       {
-         rc = SDB_IXM_EOC ;
+         rc = pdError( SDB_IXM_EOC ) ;
          goto done ;
       }
       else if ( leftDone )
@@ -285,18 +287,18 @@ namespace engine
 
       if ( rcl && SDB_IXM_EOC != rcl )
       {
-         rc = rcl ;
+         rc = pdError( rcl ) ;
          goto error ;
       }
       else if ( rcr && SDB_IXM_EOC != rcr )
       {
-         rc = rcr ;
+         rc = pdError( rcr ) ;
          goto error ;
       }
 
       if ( rcl && rcr )
       {
-         rc = SDB_IXM_EOC ;
+         rc = pdError( SDB_IXM_EOC ) ;
          goto done ;
       }
       else if ( rcl )
@@ -361,20 +363,20 @@ namespace engine
       catch( std::bad_alloc &e )
       {
          PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
-         rc = SDB_OOM ;
+         rc = pdError( SDB_OOM ) ;
          goto error ;
       }
       catch( std::exception &e )
       {
          PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
-         rc = SDB_SYS ;
+         rc = pdError( ossException2RC( &e ) ) ;
          goto error ;
       }
 
       // make sure we don't hit maximum size of dedup buffer
       /*if ( _pInfo && _pInfo->isUpToLimit() )
       {
-         rc = SDB_IXM_DEDUP_BUF_MAX ;
+         rc = pdError( SDB_IXM_DEDUP_BUF_MAX ) ;
          goto error ;
       }*/
 
@@ -560,6 +562,13 @@ namespace engine
                  PD_SECURE_OBJ( _savedObj ), _savedRID._extent,
                  _savedRID._offset,
                  ( SCAN_LEFT == _fromDir ? "LEFT" : "RIGHT" ) ) ;
+
+         if ( _pHandler )
+         {
+            _pHandler->setAdvancedSecPos( ( SCAN_LEFT == _fromDir ?
+                                            _leftIXScanner->getAdvanceSecPos() :
+                                            _rightIXScanner->getAdvanceSecPos() ) ) ;
+         }
       }
 
    done:

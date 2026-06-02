@@ -103,6 +103,125 @@ namespace engine
    typedef _rtnScannerSharedInfo rtnScannerSharedInfo ;
 
    /*
+      define _rtnAdvanceSection
+   */
+   struct _rtnAdvanceSection
+   {
+      INT32   prefixNum ;
+      BOOLEAN startIncluded ;
+      BOOLEAN endIncluded ;
+      BSONObj startKey ;
+      BSONObj endKey ;
+   } ;
+   typedef _rtnAdvanceSection rtnAdvanceSection ;
+
+   typedef ossPoolList< rtnAdvanceSection >     RTN_ADVANCE_SECTION ;
+   typedef RTN_ADVANCE_SECTION::iterator        RTN_ADVANCE_SECTION_ITR ;
+
+   /*
+      _rtnAdvanceSectionPos define
+   */
+   struct _rtnAdvanceSectionPos
+   {
+      RTN_ADVANCE_SECTION_ITR    _itr ;
+      INT32                      _idx ;
+
+      RTN_ADVANCE_SECTION        *_pSection ;
+      BOOLEAN                    _isPrevSec ;
+
+      _rtnAdvanceSectionPos()
+      {
+         _idx = -1 ;
+         _pSection = NULL ;
+         _isPrevSec = FALSE ;
+      }
+
+      _rtnAdvanceSectionPos( const _rtnAdvanceSectionPos &rhs )
+      {
+         this->operator=( rhs ) ;
+      }
+
+      void init( RTN_ADVANCE_SECTION *pSection )
+      {
+         _pSection = pSection ;
+         _itr = _pSection->begin() ;
+         _idx = 0 ;
+         _isPrevSec = FALSE ;
+      }
+
+      rtnAdvanceSection get() const
+      {
+         if ( !isEnd() )
+         {
+            return *_itr ;
+         }
+         return rtnAdvanceSection() ;
+      }
+
+      INT32 idx() const
+      {
+         return _idx ;
+      }
+
+      BOOLEAN isInit() const
+      {
+         return _pSection ? TRUE : FALSE ;
+      }
+
+      BOOLEAN isEnd() const
+      {
+         if ( _pSection )
+         {
+            return _itr == _pSection->end() ? TRUE : FALSE ;
+         }
+         return TRUE ;
+      }
+
+      BOOLEAN isPrevSec() const { return _isPrevSec ; }
+
+      void setPrevSec() { _isPrevSec = TRUE ; }
+      void resetPrevSec() { _isPrevSec = FALSE ; }
+
+      BOOLEAN advance()
+      {
+         if ( !isEnd() )
+         {
+            ++_itr ;
+            ++_idx ;
+            _isPrevSec = FALSE ;
+            return TRUE ;
+         }
+         return FALSE ;
+      }
+
+      bool operator< ( const _rtnAdvanceSectionPos &rhs ) const
+      {
+         return _idx < rhs._idx ;
+      }
+
+      _rtnAdvanceSectionPos& operator=( const _rtnAdvanceSectionPos &rhs )
+      {
+         _itr = rhs._itr ;
+         _idx = rhs._idx ;
+         _pSection = rhs._pSection ;
+         _isPrevSec = rhs._isPrevSec ;
+         return *this ;
+      }
+   } ;
+   typedef _rtnAdvanceSectionPos rtnAdvanceSectionPos ;
+   typedef _rtnAdvanceSectionPos RTN_ADVANCE_SECTION_POS ;
+
+   /*
+      _rtnLocatePos define
+   */
+   struct _rtnLocatePos
+   {
+      BSONObj           _obj ;
+      dmsRecordID       _rid ;
+   } ;
+   typedef _rtnLocatePos rtnLocatePos ;
+
+   /*
       _IRtnIXScannerHandler define
     */
    class _IRtnIXScannerHandler
@@ -111,7 +230,12 @@ namespace engine
       _IRtnIXScannerHandler() {}
       virtual ~_IRtnIXScannerHandler() {}
 
-      virtual INT32 onScannerAdvanced( const bson::BSONObj &key, BOOLEAN isRecord ) = 0 ;
+      virtual INT32 onScannerAdvanced( const BSONObj &key,
+                                       BOOLEAN isRecord,
+                                       rtnLocatePos *pLocatePos = NULL,
+                                       RTN_ADVANCE_SECTION_POS *pSecPos = NULL ) = 0 ;
+
+      virtual BOOLEAN setAdvancedSecPos( const RTN_ADVANCE_SECTION_POS &pos ) = 0 ;
    } ;
 
    typedef class _IRtnIXScannerHandler IRtnIXScannerHandler ;
@@ -148,6 +272,8 @@ namespace engine
       {
          return _pHandler ;
       }
+
+      const RTN_ADVANCE_SECTION_POS& getAdvanceSecPos() const { return _advanceSecPos ; }
 
       _dmsStorageUnit*        getSu() ;
       ixmIndexCB*             getIndexCB() ;
@@ -215,6 +341,7 @@ namespace engine
       BOOLEAN                 _eof ;
 
       IRtnIXScannerHandler    *_pHandler ;
+      RTN_ADVANCE_SECTION_POS _advanceSecPos ;
 
    private:
       BOOLEAN                 _isReadonly ;

@@ -302,6 +302,10 @@ namespace engine
       rc = targetPredIter->syncState( sourcePredIter ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to sync state rc: %d", rc ) ;
 
+      /// sync advanced position
+      _advanceSecPos = source->getAdvanceSecPos() ;
+      _advanceSecPos.resetPrevSec() ;
+
    done:
       return rc ;
    error:

@@ -57,7 +57,8 @@ namespace engine
                           IRtnIXScannerHandler *pHandler,
                           _dmsStorageUnit  *su,
                           _pmdEDUCB        *cb,
-                          BOOLEAN indexCBOwnned = FALSE ) ;
+                          BOOLEAN indexCBOwnned = FALSE,
+                          BOOLEAN enableAdvanceSecOut = FALSE ) ;
 
       virtual ~_rtnDiskIXScanner () ;
 
@@ -124,6 +125,8 @@ namespace engine
       BSONObj                  _curKeyObj ;
 
       BufBuilder               _builder ;
+
+      BOOLEAN                  _enableAdvanceSecOut ;
    } ;
    typedef class _rtnDiskIXScanner rtnDiskIXScanner ;
 

@@ -61,7 +61,8 @@ namespace engine
                             IRtnIXScannerHandler *pHandler,
                             _dmsStorageUnit  *su,
                             _pmdEDUCB        *cb,
-                            BOOLEAN indexCBOwnned = FALSE ) ;
+                            BOOLEAN indexCBOwnned = FALSE,
+                            BOOLEAN enableAdvanceSecOut = FALSE ) ;
 
       virtual ~_rtnMemIXTreeScanner() ;
 
@@ -149,6 +150,8 @@ namespace engine
       // walking over the tree. The latch is aquired by resume and released
       // by pause.
       BOOLEAN                    _treeLatchHeld ;
+
+      BOOLEAN                    _enableAdvanceSecOut ;
 
    } ;
    typedef class _rtnMemIXTreeScanner rtnMemIXTreeScanner ;
