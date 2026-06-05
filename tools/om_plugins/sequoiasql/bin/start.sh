@@ -7,6 +7,13 @@ currentPath=$(cd "$(dirname "$0")"; pwd)
 binName="sequoiasql-plugin"
 extName="jar"
 javaPath="$currentPath/../../../java/jdk/bin/java"
+if [ ! -x "$javaPath" ]; then
+   javaPath=`find "$currentPath/../../../java/jdk" -path "*/bin/java" -type f 2>/dev/null | head -1`
+fi
+if [ ! -x "$javaPath" ]; then
+   echo "Error: java not found."
+   exit 1
+fi
 
 #include common.sh
 source "$currentPath/common.sh"

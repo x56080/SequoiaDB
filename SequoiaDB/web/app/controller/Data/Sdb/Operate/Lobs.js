@@ -104,8 +104,7 @@
 </tr>\
 <tr ng-repeat="(key, value) in data.Grid track by $index" ng-if="key != \'Oid\'">\
 <td>{{key}}</td>\
-<td ng-if="key != \'CreateTime\'">{{value}}</td>\
-<td ng-if="key == \'CreateTime\'">{{value[\'$timestamp\']}}</td>\
+<td>{{value && value[\'$timestamp\'] ? value[\' $timestamp \'] : value}}</td>\
 </tr>\
 </table>' ;
          $scope.Components.Modal.noOK = true ;
