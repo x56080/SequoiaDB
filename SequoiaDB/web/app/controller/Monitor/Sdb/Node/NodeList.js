@@ -1,4 +1,4 @@
-﻿//@ sourceURL=NodeList.js
+﻿﻿//@ sourceURL=NodeList.js
 (function(){
    var sacApp = window.SdbSacManagerModule ;
    //控制器
@@ -83,8 +83,8 @@
       } ;
       //集合列表
       var clList = [] ;
-      // 健康快照异常节点映射；key 为 NodeName，value 为 Flag
-      var healthErrMap = {};
+      //健康快照异常节点映射，key 为 NodeName，value 为 Flag
+      var healthErrMap = {} ;
       //启动节点的窗口
       $scope.StartNode = {
          'config': {
@@ -281,8 +281,8 @@
                   {
                      getCoordStatus( nodeInfo, nodeInfo['HostName'], nodeInfo['ServiceName'] ) ;
                   }
-                  // 优先使用健康快照修正节点运行状态。$SNAPSHOT_CL 不能稳定覆盖 catalog/coord 异常
-                  if( typeof( healthErrMap[nodesList[index]['NodeName']] ) != 'undefinded' )
+                  //优先使用健康快照修正节点运行状态。$SNAPSHOT_CL 不能稳定覆盖 catalog/coord 异常。
+                  if( typeof( healthErrMap[nodesList[index]['NodeName']] ) != 'undefined' )
                   {
                      nodesList[index]['Status'] = false;
                      nodesList[index]['Flag'] = healthErrMap[nodesList[index]['NodeName']];
@@ -344,6 +344,33 @@
          } ) ;
       } ;
 
+      //获取健康快照异常节点列表
+      var getHealthList = function(){
+         var sql = 'SELECT * FROM $SNAPSHOT_HEALTH' ;
+         SdbRest.Exec( sql, {
+            'success': function( list ){
+               healthErrMap = {} ;
+               $.each( list, function( index, healthInfo ){
+                  if( isArray( healthInfo['ErrNodes'] ) )
+                  {
+                     $.each( healthInfo['ErrNodes'], function( errIndex, errNodeInfo ){
+                        healthErrMap[errNodeInfo['NodeName']] = errNodeInfo['Flag'] ;
+                     } ) ;
+                  }
+               } ) ;
+               getClList() ;
+            },
+            'failed': function( errorInfo ){
+               _IndexPublic.createRetryModel( $scope, errorInfo, function(){
+                  getHealthList() ;
+                  return true ;
+               } ) ;
+            }
+         },{
+            'showLoading': false
+         } ) ;
+      } ;
+
       //获取CL快照
       var getClList = function(){
          $scope.StartNode['config']['select'] = [] ;
@@ -365,33 +392,6 @@
             'showLoading': false
          } ) ;
       } ;
-
-      // 获取健康快照异常节点列表
-      var getHealthList = function() {
-         var sql = "SELECT * FROM $SNAPSHOT_HEALTH";
-         SdbRest.Exec( sql, {
-            'success': function( list ) {
-               healthErrMap = {};
-               $.each( list, function( index, healthInfo ) {
-                  if( isArray( healthInfo['ErrNodes'] ) )
-                  {
-                     $.each( healthInfo['ErrNodes'], function( errIndex, errNodeInfo ){
-                        healthErrMap[errNodeInfo['NodeName']] = errNodeInfo['Flag'];
-                     } );
-                  } 
-               });
-               getClList();
-            },
-            'failed': function( errorInfo ){
-               _IndexPublic.createRetryModel( $scope, errorInfo, function(){
-                  getHealthList();
-                  return true;
-               } );
-            }
-         },{
-            'showLoading': false
-         });
-      };
 
       $scope.GotoSync = function(){
          $rootScope.tempData( 'Deploy', 'ModuleName',  moduleName ) ;
@@ -434,7 +434,7 @@
          $location.path( '/Monitor/SDB-Host/Info/Index' ).search( { 'r': new Date().getTime() } ) ;
       }
 
-      getClList() ;
+      getHealthList() ;
 
    } ) ;
 }());
