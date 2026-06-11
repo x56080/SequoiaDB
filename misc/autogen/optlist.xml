@@ -60,10 +60,6 @@
       <coorddft>/opt/sequoiadb/database/coord</coorddft>
       <datadft>/opt/sequoiadb/database/data</datadft>
       <standdft>/opt/sequoiadb/database/standalone</standdft>
-      <reloadable>
-         <en>Take effect after restart</en>
-         <cn>重启生效</cn>
-      </reloadable>
       <detail>
          <en>1. It specifies the path of data file.<fig></fig>
              2. If it is not specified, the default path is current path.</en>
@@ -80,10 +76,6 @@
          <en>Index path</en>
          <cn>索引路径</cn>
       </description>
-      <reloadable>
-         <en>Take effect after restart</en>
-         <cn>重启生效</cn>
-      </reloadable>
       <detail>
          <en>1. It specifies the path of index file<fig></fig>
              2. If it is not specified, the default path is the same with 'dbpath'.</en>
@@ -498,10 +490,6 @@
       </description>
       <type>int</type>
       <default>64</default>
-      <reloadable>
-         <en>Take effect after restart</en>
-         <cn>重启生效</cn>
-      </reloadable>
       <detail>
          <en>1. It specifies the size of sync log file. It is between 64(MB) and 2048(MB).<fig></fig>
              2. If it is not specified, the default value is 64 (MB).<fig></fig>
@@ -517,10 +505,6 @@
       <name>PMD_OPTION_LOGFILENUM</name>
       <long>logfilenum</long>
       <short>n</short>
-      <reloadable>
-         <en>Take effect after restart</en>
-         <cn>重启生效</cn>
-      </reloadable>
       <description>
          <en>Number of log files,default:20, value range:[1,11800]</en>
          <cn>日志文件数量,默认值:20,取值范围:[1,11800]</cn>
@@ -1297,10 +1281,6 @@
          <en>Large object file path</en>
          <cn>大对象文件路径</cn>
       </description>
-      <reloadable>
-         <en>Take effect after restart</en>
-         <cn>重启生效</cn>
-      </reloadable>
       <detail>
          <en>1. It specifies the path of lob. <fig></fig>
              2. If it is not specified, the default path is "Data file path".</en>
@@ -1317,10 +1297,6 @@
          <en>Large object meta file path</en>
          <cn>大对象元数据文件路径</cn>
       </description>
-      <reloadable>
-         <en>Take effect after restart</en>
-         <cn>重启生效</cn>
-      </reloadable>
       <detail>
          <en>1. It specifies the path of lob. <fig></fig>
              2. If it is not specified, the default path is the same with 'lobpath'.</en>
