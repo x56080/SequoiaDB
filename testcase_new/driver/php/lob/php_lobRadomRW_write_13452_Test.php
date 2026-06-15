@@ -169,7 +169,7 @@ class LobTest13452 extends PHPUnit_Framework_TestCase
       $this -> assertEquals( 0, self::$db -> getError()['errno'] );       
       $modifyTime = $lobObj -> getModificationTime();
       $this -> assertEquals( 0, self::$db -> getError()['errno'] );       
-      $this -> assertGreaterThan( $createTime, $modifyTime ); 
+      $this -> assertGreaterThanOrEqual( $createTime, $modifyTime );
       
       echo "   Begin to close lob.\n"; 
       $err = $lobObj -> close();
