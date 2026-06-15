@@ -60,6 +60,7 @@ preInstallAction:
         - '${SYS_ORIGIN_DIR}/bin/sdbcmtop'
         - '${SYS_ORIGIN_DIR}/tools/script/generate_version_file.sh'
         - '${SYS_ORIGIN_DIR}/tools/script/install_file_changes.sh'
+        - '${SYS_ORIGIN_DIR}/tools/script/preserve_sdbcm_conf.sh'
         - '${SYS_ORIGIN_DIR}/tools/script/service_control.sh'
         - '${SYS_ORIGIN_DIR}/compatible.sh'
         - '${SYS_ORIGIN_DIR}/sequoiadb'
@@ -70,6 +71,12 @@ preInstallAction:
     - name: generateVersionFile
       cmd: '${SYS_TMP_DIR}/generate_version_file.sh'
       scope: upgrade 
+      enable: true
+    - name: backupSdbcmConf
+      cmd: '${SYS_TMP_DIR}/preserve_sdbcm_conf.sh'
+      parameters:
+        - name: backup
+      scope: reinstall
       enable: true
 installCheck:
   enable: true
@@ -137,6 +144,12 @@ postInstallAction:
     - name: changeOMTool
       cmd: '${SYS_TMP_DIR}/install_file_changes.sh'
       scope: all
+      enable: true
+    - name: mergeSdbcmConf
+      cmd: '${SYS_TMP_DIR}/preserve_sdbcm_conf.sh'
+      parameters:
+        - name: merge
+      scope: reinstall
       enable: true
     - name: startService
       cmd: '${SYS_TMP_DIR}/service_control.sh'

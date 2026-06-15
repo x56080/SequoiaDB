@@ -3189,6 +3189,7 @@ sequoiadb/tools/script
 sequoiadb/tools/script/service_control.sh
 sequoiadb/tools/script/generate_version_file.sh
 sequoiadb/tools/script/install_file_changes.sh
+sequoiadb/tools/script/preserve_sdbcm_conf.sh
 sequoiadb/tools/sequoias3
 sequoiadb/tools/sequoias3/sequoias3.sh
 sequoiadb/tools/sequoias3/config

@@ -331,6 +331,7 @@ def package_db(opt_mgr, ver):
    copy_file(os.path.join(ROOT_DIR, 'script/sdbcm.service'), install_dir)
    copy_file(os.path.join(ROOT_DIR, 'script/generate_version_file.sh'), os.path.join(install_dir, 'tools/script'))
    copy_file(os.path.join(ROOT_DIR, 'script/install_file_changes.sh'), os.path.join(install_dir, 'tools/script'))
+   copy_file(os.path.join(ROOT_DIR, 'script/preserve_sdbcm_conf.sh'), os.path.join(install_dir, 'tools/script'))
    copy_file(os.path.join(ROOT_DIR, 'script/service_control.sh'), os.path.join(install_dir, 'tools/script'))
    copy_file(os.path.join(ROOT_DIR, 'driver/C#.Net/build/release/sequoiadb.dll'), os.path.join(install_dir, 'CSharp'))
    # copy the php base on system os or arch
@@ -392,6 +393,7 @@ def package_db(opt_mgr, ver):
    chmod(os.path.join(install_dir, 'preUninstall.sh'), 'a+x')
    chmod(os.path.join(install_dir, 'bin/sdbomtool'), 'u+s')
    chmod(os.path.join(install_dir, 'tools/script/generate_version_file.sh'), 'u+x')
+   chmod(os.path.join(install_dir, 'tools/script/preserve_sdbcm_conf.sh'), 'u+x')
    chmod(os.path.join(install_dir, 'tools/script/service_control.sh'), 'u+x')
 
    # setcap
