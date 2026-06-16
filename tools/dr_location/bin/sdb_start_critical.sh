@@ -93,33 +93,8 @@ function main() {
         esac
     done
 
-    # 检查配置文件
-    if [[ "" == "$configJs" && ! -f "$PROJECT_ROOT/config/config.js" ]]; then
-        echo "[ERROR] Config file not found: $PROJECT_ROOT/config/config.js, please run \"cp $PROJECT_ROOT/config/config.js.sample $PROJECT_ROOT/config/config.js\""
-        return 1
-    fi
-
-    # 不能同时指定 -l,--location 和 -H,--hostname
-    if [[ "" != "$locations" && "" != "$hostnames" ]]; then
-        echo "[ERROR] Parameter \"-l,--location\" and \"-H,--hostname\" cannot be used at the same time"
-        return 1
-    fi
-
-    # 检查 sdb 安装目录
-    if [ ! -f /etc/default/sequoiadb ]; then
-        echo "[ERROR] /etc/default/sequoiadb not found"
-        return 1
-    fi
-
-    . /etc/default/sequoiadb
-    sdb_shell="$INSTALL_DIR/bin/sdb"
-    if [ ! -f "$sdb_shell" ]; then
-        echo "[ERROR] $sdb_shell not found"
-        return 1
-    fi
-
-    SCRIPT_DIR=$(cd "$(dirname $0)" && pwd)/../
-    test $? -ne 0 && echo "[ERROR] failed to get script dir from $0" && return 1
+    test ! -f "$PROJECT_ROOT/lib/common.sh" && echo "[ERROR] Failed to load $PROJECT_ROOT/lib/common.sh" && return 1
+    source "$PROJECT_ROOT/lib/common.sh"
 
     # 构建参数列表，用 ; 分隔
     local cmd="var scriptDir=\"$SCRIPT_DIR\"; var mode=\"start_critical\""

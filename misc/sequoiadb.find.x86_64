@@ -4188,6 +4188,7 @@ sequoiadb/tools/dr_location/README.md
 sequoiadb/tools/dr_location/config
 sequoiadb/tools/dr_location/config/config.js.sample
 sequoiadb/tools/dr_location/lib
+sequoiadb/tools/dr_location/lib/common.sh
 sequoiadb/tools/dr_location/lib/lib.js
 sequoiadb/tools/dr_location/bin
 sequoiadb/tools/dr_location/bin/main.js

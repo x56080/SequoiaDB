@@ -16,16 +16,16 @@ sdbCm = 11790
 // 可以读取 show 模式输出的文本文件格式作为输入
 // ========================================
 initLocationObject = {
-    "GuangZhou": [
+    "location1": [
         "host1", "host2", "host3", "host4", "host5", "host6", "host7", "host8", "host9", "host10"
     ],
-    "ShenZhen": [
+    "location2": [
         "host11", "host12", "host13", "host14", "host15"
     ]
 };
 
 // 不为空时，使用 sdb_init_location.sh init 后将设置 activeLocation 为配置值
-activeLocation = ""
+activeLocation = "location1"
 
 // ========================================
 // 切主配置，执行 init、start/stop mode、restore cluster 操作时按照模式进行切主

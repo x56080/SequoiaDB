@@ -256,13 +256,19 @@ function getGroupModeInfo() {
     return result;
 }
 
-// 处理节点信息，构造 {hostname:[nodename],groupname:[nodename]} 对象并返回
-function handleNodeInfo(nodeInfo) {
+// 处理节点信息，构造 {hostname:[nodename],groupname:[nodename],location:[groupname]} 对象并返回
+// flag -> 是否排除 coord 信息
+function handleNodeInfo(nodeInfo, flag) {
     var result = {};
     for (let i = 0; i < nodeInfo.length; i++) {
+        var groupname = nodeInfo[i].GroupName;
+        if (flag && groupname == "SYSCoord") {
+            continue;
+        }
+        var location = nodeInfo[i].Location;
         var hostname = nodeInfo[i].HostName;
         var nodename = nodeInfo[i].NodeName;
-        var groupname = nodeInfo[i].GroupName;
+
         if (result[hostname]) {
             result[hostname].push(nodename);
         } else {
@@ -272,6 +278,13 @@ function handleNodeInfo(nodeInfo) {
             result[groupname].push(nodename);
         } else {
             result[groupname] = [nodename];
+        }
+        if (result[location]) {
+        if (-1 == result[location].indexOf(groupname)) {
+                result[location].push(groupname);
+            }
+        } else {
+            result[location] = [groupname];
         }
     }
     return result;
@@ -299,7 +312,8 @@ function reelect(reelectLevel) {
     }
 
     println("[INFO] Executing reelect, reelectLevel: " + reelectLevel + " -> " +  filterLevel);
-
+    // 等待一会，避免前置操作未执行完成，导致切主不及预期
+    sleep(2000);
     try {
         // 展示预计切换的主节点
         var result = dc.reelectAnalyze({"FilterLevel": filterLevel}, false);
@@ -342,7 +356,7 @@ function checkNodes(mode) {
 
         // 处理主机与节点关系，后面用于判断主机上所有节点是否都处于某种状态
         var nodeInfo = getNodeInfo();
-        var groupNodeObj = handleNodeInfo(nodeInfo);
+        var groupNodeObj = handleNodeInfo(nodeInfo, false);
         var groupModeCursor = db.list(SDB_LIST_GROUPMODES, filter);
         var groupModeInfo = [];
         while (groupModeCursor.next()) {
@@ -1032,6 +1046,13 @@ function validateParameters() {
         errors.push("Parameter \"-l,--location\" and \"-H,--hostname\" cannot be used at the same time");
     }
 
+    // 检查 show 的 quiet 参数
+    if (typeof quiet === 'undefined') {
+        quiet = false;
+    } else if (typeof quiet !== 'boolean') {
+        errors.push("Parameter \"-q,--quiet\" must be boolean");
+    }
+
     if (errors.length > 0) {
         println("Parameter validation errors:");
         for (var i = 0; i < errors.length; i++) {
@@ -1077,7 +1098,7 @@ function handleShowInfoToOutputArray(locationAnalyzeInfo, groupModeInfo, reelect
     }
 
     // 处理主机与节点关系，后面用于判断主机上所有节点是否都处于某种状态
-    var hostNodeObj = handleNodeInfo(nodeInfo);
+    var hostNodeObj = handleNodeInfo(nodeInfo, true);
 
     // ------------- 处理 Location Info 表格 -------------
     var locationInfosheet = {"title": "[Location Layout Info]", "head": [[]], "content": []};
@@ -1283,9 +1304,9 @@ function handleShowInfoToOutputArray(locationAnalyzeInfo, groupModeInfo, reelect
             // 已合并 host 填入
             continue;
         }
-        // 忽略 coord 节点无法开启 mode
-        if (curHostNodeObj[hostName] >= hostNodeObj[hostName].length - 1) {
-            // 合并为 hostname 填入
+
+        if (curHostNodeObj[hostName] >= Math.round(hostNodeObj[hostName].length / 2)) {
+            // 一台机器上超过一半的节点处于 groupmode，合并为 hostname 填入
             mergeHost.push(hostName);
             modeInfosheet.content.push(["Host: " + hostName, nodeModeInfo[i].GroupMode, nodeModeInfo[i].StartTime, "" + nodeModeInfo[i].Duration, "" + nodeModeInfo[i].RemainingTime, nodeModeInfo[i].MaxKeepTime]);
         } else {
@@ -1351,7 +1372,7 @@ function handleShowInfoToOutputArray(locationAnalyzeInfo, groupModeInfo, reelect
     }
 
     // 节点异常 mode，主机中仅个别节点开启了 mode
-    abnormalInfosheet = {"title": "[Abnormal: Mixed GroupMode Info]", "head": [["NodeName", "NodeGroupMode", "HostMajorGroupMode"]], "content": []};
+    abnormalInfosheet = {"title": "[Abnormal: Node Not In GroupMode]", "head": [["HostName", "ServiceName"]], "content": []};
     var maintenanceArray = [];
     var criticalArray = [];
     // 如果部分节点未设置 location，并且开启了 mode ，在 dc.locationAnalyze() 中 GroupStatus 字段不包含这部分节点信息，需要单独处理
@@ -1392,34 +1413,121 @@ function handleShowInfoToOutputArray(locationAnalyzeInfo, groupModeInfo, reelect
     }
 
     // 计算处于 mode 的节点与所有节点的占比，若占比相同，normal > maintenance > critical
-    var keys = Object.keys(curHostNodeObj);
-    for (let i = 0; i < keys.length; i++){
-        var hostName = keys[i];
+    var abnromalObj = {};
+    for (let i in curHostNodeObj){
+        var hostName = i;
         var maintenanceNode = curHostNodeObj[hostName].maintenanceNode;
         var criticalNode = curHostNodeObj[hostName].criticalNode;
+        var allNormalNode = hostNodeObj[hostName];
         var maintenanceCount = maintenanceNode ? maintenanceNode.length : 0;
         var criticalCount = criticalNode ? criticalNode.length : 0;
-        var normalCount = hostNodeObj[hostName].length - maintenanceCount - criticalCount;
-        if (normalCount >= maintenanceCount && maintenanceCount >= criticalCount) {
-            // 多数节点正常
-            for (let j = 0; maintenanceCount != 0 && j < maintenanceNode.length; j++){
-                abnormalInfosheet.content.push([maintenanceNode[j], "maintenance", "normal"]);
-            }
-            for (let j = 0; criticalCount != 0 && j < criticalNode.length; j++){
-                abnormalInfosheet.content.push([criticalNode[j], "critical", "normal"]);
-            }
-        } else if (maintenanceCount >= normalCount && normalCount >= criticalCount) {
+        var index = -1;
+        if (0 != maintenanceCount && maintenanceCount >= criticalCount) {
             // 多数节点处于 maintenance
+            // 填入 critical 节点
             for (let j = 0; criticalCount != 0 && j < criticalNode.length; j++){
-                abnormalInfosheet.content.push([criticalNode[j], "critical", "maintenance"]);
+                if (null == abnromalObj[hostName]) {
+                    abnromalObj[hostName] = [criticalNode[j].split(':')[1]];
+                } else {
+                    abnromalObj[hostName].push(criticalNode[j].split(':')[1]);
+                }
+                index = allNormalNode.indexOf(criticalNode[j]);
+                if (-1 != index) {
+                    allNormalNode.splice(index, 1);
+                }
             }
-        } else {
+            // 填入剩下的普通节点
+            for (let j in allNormalNode) {
+                if (-1 == maintenanceNode.indexOf(allNormalNode[j])) {
+                    if (null == abnromalObj[hostName]) {
+                        abnromalObj[hostName] = [allNormalNode[j].split(':')[1]];
+                    } else {
+                        abnromalObj[hostName].push(allNormalNode[j].split(':')[1]);
+                    }
+                }
+            }
+        } else if (0 != criticalCount && criticalCount >= maintenanceCount) {
             // 多数节点处于 critical
+            // 填入 maintenance 节点
             for (let j = 0; maintenanceCount != 0 && j < maintenanceNode.length; j++){
-                abnormalInfosheet.content.push([maintenanceNode[j], "maintenance", "critical"]);
+                if (null == abnromalObj[hostName]) {
+                    abnromalObj[hostName] = [maintenanceNode[j].split(':')[1]];
+                } else {
+                    abnromalObj[hostName].push(maintenanceNode[j].split(':')[1]);
+                }
+                index = allNormalNode.indexOf(maintenanceNode[j]);
+                if (-1 != index) {
+                    allNormalNode.splice(index, 1);
+                }
+            }
+            // 填入剩下的普通节点
+            for (let j in allNormalNode) {
+                if (-1 == criticalNode.indexOf(allNormalNode[j])) {
+                    if (null == abnromalObj[hostName]) {
+                        abnromalObj[hostName] = [allNormalNode[j].split(':')[1]];
+                    } else {
+                        abnromalObj[hostName].push(allNormalNode[j].split(':')[1]);
+                    }
+                }
             }
         }
     }
+
+    for (let i in abnromalObj) {
+        abnormalInfosheet.content.push([i, "" + abnromalObj[i]]);
+    }
+
+    if (0 < abnormalInfosheet.content.length) {
+        outputArray.push(abnormalInfosheet);
+    }
+
+    abnormalInfosheet = {"title": "[Abnormal: Group Not In GroupMode]", "head": [["Location", "GroupName"]], "content": []};
+    // critical 异常 mode，开启 critical 的 location 中是否缺少了部分 group
+    abnromalObj = {};
+    var criticalObj = {};
+    for (let i in groupModeInfo){
+        var groupMode = groupModeInfo[i].GroupMode;
+        var properties = groupModeInfo[i].Properties;
+        var groupName = groupModeInfo[i].GroupName;
+        for (let j in properties){
+            var location = properties[j].Location;
+            if (null == location) {
+                continue;
+            }
+            if ("critical" == groupMode) {
+                if (null == criticalObj[location]) {
+                    criticalObj[location] = [groupName];
+                } else {
+                    criticalObj[location].push(groupName);
+                }
+            }
+        }
+    }
+
+    for (let i in criticalObj) {
+        var location = i;
+        var allGroup = hostNodeObj[location];
+        var curGroup = criticalObj[location];
+        // 对比 group 是否齐全
+        if (allGroup.length == curGroup.length) {
+            continue;
+        }
+
+        for (let j in allGroup) {
+            if (-1 == curGroup.indexOf(allGroup[j])) {
+                if (null == abnromalObj[location]) {
+                    abnromalObj[location] = [allGroup[j]];
+                } else {
+                    abnromalObj[location].push(allGroup[j]);
+                }            
+            }
+        }
+    }
+
+    for (let i in abnromalObj) {
+        abnormalInfosheet.content.push([i, "" + abnromalObj[i]]);
+    }
+
     if (0 < abnormalInfosheet.content.length) {
         outputArray.push(abnormalInfosheet);
     }
@@ -1728,6 +1836,18 @@ function executeShow() {
         outputSheet(outputArray, showFile);
         println("   Output location file: \"" + defaultLocationFile + "\"");
         println("   Output show file: \"" + showFile + "\"");
+        if (!quiet) {
+            try {
+                var cmd = new Cmd();
+                var result = cmd.run("cat " + showFile);
+                println(separator);
+                println("[INFO] Show file content:");
+                println(result);
+                println(separator);
+            } catch (e) {
+                // 忽略错误
+            }
+        }
 
         println("[INFO] Show information successfully");
         println(separator);
@@ -1766,7 +1886,7 @@ function executeCheck() {
         println("ok");
 
         // activeLocation 发生改变，并且切主参数不是 1 或者 2，打屏提醒用户
-        if (locationAnalyzeInfo.ActiveLocation != activeLocation && (1 != reelectLevel || 2 != reelectLevel)) {
+        if (locationAnalyzeInfo.ActiveLocation != activeLocation && (1 != reelectLevel && 2 != reelectLevel)) {
             println("   [WARNING] Cluster activeLocation will be changed: \"" + locationAnalyzeInfo.ActiveLocation + "\" -> \"" + activeLocation + "\", but reelectLevel does not in [1, 2], it will not reelect caused by activeLocation after \"init\"");
         }
 
@@ -1848,7 +1968,7 @@ function executeInit() {
         // 设置 ActiveLocation 成功，但 reelectLevel 不为 1 或者 2 ，提醒用户
         try {
             result = JSON.parse(result);
-            if (0 != result.SucceedNum && (1 != reelectLevel || 2 != reelectLevel)) {
+            if (0 != result.SucceedNum && (1 != reelectLevel && 2 != reelectLevel)) {
                 println("[WARNING] Cluster activeLocation changed to \"" + activeLocation + "\", but reelectLevel does not in [1, 2], it will not reelect caused by activeLocation");
             }
         } catch (e) {
@@ -2559,3 +2679,4 @@ function executeRestore() {
 
 // 调用主函数
 main();
+println("");
