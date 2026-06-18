@@ -39,22 +39,34 @@ public class Connection27524 extends SdbTestBase {
     @Test
     public void test() throws Exception {
         // test a：不开启SSL,指定setUseSSL()
-        ConfigOptions configOption = new ConfigOptions();
-        configOption.setUseSSL( true );
+        // 客户端开启 SSL 而服务端未开启，建连应失败并返回 SDB_NETWORK。
+        // 使用较短的连接超时，确保 SSL 握手在连接池等待超时（默认 5s）之前
+        // 快速失败，从而拿到 SDB_NETWORK 而非 SDB_TIMEOUT。
+        ConfigOptions sslMismatchOpt = new ConfigOptions();
+        sslMismatchOpt.setUseSSL( true );
+        sslMismatchOpt.setConnectTimeout( 2000 );
+        sslMismatchOpt.setMaxAutoConnectRetryTime( 2000 );
         try {
             ds = SequoiadbDatasource.builder()
                     .serverAddress( SdbTestBase.coordUrl )
                     .userConfig( new UserConfig() )
-                    .configOptions( configOption ).build();
+                    .configOptions( sslMismatchOpt ).build();
             sdb = ds.getConnection();
             Assert.fail( "unexpect result" );
         } catch ( BaseException e ) {
             if ( e.getErrorCode() != SDBError.SDB_NETWORK.getErrorCode() ) {
                 throw e;
             }
+        } finally {
+            if ( ds != null ) {
+                ds.close();
+                ds = null;
+            }
         }
 
         // test b：开启SSL,指定setUseSSL()
+        ConfigOptions configOption = new ConfigOptions();
+        configOption.setUseSSL( true );
         BSONObject sslConf = new BasicBSONObject();
         sslConf.put( "usessl", true );
         db.updateConfig( sslConf );

@@ -554,7 +554,8 @@ public class SequoiadbDatasource {
                     "new %s", oldOptStr, dsOpt.toString()));
             // update network block timeout
             _normalNwOpt.setSocketTimeout(_dsOpt.getNetworkBlockTimeout());
-            _internalNwOpt.setSocketTimeout(_dsOpt.getNetworkBlockTimeout());
+            // keep the fast path's read timeout short (see init for details)
+            _internalNwOpt.setSocketTimeout(minTimeOut);
 
             // when _maxCount is set to 0, disable data source and return
             if (_dsOpt.getMaxCount() == 0) {
@@ -974,7 +975,6 @@ public class SequoiadbDatasource {
         // set the network block timeout inside the connection pool
         // to avoid socket stuck due to network errors.
         _normalNwOpt.setSocketTimeout(_dsOpt.getNetworkBlockTimeout());
-        _internalNwOpt.setSocketTimeout(_dsOpt.getNetworkBlockTimeout());
         // for fast connection, no need to set retry
         if (_normalNwOpt.getConnectTimeout() == 0) {
             minTimeOut = FAST_CONNECTION_TIME;
@@ -983,6 +983,13 @@ public class SequoiadbDatasource {
         }
         _internalNwOpt.setConnectTimeout(minTimeOut);
         _internalNwOpt.setMaxAutoConnectRetryTime(0);
+        // The fast path is only meant to quickly skip unavailable addresses. The
+        // socket read while establishing the connection (e.g. a stuck SSL
+        // handshake or sysinfo/authentication response) must therefore be bounded
+        // by the short fast-connection time instead of the much larger
+        // networkBlockTimeout, otherwise a single stuck read could block far
+        // longer than intended.
+        _internalNwOpt.setSocketTimeout(minTimeOut);
 
         if (!addrMgr.getLocation().isEmpty()) {
             updateLocationInfo();
@@ -1767,6 +1774,16 @@ public class SequoiadbDatasource {
 
         netOpt.setConnectTimeout((int) connTimeout);
         netOpt.setMaxAutoConnectRetryTime(retryTimeOut);
+
+        // The socket read while establishing the connection (e.g. SSL handshake
+        // or sysinfo/authentication response) must not block longer than the
+        // time allotted to establish this single connection. Otherwise one stuck
+        // read could consume the whole pool waiting budget and surface as
+        // SDB_TIMEOUT instead of the real SDB_NETWORK error.
+        int socketTimeout = netOpt.getSocketTimeout();
+        if (socketTimeout == 0 || socketTimeout > connTimeout) {
+            netOpt.setSocketTimeout((int) connTimeout);
+        }
     }
 }
 
