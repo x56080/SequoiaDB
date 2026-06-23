@@ -282,7 +282,7 @@
                      getCoordStatus( nodeInfo, nodeInfo['HostName'], nodeInfo['ServiceName'] ) ;
                   }
                   // 优先使用健康快照修正节点运行状态。$SNAPSHOT_CL 不能稳定覆盖 catalog/coord 异常
-                  if( typeof( healthErrMap[nodesList[index]['NodeName']] ) != 'undefinded' )
+                  if( typeof( healthErrMap[nodesList[index]['NodeName']] ) != 'undefined' )
                   {
                      nodesList[index]['Status'] = false;
                      nodesList[index]['Flag'] = healthErrMap[nodesList[index]['NodeName']];
