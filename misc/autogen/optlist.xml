@@ -3164,7 +3164,7 @@
       </detail>
       <type>int</type>
       <default>100000</default>
-      <typeofweb>int</typeofweb>
+      <typeofweb>num</typeofweb>
    </opt>
 
    <opt>
@@ -3190,7 +3190,7 @@
       </detail>
       <type>int</type>
       <default>100</default>
-      <typeofweb>int</typeofweb>
+      <typeofweb>num</typeofweb>
    </opt>
 
    <opt>
@@ -3216,7 +3216,7 @@
       </detail>
       <type>int</type>
       <default>30</default>
-      <typeofweb>int</typeofweb>
+      <typeofweb>num</typeofweb>
    </opt>
 
    <opt>
@@ -3263,7 +3263,7 @@
       </detail>
       <type>int</type>
       <default>10000</default>
-      <typeofweb>int</typeofweb>
+      <typeofweb>num</typeofweb>
    </opt>
 
    <opt>
@@ -3287,7 +3287,7 @@
       </detail>
       <type>int</type>
       <default>50</default>
-      <typeofweb>int</typeofweb>
+      <typeofweb>num</typeofweb>
    </opt>
 
    <opt>
@@ -3577,7 +3577,7 @@
       </detail>
       <type>int</type>
       <default>2</default>
-      <typeofweb>int</typeofweb>
+      <typeofweb>num</typeofweb>
    </opt>
 
    <opt>
@@ -3605,7 +3605,7 @@
       </detail>
       <type>int</type>
       <default>3</default>
-      <typeofweb>int</typeofweb>
+      <typeofweb>num</typeofweb>
    </opt>
 
    <opt>
@@ -3625,7 +3625,7 @@
       </detail>
       <type>int</type>
       <default>15</default>
-      <typeofweb>int</typeofweb>
+      <typeofweb>num</typeofweb>
    </opt>
 
    <opt>
@@ -3645,7 +3645,7 @@
       </detail>
       <type>int</type>
       <default>10</default>
-      <typeofweb>int</typeofweb>
+      <typeofweb>num</typeofweb>
    </opt>
 
    <opt>
