@@ -1,7 +1,7 @@
 [^_^]:
     SequoiaDB文档中心首页
 
-> [SequoiaDB 3.6 版本说明][release_note]
+> [SequoiaDB 5.8 版本说明][release_note]
 
 [^_^]:
     一句话说明巨杉数据库的定位与本文的价值。
