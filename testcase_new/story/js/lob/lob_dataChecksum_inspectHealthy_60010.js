@@ -43,7 +43,7 @@ function test ()
       var out;
       try
       {
-         out = lobInspectNode( node.dbpath, csName );
+         out = lobInspectNode( node.HostName, node.dbpath, csName );
       }
       finally
       {

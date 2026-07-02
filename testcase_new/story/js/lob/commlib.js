@@ -174,25 +174,31 @@ function lobDataPageOffset ( pageID )
    return LOB_DMS_HEADER_SZ + LOB_PAGE_SIZE * pageID + 100;
 }
 
-// 停节点 -> dd 篡改 lobd 指定数据页 1 字节 -> 起节点。作用于该组所有副本,
-// 使运行时 getLob(开启 read 校验)在任意主节点上都能触发 CRC 报错。
-// lobdName 形如 <csName>.<seq>.lobd,seq 默认 1。
-function lobCorruptDataPage ( db, groupName, csName, pageID, seq )
+// dd 篡改指定主机上 lobd 的某数据页 1 字节(几乎必然与原字节不同 -> CRC 失配)。
+// 经该主机 sdbcm 的 Remote Cmd 执行,节点在远端也能正确注入。
+function lobCorruptNodeDataPage ( hostName, dbpath, csName, pageID, seq )
 {
    if( undefined == seq ) { seq = 1; }
    var offset = lobDataPageOffset( pageID );
+   var lobdFile = dbpath + "/" + csName + "." + seq + ".lobd";
+   var cmd = new Remote( hostName, CMSVCNAME ).getCmd();
+   cmd.run( "printf '\\xFF' | dd of=" + lobdFile + " bs=1 seek=" + offset +
+            " count=1 conv=notrunc 2>/dev/null" );
+}
+
+// 停节点 -> dd 篡改 lobd 指定数据页 1 字节 -> 起节点。作用于该组所有副本,
+// 使运行时 getLob(开启 read 校验)在任意主节点上都能触发 CRC 报错。
+// dd 经各节点所在主机的 sdbcm 执行(Remote),支持节点分布在远端主机。
+function lobCorruptDataPage ( db, groupName, csName, pageID, seq )
+{
    var nodes = lobGetGroupNodes( db, groupName );
    var rg = db.getRG( groupName );
-   var cmd = new Cmd();
    for( var i = 0; i < nodes.length; ++i )
    {
       var node = nodes[i];
       var dnode = rg.getNode( node.HostName, node.svcname );
       dnode.stop();
-      var lobdFile = node.dbpath + "/" + csName + "." + seq + ".lobd";
-      // 向该数据页写入 0xFF 一个字节(几乎必然与原字节不同 -> CRC 失配)
-      cmd.run( "printf '\\xFF' | dd of=" + lobdFile + " bs=1 seek=" + offset +
-               " count=1 conv=notrunc 2>/dev/null" );
+      lobCorruptNodeDataPage( node.HostName, node.dbpath, csName, pageID, seq );
       dnode.start();
    }
    // 等待节点重新拉起、主选出
@@ -203,10 +209,11 @@ function lobCorruptDataPage ( db, groupName, csName, pageID, seq )
 // 停机运行避免读到打开中的文件。-C true 显式开启 lob 数据页 crc 校验
 // (默认关闭以免拖慢常规 inspect)。指定 csName 时用 -c 只检该 CS,
 // 避免扫到其它/系统 CS 导致 "Page CRC Check" 多段、解析错行。
-function lobInspectNode ( dbpath, csName )
+// sdbdmsdump 经节点所在主机的 sdbcm 执行(Remote),支持远端节点。
+function lobInspectNode ( hostName, dbpath, csName )
 {
-   var installPath = commGetInstallPath();
-   var cmd = new Cmd();
+   var installPath = commGetRemoteInstallPath( hostName, CMSVCNAME );
+   var cmd = new Remote( hostName, CMSVCNAME ).getCmd();
    var cmdStr = installPath + "/bin/sdbdmsdump -d " + dbpath +
                 " -a inspect -b true -C true";
    if( undefined != csName )

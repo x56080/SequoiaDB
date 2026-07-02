@@ -47,20 +47,20 @@ function test ()
       var rg = db.getRG( groupName );
 
       // 逐副本:停机 -> 篡改数据页 -> 停机态跑inspect断言检出 -> 起机
-      var offset = lobDataPageOffset( corruptPageID );
+      // (dd/inspect 均经节点所在主机的 sdbcm 执行,支持远端节点)
       var inspectChecked = false;
       for( var i = 0; i < nodes.length; ++i )
       {
          var dnode = rg.getNode( nodes[i].HostName, nodes[i].svcname );
          dnode.stop();
-         var lobdFile = nodes[i].dbpath + "/" + csName + ".1.lobd";
-         cmd.run( "printf '\\xFF' | dd of=" + lobdFile + " bs=1 seek=" + offset +
-                  " count=1 conv=notrunc 2>/dev/null" );
+         lobCorruptNodeDataPage( nodes[i].HostName, nodes[i].dbpath,
+                                 csName, corruptPageID );
 
          // 离线inspect:应报Fail>=1且含 actual 明细(仅需在一个节点上断言)
          if( !inspectChecked )
          {
-            var out = lobInspectNode( nodes[i].dbpath, csName );
+            var out = lobInspectNode( nodes[i].HostName, nodes[i].dbpath,
+                                      csName );
             var fail = lobParseCrcFail( out );
             assert.notEqual( -1, fail, "inspect未输出Page CRC Check行:\n" + out );
             assert.equal( true, fail >= 1,
